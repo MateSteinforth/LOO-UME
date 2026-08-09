@@ -1,5 +1,6 @@
 # Generated CAD outputs
 /build/
+/.tools/
 *.stl
 *.3mf
 *.amf
