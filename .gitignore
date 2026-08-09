@@ -1,0 +1,16 @@
+# Generated CAD outputs
+/build/
+*.stl
+*.3mf
+*.amf
+*.off
+*.csg
+
+# OpenSCAD/editor temporary files
+*.autosave
+*.tmp
+*~
+.DS_Store
+
+# FreeCAD recovery/backup files
+*.FCStd1

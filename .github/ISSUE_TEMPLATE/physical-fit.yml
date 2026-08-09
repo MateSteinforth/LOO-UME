@@ -1,0 +1,39 @@
+name: Physical fit test
+description: Record a printed part's dimensions, fit, and required changes.
+title: "Physical fit: "
+labels:
+  - physical-test
+body:
+  - type: input
+    id: commit
+    attributes:
+      label: Commit or tag
+      placeholder: abc1234 or triangle-fit-v1
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Part
+      options:
+        - triangle
+        - pentagon_u
+        - middle_panel_connector
+    validations:
+      required: true
+  - type: input
+    id: printer
+    attributes:
+      label: Printer, material, and layer height
+  - type: textarea
+    id: result
+    attributes:
+      label: Fit result
+      description: Record passes, failures, measurements, and photographs.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Required change
+      description: State the requested dimensional change and what must not move.

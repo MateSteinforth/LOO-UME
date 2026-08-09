@@ -1,0 +1,57 @@
+name: Render OpenSCAD parts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        part:
+          - triangle
+          - pentagon_u
+          - middle_panel_connector
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install OpenSCAD
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes openscad xvfb
+
+      - name: Render STL
+        run: |
+          mkdir -p build
+          openscad --hardwarnings \
+            -o "build/${{ matrix.part }}.stl" \
+            "parts/${{ matrix.part }}.scad"
+
+      - name: Render preview
+        run: |
+          xvfb-run -a openscad \
+            --imgsize=1200,900 \
+            --viewall \
+            --autocenter \
+            --render \
+            -o "build/${{ matrix.part }}.png" \
+            "parts/${{ matrix.part }}.scad"
+
+      - name: Upload printable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.part }}
+          path: |
+            build/${{ matrix.part }}.stl
+            build/${{ matrix.part }}.png
+          if-no-files-found: error
+          retention-days: 30
