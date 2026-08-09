@@ -51,13 +51,18 @@ openscad -o build/middle_panel_connector.stl parts/middle_panel_connector.scad
 
 Generated STL and PNG files belong in `build/` and are intentionally ignored.
 GitHub Actions renders all three models on every push and pull request and
-publishes the generated files as workflow artifacts.
+publishes the generated files as workflow artifacts. Successful builds on
+`main` also replace the assets in the single rolling
+[Latest Prototype](https://github.com/MateSteinforth/led-rhombicosidodecahedron/releases/tag/latest-prototype)
+release. That stable page shows the current PNG previews and STL downloads;
+Git history remains the version history.
 
 ## Physical iteration workflow
 
-1. Make one focused change to a canonical source file.
-2. Render the part and inspect assembly mode where relevant.
-3. Open a pull request and download the generated STL artifact.
-4. Record print settings and fit results with the physical-fit issue template.
-5. Link the physical test to the commit or pull request.
-6. Tag known-good printed milestones instead of copying source files.
+1. Print the current model and record the physical fit result.
+2. Discuss one focused correction and change the canonical source file.
+3. Wait for the OpenSCAD workflow to succeed.
+4. Inspect the previews on the **Latest Prototype** release from a phone.
+5. If the edit is correct, download and print the current STL; otherwise,
+   correct the source and render again.
+6. Repeat without creating numbered source or generated-file copies.

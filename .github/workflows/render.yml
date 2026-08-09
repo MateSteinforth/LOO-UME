@@ -55,3 +55,70 @@ jobs:
             build/${{ matrix.part }}.png
           if-no-files-found: error
           retention-days: 30
+
+  publish-latest-prototype:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download rendered parts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Publish rolling prototype release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: latest-prototype
+          RELEASE_TITLE: Latest Prototype
+          RELEASE_NOTES: |
+            This rolling release contains the current printable models from ${{ github.sha }}.
+
+            Git history preserves every source revision. The assets here are replaced only after all OpenSCAD renders succeed.
+
+            ## Triangle
+            ![Triangle preview](https://github.com/${{ github.repository }}/releases/download/latest-prototype/triangle.png)
+
+            [Download triangle STL](https://github.com/${{ github.repository }}/releases/download/latest-prototype/triangle.stl)
+
+            ## Pentagon U-frame
+            ![Pentagon U-frame preview](https://github.com/${{ github.repository }}/releases/download/latest-prototype/pentagon_u.png)
+
+            [Download pentagon U-frame STL](https://github.com/${{ github.repository }}/releases/download/latest-prototype/pentagon_u.stl)
+
+            ## Middle-panel connector
+            ![Middle-panel connector preview](https://github.com/${{ github.repository }}/releases/download/latest-prototype/middle_panel_connector.png)
+
+            [Download middle-panel connector STL](https://github.com/${{ github.repository }}/releases/download/latest-prototype/middle_panel_connector.stl)
+        run: |
+          git tag --force "$RELEASE_TAG" "$GITHUB_SHA"
+          git push --force origin "refs/tags/$RELEASE_TAG"
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" \
+              --title "$RELEASE_TITLE" \
+              --notes "$RELEASE_NOTES"
+          else
+            gh release create "$RELEASE_TAG" \
+              --verify-tag \
+              --title "$RELEASE_TITLE" \
+              --notes "$RELEASE_NOTES"
+          fi
+
+          gh release upload "$RELEASE_TAG" \
+            release/triangle.stl \
+            release/triangle.png \
+            release/pentagon_u.stl \
+            release/pentagon_u.png \
+            release/middle_panel_connector.stl \
+            release/middle_panel_connector.png \
+            --clobber
