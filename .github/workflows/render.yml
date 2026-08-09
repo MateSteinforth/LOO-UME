@@ -86,17 +86,17 @@ jobs:
             Git history preserves every source revision. The assets here are replaced only after all OpenSCAD renders succeed.
 
             ## Triangle
-            ![Triangle preview](https://github.com/${{ github.repository }}/releases/download/latest-prototype/triangle.png)
+            [Open triangle preview](https://github.com/${{ github.repository }}/blob/generated-previews/triangle.png)
 
             [Download triangle STL](https://github.com/${{ github.repository }}/releases/download/latest-prototype/triangle.stl)
 
             ## Pentagon U-frame
-            ![Pentagon U-frame preview](https://github.com/${{ github.repository }}/releases/download/latest-prototype/pentagon_u.png)
+            [Open pentagon U-frame preview](https://github.com/${{ github.repository }}/blob/generated-previews/pentagon_u.png)
 
             [Download pentagon U-frame STL](https://github.com/${{ github.repository }}/releases/download/latest-prototype/pentagon_u.stl)
 
             ## Middle-panel connector
-            ![Middle-panel connector preview](https://github.com/${{ github.repository }}/releases/download/latest-prototype/middle_panel_connector.png)
+            [Open middle-panel connector preview](https://github.com/${{ github.repository }}/blob/generated-previews/middle_panel_connector.png)
 
             [Download middle-panel connector STL](https://github.com/${{ github.repository }}/releases/download/latest-prototype/middle_panel_connector.stl)
         run: |
@@ -122,3 +122,20 @@ jobs:
             release/middle_panel_connector.stl \
             release/middle_panel_connector.png \
             --clobber
+
+      - name: Publish mobile preview branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          preview_dir="$RUNNER_TEMP/generated-previews"
+          mkdir -p "$preview_dir"
+          cp release/*.png "$preview_dir/"
+          gh auth setup-git
+
+          git -C "$preview_dir" init --initial-branch=generated-previews
+          git -C "$preview_dir" config user.name github-actions
+          git -C "$preview_dir" config user.email github-actions@github.com
+          git -C "$preview_dir" add .
+          git -C "$preview_dir" commit -m "Preview ${GITHUB_SHA}"
+          git -C "$preview_dir" remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -C "$preview_dir" push --force origin generated-previews
