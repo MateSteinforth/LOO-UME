@@ -1,0 +1,60 @@
+# Software architecture
+
+This document records the agreed design. Firmware implementation starts after
+the exact controller board and pins are selected and one panel establishes the
+three mapping facts listed below.
+
+## Hardware baseline
+
+- 42 rigid `WS2812B-64` panels: 8 x 8 RGB pixels, 5 V, 64 pixels each.
+- 2,688 pixels total: 30 square-face panels and 12 pentagon-centre panels.
+- One ESP32-class controller running WLED, with Ethernet, an I2S microphone,
+  and four level-shifted data outputs. The exact board and GPIO assignments are
+  not yet selected.
+- Output lengths are 11, 10, 11, and 10 panels: 704, 640, 704, and 640 pixels.
+- Two independent 5 V / 40 A power domains each feed two outputs. Grounds are
+  common; positive rails remain separate.
+
+Power is injected through fused parallel branches. Panel `V+` and `V-`
+pass-through pads must not carry the accumulated current of a long chain.
+WLED per-output brightness limiting is a secondary safeguard, not a substitute
+for correct wiring and fusing.
+
+## Operating modes
+
+At startup WLED loads a saved custom audio-reactive preset. An incoming DDP or
+Art-Net stream takes realtime control; when the stream times out, WLED returns
+to the standalone preset. Controls must expose power, brightness, preset, and
+realtime override through WLED's normal web UI and JSON API. Wired Ethernet is
+preferred for realtime input.
+
+Custom effects belong in a WLED usermod, not in patched WLED core files. Pin
+the WLED release used for production builds.
+
+## Mapping
+
+The canonical map has one record per LED and joins:
+
+- panel ID and panel-local `(x, y)`;
+- world-space `(x, y, z)` and equirectangular `(u, v)`;
+- controller output, chain position, and physical wire index.
+
+External renderers sample their image at each LED's UV coordinate and send RGB
+values in physical wire order. A generated `ledmap.json` lets WLED's standalone
+effects follow the same sculpture layout.
+
+The panel's RGB color order, pixel-zero corner, and row/column serpentine order
+remain bench-test facts. Do not encode them as final until a real panel passes
+a numbered diagnostic test. Panel placement, orientation, output assignment,
+and chain position also remain data rather than effect-code constants.
+
+## Build and CI
+
+CI will validate the 42-panel/2,688-pixel map, build the usermod against a
+pinned WLED release with PlatformIO, and upload the flashable binary plus its
+build metadata as artifacts. It will not flash hardware. Firmware binaries and
+device credentials are never committed.
+
+The implementation belongs under `firmware/` and will contain the pinned WLED
+build configuration, sculpture usermod, canonical mapping data, map generator,
+and mapping tests. See `firmware/AGENTS.md` before changing it.

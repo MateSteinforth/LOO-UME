@@ -12,6 +12,13 @@ The source geometry was migrated from the project's
 Git history is the version history; do not create numbered copies such as
 `triangle_v2.scad`.
 
+## Software and firmware
+
+One ESP32 running WLED drives all 2,688 WS2812B pixels over four parallel
+outputs. It runs custom audio-reactive effects locally and accepts realtime DDP
+or Art-Net data. See [docs/software.md](docs/software.md) for the controller,
+mapping, behavior, power-safety, and CI design.
+
 ## Canonical printable parts
 
 | Source | Quantity | Purpose |
