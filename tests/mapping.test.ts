@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createPanelizedSculptureMapping,
   createUniformSphereMapping,
   validateMapping,
   type LedMapping,
@@ -28,10 +29,67 @@ describe("LED mapping", () => {
     }
   });
 
+  it("creates 42 explicit 8x8 panels on the sculpture topology", () => {
+    const mapping = createPanelizedSculptureMapping();
+    const result = validateMapping(mapping, 2688);
+
+    expect(result).toEqual({ valid: true, errors: [] });
+    expect(mapping.topology).toBe("panelized-sculpture");
+    expect(mapping.status).toBe("provisional");
+    expect(mapping.entries).toHaveLength(2688);
+    expect(mapping.panels).toHaveLength(42);
+
+    const squarePanels = mapping.panels.filter(
+      (panel) => panel.faceType === "square-face",
+    );
+    const pentagonPanels = mapping.panels.filter(
+      (panel) => panel.faceType === "pentagon-centre",
+    );
+    expect(squarePanels).toHaveLength(30);
+    expect(pentagonPanels).toHaveLength(12);
+
+    for (const panel of mapping.panels) {
+      expect(panel.ledIndices).toHaveLength(64);
+      expect(panel.transformStatus).toBe("generated-provisional");
+      expect(panel.pixelOrder.status).toBe("unknown");
+      expect(panel.wiring.status).toBe("unassigned");
+      expect(panel.rotationDegrees).toBeNull();
+      expect(panel.mirrored).toBeNull();
+      expect(panel.neighborPanelIds).toHaveLength(
+        panel.faceType === "square-face" ? 2 : 5,
+      );
+
+      const panelEntries = mapping.entries.filter(
+        (entry) => entry.panelId === panel.id,
+      );
+      const coordinates = new Set(
+        panelEntries.map(
+          (entry) => `${entry.panelPixelX},${entry.panelPixelY}`,
+        ),
+      );
+      expect(panelEntries).toHaveLength(64);
+      expect(coordinates.size).toBe(64);
+    }
+
+    const square = squarePanels[0]!;
+    const neighboringPentagon = mapping.panels.find(
+      (panel) => panel.id === square.neighborPanelIds[0],
+    )!;
+    const dot =
+      square.normal.x * neighboringPentagon.normal.x +
+      square.normal.y * neighboringPentagon.normal.y +
+      square.normal.z * neighboringPentagon.normal.z;
+    const angleDegrees = (Math.acos(dot) * 180) / Math.PI;
+    expect(angleDegrees).toBeCloseTo(31.717474, 5);
+  });
+
   it("reports duplicate and out-of-range indices", () => {
     const mapping: LedMapping = {
       id: "bad",
       status: "provisional",
+      topology: "custom",
+      panels: [],
+      notes: [],
       entries: [
         {
           physicalIndex: 0,

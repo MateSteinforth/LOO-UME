@@ -1,5 +1,9 @@
 import "./styles.css";
-import { createUniformSphereMapping, validateMapping } from "./LedMapping";
+import {
+  createPanelizedSculptureMapping,
+  createUniformSphereMapping,
+  validateMapping,
+} from "./LedMapping";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { WledEngine } from "./WledEngine";
 
@@ -28,7 +32,7 @@ app.innerHTML = `
       <section class="viewer-panel" aria-label="3D LED sphere">
         <div id="viewer" class="viewer"></div>
         <div class="viewer-overlay viewer-overlay--top">
-          <span class="provisional-tag">PROVISIONAL SPHERE LUT</span>
+          <span id="mapping-tag" class="provisional-tag">PROVISIONAL 42-PANEL TOPOLOGY</span>
           <span>Drag to orbit · Scroll to zoom</span>
         </div>
         <div class="viewer-overlay viewer-overlay--bottom">
@@ -39,6 +43,10 @@ app.innerHTML = `
           <div class="metric">
             <span class="metric-label">LEDs</span>
             <strong id="led-count-display">2,688</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Panels</span>
+            <strong id="panel-count-display">42</strong>
           </div>
           <div class="metric">
             <span class="metric-label">Frame</span>
@@ -114,10 +122,15 @@ app.innerHTML = `
             <input id="auto-rotate" type="checkbox" checked />
             <span>Slow auto-rotation</span>
           </label>
+          <label class="toggle-field">
+            <input id="panel-labels" type="checkbox" checked />
+            <span>Panel outlines and IDs</span>
+          </label>
           <div id="mapping-status" class="validation-row">
             <span class="validation-icon">✓</span>
             <span>Mapping LUT is valid</span>
           </div>
+          <p id="mapping-note" class="mapping-note">Transforms, pixel order, and wiring are unmeasured.</p>
         </section>
 
         <section class="architecture-card">
@@ -147,6 +160,7 @@ const engineDot = query<HTMLSpanElement>("#engine-dot");
 const viewerError = query<HTMLDivElement>("#viewer-error");
 const fpsDisplay = query<HTMLElement>("#fps");
 const ledCountDisplay = query<HTMLElement>("#led-count-display");
+const panelCountDisplay = query<HTMLElement>("#panel-count-display");
 const frameTimeDisplay = query<HTMLElement>("#frame-time");
 const effectSelect = query<HTMLSelectElement>("#effect");
 const paletteSelect = query<HTMLSelectElement>("#palette");
@@ -165,6 +179,9 @@ const ledCountInput = query<HTMLInputElement>("#led-count");
 const applyCount = query<HTMLButtonElement>("#apply-count");
 const autoRotate = query<HTMLInputElement>("#auto-rotate");
 const mappingStatus = query<HTMLElement>("#mapping-status");
+const mappingTag = query<HTMLElement>("#mapping-tag");
+const mappingNote = query<HTMLElement>("#mapping-note");
+const panelLabelsToggle = query<HTMLInputElement>("#panel-labels");
 
 let renderer: SphereRenderer | undefined;
 let animationFrame = 0;
@@ -172,14 +189,18 @@ let animationFrame = 0;
 async function start(): Promise<void> {
   try {
     const engine = await WledEngine.create(DEFAULT_LED_COUNT);
-    let mapping = createUniformSphereMapping(DEFAULT_LED_COUNT);
+    let mapping = createPanelizedSculptureMapping();
     renderer = new SphereRenderer(viewerElement, mapping);
 
     effectSelect.replaceChildren(
-      ...engine.effects.map(({ id, name }) => new Option(name, String(id), id === 8, id === 8)),
+      ...engine.effects.map(
+        ({ id, name }) => new Option(name, String(id), id === 8, id === 8),
+      ),
     );
     paletteSelect.replaceChildren(
-      ...engine.palettes.map(({ id, name }) => new Option(name, String(id), id === 6, id === 6)),
+      ...engine.palettes.map(
+        ({ id, name }) => new Option(name, String(id), id === 6, id === 6),
+      ),
     );
 
     engine.setEffect(8);
@@ -207,10 +228,25 @@ async function start(): Promise<void> {
 
     const updateMappingStatus = (): void => {
       const validation = validateMapping(mapping, engine.ledCount);
-      mappingStatus.classList.toggle("validation-row--error", !validation.valid);
+      const isPanelized = mapping.topology === "panelized-sculpture";
+      mappingStatus.classList.toggle(
+        "validation-row--error",
+        !validation.valid,
+      );
       mappingStatus.innerHTML = validation.valid
-        ? '<span class="validation-icon">✓</span><span>Mapping LUT is valid</span>'
+        ? `<span class="validation-icon">✓</span><span>${isPanelized ? "42 panels / 2,688 LEDs valid" : "Fallback mapping is valid"}</span>`
         : `<span class="validation-icon">!</span><span>${validation.errors[0] ?? "Invalid mapping"}</span>`;
+      panelCountDisplay.textContent = isPanelized
+        ? String(mapping.panels.length)
+        : "—";
+      mappingTag.textContent = isPanelized
+        ? "PROVISIONAL 42-PANEL TOPOLOGY"
+        : "PROVISIONAL UNIFORM FALLBACK";
+      mappingNote.textContent = isPanelized
+        ? "Generated transforms; rotation, pixel order, and wiring are unmeasured."
+        : "Custom LED counts use the panel-free Fibonacci fallback.";
+      panelLabelsToggle.disabled = !isPanelized;
+      renderer?.setPanelLabelsVisible(isPanelized && panelLabelsToggle.checked);
     };
 
     effectSelect.addEventListener("change", () => {
@@ -228,12 +264,23 @@ async function start(): Promise<void> {
       intensityValue.value = intensityInput.value;
       engine.setIntensity(Number(intensityInput.value));
     });
-    primaryColor.addEventListener("input", () => engine.setPrimaryColor(primaryColor.value));
-    secondaryColor.addEventListener("input", () => engine.setSecondaryColor(secondaryColor.value));
+    primaryColor.addEventListener("input", () =>
+      engine.setPrimaryColor(primaryColor.value),
+    );
+    secondaryColor.addEventListener("input", () =>
+      engine.setSecondaryColor(secondaryColor.value),
+    );
     displayMode.addEventListener("change", () => {
       currentDisplayMode = displayMode.value as DisplayMode;
     });
-    autoRotate.addEventListener("change", () => renderer?.setAutoRotate(autoRotate.checked));
+    autoRotate.addEventListener("change", () =>
+      renderer?.setAutoRotate(autoRotate.checked),
+    );
+    panelLabelsToggle.addEventListener("change", () => {
+      renderer?.setPanelLabelsVisible(
+        mapping.topology === "panelized-sculpture" && panelLabelsToggle.checked,
+      );
+    });
     restartButton.addEventListener("click", resetTimeline);
 
     playButton.addEventListener("click", () => {
@@ -245,14 +292,23 @@ async function start(): Promise<void> {
 
     applyCount.addEventListener("click", () => {
       const requested = Number(ledCountInput.value);
-      if (!Number.isInteger(requested) || requested < 64 || requested > 200000) {
-        ledCountInput.setCustomValidity("Choose an integer from 64 to 200,000.");
+      if (
+        !Number.isInteger(requested) ||
+        requested < 64 ||
+        requested > 200000
+      ) {
+        ledCountInput.setCustomValidity(
+          "Choose an integer from 64 to 200,000.",
+        );
         ledCountInput.reportValidity();
         return;
       }
       ledCountInput.setCustomValidity("");
       engine.resize(requested);
-      mapping = createUniformSphereMapping(requested);
+      mapping =
+        requested === DEFAULT_LED_COUNT
+          ? createPanelizedSculptureMapping()
+          : createUniformSphereMapping(requested);
       renderer?.setMapping(mapping);
       resetTimeline();
       ledCountDisplay.textContent = requested.toLocaleString();
@@ -275,7 +331,9 @@ async function start(): Promise<void> {
       fpsFrames += 1;
       const fpsElapsed = now - fpsWindowStart;
       if (fpsElapsed >= 500) {
-        fpsDisplay.textContent = String(Math.round((fpsFrames * 1000) / fpsElapsed));
+        fpsDisplay.textContent = String(
+          Math.round((fpsFrames * 1000) / fpsElapsed),
+        );
         frameTimeDisplay.textContent = `${Math.round(simulationTime).toLocaleString()} ms`;
         fpsWindowStart = now;
         fpsFrames = 0;

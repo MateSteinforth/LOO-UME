@@ -100,15 +100,23 @@ fields plus optional panel identity, panel-local pixel coordinates, UV, and XYZ.
 The renderer asks the LUT which logical framebuffer value belongs at each
 physical XYZ point; it never derives position from the buffer index.
 
-The first prototype uses a deterministic Fibonacci sphere and an explicit
-identity logical/physical mapping. Replace
-`createUniformSphereMapping()` with a canonical sculpture loader when measured
-panel transforms and wiring order are available. The renderer does not need to
-change.
+The default `createPanelizedSculptureMapping()` generator creates 42 explicit
+8 x 8 panel grids: 30 `SQ-*` square-face panels and 12 `PC-*`
+pentagon-centre panels. Pentagon normals use the 12 vertices of an icosahedron;
+square normals use its 30 edge midpoints, reproducing the proven 31.717474
+degree square/pentagon fold angle. Panel outlines, IDs, and existing-panel
+adjacency are rendered from the same metadata.
 
-UV values are already present as equirectangular coordinates. A later 2D view
-can render the same entries at `(u, v)` while using the same logical and
-physical indices.
+These are generated preview transforms, not surveyed assembly data. Panel
+rotation, mirroring, pixel-zero corner, serpentine direction, controller output,
+and chain order remain explicitly unknown or unassigned. Synthetic row-major
+indices exist only so WLED effects can run today. Non-2,688 LED counts retain
+`createUniformSphereMapping()` as a clearly labelled fallback.
+
+UV values are present as equirectangular coordinates. A later 2D view can render
+the same entries at `(u, v)` while using the same logical and physical indices.
+The renderer can consume measured canonical panel data without changing the WASM
+effect engine.
 
 ## Adding or updating effects
 

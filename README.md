@@ -21,13 +21,13 @@ mapping, behavior, power-safety, and CI design.
 
 The `software/panel-map-visualizer` branch also contains **WLED Orbital Lab**,
 a standalone browser simulator that runs genuine WLED C++ effect bodies in
-WebAssembly and renders 2,688 mapped LEDs with Three.js. Its artificial sphere
-mapping is explicitly provisional and does not claim measured sculpture
-geometry or wiring.
+WebAssembly and renders 2,688 LEDs as 30 square-face 8 x 8 panels plus 12
+pentagon-centre 8 x 8 panels. Generated face transforms are provisional and do
+not claim measured panel rotation, pixel order, or wiring.
 
-![WLED Orbital Lab rendering 2,688 virtual LEDs on the provisional sphere](docs/assets/wled-orbital-lab.png)
+![WLED Orbital Lab rendering the provisional 42-panel sculpture](docs/assets/wled-orbital-lab.png)
 
-_The browser simulator running WLED's Rainbow effect through WebAssembly._
+_The panelized browser simulator running WLED's Rainbow effect through WebAssembly._
 
 See [web/README.md](web/README.md) for setup, build, test, architecture, WASM
 memory, mapping, and upstream-update instructions. Investigation details and

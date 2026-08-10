@@ -75,8 +75,12 @@ virtual framebuffer. Invalid writes are rejected and counted by
   37 local effect/helper bodies against `wled/upstream/wled00/FX.cpp` and
   rejects an unexpected submodule revision. Updating WLED still requires
   reviewing compatibility changes.
-- The artificial Fibonacci sphere uses an explicit identity logical/physical
-  LUT. It is visually useful but is not sculpture survey data.
+- The default preview groups all 2,688 LEDs into 30 square-face and 12
+  pentagon-centre 8 x 8 grids. Face normals reproduce the proven polyhedron
+  angle, but world rotation and every individual panel rotation remain
+  generated rather than measured.
+- Synthetic row-major logical/physical indices are not physical wiring facts.
+  The Fibonacci sphere remains only as a fallback for arbitrary LED counts.
 - The audio setter stores volume, peak, and up to 64 FFT bins. No current effect
   consumes them; this is the future adapter seam.
 - Emscripten memory may grow after a resize. JavaScript deliberately reacquires
@@ -98,8 +102,9 @@ virtual framebuffer. Invalid writes are rejected and counted by
 - Port more non-audio 1D effects by dependency clusters while retaining the
   source-sync invariant.
 - Add a 2D Segment adapter and feed equirectangular UV dimensions.
-- Replace the provisional sphere LUT with canonical panel data containing
-  logical index, physical index, panel-local coordinates, UV, and XYZ.
+- Replace generated panel transforms and synthetic indices with measured
+  canonical panel orientation, physical chain order, connector positions, UV,
+  and XYZ data.
 - Connect browser Web Audio analysis to the existing audio input structure
   before enabling audio-reactive effects.
 - Add an optional DDP/Art-Net consumer of the same packed framebuffer, outside
