@@ -32,8 +32,8 @@ The portable host replaces only the pieces selected effects actually use:
 - `millis()` reads the explicit time supplied to `wled_tick(timeMs)`.
 - `PROGMEM` and `pgm_read_*` are no-ops/direct reads in linear WASM memory.
 - Arduino `byte`, `map()`, and min/max behavior use fixed-width C++ types.
-- `hw_random8()` uses a seeded xorshift generator. `wled_reset(seed)` makes
-  random-capable effects reproducible.
+- `hw_random()`, `hw_random8()`, and `hw_random16()` use a seeded xorshift
+  generator. `wled_reset(seed)` makes random-capable effects reproducible.
 - WLED's Segment runtime fields (`speed`, `intensity`, `palette`,
   `colors`, `step`, `aux0`, `aux1`, and `call`) live in one portable
   Segment instance.
@@ -67,12 +67,14 @@ virtual framebuffer. Invalid writes are rejected and counted by
 
 - This is a deliberately small Segment-compatible host, not the full
   `WS2812FX` class.
-- Twenty standard 1D effects are exposed. 2D, particle, transition,
+- Thirty standard 1D effects are exposed. 2D, particle, transition,
   multi-segment, custom palette, and audio-reactive paths are unsupported.
 - Palette IDs are a compact simulator registry: Default plus WLED's seven
   FastLED palettes. They are not claimed to equal every firmware palette ID.
-- Selected effect bodies are a pinned snapshot. Updating WLED requires reviewing
-  their diffs and the small compatibility API.
+- Selected effect bodies are a pinned snapshot. `npm run check:wled` compares
+  37 local effect/helper bodies against `wled/upstream/wled00/FX.cpp` and
+  rejects an unexpected submodule revision. Updating WLED still requires
+  reviewing compatibility changes.
 - The artificial Fibonacci sphere uses an explicit identity logical/physical
   LUT. It is visually useful but is not sculpture survey data.
 - The audio setter stores volume, peak, and up to 64 FFT bins. No current effect
@@ -93,9 +95,8 @@ virtual framebuffer. Invalid writes are rejected and counted by
 
 ## Next expansion steps
 
-- Add an automated source-sync/check script that verifies selected bodies
-  against the pinned submodule.
-- Port more non-audio 1D effects by dependency clusters.
+- Port more non-audio 1D effects by dependency clusters while retaining the
+  source-sync invariant.
 - Add a 2D Segment adapter and feed equirectangular UV dimensions.
 - Replace the provisional sphere LUT with canonical panel data containing
   logical index, physical index, panel-local coordinates, UV, and XYZ.

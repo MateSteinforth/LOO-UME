@@ -85,4 +85,37 @@ describe("WLED WASM engine", () => {
       expect(module._wled_get_oob_write_count()).toBe(0);
     }
   });
+
+  it("runs every registered effect deterministically at sculpture scale", async () => {
+    const module = await loadModule();
+    expect(module._wled_init(2700)).toBe(1);
+    module._wled_set_speed(193);
+    module._wled_set_intensity(211);
+    module._wled_set_palette(6);
+
+    const timestamps = [0, 24, 120, 500, 1000, 2500];
+    const effectCount = module._wled_get_effect_count();
+    expect(effectCount).toBe(30);
+
+    for (let effectId = 0; effectId < effectCount; effectId += 1) {
+      module._wled_set_effect(effectId);
+      const run = (): number[] => {
+        module._wled_reset(0x5eed1234);
+        for (const time of timestamps) module._wled_tick(time);
+        return snapshot(module);
+      };
+
+      const first = run();
+      expect(run(), `effect ${effectId} should be deterministic`).toEqual(first);
+      expect(
+        first.some((pixel) => pixel !== 0),
+        `effect ${effectId} should render at least one lit pixel`,
+      ).toBe(true);
+      expect(
+        module._wled_get_oob_write_count(),
+        `effect ${effectId} should stay inside the framebuffer`,
+      ).toBe(0);
+    }
+  });
+
 });

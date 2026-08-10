@@ -2,11 +2,13 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { verifyWledSync } from "./check-wled-sync.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pinnedVersion = readFileSync(path.join(repoRoot, "wasm/emscripten-version.txt"), "utf8").trim();
 const localEmcc = path.join(repoRoot, ".tools/emsdk/upstream/emscripten/emcc");
 const emcc = process.env.EMCC || (process.platform === "win32" ? "emcc.bat" : localEmcc);
+verifyWledSync(repoRoot);
 
 const outputDir = path.join(repoRoot, "web/public/wasm");
 mkdirSync(outputDir, { recursive: true });

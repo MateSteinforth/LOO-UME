@@ -302,3 +302,165 @@ void mode_tri_static_pattern()
     }
   }
 }
+
+void mode_twinkle(void) {
+  SEGMENT.fade_out(224);
+
+  uint32_t cycleTime = 20 + (255 - SEGMENT.speed)*5;
+  uint32_t it = strip.now / cycleTime;
+  if (it != SEGENV.step)
+  {
+    unsigned maxOn = map(SEGMENT.intensity, 0, 255, 1, SEGLEN); // make sure at least one LED is on
+    if (SEGENV.aux0 >= maxOn)
+    {
+      SEGENV.aux0 = 0;
+      SEGENV.aux1 = hw_random(); //new seed for our PRNG
+    }
+    SEGENV.aux0++;
+    SEGENV.step = it;
+  }
+
+  uint16_t PRNG16 = SEGENV.aux1;
+
+  for (unsigned i = 0; i < SEGENV.aux0; i++)
+  {
+    PRNG16 = (uint16_t)(PRNG16 * 2053) + 13849; // next 'random' number
+    uint32_t p = (uint32_t)SEGLEN * (uint32_t)PRNG16;
+    unsigned j = p >> 16;
+    SEGMENT.setPixelColor(j, SEGMENT.color_from_palette(j, true, PALETTE_SOLID_WRAP, 0));
+  }
+}
+
+void mode_sparkle(void) {
+  if (!SEGMENT.check2) for (unsigned i = 0; i < SEGLEN; i++) {
+    SEGMENT.setPixelColor(i, SEGMENT.color_from_palette(i, true, PALETTE_SOLID_WRAP, 1));
+  }
+  uint32_t cycleTime = 10 + (255 - SEGMENT.speed)*2;
+  uint32_t it = strip.now / cycleTime;
+  if (it != SEGENV.step)
+  {
+    SEGENV.aux0 = hw_random16(SEGLEN); // aux0 stores the random led index
+    SEGENV.step = it;
+  }
+
+  SEGMENT.setPixelColor(SEGENV.aux0, SEGCOLOR(0));
+}
+
+void mode_flash_sparkle(void) {
+  if (!SEGMENT.check2) for (unsigned i = 0; i < SEGLEN; i++) {
+    SEGMENT.setPixelColor(i, SEGMENT.color_from_palette(i, true, PALETTE_SOLID_WRAP, 0));
+  }
+
+  if (strip.now - SEGENV.aux0 > SEGENV.step) {
+    if(hw_random8((255-SEGMENT.intensity) >> 4) == 0) {
+      SEGMENT.setPixelColor(hw_random16(SEGLEN), SEGCOLOR(1)); //flash
+    }
+    SEGENV.step = strip.now;
+    SEGENV.aux0 = 255-SEGMENT.speed;
+  }
+}
+
+void mode_hyper_sparkle(void) {
+  if (!SEGMENT.check2) for (unsigned i = 0; i < SEGLEN; i++) {
+    SEGMENT.setPixelColor(i, SEGMENT.color_from_palette(i, true, PALETTE_SOLID_WRAP, 0));
+  }
+
+  if (strip.now - SEGENV.aux0 > SEGENV.step) {
+    if (hw_random8((255-SEGMENT.intensity) >> 4) == 0) {
+      int len = max(1, (int)SEGLEN/3);
+      for (int i = 0; i < len; i++) {
+        SEGMENT.setPixelColor(hw_random16(SEGLEN), SEGCOLOR(1));
+      }
+    }
+    SEGENV.step = strip.now;
+    SEGENV.aux0 = 255-SEGMENT.speed;
+  }
+}
+
+void mode_multi_strobe(void) {
+  for (unsigned i = 0; i < SEGLEN; i++) {
+    SEGMENT.setPixelColor(i, SEGMENT.color_from_palette(i, true, PALETTE_SOLID_WRAP, 1));
+  }
+
+  SEGENV.aux0 = 50 + 20*(uint16_t)(255-SEGMENT.speed);
+  unsigned count = 2 * ((SEGMENT.intensity / 10) + 1);
+  if(SEGENV.aux1 < count) {
+    if((SEGENV.aux1 & 1) == 0) {
+      SEGMENT.fill(SEGCOLOR(0));
+      SEGENV.aux0 = 15;
+    } else {
+      SEGENV.aux0 = 50;
+    }
+  }
+
+  if (strip.now - SEGENV.aux0 > SEGENV.step) {
+    SEGENV.aux1++;
+    if (SEGENV.aux1 > count) SEGENV.aux1 = 0;
+    SEGENV.step = strip.now;
+  }
+}
+
+static void sinelon_base(bool dual, bool rainbow=false) {
+  if (SEGLEN <= 1) FX_FALLBACK_STATIC;
+  SEGMENT.fade_out(SEGMENT.intensity);
+  unsigned pos = beatsin16_t(SEGMENT.speed/10,0,SEGLEN-1);
+  if (SEGENV.call == 0) SEGENV.aux0 = pos;
+  uint32_t color1 = SEGMENT.color_from_palette(pos, true, false, 0);
+  uint32_t color2 = SEGCOLOR(2);
+  if (rainbow) {
+    color1 = SEGMENT.color_wheel((pos & 0x07) * 32);
+  }
+  SEGMENT.setPixelColor(pos, color1);
+  if (dual) {
+    if (!color2) color2 = SEGMENT.color_from_palette(pos, true, false, 0);
+    if (rainbow) color2 = color1; //rainbow
+    SEGMENT.setPixelColor(SEGLEN-1-pos, color2);
+  }
+  if (SEGENV.aux0 != pos) {
+    if (SEGENV.aux0 < pos) {
+      for (unsigned i = SEGENV.aux0; i < pos ; i++) {
+        SEGMENT.setPixelColor(i, color1);
+        if (dual) SEGMENT.setPixelColor(SEGLEN-1-i, color2);
+      }
+    } else {
+      for (unsigned i = SEGENV.aux0; i > pos ; i--) {
+        SEGMENT.setPixelColor(i, color1);
+        if (dual) SEGMENT.setPixelColor(SEGLEN-1-i, color2);
+      }
+    }
+    SEGENV.aux0 = pos;
+  }
+}
+
+void mode_sinelon(void) { sinelon_base(false); }
+void mode_sinelon_dual(void) { sinelon_base(true); }
+void mode_sinelon_rainbow(void) { sinelon_base(false, true); }
+
+void glitter_base(uint8_t intensity, uint32_t col = ULTRAWHITE) {
+  if (intensity > hw_random8()) SEGMENT.setPixelColor(hw_random16(SEGLEN), col);
+}
+
+void mode_glitter()
+{
+  if (!SEGMENT.check2) {
+    unsigned counter = 0;
+    if (SEGMENT.speed != 0) {
+      counter = (strip.now * ((SEGMENT.speed >> 3) +1)) & 0xFFFF;
+      counter = counter >> 8;
+    }
+
+    bool noWrap = (paletteBlend == 2 || (paletteBlend == 0 && SEGMENT.speed == 0));
+    for (unsigned i = 0; i < SEGLEN; i++) {
+      unsigned colorIndex = (i * 255 / SEGLEN) - counter;
+      if (noWrap) colorIndex = map(colorIndex, 0, 255, 0, 240);
+      SEGMENT.setPixelColor(i, SEGMENT.color_from_palette(colorIndex, false, true, 255));
+    }
+  }
+  glitter_base(SEGMENT.intensity, SEGCOLOR(2) ? SEGCOLOR(2) : ULTRAWHITE);
+}
+
+void mode_solid_glitter()
+{
+  SEGMENT.fill(SEGCOLOR(0));
+  glitter_base(SEGMENT.intensity, SEGCOLOR(2) ? SEGCOLOR(2) : ULTRAWHITE);
+}

@@ -11,12 +11,15 @@
 #include "fastled_slim.h"
 
 using byte = std::uint8_t;
+using std::max;
 
 namespace {
 
 constexpr std::uint32_t BLACK = 0x000000;
+constexpr std::uint32_t ULTRAWHITE = 0xFFFFFFFF;
 constexpr std::uint32_t WHITE = 0xFFFFFF;
 constexpr std::uint32_t FRAMETIME = 1000 / 42;
+constexpr std::uint8_t paletteBlend = 0;
 constexpr bool PALETTE_SOLID_WRAP = true;
 constexpr std::uint32_t MAX_LED_COUNT = 200000;
 
@@ -97,6 +100,20 @@ std::uint8_t beatsin8_t(
   std::uint8_t beatsin = sin8_t(beat + phase_offset);
   std::uint8_t rangewidth = highest - lowest;
   std::uint8_t scaledbeat = scale8(beatsin, rangewidth);
+  return lowest + scaledbeat;
+}
+
+std::uint16_t beatsin16_t(
+  std::uint16_t beats_per_minute,
+  std::uint16_t lowest = 0,
+  std::uint16_t highest = 65535,
+  std::uint32_t timebase = 0,
+  std::uint16_t phase_offset = 0
+) {
+  std::uint16_t beat = beat16(beats_per_minute, timebase);
+  std::uint16_t beatsin = sin16_t(beat + phase_offset) + 32768;
+  std::uint16_t rangewidth = highest - lowest;
+  std::uint16_t scaledbeat = scale16(beatsin, rangewidth);
   return lowest + scaledbeat;
 }
 
@@ -216,6 +233,18 @@ std::uint8_t hw_random8() {
   return std::uint8_t(next_random() >> 24U);
 }
 
+std::uint32_t hw_random() {
+  return next_random();
+}
+
+std::uint8_t hw_random8(std::uint32_t upperlimit) {
+  return (std::uint32_t(hw_random8()) * upperlimit) >> 8U;
+}
+
+std::uint16_t hw_random16(std::uint32_t upperlimit) {
+  return (std::uint32_t(std::uint16_t(next_random() >> 16U)) * upperlimit) >> 16U;
+}
+
 std::uint8_t get_random_wheel_index(std::uint8_t pos) {
   std::uint8_t r = 0;
   std::uint8_t distance = 0;
@@ -277,6 +306,24 @@ struct Segment {
     const std::size_t selected = palette == 0 ? 0 : std::min<std::size_t>(palette - 1, PALETTES.size() - 1);
     return color_from_fastled_palette(PALETTES[selected], palette_index, brightness, blend);
   }
+
+  void fade_out(std::uint8_t rate) {
+    rate = (256-rate) >> 1;
+    const int mappedRate = 256 / (rate + 1);
+    for (std::uint32_t &pixel : g_pixels) {
+      std::uint32_t color = pixel;
+      if (color == colors[1]) continue;
+      for (int i = 0; i < 32; i += 8) {
+        std::uint8_t c2 = colors[1] >> i;
+        std::uint8_t c1 = color >> i;
+        int delta = (c2 - c1) * mappedRate / 256;
+        if (delta == 0) delta += (c2 == c1) ? 0 : (c2 > c1) ? 1 : -1;
+        color &= ~(0xFFU << i);
+        color |= std::uint32_t((c1 + delta) & 0xFF) << i;
+      }
+      pixel = color;
+    }
+  }
 } g_segment;
 
 std::uint8_t sin_gap(std::uint16_t input) {
@@ -299,7 +346,7 @@ struct EffectEntry {
   EffectFunction function;
 };
 
-constexpr std::array<EffectEntry, 20> EFFECTS = {{
+constexpr std::array<EffectEntry, 30> EFFECTS = {{
   {"Solid", mode_static},
   {"Blink", mode_blink},
   {"Strobe", mode_strobe},
@@ -319,7 +366,17 @@ constexpr std::array<EffectEntry, 20> EFFECTS = {{
   {"Solid Pattern", mode_static_pattern},
   {"Solid Pattern Tri", mode_tri_static_pattern},
   {"Blink Rainbow", mode_blink_rainbow},
-  {"Strobe Rainbow", mode_strobe_rainbow}
+  {"Strobe Rainbow", mode_strobe_rainbow},
+  {"Twinkle", mode_twinkle},
+  {"Sparkle", mode_sparkle},
+  {"Sparkle Dark", mode_flash_sparkle},
+  {"Sparkle+", mode_hyper_sparkle},
+  {"Strobe Mega", mode_multi_strobe},
+  {"Sinelon", mode_sinelon},
+  {"Sinelon Dual", mode_sinelon_dual},
+  {"Sinelon Rainbow", mode_sinelon_rainbow},
+  {"Glitter", mode_glitter},
+  {"Solid Glitter", mode_solid_glitter}
 }};
 
 constexpr std::array<const char *, 8> PALETTE_NAMES = {

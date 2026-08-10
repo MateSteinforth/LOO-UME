@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "setup:emsdk": "sh scripts/setup-emsdk.sh",
+    "check:wled": "node scripts/check-wled-sync.mjs",
     "build:wasm": "node scripts/build-wasm.mjs",
     "dev": "npm run build:wasm && vite",
     "dev:web": "vite",

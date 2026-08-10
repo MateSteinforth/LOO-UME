@@ -51,14 +51,17 @@ The pinned version is in `wasm/emscripten-version.txt`.
 ## Build and test
 
 ```bash
+npm run check:wled
 npm run build
 npm test
 ```
 
 `npm run build` compiles the C++ engine and creates a production Vite bundle
-in `dist/`. `npm test` rebuilds WASM, then checks initialization, effect
-selection, framebuffer changes, deterministic timestamps, resize behavior,
-out-of-bounds protection, and mapping invariants.
+in `dist/`. Every WASM build first verifies that 37 selected function bodies
+match the pinned WLED submodule revision. `npm test` rebuilds WASM, then checks
+initialization, every registered effect at 2,700 LEDs, framebuffer changes,
+deterministic timestamps, resize behavior, out-of-bounds protection, and
+mapping invariants.
 
 Generated `web/public/wasm/wled-engine.{js,wasm}` files are ignored. Rebuild
 them from the pinned Emscripten version and WLED submodule.
@@ -69,7 +72,7 @@ The WLED submodule is pinned at
 `d9b9a846561227351ad929e3109781daadb7bed2`.
 
 - `wled00/src/dependencies/fastled_slim/fastled_slim.cpp` is compiled directly.
-- Twenty selected 1D effect bodies from `wled00/FX.cpp` are preserved in
+- Thirty selected 1D effect bodies from `wled00/FX.cpp` are preserved in
   `wasm/src/wled_effects.inc`.
 - Fixed-point timing, blend, palette lookup, and the seven standard FastLED
   palette tables follow the current upstream implementations.
@@ -110,14 +113,16 @@ physical indices.
 ## Adding or updating effects
 
 1. Update the WLED submodule to the desired reviewed revision.
-2. Diff the selected functions in `wled00/FX.cpp` against
-   `wasm/src/wled_effects.inc`.
-3. Copy changed bodies verbatim and add only the Segment/math dependencies they
+2. Put the reviewed full commit hash in `wasm/upstream-revision.txt`.
+3. Copy changed bodies verbatim from `wled00/FX.cpp` and add only the
+   Segment/math dependencies they
    require to the isolated compatibility host.
 4. Add the effect name and function to `EFFECTS` in
    `wasm/src/wled_engine.cpp`.
-5. Record new upstream assumptions in `TECH_NOTES.md`.
-6. Run `npm test && npm run build`.
+5. Add every copied effect/helper name to `VERIFIED_FUNCTIONS` in
+   `scripts/check-wled-sync.mjs`.
+6. Record new upstream assumptions in `TECH_NOTES.md`.
+7. Run `npm run check:wled && npm test && npm run build`.
 
 Do not patch the WLED submodule. Hardware, networking, filesystem, and ESP32
 services belong outside this WASM target.
