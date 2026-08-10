@@ -1,0 +1,257 @@
+import type {
+  LedMapping,
+  PanelDefinition,
+  Vector3Data,
+} from "./LedMapping";
+
+export interface WiringPanelNode {
+  panelId: string;
+  outputIndex: number;
+  chainPosition: number;
+  previousPanelId: string | null;
+  nextPanelId: string | null;
+  din: Vector3Data;
+  dout: Vector3Data;
+}
+
+export interface WiringOutputRoute {
+  outputIndex: number;
+  label: string;
+  gpio: number | null;
+  color: number;
+  cssColor: string;
+  panelIds: string[];
+}
+
+export interface WiringPreview {
+  status: "generated-provisional" | "unavailable";
+  outputs: WiringOutputRoute[];
+  nodes: WiringPanelNode[];
+  notes: string[];
+}
+
+export interface WiringPreviewValidation {
+  valid: boolean;
+  errors: string[];
+}
+
+const OUTPUT_STYLES = [
+  { color: 0x36e0d0, cssColor: "#36e0d0" },
+  { color: 0xff9d5c, cssColor: "#ff9d5c" },
+  { color: 0xb58cff, cssColor: "#b58cff" },
+  { color: 0xc6ed68, cssColor: "#c6ed68" },
+] as const;
+
+const PREVIEW_CHAIN_LENGTHS = [11, 10, 10, 10] as const;
+const CONNECTOR_EDGE_INSET = 4;
+const CONNECTOR_SURFACE_OFFSET = 2.4;
+
+function vector(x: number, y: number, z: number): Vector3Data {
+  return { x, y, z };
+}
+
+function add(a: Vector3Data, b: Vector3Data): Vector3Data {
+  return vector(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+function scale(value: Vector3Data, amount: number): Vector3Data {
+  return vector(value.x * amount, value.y * amount, value.z * amount);
+}
+
+function distanceSquared(a: PanelDefinition, b: PanelDefinition): number {
+  const x = a.position.x - b.position.x;
+  const y = a.position.y - b.position.y;
+  const z = a.position.z - b.position.z;
+  return x * x + y * y + z * z;
+}
+
+function routeNearestNeighbor(panels: PanelDefinition[]): PanelDefinition[] {
+  if (panels.length === 0) return [];
+  const remaining = [...panels];
+  remaining.sort(
+    (first, second) =>
+      second.position.y - first.position.y ||
+      first.id.localeCompare(second.id),
+  );
+  const route = [remaining.shift()!];
+
+  while (remaining.length > 0) {
+    const current = route[route.length - 1]!;
+    remaining.sort(
+      (first, second) =>
+        distanceSquared(current, first) - distanceSquared(current, second) ||
+        first.id.localeCompare(second.id),
+    );
+    route.push(remaining.shift()!);
+  }
+  return route;
+}
+
+function connectorPosition(
+  panel: PanelDefinition,
+  xDirection: -1 | 1,
+): Vector3Data {
+  const xOffset =
+    xDirection * (panel.previewWidth / 2 - CONNECTOR_EDGE_INSET);
+  const yOffset = -(panel.previewHeight / 2 - CONNECTOR_EDGE_INSET);
+  return add(
+    add(panel.position, scale(panel.xAxis, xOffset)),
+    add(
+      scale(panel.yAxis, yOffset),
+      scale(panel.normal, CONNECTOR_SURFACE_OFFSET),
+    ),
+  );
+}
+
+/**
+ * Produces a complete view-only four-output route without claiming physical
+ * connector corners, GPIO assignments, or chain order. The generator divides
+ * the globe into four longitude sectors, then uses a short nearest-neighbor
+ * route within each sector.
+ */
+export function createProvisionalWiringPreview(
+  mapping: LedMapping,
+): WiringPreview {
+  if (mapping.topology !== "panelized-sculpture") {
+    return {
+      status: "unavailable",
+      outputs: [],
+      nodes: [],
+      notes: ["Wiring preview is available only for the panelized sculpture."],
+    };
+  }
+
+  const byLongitude = [...mapping.panels].sort((first, second) => {
+    const firstLongitude =
+      (Math.atan2(first.position.z, first.position.x) + 2 * Math.PI) %
+      (2 * Math.PI);
+    const secondLongitude =
+      (Math.atan2(second.position.z, second.position.x) + 2 * Math.PI) %
+      (2 * Math.PI);
+    return (
+      firstLongitude - secondLongitude ||
+      second.position.y - first.position.y ||
+      first.id.localeCompare(second.id)
+    );
+  });
+
+  const outputs: WiringOutputRoute[] = [];
+  const nodes: WiringPanelNode[] = [];
+  let offset = 0;
+
+  for (
+    let outputIndex = 0;
+    outputIndex < PREVIEW_CHAIN_LENGTHS.length;
+    outputIndex += 1
+  ) {
+    const length = PREVIEW_CHAIN_LENGTHS[outputIndex]!;
+    const panels = routeNearestNeighbor(
+      byLongitude.slice(offset, offset + length),
+    );
+    offset += length;
+    const style = OUTPUT_STYLES[outputIndex]!;
+    outputs.push({
+      outputIndex,
+      label: `Output ${outputIndex + 1}`,
+      gpio: null,
+      color: style.color,
+      cssColor: style.cssColor,
+      panelIds: panels.map((panel) => panel.id),
+    });
+
+    for (
+      let chainPosition = 0;
+      chainPosition < panels.length;
+      chainPosition += 1
+    ) {
+      const panel = panels[chainPosition]!;
+      nodes.push({
+        panelId: panel.id,
+        outputIndex,
+        chainPosition,
+        previousPanelId: panels[chainPosition - 1]?.id ?? null,
+        nextPanelId: panels[chainPosition + 1]?.id ?? null,
+        din: connectorPosition(panel, -1),
+        dout: connectorPosition(panel, 1),
+      });
+    }
+  }
+
+  return {
+    status: "generated-provisional",
+    outputs,
+    nodes,
+    notes: [
+      "Four colored routes are a generated geographic preview, not physical wiring.",
+      "DIN/DOUT markers use schematic lower PCB corners; real connector corners remain unmeasured.",
+      "GPIO numbers and the final per-output chain order remain TBD.",
+    ],
+  };
+}
+
+export function validateWiringPreview(
+  preview: WiringPreview,
+  mapping: LedMapping,
+): WiringPreviewValidation {
+  const errors: string[] = [];
+  if (preview.status !== "generated-provisional") {
+    return { valid: mapping.panels.length === 0, errors };
+  }
+  if (preview.outputs.length !== 4) {
+    errors.push(
+      `Wiring preview has ${preview.outputs.length} outputs; expected 4.`,
+    );
+  }
+
+  const panelIds = new Set(mapping.panels.map((panel) => panel.id));
+  const routed = new Set<string>();
+  for (const output of preview.outputs) {
+    for (let index = 0; index < output.panelIds.length; index += 1) {
+      const panelId = output.panelIds[index]!;
+      if (!panelIds.has(panelId)) {
+        errors.push(
+          `Output ${output.outputIndex + 1} references unknown ${panelId}.`,
+        );
+      }
+      if (routed.has(panelId)) {
+        errors.push(`Panel ${panelId} appears in multiple output routes.`);
+      }
+      routed.add(panelId);
+
+      const node = preview.nodes.find(
+        (candidate) => candidate.panelId === panelId,
+      );
+      if (!node) {
+        errors.push(`Panel ${panelId} has no DIN/DOUT node.`);
+        continue;
+      }
+      if (
+        node.outputIndex !== output.outputIndex ||
+        node.chainPosition !== index
+      ) {
+        errors.push(`Panel ${panelId} has inconsistent chain metadata.`);
+      }
+      const expectedPrevious = output.panelIds[index - 1] ?? null;
+      const expectedNext = output.panelIds[index + 1] ?? null;
+      if (
+        node.previousPanelId !== expectedPrevious ||
+        node.nextPanelId !== expectedNext
+      ) {
+        errors.push(`Panel ${panelId} has a discontinuous route.`);
+      }
+    }
+  }
+
+  if (routed.size !== mapping.panels.length) {
+    errors.push(
+      `Wiring preview covers ${routed.size} panels; expected ${mapping.panels.length}.`,
+    );
+  }
+  if (preview.nodes.length !== mapping.panels.length) {
+    errors.push(
+      `Wiring preview has ${preview.nodes.length} nodes; expected ${mapping.panels.length}.`,
+    );
+  }
+
+  return { valid: errors.length === 0, errors };
+}

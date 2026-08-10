@@ -5,6 +5,7 @@ import {
 } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { LedMapping, PanelDefinition, Vector3Data } from "./LedMapping";
+import type { WiringPreview } from "./WiringPreview";
 
 export type DisplayMode = "wled" | "physical-index" | "logical-index";
 
@@ -40,6 +41,16 @@ export class SphereRenderer {
   });
   private readonly labelRenderer = new CSS2DRenderer();
   private readonly panelLayer = new THREE.Group();
+  private readonly connectorLayer = new THREE.Group();
+  private readonly wiringLayer = new THREE.Group();
+  private readonly connectorOutputLayers = new Map<number, THREE.Group>();
+  private readonly wiringOutputLayers = new Map<number, THREE.Group>();
+  private readonly outputVisibility = new Map<number, boolean>([
+    [0, true],
+    [1, true],
+    [2, true],
+    [3, true],
+  ]);
   private readonly panelLabels: PanelLabel[] = [];
   private readonly controls: OrbitControls;
   private readonly geometry = new THREE.BufferGeometry();
@@ -90,8 +101,14 @@ export class SphereRenderer {
     this.controls.autoRotate = true;
     this.controls.autoRotateSpeed = 0.35;
 
-    this.points.renderOrder = 2;
-    this.scene.add(this.occlusionCore, this.panelLayer, this.points);
+    this.points.renderOrder = 4;
+    this.scene.add(
+      this.occlusionCore,
+      this.panelLayer,
+      this.wiringLayer,
+      this.connectorLayer,
+      this.points,
+    );
     this.setMapping(mapping);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -101,6 +118,7 @@ export class SphereRenderer {
 
   setMapping(mapping: LedMapping): void {
     this.mapping = mapping;
+    this.clearWiringPreview();
     const positions = new Float32Array(mapping.entries.length * 3);
     const colors = new Float32Array(mapping.entries.length * 3);
     for (let physical = 0; physical < mapping.entries.length; physical += 1) {
@@ -179,10 +197,33 @@ export class SphereRenderer {
     this.panelLabelsVisible = visible;
   }
 
+  setWiringPreview(preview: WiringPreview): void {
+    this.clearWiringPreview();
+    if (preview.status !== "generated-provisional") return;
+    this.buildWiringPreview(preview);
+  }
+
+  setConnectorLayerVisible(visible: boolean): void {
+    this.connectorLayer.visible = visible;
+  }
+
+  setWiringLayerVisible(visible: boolean): void {
+    this.wiringLayer.visible = visible;
+  }
+
+  setOutputVisible(outputIndex: number, visible: boolean): void {
+    this.outputVisibility.set(outputIndex, visible);
+    const connectorLayer = this.connectorOutputLayers.get(outputIndex);
+    const wiringLayer = this.wiringOutputLayers.get(outputIndex);
+    if (connectorLayer) connectorLayer.visible = visible;
+    if (wiringLayer) wiringLayer.visible = visible;
+  }
+
   dispose(): void {
     this.resizeObserver.disconnect();
     this.controls.dispose();
     this.clearPanelDecorations();
+    this.clearWiringPreview();
     this.geometry.dispose();
     this.ledTexture.dispose();
     this.material.dispose();
@@ -302,6 +343,148 @@ export class SphereRenderer {
     const outlines = new THREE.LineSegments(geometry, material);
     outlines.renderOrder = 1;
     this.panelLayer.add(outlines);
+  }
+
+  private buildWiringPreview(preview: WiringPreview): void {
+    const nodeByPanel = new Map(
+      preview.nodes.map((node) => [node.panelId, node]),
+    );
+    const markerGeometry = new THREE.SphereGeometry(2.2, 14, 10);
+    const dinMaterial = new THREE.MeshBasicMaterial({
+      color: 0x52f28b,
+      toneMapped: false,
+    });
+    const doutMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff5c93,
+      toneMapped: false,
+    });
+    const up = new THREE.Vector3(0, 1, 0);
+
+    for (const output of preview.outputs) {
+      const connectorGroup = new THREE.Group();
+      const wiringGroup = new THREE.Group();
+      connectorGroup.visible =
+        this.outputVisibility.get(output.outputIndex) ?? true;
+      wiringGroup.visible =
+        this.outputVisibility.get(output.outputIndex) ?? true;
+      this.connectorOutputLayers.set(output.outputIndex, connectorGroup);
+      this.wiringOutputLayers.set(output.outputIndex, wiringGroup);
+      this.connectorLayer.add(connectorGroup);
+      this.wiringLayer.add(wiringGroup);
+
+      const nodes = output.panelIds
+        .map((panelId) => nodeByPanel.get(panelId))
+        .filter((node) => node !== undefined);
+      const dinMarkers = new THREE.InstancedMesh(
+        markerGeometry,
+        dinMaterial,
+        nodes.length,
+      );
+      const doutMarkers = new THREE.InstancedMesh(
+        markerGeometry,
+        doutMaterial,
+        nodes.length,
+      );
+      const matrix = new THREE.Matrix4();
+
+      for (let index = 0; index < nodes.length; index += 1) {
+        const node = nodes[index]!;
+        const din = this.toThree(node.din);
+        const dout = this.toThree(node.dout);
+        matrix.makeTranslation(din.x, din.y, din.z);
+        dinMarkers.setMatrixAt(index, matrix);
+        matrix.makeTranslation(dout.x, dout.y, dout.z);
+        doutMarkers.setMatrixAt(index, matrix);
+
+        const panelDirection = dout.clone().sub(din);
+        const panelLength = panelDirection.length();
+        if (panelLength > 0) {
+          const arrow = new THREE.ArrowHelper(
+            panelDirection.normalize(),
+            din,
+            panelLength,
+            output.color,
+            3.2,
+            2.2,
+          );
+          arrow.renderOrder = 3;
+          connectorGroup.add(arrow);
+        }
+      }
+      dinMarkers.instanceMatrix.needsUpdate = true;
+      doutMarkers.instanceMatrix.needsUpdate = true;
+      dinMarkers.renderOrder = 3;
+      doutMarkers.renderOrder = 3;
+      connectorGroup.add(dinMarkers, doutMarkers);
+
+      for (let index = 0; index < nodes.length - 1; index += 1) {
+        const current = nodes[index]!;
+        const next = nodes[index + 1]!;
+        const start = this.toThree(current.dout);
+        const end = this.toThree(next.din);
+        const midpoint = start.clone().add(end).multiplyScalar(0.5);
+        const outward = midpoint.clone();
+        if (outward.lengthSq() < 1e-8) outward.set(0, 1, 0);
+        outward
+          .normalize()
+          .multiplyScalar(Math.max(start.length(), end.length()) + 16);
+        const curve = new THREE.QuadraticBezierCurve3(start, outward, end);
+        const tube = new THREE.Mesh(
+          new THREE.TubeGeometry(curve, 12, 0.72, 7, false),
+          new THREE.MeshBasicMaterial({
+            color: output.color,
+            toneMapped: false,
+          }),
+        );
+        tube.renderOrder = 2;
+        wiringGroup.add(tube);
+
+        const arrowPosition = curve.getPoint(0.78);
+        const arrowDirection = curve
+          .getTangent(0.78)
+          .normalize();
+        const arrowHead = new THREE.Mesh(
+          new THREE.ConeGeometry(1.8, 4.5, 8),
+          new THREE.MeshBasicMaterial({
+            color: output.color,
+            toneMapped: false,
+          }),
+        );
+        arrowHead.position.copy(arrowPosition);
+        arrowHead.quaternion.setFromUnitVectors(up, arrowDirection);
+        arrowHead.renderOrder = 3;
+        wiringGroup.add(arrowHead);
+      }
+    }
+  }
+
+  private clearWiringPreview(): void {
+    this.disposeGroup(this.connectorLayer);
+    this.disposeGroup(this.wiringLayer);
+    this.connectorOutputLayers.clear();
+    this.wiringOutputLayers.clear();
+  }
+
+  private disposeGroup(group: THREE.Group): void {
+    const geometries = new Set<THREE.BufferGeometry>();
+    const materials = new Set<THREE.Material>();
+    group.traverse((object) => {
+      if (
+        object instanceof THREE.Mesh ||
+        object instanceof THREE.Line ||
+        object instanceof THREE.Points
+      ) {
+        geometries.add(object.geometry);
+        if (Array.isArray(object.material)) {
+          for (const material of object.material) materials.add(material);
+        } else {
+          materials.add(object.material);
+        }
+      }
+    });
+    for (const geometry of geometries) geometry.dispose();
+    for (const material of materials) material.dispose();
+    group.clear();
   }
 
   private clearPanelDecorations(): void {

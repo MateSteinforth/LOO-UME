@@ -126,6 +126,20 @@ the same entries at `(u, v)` while using the same logical and physical indices.
 The renderer can consume measured canonical panel data without changing the WASM
 effect engine.
 
+### Wiring preview layers
+
+The panelized view has independently hideable DIN/DOUT markers, within-panel
+direction arrows, panel-to-panel routes, and one toggle for each of four output
+routes. The current 11/10/10/10 panel grouping is a generated geographic preview
+used to exercise the layer UI. Its connector corners are schematic and its GPIO
+assignments are deliberately `null`; it is not recorded in `PanelDefinition.wiring`
+as measured physical data.
+
+Replace `createProvisionalWiringPreview()` with a consumer of the canonical
+measured wiring map once pixel-zero corners, DIN/DOUT connector positions, GPIOs,
+and chain order have been bench-verified. The renderer API can display that data
+without coupling it to WLED effect-space ordering.
+
 ## Adding or updating effects
 
 1. Update the WLED submodule to the desired reviewed revision.

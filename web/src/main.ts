@@ -7,6 +7,10 @@ import {
 } from "./LedMapping";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { WledEngine } from "./WledEngine";
+import {
+  createProvisionalWiringPreview,
+  validateWiringPreview,
+} from "./WiringPreview";
 
 const DEFAULT_LED_COUNT = SCULPTURE_GEOMETRY.totalLedCount;
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -125,8 +129,50 @@ app.innerHTML = `
           </label>
           <label class="toggle-field">
             <input id="panel-labels" type="checkbox" checked />
-            <span>Panel outlines and IDs</span>
+            <span>Panel IDs</span>
           </label>
+          <div id="wiring-layer-controls" class="layer-controls">
+            <div class="layer-controls__heading">Wiring layers</div>
+            <label class="toggle-field">
+              <input id="connector-layer" type="checkbox" checked />
+              <span>Panel DIN / DOUT + direction</span>
+            </label>
+            <label class="toggle-field">
+              <input id="wiring-layer" type="checkbox" checked />
+              <span>Panel-to-panel wiring</span>
+            </label>
+            <div class="output-layer-list" aria-label="Controller output visibility">
+              <label class="output-layer" style="--output-color: #36e0d0">
+                <input class="output-layer-toggle" data-output-index="0" type="checkbox" checked />
+                <span class="output-swatch"></span>
+                <span>PIN / OUT 1</span>
+                <small>11 panels</small>
+              </label>
+              <label class="output-layer" style="--output-color: #ff9d5c">
+                <input class="output-layer-toggle" data-output-index="1" type="checkbox" checked />
+                <span class="output-swatch"></span>
+                <span>PIN / OUT 2</span>
+                <small>10 panels</small>
+              </label>
+              <label class="output-layer" style="--output-color: #b58cff">
+                <input class="output-layer-toggle" data-output-index="2" type="checkbox" checked />
+                <span class="output-swatch"></span>
+                <span>PIN / OUT 3</span>
+                <small>10 panels</small>
+              </label>
+              <label class="output-layer" style="--output-color: #c6ed68">
+                <input class="output-layer-toggle" data-output-index="3" type="checkbox" checked />
+                <span class="output-swatch"></span>
+                <span>PIN / OUT 4</span>
+                <small>10 panels</small>
+              </label>
+            </div>
+            <div class="connector-key">
+              <span><i class="connector-dot connector-dot--din"></i>DIN</span>
+              <span><i class="connector-dot connector-dot--dout"></i>DOUT</span>
+              <small>GPIO + connector corners TBD</small>
+            </div>
+          </div>
           <div id="mapping-status" class="validation-row">
             <span class="validation-icon">✓</span>
             <span>Mapping LUT is valid</span>
@@ -183,6 +229,13 @@ const mappingStatus = query<HTMLElement>("#mapping-status");
 const mappingTag = query<HTMLElement>("#mapping-tag");
 const mappingNote = query<HTMLElement>("#mapping-note");
 const panelLabelsToggle = query<HTMLInputElement>("#panel-labels");
+const connectorLayerToggle =
+  query<HTMLInputElement>("#connector-layer");
+const wiringLayerToggle = query<HTMLInputElement>("#wiring-layer");
+const wiringLayerControls = query<HTMLElement>("#wiring-layer-controls");
+const outputLayerToggles = Array.from(
+  document.querySelectorAll<HTMLInputElement>(".output-layer-toggle"),
+);
 
 let renderer: SphereRenderer | undefined;
 let animationFrame = 0;
@@ -191,7 +244,9 @@ async function start(): Promise<void> {
   try {
     const engine = await WledEngine.create(DEFAULT_LED_COUNT);
     let mapping = createPanelizedSculptureMapping();
+    let wiringPreview = createProvisionalWiringPreview(mapping);
     renderer = new SphereRenderer(viewerElement, mapping);
+    renderer.setWiringPreview(wiringPreview);
 
     effectSelect.replaceChildren(
       ...engine.effects.map(
@@ -230,13 +285,14 @@ async function start(): Promise<void> {
     const updateMappingStatus = (): void => {
       const validation = validateMapping(mapping, engine.ledCount);
       const isPanelized = mapping.topology === "panelized-sculpture";
-      mappingStatus.classList.toggle(
-        "validation-row--error",
-        !validation.valid,
-      );
-      mappingStatus.innerHTML = validation.valid
-        ? `<span class="validation-icon">✓</span><span>${isPanelized ? "41 panels / 2,624 LEDs valid" : "Fallback mapping is valid"}</span>`
-        : `<span class="validation-icon">!</span><span>${validation.errors[0] ?? "Invalid mapping"}</span>`;
+      const wiringValidation = isPanelized
+        ? validateWiringPreview(wiringPreview, mapping)
+        : { valid: true, errors: [] };
+      const allValid = validation.valid && wiringValidation.valid;
+      mappingStatus.classList.toggle("validation-row--error", !allValid);
+      mappingStatus.innerHTML = allValid
+        ? `<span class="validation-icon">✓</span><span>${isPanelized ? "41 panels / 2,624 LEDs / 4 routes valid" : "Fallback mapping is valid"}</span>`
+        : `<span class="validation-icon">!</span><span>${validation.errors[0] ?? wiringValidation.errors[0] ?? "Invalid mapping"}</span>`;
       panelCountDisplay.textContent = isPanelized
         ? String(mapping.panels.length)
         : "—";
@@ -247,7 +303,22 @@ async function start(): Promise<void> {
         ? "North pole open; centre boards are horizon-aligned; WLED logical order runs north → south. Physical wiring remains provisional."
         : "Custom LED counts use the panel-free Fibonacci fallback.";
       panelLabelsToggle.disabled = !isPanelized;
+      connectorLayerToggle.disabled = !isPanelized;
+      wiringLayerToggle.disabled = !isPanelized;
+      wiringLayerControls.classList.toggle(
+        "layer-controls--disabled",
+        !isPanelized,
+      );
+      for (const toggle of outputLayerToggles) {
+        toggle.disabled = !isPanelized;
+      }
       renderer?.setPanelLabelsVisible(isPanelized && panelLabelsToggle.checked);
+      renderer?.setConnectorLayerVisible(
+        isPanelized && connectorLayerToggle.checked,
+      );
+      renderer?.setWiringLayerVisible(
+        isPanelized && wiringLayerToggle.checked,
+      );
     };
 
     effectSelect.addEventListener("change", () => {
@@ -282,6 +353,20 @@ async function start(): Promise<void> {
         mapping.topology === "panelized-sculpture" && panelLabelsToggle.checked,
       );
     });
+    connectorLayerToggle.addEventListener("change", () => {
+      renderer?.setConnectorLayerVisible(connectorLayerToggle.checked);
+    });
+    wiringLayerToggle.addEventListener("change", () => {
+      renderer?.setWiringLayerVisible(wiringLayerToggle.checked);
+    });
+    for (const toggle of outputLayerToggles) {
+      toggle.addEventListener("change", () => {
+        renderer?.setOutputVisible(
+          Number(toggle.dataset.outputIndex),
+          toggle.checked,
+        );
+      });
+    }
     restartButton.addEventListener("click", resetTimeline);
 
     playButton.addEventListener("click", () => {
@@ -311,6 +396,8 @@ async function start(): Promise<void> {
           ? createPanelizedSculptureMapping()
           : createUniformSphereMapping(requested);
       renderer?.setMapping(mapping);
+      wiringPreview = createProvisionalWiringPreview(mapping);
+      renderer?.setWiringPreview(wiringPreview);
       resetTimeline();
       ledCountDisplay.textContent = requested.toLocaleString();
       updateMappingStatus();
