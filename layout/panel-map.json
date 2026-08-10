@@ -1,5 +1,15 @@
 {
   "schemaVersion": "1.0.0",
+  "id": "generated-rhombicosidodecahedron-41-panel-preview-routed",
+  "topology": "panelized-sculpture",
+  "notes": [
+    "The north-pole pentagon is intentionally unpopulated: 30 square panels plus 11 pentagon-centre panels.",
+    "Northern centre panels present their top edge toward the pole; southern centre panels present their bottom edge toward the pole.",
+    "Logical effect indices run from global north to south; physical indices remain synthetic panel-major preview order.",
+    "Pixel-zero corner, serpentine order, controller outputs, and physical chain wiring remain unmeasured.",
+    "Physical indices follow the displayed four-output route.",
+    "Within-panel physical order is provisional top-left row-major and must be bench-calibrated."
+  ],
   "status": "provisional",
   "hardwareReady": false,
   "ledmapFingerprint": "f4e553a9",

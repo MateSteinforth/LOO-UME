@@ -27,6 +27,7 @@ export interface HardwareReadiness {
 
 export interface HardwareMappingContract {
   mapping: LedMapping;
+  wiring: WiringPreview;
   ledmap: WledLedmap;
   outputs: OutputAddressRange[];
   readiness: HardwareReadiness;
@@ -267,10 +268,83 @@ export function createHardwareMappingContract(
   const readiness = assessHardwareReadiness(mapping, wiring);
   return {
     mapping,
+    wiring,
     ledmap,
     outputs,
     readiness,
     fingerprint: fingerprintLedmap(ledmap),
+  };
+}
+
+interface GeneratedPanelMap {
+  schemaVersion: string;
+  id: string;
+  status: LedMapping["status"];
+  topology: LedMapping["topology"];
+  notes: string[];
+  hardwareReady: boolean;
+  ledmapFingerprint: string;
+  readinessBlockers: string[];
+  outputs: OutputAddressRange[];
+  wiring: WiringPreview;
+  panels: PanelDefinition[];
+  leds: LedMappingEntry[];
+}
+
+export function loadGeneratedHardwareMappingContract(
+  panelMapInput: unknown,
+  ledmapInput: unknown,
+): HardwareMappingContract {
+  if (
+    typeof panelMapInput !== "object" ||
+    panelMapInput === null ||
+    typeof ledmapInput !== "object" ||
+    ledmapInput === null
+  ) {
+    throw new Error("Generated mapping artifacts must be JSON objects.");
+  }
+  const panelMap = panelMapInput as GeneratedPanelMap;
+  const ledmap = ledmapInput as WledLedmap;
+  if (panelMap.schemaVersion !== "1.0.0") {
+    throw new Error("Unsupported panel-map schema version.");
+  }
+  if (
+    !Array.isArray(panelMap.panels) ||
+    !Array.isArray(panelMap.leds) ||
+    !Array.isArray(panelMap.outputs) ||
+    !Array.isArray(panelMap.readinessBlockers) ||
+    !Array.isArray(ledmap.map)
+  ) {
+    throw new Error("Generated mapping artifacts are incomplete.");
+  }
+
+  const mapping: LedMapping = {
+    id: panelMap.id,
+    status: panelMap.status,
+    topology: panelMap.topology,
+    notes: panelMap.notes,
+    panels: panelMap.panels,
+    entries: panelMap.leds,
+  };
+  const equivalenceErrors = validateLedmapEquivalence(mapping, ledmap);
+  if (equivalenceErrors.length > 0) {
+    throw new Error(equivalenceErrors[0]);
+  }
+  const fingerprint = fingerprintLedmap(ledmap);
+  if (fingerprint !== panelMap.ledmapFingerprint) {
+    throw new Error("Panel map and WLED ledmap fingerprints differ.");
+  }
+
+  return {
+    mapping,
+    wiring: panelMap.wiring,
+    ledmap,
+    outputs: panelMap.outputs,
+    readiness: {
+      ready: panelMap.hardwareReady,
+      blockers: panelMap.readinessBlockers,
+    },
+    fingerprint,
   };
 }
 

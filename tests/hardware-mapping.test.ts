@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createPanelizedSculptureMapping } from "../web/src/LedMapping.ts";
 import {
   createHardwareMappingContract,
+  loadGeneratedHardwareMappingContract,
   validateLedmapEquivalence,
 } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
@@ -122,6 +123,28 @@ describe("hardware mapping contract", () => {
     for (const led of generatedLayout.leds) {
       expect(generatedLedmap.map[led.logicalIndex]).toBe(led.physicalIndex);
     }
+  });
+
+  it("loads the actual JSON artifacts and rejects divergence", () => {
+    const panelMap = JSON.parse(
+      readFileSync("layout/panel-map.json", "utf8"),
+    ) as unknown;
+    const ledmap = JSON.parse(
+      readFileSync("wled/ledmap.provisional.json", "utf8"),
+    ) as { map: number[] };
+    const loaded = loadGeneratedHardwareMappingContract(panelMap, ledmap);
+
+    expect(loaded.fingerprint).toBe("f4e553a9");
+    expect(loaded.mapping.entries).toHaveLength(2624);
+    expect(loaded.wiring.outputs).toHaveLength(4);
+
+    const divergentLedmap = {
+      map: [...ledmap.map],
+    };
+    divergentLedmap.map[0] = divergentLedmap.map[0]! + 1;
+    expect(() =>
+      loadGeneratedHardwareMappingContract(panelMap, divergentLedmap),
+    ).toThrow();
   });
 
   it("refuses to describe provisional routing as hardware-ready", () => {

@@ -38,6 +38,9 @@ mkdirSync(wledDirectory, { recursive: true });
 
 const panelMap = {
   schemaVersion: "1.0.0",
+  id: contract.mapping.id,
+  topology: contract.mapping.topology,
+  notes: contract.mapping.notes,
   status: contract.readiness.ready ? "measured" : "provisional",
   hardwareReady: contract.readiness.ready,
   ledmapFingerprint: contract.fingerprint,

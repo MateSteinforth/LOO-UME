@@ -87,8 +87,10 @@ virtual framebuffer. Invalid writes are rejected and counted by
 - Logical effect indices are sorted by UV latitude/longitude so WLED Scan
   progresses north-to-south. Physical indices now come from the exact four-output
   route drawn by the wiring overlay. `HardwareMapping.ts` produces
-  `map[logicalIndex] = physicalIndex`, which is both rendered and exported;
-  a full-frame round-trip test proves their equivalence.
+  `map[logicalIndex] = physicalIndex`, which is both rendered and exported.
+  The browser imports the generated panel-map and ledmap JSON directly, checks
+  their shared fingerprint, and rejects any per-LED mismatch. A full-frame
+  round-trip test proves their equivalence.
 - The current 11/10/10/10 geographic route and top-left row-major panel order
   are provisional design inputs, not hardware facts. The top-left/bottom-right
   free connector diagonal is derived from canonical part clearances; exact pad

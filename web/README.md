@@ -65,9 +65,11 @@ deterministic timestamps, resize behavior, out-of-bounds protection, and
 mapping invariants.
 
 Every build regenerates `layout/panel-map.json` and
-`wled/ledmap.provisional.json` from the same mapping contract used by the
-browser. The production command `npm run generate:mapping:hardware` refuses to
-write `wled/ledmap.json` until all measured-data readiness checks pass.
+`wled/ledmap.provisional.json`. The browser imports those actual JSON artifacts
+at runtime; it does not independently regenerate the sculpture mapping. Startup
+validates every logical-to-physical entry and requires matching fingerprints.
+The production command `npm run generate:mapping:hardware` refuses to write
+`wled/ledmap.json` until all measured-data readiness checks pass.
 
 Generated `web/public/wasm/wled-engine.{js,wasm}` files are ignored. Rebuild
 them from the pinned Emscripten version and WLED submodule.
@@ -150,9 +152,10 @@ grouping is a generated geographic design used by both the layer UI and
 provisional WLED map. GPIO assignments are deliberately `null`, and panel
 wiring is marked `provisional` rather than measured.
 
-`tests/hardware-mapping.test.ts` sends a logical frame through the generated
-ledmap and verifies that every resulting physical color equals the color placed
-by Three.js. Once pixel-zero corners, DIN/DOUT assignment, GPIOs, installed
+`tests/hardware-mapping.test.ts` loads the same two JSON files as the browser,
+sends a logical frame through the ledmap, and verifies that every resulting
+physical color equals the color placed by Three.js. It also corrupts one map
+entry and verifies that the runtime loader rejects the mismatch. Once pixel-zero corners, DIN/DOUT assignment, GPIOs, installed
 orientation, and chain order are bench-verified, those measured values replace
 the provisional fields and unlock the production exporter.
 

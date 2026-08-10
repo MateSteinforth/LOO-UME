@@ -1,12 +1,13 @@
 import "./styles.css";
+import panelMapJson from "../../layout/panel-map.json";
+import ledmapJson from "../../wled/ledmap.provisional.json";
 import {
-  createPanelizedSculptureMapping,
   createUniformSphereMapping,
   SCULPTURE_GEOMETRY,
   validateMapping,
 } from "./LedMapping";
 import {
-  createHardwareMappingContract,
+  loadGeneratedHardwareMappingContract,
   validateLedmapEquivalence,
 } from "./HardwareMapping";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
@@ -247,12 +248,11 @@ let animationFrame = 0;
 async function start(): Promise<void> {
   try {
     const engine = await WledEngine.create(DEFAULT_LED_COUNT);
-    let geometryMapping = createPanelizedSculptureMapping();
-    let wiringPreview = createProvisionalWiringPreview(geometryMapping);
-    let hardwareContract = createHardwareMappingContract(
-      geometryMapping,
-      wiringPreview,
+    let hardwareContract = loadGeneratedHardwareMappingContract(
+      panelMapJson,
+      ledmapJson,
     );
+    let wiringPreview = hardwareContract.wiring;
     let mapping = hardwareContract.mapping;
     renderer = new SphereRenderer(viewerElement, mapping);
     renderer.setWiringPreview(wiringPreview);
@@ -406,19 +406,16 @@ async function start(): Promise<void> {
       }
       ledCountInput.setCustomValidity("");
       engine.resize(requested);
-      geometryMapping =
-        requested === DEFAULT_LED_COUNT
-          ? createPanelizedSculptureMapping()
-          : createUniformSphereMapping(requested);
-      wiringPreview = createProvisionalWiringPreview(geometryMapping);
-      if (geometryMapping.topology === "panelized-sculpture") {
-        hardwareContract = createHardwareMappingContract(
-          geometryMapping,
-          wiringPreview,
+      if (requested === DEFAULT_LED_COUNT) {
+        hardwareContract = loadGeneratedHardwareMappingContract(
+          panelMapJson,
+          ledmapJson,
         );
         mapping = hardwareContract.mapping;
+        wiringPreview = hardwareContract.wiring;
       } else {
-        mapping = geometryMapping;
+        mapping = createUniformSphereMapping(requested);
+        wiringPreview = createProvisionalWiringPreview(mapping);
       }
       renderer?.setMapping(mapping);
       renderer?.setWiringPreview(wiringPreview);
