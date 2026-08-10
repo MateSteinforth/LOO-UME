@@ -32,6 +32,24 @@ describe("provisional wiring preview", () => {
     expect(preview.nodes).toHaveLength(41);
 
     for (const node of preview.nodes) {
+      const panel = mapping.panels.find(
+        (candidate) => candidate.id === node.panelId,
+      )!;
+      const dinRelative = {
+        x: node.din.x - panel.position.x,
+        y: node.din.y - panel.position.y,
+        z: node.din.z - panel.position.z,
+      };
+      const doutRelative = {
+        x: node.dout.x - panel.position.x,
+        y: node.dout.y - panel.position.y,
+        z: node.dout.z - panel.position.z,
+      };
+      const local = (
+        value: typeof dinRelative,
+        axis: typeof panel.xAxis,
+      ): number => value.x * axis.x + value.y * axis.y + value.z * axis.z;
+
       expect(Number.isFinite(node.din.x)).toBe(true);
       expect(Number.isFinite(node.din.y)).toBe(true);
       expect(Number.isFinite(node.din.z)).toBe(true);
@@ -39,6 +57,12 @@ describe("provisional wiring preview", () => {
       expect(Number.isFinite(node.dout.y)).toBe(true);
       expect(Number.isFinite(node.dout.z)).toBe(true);
       expect(node.din).not.toEqual(node.dout);
+      expect(local(dinRelative, panel.xAxis)).toBeLessThan(0);
+      expect(local(dinRelative, panel.yAxis)).toBeGreaterThan(0);
+      expect(local(doutRelative, panel.xAxis)).toBeGreaterThan(0);
+      expect(local(doutRelative, panel.yAxis)).toBeLessThan(0);
+      expect(node.connectorDiagonal).toBe("top-left-to-bottom-right");
+      expect(node.dinDoutAssignmentStatus).toBe("provisional");
     }
   });
 

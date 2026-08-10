@@ -130,10 +130,13 @@ effect engine.
 
 The panelized view has independently hideable DIN/DOUT markers, within-panel
 direction arrows, panel-to-panel routes, and one toggle for each of four output
-routes. The current 11/10/10/10 panel grouping is a generated geographic preview
-used to exercise the layer UI. Its connector corners are schematic and its GPIO
-assignments are deliberately `null`; it is not recorded in `PanelDefinition.wiring`
-as measured physical data.
+routes. The free connector diagonal is derived from the canonical mechanical
+clearances: top-left and bottom-right in panel-local coordinates. The marker
+inset and the assignment of DIN versus DOUT to those two endpoints remain
+provisional until checked on the physical PCB. The current 11/10/10/10 panel
+grouping is a generated geographic preview used to exercise the layer UI. GPIO
+assignments are deliberately `null`; this data is not recorded in
+`PanelDefinition.wiring` as measured physical data.
 
 Replace `createProvisionalWiringPreview()` with a consumer of the canonical
 measured wiring map once pixel-zero corners, DIN/DOUT connector positions, GPIOs,

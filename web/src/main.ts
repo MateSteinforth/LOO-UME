@@ -170,7 +170,7 @@ app.innerHTML = `
             <div class="connector-key">
               <span><i class="connector-dot connector-dot--din"></i>DIN</span>
               <span><i class="connector-dot connector-dot--dout"></i>DOUT</span>
-              <small>GPIO + connector corners TBD</small>
+              <small>Diagonal from 3D parts &middot; DIN/DOUT assignment provisional</small>
             </div>
           </div>
           <div id="mapping-status" class="validation-row">

@@ -12,6 +12,8 @@ export interface WiringPanelNode {
   nextPanelId: string | null;
   din: Vector3Data;
   dout: Vector3Data;
+  connectorDiagonal: "top-left-to-bottom-right";
+  dinDoutAssignmentStatus: "provisional";
 }
 
 export interface WiringOutputRoute {
@@ -90,10 +92,12 @@ function routeNearestNeighbor(panels: PanelDefinition[]): PanelDefinition[] {
 function connectorPosition(
   panel: PanelDefinition,
   xDirection: -1 | 1,
+  yDirection: -1 | 1,
 ): Vector3Data {
   const xOffset =
     xDirection * (panel.previewWidth / 2 - CONNECTOR_EDGE_INSET);
-  const yOffset = -(panel.previewHeight / 2 - CONNECTOR_EDGE_INSET);
+  const yOffset =
+    yDirection * (panel.previewHeight / 2 - CONNECTOR_EDGE_INSET);
   return add(
     add(panel.position, scale(panel.xAxis, xOffset)),
     add(
@@ -171,8 +175,10 @@ export function createProvisionalWiringPreview(
         chainPosition,
         previousPanelId: panels[chainPosition - 1]?.id ?? null,
         nextPanelId: panels[chainPosition + 1]?.id ?? null,
-        din: connectorPosition(panel, -1),
-        dout: connectorPosition(panel, 1),
+        din: connectorPosition(panel, -1, 1),
+        dout: connectorPosition(panel, 1, -1),
+        connectorDiagonal: "top-left-to-bottom-right",
+        dinDoutAssignmentStatus: "provisional",
       });
     }
   }
@@ -183,7 +189,8 @@ export function createProvisionalWiringPreview(
     nodes,
     notes: [
       "Four colored routes are a generated geographic preview, not physical wiring.",
-      "DIN/DOUT markers use schematic lower PCB corners; real connector corners remain unmeasured.",
+      "The free top-left/bottom-right diagonal follows the canonical 3D-part clearances; marker inset remains schematic.",
+      "Which diagonal endpoint is DIN versus DOUT remains provisional until checked on the physical PCB.",
       "GPIO numbers and the final per-output chain order remain TBD.",
     ],
   };

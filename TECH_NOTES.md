@@ -89,9 +89,11 @@ virtual framebuffer. Invalid writes are rejected and counted by
   WLED Scan progresses north-to-south. The Fibonacci sphere remains only as a
   fallback for arbitrary LED counts.
 - The hideable four-output wiring overlay uses a generated 11/10/10/10
-  geographic grouping and schematic lower-corner DIN/DOUT markers. It is kept
-  outside `PanelDefinition.wiring`: GPIO assignments, connector corners, and
-  the physical chain order remain unknown until bench measurement.
+  geographic grouping. The top-left/bottom-right free connector diagonal is
+  derived from the canonical part clearances; exact pad inset and which endpoint
+  is DIN versus DOUT remain provisional. It is kept outside
+  `PanelDefinition.wiring`: GPIO assignments and physical chain order remain
+  unknown until bench measurement.
 - The audio setter stores volume, peak, and up to 64 FFT bins. No current effect
   consumes them; this is the future adapter seam.
 - Emscripten memory may grow after a resize. JavaScript deliberately reacquires
