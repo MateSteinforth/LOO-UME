@@ -25,6 +25,10 @@ WebAssembly and renders 2,688 mapped LEDs with Three.js. Its artificial sphere
 mapping is explicitly provisional and does not claim measured sculpture
 geometry or wiring.
 
+![WLED Orbital Lab rendering 2,688 virtual LEDs on the provisional sphere](docs/assets/wled-orbital-lab.png)
+
+_The browser simulator running WLED's Rainbow effect through WebAssembly._
+
 See [web/README.md](web/README.md) for setup, build, test, architecture, WASM
 memory, mapping, and upstream-update instructions. Investigation details and
 current limitations are recorded in [TECH_NOTES.md](TECH_NOTES.md).
