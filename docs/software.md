@@ -6,12 +6,15 @@ three mapping facts listed below.
 
 ## Hardware baseline
 
-- 42 rigid `WS2812B-64` panels: 8 x 8 RGB pixels, 5 V, 64 pixels each.
-- 2,688 pixels total: 30 square-face panels and 12 pentagon-centre panels.
+- 41 rigid `WS2812B-64` panels: 8 x 8 RGB pixels, 5 V, 64 pixels each.
+- 2,624 pixels total: 30 square-face panels and 11 pentagon-centre panels.
+- The north-pole pentagonal opening is intentionally unpopulated.
 - One ESP32-class controller running WLED, with Ethernet, an I2S microphone,
   and four level-shifted data outputs. The exact board and GPIO assignments are
   not yet selected.
-- Output lengths are 11, 10, 11, and 10 panels: 704, 640, 704, and 640 pixels.
+- Four data outputs remain planned. Their revised panel counts and lengths
+  must be assigned with the physical chain; the obsolete 42-panel split must
+  not be reused.
 - Two independent 5 V / 40 A power domains each feed two outputs. Grounds are
   common; positive rails remain separate.
 
@@ -50,7 +53,7 @@ and chain position also remain data rather than effect-code constants.
 
 ## Build and CI
 
-CI will validate the 42-panel/2,688-pixel map, build the usermod against a
+CI will validate the 41-panel/2,624-pixel map, build the usermod against a
 pinned WLED release with PlatformIO, and upload the flashable binary plus its
 build metadata as artifacts. It will not flash hardware. Firmware binaries and
 device credentials are never committed.

@@ -45,7 +45,7 @@ export class SphereRenderer {
   private readonly geometry = new THREE.BufferGeometry();
   private readonly ledTexture = createLedSpriteTexture();
   private readonly material = new THREE.PointsMaterial({
-    size: 4.4,
+    size: 8.8,
     vertexColors: true,
     map: this.ledTexture,
     transparent: true,

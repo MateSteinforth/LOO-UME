@@ -1,10 +1,11 @@
 # LED Rhombicosidodecahedron
 
-Version-controlled OpenSCAD sources for a 42-panel LED sculpture based on a
+Version-controlled OpenSCAD sources for a 41-panel LED sculpture based on a
 rhombicosidodecahedron:
 
 - 30 LED panels occupy the square faces.
-- 12 additional LED panels sit in the pentagonal openings.
+- 11 additional LED panels sit in pentagonal openings.
+- The north-pole pentagonal opening is intentionally unpopulated.
 - 20 identical triangle fillers close the triangular openings.
 
 The source geometry was migrated from the project's
@@ -14,20 +15,22 @@ Git history is the version history; do not create numbered copies such as
 
 ## Software and firmware
 
-One ESP32 running WLED drives all 2,688 WS2812B pixels over four parallel
-outputs. It runs custom audio-reactive effects locally and accepts realtime DDP
+One ESP32 running WLED drives all 2,624 WS2812B pixels over four parallel
+outputs. The revised per-output panel split still needs a physical chain
+assignment. It runs custom audio-reactive effects locally and accepts realtime DDP
 or Art-Net data. See [docs/software.md](docs/software.md) for the controller,
 mapping, behavior, power-safety, and CI design.
 
 The `software/panel-map-visualizer` branch also contains **WLED Orbital Lab**,
 a standalone browser simulator that runs genuine WLED C++ effect bodies in
-WebAssembly and renders 2,688 LEDs as 30 square-face 8 x 8 panels plus 12
-pentagon-centre 8 x 8 panels. Generated face transforms are provisional and do
-not claim measured panel rotation, pixel order, or wiring.
+WebAssembly and renders 2,624 LEDs as 30 square-face 8 x 8 panels plus 11
+pentagon-centre 8 x 8 panels, leaving the north-pole pentagon open. Physical
+pixel order and wiring remain provisional.
 
-![WLED Orbital Lab rendering the provisional 42-panel sculpture](docs/assets/wled-orbital-lab.png)
+![Earlier WLED Orbital Lab 42-panel prototype](docs/assets/wled-orbital-lab.png)
 
-_The panelized browser simulator running WLED's Rainbow effect through WebAssembly._
+_This screenshot predates the open-pole correction; the live simulator now uses
+the 41-panel vertex-up layout._
 
 See [web/README.md](web/README.md) for setup, build, test, architecture, WASM
 memory, mapping, and upstream-update instructions. Investigation details and
@@ -38,8 +41,8 @@ current limitations are recorded in [TECH_NOTES.md](TECH_NOTES.md).
 | Source | Quantity | Purpose |
 | --- | ---: | --- |
 | `parts/triangle.scad` | 20 | Triangle filler with three PCB-safe mounts |
-| `parts/pentagon_u.scad` | 12 | Pentagon U-frame holding an additional LED panel |
-| `parts/middle_panel_connector.scad` | 12 | Rounded connector between the centre and outer panels |
+| `parts/pentagon_u.scad` | 11 installed | Pentagon U-frame holding an additional LED panel |
+| `parts/middle_panel_connector.scad` | 11 installed | Rounded connector between the centre and outer panels |
 
 Each source defaults to `mode = "print"`. Change the mode locally to inspect
 its assembly/preview geometry, but do not commit a mode change unless it is an

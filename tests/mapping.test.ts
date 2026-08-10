@@ -30,15 +30,15 @@ describe("LED mapping", () => {
     }
   });
 
-  it("creates 42 explicit 8x8 panels on the sculpture topology", () => {
+  it("creates 41 explicit 8x8 panels with an open north pole", () => {
     const mapping = createPanelizedSculptureMapping();
-    const result = validateMapping(mapping, 2688);
+    const result = validateMapping(mapping, 2624);
 
     expect(result).toEqual({ valid: true, errors: [] });
     expect(mapping.topology).toBe("panelized-sculpture");
     expect(mapping.status).toBe("provisional");
-    expect(mapping.entries).toHaveLength(2688);
-    expect(mapping.panels).toHaveLength(42);
+    expect(mapping.entries).toHaveLength(2624);
+    expect(mapping.panels).toHaveLength(41);
 
     const squarePanels = mapping.panels.filter(
       (panel) => panel.faceType === "square-face",
@@ -47,7 +47,16 @@ describe("LED mapping", () => {
       (panel) => panel.faceType === "pentagon-centre",
     );
     expect(squarePanels).toHaveLength(30);
-    expect(pentagonPanels).toHaveLength(12);
+    expect(pentagonPanels).toHaveLength(11);
+    expect(
+      squarePanels.filter((panel) => panel.neighborPanelIds.length === 1),
+    ).toHaveLength(5);
+    expect(
+      pentagonPanels.some((panel) => panel.normal.y > 1 - 1e-9),
+    ).toBe(false);
+    expect(
+      pentagonPanels.filter((panel) => panel.normal.y < -1 + 1e-9),
+    ).toHaveLength(1);
 
     for (const panel of mapping.panels) {
       expect(panel.ledIndices).toHaveLength(64);
@@ -56,9 +65,11 @@ describe("LED mapping", () => {
       expect(panel.wiring.status).toBe("unassigned");
       expect(panel.rotationDegrees).toBeNull();
       expect(panel.mirrored).toBeNull();
-      expect(panel.neighborPanelIds).toHaveLength(
-        panel.faceType === "square-face" ? 2 : 5,
-      );
+      if (panel.faceType === "square-face") {
+        expect([1, 2]).toContain(panel.neighborPanelIds.length);
+      } else {
+        expect(panel.neighborPanelIds).toHaveLength(5);
+      }
 
       const panelEntries = mapping.entries.filter(
         (entry) => entry.panelId === panel.id,
@@ -180,7 +191,11 @@ describe("LED mapping", () => {
         inPlanePosition.x * centerPanel.yAxis.x +
           inPlanePosition.y * centerPanel.yAxis.y +
           inPlanePosition.z * centerPanel.yAxis.z,
-      ).toBeCloseTo(expectedLocalY, 5);
+      ).toBeCloseTo(
+        expectedLocalY * (centerPanel.normal.y > 0 ? 1 : -1),
+        5,
+      );
+      expect(centerPanel.xAxis.y).toBeCloseTo(0, 8);
 
       const alignedNeighbor = squarePanels.some((squarePanel) => {
         if (!centerPanel.neighborPanelIds.includes(squarePanel.id)) return false;
@@ -208,6 +223,15 @@ describe("LED mapping", () => {
         return Math.abs(alignment) > 1 - 1e-8;
       });
       expect(alignedNeighbor).toBe(true);
+    }
+
+    const effectOrder = [...mapping.entries].sort(
+      (first, second) => first.logicalIndex - second.logicalIndex,
+    );
+    for (let index = 1; index < effectOrder.length; index += 1) {
+      expect(effectOrder[index]!.v).toBeGreaterThanOrEqual(
+        effectOrder[index - 1]!.v,
+      );
     }
   });
 

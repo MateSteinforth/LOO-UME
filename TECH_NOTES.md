@@ -75,17 +75,19 @@ virtual framebuffer. Invalid writes are rejected and counted by
   37 local effect/helper bodies against `wled/upstream/wled00/FX.cpp` and
   rejects an unexpected submodule revision. Updating WLED still requires
   reviewing compatibility changes.
-- The default preview groups all 2,688 LEDs into 30 square-face and 12
-  pentagon-centre 8 x 8 grids. It now uses the 66 mm common face edge, separate
-  square/pentagon plane distances, 66 x 65 mm PCB envelopes, and the canonical
-  centre-panel 234 degree rotation, 9.62/-7.04 mm offset, and 0.70 mm recess.
-  Global face numbering and the equivalent open edge selected for each
-  pentagon copy remain generated rather than measured.
+- The default preview contains 2,624 LEDs: 30 square-face and 11
+  pentagon-centre 8 x 8 grids. The face frame is vertex-up and the north-pole
+  pentagon is intentionally unpopulated. Northern centre panels present their
+  top edge toward the polar edge; southern panels present their bottom edge.
+  The 66 mm face edge, separate square/pentagon plane distances, 66 x 65 mm PCB
+  envelopes, and canonical centre-panel recess/offset remain represented.
 - The renderer uses opaque PCB depth surfaces plus depth-writing, normal-blended
   circular LED sprites. This deliberately avoids transparent-shell/additive
   sorting artifacts that made front LEDs appear dim.
-- Synthetic row-major logical/physical indices are not physical wiring facts.
-  The Fibonacci sphere remains only as a fallback for arbitrary LED counts.
+- Synthetic physical indices remain panel-major and are not wiring facts.
+  Logical effect indices are independently sorted by UV latitude/longitude so
+  WLED Scan progresses north-to-south. The Fibonacci sphere remains only as a
+  fallback for arbitrary LED counts.
 - The audio setter stores volume, peak, and up to 64 FFT bins. No current effect
   consumes them; this is the future adapter seam.
 - Emscripten memory may grow after a resize. JavaScript deliberately reacquires

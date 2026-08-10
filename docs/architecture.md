@@ -1,8 +1,9 @@
 # Mechanical architecture
 
 The sculpture uses the 30 square faces of a rhombicosidodecahedron for the
-original LED panels. Each of the 12 pentagonal openings receives one additional
-65 x 66 mm LED panel, producing 42 panels and 2,688 LEDs at 64 LEDs per panel.
+original LED panels. Eleven pentagonal openings receive one additional
+65 x 66 mm LED panel; the north-pole pentagon remains unpopulated. This produces
+41 panels and 2,624 LEDs at 64 LEDs per panel.
 
 The mechanical source is divided into three independently printable parts:
 

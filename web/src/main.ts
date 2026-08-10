@@ -2,12 +2,13 @@ import "./styles.css";
 import {
   createPanelizedSculptureMapping,
   createUniformSphereMapping,
+  SCULPTURE_GEOMETRY,
   validateMapping,
 } from "./LedMapping";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { WledEngine } from "./WledEngine";
 
-const DEFAULT_LED_COUNT = 2688;
+const DEFAULT_LED_COUNT = SCULPTURE_GEOMETRY.totalLedCount;
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) throw new Error("Missing #app");
@@ -32,7 +33,7 @@ app.innerHTML = `
       <section class="viewer-panel" aria-label="3D LED sphere">
         <div id="viewer" class="viewer"></div>
         <div class="viewer-overlay viewer-overlay--top">
-          <span id="mapping-tag" class="provisional-tag">MECHANICAL 42-PANEL PREVIEW</span>
+          <span id="mapping-tag" class="provisional-tag">MECHANICAL 41-PANEL PREVIEW</span>
           <span>Drag to orbit · Scroll to zoom</span>
         </div>
         <div class="viewer-overlay viewer-overlay--bottom">
@@ -42,11 +43,11 @@ app.innerHTML = `
           </div>
           <div class="metric">
             <span class="metric-label">LEDs</span>
-            <strong id="led-count-display">2,688</strong>
+            <strong id="led-count-display">2,624</strong>
           </div>
           <div class="metric">
             <span class="metric-label">Panels</span>
-            <strong id="panel-count-display">42</strong>
+            <strong id="panel-count-display">41</strong>
           </div>
           <div class="metric">
             <span class="metric-label">Frame</span>
@@ -114,7 +115,7 @@ app.innerHTML = `
           <label class="field">
             <span>Virtual LED count</span>
             <div class="input-action">
-              <input id="led-count" type="number" min="64" max="200000" step="1" value="2688" />
+              <input id="led-count" type="number" min="64" max="200000" step="1" value="2624" />
               <button id="apply-count" type="button">Apply</button>
             </div>
           </label>
@@ -234,16 +235,16 @@ async function start(): Promise<void> {
         !validation.valid,
       );
       mappingStatus.innerHTML = validation.valid
-        ? `<span class="validation-icon">✓</span><span>${isPanelized ? "42 panels / 2,688 LEDs valid" : "Fallback mapping is valid"}</span>`
+        ? `<span class="validation-icon">✓</span><span>${isPanelized ? "41 panels / 2,624 LEDs valid" : "Fallback mapping is valid"}</span>`
         : `<span class="validation-icon">!</span><span>${validation.errors[0] ?? "Invalid mapping"}</span>`;
       panelCountDisplay.textContent = isPanelized
         ? String(mapping.panels.length)
         : "—";
       mappingTag.textContent = isPanelized
-        ? "MECHANICAL 42-PANEL PREVIEW"
+        ? "MECHANICAL 41-PANEL PREVIEW"
         : "PROVISIONAL UNIFORM FALLBACK";
       mappingNote.textContent = isPanelized
-        ? "Physical face planes and centre-panel offsets; face IDs, open-edge choices, pixel order, and wiring remain provisional."
+        ? "North pole open; centre boards are horizon-aligned; WLED logical order runs north → south. Physical wiring remains provisional."
         : "Custom LED counts use the panel-free Fibonacci fallback.";
       panelLabelsToggle.disabled = !isPanelized;
       renderer?.setPanelLabelsVisible(isPanelized && panelLabelsToggle.checked);

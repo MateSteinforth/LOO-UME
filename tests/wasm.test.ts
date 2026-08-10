@@ -39,7 +39,7 @@ function snapshot(module: TestModule): number[] {
 describe("WLED WASM engine", () => {
   it("initializes, selects effects, and mutates the framebuffer", async () => {
     const module = await loadModule();
-    expect(module._wled_init(2688)).toBe(1);
+    expect(module._wled_init(2624)).toBe(1);
     expect(module._wled_get_effect_count()).toBeGreaterThanOrEqual(10);
 
     module._wled_set_effect(8);
@@ -51,7 +51,7 @@ describe("WLED WASM engine", () => {
     module._wled_tick(1000);
     const second = snapshot(module);
 
-    expect(first).toHaveLength(2688);
+    expect(first).toHaveLength(2624);
     expect(second).not.toEqual(first);
     expect(second.some((pixel) => pixel !== 0)).toBe(true);
     expect(module._wled_get_oob_write_count()).toBe(0);

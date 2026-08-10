@@ -64,7 +64,6 @@ export interface MappingValidation {
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
-const PHI = (1 + Math.sqrt(5)) / 2;
 const PANEL_LED_SIDE = 8;
 const LEDS_PER_PANEL = PANEL_LED_SIDE * PANEL_LED_SIDE;
 
@@ -85,6 +84,11 @@ export const SCULPTURE_GEOMETRY = {
   centerPanelRotationDegrees: 234,
   centerPanelRecess: 0.7,
   squarePentagonFoldDegrees: 31.717474,
+  squarePanelCount: 30,
+  centerPanelCount: 11,
+  unpopulatedTopPentagonCount: 1,
+  totalPanelCount: 41,
+  totalLedCount: 2624,
 } as const;
 
 const CENTER_PANEL_ROTATION_RADIANS =
@@ -175,20 +179,30 @@ function createIcosahedronSeeds(): {
   pentagons: PanelSeed[];
   squares: PanelSeed[];
 } {
+  // Vertex-up icosahedron: one pentagon normal is the north pole, followed by
+  // two five-face latitude rings and the south pole.
+  const ringY = 1 / Math.sqrt(5);
+  const ringRadius = 2 / Math.sqrt(5);
   const vertices = [
-    vector(0, 1, PHI),
-    vector(0, 1, -PHI),
-    vector(0, -1, PHI),
-    vector(0, -1, -PHI),
-    vector(1, PHI, 0),
-    vector(1, -PHI, 0),
-    vector(-1, PHI, 0),
-    vector(-1, -PHI, 0),
-    vector(PHI, 0, 1),
-    vector(PHI, 0, -1),
-    vector(-PHI, 0, 1),
-    vector(-PHI, 0, -1),
-  ].map(normalize);
+    vector(0, 1, 0),
+    ...Array.from({ length: 5 }, (_, index) => {
+      const angle = (index * 2 * Math.PI) / 5;
+      return vector(
+        ringRadius * Math.cos(angle),
+        ringY,
+        ringRadius * Math.sin(angle),
+      );
+    }),
+    ...Array.from({ length: 5 }, (_, index) => {
+      const angle = ((index + 0.5) * 2 * Math.PI) / 5;
+      return vector(
+        ringRadius * Math.cos(angle),
+        -ringY,
+        ringRadius * Math.sin(angle),
+      );
+    }),
+    vector(0, -1, 0),
+  ];
 
   let edgeDistanceSquared = Number.POSITIVE_INFINITY;
   for (let first = 0; first < vertices.length; first += 1) {
@@ -235,17 +249,6 @@ function createIcosahedronSeeds(): {
   };
 }
 
-function tangentAxes(normal: Vector3Data): {
-  xAxis: Vector3Data;
-  yAxis: Vector3Data;
-} {
-  const reference =
-    Math.abs(normal.y) < 0.9 ? vector(0, 1, 0) : vector(0, 0, 1);
-  const xAxis = normalize(cross(reference, normal));
-  const yAxis = normalize(cross(normal, xAxis));
-  return { xAxis, yAxis };
-}
-
 function equirectangularUv(position: Vector3Data): { u: number; v: number } {
   const direction = normalize(position);
   return {
@@ -255,25 +258,36 @@ function equirectangularUv(position: Vector3Data): { u: number; v: number } {
 }
 
 /**
- * Generates the known 42-panel topology without claiming measured transforms or
- * wiring. Pentagon-centre normals use the 12 icosahedron vertices; square-face
- * normals use its 30 edge midpoints. Their adjacent normal angle is the proven
- * 31.717474 degree square/pentagon fold angle from the mechanical sources.
+ * Generates the populated 41-panel sculpture without claiming measured wiring.
+ * The vertex-up frame leaves the north-pole pentagon unpopulated and provides a
+ * stable global north-to-south effect-space ordering.
  */
 export function createPanelizedSculptureMapping(): LedMapping {
   const { vertices, pentagons: pentagonSeeds, squares: squareSeeds } =
     createIcosahedronSeeds();
   if (pentagonSeeds.length !== 12 || squareSeeds.length !== 30) {
     throw new Error(
-      "Generated panel topology must contain 12 pentagons and 30 squares.",
+      "Generated face topology must contain 12 pentagons and 30 squares.",
     );
   }
 
-  const pentagonIdByVertex = new Map<number, string>();
-  for (let index = 0; index < pentagonSeeds.length; index += 1) {
+  const topPentagon = pentagonSeeds.find((seed) => seed.normal.y > 1 - 1e-9);
+  if (!topPentagon) {
+    throw new Error("Generated topology has no north-pole pentagon.");
+  }
+
+  const pentagonIdByVertex = new Map<number, string | null>();
+  let populatedPentagonIndex = 0;
+  for (const seed of pentagonSeeds) {
+    const sourceVertex = seed.sourceVertex!;
+    if (seed === topPentagon) {
+      pentagonIdByVertex.set(sourceVertex, null);
+      continue;
+    }
+    populatedPentagonIndex += 1;
     pentagonIdByVertex.set(
-      pentagonSeeds[index]!.sourceVertex!,
-      `PC-${String(index + 1).padStart(2, "0")}`,
+      sourceVertex,
+      `PC-${String(populatedPentagonIndex).padStart(2, "0")}`,
     );
   }
 
@@ -282,9 +296,10 @@ export function createPanelizedSculptureMapping(): LedMapping {
   for (let index = 0; index < squareSeeds.length; index += 1) {
     const squareId = `SQ-${String(index + 1).padStart(2, "0")}`;
     const edge = squareSeeds[index]!.sourceEdge!;
-    const neighbors = edge.map(
-      (vertexIndex) => pentagonIdByVertex.get(vertexIndex)!,
-    );
+    const neighbors = edge.flatMap((vertexIndex) => {
+      const id = pentagonIdByVertex.get(vertexIndex);
+      return id ? [id] : [];
+    });
     squareNeighbors.set(squareId, neighbors);
     for (const pentagonId of neighbors) {
       const existing = pentagonNeighbors.get(pentagonId) ?? [];
@@ -351,36 +366,66 @@ export function createPanelizedSculptureMapping(): LedMapping {
       SCULPTURE_GEOMETRY.squarePanelHeight,
     );
   });
-  const pentagonPanels = pentagonSeeds.map((seed, index) => {
-    const id = `PC-${String(index + 1).padStart(2, "0")}`;
+
+  const populatedPentagonSeeds = pentagonSeeds.filter(
+    (seed) => seed !== topPentagon,
+  );
+  const pentagonPanels = populatedPentagonSeeds.map((seed) => {
+    const id = pentagonIdByVertex.get(seed.sourceVertex!);
+    if (!id) throw new Error("Populated pentagon is missing an ID.");
     const neighborIds = pentagonNeighbors.get(id) ?? [];
-    const targetDirection = tangentAxes(seed.normal).yAxis;
-    const selectedSquare = squarePanels
+    const candidates = squarePanels
       .filter((panel) => neighborIds.includes(panel.id))
-      .map((panel) => ({
-        panel,
-        toEdge: normalize(
+      .map((panel) => {
+        const toEdge = normalize(
           subtract(
             panel.normal,
             scale(seed.normal, dot(panel.normal, seed.normal)),
           ),
-        ),
-      }))
-      .sort(
-        (first, second) =>
-          dot(second.toEdge, targetDirection) -
-            dot(first.toEdge, targetDirection) ||
-          first.panel.id.localeCompare(second.panel.id),
-      )[0];
-    if (!selectedSquare) {
+        );
+        return {
+          panel,
+          toEdge,
+          edgeAxis: normalize(cross(toEdge, seed.normal)),
+        };
+      });
+    if (candidates.length === 0) {
       throw new Error(`Pentagon ${id} has no surrounding square panel.`);
     }
 
-    // pentagon_u.scad places the centre panel with its +X axis parallel to
-    // the selected open edge. Project its exact (9.62, -7.04) offset through
-    // the canonical 234 degree rotation into these panel-local axes.
-    const yAxis = selectedSquare.toEdge;
+    const northProjection = subtract(
+      vector(0, 1, 0),
+      scale(seed.normal, seed.normal.y),
+    );
+    const northProjectionLength = Math.hypot(
+      northProjection.x,
+      northProjection.y,
+      northProjection.z,
+    );
+    const isNorth = seed.normal.y > 0;
+    const selectedSquare =
+      northProjectionLength > 1e-9
+        ? [...candidates].sort(
+            (first, second) =>
+              (isNorth ? -1 : 1) *
+                (dot(first.toEdge, northProjection) -
+                  dot(second.toEdge, northProjection)) ||
+              first.panel.id.localeCompare(second.panel.id),
+          )[0]!
+        : [...candidates].sort(
+            (first, second) =>
+              Math.abs(second.edgeAxis.x) - Math.abs(first.edgeAxis.x) ||
+              first.panel.id.localeCompare(second.panel.id),
+          )[0]!;
+
+    // Northern centre panels present +Y (their top edge) toward the selected
+    // polar edge. Southern panels are turned 180 degrees, presenting -Y (their
+    // bottom edge) toward the selected polar edge.
+    const yAxis = isNorth
+      ? selectedSquare.toEdge
+      : scale(selectedSquare.toEdge, -1);
     const xAxis = normalize(cross(yAxis, seed.normal));
+    const hemisphereSign = isNorth ? 1 : -1;
     const position = add(
       add(
         scale(
@@ -389,7 +434,7 @@ export function createPanelizedSculptureMapping(): LedMapping {
         ),
         scale(xAxis, CENTER_PANEL_OFFSET_ALONG_X),
       ),
-      scale(yAxis, CENTER_PANEL_OFFSET_ALONG_Y),
+      scale(yAxis, CENTER_PANEL_OFFSET_ALONG_Y * hemisphereSign),
     );
     return makePanel(
       seed,
@@ -402,6 +447,7 @@ export function createPanelizedSculptureMapping(): LedMapping {
       SCULPTURE_GEOMETRY.centerPanelHeight,
     );
   });
+
   const panels = [...squarePanels, ...pentagonPanels];
   const entries: LedMappingEntry[] = [];
 
@@ -431,7 +477,7 @@ export function createPanelizedSculptureMapping(): LedMapping {
         const { u, v } = equirectangularUv(position);
         entries.push({
           physicalIndex,
-          logicalIndex: physicalIndex,
+          logicalIndex: 0,
           panelId: panel.id,
           panelPixelX,
           panelPixelY,
@@ -444,16 +490,33 @@ export function createPanelizedSculptureMapping(): LedMapping {
     }
   }
 
+  // WLED's 1D segment index is effect space, not wiring order. Ordering first
+  // by latitude makes Scan and related effects progress from north to south;
+  // longitude and physical index provide deterministic ordering within a band.
+  const effectOrder = [...entries].sort(
+    (first, second) =>
+      first.v - second.v ||
+      first.u - second.u ||
+      first.physicalIndex - second.physicalIndex,
+  );
+  for (
+    let logicalIndex = 0;
+    logicalIndex < effectOrder.length;
+    logicalIndex += 1
+  ) {
+    effectOrder[logicalIndex]!.logicalIndex = logicalIndex;
+  }
+
   return {
-    id: "generated-rhombicosidodecahedron-42-panel-preview",
+    id: "generated-rhombicosidodecahedron-41-panel-preview",
     status: "provisional",
     topology: "panelized-sculpture",
     panels,
     notes: [
-      "Square face planes and panel axes use the 66 mm rhombicosidodecahedron geometry and proven 31.717474 degree fold.",
-      "Pentagon-centre panels use the canonical 234 degree, 9.62/-7.04 mm OpenSCAD placement relative to a selected neighboring square edge.",
-      "Global sculpture rotation, the selected open edge on each pentagon, mirroring, pixel-zero corner, serpentine order, and wiring remain unmeasured.",
-      "Logical and physical indices use synthetic row-major preview order only.",
+      "The north-pole pentagon is intentionally unpopulated: 30 square panels plus 11 pentagon-centre panels.",
+      "Northern centre panels present their top edge toward the pole; southern centre panels present their bottom edge toward the pole.",
+      "Logical effect indices run from global north to south; physical indices remain synthetic panel-major preview order.",
+      "Pixel-zero corner, serpentine order, controller outputs, and physical chain wiring remain unmeasured.",
     ],
     entries,
   };
@@ -533,9 +596,9 @@ export function validateMapping(
   }
 
   if (mapping.topology === "panelized-sculpture") {
-    if (mapping.panels.length !== 42) {
+    if (mapping.panels.length !== SCULPTURE_GEOMETRY.totalPanelCount) {
       errors.push(
-        `Panel topology has ${mapping.panels.length} panels; expected 42.`,
+        `Panel topology has ${mapping.panels.length} panels; expected ${SCULPTURE_GEOMETRY.totalPanelCount}.`,
       );
     }
     const squareCount = mapping.panels.filter(
@@ -544,9 +607,12 @@ export function validateMapping(
     const pentagonCount = mapping.panels.filter(
       (panel) => panel.faceType === "pentagon-centre",
     ).length;
-    if (squareCount !== 30 || pentagonCount !== 12) {
+    if (
+      squareCount !== SCULPTURE_GEOMETRY.squarePanelCount ||
+      pentagonCount !== SCULPTURE_GEOMETRY.centerPanelCount
+    ) {
       errors.push(
-        `Panel topology has ${squareCount} square and ${pentagonCount} pentagon-centre panels; expected 30 and 12.`,
+        `Panel topology has ${squareCount} square and ${pentagonCount} pentagon-centre panels; expected ${SCULPTURE_GEOMETRY.squarePanelCount} and ${SCULPTURE_GEOMETRY.centerPanelCount}.`,
       );
     }
   }
