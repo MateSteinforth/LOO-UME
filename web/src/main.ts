@@ -5,6 +5,10 @@ import {
   SCULPTURE_GEOMETRY,
   validateMapping,
 } from "./LedMapping";
+import {
+  createHardwareMappingContract,
+  validateLedmapEquivalence,
+} from "./HardwareMapping";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { WledEngine } from "./WledEngine";
 import {
@@ -243,8 +247,13 @@ let animationFrame = 0;
 async function start(): Promise<void> {
   try {
     const engine = await WledEngine.create(DEFAULT_LED_COUNT);
-    let mapping = createPanelizedSculptureMapping();
-    let wiringPreview = createProvisionalWiringPreview(mapping);
+    let geometryMapping = createPanelizedSculptureMapping();
+    let wiringPreview = createProvisionalWiringPreview(geometryMapping);
+    let hardwareContract = createHardwareMappingContract(
+      geometryMapping,
+      wiringPreview,
+    );
+    let mapping = hardwareContract.mapping;
     renderer = new SphereRenderer(viewerElement, mapping);
     renderer.setWiringPreview(wiringPreview);
 
@@ -288,11 +297,17 @@ async function start(): Promise<void> {
       const wiringValidation = isPanelized
         ? validateWiringPreview(wiringPreview, mapping)
         : { valid: true, errors: [] };
-      const allValid = validation.valid && wiringValidation.valid;
+      const ledmapErrors = isPanelized
+        ? validateLedmapEquivalence(mapping, hardwareContract.ledmap)
+        : [];
+      const allValid =
+        validation.valid &&
+        wiringValidation.valid &&
+        ledmapErrors.length === 0;
       mappingStatus.classList.toggle("validation-row--error", !allValid);
       mappingStatus.innerHTML = allValid
         ? `<span class="validation-icon">✓</span><span>${isPanelized ? "41 panels / 2,624 LEDs / 4 routes valid" : "Fallback mapping is valid"}</span>`
-        : `<span class="validation-icon">!</span><span>${validation.errors[0] ?? wiringValidation.errors[0] ?? "Invalid mapping"}</span>`;
+        : `<span class="validation-icon">!</span><span>${validation.errors[0] ?? wiringValidation.errors[0] ?? ledmapErrors[0] ?? "Invalid mapping"}</span>`;
       panelCountDisplay.textContent = isPanelized
         ? String(mapping.panels.length)
         : "—";
@@ -300,7 +315,7 @@ async function start(): Promise<void> {
         ? "MECHANICAL 41-PANEL PREVIEW"
         : "PROVISIONAL UNIFORM FALLBACK";
       mappingNote.textContent = isPanelized
-        ? "North pole open; centre boards are horizon-aligned; WLED logical order runs north → south. Physical wiring remains provisional."
+        ? `Simulator and ledmap share route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} calibration requirements are resolved.`
         : "Custom LED counts use the panel-free Fibonacci fallback.";
       panelLabelsToggle.disabled = !isPanelized;
       connectorLayerToggle.disabled = !isPanelized;
@@ -391,12 +406,21 @@ async function start(): Promise<void> {
       }
       ledCountInput.setCustomValidity("");
       engine.resize(requested);
-      mapping =
+      geometryMapping =
         requested === DEFAULT_LED_COUNT
           ? createPanelizedSculptureMapping()
           : createUniformSphereMapping(requested);
+      wiringPreview = createProvisionalWiringPreview(geometryMapping);
+      if (geometryMapping.topology === "panelized-sculpture") {
+        hardwareContract = createHardwareMappingContract(
+          geometryMapping,
+          wiringPreview,
+        );
+        mapping = hardwareContract.mapping;
+      } else {
+        mapping = geometryMapping;
+      }
       renderer?.setMapping(mapping);
-      wiringPreview = createProvisionalWiringPreview(mapping);
       renderer?.setWiringPreview(wiringPreview);
       resetTimeline();
       ledCountDisplay.textContent = requested.toLocaleString();

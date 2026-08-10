@@ -11,5 +11,12 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["scripts", "vite.config.ts", "vitest.config.ts"]
+  "include": [
+    "scripts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "web/src/LedMapping.ts",
+    "web/src/WiringPreview.ts",
+    "web/src/HardwareMapping.ts"
+  ]
 }

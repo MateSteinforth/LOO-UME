@@ -84,16 +84,17 @@ virtual framebuffer. Invalid writes are rejected and counted by
 - The renderer uses opaque PCB depth surfaces plus depth-writing, normal-blended
   circular LED sprites. This deliberately avoids transparent-shell/additive
   sorting artifacts that made front LEDs appear dim.
-- Synthetic physical indices remain panel-major and are not wiring facts.
-  Logical effect indices are independently sorted by UV latitude/longitude so
-  WLED Scan progresses north-to-south. The Fibonacci sphere remains only as a
-  fallback for arbitrary LED counts.
-- The hideable four-output wiring overlay uses a generated 11/10/10/10
-  geographic grouping. The top-left/bottom-right free connector diagonal is
-  derived from the canonical part clearances; exact pad inset and which endpoint
-  is DIN versus DOUT remain provisional. It is kept outside
-  `PanelDefinition.wiring`: GPIO assignments and physical chain order remain
-  unknown until bench measurement.
+- Logical effect indices are sorted by UV latitude/longitude so WLED Scan
+  progresses north-to-south. Physical indices now come from the exact four-output
+  route drawn by the wiring overlay. `HardwareMapping.ts` produces
+  `map[logicalIndex] = physicalIndex`, which is both rendered and exported;
+  a full-frame round-trip test proves their equivalence.
+- The current 11/10/10/10 geographic route and top-left row-major panel order
+  are provisional design inputs, not hardware facts. The top-left/bottom-right
+  free connector diagonal is derived from canonical part clearances; exact pad
+  inset, DIN/DOUT endpoint, GPIO assignments, installed orientation, and final
+  chains remain readiness blockers. The production ledmap exporter refuses to
+  run until these are measured.
 - The audio setter stores volume, peak, and up to 64 FFT bins. No current effect
   consumes them; this is the future adapter seam.
 - Emscripten memory may grow after a resize. JavaScript deliberately reacquires

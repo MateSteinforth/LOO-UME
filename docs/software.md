@@ -43,8 +43,14 @@ The canonical map has one record per LED and joins:
 - controller output, chain position, and physical wire index.
 
 External renderers sample their image at each LED's UV coordinate and send RGB
-values in physical wire order. A generated `ledmap.json` lets WLED's standalone
-effects follow the same sculpture layout.
+values in physical wire order. The browser and generator now share the same
+`map[logicalIndex] = physicalIndex` contract. The generated provisional map is
+round-trip tested against the renderer for all 2,624 LEDs.
+
+A production `ledmap.json` is deliberately not emitted while any hardware
+field is provisional. The guarded exporter unlocks only after the readiness
+checks for GPIOs, chain order, DIN/DOUT assignment, panel pixel order, and
+installed orientation all pass.
 
 The panel's RGB color order, pixel-zero corner, and row/column serpentine order
 remain bench-test facts. Do not encode them as final until a real panel passes

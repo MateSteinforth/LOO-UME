@@ -34,13 +34,24 @@ export interface PanelDefinition {
   rotationDegrees: number | null;
   mirrored: boolean | null;
   pixelOrder: {
-    status: "unknown" | "measured";
-    pixelZeroCorner: string | null;
-    serpentineAxis: "rows" | "columns" | null;
-    firstRowDirection: string | null;
+    status: "unknown" | "provisional" | "measured";
+    pixelZeroCorner:
+      | "top-left"
+      | "top-right"
+      | "bottom-left"
+      | "bottom-right"
+      | null;
+    traversalAxis: "rows" | "columns" | null;
+    serpentine: boolean | null;
+    firstLineDirection:
+      | "left-to-right"
+      | "right-to-left"
+      | "top-to-bottom"
+      | "bottom-to-top"
+      | null;
   };
   wiring: {
-    status: "unassigned" | "assigned";
+    status: "unassigned" | "provisional" | "assigned";
     output: number | null;
     chainPosition: number | null;
     previousPanelId: string | null;
@@ -335,8 +346,9 @@ export function createPanelizedSculptureMapping(): LedMapping {
       pixelOrder: {
         status: "unknown",
         pixelZeroCorner: null,
-        serpentineAxis: null,
-        firstRowDirection: null,
+        traversalAxis: null,
+        serpentine: null,
+        firstLineDirection: null,
       },
       wiring: {
         status: "unassigned",

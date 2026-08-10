@@ -24,8 +24,10 @@ mapping, behavior, power-safety, and CI design.
 The `software/panel-map-visualizer` branch also contains **WLED Orbital Lab**,
 a standalone browser simulator that runs genuine WLED C++ effect bodies in
 WebAssembly and renders 2,624 LEDs as 30 square-face 8 x 8 panels plus 11
-pentagon-centre 8 x 8 panels, leaving the north-pole pentagon open. Physical
-pixel order and wiring remain provisional.
+pentagon-centre 8 x 8 panels, leaving the north-pole pentagon open. The
+displayed four-output route now generates the simulator's physical indices and
+a fingerprint-matched provisional WLED map. Hardware export stays locked until
+the remaining panel and wiring facts are bench-verified.
 
 ![Earlier WLED Orbital Lab 42-panel prototype](docs/assets/wled-orbital-lab.png)
 

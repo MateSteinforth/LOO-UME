@@ -14,9 +14,9 @@ Emscripten WebAssembly (packed 0x00RRGGBB framebuffer)
         |
 WledEngine.ts direct HEAPU32 view
         |
-logical-to-physical LedMapping LUT
-        |
-Three.js GPU point cloud
+HardwareMapping shared contract
+        |--------------------|
+Three.js physical XYZ    WLED ledmap JSON
 ```
 
 The firmware, networking, and hardware driver layers are intentionally absent.
@@ -52,6 +52,7 @@ The pinned version is in `wasm/emscripten-version.txt`.
 
 ```bash
 npm run check:wled
+npm run generate:mapping
 npm run build
 npm test
 ```
@@ -62,6 +63,11 @@ match the pinned WLED submodule revision. `npm test` rebuilds WASM, then checks
 initialization, every registered effect at 2,700 LEDs, framebuffer changes,
 deterministic timestamps, resize behavior, out-of-bounds protection, and
 mapping invariants.
+
+Every build regenerates `layout/panel-map.json` and
+`wled/ledmap.provisional.json` from the same mapping contract used by the
+browser. The production command `npm run generate:mapping:hardware` refuses to
+write `wled/ledmap.json` until all measured-data readiness checks pass.
 
 Generated `web/public/wasm/wled-engine.{js,wasm}` files are ignored. Rebuild
 them from the pinned Emscripten version and WLED submodule.
@@ -114,12 +120,18 @@ keeps the centre-board horizontal axis level around both latitude rings. The
 canonical 66 x 65 mm envelope, 0.70 mm recess, 9.62/-7.04 mm offset, and 234
 degree relative placement remain the mechanical basis.
 
-Logical index is deliberately independent from the synthetic panel-major
-physical index. Entries are sorted by equirectangular `v`, then `u`,
-so WLED 1D effects such as Scan progress from global north to south. Actual
-pixel-zero corner, serpentine direction, controller output, and chain order
-remain explicitly unknown or unassigned. Non-2,624 LED counts retain
-`createUniformSphereMapping()` as a clearly labelled fallback.
+Logical index is independent from physical wire index. Entries are sorted
+by equirectangular `v`, then `u`, so WLED 1D effects such as Scan progress
+from global north to south. `HardwareMapping.ts` assigns physical indices from
+the four displayed routes and emits the exact WLED convention
+`map[logicalIndex] = physicalIndex`. The renderer and exported map therefore
+share one routing contract and fingerprint.
+
+The current contract still assumes provisional top-left, non-serpentine
+row-major order within each panel. Actual pixel-zero corner, serpentine
+direction, GPIO, chain order, installed rotation, and mirroring remain readiness
+blockers. Non-2,624 LED counts retain `createUniformSphereMapping()` as a
+clearly labelled fallback.
 
 UV values are present as equirectangular coordinates. A later 2D view can render
 the same entries at `(u, v)` while using the same logical and physical indices.
@@ -134,14 +146,15 @@ routes. The free connector diagonal is derived from the canonical mechanical
 clearances: top-left and bottom-right in panel-local coordinates. The marker
 inset and the assignment of DIN versus DOUT to those two endpoints remain
 provisional until checked on the physical PCB. The current 11/10/10/10 panel
-grouping is a generated geographic preview used to exercise the layer UI. GPIO
-assignments are deliberately `null`; this data is not recorded in
-`PanelDefinition.wiring` as measured physical data.
+grouping is a generated geographic design used by both the layer UI and
+provisional WLED map. GPIO assignments are deliberately `null`, and panel
+wiring is marked `provisional` rather than measured.
 
-Replace `createProvisionalWiringPreview()` with a consumer of the canonical
-measured wiring map once pixel-zero corners, DIN/DOUT connector positions, GPIOs,
-and chain order have been bench-verified. The renderer API can display that data
-without coupling it to WLED effect-space ordering.
+`tests/hardware-mapping.test.ts` sends a logical frame through the generated
+ledmap and verifies that every resulting physical color equals the color placed
+by Three.js. Once pixel-zero corners, DIN/DOUT assignment, GPIOs, installed
+orientation, and chain order are bench-verified, those measured values replace
+the provisional fields and unlock the production exporter.
 
 ## Adding or updating effects
 

@@ -2,7 +2,7 @@ import type {
   LedMapping,
   PanelDefinition,
   Vector3Data,
-} from "./LedMapping";
+} from "./LedMapping.ts";
 
 export interface WiringPanelNode {
   panelId: string;
@@ -13,7 +13,7 @@ export interface WiringPanelNode {
   din: Vector3Data;
   dout: Vector3Data;
   connectorDiagonal: "top-left-to-bottom-right";
-  dinDoutAssignmentStatus: "provisional";
+  dinDoutAssignmentStatus: "provisional" | "measured";
 }
 
 export interface WiringOutputRoute {
@@ -26,7 +26,7 @@ export interface WiringOutputRoute {
 }
 
 export interface WiringPreview {
-  status: "generated-provisional" | "unavailable";
+  status: "generated-provisional" | "measured" | "unavailable";
   outputs: WiringOutputRoute[];
   nodes: WiringPanelNode[];
   notes: string[];
@@ -201,7 +201,7 @@ export function validateWiringPreview(
   mapping: LedMapping,
 ): WiringPreviewValidation {
   const errors: string[] = [];
-  if (preview.status !== "generated-provisional") {
+  if (preview.status === "unavailable") {
     return { valid: mapping.panels.length === 0, errors };
   }
   if (preview.outputs.length !== 4) {

@@ -6,12 +6,14 @@
   "scripts": {
     "setup:emsdk": "sh scripts/setup-emsdk.sh",
     "check:wled": "node scripts/check-wled-sync.mjs",
+    "generate:mapping": "tsx scripts/generate-mapping.ts",
+    "generate:mapping:hardware": "tsx scripts/generate-mapping.ts --hardware",
     "build:wasm": "node scripts/build-wasm.mjs",
-    "dev": "npm run build:wasm && vite",
+    "dev": "npm run generate:mapping && npm run build:wasm && vite",
     "dev:web": "vite",
-    "build": "npm run build:wasm && tsc -b && vite build",
+    "build": "npm run generate:mapping && npm run build:wasm && tsc -b && vite build",
     "preview": "vite preview",
-    "test": "npm run build:wasm && vitest run --config vitest.config.ts"
+    "test": "npm run generate:mapping && npm run build:wasm && vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "three": "^0.179.1"
