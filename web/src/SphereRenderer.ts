@@ -14,6 +14,22 @@ interface PanelLabel {
   normal: THREE.Vector3;
 }
 
+function createLedSpriteTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 64;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Unable to create LED sprite texture.");
+  const glow = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+  glow.addColorStop(0, "rgba(255, 255, 255, 1)");
+  glow.addColorStop(0.5, "rgba(255, 255, 255, 1)");
+  glow.addColorStop(0.72, "rgba(255, 255, 255, 0.72)");
+  glow.addColorStop(1, "rgba(255, 255, 255, 0)");
+  context.fillStyle = glow;
+  context.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(canvas);
+}
+
 export class SphereRenderer {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
@@ -27,16 +43,25 @@ export class SphereRenderer {
   private readonly panelLabels: PanelLabel[] = [];
   private readonly controls: OrbitControls;
   private readonly geometry = new THREE.BufferGeometry();
+  private readonly ledTexture = createLedSpriteTexture();
   private readonly material = new THREE.PointsMaterial({
-    size: 3.1,
+    size: 4.4,
     vertexColors: true,
+    map: this.ledTexture,
     transparent: true,
-    opacity: 0.98,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    alphaTest: 0.08,
+    opacity: 1,
+    depthWrite: true,
+    depthTest: true,
+    blending: THREE.NormalBlending,
     sizeAttenuation: true,
+    toneMapped: false,
   });
   private readonly points = new THREE.Points(this.geometry, this.material);
+  private readonly occlusionCore = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 48, 32),
+    new THREE.MeshBasicMaterial({ color: 0x050a12 }),
+  );
   private readonly color = new THREE.Color();
   private readonly cameraDirection = new THREE.Vector3();
   private readonly resizeObserver: ResizeObserver;
@@ -65,28 +90,8 @@ export class SphereRenderer {
     this.controls.autoRotate = true;
     this.controls.autoRotateSpeed = 0.35;
 
-    this.scene.add(new THREE.AmbientLight(0x91a4c2, 0.7));
-    const shell = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(98.5, 5),
-      new THREE.MeshBasicMaterial({
-        color: 0x08111d,
-        transparent: true,
-        opacity: 0.82,
-        side: THREE.BackSide,
-      }),
-    );
-    this.scene.add(shell);
-
-    const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(108, 48, 32),
-      new THREE.MeshBasicMaterial({
-        color: 0x0f5f77,
-        transparent: true,
-        opacity: 0.045,
-        side: THREE.BackSide,
-      }),
-    );
-    this.scene.add(halo, this.panelLayer, this.points);
+    this.points.renderOrder = 2;
+    this.scene.add(this.occlusionCore, this.panelLayer, this.points);
     this.setMapping(mapping);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -116,6 +121,7 @@ export class SphereRenderer {
     this.geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     this.geometry.computeBoundingSphere();
     this.buildPanelDecorations(mapping.panels);
+    this.fitMapping();
   }
 
   updateColors(pixels: Uint32Array, mode: DisplayMode): void {
@@ -152,7 +158,10 @@ export class SphereRenderer {
 
   render(): void {
     this.controls.update();
-    this.cameraDirection.copy(this.camera.position).normalize();
+    this.cameraDirection
+      .copy(this.camera.position)
+      .sub(this.controls.target)
+      .normalize();
     for (const label of this.panelLabels) {
       label.object.visible =
         this.panelLabelsVisible &&
@@ -175,7 +184,14 @@ export class SphereRenderer {
     this.controls.dispose();
     this.clearPanelDecorations();
     this.geometry.dispose();
+    this.ledTexture.dispose();
     this.material.dispose();
+    this.occlusionCore.geometry.dispose();
+    if (Array.isArray(this.occlusionCore.material)) {
+      for (const material of this.occlusionCore.material) material.dispose();
+    } else {
+      this.occlusionCore.material.dispose();
+    }
     this.renderer.dispose();
     this.renderer.domElement.remove();
     this.labelRenderer.domElement.remove();
@@ -187,6 +203,8 @@ export class SphereRenderer {
 
     const positions: number[] = [];
     const colors: number[] = [];
+    const surfacePositions: number[] = [];
+    const surfaceColors: number[] = [];
     const edgePairs: Array<[number, number]> = [
       [0, 1],
       [1, 2],
@@ -195,10 +213,23 @@ export class SphereRenderer {
     ];
 
     for (const panel of panels) {
-      const corners = this.panelCorners(panel);
+      const surfaceCorners = this.panelCorners(panel, 0);
+      const corners = this.panelCorners(panel, 0.35);
       const outlineColor = new THREE.Color(
         panel.faceType === "square-face" ? 0x39d9d0 : 0xff9d5c,
       );
+      const surfaceColor = new THREE.Color(
+        panel.faceType === "square-face" ? 0x071720 : 0x21120d,
+      );
+      for (const cornerIndex of [0, 1, 2, 0, 2, 3]) {
+        const corner = surfaceCorners[cornerIndex]!;
+        surfacePositions.push(corner.x, corner.y, corner.z);
+        surfaceColors.push(
+          surfaceColor.r,
+          surfaceColor.g,
+          surfaceColor.b,
+        );
+      }
       for (const [start, end] of edgePairs) {
         const first = corners[start]!;
         const second = corners[end]!;
@@ -237,6 +268,25 @@ export class SphereRenderer {
       });
     }
 
+    const surfaceGeometry = new THREE.BufferGeometry();
+    surfaceGeometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(surfacePositions, 3),
+    );
+    surfaceGeometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(surfaceColors, 3),
+    );
+    const surfaceMaterial = new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      side: THREE.DoubleSide,
+      depthWrite: true,
+      depthTest: true,
+    });
+    const surfaces = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
+    surfaces.renderOrder = 0;
+    this.panelLayer.add(surfaces);
+
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
       "position",
@@ -258,7 +308,7 @@ export class SphereRenderer {
     for (const label of this.panelLabels) label.element.remove();
     this.panelLabels.length = 0;
     for (const child of this.panelLayer.children) {
-      if (child instanceof THREE.LineSegments) {
+      if (child instanceof THREE.LineSegments || child instanceof THREE.Mesh) {
         child.geometry.dispose();
         if (Array.isArray(child.material)) {
           for (const material of child.material) material.dispose();
@@ -270,9 +320,15 @@ export class SphereRenderer {
     this.panelLayer.clear();
   }
 
-  private panelCorners(panel: PanelDefinition): THREE.Vector3[] {
+  private panelCorners(
+    panel: PanelDefinition,
+    normalOffset: number,
+  ): THREE.Vector3[] {
     const normal = this.toThree(panel.normal);
-    const center = this.toThree(panel.position).addScaledVector(normal, 1.2);
+    const center = this.toThree(panel.position).addScaledVector(
+      normal,
+      normalOffset,
+    );
     const halfX = this.toThree(panel.xAxis).multiplyScalar(
       panel.previewWidth / 2,
     );
@@ -285,6 +341,44 @@ export class SphereRenderer {
       center.clone().add(halfX).add(halfY),
       center.clone().sub(halfX).add(halfY),
     ];
+  }
+
+  private fitMapping(): void {
+    const bounds = this.geometry.boundingSphere;
+    if (!bounds) return;
+    const radius = Math.max(bounds.radius, 1);
+    const centre = bounds.center;
+    const currentDirection = this.camera.position
+      .clone()
+      .sub(this.controls.target)
+      .normalize();
+    const halfFov = THREE.MathUtils.degToRad(this.camera.fov / 2);
+    const distance = (radius / Math.sin(halfFov)) * 1.12;
+
+    this.controls.target.copy(centre);
+    this.camera.position
+      .copy(centre)
+      .addScaledVector(currentDirection, distance);
+    this.controls.minDistance = radius * 1.15;
+    this.controls.maxDistance = radius * 5;
+    this.camera.near = Math.max(0.1, radius / 500);
+    this.camera.far = distance + radius * 6;
+    this.camera.updateProjectionMatrix();
+
+    const panelDepths = this.mapping.panels.map((panel) =>
+      Math.abs(
+        panel.position.x * panel.normal.x +
+          panel.position.y * panel.normal.y +
+          panel.position.z * panel.normal.z,
+      ),
+    );
+    const coreRadius =
+      panelDepths.length > 0
+        ? Math.min(...panelDepths) * 0.8
+        : radius * 0.82;
+    this.occlusionCore.position.set(0, 0, 0);
+    this.occlusionCore.scale.setScalar(coreRadius);
+    this.controls.update();
   }
 
   private toThree(value: Vector3Data): THREE.Vector3 {

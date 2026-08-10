@@ -102,15 +102,26 @@ physical XYZ point; it never derives position from the buffer index.
 
 The default `createPanelizedSculptureMapping()` generator creates 42 explicit
 8 x 8 panel grids: 30 `SQ-*` square-face panels and 12 `PC-*`
-pentagon-centre panels. Pentagon normals use the 12 vertices of an icosahedron;
-square normals use its 30 edge midpoints, reproducing the proven 31.717474
-degree square/pentagon fold angle. Panel outlines, IDs, and existing-panel
-adjacency are rendered from the same metadata.
+pentagon-centre panels. Pentagon normals use the 12 vertices of an icosahedron
+and square normals use its 30 edge midpoints, reproducing the proven 31.717474
+degree square/pentagon fold angle. Square and pentagon face planes use separate
+physical distances derived from the 66 mm common polyhedron edge; they are not
+collapsed onto a generic sphere.
 
-These are generated preview transforms, not surveyed assembly data. Panel
-rotation, mirroring, pixel-zero corner, serpentine direction, controller output,
-and chain order remain explicitly unknown or unassigned. Synthetic row-major
-indices exist only so WLED effects can run today. Non-2,688 LED counts retain
+Each square PCB is rendered at 66 x 65 mm with its 66 mm axis parallel to the
+shared pentagon edge. Each added centre PCB uses the canonical OpenSCAD
+placement: 66 x 65 mm, 0.70 mm recessed, shifted 9.62/-7.04 mm in its pentagon
+frame, and rotated 234 degrees so its long edge aligns with the selected
+neighboring square edge. Dark PCB surfaces and an opaque interior core write
+depth before circular LED sprites, preventing rear pixels and translucent
+shells from washing out front LEDs.
+
+The mechanically defined relative placement is retained, but these are still
+generated rather than surveyed assembly transforms. Global sculpture rotation,
+face IDs, which equivalent pentagon edge is selected on each copy, mirroring,
+pixel-zero corner, serpentine direction, controller output, and chain order
+remain explicitly unknown or unassigned. Synthetic row-major indices exist only
+so WLED effects can run today. Non-2,688 LED counts retain
 `createUniformSphereMapping()` as a clearly labelled fallback.
 
 UV values are present as equirectangular coordinates. A later 2D view can render

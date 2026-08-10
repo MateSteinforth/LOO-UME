@@ -32,7 +32,7 @@ app.innerHTML = `
       <section class="viewer-panel" aria-label="3D LED sphere">
         <div id="viewer" class="viewer"></div>
         <div class="viewer-overlay viewer-overlay--top">
-          <span id="mapping-tag" class="provisional-tag">PROVISIONAL 42-PANEL TOPOLOGY</span>
+          <span id="mapping-tag" class="provisional-tag">MECHANICAL 42-PANEL PREVIEW</span>
           <span>Drag to orbit · Scroll to zoom</span>
         </div>
         <div class="viewer-overlay viewer-overlay--bottom">
@@ -240,10 +240,10 @@ async function start(): Promise<void> {
         ? String(mapping.panels.length)
         : "—";
       mappingTag.textContent = isPanelized
-        ? "PROVISIONAL 42-PANEL TOPOLOGY"
+        ? "MECHANICAL 42-PANEL PREVIEW"
         : "PROVISIONAL UNIFORM FALLBACK";
       mappingNote.textContent = isPanelized
-        ? "Generated transforms; rotation, pixel order, and wiring are unmeasured."
+        ? "Physical face planes and centre-panel offsets; face IDs, open-edge choices, pixel order, and wiring remain provisional."
         : "Custom LED counts use the panel-free Fibonacci fallback.";
       panelLabelsToggle.disabled = !isPanelized;
       renderer?.setPanelLabelsVisible(isPanelized && panelLabelsToggle.checked);

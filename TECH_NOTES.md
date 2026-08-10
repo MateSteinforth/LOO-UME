@@ -76,9 +76,14 @@ virtual framebuffer. Invalid writes are rejected and counted by
   rejects an unexpected submodule revision. Updating WLED still requires
   reviewing compatibility changes.
 - The default preview groups all 2,688 LEDs into 30 square-face and 12
-  pentagon-centre 8 x 8 grids. Face normals reproduce the proven polyhedron
-  angle, but world rotation and every individual panel rotation remain
-  generated rather than measured.
+  pentagon-centre 8 x 8 grids. It now uses the 66 mm common face edge, separate
+  square/pentagon plane distances, 66 x 65 mm PCB envelopes, and the canonical
+  centre-panel 234 degree rotation, 9.62/-7.04 mm offset, and 0.70 mm recess.
+  Global face numbering and the equivalent open edge selected for each
+  pentagon copy remain generated rather than measured.
+- The renderer uses opaque PCB depth surfaces plus depth-writing, normal-blended
+  circular LED sprites. This deliberately avoids transparent-shell/additive
+  sorting artifacts that made front LEDs appear dim.
 - Synthetic row-major logical/physical indices are not physical wiring facts.
   The Fibonacci sphere remains only as a fallback for arbitrary LED counts.
 - The audio setter stores volume, peak, and up to 64 FFT bins. No current effect

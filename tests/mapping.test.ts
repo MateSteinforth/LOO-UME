@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createPanelizedSculptureMapping,
   createUniformSphereMapping,
+  SCULPTURE_GEOMETRY,
   validateMapping,
   type LedMapping,
 } from "../web/src/LedMapping.ts";
@@ -81,6 +82,133 @@ describe("LED mapping", () => {
       square.normal.z * neighboringPentagon.normal.z;
     const angleDegrees = (Math.acos(dot) * 180) / Math.PI;
     expect(angleDegrees).toBeCloseTo(31.717474, 5);
+
+    const pentagonApothem =
+      SCULPTURE_GEOMETRY.faceEdge / (2 * Math.tan(Math.PI / 5));
+    const foldRadians =
+      (SCULPTURE_GEOMETRY.squarePentagonFoldDegrees * Math.PI) / 180;
+    const expectedPentagonDistance =
+      (SCULPTURE_GEOMETRY.faceEdge / 2 +
+        Math.cos(foldRadians) * pentagonApothem) /
+      Math.sin(foldRadians);
+    const expectedSquareDistance =
+      (pentagonApothem +
+        Math.cos(foldRadians) * (SCULPTURE_GEOMETRY.faceEdge / 2)) /
+      Math.sin(foldRadians);
+
+    for (const squarePanel of squarePanels) {
+      const faceDistance =
+        squarePanel.position.x * squarePanel.normal.x +
+        squarePanel.position.y * squarePanel.normal.y +
+        squarePanel.position.z * squarePanel.normal.z;
+      expect(faceDistance).toBeCloseTo(expectedSquareDistance, 5);
+      expect(squarePanel.previewWidth).toBe(66);
+      expect(squarePanel.previewHeight).toBe(65);
+
+      for (const neighborId of squarePanel.neighborPanelIds) {
+        const pentagonPanel = pentagonPanels.find(
+          (panel) => panel.id === neighborId,
+        )!;
+        const sharedEdge = {
+          x:
+            squarePanel.normal.y * pentagonPanel.normal.z -
+            squarePanel.normal.z * pentagonPanel.normal.y,
+          y:
+            squarePanel.normal.z * pentagonPanel.normal.x -
+            squarePanel.normal.x * pentagonPanel.normal.z,
+          z:
+            squarePanel.normal.x * pentagonPanel.normal.y -
+            squarePanel.normal.y * pentagonPanel.normal.x,
+        };
+        const sharedEdgeLength = Math.hypot(
+          sharedEdge.x,
+          sharedEdge.y,
+          sharedEdge.z,
+        );
+        const alignment =
+          (squarePanel.xAxis.x * sharedEdge.x +
+            squarePanel.xAxis.y * sharedEdge.y +
+            squarePanel.xAxis.z * sharedEdge.z) /
+          sharedEdgeLength;
+        expect(Math.abs(alignment)).toBeCloseTo(1, 8);
+      }
+    }
+
+    for (const centerPanel of pentagonPanels) {
+      const faceDistance =
+        centerPanel.position.x * centerPanel.normal.x +
+        centerPanel.position.y * centerPanel.normal.y +
+        centerPanel.position.z * centerPanel.normal.z;
+      expect(faceDistance).toBeCloseTo(
+        expectedPentagonDistance - SCULPTURE_GEOMETRY.centerPanelRecess,
+        5,
+      );
+
+      const inPlanePosition = {
+        x: centerPanel.position.x - faceDistance * centerPanel.normal.x,
+        y: centerPanel.position.y - faceDistance * centerPanel.normal.y,
+        z: centerPanel.position.z - faceDistance * centerPanel.normal.z,
+      };
+      expect(
+        Math.hypot(
+          inPlanePosition.x,
+          inPlanePosition.y,
+          inPlanePosition.z,
+        ),
+      ).toBeCloseTo(
+        Math.hypot(
+          SCULPTURE_GEOMETRY.centerPanelOffsetX,
+          SCULPTURE_GEOMETRY.centerPanelOffsetY,
+        ),
+        5,
+      );
+
+      const centerRotation =
+        (SCULPTURE_GEOMETRY.centerPanelRotationDegrees * Math.PI) / 180;
+      const expectedLocalX =
+        SCULPTURE_GEOMETRY.centerPanelOffsetX * Math.cos(centerRotation) +
+        SCULPTURE_GEOMETRY.centerPanelOffsetY * Math.sin(centerRotation);
+      const expectedLocalY =
+        -SCULPTURE_GEOMETRY.centerPanelOffsetX * Math.sin(centerRotation) +
+        SCULPTURE_GEOMETRY.centerPanelOffsetY * Math.cos(centerRotation);
+      expect(
+        inPlanePosition.x * centerPanel.xAxis.x +
+          inPlanePosition.y * centerPanel.xAxis.y +
+          inPlanePosition.z * centerPanel.xAxis.z,
+      ).toBeCloseTo(expectedLocalX, 5);
+      expect(
+        inPlanePosition.x * centerPanel.yAxis.x +
+          inPlanePosition.y * centerPanel.yAxis.y +
+          inPlanePosition.z * centerPanel.yAxis.z,
+      ).toBeCloseTo(expectedLocalY, 5);
+
+      const alignedNeighbor = squarePanels.some((squarePanel) => {
+        if (!centerPanel.neighborPanelIds.includes(squarePanel.id)) return false;
+        const sharedEdge = {
+          x:
+            centerPanel.normal.y * squarePanel.normal.z -
+            centerPanel.normal.z * squarePanel.normal.y,
+          y:
+            centerPanel.normal.z * squarePanel.normal.x -
+            centerPanel.normal.x * squarePanel.normal.z,
+          z:
+            centerPanel.normal.x * squarePanel.normal.y -
+            centerPanel.normal.y * squarePanel.normal.x,
+        };
+        const sharedEdgeLength = Math.hypot(
+          sharedEdge.x,
+          sharedEdge.y,
+          sharedEdge.z,
+        );
+        const alignment =
+          (centerPanel.xAxis.x * sharedEdge.x +
+            centerPanel.xAxis.y * sharedEdge.y +
+            centerPanel.xAxis.z * sharedEdge.z) /
+          sharedEdgeLength;
+        return Math.abs(alignment) > 1 - 1e-8;
+      });
+      expect(alignedNeighbor).toBe(true);
+    }
   });
 
   it("reports duplicate and out-of-range indices", () => {

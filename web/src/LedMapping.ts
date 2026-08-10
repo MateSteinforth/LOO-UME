@@ -68,6 +68,53 @@ const PHI = (1 + Math.sqrt(5)) / 2;
 const PANEL_LED_SIDE = 8;
 const LEDS_PER_PANEL = PANEL_LED_SIDE * PANEL_LED_SIDE;
 
+/**
+ * Dimensions and relative placement copied from the canonical OpenSCAD parts.
+ * The global face numbering/orientation and electrical mapping remain
+ * provisional, but these mechanical relationships are not arbitrary preview
+ * values.
+ */
+export const SCULPTURE_GEOMETRY = {
+  faceEdge: 66,
+  squarePanelWidth: 66,
+  squarePanelHeight: 65,
+  centerPanelWidth: 66,
+  centerPanelHeight: 65,
+  centerPanelOffsetX: 9.62,
+  centerPanelOffsetY: -7.04,
+  centerPanelRotationDegrees: 234,
+  centerPanelRecess: 0.7,
+  squarePentagonFoldDegrees: 31.717474,
+} as const;
+
+const CENTER_PANEL_ROTATION_RADIANS =
+  (SCULPTURE_GEOMETRY.centerPanelRotationDegrees * Math.PI) / 180;
+const CENTER_PANEL_OFFSET_ALONG_X =
+  SCULPTURE_GEOMETRY.centerPanelOffsetX *
+    Math.cos(CENTER_PANEL_ROTATION_RADIANS) +
+  SCULPTURE_GEOMETRY.centerPanelOffsetY *
+    Math.sin(CENTER_PANEL_ROTATION_RADIANS);
+const CENTER_PANEL_OFFSET_ALONG_Y =
+  -SCULPTURE_GEOMETRY.centerPanelOffsetX *
+    Math.sin(CENTER_PANEL_ROTATION_RADIANS) +
+  SCULPTURE_GEOMETRY.centerPanelOffsetY *
+    Math.cos(CENTER_PANEL_ROTATION_RADIANS);
+const PENTAGON_APOTHEM =
+  SCULPTURE_GEOMETRY.faceEdge / (2 * Math.tan(Math.PI / 5));
+const SQUARE_APOTHEM = SCULPTURE_GEOMETRY.faceEdge / 2;
+const SQUARE_PENTAGON_FOLD_RADIANS =
+  (SCULPTURE_GEOMETRY.squarePentagonFoldDegrees * Math.PI) / 180;
+const FOLD_SIN = Math.sin(SQUARE_PENTAGON_FOLD_RADIANS);
+const FOLD_COS = Math.cos(SQUARE_PENTAGON_FOLD_RADIANS);
+
+// Unlike a sphere, unlike face types do not share one plane radius. These
+// distances make their shared edge land at the correct face apothem.
+const PENTAGON_FACE_DISTANCE =
+  (SQUARE_APOTHEM + FOLD_COS * PENTAGON_APOTHEM) / FOLD_SIN;
+const SQUARE_FACE_DISTANCE =
+  (PENTAGON_APOTHEM + FOLD_COS * SQUARE_APOTHEM) / FOLD_SIN;
+const LED_EMITTER_OFFSET = 1.2;
+
 interface PanelSeed {
   faceType: PanelFaceType;
   normal: Vector3Data;
@@ -83,6 +130,10 @@ function add(a: Vector3Data, b: Vector3Data): Vector3Data {
   return vector(a.x + b.x, a.y + b.y, a.z + b.z);
 }
 
+function subtract(a: Vector3Data, b: Vector3Data): Vector3Data {
+  return vector(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
 function scale(value: Vector3Data, amount: number): Vector3Data {
   return vector(value.x * amount, value.y * amount, value.z * amount);
 }
@@ -93,6 +144,10 @@ function cross(a: Vector3Data, b: Vector3Data): Vector3Data {
     a.z * b.x - a.x * b.z,
     a.x * b.y - a.y * b.x,
   );
+}
+
+function dot(a: Vector3Data, b: Vector3Data): number {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 function normalize(value: Vector3Data): Vector3Data {
@@ -116,6 +171,7 @@ function compareNormals(a: PanelSeed, b: PanelSeed): number {
 }
 
 function createIcosahedronSeeds(): {
+  vertices: Vector3Data[];
   pentagons: PanelSeed[];
   squares: PanelSeed[];
 } {
@@ -159,6 +215,7 @@ function createIcosahedronSeeds(): {
   }
 
   return {
+    vertices,
     pentagons: vertices
       .map((normal, sourceVertex) => ({
         faceType: "pentagon-centre" as const,
@@ -203,11 +260,8 @@ function equirectangularUv(position: Vector3Data): { u: number; v: number } {
  * normals use its 30 edge midpoints. Their adjacent normal angle is the proven
  * 31.717474 degree square/pentagon fold angle from the mechanical sources.
  */
-export function createPanelizedSculptureMapping(
-  radius = 100,
-  previewPanelWidth = 40,
-): LedMapping {
-  const { pentagons: pentagonSeeds, squares: squareSeeds } =
+export function createPanelizedSculptureMapping(): LedMapping {
+  const { vertices, pentagons: pentagonSeeds, squares: squareSeeds } =
     createIcosahedronSeeds();
   if (pentagonSeeds.length !== 12 || squareSeeds.length !== 30) {
     throw new Error(
@@ -243,18 +297,22 @@ export function createPanelizedSculptureMapping(
     seed: PanelSeed,
     id: string,
     neighborPanelIds: string[],
+    position: Vector3Data,
+    xAxis: Vector3Data,
+    yAxis: Vector3Data,
+    previewWidth: number,
+    previewHeight: number,
   ): PanelDefinition => {
-    const { xAxis, yAxis } = tangentAxes(seed.normal);
     return {
       id,
       faceType: seed.faceType,
       transformStatus: "generated-provisional",
-      position: scale(seed.normal, radius),
+      position,
       normal: seed.normal,
       xAxis,
       yAxis,
-      previewWidth: previewPanelWidth,
-      previewHeight: previewPanelWidth * (65 / 66),
+      previewWidth,
+      previewHeight,
       neighborPanelIds,
       ledIndices: [],
       rotationDegrees: null,
@@ -277,11 +335,72 @@ export function createPanelizedSculptureMapping(
 
   const squarePanels = squareSeeds.map((seed, index) => {
     const id = `SQ-${String(index + 1).padStart(2, "0")}`;
-    return makePanel(seed, id, squareNeighbors.get(id) ?? []);
+    const [firstVertex, secondVertex] = seed.sourceEdge!;
+    const yAxis = normalize(
+      subtract(vertices[secondVertex]!, vertices[firstVertex]!),
+    );
+    const xAxis = normalize(cross(yAxis, seed.normal));
+    return makePanel(
+      seed,
+      id,
+      squareNeighbors.get(id) ?? [],
+      scale(seed.normal, SQUARE_FACE_DISTANCE),
+      xAxis,
+      yAxis,
+      SCULPTURE_GEOMETRY.squarePanelWidth,
+      SCULPTURE_GEOMETRY.squarePanelHeight,
+    );
   });
   const pentagonPanels = pentagonSeeds.map((seed, index) => {
     const id = `PC-${String(index + 1).padStart(2, "0")}`;
-    return makePanel(seed, id, pentagonNeighbors.get(id) ?? []);
+    const neighborIds = pentagonNeighbors.get(id) ?? [];
+    const targetDirection = tangentAxes(seed.normal).yAxis;
+    const selectedSquare = squarePanels
+      .filter((panel) => neighborIds.includes(panel.id))
+      .map((panel) => ({
+        panel,
+        toEdge: normalize(
+          subtract(
+            panel.normal,
+            scale(seed.normal, dot(panel.normal, seed.normal)),
+          ),
+        ),
+      }))
+      .sort(
+        (first, second) =>
+          dot(second.toEdge, targetDirection) -
+            dot(first.toEdge, targetDirection) ||
+          first.panel.id.localeCompare(second.panel.id),
+      )[0];
+    if (!selectedSquare) {
+      throw new Error(`Pentagon ${id} has no surrounding square panel.`);
+    }
+
+    // pentagon_u.scad places the centre panel with its +X axis parallel to
+    // the selected open edge. Project its exact (9.62, -7.04) offset through
+    // the canonical 234 degree rotation into these panel-local axes.
+    const yAxis = selectedSquare.toEdge;
+    const xAxis = normalize(cross(yAxis, seed.normal));
+    const position = add(
+      add(
+        scale(
+          seed.normal,
+          PENTAGON_FACE_DISTANCE - SCULPTURE_GEOMETRY.centerPanelRecess,
+        ),
+        scale(xAxis, CENTER_PANEL_OFFSET_ALONG_X),
+      ),
+      scale(yAxis, CENTER_PANEL_OFFSET_ALONG_Y),
+    );
+    return makePanel(
+      seed,
+      id,
+      neighborIds,
+      position,
+      xAxis,
+      yAxis,
+      SCULPTURE_GEOMETRY.centerPanelWidth,
+      SCULPTURE_GEOMETRY.centerPanelHeight,
+    );
   });
   const panels = [...squarePanels, ...pentagonPanels];
   const entries: LedMappingEntry[] = [];
@@ -304,7 +423,10 @@ export function createPanelizedSculptureMapping(
         const localY = (3.5 - panelPixelY) * pitchY;
         const position = add(
           add(panel.position, scale(panel.xAxis, localX)),
-          add(scale(panel.yAxis, localY), scale(panel.normal, 0.8)),
+          add(
+            scale(panel.yAxis, localY),
+            scale(panel.normal, LED_EMITTER_OFFSET),
+          ),
         );
         const { u, v } = equirectangularUv(position);
         entries.push({
@@ -328,8 +450,9 @@ export function createPanelizedSculptureMapping(
     topology: "panelized-sculpture",
     panels,
     notes: [
-      "Panel face topology is generated from the proven rhombicosidodecahedron angle.",
-      "World rotation, panel rotation, mirroring, pixel-zero corner, serpentine order, and wiring remain unmeasured.",
+      "Square face planes and panel axes use the 66 mm rhombicosidodecahedron geometry and proven 31.717474 degree fold.",
+      "Pentagon-centre panels use the canonical 234 degree, 9.62/-7.04 mm OpenSCAD placement relative to a selected neighboring square edge.",
+      "Global sculpture rotation, the selected open edge on each pentagon, mirroring, pixel-zero corner, serpentine order, and wiring remain unmeasured.",
       "Logical and physical indices use synthetic row-major preview order only.",
     ],
     entries,
