@@ -12,6 +12,12 @@
 *.tmp
 *~
 .DS_Store
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+web/public/wasm/*.js
+web/public/wasm/*.wasm
 
 # FreeCAD recovery/backup files
 *.FCStd1

@@ -1,0 +1,130 @@
+# WLED Orbital Lab
+
+A browser simulator that compiles selected, unmodified WLED C++ effect bodies to
+WebAssembly and renders their framebuffer on an arbitrary Three.js LED mapping.
+
+## Architecture
+
+```text
+WLED FX.cpp effect bodies
+        |
+portable Segment compatibility host
+        |
+Emscripten WebAssembly (packed 0x00RRGGBB framebuffer)
+        |
+WledEngine.ts direct HEAPU32 view
+        |
+logical-to-physical LedMapping LUT
+        |
+Three.js GPU point cloud
+```
+
+The firmware, networking, and hardware driver layers are intentionally absent.
+See [TECH_NOTES.md](../TECH_NOTES.md) for the dependency audit and exact
+upstream coupling points.
+
+## Setup
+
+Prerequisites are Git, Node.js 20 or newer, npm, Python 3, and enough disk space
+for a project-local Emscripten SDK.
+
+```bash
+git submodule update --init --depth 1
+npm install
+npm run setup:emsdk
+npm run dev
+```
+
+Open the Vite URL printed by the final command. `npm run dev` rebuilds the
+WASM module before starting Vite. Once WASM is already current, use
+`npm run dev:web` for a faster UI-only start.
+
+You may use an existing Emscripten installation instead:
+
+```bash
+EMCC=/absolute/path/to/emcc npm run build:wasm
+npm run dev:web
+```
+
+The pinned version is in `wasm/emscripten-version.txt`.
+
+## Build and test
+
+```bash
+npm run build
+npm test
+```
+
+`npm run build` compiles the C++ engine and creates a production Vite bundle
+in `dist/`. `npm test` rebuilds WASM, then checks initialization, effect
+selection, framebuffer changes, deterministic timestamps, resize behavior,
+out-of-bounds protection, and mapping invariants.
+
+Generated `web/public/wasm/wled-engine.{js,wasm}` files are ignored. Rebuild
+them from the pinned Emscripten version and WLED submodule.
+
+## Reused WLED source
+
+The WLED submodule is pinned at
+`d9b9a846561227351ad929e3109781daadb7bed2`.
+
+- `wled00/src/dependencies/fastled_slim/fastled_slim.cpp` is compiled directly.
+- Twenty selected 1D effect bodies from `wled00/FX.cpp` are preserved in
+  `wasm/src/wled_effects.inc`.
+- Fixed-point timing, blend, palette lookup, and the seven standard FastLED
+  palette tables follow the current upstream implementations.
+- `wasm/compatibility/pgmspace.h` supplies the only platform header shim.
+
+WLED's full `FX_fcn.cpp` is not compiled because its service path pulls in
+buses, PSRAM/heap allocation, filesystem maps, transition state, locks, and
+firmware globals. The compatibility host models the small effect-facing Segment
+surface instead.
+
+## WASM memory
+
+C++ owns a resizable `std::vector<uint32_t>` with packed
+`0x00RRGGBB` pixels. `wled_get_pixel_buffer()` exposes its address.
+`WledEngine.ts` returns a `Uint32Array.subarray()` over Emscripten's linear
+memory, so there is no full framebuffer copy across the JS/WASM boundary.
+
+Resizing can move the vector or grow WASM memory. The wrapper therefore
+reacquires the pointer and `HEAPU32` view whenever `pixels` is requested.
+
+## Mapping model
+
+`LedMappingEntry` carries independent `logicalIndex` and `physicalIndex`
+fields plus optional panel identity, panel-local pixel coordinates, UV, and XYZ.
+The renderer asks the LUT which logical framebuffer value belongs at each
+physical XYZ point; it never derives position from the buffer index.
+
+The first prototype uses a deterministic Fibonacci sphere and an explicit
+identity logical/physical mapping. Replace
+`createUniformSphereMapping()` with a canonical sculpture loader when measured
+panel transforms and wiring order are available. The renderer does not need to
+change.
+
+UV values are already present as equirectangular coordinates. A later 2D view
+can render the same entries at `(u, v)` while using the same logical and
+physical indices.
+
+## Adding or updating effects
+
+1. Update the WLED submodule to the desired reviewed revision.
+2. Diff the selected functions in `wled00/FX.cpp` against
+   `wasm/src/wled_effects.inc`.
+3. Copy changed bodies verbatim and add only the Segment/math dependencies they
+   require to the isolated compatibility host.
+4. Add the effect name and function to `EFFECTS` in
+   `wasm/src/wled_engine.cpp`.
+5. Record new upstream assumptions in `TECH_NOTES.md`.
+6. Run `npm test && npm run build`.
+
+Do not patch the WLED submodule. Hardware, networking, filesystem, and ESP32
+services belong outside this WASM target.
+
+## Future adapters
+
+`wled_set_audio()` already accepts volume, peak, and FFT bins, but no
+audio-reactive effect consumes them yet. DDP/Art-Net output can later read the
+same packed framebuffer used by Three.js. Both should remain adapters around the
+engine rather than platform emulation inside it.

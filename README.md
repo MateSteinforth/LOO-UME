@@ -19,6 +19,16 @@ outputs. It runs custom audio-reactive effects locally and accepts realtime DDP
 or Art-Net data. See [docs/software.md](docs/software.md) for the controller,
 mapping, behavior, power-safety, and CI design.
 
+The `software/panel-map-visualizer` branch also contains **WLED Orbital Lab**,
+a standalone browser simulator that runs genuine WLED C++ effect bodies in
+WebAssembly and renders 2,688 mapped LEDs with Three.js. Its artificial sphere
+mapping is explicitly provisional and does not claim measured sculpture
+geometry or wiring.
+
+See [web/README.md](web/README.md) for setup, build, test, architecture, WASM
+memory, mapping, and upstream-update instructions. Investigation details and
+current limitations are recorded in [TECH_NOTES.md](TECH_NOTES.md).
+
 ## Canonical printable parts
 
 | Source | Quantity | Purpose |
