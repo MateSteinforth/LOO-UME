@@ -4,7 +4,15 @@ import {
   CSS2DRenderer,
 } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import type { LedMapping, PanelDefinition, Vector3Data } from "./LedMapping";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import type {
+  LedMapping,
+  MechanicalMountPreview,
+  PrintableClosurePreview,
+  PanelDefinition,
+  SculptureSurfaceFace,
+  Vector3Data,
+} from "./LedMapping";
 import type { WiringPreview } from "./WiringPreview";
 
 export type DisplayMode = "wled" | "physical-index" | "logical-index";
@@ -41,6 +49,7 @@ export class SphereRenderer {
   });
   private readonly labelRenderer = new CSS2DRenderer();
   private readonly panelLayer = new THREE.Group();
+  private readonly printableLayer = new THREE.Group();
   private readonly connectorLayer = new THREE.Group();
   private readonly wiringLayer = new THREE.Group();
   private readonly connectorOutputLayers = new Map<number, THREE.Group>();
@@ -53,6 +62,9 @@ export class SphereRenderer {
   ]);
   private readonly panelLabels: PanelLabel[] = [];
   private readonly controls: OrbitControls;
+  private readonly stlLoader = new STLLoader();
+  private mappingRevision = 0;
+  private shellTransparency = 0.35;
   private readonly geometry = new THREE.BufferGeometry();
   private readonly ledTexture = createLedSpriteTexture();
   private readonly material = new THREE.PointsMaterial({
@@ -105,6 +117,7 @@ export class SphereRenderer {
     this.scene.add(
       this.occlusionCore,
       this.panelLayer,
+      this.printableLayer,
       this.wiringLayer,
       this.connectorLayer,
       this.points,
@@ -117,6 +130,7 @@ export class SphereRenderer {
   }
 
   setMapping(mapping: LedMapping): void {
+    this.mappingRevision += 1;
     this.mapping = mapping;
     this.clearWiringPreview();
     const positions = new Float32Array(mapping.entries.length * 3);
@@ -138,7 +152,12 @@ export class SphereRenderer {
     );
     this.geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     this.geometry.computeBoundingSphere();
-    this.buildPanelDecorations(mapping.panels);
+    this.buildPanelDecorations(
+      mapping.panels,
+      mapping.surfaceFaces ?? [],
+      mapping.mechanicalMounts ?? [],
+      mapping.printableClosures ?? [],
+    );
     this.fitMapping();
   }
 
@@ -203,6 +222,15 @@ export class SphereRenderer {
     this.buildWiringPreview(preview);
   }
 
+  setShellTransparency(value: number): void {
+    this.shellTransparency = THREE.MathUtils.clamp(value, 0, 0.9);
+    this.applyShellTransparency();
+  }
+
+  setPrintableLayerVisible(visible: boolean): void {
+    this.printableLayer.visible = visible;
+  }
+
   setConnectorLayerVisible(visible: boolean): void {
     this.connectorLayer.visible = visible;
   }
@@ -223,6 +251,7 @@ export class SphereRenderer {
     this.resizeObserver.disconnect();
     this.controls.dispose();
     this.clearPanelDecorations();
+    this.disposeGroup(this.printableLayer);
     this.clearWiringPreview();
     this.geometry.dispose();
     this.ledTexture.dispose();
@@ -238,20 +267,92 @@ export class SphereRenderer {
     this.labelRenderer.domElement.remove();
   }
 
-  private buildPanelDecorations(panels: PanelDefinition[]): void {
+  private markShellMaterial<T extends THREE.Material>(material: T): T {
+    material.userData.shellMaterial = true;
+    this.updateShellMaterial(material);
+    return material;
+  }
+
+  private updateShellMaterial(material: THREE.Material): void {
+    const opacity = 1 - this.shellTransparency;
+    material.transparent = opacity < 1;
+    material.opacity = opacity;
+    material.depthWrite = opacity >= 0.98;
+    material.needsUpdate = true;
+  }
+
+  private applyShellTransparency(): void {
+    for (const layer of [this.panelLayer, this.printableLayer]) {
+      layer.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(object.material)
+          ? object.material
+          : [object.material];
+        for (const material of materials) {
+          if (material.userData.shellMaterial) {
+            this.updateShellMaterial(material);
+          }
+        }
+      });
+    }
+    const coreMaterial = this.occlusionCore.material;
+    if (!Array.isArray(coreMaterial)) this.updateShellMaterial(coreMaterial);
+  }
+
+  private buildPanelDecorations(
+    panels: PanelDefinition[],
+    surfaceFaces: SculptureSurfaceFace[],
+    mechanicalMounts: MechanicalMountPreview[],
+    printableClosures: PrintableClosurePreview[],
+  ): void {
     this.clearPanelDecorations();
+    this.disposeGroup(this.printableLayer);
     if (panels.length === 0) return;
 
     const positions: number[] = [];
     const colors: number[] = [];
     const surfacePositions: number[] = [];
     const surfaceColors: number[] = [];
+    const mountPositions: number[] = [];
+    const printableClosureIds = new Set(
+      printableClosures.map((closure) => closure.id),
+    );
     const edgePairs: Array<[number, number]> = [
       [0, 1],
       [1, 2],
       [2, 3],
       [3, 0],
     ];
+
+    for (const face of surfaceFaces) {
+      if (face.role === "filler" && printableClosureIds.has(face.id)) continue;
+      const surfaceColor = new THREE.Color(
+        face.role === "panel" ? 0x071720 : 0x18252d,
+      );
+      const offset = this.toThree(face.normal).multiplyScalar(-0.12);
+      for (let index = 1; index < face.vertices.length - 1; index += 1) {
+        for (const vertex of [
+          face.vertices[0]!,
+          face.vertices[index]!,
+          face.vertices[index + 1]!,
+        ]) {
+          const point = this.toThree(vertex).add(offset);
+          surfacePositions.push(point.x, point.y, point.z);
+          surfaceColors.push(surfaceColor.r, surfaceColor.g, surfaceColor.b);
+        }
+      }
+    }
+
+    for (const mount of mechanicalMounts) {
+      mountPositions.push(
+        mount.edgeMidpoint.x,
+        mount.edgeMidpoint.y,
+        mount.edgeMidpoint.z,
+        mount.holePosition.x,
+        mount.holePosition.y,
+        mount.holePosition.z,
+      );
+    }
 
     for (const panel of panels) {
       const surfaceCorners = this.panelCorners(panel, 0);
@@ -318,15 +419,48 @@ export class SphereRenderer {
       "color",
       new THREE.Float32BufferAttribute(surfaceColors, 3),
     );
-    const surfaceMaterial = new THREE.MeshBasicMaterial({
+    const surfaceMaterial = this.markShellMaterial(new THREE.MeshBasicMaterial({
       vertexColors: true,
       side: THREE.DoubleSide,
       depthWrite: true,
       depthTest: true,
-    });
+    }));
     const surfaces = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
     surfaces.renderOrder = 0;
     this.panelLayer.add(surfaces);
+    this.buildPrintableClosures(printableClosures, surfaceFaces);
+
+    if (mechanicalMounts.length > 0) {
+      const mountGeometry = new THREE.BufferGeometry();
+      mountGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(mountPositions, 3),
+      );
+      const mountLines = new THREE.LineSegments(
+        mountGeometry,
+        new THREE.LineBasicMaterial({ color: 0xffc857, toneMapped: false }),
+      );
+      mountLines.renderOrder = 3;
+      this.panelLayer.add(mountLines);
+
+      const holeMarkers = new THREE.InstancedMesh(
+        new THREE.SphereGeometry(1.65, 14, 10),
+        new THREE.MeshBasicMaterial({ color: 0xffc857, toneMapped: false }),
+        mechanicalMounts.length,
+      );
+      const matrix = new THREE.Matrix4();
+      mechanicalMounts.forEach((mount, index) => {
+        matrix.makeTranslation(
+          mount.holePosition.x,
+          mount.holePosition.y,
+          mount.holePosition.z,
+        );
+        holeMarkers.setMatrixAt(index, matrix);
+      });
+      holeMarkers.instanceMatrix.needsUpdate = true;
+      holeMarkers.renderOrder = 3;
+      this.panelLayer.add(holeMarkers);
+    }
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
@@ -343,6 +477,163 @@ export class SphereRenderer {
     const outlines = new THREE.LineSegments(geometry, material);
     outlines.renderOrder = 1;
     this.panelLayer.add(outlines);
+  }
+
+  private buildPrintableClosures(
+    closures: PrintableClosurePreview[],
+    surfaceFaces: SculptureSurfaceFace[],
+  ): void {
+    if (closures.length === 0) return;
+    const clippingPlanes = surfaceFaces.map((face) => {
+      const normal = this.toThree(face.normal);
+      return new THREE.Plane(
+        normal,
+        -normal.dot(this.toThree(face.vertices[0]!)),
+      );
+    });
+    this.renderer.localClippingEnabled = true;
+    const outward = new THREE.Vector3(0, 0, 1);
+    const revision = this.mappingRevision;
+
+    for (const closure of closures) {
+      const closureGroup = new THREE.Group();
+      closureGroup.name = "printable-" + closure.id;
+      closureGroup.userData.cadMeshAsset = closure.cadMeshAsset;
+      this.printableLayer.add(closureGroup);
+
+      const coverMaterial = this.markShellMaterial(new THREE.MeshBasicMaterial({
+        color: 0x247c87,
+        side: THREE.DoubleSide,
+        clippingPlanes,
+      }));
+      const connectorMaterial = this.markShellMaterial(new THREE.MeshBasicMaterial({
+        color: 0x45a6ad,
+        side: THREE.DoubleSide,
+        clippingPlanes,
+      }));
+      const vertexCount = closure.vertices.length;
+      const positions: number[] = [];
+      const indices: number[] = [];
+      for (const vertex of closure.vertices) {
+        positions.push(vertex.x, vertex.y, vertex.z);
+      }
+      for (const vertex of closure.vertices) {
+        const inner = this.toThree(vertex).addScaledVector(
+          this.toThree(closure.normal),
+          -closure.coverThickness,
+        );
+        positions.push(inner.x, inner.y, inner.z);
+      }
+      for (let index = 1; index < vertexCount - 1; index += 1) {
+        indices.push(0, index, index + 1);
+        indices.push(vertexCount, vertexCount + index + 1, vertexCount + index);
+      }
+      for (let index = 0; index < vertexCount; index += 1) {
+        const next = (index + 1) % vertexCount;
+        indices.push(index, next, vertexCount + next);
+        indices.push(index, vertexCount + next, vertexCount + index);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(positions, 3),
+      );
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+      const cover = new THREE.Mesh(geometry, coverMaterial);
+      cover.renderOrder = 1;
+      closureGroup.add(cover);
+
+      for (const connector of closure.connectors) {
+        const shape = new THREE.Shape();
+        shape.absarc(
+          0,
+          0,
+          connector.screwTabWidth / 2,
+          0,
+          Math.PI * 2,
+          false,
+        );
+        const pilot = new THREE.Path();
+        pilot.absarc(
+          0,
+          0,
+          connector.pilotDiameter / 2,
+          0,
+          Math.PI * 2,
+          true,
+        );
+        shape.holes.push(pilot);
+        const tabGeometry = new THREE.ExtrudeGeometry(shape, {
+          depth: connector.flangeThickness,
+          bevelEnabled: false,
+          curveSegments: 32,
+        });
+        const tab = new THREE.Mesh(tabGeometry, connectorMaterial);
+        const inward = this.toThree(connector.panelInwardNormal).normalize();
+        tab.quaternion.setFromUnitVectors(outward, inward);
+        tab.position
+          .copy(this.toThree(connector.pilotPosition))
+          .addScaledVector(inward, connector.panelMountOffset);
+        tab.renderOrder = 1;
+        closureGroup.add(tab);
+      }
+
+      const assetUrl = new URL(
+        closure.cadMeshAsset,
+        document.baseURI,
+      ).href;
+      this.stlLoader.load(
+        assetUrl,
+        (stlGeometry) => {
+          if (
+            revision !== this.mappingRevision ||
+            closureGroup.parent !== this.printableLayer
+          ) {
+            stlGeometry.dispose();
+            return;
+          }
+          this.disposeGroup(closureGroup);
+          stlGeometry.computeVertexNormals();
+          const exactMaterial = this.markShellMaterial(new THREE.MeshBasicMaterial({
+            color: 0x2f939c,
+            side: THREE.DoubleSide,
+          }));
+          const exact = new THREE.Mesh(stlGeometry, exactMaterial);
+          const origin = this.toThree(closure.frame.origin);
+          const xAxis = this.toThree(closure.frame.xAxis);
+          const yAxis = this.toThree(closure.frame.yAxis);
+          const inwardAxis = this.toThree(closure.frame.inwardAxis);
+          exact.matrix.set(
+            xAxis.x,
+            yAxis.x,
+            inwardAxis.x,
+            origin.x,
+            xAxis.y,
+            yAxis.y,
+            inwardAxis.y,
+            origin.y,
+            xAxis.z,
+            yAxis.z,
+            inwardAxis.z,
+            origin.z,
+            0,
+            0,
+            0,
+            1,
+          );
+          exact.matrixAutoUpdate = false;
+          exact.renderOrder = 1;
+          exact.userData.source = "generated-openscad-stl";
+          closureGroup.userData.loaded = true;
+          closureGroup.add(exact);
+        },
+        undefined,
+        () => {
+          closureGroup.userData.loaded = false;
+        },
+      );
+    }
   }
 
   private buildWiringPreview(preview: WiringPreview): void {

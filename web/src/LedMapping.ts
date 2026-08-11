@@ -48,6 +48,12 @@ export interface PanelDefinition {
       | "bottom-right"
       | null;
     traversalAxis: "rows" | "columns" | null;
+    lineProgression:
+      | "top-to-bottom"
+      | "bottom-to-top"
+      | "left-to-right"
+      | "right-to-left"
+      | null;
     serpentine: boolean | null;
     firstLineDirection:
       | "left-to-right"
@@ -65,11 +71,55 @@ export interface PanelDefinition {
   };
 }
 
+export interface MechanicalMountPreview {
+  closureFaceId: string;
+  panelId: string;
+  holeId: string;
+  edgeMidpoint: Vector3Data;
+  holePosition: Vector3Data;
+  pilotPosition: Vector3Data;
+}
+
+export interface PrintableClosurePreview {
+  id: string;
+  vertices: Vector3Data[];
+  normal: Vector3Data;
+  coverThickness: number;
+  exteriorClipping: "polyhedron-interior";
+  cadMeshAsset: string;
+  frame: {
+    origin: Vector3Data;
+    xAxis: Vector3Data;
+    yAxis: Vector3Data;
+    inwardAxis: Vector3Data;
+  };
+  connectors: Array<{
+    panelId: string;
+    holeId: string;
+    pilotPosition: Vector3Data;
+    panelInwardNormal: Vector3Data;
+    panelMountOffset: number;
+    flangeThickness: number;
+    screwTabWidth: number;
+    pilotDiameter: number;
+  }>;
+}
+
+export interface SculptureSurfaceFace {
+  id: string;
+  role: "panel" | "filler";
+  vertices: Vector3Data[];
+  normal: Vector3Data;
+}
+
 export interface LedMapping {
   id: string;
   status: "provisional" | "measured";
   topology: "panelized-sculpture" | "uniform-sphere" | "custom";
   panels: PanelDefinition[];
+  surfaceFaces?: SculptureSurfaceFace[];
+  mechanicalMounts?: MechanicalMountPreview[];
+  printableClosures?: PrintableClosurePreview[];
   notes: string[];
   entries: LedMappingEntry[];
 }
@@ -380,6 +430,7 @@ export function createPanelizedSculptureMapping(
         status: "unknown",
         pixelZeroCorner: null,
         traversalAxis: null,
+        lineProgression: null,
         serpentine: null,
         firstLineDirection: null,
       },
@@ -640,26 +691,11 @@ export function validateMapping(
     logical.add(entry.logicalIndex);
   }
 
-  if (mapping.topology === "panelized-sculpture") {
-    if (mapping.panels.length !== SCULPTURE_GEOMETRY.totalPanelCount) {
-      errors.push(
-        `Panel topology has ${mapping.panels.length} panels; expected ${SCULPTURE_GEOMETRY.totalPanelCount}.`,
-      );
-    }
-    const squareCount = mapping.panels.filter(
-      (panel) => panel.faceType === "square-face",
-    ).length;
-    const pentagonCount = mapping.panels.filter(
-      (panel) => panel.faceType === "pentagon-centre",
-    ).length;
-    if (
-      squareCount !== SCULPTURE_GEOMETRY.squarePanelCount ||
-      pentagonCount !== SCULPTURE_GEOMETRY.centerPanelCount
-    ) {
-      errors.push(
-        `Panel topology has ${squareCount} square and ${pentagonCount} pentagon-centre panels; expected ${SCULPTURE_GEOMETRY.squarePanelCount} and ${SCULPTURE_GEOMETRY.centerPanelCount}.`,
-      );
-    }
+  if (
+    mapping.topology === "panelized-sculpture" &&
+    mapping.panels.length === 0
+  ) {
+    errors.push("Panelized mapping must contain at least one panel.");
   }
 
   const panelIds = new Set<string>();

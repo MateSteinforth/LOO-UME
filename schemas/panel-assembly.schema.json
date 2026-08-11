@@ -1,0 +1,352 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://led-rhombo.example/schemas/panel-assembly.schema.json",
+  "title": "Explicit panel assembly and generated closure recipe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "units",
+    "status",
+    "panelProfile",
+    "geometry",
+    "panels",
+    "closures",
+    "mapping",
+    "wiring",
+    "calibration",
+    "notes"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "units": {
+      "const": "mm"
+    },
+    "status": {
+      "enum": [
+        "provisional",
+        "measured"
+      ]
+    },
+    "panelProfile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "vertices",
+        "faces"
+      ],
+      "properties": {
+        "kind": {
+          "const": "explicit-planar-face-graph"
+        },
+        "vertices": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "items": false
+          }
+        },
+        "faces": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "vertexIndices"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vertexIndices": {
+                "type": "array",
+                "minItems": 3,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "panels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "faceId",
+          "rotationQuarterTurns"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "faceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rotationQuarterTurns": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          }
+        }
+      }
+    },
+    "closures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "faceIds",
+        "generator",
+        "holeSelection",
+        "exteriorClipping",
+        "coverThickness",
+        "coverCornerRadius",
+        "flangeThickness",
+        "flangeOverlap",
+        "edgeLipDepth",
+        "screwTabWidth",
+        "screwTabEndMargin",
+        "connectorCornerClearance",
+        "panelEnvelopeClearance"
+      ],
+      "properties": {
+        "faceIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "generator": {
+          "const": "panel-hole-tabs"
+        },
+        "holeSelection": {
+          "const": "minimum-total-edge-distance"
+        },
+        "exteriorClipping": {
+          "const": "polyhedron-interior"
+        },
+        "coverThickness": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "coverCornerRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "flangeThickness": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "flangeOverlap": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "edgeLipDepth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "screwTabWidth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "screwTabEndMargin": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "connectorCornerClearance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "panelEnvelopeClearance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "holePreferences": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "closureVertexCount",
+              "panelHoleIds"
+            ],
+            "properties": {
+              "closureVertexCount": {
+                "type": "integer",
+                "minimum": 3
+              },
+              "panelHoleIds": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "top-left",
+                    "middle-left",
+                    "bottom-left",
+                    "top-right",
+                    "middle-right",
+                    "bottom-right"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "mapping": {
+      "type": "object"
+    },
+    "wiring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "controller",
+        "routeStrategy",
+        "chainLengths",
+        "connector",
+        "outputs"
+      ],
+      "properties": {
+        "status": {
+          "const": "provisional"
+        },
+        "controller": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "placement",
+            "status"
+          ],
+          "properties": {
+            "placement": {
+              "const": "near-top"
+            },
+            "status": {
+              "const": "provisional"
+            }
+          }
+        },
+        "routeStrategy": {
+          "const": "face-adjacency-nearest-neighbor"
+        },
+        "chainLengths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "connector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "edgeInset",
+            "surfaceOffset"
+          ],
+          "properties": {
+            "edgeInset": {
+              "type": "number",
+              "minimum": 0
+            },
+            "surfaceOffset": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "outputIndex",
+              "label",
+              "gpio",
+              "color"
+            ],
+            "properties": {
+              "outputIndex": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "gpio": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "calibration": {
+      "type": "object"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -49,13 +49,17 @@ round-trip tested against the renderer for all 2,624 LEDs.
 
 A production `ledmap.json` is deliberately not emitted while any hardware
 field is provisional. The guarded exporter unlocks only after the readiness
-checks for GPIOs, chain order, DIN/DOUT assignment, panel pixel order, and
-installed orientation all pass.
+checks for GPIOs, chain order, panel pixel order, and installed orientation all
+pass. DIN/DOUT corner assignment is already measured in the panel profile. The
+current route generator covers data only and assumes the controller is near the
+sculpture top; it does not generate the power branches described above.
 
-The panel's RGB color order, pixel-zero corner, and row/column serpentine order
-remain bench-test facts. Do not encode them as final until a real panel passes
-a numbered diagnostic test. Panel placement, orientation, output assignment,
-and chain position also remain data rather than effect-code constants.
+The panel JSON carries the provisional back-view addressing rule: pixel 0 at
+bottom-left, left-to-right first row, then alternating rows upward. It derives
+pixel 56 at top-right and pixel 63 at top-left. Keep the status provisional
+until a numbered diagnostic test confirms the rule and RGB color order. Panel
+placement, orientation, output assignment, and chain position also remain data
+rather than effect-code constants.
 
 ## Build and CI
 

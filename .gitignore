@@ -2,6 +2,7 @@
 /build/
 /.tools/
 *.stl
+!artifacts/**/*.stl
 *.3mf
 *.amf
 *.off
@@ -18,6 +19,9 @@ coverage/
 *.tsbuildinfo
 web/public/wasm/*.js
 web/public/wasm/*.wasm
+web/public/sculptures/
+web/public/generated-cad/
+web/public/generated-previews/
 
 # FreeCAD recovery/backup files
 *.FCStd1

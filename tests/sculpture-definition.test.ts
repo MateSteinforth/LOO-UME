@@ -18,10 +18,66 @@ describe("canonical sculpture source", () => {
 
     expect(project.sculpture.schemaVersion).toBe("1.0.0");
     expect(project.sculpture.panelProfile).toBe(project.panelProfile.id);
+    expect(project.sculpture.wiring.controller).toEqual({
+      placement: "near-top",
+      status: "provisional",
+    });
     expect(project.panelProfile.dimensions).toEqual({
       width: 66,
       height: 65,
       thickness: 0.8,
+    });
+    expect(project.panelProfile.pixelGrid.provisionalOrder).toMatchObject({
+      status: "provisional",
+      pixelZeroCorner: "bottom-left",
+      traversalAxis: "rows",
+      lineProgression: "bottom-to-top",
+      serpentine: true,
+      firstLineDirection: "left-to-right",
+    });
+    expect(project.panelProfile.dataConnectors).toMatchObject({
+      referenceView: "back",
+      orientationReference: "three-mounting-holes-vertical",
+      cornerAssignmentStatus: "measured",
+      dinCorner: "bottom-left",
+      doutCorner: "top-right",
+      padPositionStatus: "unknown",
+    });
+    expect(project.panelProfile.mounting.holes).toMatchObject([
+      { id: "top-left", mechanicalUse: "eligible" },
+      { id: "middle-left", mechanicalUse: "eligible" },
+      { id: "bottom-left", mechanicalUse: "blocked", blockedBy: "DIN" },
+      { id: "top-right", mechanicalUse: "blocked", blockedBy: "DOUT" },
+      { id: "middle-right", mechanicalUse: "eligible" },
+      { id: "bottom-right", mechanicalUse: "eligible" },
+    ]);
+    expect(project.panelProfile.mounting.capAllocation).toEqual({
+      strategy: "minimum-total-edge-distance",
+      useAllEligibleHolesWhenPossible: true,
+      distinctClosurePerHole: true,
+    });
+    expect(project.panelProfile.power).toMatchObject({
+      status: "provisional",
+      nominalVoltage: 5,
+      worstCaseCurrentPerPixel: 0.06,
+      worstCaseCurrentPerPanel: 3.84,
+      pads: {
+        availableAt: ["din-end", "dout-end"],
+        roles: ["V+", "V-"],
+        supportsIndependentFeedAndInjection: true,
+      },
+      singlePanelLead: {
+        minimumCrossSectionMm2: 0.75,
+        approximateAwg: 18,
+      },
+      voltageDrop: {
+        maximumFraction: 0.05,
+        minimumPanelVoltage: 4.75,
+      },
+      fusing: {
+        panelsPerFuse: null,
+        sizingRule: "protect-wire",
+      },
     });
     expect(project.panelProfile.mounting.physicalCorrections).toMatchObject({
       holeEdge: 0.2,
@@ -39,6 +95,7 @@ describe("canonical sculpture source", () => {
     const wiring = createProvisionalWiringPreview(
       geometry,
       project.sculpture,
+      project.panelProfile,
     );
     const contract = createHardwareMappingContract(
       geometry,
@@ -51,7 +108,7 @@ describe("canonical sculpture source", () => {
     expect(wiring.outputs.map((output) => output.panelIds.length)).toEqual([
       11, 10, 10, 10,
     ]);
-    expect(contract.fingerprint).toBe("f4e553a9");
+    expect(contract.fingerprint).toBe("31291c59");
     expect(validateLedmapEquivalence(contract.mapping, contract.ledmap)).toEqual(
       [],
     );
@@ -82,6 +139,7 @@ describe("canonical sculpture source", () => {
     const rerouted = createProvisionalWiringPreview(
       original,
       reroutedDefinition,
+      project.panelProfile,
     );
     expect(rerouted.outputs.map((output) => output.panelIds.length)).toEqual([
       10, 11, 10, 10,
@@ -101,6 +159,20 @@ describe("canonical sculpture source", () => {
     invalidProfile.mounting.physicalCorrections.status = "provisional" as "measured";
     expect(() => parsePanelHardwareProfile(invalidProfile)).toThrow(
       "must remain measured",
+    );
+
+    const blockedDin = structuredClone(project.panelProfile);
+    blockedDin.mounting.holes.find(
+      (hole) => hole.id === "bottom-left",
+    )!.mechanicalUse = "eligible";
+    expect(() => parsePanelHardwareProfile(blockedDin)).toThrow(
+      "Eligible mounting holes cannot be marked",
+    );
+
+    const inconsistentPower = structuredClone(project.panelProfile);
+    inconsistentPower.power.worstCaseCurrentPerPanel = 3.8;
+    expect(() => parsePanelHardwareProfile(inconsistentPower)).toThrow(
+      "must equal pixel count",
     );
   });
 

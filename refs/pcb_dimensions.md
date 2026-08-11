@@ -14,6 +14,35 @@ The LED panels are rectangular, not perfectly square.
 | Screw lead-in diameter | 3.2 mm |
 | Screw lead-in depth | 0.7 mm |
 
+## Electrical orientation
+
+Viewed from the back with the three mounting holes vertical:
+
+- DIN is at the bottom-left corner.
+- DOUT is at the top-right corner.
+- The corner assignment is measured; exact pad centres and electrical keep-out
+  envelopes remain to be measured.
+- Pixel order is JSON-driven and provisional: pixel 0 is bottom-left beside DIN,
+  the first row runs left-to-right, and rows snake upward. This derives pixel 56
+  at top-right and pixel 63 at top-left; DOUT remains at top-right.
+
+## Provisional power design
+
+These values are photo-derived or conservative design assumptions, not bench
+measurements:
+
+- V+ and V- are available at both the DIN and DOUT ends, allowing independent
+  feed-through or injection.
+- Use 3.84 A at 5 V per 64-pixel panel as the conservative maximum
+  (64 × 60 mA). Actual panel current may be lower.
+- Use at least 0.75 mm² / approximately AWG 18 for short single-panel 5 V and
+  ground leads; shared feeds require separate sizing.
+- Limit voltage drop to 5%, keeping at least 4.75 V at the panel under load.
+- Plan one fuse per small panel group, sized to protect the external wire. The
+  panel count per fuse remains undefined until the power topology is designed.
+- Current generated wiring covers data only and assumes the controller is near
+  the sculpture top.
+
 ## Physically tested corrections
 
 - Move printed pilot centres 0.20 mm farther from the filler edge.

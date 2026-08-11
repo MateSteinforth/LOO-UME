@@ -38,12 +38,12 @@ export class WledEngine {
   private constructor(private readonly module: EmscriptenWledModule) {}
 
   static async create(ledCount: number): Promise<WledEngine> {
-    const moduleUrl = "/wasm/wled-engine.js";
+    const moduleUrl = new URL("./wasm/wled-engine.js", document.baseURI).href;
     const imported = (await import(/* @vite-ignore */ moduleUrl)) as {
       default: WledModuleFactory;
     };
     const module = await imported.default({
-      locateFile: (path) => `/wasm/${path}`,
+      locateFile: (path) => new URL("./wasm/" + path, document.baseURI).href,
     });
     const engine = new WledEngine(module);
     if (!module._wled_init(ledCount)) {

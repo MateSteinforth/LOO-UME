@@ -77,7 +77,14 @@ jobs:
           sudo apt-get install --yes openscad xvfb xauth
 
       - name: Generate and verify JSON-driven CAD
-        run: npm run verify:cad
+        run: |
+          npm run verify:cad
+          npm run generate:cuboctahedron
+          npm run verify:cuboctahedron
+          npm run generate:rhombicosidodecahedron:auto
+          npm run verify:rhombicosidodecahedron:auto
+          npm run generate:truncated-octahedron
+          npm run verify:truncated-octahedron
 
       - name: Upload generated CAD contract
         uses: actions/upload-artifact@v7
@@ -90,6 +97,9 @@ jobs:
             build/verify-cad/pentagon-u-frame-generated.stl
             build/verify-cad/middle-panel-connector-generated.stl
             build/verify-cad/populated-pentagon-assembly.png
+            build/verify-panel-assembly/**/closure-*.stl
+            build/verify-panel-assembly/**/closure-detail.png
+            build/verify-panel-assembly/**/assembly-preview.png
           if-no-files-found: error
           retention-days: 30
 

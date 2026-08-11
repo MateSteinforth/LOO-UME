@@ -7,10 +7,36 @@ import sculptureJson from "../../sculptures/rhombicosidodecahedron/sculpture.jso
 
 export type FactStatus = "unknown" | "provisional" | "measured";
 
+export type PanelCorner =
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right";
+
+export type PanelMountingHoleId =
+  | "top-left"
+  | "middle-left"
+  | "bottom-left"
+  | "top-right"
+  | "middle-right"
+  | "bottom-right";
+
+export interface PanelMountingHoleDefinition {
+  id: PanelMountingHoleId;
+  localPosition: [number, number];
+  mechanicalUse: "eligible" | "blocked";
+  blockedBy?: "DIN" | "DOUT";
+}
+
 export interface PixelOrderDefinition {
   status: "provisional" | "measured";
   pixelZeroCorner: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   traversalAxis: "rows" | "columns";
+  lineProgression:
+    | "top-to-bottom"
+    | "bottom-to-top"
+    | "left-to-right"
+    | "right-to-left";
   serpentine: boolean;
   firstLineDirection:
     | "left-to-right"
@@ -45,12 +71,57 @@ export interface PanelHardwareProfile {
       diameter: number;
       depth: number;
     };
+    holes: PanelMountingHoleDefinition[];
+    capAllocation: {
+      strategy: "minimum-total-edge-distance";
+      useAllEligibleHolesWhenPossible: true;
+      distinctClosurePerHole: true;
+    };
     physicalCorrections: {
       holeEdge: number;
       surfaceFlush: number;
       status: "measured";
       note: string;
     };
+  };
+  dataConnectors: {
+    referenceView: "back";
+    orientationReference: "three-mounting-holes-vertical";
+    cornerAssignmentStatus: "measured";
+    dinCorner: PanelCorner;
+    doutCorner: PanelCorner;
+    padPositionStatus: FactStatus;
+    note: string;
+  };
+  power: {
+    status: "provisional";
+    basis: "panel-photo-and-conservative-worst-case";
+    nominalVoltage: 5;
+    worstCaseCurrentPerPixel: number;
+    worstCaseCurrentPerPanel: number;
+    pads: {
+      status: "provisional";
+      availableAt: Array<"din-end" | "dout-end">;
+      roles: Array<"V+" | "V-">;
+      supportsIndependentFeedAndInjection: true;
+    };
+    singlePanelLead: {
+      scope: "short-5v-and-ground-leads";
+      minimumCrossSectionMm2: number;
+      approximateAwg: number;
+      sharedFeedsRequireLargerConductors: true;
+    };
+    voltageDrop: {
+      maximumFraction: number;
+      minimumPanelVoltage: number;
+    };
+    fusing: {
+      status: "provisional";
+      grouping: "one-fuse-per-small-panel-group";
+      panelsPerFuse: number | null;
+      sizingRule: "protect-wire";
+    };
+    note: string;
   };
   electricalKeepouts: {
     status: FactStatus;
@@ -157,6 +228,28 @@ export interface PentagonOpeningDefinition {
   };
 }
 
+export interface WiringDefinition {
+  status: "provisional" | "measured";
+  routeStrategy:
+    | "longitude-sectors-nearest-neighbor"
+    | "face-adjacency-nearest-neighbor";
+  chainLengths: number[];
+  controller: {
+    placement: "near-top";
+    status: "provisional";
+  };
+  connector: {
+    edgeInset: number;
+    surfaceOffset: number;
+  };
+  outputs: Array<{
+    outputIndex: number;
+    label: string;
+    gpio: number | null;
+    color: string;
+  }>;
+}
+
 export interface SculptureDefinition {
   schemaVersion: "1.0.0";
   id: string;
@@ -194,23 +287,7 @@ export interface SculptureDefinition {
     projection: "equirectangular";
     logicalOrder: "north-to-south-then-longitude";
   };
-  wiring: {
-    status: "provisional" | "measured";
-    routeStrategy: "longitude-sectors-nearest-neighbor";
-    chainLengths: number[];
-    connector: {
-      diagonal: "top-left-to-bottom-right";
-      edgeInset: number;
-      surfaceOffset: number;
-      dinDoutAssignmentStatus: "provisional" | "measured";
-    };
-    outputs: Array<{
-      outputIndex: number;
-      label: string;
-      gpio: number | null;
-      color: string;
-    }>;
-  };
+  wiring: WiringDefinition;
   calibration: {
     panelTransforms: "generated-provisional" | "measured";
     installedPanelOrientation: FactStatus;
@@ -311,6 +388,12 @@ export function parsePanelHardwareProfile(
     "bottom-right",
   ]);
   requireOneOf(order, "traversalAxis", ["rows", "columns"]);
+  requireOneOf(order, "lineProgression", [
+    "top-to-bottom",
+    "bottom-to-top",
+    "left-to-right",
+    "right-to-left",
+  ]);
   requireOneOf(order, "firstLineDirection", [
     "left-to-right",
     "right-to-left",
@@ -338,6 +421,77 @@ export function parsePanelHardwareProfile(
   if (leadInDiameter <= pilotDiameter) {
     throw new Error("Screw lead-in diameter must exceed the printed pilot.");
   }
+  if (!Array.isArray(mounting.holes) || mounting.holes.length !== 6) {
+    throw new Error("Panel mounting must declare all six physical holes.");
+  }
+  const expectedHoleIds: PanelMountingHoleId[] = [
+    "top-left",
+    "middle-left",
+    "bottom-left",
+    "top-right",
+    "middle-right",
+    "bottom-right",
+  ];
+  const mountingHoleIds = new Set<string>();
+  for (const hole of mounting.holes) {
+    if (
+      !isRecord(hole) ||
+      !expectedHoleIds.includes(hole.id as PanelMountingHoleId)
+    ) {
+      throw new Error("Panel mounting holes require known back-view IDs.");
+    }
+    if (mountingHoleIds.has(hole.id as string)) {
+      throw new Error("Panel mounting hole IDs must be unique.");
+    }
+    mountingHoleIds.add(hole.id as string);
+    if (
+      !Array.isArray(hole.localPosition) ||
+      hole.localPosition.length !== 2 ||
+      hole.localPosition.some(
+        (coordinate) =>
+          typeof coordinate !== "number" || !Number.isFinite(coordinate),
+      )
+    ) {
+      throw new Error(
+        "Panel mounting-hole positions must contain two finite coordinates.",
+      );
+    }
+    if (hole.mechanicalUse === "eligible") {
+      if (hole.blockedBy !== undefined) {
+        throw new Error(
+          "Eligible mounting holes cannot be marked as connector-blocked.",
+        );
+      }
+    } else if (
+      hole.mechanicalUse !== "blocked" ||
+      (hole.blockedBy !== "DIN" && hole.blockedBy !== "DOUT")
+    ) {
+      throw new Error("Blocked mounting holes must identify DIN or DOUT.");
+    }
+  }
+  if (expectedHoleIds.some((id) => !mountingHoleIds.has(id))) {
+    throw new Error(
+      "Panel mounting must declare each of the six back-view holes once.",
+    );
+  }
+  const eligibleHoleCount = mounting.holes.filter(
+    (hole) => isRecord(hole) && hole.mechanicalUse === "eligible",
+  ).length;
+  if (eligibleHoleCount !== 4) {
+    throw new Error(
+      "This panel must expose exactly four mechanically eligible holes.",
+    );
+  }
+  const capAllocation = requireRecord(mounting, "capAllocation");
+  if (
+    capAllocation.strategy !== "minimum-total-edge-distance" ||
+    capAllocation.useAllEligibleHolesWhenPossible !== true ||
+    capAllocation.distinctClosurePerHole !== true
+  ) {
+    throw new Error(
+      "Cap allocation must use all eligible holes with one distinct closure per hole.",
+    );
+  }
   const corrections = requireRecord(mounting, "physicalCorrections");
   requireFiniteNumber(corrections, "holeEdge");
   requireFiniteNumber(corrections, "surfaceFlush");
@@ -345,6 +499,130 @@ export function parsePanelHardwareProfile(
     throw new Error("Physical fit corrections must remain measured facts.");
   }
   requireString(corrections, "note");
+
+  const dataConnectors = requireRecord(input, "dataConnectors");
+  if (
+    dataConnectors.referenceView !== "back" ||
+    dataConnectors.orientationReference !== "three-mounting-holes-vertical" ||
+    dataConnectors.cornerAssignmentStatus !== "measured"
+  ) {
+    throw new Error(
+      "Data connector corners require the measured back-view orientation.",
+    );
+  }
+  const dinCorner = requireOneOf(dataConnectors, "dinCorner", [
+    "top-left",
+    "top-right",
+    "bottom-left",
+    "bottom-right",
+  ]);
+  const doutCorner = requireOneOf(dataConnectors, "doutCorner", [
+    "top-left",
+    "top-right",
+    "bottom-left",
+    "bottom-right",
+  ]);
+  if (dinCorner === doutCorner) {
+    throw new Error("DIN and DOUT must use different panel corners.");
+  }
+  const holeById = new Map(
+    mounting.holes.map((hole) => [
+      (hole as Record<string, unknown>).id,
+      hole as Record<string, unknown>,
+    ]),
+  );
+  if (
+    holeById.get(dinCorner)?.blockedBy !== "DIN" ||
+    holeById.get(doutCorner)?.blockedBy !== "DOUT"
+  ) {
+    throw new Error(
+      "DIN and DOUT corner holes must be blocked for mechanical use.",
+    );
+  }
+  requireOneOf(dataConnectors, "padPositionStatus", [
+    "unknown",
+    "provisional",
+    "measured",
+  ]);
+  requireString(dataConnectors, "note");
+
+  const power = requireRecord(input, "power");
+  if (
+    power.status !== "provisional" ||
+    power.basis !== "panel-photo-and-conservative-worst-case"
+  ) {
+    throw new Error("Panel power facts must remain explicitly provisional.");
+  }
+  const nominalVoltage = requirePositiveNumber(power, "nominalVoltage");
+  if (nominalVoltage !== 5) {
+    throw new Error("This panel profile requires a 5 V nominal supply.");
+  }
+  const currentPerPixel = requirePositiveNumber(
+    power,
+    "worstCaseCurrentPerPixel",
+  );
+  const currentPerPanel = requirePositiveNumber(
+    power,
+    "worstCaseCurrentPerPanel",
+  );
+  if (
+    Math.abs(currentPerPanel - columns * rows * currentPerPixel) > 1e-9
+  ) {
+    throw new Error("Panel worst-case current must equal pixel count times per-pixel current.");
+  }
+  const pads = requireRecord(power, "pads");
+  if (
+    pads.status !== "provisional" ||
+    pads.supportsIndependentFeedAndInjection !== true ||
+    !Array.isArray(pads.availableAt) ||
+    pads.availableAt.length !== 2 ||
+    !pads.availableAt.includes("din-end") ||
+    !pads.availableAt.includes("dout-end") ||
+    !Array.isArray(pads.roles) ||
+    pads.roles.length !== 2 ||
+    !pads.roles.includes("V+") ||
+    !pads.roles.includes("V-")
+  ) {
+    throw new Error("Power pads must provide provisional V+ and V- injection at both data ends.");
+  }
+  const singlePanelLead = requireRecord(power, "singlePanelLead");
+  if (
+    singlePanelLead.scope !== "short-5v-and-ground-leads" ||
+    singlePanelLead.sharedFeedsRequireLargerConductors !== true
+  ) {
+    throw new Error("Single-panel wire sizing must not be applied to shared feeds.");
+  }
+  requirePositiveNumber(singlePanelLead, "minimumCrossSectionMm2");
+  const approximateAwg = requirePositiveNumber(singlePanelLead, "approximateAwg");
+  if (!Number.isInteger(approximateAwg)) {
+    throw new Error("Approximate AWG must be an integer.");
+  }
+  const voltageDrop = requireRecord(power, "voltageDrop");
+  const maximumDrop = requirePositiveNumber(voltageDrop, "maximumFraction");
+  if (maximumDrop >= 1) {
+    throw new Error("Maximum voltage-drop fraction must be below one.");
+  }
+  const minimumPanelVoltage = requirePositiveNumber(
+    voltageDrop,
+    "minimumPanelVoltage",
+  );
+  if (
+    Math.abs(minimumPanelVoltage - nominalVoltage * (1 - maximumDrop)) > 1e-9
+  ) {
+    throw new Error("Minimum panel voltage must match the configured drop limit.");
+  }
+  const fusing = requireRecord(power, "fusing");
+  if (
+    fusing.status !== "provisional" ||
+    fusing.grouping !== "one-fuse-per-small-panel-group" ||
+    fusing.sizingRule !== "protect-wire" ||
+    (fusing.panelsPerFuse !== null &&
+      (!Number.isInteger(fusing.panelsPerFuse) ||
+        (fusing.panelsPerFuse as number) <= 0))
+  ) {
+    throw new Error("Fuse grouping must remain provisional and protect the external wire.");
+  }
+  requireString(power, "note");
 
   const keepouts = requireRecord(input, "electricalKeepouts");
   requireOneOf(keepouts, "status", ["unknown", "provisional", "measured"]);
@@ -617,22 +895,22 @@ export function parseSculptureDefinition(input: unknown): SculptureDefinition {
 
   const wiring = requireRecord(input, "wiring");
   requireOneOf(wiring, "status", ["provisional", "measured"]);
+  const controller = requireRecord(wiring, "controller");
+  if (
+    controller.placement !== "near-top" ||
+    controller.status !== "provisional"
+  ) {
+    throw new Error("Data controller placement must be provisional and near the top.");
+  }
   if (wiring.routeStrategy !== "longitude-sectors-nearest-neighbor") {
     throw new Error("Unsupported wiring route strategy.");
   }
   const connector = requireRecord(wiring, "connector");
-  if (connector.diagonal !== "top-left-to-bottom-right") {
-    throw new Error("Unsupported connector diagonal.");
-  }
   const connectorInset = requireFiniteNumber(connector, "edgeInset");
   if (connectorInset < 0) {
     throw new Error("Connector edge inset cannot be negative.");
   }
   requireFiniteNumber(connector, "surfaceOffset");
-  requireOneOf(connector, "dinDoutAssignmentStatus", [
-    "provisional",
-    "measured",
-  ]);
 
   if (!Array.isArray(wiring.chainLengths) || !Array.isArray(wiring.outputs)) {
     throw new Error("Wiring must provide chainLengths and outputs arrays.");

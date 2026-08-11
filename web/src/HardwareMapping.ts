@@ -2,6 +2,9 @@ import type {
   LedMapping,
   LedMappingEntry,
   PanelDefinition,
+  MechanicalMountPreview,
+  PrintableClosurePreview,
+  SculptureSurfaceFace,
 } from "./LedMapping.ts";
 import type { WiringPreview } from "./WiringPreview.ts";
 import {
@@ -53,6 +56,7 @@ function provisionalPixelOrder(
     status: order.status,
     pixelZeroCorner: order.pixelZeroCorner,
     traversalAxis: order.traversalAxis,
+    lineProgression: order.lineProgression,
     serpentine: order.serpentine,
     firstLineDirection: order.firstLineDirection,
   };
@@ -78,6 +82,7 @@ function panelWireIndex(
   if (
     order.pixelZeroCorner === null ||
     order.traversalAxis === null ||
+    order.lineProgression === null ||
     order.serpentine === null ||
     order.firstLineDirection === null
   ) {
@@ -94,21 +99,40 @@ function panelWireIndex(
       : startsBottom
         ? "bottom-to-top"
         : "top-to-bottom";
-  if (order.firstLineDirection !== expectedDirection) {
+  const expectedProgression =
+    order.traversalAxis === "rows"
+      ? startsBottom
+        ? "bottom-to-top"
+        : "top-to-bottom"
+      : startsRight
+        ? "right-to-left"
+        : "left-to-right";
+  if (
+    order.firstLineDirection !== expectedDirection ||
+    order.lineProgression !== expectedProgression
+  ) {
     throw new Error(
-      "Panel start corner and first-line direction are inconsistent.",
+      "Panel start corner, first-line direction, and line progression are inconsistent.",
     );
   }
   const columns = panelProfile.pixelGrid.columns;
   const rows = panelProfile.pixelGrid.rows;
-  const x = startsRight
-    ? columns - 1 - entry.panelPixelX
-    : entry.panelPixelX;
-  const y = startsBottom
-    ? rows - 1 - entry.panelPixelY
-    : entry.panelPixelY;
-  const line = order.traversalAxis === "rows" ? y : x;
-  let offset = order.traversalAxis === "rows" ? x : y;
+  const line =
+    order.traversalAxis === "rows"
+      ? order.lineProgression === "bottom-to-top"
+        ? rows - 1 - entry.panelPixelY
+        : entry.panelPixelY
+      : order.lineProgression === "right-to-left"
+        ? columns - 1 - entry.panelPixelX
+        : entry.panelPixelX;
+  let offset =
+    order.traversalAxis === "rows"
+      ? order.firstLineDirection === "right-to-left"
+        ? columns - 1 - entry.panelPixelX
+        : entry.panelPixelX
+      : order.firstLineDirection === "bottom-to-top"
+        ? rows - 1 - entry.panelPixelY
+        : entry.panelPixelY;
   if (order.serpentine && line % 2 === 1) {
     offset =
       (order.traversalAxis === "rows" ? columns : rows) - 1 - offset;
@@ -287,8 +311,9 @@ export function createHardwareMappingContract(
     entries,
     notes: [
       ...geometryMapping.notes,
-      "Physical indices follow the displayed four-output route.",
-      "Within-panel physical order is provisional top-left row-major and must be bench-calibrated.",
+      "Physical indices follow the displayed output routes.",
+      "Within-panel physical order follows the panel profile: " +
+        panelProfile.pixelGrid.provisionalOrder.description,
     ],
   };
   const ledmap = createWledLedmap(mapping);
@@ -315,6 +340,9 @@ interface GeneratedPanelMap {
   outputs: OutputAddressRange[];
   wiring: WiringPreview;
   panels: PanelDefinition[];
+  surfaceFaces?: SculptureSurfaceFace[];
+  mechanicalMounts?: MechanicalMountPreview[];
+  printableClosures?: PrintableClosurePreview[];
   leds: LedMappingEntry[];
 }
 
@@ -351,6 +379,9 @@ export function loadGeneratedHardwareMappingContract(
     topology: panelMap.topology,
     notes: panelMap.notes,
     panels: panelMap.panels,
+    surfaceFaces: panelMap.surfaceFaces,
+    mechanicalMounts: panelMap.mechanicalMounts,
+    printableClosures: panelMap.printableClosures,
     entries: panelMap.leds,
   };
   const equivalenceErrors = validateLedmapEquivalence(mapping, ledmap);
@@ -445,7 +476,7 @@ export function assessHardwareReadiness(
     blockers.add("Sculpture transforms and UV placement are provisional.");
   }
   if (wiring.status !== "measured") {
-    blockers.add("The four panel chains are still provisional.");
+    blockers.add("The panel data chains are still provisional.");
   }
   if (wiring.outputs.some((output) => output.gpio === null)) {
     blockers.add("Controller GPIO assignments are unknown.");
@@ -467,7 +498,7 @@ export function assessHardwareReadiness(
   if (
     mapping.panels.some((panel) => panel.wiring.status !== "assigned")
   ) {
-    blockers.add("The four panel chains are still provisional.");
+    blockers.add("The panel data chains are still provisional.");
   }
   if (
     mapping.panels.some(

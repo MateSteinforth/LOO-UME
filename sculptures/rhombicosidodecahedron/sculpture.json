@@ -152,13 +152,15 @@
   },
   "wiring": {
     "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
     "routeStrategy": "longitude-sectors-nearest-neighbor",
     "chainLengths": [11, 10, 10, 10],
     "connector": {
-      "diagonal": "top-left-to-bottom-right",
       "edgeInset": 4,
-      "surfaceOffset": 2.4,
-      "dinDoutAssignmentStatus": "provisional"
+      "surfaceOffset": 2.4
     },
     "outputs": [
       {

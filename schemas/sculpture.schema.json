@@ -77,6 +77,7 @@
       "additionalProperties": false,
       "required": [
         "status",
+        "controller",
         "routeStrategy",
         "chainLengths",
         "connector",
@@ -84,6 +85,15 @@
       ],
       "properties": {
         "status": { "enum": ["provisional", "measured"] },
+        "controller": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["placement", "status"],
+          "properties": {
+            "placement": { "const": "near-top" },
+            "status": { "const": "provisional" }
+          }
+        },
         "routeStrategy": {
           "const": "longitude-sectors-nearest-neighbor"
         },
@@ -95,19 +105,10 @@
         "connector": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "diagonal",
-            "edgeInset",
-            "surfaceOffset",
-            "dinDoutAssignmentStatus"
-          ],
+          "required": ["edgeInset", "surfaceOffset"],
           "properties": {
-            "diagonal": { "const": "top-left-to-bottom-right" },
             "edgeInset": { "type": "number", "minimum": 0 },
-            "surfaceOffset": { "type": "number" },
-            "dinDoutAssignmentStatus": {
-              "enum": ["provisional", "measured"]
-            }
+            "surfaceOffset": { "type": "number" }
           }
         },
         "outputs": {

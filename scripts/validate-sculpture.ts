@@ -19,7 +19,11 @@ if (!mappingValidation.valid) {
   throw new Error(mappingValidation.errors.join("\n"));
 }
 
-const wiring = createProvisionalWiringPreview(mapping, project.sculpture);
+const wiring = createProvisionalWiringPreview(
+  mapping,
+  project.sculpture,
+  project.panelProfile,
+);
 const wiringValidation = validateWiringPreview(wiring, mapping);
 if (!wiringValidation.valid) {
   throw new Error(wiringValidation.errors.join("\n"));

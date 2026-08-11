@@ -1,0 +1,1142 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "automatic-rhombicosidodecahedron-30-panel-test",
+  "name": "Automatic 30-panel Rhombicosidodecahedron",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": "ws2812b-8x8-66x65",
+  "geometry": {
+    "kind": "explicit-planar-face-graph",
+    "vertices": [
+      [
+        0,
+        101.56355673,
+        -106.79024326
+      ],
+      [
+        -62.76973008,
+        101.56355673,
+        -86.39512163
+      ],
+      [
+        -17.3491267,
+        136.26181013,
+        -53.39512163
+      ],
+      [
+        45.42060338,
+        136.26181013,
+        -33
+      ],
+      [
+        101.56355673,
+        101.56355673,
+        -33
+      ],
+      [
+        62.76973008,
+        101.56355673,
+        -86.39512163
+      ],
+      [
+        62.76973008,
+        101.56355673,
+        86.39512163
+      ],
+      [
+        101.56355673,
+        101.56355673,
+        33
+      ],
+      [
+        45.42060338,
+        136.26181013,
+        33
+      ],
+      [
+        -62.76973008,
+        101.56355673,
+        86.39512163
+      ],
+      [
+        0,
+        101.56355673,
+        106.79024326
+      ],
+      [
+        -17.3491267,
+        136.26181013,
+        53.39512163
+      ],
+      [
+        -101.56355673,
+        101.56355673,
+        -33
+      ],
+      [
+        -101.56355673,
+        101.56355673,
+        33
+      ],
+      [
+        -56.14295335,
+        136.26181013,
+        0
+      ],
+      [
+        -73.49208005,
+        45.42060338,
+        -119.39512163
+      ],
+      [
+        -10.72234998,
+        45.42060338,
+        -139.79024326
+      ],
+      [
+        -45.42060338,
+        -10.72234998,
+        -139.79024326
+      ],
+      [
+        118.91268343,
+        -10.72234998,
+        -86.39512163
+      ],
+      [
+        90.84120675,
+        45.42060338,
+        -106.79024326
+      ],
+      [
+        129.6350334,
+        45.42060338,
+        -53.39512163
+      ],
+      [
+        129.6350334,
+        45.42060338,
+        53.39512163
+      ],
+      [
+        90.84120675,
+        45.42060338,
+        106.79024326
+      ],
+      [
+        118.91268343,
+        -10.72234998,
+        86.39512163
+      ],
+      [
+        -10.72234998,
+        45.42060338,
+        139.79024326
+      ],
+      [
+        -73.49208005,
+        45.42060338,
+        119.39512163
+      ],
+      [
+        -45.42060338,
+        -10.72234998,
+        139.79024326
+      ],
+      [
+        -136.26181013,
+        45.42060338,
+        33
+      ],
+      [
+        -136.26181013,
+        45.42060338,
+        -33
+      ],
+      [
+        -146.9841601,
+        -10.72234998,
+        0
+      ],
+      [
+        -90.84120675,
+        -45.42060338,
+        -106.79024326
+      ],
+      [
+        -129.6350334,
+        -45.42060338,
+        -53.39512163
+      ],
+      [
+        -118.91268343,
+        10.72234998,
+        -86.39512163
+      ],
+      [
+        73.49208005,
+        -45.42060338,
+        -119.39512163
+      ],
+      [
+        10.72234998,
+        -45.42060338,
+        -139.79024326
+      ],
+      [
+        45.42060338,
+        10.72234998,
+        -139.79024326
+      ],
+      [
+        146.9841601,
+        10.72234998,
+        0
+      ],
+      [
+        136.26181013,
+        -45.42060338,
+        33
+      ],
+      [
+        136.26181013,
+        -45.42060338,
+        -33
+      ],
+      [
+        10.72234998,
+        -45.42060338,
+        139.79024326
+      ],
+      [
+        73.49208005,
+        -45.42060338,
+        119.39512163
+      ],
+      [
+        45.42060338,
+        10.72234998,
+        139.79024326
+      ],
+      [
+        -129.6350334,
+        -45.42060338,
+        53.39512163
+      ],
+      [
+        -90.84120675,
+        -45.42060338,
+        106.79024326
+      ],
+      [
+        -118.91268343,
+        10.72234998,
+        86.39512163
+      ],
+      [
+        -101.56355673,
+        -101.56355673,
+        -33
+      ],
+      [
+        -62.76973008,
+        -101.56355673,
+        -86.39512163
+      ],
+      [
+        -45.42060338,
+        -136.26181013,
+        -33
+      ],
+      [
+        0,
+        -101.56355673,
+        -106.79024326
+      ],
+      [
+        62.76973008,
+        -101.56355673,
+        -86.39512163
+      ],
+      [
+        17.3491267,
+        -136.26181013,
+        -53.39512163
+      ],
+      [
+        56.14295335,
+        -136.26181013,
+        0
+      ],
+      [
+        101.56355673,
+        -101.56355673,
+        -33
+      ],
+      [
+        101.56355673,
+        -101.56355673,
+        33
+      ],
+      [
+        62.76973008,
+        -101.56355673,
+        86.39512163
+      ],
+      [
+        0,
+        -101.56355673,
+        106.79024326
+      ],
+      [
+        17.3491267,
+        -136.26181013,
+        53.39512163
+      ],
+      [
+        -62.76973008,
+        -101.56355673,
+        86.39512163
+      ],
+      [
+        -101.56355673,
+        -101.56355673,
+        33
+      ],
+      [
+        -45.42060338,
+        -136.26181013,
+        33
+      ]
+    ],
+    "faces": [
+      {
+        "id": "SQ-01",
+        "vertexIndices": [
+          14,
+          2,
+          1,
+          12
+        ]
+      },
+      {
+        "id": "SQ-02",
+        "vertexIndices": [
+          5,
+          0,
+          2,
+          3
+        ]
+      },
+      {
+        "id": "SQ-03",
+        "vertexIndices": [
+          7,
+          4,
+          3,
+          8
+        ]
+      },
+      {
+        "id": "SQ-04",
+        "vertexIndices": [
+          10,
+          6,
+          8,
+          11
+        ]
+      },
+      {
+        "id": "SQ-05",
+        "vertexIndices": [
+          13,
+          9,
+          11,
+          14
+        ]
+      },
+      {
+        "id": "SQ-06",
+        "vertexIndices": [
+          16,
+          15,
+          1,
+          0
+        ]
+      },
+      {
+        "id": "SQ-07",
+        "vertexIndices": [
+          5,
+          4,
+          20,
+          19
+        ]
+      },
+      {
+        "id": "SQ-08",
+        "vertexIndices": [
+          22,
+          21,
+          7,
+          6
+        ]
+      },
+      {
+        "id": "SQ-09",
+        "vertexIndices": [
+          25,
+          24,
+          10,
+          9
+        ]
+      },
+      {
+        "id": "SQ-10",
+        "vertexIndices": [
+          28,
+          27,
+          13,
+          12
+        ]
+      },
+      {
+        "id": "SQ-11",
+        "vertexIndices": [
+          29,
+          28,
+          32,
+          31
+        ]
+      },
+      {
+        "id": "SQ-12",
+        "vertexIndices": [
+          30,
+          32,
+          15,
+          17
+        ]
+      },
+      {
+        "id": "SQ-13",
+        "vertexIndices": [
+          34,
+          17,
+          16,
+          35
+        ]
+      },
+      {
+        "id": "SQ-14",
+        "vertexIndices": [
+          35,
+          19,
+          18,
+          33
+        ]
+      },
+      {
+        "id": "SQ-15",
+        "vertexIndices": [
+          18,
+          20,
+          36,
+          38
+        ]
+      },
+      {
+        "id": "SQ-16",
+        "vertexIndices": [
+          37,
+          36,
+          21,
+          23
+        ]
+      },
+      {
+        "id": "SQ-17",
+        "vertexIndices": [
+          23,
+          22,
+          41,
+          40
+        ]
+      },
+      {
+        "id": "SQ-18",
+        "vertexIndices": [
+          41,
+          24,
+          26,
+          39
+        ]
+      },
+      {
+        "id": "SQ-19",
+        "vertexIndices": [
+          43,
+          26,
+          25,
+          44
+        ]
+      },
+      {
+        "id": "SQ-20",
+        "vertexIndices": [
+          44,
+          27,
+          29,
+          42
+        ]
+      },
+      {
+        "id": "SQ-21",
+        "vertexIndices": [
+          45,
+          31,
+          30,
+          46
+        ]
+      },
+      {
+        "id": "SQ-22",
+        "vertexIndices": [
+          48,
+          34,
+          33,
+          49
+        ]
+      },
+      {
+        "id": "SQ-23",
+        "vertexIndices": [
+          52,
+          38,
+          37,
+          53
+        ]
+      },
+      {
+        "id": "SQ-24",
+        "vertexIndices": [
+          54,
+          40,
+          39,
+          55
+        ]
+      },
+      {
+        "id": "SQ-25",
+        "vertexIndices": [
+          58,
+          57,
+          43,
+          42
+        ]
+      },
+      {
+        "id": "SQ-26",
+        "vertexIndices": [
+          50,
+          47,
+          46,
+          48
+        ]
+      },
+      {
+        "id": "SQ-27",
+        "vertexIndices": [
+          51,
+          50,
+          49,
+          52
+        ]
+      },
+      {
+        "id": "SQ-28",
+        "vertexIndices": [
+          51,
+          53,
+          54,
+          56
+        ]
+      },
+      {
+        "id": "SQ-29",
+        "vertexIndices": [
+          56,
+          55,
+          57,
+          59
+        ]
+      },
+      {
+        "id": "SQ-30",
+        "vertexIndices": [
+          59,
+          58,
+          45,
+          47
+        ]
+      },
+      {
+        "id": "TR-01",
+        "vertexIndices": [
+          2,
+          0,
+          1
+        ]
+      },
+      {
+        "id": "TR-02",
+        "vertexIndices": [
+          5,
+          3,
+          4
+        ]
+      },
+      {
+        "id": "TR-03",
+        "vertexIndices": [
+          8,
+          6,
+          7
+        ]
+      },
+      {
+        "id": "TR-04",
+        "vertexIndices": [
+          11,
+          9,
+          10
+        ]
+      },
+      {
+        "id": "TR-05",
+        "vertexIndices": [
+          14,
+          12,
+          13
+        ]
+      },
+      {
+        "id": "TR-06",
+        "vertexIndices": [
+          17,
+          15,
+          16
+        ]
+      },
+      {
+        "id": "TR-07",
+        "vertexIndices": [
+          20,
+          18,
+          19
+        ]
+      },
+      {
+        "id": "TR-08",
+        "vertexIndices": [
+          23,
+          21,
+          22
+        ]
+      },
+      {
+        "id": "TR-09",
+        "vertexIndices": [
+          26,
+          24,
+          25
+        ]
+      },
+      {
+        "id": "TR-10",
+        "vertexIndices": [
+          29,
+          27,
+          28
+        ]
+      },
+      {
+        "id": "TR-11",
+        "vertexIndices": [
+          32,
+          30,
+          31
+        ]
+      },
+      {
+        "id": "TR-12",
+        "vertexIndices": [
+          35,
+          33,
+          34
+        ]
+      },
+      {
+        "id": "TR-13",
+        "vertexIndices": [
+          38,
+          36,
+          37
+        ]
+      },
+      {
+        "id": "TR-14",
+        "vertexIndices": [
+          41,
+          39,
+          40
+        ]
+      },
+      {
+        "id": "TR-15",
+        "vertexIndices": [
+          44,
+          42,
+          43
+        ]
+      },
+      {
+        "id": "TR-16",
+        "vertexIndices": [
+          47,
+          45,
+          46
+        ]
+      },
+      {
+        "id": "TR-17",
+        "vertexIndices": [
+          50,
+          48,
+          49
+        ]
+      },
+      {
+        "id": "TR-18",
+        "vertexIndices": [
+          53,
+          51,
+          52
+        ]
+      },
+      {
+        "id": "TR-19",
+        "vertexIndices": [
+          56,
+          54,
+          55
+        ]
+      },
+      {
+        "id": "TR-20",
+        "vertexIndices": [
+          59,
+          57,
+          58
+        ]
+      },
+      {
+        "id": "PE-01",
+        "vertexIndices": [
+          8,
+          3,
+          2,
+          14,
+          11
+        ]
+      },
+      {
+        "id": "PE-02",
+        "vertexIndices": [
+          28,
+          12,
+          1,
+          15,
+          32
+        ]
+      },
+      {
+        "id": "PE-03",
+        "vertexIndices": [
+          35,
+          16,
+          0,
+          5,
+          19
+        ]
+      },
+      {
+        "id": "PE-04",
+        "vertexIndices": [
+          36,
+          20,
+          4,
+          7,
+          21
+        ]
+      },
+      {
+        "id": "PE-05",
+        "vertexIndices": [
+          41,
+          22,
+          6,
+          10,
+          24
+        ]
+      },
+      {
+        "id": "PE-06",
+        "vertexIndices": [
+          44,
+          25,
+          9,
+          13,
+          27
+        ]
+      },
+      {
+        "id": "PE-07",
+        "vertexIndices": [
+          46,
+          30,
+          17,
+          34,
+          48
+        ]
+      },
+      {
+        "id": "PE-08",
+        "vertexIndices": [
+          49,
+          33,
+          18,
+          38,
+          52
+        ]
+      },
+      {
+        "id": "PE-09",
+        "vertexIndices": [
+          53,
+          37,
+          23,
+          40,
+          54
+        ]
+      },
+      {
+        "id": "PE-10",
+        "vertexIndices": [
+          55,
+          39,
+          26,
+          43,
+          57
+        ]
+      },
+      {
+        "id": "PE-11",
+        "vertexIndices": [
+          58,
+          42,
+          29,
+          31,
+          45
+        ]
+      },
+      {
+        "id": "PE-12",
+        "vertexIndices": [
+          56,
+          59,
+          47,
+          50,
+          51
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": "SQ-01",
+      "faceId": "SQ-01",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-02",
+      "faceId": "SQ-02",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-03",
+      "faceId": "SQ-03",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-04",
+      "faceId": "SQ-04",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-05",
+      "faceId": "SQ-05",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-06",
+      "faceId": "SQ-06",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-07",
+      "faceId": "SQ-07",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-08",
+      "faceId": "SQ-08",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-09",
+      "faceId": "SQ-09",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-10",
+      "faceId": "SQ-10",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-11",
+      "faceId": "SQ-11",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-12",
+      "faceId": "SQ-12",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-13",
+      "faceId": "SQ-13",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-14",
+      "faceId": "SQ-14",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-15",
+      "faceId": "SQ-15",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-16",
+      "faceId": "SQ-16",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-17",
+      "faceId": "SQ-17",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-18",
+      "faceId": "SQ-18",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-19",
+      "faceId": "SQ-19",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-20",
+      "faceId": "SQ-20",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-21",
+      "faceId": "SQ-21",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-22",
+      "faceId": "SQ-22",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-23",
+      "faceId": "SQ-23",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-24",
+      "faceId": "SQ-24",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-25",
+      "faceId": "SQ-25",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-26",
+      "faceId": "SQ-26",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-27",
+      "faceId": "SQ-27",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-28",
+      "faceId": "SQ-28",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-29",
+      "faceId": "SQ-29",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "SQ-30",
+      "faceId": "SQ-30",
+      "rotationQuarterTurns": 0
+    }
+  ],
+  "closures": {
+    "faceIds": [
+      "TR-01",
+      "TR-02",
+      "TR-03",
+      "TR-04",
+      "TR-05",
+      "TR-06",
+      "TR-07",
+      "TR-08",
+      "TR-09",
+      "TR-10",
+      "TR-11",
+      "TR-12",
+      "TR-13",
+      "TR-14",
+      "TR-15",
+      "TR-16",
+      "TR-17",
+      "TR-18",
+      "TR-19",
+      "TR-20",
+      "PE-01",
+      "PE-02",
+      "PE-03",
+      "PE-04",
+      "PE-05",
+      "PE-06",
+      "PE-07",
+      "PE-08",
+      "PE-09",
+      "PE-10",
+      "PE-11",
+      "PE-12"
+    ],
+    "generator": "panel-hole-tabs",
+    "holeSelection": "minimum-total-edge-distance",
+    "holePreferences": [
+      {
+        "closureVertexCount": 3,
+        "panelHoleIds": [
+          "top-left",
+          "bottom-right"
+        ]
+      },
+      {
+        "closureVertexCount": 5,
+        "panelHoleIds": [
+          "middle-left",
+          "middle-right"
+        ]
+      }
+    ],
+    "exteriorClipping": "polyhedron-interior",
+    "coverThickness": 2,
+    "coverCornerRadius": 2,
+    "flangeThickness": 3,
+    "flangeOverlap": 1.25,
+    "edgeLipDepth": 3,
+    "screwTabWidth": 13,
+    "screwTabEndMargin": 4.5,
+    "connectorCornerClearance": 14,
+    "panelEnvelopeClearance": 0.3
+  },
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "face-adjacency-nearest-neighbor",
+    "chainLengths": [
+      8,
+      8,
+      7,
+      7
+    ],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Output 1",
+        "gpio": null,
+        "color": "#36e0d0"
+      },
+      {
+        "outputIndex": 1,
+        "label": "Output 2",
+        "gpio": null,
+        "color": "#ff9d5c"
+      },
+      {
+        "outputIndex": 2,
+        "label": "Output 3",
+        "gpio": null,
+        "color": "#b58cff"
+      },
+      {
+        "outputIndex": 3,
+        "label": "Output 4",
+        "gpio": null,
+        "color": "#c6ed68"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "This separate test definition leaves the existing manual 41-panel rhombicosidodecahedron untouched.",
+    "Only the 30 square faces carry panels; all 20 triangular and 12 pentagonal faces are automatic panel-hole-tab closures.",
+    "The explicit vertices, faces, panel assignments, closure policy, mapping, and wiring are the pipeline source of truth.",
+    "Panel rotations and four data chains are provisional until compared with an intended physical build."
+  ]
+}

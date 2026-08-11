@@ -52,6 +52,12 @@ instead of duplicating them. See
 [`docs/sculpture-format.md`](docs/sculpture-format.md) for the source contract,
 validation command, and compilation flow.
 
+The first independent recipe is the six-panel cuboctahedron. It compiles six
+panel placements, eight integrated triangular closures, 24 real-hole tabs, a 384-LED
+visualizer/WLED mapping, and prototype printable CAD from one JSON file. See
+[`docs/cuboctahedron-e2e.md`](docs/cuboctahedron-e2e.md) for its generated
+artifacts and physical-validation boundary.
+
 ## Canonical printable parts
 
 | Source | Quantity | Purpose |
@@ -105,6 +111,18 @@ assembly previews with:
 ```bash
 npm run verify:cad
 ```
+
+Compile any explicit panel-assembly JSON, or regenerate all three processed
+sculptures and their versioned printable meshes and preview renders:
+
+```bash
+npm run generate:sculpture -- --sculpture sculptures/cuboctahedron/sculpture.json
+npm run verify:processed-sculptures
+```
+
+Verified snapshots are organized under
+`artifacts/sculptures/<sculpture-id>/{3d,previews}`. The simulator reads
+`sculptures/manifest.json` to populate its sculpture dropdown.
 
 The canonical parts can still be rendered directly:
 

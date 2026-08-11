@@ -60,6 +60,7 @@ describe("hardware mapping contract", () => {
       status: "measured",
       pixelZeroCorner: "bottom-right",
       traversalAxis: "columns",
+      lineProgression: "right-to-left",
       serpentine: false,
       firstLineDirection: "bottom-to-top",
     };
@@ -134,7 +135,7 @@ describe("hardware mapping contract", () => {
     ) as { map: number[] };
     const loaded = loadGeneratedHardwareMappingContract(panelMap, ledmap);
 
-    expect(loaded.fingerprint).toBe("f4e553a9");
+    expect(loaded.fingerprint).toBe("31291c59");
     expect(loaded.mapping.entries).toHaveLength(2624);
     expect(loaded.wiring.outputs).toHaveLength(4);
 
@@ -154,7 +155,7 @@ describe("hardware mapping contract", () => {
 
     expect(contract.readiness.ready).toBe(false);
     expect(contract.readiness.blockers.join(" ")).toContain("GPIO");
-    expect(contract.readiness.blockers.join(" ")).toContain("DIN/DOUT");
+    expect(contract.readiness.blockers.join(" ")).not.toContain("DIN/DOUT");
     expect(contract.readiness.blockers.join(" ")).toContain("pixel-zero");
     expect(contract.readiness.blockers.join(" ")).toContain("chains");
   });

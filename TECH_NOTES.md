@@ -91,12 +91,14 @@ virtual framebuffer. Invalid writes are rejected and counted by
   The browser imports the generated panel-map and ledmap JSON directly, checks
   their shared fingerprint, and rejects any per-LED mismatch. A full-frame
   round-trip test proves their equivalence.
-- The current 11/10/10/10 geographic route and top-left row-major panel order
-  are provisional design inputs, not hardware facts. The top-left/bottom-right
-  free connector diagonal is derived from canonical part clearances; exact pad
-  inset, DIN/DOUT endpoint, GPIO assignments, installed orientation, and final
-  chains remain readiness blockers. The production ledmap exporter refuses to
-  run until these are measured.
+- The current 11/10/10/10 geographic route remains provisional. The panel JSON
+  now supplies bottom-left pixel zero and a bottom-to-top serpentine row order;
+  this derives pixel 56 at top-right and pixel 63 at top-left for the 8 x 8
+  grid. DIN is measured at the bottom-left and DOUT at the top-right in the
+  canonical back view with the three
+  holes vertical. Exact pad centres and keep-outs, GPIO assignments, installed
+  orientation, and final chains remain unresolved. The production ledmap
+  exporter refuses to run until its hardware-readiness requirements are met.
 - The audio setter stores volume, peak, and up to 64 FFT bins. No current effect
   consumes them; this is the future adapter seam.
 - Emscripten memory may grow after a resize. JavaScript deliberately reacquires

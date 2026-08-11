@@ -1,0 +1,287 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "cuboctahedron-six-panel-prototype",
+  "name": "Six-panel Cuboctahedron",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": "ws2812b-8x8-66x65",
+  "geometry": {
+    "kind": "explicit-planar-face-graph",
+    "vertices": [
+      [
+        -46.24478349,
+        -46.24478349,
+        0
+      ],
+      [
+        -46.24478349,
+        0,
+        -46.24478349
+      ],
+      [
+        -46.24478349,
+        0,
+        46.24478349
+      ],
+      [
+        -46.24478349,
+        46.24478349,
+        0
+      ],
+      [
+        0,
+        -46.24478349,
+        -46.24478349
+      ],
+      [
+        0,
+        -46.24478349,
+        46.24478349
+      ],
+      [
+        0,
+        46.24478349,
+        -46.24478349
+      ],
+      [
+        0,
+        46.24478349,
+        46.24478349
+      ],
+      [
+        46.24478349,
+        -46.24478349,
+        0
+      ],
+      [
+        46.24478349,
+        0,
+        -46.24478349
+      ],
+      [
+        46.24478349,
+        0,
+        46.24478349
+      ],
+      [
+        46.24478349,
+        46.24478349,
+        0
+      ]
+    ],
+    "faces": [
+      {
+        "id": "SQ-01",
+        "vertexIndices": [
+          6,
+          3,
+          7,
+          11
+        ]
+      },
+      {
+        "id": "SQ-02",
+        "vertexIndices": [
+          4,
+          1,
+          6,
+          9
+        ]
+      },
+      {
+        "id": "SQ-03",
+        "vertexIndices": [
+          8,
+          9,
+          11,
+          10
+        ]
+      },
+      {
+        "id": "SQ-04",
+        "vertexIndices": [
+          5,
+          10,
+          7,
+          2
+        ]
+      },
+      {
+        "id": "SQ-05",
+        "vertexIndices": [
+          0,
+          2,
+          3,
+          1
+        ]
+      },
+      {
+        "id": "SQ-06",
+        "vertexIndices": [
+          4,
+          8,
+          5,
+          0
+        ]
+      },
+      {
+        "id": "TR-01",
+        "vertexIndices": [
+          1,
+          3,
+          6
+        ]
+      },
+      {
+        "id": "TR-02",
+        "vertexIndices": [
+          9,
+          6,
+          11
+        ]
+      },
+      {
+        "id": "TR-03",
+        "vertexIndices": [
+          10,
+          11,
+          7
+        ]
+      },
+      {
+        "id": "TR-04",
+        "vertexIndices": [
+          2,
+          7,
+          3
+        ]
+      },
+      {
+        "id": "TR-05",
+        "vertexIndices": [
+          4,
+          0,
+          1
+        ]
+      },
+      {
+        "id": "TR-06",
+        "vertexIndices": [
+          8,
+          4,
+          9
+        ]
+      },
+      {
+        "id": "TR-07",
+        "vertexIndices": [
+          5,
+          8,
+          10
+        ]
+      },
+      {
+        "id": "TR-08",
+        "vertexIndices": [
+          0,
+          5,
+          2
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": "P-01",
+      "faceId": "SQ-01",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "P-02",
+      "faceId": "SQ-02",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "P-03",
+      "faceId": "SQ-03",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "P-04",
+      "faceId": "SQ-04",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "P-05",
+      "faceId": "SQ-05",
+      "rotationQuarterTurns": 0
+    },
+    {
+      "id": "P-06",
+      "faceId": "SQ-06",
+      "rotationQuarterTurns": 0
+    }
+  ],
+  "closures": {
+    "faceIds": [
+      "TR-01",
+      "TR-02",
+      "TR-03",
+      "TR-04",
+      "TR-05",
+      "TR-06",
+      "TR-07",
+      "TR-08"
+    ],
+    "generator": "panel-hole-tabs",
+    "holeSelection": "minimum-total-edge-distance",
+    "exteriorClipping": "polyhedron-interior",
+    "coverThickness": 2,
+    "coverCornerRadius": 2,
+    "flangeThickness": 3,
+    "flangeOverlap": 1.25,
+    "edgeLipDepth": 3,
+    "screwTabWidth": 13,
+    "screwTabEndMargin": 4.5,
+    "connectorCornerClearance": 14,
+    "panelEnvelopeClearance": 0.3
+  },
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "face-adjacency-nearest-neighbor",
+    "chainLengths": [
+      6
+    ],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Prototype output",
+        "gpio": null,
+        "color": "#36e0d0"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "The explicit vertices, faces, panel assignments, closures, mechanics, mapping, and wiring in this file are the pipeline source of truth.",
+    "Each triangular closure selects one real mounting hole from each adjacent PCB and integrates the three tabs with its cover plane."
+  ]
+}

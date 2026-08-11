@@ -19,7 +19,11 @@ const geometry = createPanelizedSculptureMapping(
   project.sculpture,
   project.panelProfile,
 );
-const wiring = createProvisionalWiringPreview(geometry, project.sculpture);
+const wiring = createProvisionalWiringPreview(
+  geometry,
+  project.sculpture,
+  project.panelProfile,
+);
 const contract = createHardwareMappingContract(
   geometry,
   wiring,
@@ -55,10 +59,8 @@ const panelMap = {
   ledmapFingerprint: contract.fingerprint,
   readinessBlockers: contract.readiness.blockers,
   assumptions: {
-    withinPanelOrder: "top-left row-major",
-    withinPanelOrderStatus:
-      project.panelProfile.pixelGrid.provisionalOrder.status,
-    note: "Replace with numbered bench-test results before hardware export.",
+    withinPanelOrder: project.panelProfile.pixelGrid.provisionalOrder,
+    note: "The panel JSON drives addressing; retain provisional status until a numbered bench test confirms it.",
   },
   outputs: contract.outputs,
   wiring,

@@ -18,11 +18,23 @@ describe("provisional wiring preview", () => {
       errors: [],
     });
     expect(preview.status).toBe("generated-provisional");
+    expect(preview.controller).toEqual({
+      placement: "near-top",
+      status: "provisional",
+    });
     expect(preview.outputs).toHaveLength(4);
     expect(preview.outputs.map((output) => output.panelIds.length)).toEqual([
       11, 10, 10, 10,
     ]);
     expect(preview.outputs.every((output) => output.gpio === null)).toBe(true);
+    for (const output of preview.outputs) {
+      const panels = output.panelIds.map((panelId) =>
+        mapping.panels.find((panel) => panel.id === panelId),
+      );
+      expect(panels[0]?.position.y).toBe(
+        Math.max(...panels.map((panel) => panel!.position.y)),
+      );
+    }
 
     const routedPanelIds = preview.outputs.flatMap(
       (output) => output.panelIds,
@@ -58,11 +70,13 @@ describe("provisional wiring preview", () => {
       expect(Number.isFinite(node.dout.z)).toBe(true);
       expect(node.din).not.toEqual(node.dout);
       expect(local(dinRelative, panel.xAxis)).toBeLessThan(0);
-      expect(local(dinRelative, panel.yAxis)).toBeGreaterThan(0);
+      expect(local(dinRelative, panel.yAxis)).toBeLessThan(0);
       expect(local(doutRelative, panel.xAxis)).toBeGreaterThan(0);
-      expect(local(doutRelative, panel.yAxis)).toBeLessThan(0);
-      expect(node.connectorDiagonal).toBe("top-left-to-bottom-right");
-      expect(node.dinDoutAssignmentStatus).toBe("provisional");
+      expect(local(doutRelative, panel.yAxis)).toBeGreaterThan(0);
+      expect(node.connectorReferenceView).toBe("back");
+      expect(node.dinCorner).toBe("bottom-left");
+      expect(node.doutCorner).toBe("top-right");
+      expect(node.dinDoutAssignmentStatus).toBe("measured");
     }
   });
 
@@ -71,6 +85,7 @@ describe("provisional wiring preview", () => {
     const preview = createProvisionalWiringPreview(mapping);
 
     expect(preview.status).toBe("unavailable");
+    expect(preview.controller).toBeNull();
     expect(preview.outputs).toEqual([]);
     expect(preview.nodes).toEqual([]);
   });

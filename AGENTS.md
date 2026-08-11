@@ -43,3 +43,11 @@ After a geometry change:
    clearances did not move unless the task explicitly requires that movement.
 4. Report when OpenSCAD is unavailable; never claim a successful render based
    only on a static inspection.
+
+## Phone preview tunnels
+
+- For phone-accessible simulator previews, use the repository-local `.tools/cloudflared` quick tunnel instead of returning a `localhost` URL.
+- Start Vite on `0.0.0.0` with `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=.trycloudflare.com`; do not set Vite `allowedHosts` to `true`.
+- Run both Vite and `cloudflared tunnel --no-autoupdate --url http://127.0.0.1:<port>` as detached processes so the tunnel survives the agent turn boundary.
+- Before handing off the URL, verify the public HTML, sculpture JSON, JavaScript, and WLED WASM endpoints all return HTTP 200 with appropriate content types.
+- Quick tunnels are temporary and have no uptime guarantee; describe them as review links, not deployments.

@@ -129,11 +129,13 @@ the four displayed routes and emits the exact WLED convention
 `map[logicalIndex] = physicalIndex`. The renderer and exported map therefore
 share one routing contract and fingerprint.
 
-The current contract still assumes provisional top-left, non-serpentine
-row-major order within each panel. Actual pixel-zero corner, serpentine
-direction, GPIO, chain order, installed rotation, and mirroring remain readiness
-blockers. Non-2,624 LED counts retain `createUniformSphereMapping()` as a
-clearly labelled fallback.
+The panel JSON now defines a provisional back-view row snake: pixel 0 is
+bottom-left beside DIN, the first row runs left-to-right, and rows alternate
+upward. For an 8 x 8 panel this derives pixel 56 at top-right and pixel 63 at
+top-left; DOUT is independently at top-right. GPIO and chain order remain
+readiness blockers. Explicit panel-assembly rotations propagate directly from
+`rotationQuarterTurns`. Non-2,624 LED counts retain
+`createUniformSphereMapping()` as a clearly labelled fallback.
 
 UV values are present as equirectangular coordinates. A later 2D view can render
 the same entries at `(u, v)` while using the same logical and physical indices.
@@ -142,22 +144,25 @@ effect engine.
 
 ### Wiring preview layers
 
-The panelized view has independently hideable DIN/DOUT markers, within-panel
-direction arrows, panel-to-panel routes, and one toggle for each of four output
-routes. The free connector diagonal is derived from the canonical mechanical
-clearances: top-left and bottom-right in panel-local coordinates. The marker
-inset and the assignment of DIN versus DOUT to those two endpoints remain
-provisional until checked on the physical PCB. The current 11/10/10/10 panel
-grouping is a generated geographic design used by both the layer UI and
-provisional WLED map. GPIO assignments are deliberately `null`, and panel
-wiring is marked `provisional` rather than measured.
+The generated wiring is data-only and assumes the controller is near the
+sculpture top. The panelized view has independently hideable DIN/DOUT markers,
+within-panel direction arrows, panel-to-panel routes, and one toggle for each
+of four output routes. The connector direction comes from the reusable panel
+profile: DIN is bottom-left and DOUT is top-right when viewed from the back
+with the three
+mounting holes vertical. The marker inset remains schematic until the exact pad
+centres are measured. The current 11/10/10/10 panel grouping is a generated
+geographic design used by both the layer UI and provisional WLED map. GPIO
+assignments are deliberately `null`, and panel wiring is marked `provisional`
+rather than measured.
 
 `tests/hardware-mapping.test.ts` loads the same two JSON files as the browser,
 sends a logical frame through the ledmap, and verifies that every resulting
 physical color equals the color placed by Three.js. It also corrupts one map
-entry and verifies that the runtime loader rejects the mismatch. Once pixel-zero corners, DIN/DOUT assignment, GPIOs, installed
-orientation, and chain order are bench-verified, those measured values replace
-the provisional fields and unlock the production exporter.
+entry and verifies that the runtime loader rejects the mismatch. Once pixel-zero
+corners, GPIOs, installed orientation, and chain order are bench-verified,
+those measured values replace the
+provisional fields and unlock the production exporter.
 
 ## Adding or updating effects
 
