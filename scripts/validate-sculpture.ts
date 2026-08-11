@@ -31,10 +31,12 @@ const contract = createHardwareMappingContract(
   project.panelProfile,
 );
 const triangleOpening = project.sculpture.openings.triangleFaces;
+const pentagonOpening = project.sculpture.openings.pentagonFaces;
 console.log(
   `Validated ${project.sculpture.id}: ${mapping.panels.length} panels, ` +
     `${mapping.entries.length} LEDs, ${wiring.outputs.length} outputs, ` +
     `${triangleOpening.count} ${triangleOpening.closure.partId} closures, ` +
+    `${pentagonOpening.population.populatedCount} populated pentagon assemblies, ` +
     `fingerprint ${contract.fingerprint}.`,
 );
 if (!contract.readiness.ready) {

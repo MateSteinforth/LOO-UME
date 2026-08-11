@@ -51,10 +51,13 @@
     "openings": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["triangleFaces"],
+      "required": ["triangleFaces", "pentagonFaces"],
       "properties": {
         "triangleFaces": {
           "$ref": "#/$defs/triangleOpening"
+        },
+        "pentagonFaces": {
+          "$ref": "#/$defs/pentagonOpening"
         }
       }
     },
@@ -255,6 +258,230 @@
           "type": "number",
           "minimum": 0
         }
+      }
+    },
+    "pentagonOpening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["faceType", "count", "population", "closure"],
+      "properties": {
+        "faceType": { "const": "pentagon" },
+        "count": { "const": 12 },
+        "population": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "excluded", "populatedCount"],
+          "properties": {
+            "mode": { "const": "all-except" },
+            "excluded": {
+              "type": "array",
+              "prefixItems": [{ "const": "north-pole" }],
+              "items": false,
+              "minItems": 1,
+              "maxItems": 1
+            },
+            "populatedCount": { "const": 11 }
+          }
+        },
+        "closure": { "$ref": "#/$defs/pentagonClosure" }
+      }
+    },
+    "pentagonClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assemblyId",
+        "quantity",
+        "openOuterEdge",
+        "parts",
+        "assembly"
+      ],
+      "properties": {
+        "assemblyId": { "const": "populated-pentagon-panel-mount" },
+        "quantity": { "const": 11 },
+        "openOuterEdge": { "const": 1 },
+        "parts": {
+          "type": "array",
+          "prefixItems": [
+            { "$ref": "#/$defs/pentagonUFrame" },
+            { "$ref": "#/$defs/middlePanelConnector" }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "assembly": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["generatedFile", "preview"],
+          "properties": {
+            "generatedFile": {
+              "type": "string",
+              "pattern": "^[^/]+[.]scad$"
+            },
+            "preview": { "const": "center-and-five-outer-panels" }
+          }
+        }
+      }
+    },
+    "pentagonUFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "partId",
+        "canonicalSource",
+        "generator",
+        "generatedFile",
+        "quantity",
+        "modes",
+        "interfaces",
+        "print"
+      ],
+      "properties": {
+        "partId": { "const": "pentagon-u-frame" },
+        "canonicalSource": { "const": "parts/pentagon_u.scad" },
+        "generator": { "const": "verified-scad-wrapper" },
+        "generatedFile": {
+          "type": "string",
+          "pattern": "^[^/]+[.]scad$"
+        },
+        "quantity": { "const": 11 },
+        "modes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["print", "assembly", "center"],
+          "properties": {
+            "print": { "const": "print" },
+            "assembly": { "const": "assembly" },
+            "center": { "const": "center" }
+          }
+        },
+        "interfaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "outerPanelEdges",
+            "centerPanelHoles",
+            "centerPanelClearance",
+            "connectorCornerClearance"
+          ],
+          "properties": {
+            "outerPanelEdges": {
+              "type": "array",
+              "prefixItems": [
+                { "const": 0 },
+                { "const": 2 },
+                { "const": 3 },
+                { "const": 4 }
+              ],
+              "items": false,
+              "minItems": 4,
+              "maxItems": 4
+            },
+            "centerPanelHoles": {
+              "type": "array",
+              "prefixItems": [
+                { "const": "bottom-left-corner" },
+                { "const": "bottom-middle-edge" },
+                { "const": "top-right-corner" }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "centerPanelClearance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "connectorCornerClearance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "print": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bedSurface"],
+          "properties": {
+            "bedSurface": { "const": "outside-cover" }
+          }
+        }
+      }
+    },
+    "middlePanelConnector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "partId",
+        "canonicalSource",
+        "generator",
+        "generatedFile",
+        "quantity",
+        "modes",
+        "interfaces",
+        "print"
+      ],
+      "properties": {
+        "partId": { "const": "middle-panel-connector" },
+        "canonicalSource": {
+          "const": "parts/middle_panel_connector.scad"
+        },
+        "generator": { "const": "verified-scad-wrapper" },
+        "generatedFile": {
+          "type": "string",
+          "pattern": "^[^/]+[.]scad$"
+        },
+        "quantity": { "const": 11 },
+        "modes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["print", "assembly", "installed"],
+          "properties": {
+            "print": { "const": "print" },
+            "assembly": { "const": "assembly" },
+            "installed": { "const": "part" }
+          }
+        },
+        "interfaces": {
+          "type": "array",
+          "prefixItems": [
+            { "$ref": "#/$defs/connectorCenterInterface" },
+            { "$ref": "#/$defs/connectorOuterInterface" }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "print": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bedSurface"],
+          "properties": {
+            "bedSurface": { "const": "center-panel-pad" }
+          }
+        }
+      }
+    },
+    "connectorCenterInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["panel", "hole", "edgeDistance"],
+      "properties": {
+        "panel": { "const": "center" },
+        "hole": { "const": "top-middle-edge" },
+        "edgeDistance": { "const": 8 }
+      }
+    },
+    "connectorOuterInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["panel", "outerEdgeIndex", "hole", "edgeDistance"],
+      "properties": {
+        "panel": { "const": "outer" },
+        "outerEdgeIndex": { "const": 1 },
+        "hole": { "const": "middle-edge" },
+        "edgeDistance": { "const": 8.2 }
       }
     },
     "factStatus": {

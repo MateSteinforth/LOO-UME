@@ -42,7 +42,7 @@
 
   PRINT QUANTITY
   --------------
-  12, one for each pentagon centre panel.
+  11 for the current sculpture; the north-pole pentagon remains open.
 */
 
 $fn = 48;
@@ -53,6 +53,8 @@ $fn = 48;
 // ============================================================================
 
 mode = "print"; // "print", "assembly", "part"
+
+print_quantity = 11;
 
 
 // ============================================================================
@@ -872,6 +874,18 @@ module connector_for_print() {
 
 
 // ============================================================================
+// GENERATED-ASSEMBLY API
+// ============================================================================
+
+// Stable unique name for composition with the U-frame. This is an alias of the
+// proven installed-coordinate geometry and does not change the printable part.
+
+module middle_panel_connector_part() {
+    connector_installed();
+}
+
+
+// ============================================================================
 // DIAGNOSTICS
 // ============================================================================
 
@@ -933,7 +947,10 @@ echo(
 
 
 echo(
-    "Print quantity: 12"
+    str(
+        "Current sculpture print quantity: ",
+        print_quantity
+    )
 );
 
 

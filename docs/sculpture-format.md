@@ -40,10 +40,11 @@ Generate every currently supported asset with:
 npm run generate:assets
 ```
 
-The CAD half currently emits a triangle-filler entrypoint and manifest under
-`build/generated/`. To render both the canonical and generated printable STL,
-compare their deterministic CSG trees, and render the three-panel assembly
-preview, install OpenSCAD plus Xvfb and run:
+The CAD half emits verified entrypoints for the triangle filler, pentagon
+U-frame, and middle-panel connector, plus a composed populated-pentagon preview
+and manifest under `build/generated/`. To render canonical and generated STLs,
+compare deterministic CSG trees, and render both assembly previews, install
+OpenSCAD plus Xvfb and run:
 
 ```bash
 npm run verify:cad
@@ -72,6 +73,19 @@ and each of the three square-panel interfaces. Every interface preserves the
 safe mounting-hole end, 14 mm electrical-connector corner clearance, and 0.30
 mm PCB-envelope clearance.
 
+`openings.pentagonFaces` describes all 12 pentagonal openings, excludes the
+north pole, and assigns an identical two-part closure to the remaining 11. The
+U-frame mounts outer edges 0, 2, 3, and 4 plus three named center-panel holes.
+The middle connector bridges the center panel's top-middle hole to the middle
+hole on open outer edge 1. The contract also records print surfaces, the 0.35
+mm center-panel clearance, and the 14 mm connector-corner clearance.
+
+The generated populated-pentagon assembly composes uniquely named public
+modules from both tested SCAD sources in their shared installed coordinate
+frame. It shows the orange U-frame, magenta connector, center panel, and all
+five surrounding panels in one render. The aliases add no geometry; printable
+CSG parity is checked independently for both parts.
+
 The generated triangle entrypoint deliberately includes the existing,
 physically tested `parts/triangle.scad` rather than copying its geometry. It
 adds assertions that bind the part's public constants to the panel profile and
@@ -85,7 +99,7 @@ The schemas are versioned under `schemas/`. Runtime validation additionally
 checks semantic constraints that JSON Schema alone cannot express, including
 the panel-profile reference, total routed panel count, unique output indices,
 preservation of measured physical-fit corrections, opening/closure counts, and
-the ordered set of three triangle interfaces.
+the ordered triangle and populated-pentagon interfaces.
 
 This first schema version intentionally supports the migrated sculpture recipe.
 Arbitrary face graphs and additional CAD templates remain future schema

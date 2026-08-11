@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  createPentagonAssemblyEntrypoint,
   createTriangleClosureEntrypoint,
   emitCadArtifacts,
 } from "../src/cad/GenerateCad.ts";
@@ -65,6 +66,37 @@ describe("CAD generation", () => {
     expect(entrypoint).toContain("panel_envelope_clearance_xy == 0.3");
   });
 
+  it("describes and composes the two-part populated-pentagon closure", () => {
+    const project = loadCanonicalSculptureProject();
+    const closure = project.sculpture.openings.pentagonFaces.closure;
+
+    expect(closure.quantity).toBe(11);
+    expect(closure.openOuterEdge).toBe(1);
+    expect(closure.parts.map((part) => part.partId)).toEqual([
+      "pentagon-u-frame",
+      "middle-panel-connector",
+    ]);
+    expect(closure.parts[0].interfaces.outerPanelEdges).toEqual([0, 2, 3, 4]);
+    expect(closure.parts[1].interfaces).toEqual([
+      { panel: "center", hole: "top-middle-edge", edgeDistance: 8 },
+      {
+        panel: "outer",
+        outerEdgeIndex: 1,
+        hole: "middle-edge",
+        edgeDistance: 8.2,
+      },
+    ]);
+
+    const assembly = createPentagonAssemblyEntrypoint(
+      project,
+      resolve("build/generated/test/populated-pentagon-assembly.scad"),
+      process.cwd(),
+    );
+    expect(assembly).toContain("pentagon_u_part();");
+    expect(assembly).toContain("middle_panel_connector_part();");
+    expect(assembly).toContain("pentagon_u_outer_panel_previews();");
+  });
+
   it("writes a deterministic generated entrypoint and manifest", async () => {
     const outputDirectory = await mkdtemp(join(tmpdir(), "led-rhombo-cad-"));
     temporaryDirectories.push(outputDirectory);
@@ -74,19 +106,26 @@ describe("CAD generation", () => {
       outputDirectory,
     });
 
-    expect(result.manifest.artifacts).toEqual([
+    expect(result.manifest.artifacts.map((artifact) => artifact.id)).toEqual([
+      "triangle-filler",
+      "pentagon-u-frame",
+      "middle-panel-connector",
+    ]);
+    expect(result.manifest.assemblies).toEqual([
       {
-        id: "triangle-filler",
-        kind: "closure",
-        faceType: "triangle",
-        quantity: 20,
-        entrypoint: "triangle-filler.scad",
-        canonicalSource: "parts/triangle.scad",
-        modes: { print: "print", assembly: "assembly" },
+        id: "populated-pentagon-panel-mount",
+        faceType: "pentagon",
+        quantity: 11,
+        entrypoint: "populated-pentagon-assembly.scad",
+        parts: ["pentagon-u-frame", "middle-panel-connector"],
+        preview: "center-and-five-outer-panels",
       },
     ]);
     expect(JSON.parse(await readFile(result.manifestPath, "utf8"))).toEqual(
       result.manifest,
+    );
+    expect(await readFile(result.entrypointPaths.pentagonAssembly, "utf8")).toContain(
+      "middle_panel_connector_part();",
     );
   });
 
@@ -104,6 +143,14 @@ describe("CAD generation", () => {
     unsafeHandedness.openings.triangleFaces.closure.handedness = 0;
     expect(() => parseSculptureDefinition(unsafeHandedness)).toThrow(
       "handedness must be -1 or 1",
+    );
+
+    const invalidPentagonEdges = structuredClone(project.sculpture);
+    invalidPentagonEdges.openings.pentagonFaces.closure.parts[0].interfaces.outerPanelEdges = [
+      0, 1, 3, 4,
+    ];
+    expect(() => parseSculptureDefinition(invalidPentagonEdges)).toThrow(
+      "open-edge handedness",
     );
   });
 });

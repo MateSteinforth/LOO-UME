@@ -67,47 +67,68 @@ function sha256(path: string): string {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
+function verifyPrintable(
+  label: string,
+  canonicalSource: string,
+  generatedSource: string,
+  verificationDirectory: string,
+): string {
+  const canonicalStl = resolve(verificationDirectory, `${label}-canonical.stl`);
+  const generatedStl = resolve(verificationDirectory, `${label}-generated.stl`);
+  const canonicalCsg = resolve(verificationDirectory, `${label}-canonical.csg`);
+  const generatedCsg = resolve(verificationDirectory, `${label}-generated.csg`);
+
+  run(openScad, ["--hardwarnings", "-o", canonicalStl, canonicalSource]);
+  run(openScad, ["--hardwarnings", "-o", generatedStl, generatedSource]);
+  run(openScad, ["--hardwarnings", "-o", canonicalCsg, canonicalSource]);
+  run(openScad, ["--hardwarnings", "-o", generatedCsg, generatedSource]);
+
+  const canonicalHash = sha256(canonicalCsg);
+  const generatedHash = sha256(generatedCsg);
+  if (canonicalHash !== generatedHash) {
+    throw new Error(
+      `Generated ${label} CSG differs from canonical geometry: ` +
+        `${canonicalHash} != ${generatedHash}.`,
+    );
+  }
+  if (statSync(canonicalStl).size < 1_000 || statSync(generatedStl).size < 1_000) {
+    throw new Error(`A rendered ${label} STL is unexpectedly empty.`);
+  }
+  return canonicalHash;
+}
+
 const project = loadCanonicalSculptureProject();
 const generated = await emitCadArtifacts(project, { rootDirectory });
 const verificationDirectory = resolve(rootDirectory, "build", "verify-cad");
 await mkdir(verificationDirectory, { recursive: true });
 
-const canonicalSource = resolve(
-  rootDirectory,
-  project.sculpture.openings.triangleFaces.closure.canonicalSource,
+const triangleHash = verifyPrintable(
+  "triangle",
+  resolve(
+    rootDirectory,
+    project.sculpture.openings.triangleFaces.closure.canonicalSource,
+  ),
+  generated.entrypointPaths.triangle,
+  verificationDirectory,
 );
-const canonicalStl = resolve(verificationDirectory, "triangle-canonical.stl");
-const generatedStl = resolve(verificationDirectory, "triangle-generated.stl");
-const assemblyPng = resolve(verificationDirectory, "triangle-assembly.png");
-const canonicalCsg = resolve(verificationDirectory, "triangle-canonical.csg");
-const generatedCsg = resolve(verificationDirectory, "triangle-generated.csg");
+const pentagonClosure = project.sculpture.openings.pentagonFaces.closure;
+const pentagonHash = verifyPrintable(
+  "pentagon-u-frame",
+  resolve(rootDirectory, pentagonClosure.parts[0].canonicalSource),
+  generated.entrypointPaths.pentagonUFrame,
+  verificationDirectory,
+);
+const connectorHash = verifyPrintable(
+  "middle-panel-connector",
+  resolve(rootDirectory, pentagonClosure.parts[1].canonicalSource),
+  generated.entrypointPaths.middlePanelConnector,
+  verificationDirectory,
+);
 
-run(openScad, ["--hardwarnings", "-o", canonicalStl, canonicalSource]);
-run(openScad, [
-  "--hardwarnings",
-  "-o",
-  generatedStl,
-  generated.entrypointPath,
-]);
-run(openScad, ["--hardwarnings", "-o", canonicalCsg, canonicalSource]);
-run(openScad, [
-  "--hardwarnings",
-  "-o",
-  generatedCsg,
-  generated.entrypointPath,
-]);
-
-const canonicalHash = sha256(canonicalCsg);
-const generatedHash = sha256(generatedCsg);
-if (canonicalHash !== generatedHash) {
-  throw new Error(
-    `Generated triangle CSG differs from canonical geometry: ${canonicalHash} != ${generatedHash}.`,
-  );
-}
-
-if (statSync(canonicalStl).size < 1_000 || statSync(generatedStl).size < 1_000) {
-  throw new Error("A rendered triangle STL is unexpectedly empty.");
-}
+const triangleAssemblyPng = resolve(
+  verificationDirectory,
+  "triangle-assembly.png",
+);
 run("xvfb-run", [
   "-a",
   openScad,
@@ -117,14 +138,34 @@ run("xvfb-run", [
   "-D",
   `mode="${project.sculpture.openings.triangleFaces.closure.modes.assembly}"`,
   "-o",
-  assemblyPng,
-  generated.entrypointPath,
+  triangleAssemblyPng,
+  generated.entrypointPaths.triangle,
 ]);
-if (statSync(assemblyPng).size < 1_000) {
-  throw new Error("Assembly preview PNG is unexpectedly empty.");
+
+const pentagonAssemblyPng = resolve(
+  verificationDirectory,
+  "populated-pentagon-assembly.png",
+);
+run("xvfb-run", [
+  "-a",
+  openScad,
+  "--imgsize=1200,900",
+  "--camera=0,0,0,55,0,25,300",
+  "--projection=o",
+  "-o",
+  pentagonAssemblyPng,
+  generated.entrypointPaths.pentagonAssembly,
+]);
+if (
+  statSync(triangleAssemblyPng).size < 1_000 ||
+  statSync(pentagonAssemblyPng).size < 1_000
+) {
+  throw new Error("A generated assembly preview PNG is unexpectedly empty.");
 }
 
 console.log(
-  `Verified generated triangle against canonical CSG ${canonicalHash.slice(0, 12)}; ` +
-    `assembly preview: ${relative(rootDirectory, assemblyPng)}.`,
+  `Verified triangle ${triangleHash.slice(0, 12)}, ` +
+    `U-frame ${pentagonHash.slice(0, 12)}, and connector ` +
+    `${connectorHash.slice(0, 12)} against canonical CSG; pentagon preview: ` +
+    `${relative(rootDirectory, pentagonAssemblyPng)}.`,
 );

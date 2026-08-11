@@ -20,6 +20,13 @@ surface, and all three adjacent square-panel interfaces. The generated SCAD
 entrypoint includes the physically tested triangle source and asserts that its
 fit constants still agree with the central panel profile and opening policy.
 
+
+For pentagon faces the JSON assigns the U-frame to four outer edges and three
+center-panel holes, then assigns the separate connector to the missing outer
+edge and center top-middle hole. A generated assembly preview composes both
+parts with the center and five outer PCB envelopes in their installed frame,
+while separate wrappers assert their dimensions, pose, holes, corrections, and
+clearances against the central source.
 The files under `parts/` remain the canonical, physically tested geometry
 templates while this migration proceeds. Git records design history, GitHub
 Actions creates print artifacts and checks generated/canonical CSG parity, and

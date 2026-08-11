@@ -87,6 +87,9 @@ jobs:
             build/generated/
             build/verify-cad/triangle-generated.stl
             build/verify-cad/triangle-assembly.png
+            build/verify-cad/pentagon-u-frame-generated.stl
+            build/verify-cad/middle-panel-connector-generated.stl
+            build/verify-cad/populated-pentagon-assembly.png
           if-no-files-found: error
           retention-days: 30
 

@@ -91,6 +91,72 @@ export interface TriangleOpeningDefinition {
   closure: TriangleClosureDefinition;
 }
 
+export interface PentagonUFrameDefinition {
+  partId: "pentagon-u-frame";
+  canonicalSource: "parts/pentagon_u.scad";
+  generator: "verified-scad-wrapper";
+  generatedFile: string;
+  quantity: number;
+  modes: {
+    print: "print";
+    assembly: "assembly";
+    center: "center";
+  };
+  interfaces: {
+    outerPanelEdges: number[];
+    centerPanelHoles: Array<
+      "bottom-left-corner" | "bottom-middle-edge" | "top-right-corner"
+    >;
+    centerPanelClearance: number;
+    connectorCornerClearance: number;
+  };
+  print: {
+    bedSurface: "outside-cover";
+  };
+}
+
+export interface MiddlePanelConnectorDefinition {
+  partId: "middle-panel-connector";
+  canonicalSource: "parts/middle_panel_connector.scad";
+  generator: "verified-scad-wrapper";
+  generatedFile: string;
+  quantity: number;
+  modes: {
+    print: "print";
+    assembly: "assembly";
+    installed: "part";
+  };
+  interfaces: Array<{
+    panel: "center" | "outer";
+    hole: "top-middle-edge" | "middle-edge";
+    outerEdgeIndex?: number;
+    edgeDistance: number;
+  }>;
+  print: {
+    bedSurface: "center-panel-pad";
+  };
+}
+
+export interface PentagonOpeningDefinition {
+  faceType: "pentagon";
+  count: number;
+  population: {
+    mode: "all-except";
+    excluded: Array<"north-pole">;
+    populatedCount: number;
+  };
+  closure: {
+    assemblyId: "populated-pentagon-panel-mount";
+    quantity: number;
+    openOuterEdge: number;
+    parts: [PentagonUFrameDefinition, MiddlePanelConnectorDefinition];
+    assembly: {
+      generatedFile: string;
+      preview: "center-and-five-outer-panels";
+    };
+  };
+}
+
 export interface SculptureDefinition {
   schemaVersion: "1.0.0";
   id: string;
@@ -122,6 +188,7 @@ export interface SculptureDefinition {
   };
   openings: {
     triangleFaces: TriangleOpeningDefinition;
+    pentagonFaces: PentagonOpeningDefinition;
   };
   mapping: {
     projection: "equirectangular";
@@ -415,6 +482,129 @@ export function parseSculptureDefinition(input: unknown): SculptureDefinition {
   const print = requireRecord(closure, "print");
   if (print.bedSurface !== "outside-cover") {
     throw new Error("Triangle fillers must print on the outside cover surface.");
+  }
+
+  const pentagonOpening = requireRecord(openings, "pentagonFaces");
+  const pentagonPopulation = requireRecord(pentagonOpening, "population");
+  if (
+    pentagonOpening.faceType !== "pentagon" ||
+    pentagonOpening.count !== 12 ||
+    pentagonPopulation.mode !== "all-except" ||
+    !Array.isArray(pentagonPopulation.excluded) ||
+    pentagonPopulation.excluded.length !== 1 ||
+    pentagonPopulation.excluded[0] !== "north-pole" ||
+    pentagonPopulation.populatedCount !== 11
+  ) {
+    throw new Error("The current topology requires 11 populated pentagons and an open north pole.");
+  }
+  const pentagonClosure = requireRecord(pentagonOpening, "closure");
+  if (
+    pentagonClosure.assemblyId !== "populated-pentagon-panel-mount" ||
+    pentagonClosure.quantity !== pentagonPopulation.populatedCount ||
+    pentagonClosure.openOuterEdge !== 1
+  ) {
+    throw new Error("Unsupported populated-pentagon closure policy.");
+  }
+  if (!Array.isArray(pentagonClosure.parts) || pentagonClosure.parts.length !== 2) {
+    throw new Error("Populated pentagons require a U-frame and middle connector.");
+  }
+
+  const uFrame = pentagonClosure.parts[0];
+  if (!isRecord(uFrame)) throw new Error("Pentagon U-frame must be an object.");
+  if (
+    uFrame.partId !== "pentagon-u-frame" ||
+    uFrame.canonicalSource !== "parts/pentagon_u.scad" ||
+    uFrame.generator !== "verified-scad-wrapper" ||
+    uFrame.quantity !== pentagonClosure.quantity
+  ) {
+    throw new Error("Unsupported pentagon U-frame template or quantity.");
+  }
+  const uFrameFile = requireString(uFrame, "generatedFile");
+  if (!/^[^/]+[.]scad$/.test(uFrameFile)) {
+    throw new Error("Generated U-frame filename must be a local .scad filename.");
+  }
+  const uFrameModes = requireRecord(uFrame, "modes");
+  if (
+    uFrameModes.print !== "print" ||
+    uFrameModes.assembly !== "assembly" ||
+    uFrameModes.center !== "center"
+  ) {
+    throw new Error("Pentagon U-frame must expose print, assembly, and center modes.");
+  }
+  const uFrameInterfaces = requireRecord(uFrame, "interfaces");
+  if (
+    !Array.isArray(uFrameInterfaces.outerPanelEdges) ||
+    JSON.stringify(uFrameInterfaces.outerPanelEdges) !== JSON.stringify([0, 2, 3, 4]) ||
+    !Array.isArray(uFrameInterfaces.centerPanelHoles) ||
+    JSON.stringify(uFrameInterfaces.centerPanelHoles) !==
+      JSON.stringify([
+        "bottom-left-corner",
+        "bottom-middle-edge",
+        "top-right-corner",
+      ])
+  ) {
+    throw new Error("Pentagon U-frame interfaces do not match its open-edge handedness.");
+  }
+  requirePositiveNumber(uFrameInterfaces, "centerPanelClearance");
+  requirePositiveNumber(uFrameInterfaces, "connectorCornerClearance");
+  const uFramePrint = requireRecord(uFrame, "print");
+  if (uFramePrint.bedSurface !== "outside-cover") {
+    throw new Error("Pentagon U-frame must print on its outside cover.");
+  }
+
+  const middleConnector = pentagonClosure.parts[1];
+  if (!isRecord(middleConnector)) {
+    throw new Error("Middle-panel connector must be an object.");
+  }
+  if (
+    middleConnector.partId !== "middle-panel-connector" ||
+    middleConnector.canonicalSource !== "parts/middle_panel_connector.scad" ||
+    middleConnector.generator !== "verified-scad-wrapper" ||
+    middleConnector.quantity !== pentagonClosure.quantity
+  ) {
+    throw new Error("Unsupported middle-panel connector template or quantity.");
+  }
+  const middleConnectorFile = requireString(middleConnector, "generatedFile");
+  if (!/^[^/]+[.]scad$/.test(middleConnectorFile)) {
+    throw new Error("Generated connector filename must be a local .scad filename.");
+  }
+  const middleConnectorModes = requireRecord(middleConnector, "modes");
+  if (
+    middleConnectorModes.print !== "print" ||
+    middleConnectorModes.assembly !== "assembly" ||
+    middleConnectorModes.installed !== "part"
+  ) {
+    throw new Error("Middle connector must expose print, assembly, and installed modes.");
+  }
+  if (!Array.isArray(middleConnector.interfaces) || middleConnector.interfaces.length !== 2) {
+    throw new Error("Middle connector must declare center and outer panel interfaces.");
+  }
+  const centerInterface = middleConnector.interfaces[0];
+  const outerInterface = middleConnector.interfaces[1];
+  if (
+    !isRecord(centerInterface) ||
+    centerInterface.panel !== "center" ||
+    centerInterface.hole !== "top-middle-edge" ||
+    centerInterface.edgeDistance !== 8 ||
+    !isRecord(outerInterface) ||
+    outerInterface.panel !== "outer" ||
+    outerInterface.outerEdgeIndex !== pentagonClosure.openOuterEdge ||
+    outerInterface.hole !== "middle-edge" ||
+    outerInterface.edgeDistance !== 8.2
+  ) {
+    throw new Error("Middle connector interfaces do not match the open pentagon edge.");
+  }
+  const middleConnectorPrint = requireRecord(middleConnector, "print");
+  if (middleConnectorPrint.bedSurface !== "center-panel-pad") {
+    throw new Error("Middle connector must print on its center-panel pad.");
+  }
+  const pentagonAssembly = requireRecord(pentagonClosure, "assembly");
+  const pentagonAssemblyFile = requireString(pentagonAssembly, "generatedFile");
+  if (
+    !/^[^/]+[.]scad$/.test(pentagonAssemblyFile) ||
+    pentagonAssembly.preview !== "center-and-five-outer-panels"
+  ) {
+    throw new Error("Unsupported generated pentagon assembly preview.");
   }
 
   const mapping = requireRecord(input, "mapping");

@@ -71,6 +71,79 @@
           "bedSurface": "outside-cover"
         }
       }
+    },
+    "pentagonFaces": {
+      "faceType": "pentagon",
+      "count": 12,
+      "population": {
+        "mode": "all-except",
+        "excluded": ["north-pole"],
+        "populatedCount": 11
+      },
+      "closure": {
+        "assemblyId": "populated-pentagon-panel-mount",
+        "quantity": 11,
+        "openOuterEdge": 1,
+        "parts": [
+          {
+            "partId": "pentagon-u-frame",
+            "canonicalSource": "parts/pentagon_u.scad",
+            "generator": "verified-scad-wrapper",
+            "generatedFile": "pentagon-u-frame.scad",
+            "quantity": 11,
+            "modes": {
+              "print": "print",
+              "assembly": "assembly",
+              "center": "center"
+            },
+            "interfaces": {
+              "outerPanelEdges": [0, 2, 3, 4],
+              "centerPanelHoles": [
+                "bottom-left-corner",
+                "bottom-middle-edge",
+                "top-right-corner"
+              ],
+              "centerPanelClearance": 0.35,
+              "connectorCornerClearance": 14
+            },
+            "print": {
+              "bedSurface": "outside-cover"
+            }
+          },
+          {
+            "partId": "middle-panel-connector",
+            "canonicalSource": "parts/middle_panel_connector.scad",
+            "generator": "verified-scad-wrapper",
+            "generatedFile": "middle-panel-connector.scad",
+            "quantity": 11,
+            "modes": {
+              "print": "print",
+              "assembly": "assembly",
+              "installed": "part"
+            },
+            "interfaces": [
+              {
+                "panel": "center",
+                "hole": "top-middle-edge",
+                "edgeDistance": 8
+              },
+              {
+                "panel": "outer",
+                "outerEdgeIndex": 1,
+                "hole": "middle-edge",
+                "edgeDistance": 8.2
+              }
+            ],
+            "print": {
+              "bedSurface": "center-panel-pad"
+            }
+          }
+        ],
+        "assembly": {
+          "generatedFile": "populated-pentagon-assembly.scad",
+          "preview": "center-and-five-outer-panels"
+        }
+      }
     }
   },
   "mapping": {

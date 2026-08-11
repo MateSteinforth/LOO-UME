@@ -3,7 +3,7 @@
   NO PENTAGRAM OVERLAP V17
   ============================================================================
 
-  Print quantity: 12 identical pieces.
+  Current sculpture print quantity: 11 identical pieces; north pole is open.
 
   DESIGN
   ------
@@ -41,6 +41,8 @@ $fn = 40;
 // ============================================================================
 
 mode = "print";
+
+print_quantity = 11;
 
 
 // ============================================================================
@@ -2206,6 +2208,27 @@ module center_panel_preview() {
 
 
 // ============================================================================
+// GENERATED-ASSEMBLY API
+// ============================================================================
+
+// Stable, uniquely named entrypoints let generated assembly files compose this
+// tested part with the separate middle-panel connector without module-name
+// collisions. They intentionally add no geometry of their own.
+
+module pentagon_u_part() {
+    printable_part();
+}
+
+module pentagon_u_outer_panel_previews() {
+    outer_panel_preview_set_local();
+}
+
+module pentagon_u_center_panel_preview() {
+    center_panel_preview();
+}
+
+
+// ============================================================================
 // CHECKS
 // ============================================================================
 
@@ -2372,7 +2395,10 @@ echo(
 
 
 echo(
-    "Print quantity: 12"
+    str(
+        "Current sculpture print quantity: ",
+        print_quantity
+    )
 );
 
 

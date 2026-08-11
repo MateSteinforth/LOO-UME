@@ -45,9 +45,10 @@ The compact authored source is
 It references the reusable 66 x 65 mm panel hardware profile under `catalog/`.
 The expanded 2,624-LED panel map and WLED ledmap are deterministic generated
 artifacts rather than hand-authored sources. The same JSON now declares the 20
-triangular openings, their three panel interfaces, and the triangle-filler CAD
-contract. Its generated OpenSCAD entrypoint verifies the existing tested part
-instead of duplicating it. See
+triangular openings and 11 populated pentagonal openings, including the
+triangle filler, pentagon U-frame, middle connector, and their explicit panel
+interfaces. Generated OpenSCAD entrypoints verify the existing tested parts
+instead of duplicating them. See
 [`docs/sculpture-format.md`](docs/sculpture-format.md) for the source contract,
 validation command, and compilation flow.
 
@@ -97,8 +98,9 @@ npm ci
 npm run generate:assets
 ```
 
-Verify that the generated triangle has the same CSG tree as the tested source,
-render both printable STLs, and inspect the generated assembly preview with:
+Verify that all three generated parts have the same CSG trees as their tested
+sources, render their printable STLs, and create triangle and populated-pentagon
+assembly previews with:
 
 ```bash
 npm run verify:cad
@@ -116,8 +118,9 @@ openscad -o build/middle_panel_connector.stl parts/middle_panel_connector.scad
 Generated STL and PNG files belong in `build/` and are intentionally ignored.
 GitHub Actions renders all three models on every push and pull request and
 publishes the generated files as workflow artifacts. A separate CAD-contract
-job regenerates the JSON-driven entrypoint, checks CSG parity, and renders its
-print and assembly outputs before publishing is allowed. Successful builds on
+job regenerates the JSON-driven entrypoints, checks all three CSG pairs, and
+renders the triangle and populated-pentagon assemblies before publishing is
+allowed. Successful builds on
 `main` also replace the assets in the single rolling
 [Latest Prototype](https://github.com/MateSteinforth/led-rhombicosidodecahedron/releases/tag/latest-prototype)
 release. That stable page shows the current PNG previews and STL downloads;

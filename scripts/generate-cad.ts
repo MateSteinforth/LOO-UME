@@ -6,6 +6,7 @@ const project = loadCanonicalSculptureProject();
 const result = await emitCadArtifacts(project);
 
 console.log(
-  `Generated ${result.manifest.artifacts.length} CAD entrypoint and manifest in ` +
+  `Generated ${result.manifest.artifacts.length} printable CAD entrypoints, ` +
+    `${result.manifest.assemblies.length} assembly preview, and manifest in ` +
     `${relative(process.cwd(), result.outputDirectory)}.`,
 );
