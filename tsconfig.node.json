@@ -13,6 +13,8 @@
   },
   "include": [
     "scripts",
+    "src",
+    "tests",
     "vite.config.ts",
     "vitest.config.ts",
     "web/src/LedMapping.ts",

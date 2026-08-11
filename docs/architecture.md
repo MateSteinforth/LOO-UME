@@ -14,5 +14,14 @@ The mechanical source is divided into three independently printable parts:
 - The rounded middle-panel connector supplies the remaining two-hole connection
   between the centre panel and its neighbouring angled outer panel.
 
-OpenSCAD source is canonical. Git records design history, GitHub Actions creates
-print artifacts, and physical-test issues record real-world validation.
+The sculpture JSON is the authored assembly contract. For triangle faces it
+describes the opening population, the closure template, handedness, flat print
+surface, and all three adjacent square-panel interfaces. The generated SCAD
+entrypoint includes the physically tested triangle source and asserts that its
+fit constants still agree with the central panel profile and opening policy.
+
+The files under `parts/` remain the canonical, physically tested geometry
+templates while this migration proceeds. Git records design history, GitHub
+Actions creates print artifacts and checks generated/canonical CSG parity, and
+physical-test issues record real-world validation. New closure generators can
+replace templates incrementally only after print and assembly verification.

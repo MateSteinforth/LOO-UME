@@ -1,0 +1,127 @@
+{
+  "$schema": "../../schemas/sculpture.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "generated-rhombicosidodecahedron-41-panel-preview",
+  "name": "LED Rhombicosidodecahedron",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": "ws2812b-8x8-66x65",
+  "topology": {
+    "kind": "regular-polyhedron",
+    "family": "rhombicosidodecahedron",
+    "construction": "rectified-icosahedron-dual-frames",
+    "orientation": "vertex-up",
+    "faceEdge": 66,
+    "population": {
+      "squareFaces": "all",
+      "pentagonFaces": {
+        "mode": "all-except",
+        "excluded": ["north-pole"]
+      },
+      "triangleFaces": "fillers"
+    }
+  },
+  "centerPanelMount": {
+    "rotationDegrees": 234,
+    "offsetX": 9.62,
+    "offsetY": -7.04,
+    "recess": 0.7,
+    "polarEdgeRule": "top-edge-north-bottom-edge-south"
+  },
+  "openings": {
+    "triangleFaces": {
+      "faceType": "triangle",
+      "count": 20,
+      "population": "all",
+      "closure": {
+        "partId": "triangle-filler",
+        "canonicalSource": "parts/triangle.scad",
+        "generator": "verified-scad-wrapper",
+        "generatedFile": "triangle-filler.scad",
+        "quantity": 20,
+        "modes": {
+          "print": "print",
+          "assembly": "assembly"
+        },
+        "handedness": -1,
+        "interfaces": [
+          {
+            "edgeIndex": 0,
+            "adjacentFaceType": "square",
+            "mountingHoleEnd": "opposite-electrical-connector",
+            "connectorCornerClearance": 14,
+            "panelEnvelopeClearance": 0.3
+          },
+          {
+            "edgeIndex": 1,
+            "adjacentFaceType": "square",
+            "mountingHoleEnd": "opposite-electrical-connector",
+            "connectorCornerClearance": 14,
+            "panelEnvelopeClearance": 0.3
+          },
+          {
+            "edgeIndex": 2,
+            "adjacentFaceType": "square",
+            "mountingHoleEnd": "opposite-electrical-connector",
+            "connectorCornerClearance": 14,
+            "panelEnvelopeClearance": 0.3
+          }
+        ],
+        "print": {
+          "bedSurface": "outside-cover"
+        }
+      }
+    }
+  },
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "provisional",
+    "routeStrategy": "longitude-sectors-nearest-neighbor",
+    "chainLengths": [11, 10, 10, 10],
+    "connector": {
+      "diagonal": "top-left-to-bottom-right",
+      "edgeInset": 4,
+      "surfaceOffset": 2.4,
+      "dinDoutAssignmentStatus": "provisional"
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Output 1",
+        "gpio": null,
+        "color": "#36e0d0"
+      },
+      {
+        "outputIndex": 1,
+        "label": "Output 2",
+        "gpio": null,
+        "color": "#ff9d5c"
+      },
+      {
+        "outputIndex": 2,
+        "label": "Output 3",
+        "gpio": null,
+        "color": "#b58cff"
+      },
+      {
+        "outputIndex": 3,
+        "label": "Output 4",
+        "gpio": null,
+        "color": "#c6ed68"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "unknown",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "The north-pole pentagonal opening is intentionally unpopulated.",
+    "The geographic four-output route is a preview and not a hardware fact."
+  ]
+}

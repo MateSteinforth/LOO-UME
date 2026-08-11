@@ -1,0 +1,309 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://led-rhombo.example/schemas/sculpture.schema.json",
+  "title": "Panelized LED sculpture source definition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "units",
+    "status",
+    "panelProfile",
+    "topology",
+    "centerPanelMount",
+    "openings",
+    "mapping",
+    "wiring",
+    "calibration",
+    "notes"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "units": { "const": "mm" },
+    "status": { "enum": ["provisional", "measured"] },
+    "panelProfile": { "type": "string", "minLength": 1 },
+    "topology": { "$ref": "#/$defs/rhombicosidodecahedronTopology" },
+    "centerPanelMount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rotationDegrees",
+        "offsetX",
+        "offsetY",
+        "recess",
+        "polarEdgeRule"
+      ],
+      "properties": {
+        "rotationDegrees": { "type": "number" },
+        "offsetX": { "type": "number" },
+        "offsetY": { "type": "number" },
+        "recess": { "type": "number" },
+        "polarEdgeRule": {
+          "const": "top-edge-north-bottom-edge-south"
+        }
+      }
+    },
+    "openings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["triangleFaces"],
+      "properties": {
+        "triangleFaces": {
+          "$ref": "#/$defs/triangleOpening"
+        }
+      }
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projection", "logicalOrder"],
+      "properties": {
+        "projection": { "const": "equirectangular" },
+        "logicalOrder": {
+          "const": "north-to-south-then-longitude"
+        }
+      }
+    },
+    "wiring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "routeStrategy",
+        "chainLengths",
+        "connector",
+        "outputs"
+      ],
+      "properties": {
+        "status": { "enum": ["provisional", "measured"] },
+        "routeStrategy": {
+          "const": "longitude-sectors-nearest-neighbor"
+        },
+        "chainLengths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "connector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "diagonal",
+            "edgeInset",
+            "surfaceOffset",
+            "dinDoutAssignmentStatus"
+          ],
+          "properties": {
+            "diagonal": { "const": "top-left-to-bottom-right" },
+            "edgeInset": { "type": "number", "minimum": 0 },
+            "surfaceOffset": { "type": "number" },
+            "dinDoutAssignmentStatus": {
+              "enum": ["provisional", "measured"]
+            }
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["outputIndex", "label", "gpio", "color"],
+            "properties": {
+              "outputIndex": { "type": "integer", "minimum": 0 },
+              "label": { "type": "string", "minLength": 1 },
+              "gpio": { "type": ["integer", "null"] },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "panelTransforms",
+        "installedPanelOrientation",
+        "panelPixelOrder",
+        "physicalChains"
+      ],
+      "properties": {
+        "panelTransforms": {
+          "enum": ["generated-provisional", "measured"]
+        },
+        "installedPanelOrientation": { "$ref": "#/$defs/factStatus" },
+        "panelPixelOrder": { "enum": ["provisional", "measured"] },
+        "physicalChains": { "enum": ["provisional", "measured"] }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "triangleOpening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["faceType", "count", "population", "closure"],
+      "properties": {
+        "faceType": { "const": "triangle" },
+        "count": { "const": 20 },
+        "population": { "const": "all" },
+        "closure": { "$ref": "#/$defs/triangleClosure" }
+      }
+    },
+    "triangleClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "partId",
+        "canonicalSource",
+        "generator",
+        "generatedFile",
+        "quantity",
+        "modes",
+        "handedness",
+        "interfaces",
+        "print"
+      ],
+      "properties": {
+        "partId": { "const": "triangle-filler" },
+        "canonicalSource": { "const": "parts/triangle.scad" },
+        "generator": { "const": "verified-scad-wrapper" },
+        "generatedFile": {
+          "type": "string",
+          "pattern": "^[^/]+[.]scad$"
+        },
+        "quantity": { "const": 20 },
+        "modes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["print", "assembly"],
+          "properties": {
+            "print": { "const": "print" },
+            "assembly": { "const": "assembly" }
+          }
+        },
+        "handedness": { "enum": [-1, 1] },
+        "interfaces": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "allOf": [
+                { "$ref": "#/$defs/trianglePanelInterface" },
+                { "type": "object", "properties": { "edgeIndex": { "const": 0 } } }
+              ]
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/trianglePanelInterface" },
+                { "type": "object", "properties": { "edgeIndex": { "const": 1 } } }
+              ]
+            },
+            {
+              "allOf": [
+                { "$ref": "#/$defs/trianglePanelInterface" },
+                { "type": "object", "properties": { "edgeIndex": { "const": 2 } } }
+              ]
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "print": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bedSurface"],
+          "properties": {
+            "bedSurface": { "const": "outside-cover" }
+          }
+        }
+      }
+    },
+    "trianglePanelInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edgeIndex",
+        "adjacentFaceType",
+        "mountingHoleEnd",
+        "connectorCornerClearance",
+        "panelEnvelopeClearance"
+      ],
+      "properties": {
+        "edgeIndex": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "adjacentFaceType": { "const": "square" },
+        "mountingHoleEnd": {
+          "const": "opposite-electrical-connector"
+        },
+        "connectorCornerClearance": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "panelEnvelopeClearance": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "factStatus": {
+      "enum": ["unknown", "provisional", "measured"]
+    },
+    "rhombicosidodecahedronTopology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "family",
+        "construction",
+        "orientation",
+        "faceEdge",
+        "population"
+      ],
+      "properties": {
+        "kind": { "const": "regular-polyhedron" },
+        "family": { "const": "rhombicosidodecahedron" },
+        "construction": {
+          "const": "rectified-icosahedron-dual-frames"
+        },
+        "orientation": { "const": "vertex-up" },
+        "faceEdge": { "type": "number", "exclusiveMinimum": 0 },
+        "population": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["squareFaces", "pentagonFaces", "triangleFaces"],
+          "properties": {
+            "squareFaces": { "const": "all" },
+            "pentagonFaces": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "excluded"],
+              "properties": {
+                "mode": { "const": "all-except" },
+                "excluded": {
+                  "type": "array",
+                  "prefixItems": [{ "const": "north-pole" }],
+                  "items": false,
+                  "minItems": 1,
+                  "maxItems": 1
+                }
+              }
+            },
+            "triangleFaces": { "const": "fillers" }
+          }
+        }
+      }
+    }
+  }
+}

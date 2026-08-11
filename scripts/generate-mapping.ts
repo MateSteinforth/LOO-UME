@@ -7,15 +7,24 @@ import {
   validateLedmapEquivalence,
 } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
+import { loadCanonicalSculptureProject } from "../src/sculpture/Definition.ts";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
 const hardwareExport = process.argv.includes("--hardware");
-const geometry = createPanelizedSculptureMapping();
-const wiring = createProvisionalWiringPreview(geometry);
-const contract = createHardwareMappingContract(geometry, wiring);
+const project = loadCanonicalSculptureProject();
+const geometry = createPanelizedSculptureMapping(
+  project.sculpture,
+  project.panelProfile,
+);
+const wiring = createProvisionalWiringPreview(geometry, project.sculpture);
+const contract = createHardwareMappingContract(
+  geometry,
+  wiring,
+  project.panelProfile,
+);
 const equivalenceErrors = validateLedmapEquivalence(
   contract.mapping,
   contract.ledmap,
@@ -47,7 +56,8 @@ const panelMap = {
   readinessBlockers: contract.readiness.blockers,
   assumptions: {
     withinPanelOrder: "top-left row-major",
-    withinPanelOrderStatus: "provisional",
+    withinPanelOrderStatus:
+      project.panelProfile.pixelGrid.provisionalOrder.status,
     note: "Replace with numbered bench-test results before hardware export.",
   },
   outputs: contract.outputs,

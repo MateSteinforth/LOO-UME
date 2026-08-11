@@ -1,3 +1,9 @@
+import {
+  CANONICAL_SCULPTURE_PROJECT,
+  type PanelHardwareProfile,
+  type SculptureDefinition,
+} from "../../src/sculpture/Definition.ts";
+
 export interface LedMappingEntry {
   physicalIndex: number;
   logicalIndex: number;
@@ -75,60 +81,57 @@ export interface MappingValidation {
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
-const PANEL_LED_SIDE = 8;
-const LEDS_PER_PANEL = PANEL_LED_SIDE * PANEL_LED_SIDE;
+const DEFAULT_PANEL_COLUMNS =
+  CANONICAL_SCULPTURE_PROJECT.panelProfile.pixelGrid.columns;
+const DEFAULT_PANEL_ROWS =
+  CANONICAL_SCULPTURE_PROJECT.panelProfile.pixelGrid.rows;
+const LEDS_PER_PANEL = DEFAULT_PANEL_COLUMNS * DEFAULT_PANEL_ROWS;
 
 /**
- * Dimensions and relative placement copied from the canonical OpenSCAD parts.
- * The global face numbering/orientation and electrical mapping remain
- * provisional, but these mechanical relationships are not arbitrary preview
- * values.
+ * Derives mechanical placement inputs from the authored sculpture and panel
+ * profile. The fold angle remains a proven invariant of this topology.
  */
-export const SCULPTURE_GEOMETRY = {
-  faceEdge: 66,
-  squarePanelWidth: 66,
-  squarePanelHeight: 65,
-  centerPanelWidth: 66,
-  centerPanelHeight: 65,
-  centerPanelOffsetX: 9.62,
-  centerPanelOffsetY: -7.04,
-  centerPanelRotationDegrees: 234,
-  centerPanelRecess: 0.7,
-  squarePentagonFoldDegrees: 31.717474,
-  squarePanelCount: 30,
-  centerPanelCount: 11,
-  unpopulatedTopPentagonCount: 1,
-  totalPanelCount: 41,
-  totalLedCount: 2624,
-} as const;
+export function deriveSculptureGeometry(
+  definition: SculptureDefinition,
+  panelProfile: PanelHardwareProfile,
+) {
+  const squarePanelCount = 30;
+  const centerPanelCount =
+    12 - definition.topology.population.pentagonFaces.excluded.length;
+  const totalPanelCount = squarePanelCount + centerPanelCount;
+  const exactFoldDegrees =
+    (Math.acos(Math.sqrt((1 + 1 / Math.sqrt(5)) / 2)) * 180) / Math.PI;
+  // Preserve the six-decimal precision used by the physically proven CAD.
+  const squarePentagonFoldDegrees =
+    Math.round(exactFoldDegrees * 1_000_000) / 1_000_000;
 
-const CENTER_PANEL_ROTATION_RADIANS =
-  (SCULPTURE_GEOMETRY.centerPanelRotationDegrees * Math.PI) / 180;
-const CENTER_PANEL_OFFSET_ALONG_X =
-  SCULPTURE_GEOMETRY.centerPanelOffsetX *
-    Math.cos(CENTER_PANEL_ROTATION_RADIANS) +
-  SCULPTURE_GEOMETRY.centerPanelOffsetY *
-    Math.sin(CENTER_PANEL_ROTATION_RADIANS);
-const CENTER_PANEL_OFFSET_ALONG_Y =
-  -SCULPTURE_GEOMETRY.centerPanelOffsetX *
-    Math.sin(CENTER_PANEL_ROTATION_RADIANS) +
-  SCULPTURE_GEOMETRY.centerPanelOffsetY *
-    Math.cos(CENTER_PANEL_ROTATION_RADIANS);
-const PENTAGON_APOTHEM =
-  SCULPTURE_GEOMETRY.faceEdge / (2 * Math.tan(Math.PI / 5));
-const SQUARE_APOTHEM = SCULPTURE_GEOMETRY.faceEdge / 2;
-const SQUARE_PENTAGON_FOLD_RADIANS =
-  (SCULPTURE_GEOMETRY.squarePentagonFoldDegrees * Math.PI) / 180;
-const FOLD_SIN = Math.sin(SQUARE_PENTAGON_FOLD_RADIANS);
-const FOLD_COS = Math.cos(SQUARE_PENTAGON_FOLD_RADIANS);
+  return {
+    faceEdge: definition.topology.faceEdge,
+    squarePanelWidth: panelProfile.dimensions.width,
+    squarePanelHeight: panelProfile.dimensions.height,
+    centerPanelWidth: panelProfile.dimensions.width,
+    centerPanelHeight: panelProfile.dimensions.height,
+    centerPanelOffsetX: definition.centerPanelMount.offsetX,
+    centerPanelOffsetY: definition.centerPanelMount.offsetY,
+    centerPanelRotationDegrees: definition.centerPanelMount.rotationDegrees,
+    centerPanelRecess: definition.centerPanelMount.recess,
+    squarePentagonFoldDegrees,
+    squarePanelCount,
+    centerPanelCount,
+    unpopulatedTopPentagonCount:
+      definition.topology.population.pentagonFaces.excluded.length,
+    totalPanelCount,
+    totalLedCount:
+      totalPanelCount *
+      panelProfile.pixelGrid.columns *
+      panelProfile.pixelGrid.rows,
+  } as const;
+}
 
-// Unlike a sphere, unlike face types do not share one plane radius. These
-// distances make their shared edge land at the correct face apothem.
-const PENTAGON_FACE_DISTANCE =
-  (SQUARE_APOTHEM + FOLD_COS * PENTAGON_APOTHEM) / FOLD_SIN;
-const SQUARE_FACE_DISTANCE =
-  (PENTAGON_APOTHEM + FOLD_COS * SQUARE_APOTHEM) / FOLD_SIN;
-const LED_EMITTER_OFFSET = 1.2;
+export const SCULPTURE_GEOMETRY = deriveSculptureGeometry(
+  CANONICAL_SCULPTURE_PROJECT.sculpture,
+  CANONICAL_SCULPTURE_PROJECT.panelProfile,
+);
 
 interface PanelSeed {
   faceType: PanelFaceType;
@@ -273,7 +276,37 @@ function equirectangularUv(position: Vector3Data): { u: number; v: number } {
  * The vertex-up frame leaves the north-pole pentagon unpopulated and provides a
  * stable global north-to-south effect-space ordering.
  */
-export function createPanelizedSculptureMapping(): LedMapping {
+export function createPanelizedSculptureMapping(
+  definition = CANONICAL_SCULPTURE_PROJECT.sculpture,
+  panelProfile = CANONICAL_SCULPTURE_PROJECT.panelProfile,
+): LedMapping {
+  const geometry = deriveSculptureGeometry(definition, panelProfile);
+  const panelColumns = panelProfile.pixelGrid.columns;
+  const panelRows = panelProfile.pixelGrid.rows;
+  const ledsPerPanel = panelColumns * panelRows;
+  const centerPanelRotationRadians =
+    (geometry.centerPanelRotationDegrees * Math.PI) / 180;
+  const centerPanelOffsetAlongX =
+    geometry.centerPanelOffsetX * Math.cos(centerPanelRotationRadians) +
+    geometry.centerPanelOffsetY * Math.sin(centerPanelRotationRadians);
+  const centerPanelOffsetAlongY =
+    -geometry.centerPanelOffsetX * Math.sin(centerPanelRotationRadians) +
+    geometry.centerPanelOffsetY * Math.cos(centerPanelRotationRadians);
+  const pentagonApothem =
+    geometry.faceEdge / (2 * Math.tan(Math.PI / 5));
+  const squareApothem = geometry.faceEdge / 2;
+  const squarePentagonFoldRadians =
+    (geometry.squarePentagonFoldDegrees * Math.PI) / 180;
+  const foldSin = Math.sin(squarePentagonFoldRadians);
+  const foldCos = Math.cos(squarePentagonFoldRadians);
+
+  // Unlike a sphere, unlike face types do not share one plane radius. These
+  // distances make their shared edge land at the correct face apothem.
+  const pentagonFaceDistance =
+    (squareApothem + foldCos * pentagonApothem) / foldSin;
+  const squareFaceDistance =
+    (pentagonApothem + foldCos * squareApothem) / foldSin;
+
   const { vertices, pentagons: pentagonSeeds, squares: squareSeeds } =
     createIcosahedronSeeds();
   if (pentagonSeeds.length !== 12 || squareSeeds.length !== 30) {
@@ -332,7 +365,7 @@ export function createPanelizedSculptureMapping(): LedMapping {
     return {
       id,
       faceType: seed.faceType,
-      transformStatus: "generated-provisional",
+      transformStatus: definition.calibration.panelTransforms,
       position,
       normal: seed.normal,
       xAxis,
@@ -371,11 +404,11 @@ export function createPanelizedSculptureMapping(): LedMapping {
       seed,
       id,
       squareNeighbors.get(id) ?? [],
-      scale(seed.normal, SQUARE_FACE_DISTANCE),
+      scale(seed.normal, squareFaceDistance),
       xAxis,
       yAxis,
-      SCULPTURE_GEOMETRY.squarePanelWidth,
-      SCULPTURE_GEOMETRY.squarePanelHeight,
+      geometry.squarePanelWidth,
+      geometry.squarePanelHeight,
     );
   });
 
@@ -442,11 +475,11 @@ export function createPanelizedSculptureMapping(): LedMapping {
       add(
         scale(
           seed.normal,
-          PENTAGON_FACE_DISTANCE - SCULPTURE_GEOMETRY.centerPanelRecess,
+          pentagonFaceDistance - geometry.centerPanelRecess,
         ),
-        scale(xAxis, CENTER_PANEL_OFFSET_ALONG_X),
+        scale(xAxis, centerPanelOffsetAlongX),
       ),
-      scale(yAxis, CENTER_PANEL_OFFSET_ALONG_Y * hemisphereSign),
+      scale(yAxis, centerPanelOffsetAlongY * hemisphereSign),
     );
     return makePanel(
       seed,
@@ -455,8 +488,8 @@ export function createPanelizedSculptureMapping(): LedMapping {
       position,
       xAxis,
       yAxis,
-      SCULPTURE_GEOMETRY.centerPanelWidth,
-      SCULPTURE_GEOMETRY.centerPanelHeight,
+      geometry.centerPanelWidth,
+      geometry.centerPanelHeight,
     );
   });
 
@@ -465,25 +498,25 @@ export function createPanelizedSculptureMapping(): LedMapping {
 
   for (let panelIndex = 0; panelIndex < panels.length; panelIndex += 1) {
     const panel = panels[panelIndex]!;
-    const pitchX = panel.previewWidth / 9;
-    const pitchY = panel.previewHeight / 9;
-    for (let panelPixelY = 0; panelPixelY < PANEL_LED_SIDE; panelPixelY += 1) {
+    const pitchX = panel.previewWidth / (panelColumns + 1);
+    const pitchY = panel.previewHeight / (panelRows + 1);
+    for (let panelPixelY = 0; panelPixelY < panelRows; panelPixelY += 1) {
       for (
         let panelPixelX = 0;
-        panelPixelX < PANEL_LED_SIDE;
+        panelPixelX < panelColumns;
         panelPixelX += 1
       ) {
         const physicalIndex =
-          panelIndex * LEDS_PER_PANEL +
-          panelPixelY * PANEL_LED_SIDE +
+          panelIndex * ledsPerPanel +
+          panelPixelY * panelColumns +
           panelPixelX;
-        const localX = (panelPixelX - 3.5) * pitchX;
-        const localY = (3.5 - panelPixelY) * pitchY;
+        const localX = (panelPixelX - (panelColumns - 1) / 2) * pitchX;
+        const localY = ((panelRows - 1) / 2 - panelPixelY) * pitchY;
         const position = add(
           add(panel.position, scale(panel.xAxis, localX)),
           add(
             scale(panel.yAxis, localY),
-            scale(panel.normal, LED_EMITTER_OFFSET),
+            scale(panel.normal, panelProfile.pixelGrid.emitterOffset),
           ),
         );
         const { u, v } = equirectangularUv(position);
@@ -520,8 +553,8 @@ export function createPanelizedSculptureMapping(): LedMapping {
   }
 
   return {
-    id: "generated-rhombicosidodecahedron-41-panel-preview",
-    status: "provisional",
+    id: definition.id,
+    status: definition.status,
     topology: "panelized-sculpture",
     panels,
     notes: [

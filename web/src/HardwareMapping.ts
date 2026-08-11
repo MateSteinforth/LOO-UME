@@ -4,9 +4,10 @@ import type {
   PanelDefinition,
 } from "./LedMapping.ts";
 import type { WiringPreview } from "./WiringPreview.ts";
-
-const PANEL_SIDE = 8;
-const LEDS_PER_PANEL = PANEL_SIDE * PANEL_SIDE;
+import {
+  CANONICAL_SCULPTURE_PROJECT,
+  type PanelHardwareProfile,
+} from "../../src/sculpture/Definition.ts";
 
 export interface WledLedmap {
   map: number[];
@@ -44,23 +45,32 @@ function panelPixelKey(
 
 type PanelPixelOrder = PanelDefinition["pixelOrder"];
 
-const PROVISIONAL_PIXEL_ORDER: PanelPixelOrder = {
-  status: "provisional",
-  pixelZeroCorner: "top-left",
-  traversalAxis: "rows",
-  serpentine: false,
-  firstLineDirection: "left-to-right",
-};
+function provisionalPixelOrder(
+  panelProfile: PanelHardwareProfile,
+): PanelPixelOrder {
+  const order = panelProfile.pixelGrid.provisionalOrder;
+  return {
+    status: order.status,
+    pixelZeroCorner: order.pixelZeroCorner,
+    traversalAxis: order.traversalAxis,
+    serpentine: order.serpentine,
+    firstLineDirection: order.firstLineDirection,
+  };
+}
 
-function effectivePixelOrder(panel: PanelDefinition): PanelPixelOrder {
+function effectivePixelOrder(
+  panel: PanelDefinition,
+  panelProfile: PanelHardwareProfile,
+): PanelPixelOrder {
   return panel.pixelOrder.status === "measured"
     ? panel.pixelOrder
-    : PROVISIONAL_PIXEL_ORDER;
+    : provisionalPixelOrder(panelProfile);
 }
 
 function panelWireIndex(
   entry: LedMappingEntry,
   order: PanelPixelOrder,
+  panelProfile: PanelHardwareProfile,
 ): number {
   if (entry.panelPixelX === null || entry.panelPixelY === null) {
     throw new Error("Panel LED is missing panel-local coordinates.");
@@ -89,26 +99,34 @@ function panelWireIndex(
       "Panel start corner and first-line direction are inconsistent.",
     );
   }
+  const columns = panelProfile.pixelGrid.columns;
+  const rows = panelProfile.pixelGrid.rows;
   const x = startsRight
-    ? PANEL_SIDE - 1 - entry.panelPixelX
+    ? columns - 1 - entry.panelPixelX
     : entry.panelPixelX;
   const y = startsBottom
-    ? PANEL_SIDE - 1 - entry.panelPixelY
+    ? rows - 1 - entry.panelPixelY
     : entry.panelPixelY;
   const line = order.traversalAxis === "rows" ? y : x;
   let offset = order.traversalAxis === "rows" ? x : y;
   if (order.serpentine && line % 2 === 1) {
-    offset = PANEL_SIDE - 1 - offset;
+    offset =
+      (order.traversalAxis === "rows" ? columns : rows) - 1 - offset;
   }
-  return line * PANEL_SIDE + offset;
+  return line * (order.traversalAxis === "rows" ? columns : rows) + offset;
 }
 
-function createOutputRanges(preview: WiringPreview): OutputAddressRange[] {
+function createOutputRanges(
+  preview: WiringPreview,
+  panelProfile: PanelHardwareProfile,
+): OutputAddressRange[] {
+  const ledsPerPanel =
+    panelProfile.pixelGrid.columns * panelProfile.pixelGrid.rows;
   let startIndex = 0;
   return [...preview.outputs]
     .sort((first, second) => first.outputIndex - second.outputIndex)
     .map((output) => {
-      const pixelCount = output.panelIds.length * LEDS_PER_PANEL;
+      const pixelCount = output.panelIds.length * ledsPerPanel;
       const range = {
         outputIndex: output.outputIndex,
         gpio: output.gpio,
@@ -129,11 +147,12 @@ function assignPanel(
   nextPanelId: string | null,
   ledIndices: number[],
   wiringStatus: WiringPreview["status"],
+  panelProfile: PanelHardwareProfile,
 ): PanelDefinition {
   return {
     ...panel,
     ledIndices,
-    pixelOrder: effectivePixelOrder(panel),
+    pixelOrder: effectivePixelOrder(panel, panelProfile),
     wiring: {
       status: wiringStatus === "measured" ? "assigned" : "provisional",
       output: output.outputIndex,
@@ -147,6 +166,7 @@ function assignPanel(
 export function createHardwareMappingContract(
   geometryMapping: LedMapping,
   wiring: WiringPreview,
+  panelProfile = CANONICAL_SCULPTURE_PROJECT.panelProfile,
 ): HardwareMappingContract {
   if (
     geometryMapping.topology !== "panelized-sculpture" ||
@@ -157,7 +177,9 @@ export function createHardwareMappingContract(
     );
   }
 
-  const outputs = createOutputRanges(wiring);
+  const outputs = createOutputRanges(wiring, panelProfile);
+  const ledsPerPanel =
+    panelProfile.pixelGrid.columns * panelProfile.pixelGrid.rows;
   const assignmentByPanel = new Map<
     string,
     { output: OutputAddressRange; chainPosition: number }
@@ -198,8 +220,12 @@ export function createHardwareMappingContract(
     }
     const physicalIndex =
       assignment.output.startIndex +
-      assignment.chainPosition * LEDS_PER_PANEL +
-      panelWireIndex(entry, effectivePixelOrder(panel));
+      assignment.chainPosition * ledsPerPanel +
+      panelWireIndex(
+        entry,
+        effectivePixelOrder(panel, panelProfile),
+        panelProfile,
+      );
     physicalByPixel.set(
       panelPixelKey(entry.panelId, entry.panelPixelX, entry.panelPixelY),
       physicalIndex,
@@ -249,6 +275,7 @@ export function createHardwareMappingContract(
       route[chainPosition + 1] ?? null,
       ledIndices,
       wiring.status,
+      panelProfile,
     );
   });
 

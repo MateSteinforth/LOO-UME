@@ -27,7 +27,7 @@ jobs:
       - name: Install OpenSCAD
         run: |
           sudo apt-get update
-          sudo apt-get install --yes openscad xvfb
+          sudo apt-get install --yes openscad xvfb xauth
 
       - name: Render STL
         run: |
@@ -56,9 +56,43 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  cad-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install OpenSCAD
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes openscad xvfb xauth
+
+      - name: Generate and verify JSON-driven CAD
+        run: npm run verify:cad
+
+      - name: Upload generated CAD contract
+        uses: actions/upload-artifact@v7
+        with:
+          name: generated-cad-contract
+          path: |
+            build/generated/
+            build/verify-cad/triangle-generated.stl
+            build/verify-cad/triangle-assembly.png
+          if-no-files-found: error
+          retention-days: 30
+
   publish-latest-prototype:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: render
+    needs: [render, cad-contract]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

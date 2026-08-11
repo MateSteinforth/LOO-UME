@@ -38,6 +38,19 @@ See [web/README.md](web/README.md) for setup, build, test, architecture, WASM
 memory, mapping, and upstream-update instructions. Investigation details and
 current limitations are recorded in [TECH_NOTES.md](TECH_NOTES.md).
 
+## Canonical sculpture description
+
+The compact authored source is
+[`sculptures/rhombicosidodecahedron/sculpture.json`](sculptures/rhombicosidodecahedron/sculpture.json).
+It references the reusable 66 x 65 mm panel hardware profile under `catalog/`.
+The expanded 2,624-LED panel map and WLED ledmap are deterministic generated
+artifacts rather than hand-authored sources. The same JSON now declares the 20
+triangular openings, their three panel interfaces, and the triangle-filler CAD
+contract. Its generated OpenSCAD entrypoint verifies the existing tested part
+instead of duplicating it. See
+[`docs/sculpture-format.md`](docs/sculpture-format.md) for the source contract,
+validation command, and compilation flow.
+
 ## Canonical printable parts
 
 | Source | Quantity | Purpose |
@@ -76,7 +89,22 @@ before changing geometry.
 
 ## Build locally
 
-Install OpenSCAD, then run:
+Install the npm dependencies, OpenSCAD, Xvfb, and xauth. Generate the mapping,
+WLED preview, CAD entrypoint, and CAD manifest with:
+
+```bash
+npm ci
+npm run generate:assets
+```
+
+Verify that the generated triangle has the same CSG tree as the tested source,
+render both printable STLs, and inspect the generated assembly preview with:
+
+```bash
+npm run verify:cad
+```
+
+The canonical parts can still be rendered directly:
 
 ```bash
 mkdir -p build
@@ -87,7 +115,9 @@ openscad -o build/middle_panel_connector.stl parts/middle_panel_connector.scad
 
 Generated STL and PNG files belong in `build/` and are intentionally ignored.
 GitHub Actions renders all three models on every push and pull request and
-publishes the generated files as workflow artifacts. Successful builds on
+publishes the generated files as workflow artifacts. A separate CAD-contract
+job regenerates the JSON-driven entrypoint, checks CSG parity, and renders its
+print and assembly outputs before publishing is allowed. Successful builds on
 `main` also replace the assets in the single rolling
 [Latest Prototype](https://github.com/MateSteinforth/led-rhombicosidodecahedron/releases/tag/latest-prototype)
 release. That stable page shows the current PNG previews and STL downloads;

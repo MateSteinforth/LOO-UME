@@ -3,6 +3,10 @@ import type {
   PanelDefinition,
   Vector3Data,
 } from "./LedMapping.ts";
+import {
+  CANONICAL_SCULPTURE_PROJECT,
+  type SculptureDefinition,
+} from "../../src/sculpture/Definition.ts";
 
 export interface WiringPanelNode {
   panelId: string;
@@ -36,17 +40,6 @@ export interface WiringPreviewValidation {
   valid: boolean;
   errors: string[];
 }
-
-const OUTPUT_STYLES = [
-  { color: 0x36e0d0, cssColor: "#36e0d0" },
-  { color: 0xff9d5c, cssColor: "#ff9d5c" },
-  { color: 0xb58cff, cssColor: "#b58cff" },
-  { color: 0xc6ed68, cssColor: "#c6ed68" },
-] as const;
-
-const PREVIEW_CHAIN_LENGTHS = [11, 10, 10, 10] as const;
-const CONNECTOR_EDGE_INSET = 4;
-const CONNECTOR_SURFACE_OFFSET = 2.4;
 
 function vector(x: number, y: number, z: number): Vector3Data {
   return { x, y, z };
@@ -93,16 +86,18 @@ function connectorPosition(
   panel: PanelDefinition,
   xDirection: -1 | 1,
   yDirection: -1 | 1,
+  edgeInset: number,
+  surfaceOffset: number,
 ): Vector3Data {
   const xOffset =
-    xDirection * (panel.previewWidth / 2 - CONNECTOR_EDGE_INSET);
+    xDirection * (panel.previewWidth / 2 - edgeInset);
   const yOffset =
-    yDirection * (panel.previewHeight / 2 - CONNECTOR_EDGE_INSET);
+    yDirection * (panel.previewHeight / 2 - edgeInset);
   return add(
     add(panel.position, scale(panel.xAxis, xOffset)),
     add(
       scale(panel.yAxis, yOffset),
-      scale(panel.normal, CONNECTOR_SURFACE_OFFSET),
+      scale(panel.normal, surfaceOffset),
     ),
   );
 }
@@ -115,6 +110,7 @@ function connectorPosition(
  */
 export function createProvisionalWiringPreview(
   mapping: LedMapping,
+  definition: SculptureDefinition = CANONICAL_SCULPTURE_PROJECT.sculpture,
 ): WiringPreview {
   if (mapping.topology !== "panelized-sculpture") {
     return {
@@ -144,22 +140,23 @@ export function createProvisionalWiringPreview(
   let offset = 0;
 
   for (
-    let outputIndex = 0;
-    outputIndex < PREVIEW_CHAIN_LENGTHS.length;
-    outputIndex += 1
+    let routeIndex = 0;
+    routeIndex < definition.wiring.outputs.length;
+    routeIndex += 1
   ) {
-    const length = PREVIEW_CHAIN_LENGTHS[outputIndex]!;
+    const outputDefinition = definition.wiring.outputs[routeIndex]!;
+    const outputIndex = outputDefinition.outputIndex;
+    const length = definition.wiring.chainLengths[routeIndex]!;
     const panels = routeNearestNeighbor(
       byLongitude.slice(offset, offset + length),
     );
     offset += length;
-    const style = OUTPUT_STYLES[outputIndex]!;
     outputs.push({
       outputIndex,
-      label: `Output ${outputIndex + 1}`,
-      gpio: null,
-      color: style.color,
-      cssColor: style.cssColor,
+      label: outputDefinition.label,
+      gpio: outputDefinition.gpio,
+      color: Number.parseInt(outputDefinition.color.slice(1), 16),
+      cssColor: outputDefinition.color,
       panelIds: panels.map((panel) => panel.id),
     });
 
@@ -175,16 +172,32 @@ export function createProvisionalWiringPreview(
         chainPosition,
         previousPanelId: panels[chainPosition - 1]?.id ?? null,
         nextPanelId: panels[chainPosition + 1]?.id ?? null,
-        din: connectorPosition(panel, -1, 1),
-        dout: connectorPosition(panel, 1, -1),
-        connectorDiagonal: "top-left-to-bottom-right",
-        dinDoutAssignmentStatus: "provisional",
+        din: connectorPosition(
+          panel,
+          -1,
+          1,
+          definition.wiring.connector.edgeInset,
+          definition.wiring.connector.surfaceOffset,
+        ),
+        dout: connectorPosition(
+          panel,
+          1,
+          -1,
+          definition.wiring.connector.edgeInset,
+          definition.wiring.connector.surfaceOffset,
+        ),
+        connectorDiagonal: definition.wiring.connector.diagonal,
+        dinDoutAssignmentStatus:
+          definition.wiring.connector.dinDoutAssignmentStatus,
       });
     }
   }
 
   return {
-    status: "generated-provisional",
+    status:
+      definition.wiring.status === "measured"
+        ? "measured"
+        : "generated-provisional",
     outputs,
     nodes,
     notes: [

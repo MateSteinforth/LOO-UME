@@ -1,0 +1,46 @@
+{
+  "$schema": "../../schemas/panel-profile.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "ws2812b-8x8-66x65",
+  "kind": "led-panel",
+  "units": "mm",
+  "dimensions": {
+    "width": 66,
+    "height": 65,
+    "thickness": 0.8
+  },
+  "pixelGrid": {
+    "columns": 8,
+    "rows": 8,
+    "emitterOffset": 1.2,
+    "provisionalOrder": {
+      "status": "provisional",
+      "pixelZeroCorner": "top-left",
+      "traversalAxis": "rows",
+      "serpentine": false,
+      "firstLineDirection": "left-to-right",
+      "description": "Top-left non-serpentine row-major preview order; replace with a numbered bench test."
+    }
+  },
+  "mounting": {
+    "cornerHoleInset": 8,
+    "middleHoleOffsetFromOuter": 25,
+    "pcbHolePreviewDiameter": 2.8,
+    "printedPilotDiameter": 1.6,
+    "screwLeadIn": {
+      "diameter": 3.2,
+      "depth": 0.7
+    },
+    "physicalCorrections": {
+      "holeEdge": 0.2,
+      "surfaceFlush": 0.5,
+      "status": "measured",
+      "note": "Preserve these physically tested corrections unless a new print test justifies a change."
+    }
+  },
+  "electricalKeepouts": {
+    "status": "unknown",
+    "regions": [],
+    "note": "Exact DIN, DOUT, V+, and V- pad envelopes still require measurement."
+  }
+}

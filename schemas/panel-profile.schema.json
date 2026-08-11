@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://led-rhombo.example/schemas/panel-profile.schema.json",
+  "title": "LED panel hardware profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "kind",
+    "units",
+    "dimensions",
+    "pixelGrid",
+    "mounting",
+    "electricalKeepouts"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "minLength": 1 },
+    "kind": { "const": "led-panel" },
+    "units": { "const": "mm" },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "thickness"],
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "thickness": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "pixelGrid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["columns", "rows", "emitterOffset", "provisionalOrder"],
+      "properties": {
+        "columns": { "type": "integer", "minimum": 1 },
+        "rows": { "type": "integer", "minimum": 1 },
+        "emitterOffset": { "type": "number" },
+        "provisionalOrder": { "$ref": "#/$defs/pixelOrder" }
+      }
+    },
+    "mounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cornerHoleInset",
+        "middleHoleOffsetFromOuter",
+        "pcbHolePreviewDiameter",
+        "printedPilotDiameter",
+        "screwLeadIn",
+        "physicalCorrections"
+      ],
+      "properties": {
+        "cornerHoleInset": { "type": "number", "exclusiveMinimum": 0 },
+        "middleHoleOffsetFromOuter": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pcbHolePreviewDiameter": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "printedPilotDiameter": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "screwLeadIn": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["diameter", "depth"],
+          "properties": {
+            "diameter": { "type": "number", "exclusiveMinimum": 0 },
+            "depth": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "physicalCorrections": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["holeEdge", "surfaceFlush", "status", "note"],
+          "properties": {
+            "holeEdge": { "type": "number" },
+            "surfaceFlush": { "type": "number" },
+            "status": { "const": "measured" },
+            "note": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "electricalKeepouts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "regions", "note"],
+      "properties": {
+        "status": { "$ref": "#/$defs/factStatus" },
+        "regions": { "type": "array" },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "factStatus": {
+      "enum": ["unknown", "provisional", "measured"]
+    },
+    "pixelOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "pixelZeroCorner",
+        "traversalAxis",
+        "serpentine",
+        "firstLineDirection",
+        "description"
+      ],
+      "properties": {
+        "status": { "enum": ["provisional", "measured"] },
+        "pixelZeroCorner": {
+          "enum": ["top-left", "top-right", "bottom-left", "bottom-right"]
+        },
+        "traversalAxis": { "enum": ["rows", "columns"] },
+        "serpentine": { "type": "boolean" },
+        "firstLineDirection": {
+          "enum": [
+            "left-to-right",
+            "right-to-left",
+            "top-to-bottom",
+            "bottom-to-top"
+          ]
+        },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
