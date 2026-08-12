@@ -17,12 +17,144 @@ import {
   addPanelToClosureFace,
   deletePanel,
   movePanelOnDesignSurface,
+  projectPanelOrientationOntoSurface,
+  rotatePanelAroundLocalZ,
 } from "../src/sculpture/SculptureEditor.ts";
 import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegenerator.ts";
 import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
+type Vector3Tuple = [number, number, number];
+
+function cross(a: Vector3Tuple, b: Vector3Tuple): Vector3Tuple {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+}
+
+function dot(a: Vector3Tuple, b: Vector3Tuple): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function expectVectorClose(
+  actual: Vector3Tuple,
+  expected: Vector3Tuple,
+  precision = 10,
+): void {
+  for (let axis = 0; axis < 3; axis += 1) {
+    expect(actual[axis]).toBeCloseTo(expected[axis]!, precision);
+  }
+}
+
 describe("browser sculpture editor", () => {
+  it("rotates only the selected panel's right-handed in-plane basis", async () => {
+    const source: unknown = JSON.parse(
+      await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
+    );
+    const original = parsePanelAssemblyDefinition(source);
+    const originalPanel = structuredClone(original.panels[0]!);
+    const originalWiring = structuredClone(original.wiring);
+    const rotated = rotatePanelAroundLocalZ(original, originalPanel.id, 90);
+    const rotatedPanel = rotated.panels[0]!;
+
+    expectVectorClose(
+      rotatedPanel.pose.orientation.xAxis,
+      originalPanel.pose.orientation.yAxis,
+    );
+    expectVectorClose(
+      rotatedPanel.pose.orientation.yAxis,
+      originalPanel.pose.orientation.xAxis.map((value) => -value) as Vector3Tuple,
+    );
+    expect(rotatedPanel.pose.position).toEqual(originalPanel.pose.position);
+    expect(rotatedPanel.pose.orientation.normal).toEqual(
+      originalPanel.pose.orientation.normal,
+    );
+    expect(rotatedPanel.surfaceAttachment).toEqual(originalPanel.surfaceAttachment);
+    expect(rotatedPanel.id).toBe(originalPanel.id);
+    expect(rotatedPanel.mountFaceId).toBe(originalPanel.mountFaceId);
+    expect(rotated.panelProfile).toEqual(original.panelProfile);
+    expect(rotated.wiring).toEqual(originalWiring);
+    expect(rotated.panels).toHaveLength(original.panels.length);
+    expect(rotated.mechanicalShell.derivationStatus).toBe(
+      "requires-regeneration",
+    );
+    expect(rotated.calibration).toMatchObject({
+      panelTransforms: "generated-provisional",
+      installedPanelOrientation: "provisional",
+      physicalChains: "provisional",
+    });
+
+    const { xAxis, yAxis, normal } = rotatedPanel.pose.orientation;
+    expect(Math.hypot(...xAxis)).toBeCloseTo(1, 12);
+    expect(Math.hypot(...yAxis)).toBeCloseTo(1, 12);
+    expect(dot(xAxis, yAxis)).toBeCloseTo(0, 12);
+    expect(dot(xAxis, normal)).toBeCloseTo(0, 12);
+    expect(dot(yAxis, normal)).toBeCloseTo(0, 12);
+    expectVectorClose(cross(xAxis, yAxis), normal, 12);
+
+    const roundTrip: unknown = JSON.parse(JSON.stringify(rotated));
+    expect(() => parsePanelAssemblyDefinition(roundTrip)).not.toThrow();
+    const restored = rotatePanelAroundLocalZ(rotated, originalPanel.id, -90);
+    expectVectorClose(
+      restored.panels[0]!.pose.orientation.xAxis,
+      originalPanel.pose.orientation.xAxis,
+    );
+    expectVectorClose(
+      restored.panels[0]!.pose.orientation.yAxis,
+      originalPanel.pose.orientation.yAxis,
+    );
+  });
+
+  it("returns to the original serialized orientation after four quarter turns", async () => {
+    const source: unknown = JSON.parse(
+      await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
+    );
+    const original = parsePanelAssemblyDefinition(source);
+    const panelId = original.panels[0]!.id;
+    let rotated = original;
+    for (let turn = 0; turn < 4; turn += 1) {
+      rotated = rotatePanelAroundLocalZ(rotated, panelId, 90);
+    }
+    expectVectorClose(
+      rotated.panels[0]!.pose.orientation.xAxis,
+      original.panels[0]!.pose.orientation.xAxis,
+      12,
+    );
+    expectVectorClose(
+      rotated.panels[0]!.pose.orientation.yAxis,
+      original.panels[0]!.pose.orientation.yAxis,
+      12,
+    );
+  });
+
+  it("preserves an existing local-Z rotation while dragging on the same normal", async () => {
+    const source: unknown = JSON.parse(
+      await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
+    );
+    const original = parsePanelAssemblyDefinition(source);
+    const panelId = original.panels[0]!.id;
+    const rotated = rotatePanelAroundLocalZ(original, panelId, 37);
+    const orientation = rotated.panels[0]!.pose.orientation;
+    const projected = projectPanelOrientationOntoSurface(
+      orientation.xAxis,
+      orientation.normal,
+    );
+    expectVectorClose(projected.xAxis, orientation.xAxis, 12);
+    expectVectorClose(projected.yAxis, orientation.yAxis, 12);
+  });
+
+  it("names an unknown panel when rotation cannot be applied", async () => {
+    const source: unknown = JSON.parse(
+      await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
+    );
+    const original = parsePanelAssemblyDefinition(source);
+    expect(() => rotatePanelAroundLocalZ(original, "P-missing", 90)).toThrow(
+      /Unknown panel P-missing/,
+    );
+  });
+
   it("insets a panel and leaves a pipeline-compilable closure ring", async () => {
     const source: unknown = JSON.parse(
       await readFile(

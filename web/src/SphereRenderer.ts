@@ -244,7 +244,9 @@ export class SphereRenderer {
   setSurfaceEditorCallbacks(callbacks: {
     onSelectionChange?: (panelId: string | null) => void;
     onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
+    onRotationCommit?: (panelId: string, degrees: number) => void;
     onAddPanelCommit?: (placement: SurfacePlacement) => void;
+    onDeletePanelRequest?: (panelId: string) => void;
   }): void {
     this.surfacePlacement.onSelectionChange = (panelId) => {
       this.selectedPanelId = panelId;
@@ -252,11 +254,13 @@ export class SphereRenderer {
       callbacks.onSelectionChange?.(panelId);
     };
     this.surfacePlacement.onPlacementCommit = callbacks.onPlacementCommit;
+    this.surfacePlacement.onRotationCommit = callbacks.onRotationCommit;
     this.surfacePlacement.onAddPanelCommit = callbacks.onAddPanelCommit;
+    this.surfacePlacement.onDeletePanelRequest = callbacks.onDeletePanelRequest;
   }
 
-  setSurfaceAddPanelMode(enabled: boolean): void {
-    this.surfacePlacement.setAddPanelMode(enabled);
+  selectEditorPanel(panelId: string | null): void {
+    this.surfacePlacement.selectPanel(panelId);
   }
 
   setPanelLabelsVisible(visible: boolean): void {

@@ -41,6 +41,34 @@ function normalize(value: Vector3Tuple): Vector3Tuple {
   return scale(value, 1 / length);
 }
 
+function markPoseMechanicsStale(definition: PanelAssemblyDefinition): void {
+  definition.mechanicalShell.derivationStatus = "requires-regeneration";
+  definition.status = "provisional";
+  definition.calibration.panelTransforms = "generated-provisional";
+  definition.calibration.installedPanelOrientation = "provisional";
+  definition.calibration.physicalChains = "provisional";
+}
+
+export function projectPanelOrientationOntoSurface(
+  sourceXAxis: Vector3Tuple,
+  surfaceNormal: Vector3Tuple,
+): { xAxis: Vector3Tuple; yAxis: Vector3Tuple } {
+  const normal = normalize(surfaceNormal);
+  let xAxis = subtract(
+    sourceXAxis,
+    scale(normal, dot(sourceXAxis, normal)),
+  );
+  if (Math.hypot(...xAxis) < 1e-8) {
+    xAxis = cross([0, 1, 0], normal);
+    if (Math.hypot(...xAxis) < 1e-8) {
+      xAxis = cross([1, 0, 0], normal);
+    }
+  }
+  xAxis = normalize(xAxis);
+  const yAxis = normalize(cross(normal, xAxis));
+  return { xAxis, yAxis };
+}
+
 function mean(values: Vector3Tuple[]): Vector3Tuple {
   return scale(values.reduce(add), 1 / values.length);
 }
@@ -323,11 +351,38 @@ export function movePanelOnDesignSurface(
     barycentric: [...placement.attachment.barycentric],
     normalOffset: placement.attachment.normalOffset,
   };
-  definition.mechanicalShell.derivationStatus = "requires-regeneration";
-  definition.status = "provisional";
-  definition.calibration.panelTransforms = "generated-provisional";
-  definition.calibration.installedPanelOrientation = "provisional";
-  definition.calibration.physicalChains = "provisional";
+  markPoseMechanicsStale(definition);
+  return definition;
+}
+
+/** Rotates one authoritative panel basis in its plane without moving it. */
+export function rotatePanelAroundLocalZ(
+  source: PanelAssemblyDefinition,
+  panelId: string,
+  degrees: number,
+): PanelAssemblyDefinition {
+  if (!Number.isFinite(degrees)) {
+    throw new Error(`Panel ${panelId} rotation must be a finite angle in degrees.`);
+  }
+  const definition = structuredClone(source);
+  const panel = definition.panels.find((candidate) => candidate.id === panelId);
+  if (!panel) throw new Error(`Unknown panel ${panelId}.`);
+  preserveAuthoringBoundary(definition);
+
+  const radians = (degrees * Math.PI) / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const { xAxis, yAxis, normal } = panel.pose.orientation;
+  const normalUnit = normalize([...normal]);
+  const rotatedX = add(scale(xAxis, cosine), scale(yAxis, sine));
+  const planarX = normalize(
+    subtract(rotatedX, scale(normalUnit, dot(rotatedX, normalUnit))),
+  );
+  const planarY = normalize(cross(normalUnit, planarX));
+  panel.pose.orientation.xAxis = planarX;
+  panel.pose.orientation.yAxis = planarY;
+
+  markPoseMechanicsStale(definition);
   return definition;
 }
 
@@ -388,11 +443,7 @@ export function addPanelOnDesignSurface(
   );
   definition.wiring.chainLengths[shortestOutput] =
     definition.wiring.chainLengths[shortestOutput]! + 1;
-  definition.mechanicalShell.derivationStatus = "requires-regeneration";
-  definition.status = "provisional";
-  definition.calibration.panelTransforms = "generated-provisional";
-  definition.calibration.installedPanelOrientation = "provisional";
-  definition.calibration.physicalChains = "provisional";
+  markPoseMechanicsStale(definition);
   definition.notes.push(
     `Panel ${panelId} was placed manually on the design surface; mechanical shell regeneration remains required.`,
   );
@@ -420,11 +471,7 @@ export function deletePanel(
   );
   definition.wiring.chainLengths[longestOutput] =
     definition.wiring.chainLengths[longestOutput]! - 1;
-  definition.mechanicalShell.derivationStatus = "requires-regeneration";
-  definition.status = "provisional";
-  definition.calibration.panelTransforms = "generated-provisional";
-  definition.calibration.installedPanelOrientation = "provisional";
-  definition.calibration.physicalChains = "provisional";
+  markPoseMechanicsStale(definition);
   definition.notes.push(
     `Panel ${panelId} was deleted in the browser editor; mechanical shell regeneration remains required.`,
   );

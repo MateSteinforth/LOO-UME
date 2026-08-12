@@ -18,8 +18,10 @@ import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegen
 import {
   addPanelOnDesignSurface,
   deletePanel,
+  rotatePanelAroundLocalZ,
 } from "../src/sculpture/SculptureEditor.ts";
 import { validateMapping } from "../web/src/LedMapping.ts";
+import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
 type Vector3Tuple = [number, number, number];
 
@@ -88,6 +90,15 @@ function addSquarePanel(
       normalOffset,
     },
   });
+}
+
+function expectPointClose(
+  actual: { x: number; y: number; z: number },
+  expected: Vector3Tuple,
+): void {
+  expect(actual.x).toBeCloseTo(expected[0], 9);
+  expect(actual.y).toBeCloseTo(expected[1], 9);
+  expect(actual.z).toBeCloseTo(expected[2], 9);
 }
 
 describe("empty 66 mm cuboctahedron authoring project", () => {
@@ -190,6 +201,154 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
     expect(cad.manifest.parts).toHaveLength(8);
   });
 
+
+  it("regenerates centered quarter turns and rotates pose-derived locations", async () => {
+    const input: unknown = JSON.parse(
+      await readFile(
+        "sculptures/cuboctahedron-empty-66/sculpture.json",
+        "utf8",
+      ),
+    );
+    let definition = parsePanelAssemblyDefinition(input);
+    const squareFaces = definition.mechanicalShell.authoringBoundary!.faces.filter(
+      (face) => face.panelPlacement === "whole-face",
+    );
+    for (const [index, face] of squareFaces.entries()) {
+      definition = addSquarePanel(definition, face, index * 2);
+    }
+
+    const zeroDefinition = regenerateMechanicalShell(
+      createPanelAssemblyProject(definition, "zero-degrees.json"),
+    );
+    const zeroProject = createPanelAssemblyProject(
+      zeroDefinition,
+      "zero-degrees.json",
+    );
+    const zeroAssembly = compilePanelAssembly(zeroProject);
+    const zeroMapping = createPanelAssemblyMapping(zeroProject, zeroAssembly);
+    const zeroWiring = createProvisionalWiringPreview(
+      zeroMapping,
+      zeroDefinition,
+      zeroProject.panelProfile,
+    );
+
+    const panelId = definition.panels[0]!.id;
+    const rotatedAuthoring = rotatePanelAroundLocalZ(definition, panelId, 90);
+    const staleMapping = createPanelAssemblyMapping(
+      createPanelAssemblyProject(rotatedAuthoring, "stale-rotated.json"),
+    );
+    expect(staleMapping.mechanicalMounts).toBeUndefined();
+    expect(staleMapping.printableClosures).toBeUndefined();
+
+    const rotatedDefinition = regenerateMechanicalShell(
+      createPanelAssemblyProject(rotatedAuthoring, "ninety-degrees.json"),
+    );
+    const rotatedProject = createPanelAssemblyProject(
+      rotatedDefinition,
+      "ninety-degrees.json",
+    );
+    const rotatedAssembly = compilePanelAssembly(rotatedProject);
+    const rotatedMapping = createPanelAssemblyMapping(
+      rotatedProject,
+      rotatedAssembly,
+    );
+    const rotatedWiring = createProvisionalWiringPreview(
+      rotatedMapping,
+      rotatedDefinition,
+      rotatedProject.panelProfile,
+    );
+
+    expect(rotatedDefinition.closures.faceIds).toHaveLength(8);
+    expect(rotatedAssembly.counts.closureConnectors).toBe(24);
+    expect(rotatedMapping.entries).toHaveLength(384);
+    const zeroPanel = zeroAssembly.panels.find((panel) => panel.id === panelId)!;
+    const rotatedPanel = rotatedAssembly.panels.find(
+      (panel) => panel.id === panelId,
+    )!;
+    const zeroEntry = zeroMapping.entries.find(
+      (entry) => entry.panelId === panelId && entry.panelPixelX === 0 &&
+        entry.panelPixelY === 0,
+    )!;
+    const rotatedEntry = rotatedMapping.entries.find(
+      (entry) => entry.panelId === panelId && entry.panelPixelX === 0 &&
+        entry.panelPixelY === 0,
+    )!;
+    const emitterOffset = rotatedProject.panelProfile.pixelGrid.emitterOffset;
+    const zeroLedDelta: Vector3Tuple = [
+      zeroEntry.x - zeroPanel.position.x - zeroPanel.normal.x * emitterOffset,
+      zeroEntry.y - zeroPanel.position.y - zeroPanel.normal.y * emitterOffset,
+      zeroEntry.z - zeroPanel.position.z - zeroPanel.normal.z * emitterOffset,
+    ];
+    const localX = dot(zeroLedDelta, [
+      zeroPanel.xAxis.x,
+      zeroPanel.xAxis.y,
+      zeroPanel.xAxis.z,
+    ]);
+    const localY = dot(zeroLedDelta, [
+      zeroPanel.yAxis.x,
+      zeroPanel.yAxis.y,
+      zeroPanel.yAxis.z,
+    ]);
+    expectPointClose(rotatedEntry, [
+      rotatedPanel.position.x + rotatedPanel.xAxis.x * localX +
+        rotatedPanel.yAxis.x * localY + rotatedPanel.normal.x * emitterOffset,
+      rotatedPanel.position.y + rotatedPanel.xAxis.y * localX +
+        rotatedPanel.yAxis.y * localY + rotatedPanel.normal.y * emitterOffset,
+      rotatedPanel.position.z + rotatedPanel.xAxis.z * localX +
+        rotatedPanel.yAxis.z * localY + rotatedPanel.normal.z * emitterOffset,
+    ]);
+    expect(rotatedEntry).not.toMatchObject({
+      x: zeroEntry.x,
+      y: zeroEntry.y,
+      z: zeroEntry.z,
+    });
+
+    for (const hole of rotatedPanel.mountingHoles) {
+      expectPointClose(hole.position, [
+        rotatedPanel.position.x + rotatedPanel.xAxis.x * hole.localPosition[0] +
+          rotatedPanel.yAxis.x * hole.localPosition[1],
+        rotatedPanel.position.y + rotatedPanel.xAxis.y * hole.localPosition[0] +
+          rotatedPanel.yAxis.y * hole.localPosition[1],
+        rotatedPanel.position.z + rotatedPanel.xAxis.z * hole.localPosition[0] +
+          rotatedPanel.yAxis.z * hole.localPosition[1],
+      ]);
+    }
+    expect(rotatedPanel.mountingHoles.map((hole) => hole.position)).not.toEqual(
+      zeroPanel.mountingHoles.map((hole) => hole.position),
+    );
+    expect(rotatedWiring.outputs.map((output) => output.panelIds)).toEqual(
+      zeroWiring.outputs.map((output) => output.panelIds),
+    );
+    const zeroNode = zeroWiring.nodes.find((node) => node.panelId === panelId)!;
+    const rotatedNode = rotatedWiring.nodes.find(
+      (node) => node.panelId === panelId,
+    )!;
+    expect(rotatedNode.din).not.toEqual(zeroNode.din);
+    expect(rotatedNode.dout).not.toEqual(zeroNode.dout);
+  });
+
+  it("rejects an unsafe intermediate angle with panel and boundary guidance", async () => {
+    const input: unknown = JSON.parse(
+      await readFile(
+        "sculptures/cuboctahedron-empty-66/sculpture.json",
+        "utf8",
+      ),
+    );
+    let definition = parsePanelAssemblyDefinition(input);
+    const squareFaces = definition.mechanicalShell.authoringBoundary!.faces.filter(
+      (face) => face.panelPlacement === "whole-face",
+    );
+    for (const [index, face] of squareFaces.entries()) {
+      definition = addSquarePanel(definition, face, index * 2);
+    }
+    const panelId = definition.panels[0]!.id;
+    const unsafe = rotatePanelAroundLocalZ(definition, panelId, 45);
+    expect(() => regenerateMechanicalShell(
+      createPanelAssemblyProject(unsafe, "unsafe-angle.json"),
+    )).toThrow(
+      new RegExp(`Panel ${panelId}.*fully inside one planar JSON boundary face`),
+    );
+  });
   it("blocks mechanically incomplete placement with the unsupported part named", async () => {
     const input: unknown = JSON.parse(
       await readFile(

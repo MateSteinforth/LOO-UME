@@ -20,6 +20,7 @@ import {
   addPanelToClosureFace,
   deletePanel,
   movePanelOnDesignSurface,
+  rotatePanelAroundLocalZ,
   sculptureJson,
 } from "../../src/sculpture/SculptureEditor";
 import {
@@ -337,14 +338,8 @@ app.innerHTML = `
           <button id="load-design-surface" class="editor-button" type="button">
             Load watertight GLB
           </button>
-          <button id="add-surface-panel" class="editor-button" type="button" disabled>
-            Add panel on next surface click
-          </button>
-          <button id="delete-panel" class="editor-button" type="button" disabled>
-            Delete selected panel
-          </button>
           <p id="surface-status" class="mapping-note">
-            Load a GLB, then drag an existing panel across its surface.
+            Load a GLB, or use the sculpture JSON shell as the editing surface.
           </p>
           <p id="selected-panel-status" class="mapping-note">
             No design surface loaded.
@@ -439,9 +434,6 @@ const designSurfaceFileInput =
   query<HTMLInputElement>("#design-surface-file");
 const loadDesignSurfaceButton =
   query<HTMLButtonElement>("#load-design-surface");
-const addSurfacePanelButton =
-  query<HTMLButtonElement>("#add-surface-panel");
-const deletePanelButton = query<HTMLButtonElement>("#delete-panel");
 const surfaceScaleInput = query<HTMLInputElement>("#surface-scale");
 const surfaceStatus = query<HTMLElement>("#surface-status");
 const selectedPanelStatus = query<HTMLElement>("#selected-panel-status");
@@ -480,7 +472,6 @@ async function start(): Promise<void> {
     );
     let editorDefinition = loadedSculpture.definition;
     let editorProject = loadedSculpture.project;
-    let selectedEditorPanelId: string | null = null;
     let selectedHardwareContract = loadedSculpture.contract;
     let hardwareContract = selectedHardwareContract;
     const engine = await WledEngine.create(
@@ -684,11 +675,7 @@ async function start(): Promise<void> {
     };
 
     const clearDesignSurface = (message: string): void => {
-      renderer?.setSurfaceAddPanelMode(false);
       renderer?.setDesignSurface(null);
-      addSurfacePanelButton.disabled = true;
-      addSurfacePanelButton.dataset.armed = "false";
-      addSurfacePanelButton.textContent = "Add panel on next surface click";
       surfaceStatus.textContent = message;
       selectedPanelStatus.textContent = "No design surface loaded.";
     };
@@ -700,9 +687,6 @@ async function start(): Promise<void> {
         "design-surface",
     ): void => {
       renderer?.setDesignSurface(surface.geometry, attachmentSurface);
-      addSurfacePanelButton.disabled = false;
-      addSurfacePanelButton.dataset.armed = "false";
-      addSurfacePanelButton.textContent = "Add panel on next surface click";
       autoRotate.checked = false;
       renderer?.setAutoRotate(false);
       const size = surface.validation.bounds.size
@@ -716,7 +700,7 @@ async function start(): Promise<void> {
         size +
         " mm, watertight.";
       selectedPanelStatus.textContent =
-        `Click a panel to select it, then drag it across the ${attachmentSurface === "mechanical-shell" ? "JSON shell" : "GLB"} surface.`;
+        `Click a panel for its local-XY/local-Z gizmo. Drag empty space to orbit; click the ${attachmentSurface === "mechanical-shell" ? "JSON shell" : "GLB"} mesh to add a panel.`;
     };
 
     const showMechanicalShellSurface = (message?: string): void => {
@@ -762,11 +746,9 @@ async function start(): Promise<void> {
 
     renderer?.setSurfaceEditorCallbacks({
       onSelectionChange: (panelId) => {
-        selectedEditorPanelId = panelId;
-        deletePanelButton.disabled = panelId === null;
         selectedPanelStatus.textContent = panelId
-          ? "Selected " + panelId + ". Drag it onto the target surface."
-          : "Click a panel, then drag it across the GLB surface.";
+          ? `Selected ${panelId}. Use the center/axes to move in local XY, the blue ring to rotate around local Z, or × to delete.`
+          : "Click a panel for its gizmo, or click the mesh to add a panel.";
       },
       onPlacementCommit: (placement) => {
         try {
@@ -797,6 +779,33 @@ async function start(): Promise<void> {
           viewerError.textContent = message;
         }
       },
+      onRotationCommit: (panelId, degrees) => {
+        try {
+          const edited = rotatePanelAroundLocalZ(
+            editorDefinition,
+            panelId,
+            degrees,
+          );
+          const project = createPanelAssemblyProject(
+            edited,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          applyLoadedSculpture(createLoadedSculpture(project));
+          renderer?.selectEditorPanel(panelId);
+          const direction = degrees >= 0 ? "counter-clockwise" : "clockwise";
+          pipelineStatus.classList.remove("pipeline-status--error");
+          pipelineStatus.textContent =
+            `Rotated ${panelId} ${Math.abs(degrees).toFixed(1)}° ${direction} as viewed from outside. Run will revalidate its full PCB envelope.`;
+          viewerError.hidden = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+        }
+      },
       onAddPanelCommit: (placement) => {
         try {
           const edited = addPanelOnDesignSurface(editorDefinition, placement);
@@ -807,13 +816,33 @@ async function start(): Promise<void> {
           );
           applyLoadedSculpture(createLoadedSculpture(project));
           const panelId = edited.panels.at(-1)!.id;
-          addSurfacePanelButton.dataset.armed = "false";
-          addSurfacePanelButton.textContent = "Add panel on next surface click";
+          renderer?.selectEditorPanel(panelId);
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
             `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. Run will regenerate from the JSON mechanical boundary.`;
           selectedPanelStatus.textContent =
             `${panelId} was added and can now be dragged across the surface.`;
+          viewerError.hidden = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+        }
+      },
+      onDeletePanelRequest: (panelId) => {
+        try {
+          const edited = deletePanel(editorDefinition, panelId);
+          const project = createPanelAssemblyProject(
+            edited,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          applyLoadedSculpture(createLoadedSculpture(project));
+          pipelineStatus.classList.remove("pipeline-status--error");
+          pipelineStatus.textContent =
+            `Deleted ${panelId}. Run will regenerate the closed JSON mechanical boundary.`;
           viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -939,40 +968,6 @@ async function start(): Promise<void> {
           sculptureFileInput.value = "";
         }
       })();
-    });
-    deletePanelButton.addEventListener("click", () => {
-      if (!selectedEditorPanelId) return;
-      const panelId = selectedEditorPanelId;
-      try {
-        const edited = deletePanel(editorDefinition, panelId);
-        const project = createPanelAssemblyProject(
-          edited,
-          editorProject.source,
-          editorProject.panelProfile,
-        );
-        applyLoadedSculpture(createLoadedSculpture(project));
-        pipelineStatus.classList.remove("pipeline-status--error");
-        pipelineStatus.textContent =
-          `Deleted ${panelId}. Run will regenerate the closed JSON mechanical boundary.`;
-        viewerError.hidden = true;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        pipelineStatus.classList.add("pipeline-status--error");
-        pipelineStatus.textContent = message;
-        viewerError.hidden = false;
-        viewerError.textContent = message;
-      }
-    });
-    addSurfacePanelButton.addEventListener("click", () => {
-      const armed = addSurfacePanelButton.dataset.armed !== "true";
-      addSurfacePanelButton.dataset.armed = String(armed);
-      addSurfacePanelButton.textContent = armed
-        ? "Cancel surface panel"
-        : "Add panel on next surface click";
-      renderer?.setSurfaceAddPanelMode(armed);
-      selectedPanelStatus.textContent = armed
-        ? "Click the GLB surface to place one panel."
-        : "Click a panel, then drag it across the GLB surface.";
     });
     loadDesignSurfaceButton.addEventListener("click", () => {
       designSurfaceFileInput.click();
