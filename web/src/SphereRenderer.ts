@@ -96,6 +96,7 @@ export class SphereRenderer {
   private readonly resizeObserver: ResizeObserver;
   private mapping: LedMapping;
   private panelLabelsVisible = true;
+  private selectedPanelId: string | null = null;
   private panelThickness = 0.8;
 
   constructor(
@@ -245,7 +246,11 @@ export class SphereRenderer {
     onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
     onAddPanelCommit?: (placement: SurfacePlacement) => void;
   }): void {
-    this.surfacePlacement.onSelectionChange = callbacks.onSelectionChange;
+    this.surfacePlacement.onSelectionChange = (panelId) => {
+      this.selectedPanelId = panelId;
+      this.updatePanelLabelSelection();
+      callbacks.onSelectionChange?.(panelId);
+    };
     this.surfacePlacement.onPlacementCommit = callbacks.onPlacementCommit;
     this.surfacePlacement.onAddPanelCommit = callbacks.onAddPanelCommit;
   }
@@ -435,10 +440,19 @@ export class SphereRenderer {
           ? "panel-label panel-label--square"
           : "panel-label panel-label--pentagon";
       element.textContent = panel.id;
-      element.title =
-        panel.faceType === "square-face"
-          ? "Square-face panel"
-          : "Pentagon-centre panel";
+      element.dataset.panelId = panel.id;
+      element.title = `Select panel ${panel.id}`;
+      element.setAttribute("role", "button");
+      element.tabIndex = 0;
+      const selectPanel = (event: Event): void => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.surfacePlacement.selectPanel(panel.id);
+      };
+      element.addEventListener("pointerdown", selectPanel);
+      element.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") selectPanel(event);
+      });
       const object = new CSS2DObject(element);
       const labelPosition = this.toThree(panel.position).addScaledVector(
         this.toThree(panel.normal),
@@ -451,6 +465,14 @@ export class SphereRenderer {
         element,
         normal: this.toThree(panel.normal),
       });
+      element.classList.toggle(
+        "panel-label--selected",
+        panel.id === this.selectedPanelId,
+      );
+      element.setAttribute(
+        "aria-pressed",
+        String(panel.id === this.selectedPanelId),
+      );
     }
 
     const surfaceGeometry = new THREE.BufferGeometry();
@@ -819,6 +841,19 @@ export class SphereRenderer {
     for (const geometry of geometries) geometry.dispose();
     for (const material of materials) material.dispose();
     group.clear();
+  }
+
+  private updatePanelLabelSelection(): void {
+    for (const label of this.panelLabels) {
+      label.element.classList.toggle(
+        "panel-label--selected",
+        label.element.dataset.panelId === this.selectedPanelId,
+      );
+      label.element.setAttribute(
+        "aria-pressed",
+        String(label.element.dataset.panelId === this.selectedPanelId),
+      );
+    }
   }
 
   private clearPanelDecorations(): void {

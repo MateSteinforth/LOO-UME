@@ -213,6 +213,10 @@ input[type="checkbox"] {
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
   transform: translateY(-9px);
   white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .panel-label--square {
@@ -221,6 +225,13 @@ input[type="checkbox"] {
 
 .panel-label--pentagon {
   color: #ffad79;
+}
+
+.panel-label--selected {
+  color: #fff4c2;
+  border-color: #ffb35c;
+  background: rgba(106, 53, 10, 0.94);
+  box-shadow: 0 0 0 2px rgba(255, 179, 92, 0.35);
 }
 
 .viewer-overlay {

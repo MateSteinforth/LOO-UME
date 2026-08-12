@@ -62,6 +62,9 @@ The simulator includes a small pose-first editor in the existing control panel.
   authoritative pose
   plus barycentric attachment. The panel appears immediately, can be dragged, and
   joins provisional wiring. It does not invent a mechanical face association.
+- **Panel selection** accepts either the visible panel label or the enlarged panel
+  surface target. The selected label gains an amber highlight. Dragging still starts
+  from the 3D panel target so a label tap cannot accidentally move hardware.
 - **Delete selected panel** removes the active panel, rebalances provisional wiring,
   preserves JSON face assignment, and marks the mechanical shell for regeneration.
 - **Add panel to face** lists only closure faces that can contain the active panel

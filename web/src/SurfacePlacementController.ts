@@ -130,6 +130,11 @@ export class SurfacePlacementController {
     return this.surface.geometry.boundingSphere?.clone() ?? null;
   }
 
+  selectPanel(panelId: string | null): void {
+    if (panelId !== null && !this.panelTargets.has(panelId)) return;
+    this.select(panelId);
+  }
+
   setAddPanelMode(enabled: boolean): void {
     this.addingPanel = enabled && this.enabled;
     if (this.addingPanel) this.select(null);
