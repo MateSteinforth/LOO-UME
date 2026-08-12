@@ -56,11 +56,23 @@ export interface PanelAssemblyDefinition {
     };
   }>;
   mechanicalShell: {
+    /** Stable, uncut JSON boundary used to regenerate edited mechanical topology. */
+    authoringBoundary?: {
+      vertices: Array<[number, number, number]>;
+      faces: Array<{ id: string; vertexIndices: number[] }>;
+      authoredPanels: Array<{
+        id: string;
+        mountFaceId: string;
+        pose: PanelAssemblyDefinition["panels"][number]["pose"];
+      }>;
+    };
     kind: "explicit-planar-face-graph";
     derivationStatus?: "authored" | "requires-regeneration";
     vertices: Array<[number, number, number]>;
     faces: Array<{
       id: string;
+      /** Coplanar regions with the same part ID are emitted as one flat part. */
+      partId?: string;
       vertexIndices: number[];
       connectorPolicy?: { minimumPanelHoleConnectors: 2; reason: string };
     }>;
@@ -143,6 +155,7 @@ export interface CompiledClosureConnector {
 
 export interface CompiledAssemblyFace {
   id: string;
+  partId: string;
   role: "panel" | "closure";
   vertexIndices: number[];
   vertices: Vector3Data[];
@@ -327,6 +340,8 @@ export function parsePanelAssemblyDefinition(
       !isRecord(face) ||
       typeof face.id !== "string" ||
       faceIds.has(face.id) ||
+      (face.partId !== undefined &&
+        (typeof face.partId !== "string" || face.partId.length === 0)) ||
       !Array.isArray(face.vertexIndices) ||
       face.vertexIndices.length < 3 ||
       face.vertexIndices.some(
@@ -686,6 +701,7 @@ export function compilePanelAssembly(
     }
     return {
       id: source.id,
+      partId: source.partId ?? source.id,
       role,
       vertexIndices: [...source.vertexIndices],
       vertices: faceVertices,
@@ -901,7 +917,7 @@ export function compilePanelAssembly(
 
     interfaces.forEach((panelInterface, index) => {
       const hole = bestAssignment![index]!;
-      hole.assignedClosureId = panelInterface.closure.id;
+      hole.assignedClosureId = panelInterface.closure.partId;
       const edgeMidpoint = scale(
         add(panelInterface.edgeStart, panelInterface.edgeEnd),
         0.5,
@@ -936,18 +952,31 @@ export function compilePanelAssembly(
     });
   }
 
+  const closureParts = new Map<string, CompiledAssemblyFace[]>();
   for (const closure of faces.filter((face) => face.role === "closure")) {
-    const sourceFace = definition.mechanicalShell.faces.find(
-      (face) => face.id === closure.id,
-    )!;
-    const minimumConnectors =
-      sourceFace.connectorPolicy?.minimumPanelHoleConnectors ?? 3;
-    if (closure.connectors.length < minimumConnectors) {
+    closureParts.set(closure.partId, [
+      ...(closureParts.get(closure.partId) ?? []),
+      closure,
+    ]);
+  }
+  for (const [partId, regions] of closureParts) {
+    const connectors = regions.flatMap((region) => region.connectors);
+    const minimumConnectors = Math.max(...regions.map((region) => {
+      const sourceFace = definition.mechanicalShell.faces.find(
+        (face) => face.id === region.id,
+      )!;
+      return sourceFace.connectorPolicy?.minimumPanelHoleConnectors ?? 3;
+    }));
+    if (connectors.length < minimumConnectors) {
       throw new Error(
-        "Closure " + closure.id + " needs at least " + minimumConnectors + " panel-hole connectors; found " + closure.connectors.length + ".",
+        "Printable part " + partId + " needs at least " + minimumConnectors + " panel-hole connectors; found " + connectors.length + ".",
       );
     }
-    const adjacentPanels = closure.connectors.map((connector) => connector.panelId);
+    const normals = regions.map((region) => region.normal);
+    if (normals.some((normal) => dot(normal, normals[0]!) < 1 - 1e-6)) {
+      throw new Error(`Printable part ${partId} contains non-coplanar regions and cannot print flat.`);
+    }
+    const adjacentPanels = connectors.map((connector) => connector.panelId);
     for (const panelId of adjacentPanels) {
       const panel = panelById.get(panelId)!;
       panel.neighborPanelIds.push(
@@ -1123,6 +1152,15 @@ export function createPanelAssemblyMapping(
     .forEach((entry, logicalIndex) => {
       entry.logicalIndex = logicalIndex;
     });
+  const closurePartMap = new Map<string, CompiledAssemblyFace[]>();
+  for (const face of resolvedAssembly?.faces.filter(
+    (candidate) => candidate.role === "closure",
+  ) ?? []) {
+    closurePartMap.set(face.partId, [
+      ...(closurePartMap.get(face.partId) ?? []),
+      face,
+    ]);
+  }
   return {
     id: project.sculpture.id,
     status: project.sculpture.status,
@@ -1132,7 +1170,7 @@ export function createPanelAssemblyMapping(
       .filter((face) => face.role === "closure")
       .flatMap((face) =>
         face.connectors.map((connector) => ({
-          closureFaceId: face.id,
+          closureFaceId: face.partId,
           panelId: connector.panelId,
           holeId: connector.panelHoleId,
           edgeMidpoint: scale(
@@ -1145,21 +1183,25 @@ export function createPanelAssemblyMapping(
       ),
     printableClosures: resolvedAssembly?.faces
       .filter((face) => face.role === "closure")
+      .filter((face, index, faces) =>
+        faces.findIndex((candidate) => candidate.partId === face.partId) === index
+      )
       .map((face) => ({
-        id: face.id,
+        id: face.partId,
         vertices: face.vertices,
         normal: face.normal,
         coverThickness: project.sculpture.closures.coverThickness,
         exteriorClipping: project.sculpture.closures.exteriorClipping,
         cadMeshAsset:
-          `./generated-cad/${project.sculpture.id}/closure-${face.id.toLowerCase()}.stl`,
+          `./generated-cad/${project.sculpture.id}/closure-${face.partId.toLowerCase()}.stl`,
         frame: {
           origin: face.center,
           xAxis: face.xAxis,
           yAxis: face.yAxis,
           inwardAxis: scale(face.normal, -1),
         },
-        connectors: face.connectors.map((connector) => ({
+        connectors: closurePartMap.get(face.partId)!
+          .flatMap((region) => region.connectors).map((connector) => ({
           panelId: connector.panelId,
           holeId: connector.panelHoleId,
           pilotPosition: connector.pilotPosition,

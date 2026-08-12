@@ -1,4 +1,5 @@
 import type { PanelAssemblyDefinition } from "./PanelAssembly.ts";
+import { preserveAuthoringBoundary } from "./MechanicalShellRegenerator.ts";
 
 type Vector3Tuple = [number, number, number];
 type Vector2Tuple = [number, number];
@@ -139,6 +140,7 @@ export function addPanelToClosureFace(
 ): PanelAssemblyDefinition {
   const definition = structuredClone(source);
   const closureIndex = definition.closures.faceIds.indexOf(faceId);
+  preserveAuthoringBoundary(definition);
   if (closureIndex < 0) {
     throw new Error(`${faceId} is not an available closure face.`);
   }
@@ -302,6 +304,7 @@ export function movePanelOnDesignSurface(
     );
   }
   const definition = structuredClone(source);
+  preserveAuthoringBoundary(definition);
   const panel = definition.panels.find((candidate) => candidate.id === panelId);
   if (!panel) throw new Error(`Unknown panel ${panelId}.`);
   panel.pose = {
@@ -357,6 +360,7 @@ export function addPanelOnDesignSurface(
     );
   }
   const definition = structuredClone(source);
+  preserveAuthoringBoundary(definition);
   const panelId = nextPanelId(definition);
   definition.panels.push({
     id: panelId,
@@ -405,6 +409,7 @@ export function deletePanel(
     );
   }
   const definition = structuredClone(source);
+  preserveAuthoringBoundary(definition);
   const panelIndex = definition.panels.findIndex(
     (candidate) => candidate.id === panelId,
   );

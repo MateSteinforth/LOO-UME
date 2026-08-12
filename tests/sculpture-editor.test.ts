@@ -1,4 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   createMechanicalShellTriangleMesh,
 } from "../src/sculpture/DesignSurface.ts";
@@ -16,6 +18,8 @@ import {
   deletePanel,
   movePanelOnDesignSurface,
 } from "../src/sculpture/SculptureEditor.ts";
+import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegenerator.ts";
+import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
 describe("browser sculpture editor", () => {
@@ -161,6 +165,104 @@ describe("browser sculpture editor", () => {
     expect(restored.sculpture.panels).toHaveLength(6);
     expect(restored.sculpture.wiring.chainLengths.reduce((sum, value) => sum + value, 0)).toBe(6);
     expect(createPanelAssemblyMapping(restored).panels).toHaveLength(6);
+  });
+
+  it("regenerates a flat printable ring from JSON after GLB-canvas placement", async () => {
+    const source: unknown = JSON.parse(
+      await readFile("sculptures/truncated-octahedron/sculpture.json", "utf8"),
+    );
+    const original = parsePanelAssemblyDefinition(source);
+    original.designSurface = {
+      kind: "triangle-mesh",
+      format: "glb",
+      source: "visual-canvas.glb",
+      sha256: "b".repeat(64),
+      scaleToMillimeters: 1000,
+      status: "watertight",
+    };
+    const originalProject = createPanelAssemblyProject(original, "editor-test.json");
+    const target = compilePanelAssembly(originalProject).faces.find(
+      (face) => face.role === "closure",
+    )!;
+    const edited = addPanelOnDesignSurface(original, {
+      position: [
+        target.center.x + target.normal.x * 0.4,
+        target.center.y + target.normal.y * 0.4,
+        target.center.z + target.normal.z * 0.4,
+      ],
+      orientation: {
+        xAxis: [target.xAxis.x, target.xAxis.y, target.xAxis.z],
+        yAxis: [target.yAxis.x, target.yAxis.y, target.yAxis.z],
+        normal: [target.normal.x, target.normal.y, target.normal.z],
+      },
+      attachment: {
+        surface: "design-surface",
+        triangleIndex: 999,
+        barycentric: [0.2, 0.3, 0.5],
+        normalOffset: 0.4,
+      },
+    });
+
+    const regenerated = regenerateMechanicalShell(
+      createPanelAssemblyProject(edited, "editor-test.json"),
+    );
+    const project = createPanelAssemblyProject(regenerated, "editor-test.json");
+    const assembly = compilePanelAssembly(project);
+    const panel = assembly.panels.find((candidate) => candidate.id === "P-07")!;
+    const partIds = new Set(
+      regenerated.mechanicalShell.faces
+        .filter((face) => face.partId?.includes("P-07"))
+        .map((face) => face.partId),
+    );
+
+    expect(regenerated.mechanicalShell.derivationStatus).toBe("authored");
+    expect(panel.faceId).toContain("HX-01-PANEL-P-07");
+    expect(partIds.size).toBe(1);
+    expect(
+      panel.mountingHoles
+        .filter((hole) => hole.mechanicalUse === "eligible")
+        .every((hole) => hole.assignedClosureId !== null),
+    ).toBe(true);
+    expect(regenerated.designSurface?.source).toBe("visual-canvas.glb");
+    expect(regenerated.mechanicalShell.vertices).not.toEqual([]);
+    const outputDirectory = await mkdtemp(join(tmpdir(), "regenerated-cad-"));
+    const cad = await emitPanelClosureCadArtifacts(project, { outputDirectory });
+    expect(cad.manifest.parts).toHaveLength(8);
+    const ringPart = cad.manifest.parts.find((part) =>
+      part.closureFaceId.includes("P-07")
+    )!;
+    expect(ringPart.connectorPanelIds.filter((panelId) => panelId === "P-07"))
+      .toHaveLength(4);
+    expect(ringPart.connectorHoleIds).toHaveLength(7);
+    const scad = await readFile(
+      cad.entrypointPaths.closures[ringPart.closureFaceId]!,
+      "utf8",
+    );
+    expect(scad).toContain("cover_point_sets=");
+  });
+
+  it("rejects a panel whose cleared envelope crosses the JSON boundary", async () => {
+    const source: unknown = JSON.parse(
+      await readFile("sculptures/truncated-octahedron/sculpture.json", "utf8"),
+    );
+    const original = parsePanelAssemblyDefinition(source);
+    const edited = addPanelOnDesignSurface(original, {
+      position: [1000, 0, 0],
+      orientation: {
+        xAxis: [0, 1, 0],
+        yAxis: [0, 0, 1],
+        normal: [1, 0, 0],
+      },
+      attachment: {
+        surface: "mechanical-shell",
+        triangleIndex: 0,
+        barycentric: [1, 0, 0],
+        normalOffset: 0.4,
+      },
+    });
+    expect(() => regenerateMechanicalShell(
+      createPanelAssemblyProject(edited, "editor-test.json"),
+    )).toThrow(/Panel P-07.*fully inside one planar JSON boundary face/);
   });
 
   it("rejects surface attachments without a design-surface GLB", async () => {

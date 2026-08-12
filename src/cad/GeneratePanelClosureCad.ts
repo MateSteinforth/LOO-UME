@@ -132,6 +132,7 @@ function moduleId(faceId: string): string {
 function connectorParameters(
   face: CompiledAssemblyFace,
   connector: CompiledClosureConnector,
+  regionCenter: Vector3Data = face.center,
 ): {
   edgeOrigin: Vector3Data;
   edgeAxis: Vector3Data;
@@ -153,7 +154,7 @@ function connectorParameters(
   );
   const midpoint = scale(add(connector.edgeVertices[0], connector.edgeVertices[1]), 0.5);
   const gapInwardAxis = normalize(
-    localVector(frame, normalize(subtract(face.center, midpoint))),
+    localVector(frame, normalize(subtract(regionCenter, midpoint))),
   );
   const holeDelta = subtract(connector.pilotPosition, connector.edgeVertices[0]);
   return {
@@ -193,15 +194,20 @@ function panelCutter(
 function closureSource(
   project: PanelAssemblyProject,
   assembly: CompiledPanelAssembly,
-  face: CompiledAssemblyFace,
+  regions: CompiledAssemblyFace[],
 ): string {
   const policy = project.sculpture.closures;
+  const face = regions[0]!;
+  const connectorEntries = regions.flatMap((region) =>
+    region.connectors.map((connector) => ({ connector, region }))
+  );
+  const connectors = connectorEntries.map(({ connector }) => connector);
   const profile = project.panelProfile;
   const frame = closureFrame(face);
   const panels = new Map(assembly.panels.map((panel) => [panel.id, panel]));
-  const connectorModules = face.connectors
-    .map((connector, index) => {
-      const values = connectorParameters(face, connector);
+  const connectorModules = connectorEntries
+    .map(({ connector, region }, index) => {
+      const values = connectorParameters(face, connector, region.center);
       const flangeFrame = scadFrame(
         values.edgeOrigin,
         values.edgeAxis,
@@ -251,16 +257,18 @@ module gusset_${index}() {
 }`;
     })
     .join("\n\n");
-  const connectorCalls = face.connectors
+  const connectorCalls = connectors
     .map((_, index) => `      connector_${index}();\n      gusset_${index}();`)
     .join("\n");
-  const cutters = face.connectors
+  const cutters = connectors
     .map((connector) => panelCutter(frame, panels.get(connector.panelId)!, project))
     .join("\n");
-  const coverPoints = face.vertices.map((vertex) => {
-    const point = localPoint(frame, vertex);
-    return point2([point.x, point.y]);
-  });
+  const coverPointSets = regions.map((region) =>
+    region.vertices.map((vertex) => {
+      const point = localPoint(frame, vertex);
+      return point2([point.x, point.y]);
+    })
+  );
   const clipPoints = assembly.vertices.map((vertex) => {
     const radius = Math.hypot(vertex.x, vertex.y, vertex.z);
     return point3(localPoint(frame, scale(vertex, 1 + 0.03 / radius)));
@@ -280,9 +288,26 @@ module gusset_${index}() {
       `[${reversed[0]},${reversed[index + 1]},${reversed[index + 2]}]`,
     );
   });
-  const id = moduleId(face.id);
+  const id = moduleId(face.partId);
+  const legacy = regions.length === 1 && face.partId === face.id;
+  const description = legacy
+    ? `// ${face.id}: one integrated closure using real holes on ${connectors.map((connector) => `${connector.panelId}/${connector.panelHoleId}`).join(", ")}.`
+    : `// ${face.partId}: one flat-printable part using real holes on ${connectors.map((connector) => `${connector.panelId}/${connector.panelHoleId}`).join(", ")}.`;
+  const coverDeclaration = legacy
+    ? `cover_points=[${coverPointSets[0]!.join(",")}];`
+    : `cover_point_sets=[${coverPointSets.map((points) => `[${points.join(",")}]`).join(",")}];`;
+  const coverGeometry = legacy
+    ? `      linear_extrude(height=cover_thickness)
+        offset(r=cover_corner_radius)
+          offset(delta=-cover_corner_radius)
+            polygon(cover_points);`
+    : `      linear_extrude(height=cover_thickness)
+        offset(r=cover_corner_radius)
+          offset(delta=-cover_corner_radius)
+            union() for (cover_points=cover_point_sets)
+              polygon(cover_points);`;
   return `// Generated from ${project.source}; do not hand-edit.
-// ${face.id}: one integrated closure using real holes on ${face.connectors.map((connector) => `${connector.panelId}/${connector.panelHoleId}`).join(", ")}.
+${description}
 $fn=40;
 eps=0.03;
 cover_thickness=${scadNumber(policy.coverThickness)};
@@ -293,7 +318,7 @@ panel_mount_offset=${scadNumber(profile.dimensions.thickness + profile.mounting.
 pilot_d=${scadNumber(profile.mounting.printedPilotDiameter)};
 leadin_d=${scadNumber(profile.mounting.screwLeadIn.diameter)};
 leadin_depth=${scadNumber(profile.mounting.screwLeadIn.depth)};
-cover_points=[${coverPoints.join(",")}];
+${coverDeclaration}
 clip_points=[${clipPoints.join(",")}];
 clip_faces=[${clipFaces.join(",")}];
 
@@ -311,10 +336,7 @@ module ${id}() {
   intersection() {
     difference() {
     union() {
-      linear_extrude(height=cover_thickness)
-        offset(r=cover_corner_radius)
-          offset(delta=-cover_corner_radius)
-            polygon(cover_points);
+${coverGeometry}
 ${connectorCalls}
       }
 ${cutters}
@@ -327,23 +349,33 @@ ${id}();
 `;
 }
 
+function groupedClosureFaces(
+  assembly: CompiledPanelAssembly,
+): Array<{ partId: string; regions: CompiledAssemblyFace[] }> {
+  const grouped = new Map<string, CompiledAssemblyFace[]>();
+  for (const face of assembly.faces.filter((candidate) => candidate.role === "closure")) {
+    grouped.set(face.partId, [...(grouped.get(face.partId) ?? []), face]);
+  }
+  return [...grouped].map(([partId, regions]) => ({ partId, regions }));
+}
+
 function assemblyPreviewSource(
   project: PanelAssemblyProject,
   assembly: CompiledPanelAssembly,
   outputDirectory: string,
 ): string {
-  const closureUses = assembly.faces
-    .filter((face) => face.role === "closure")
-    .map((face) => {
-      const path = resolve(outputDirectory, `closure-${face.id.toLowerCase()}.scad`);
+  const parts = groupedClosureFaces(assembly);
+  const closureUses = parts
+    .map(({ partId }) => {
+      const path = resolve(outputDirectory, `closure-${partId.toLowerCase()}.scad`);
       return `use <${path}>;`;
     })
     .join("\n");
-  const closures = assembly.faces
-    .filter((face) => face.role === "closure")
-    .map((face, index) => {
+  const closures = parts
+    .map(({ partId, regions }, index) => {
+      const face = regions[0]!;
       const color = index % 2 === 0 ? "[0.12,0.50,0.56,1]" : "[0.16,0.38,0.46,1]";
-      return `color(${color}) multmatrix(${scadFrame(face.center, face.xAxis, face.yAxis, scale(face.normal, -1))}) ${moduleId(face.id)}();`;
+      return `color(${color}) multmatrix(${scadFrame(face.center, face.xAxis, face.yAxis, scale(face.normal, -1))}) ${moduleId(partId)}();`;
     })
     .join("\n");
   const panels = assembly.panels
@@ -378,14 +410,14 @@ export async function emitPanelClosureCadArtifacts(
       resolve(rootDirectory, "build", "generated", project.sculpture.id, "cad"),
   );
   const assembly = compilePanelAssembly(project);
-  const closureFaces = assembly.faces.filter((face) => face.role === "closure");
+  const closureParts = groupedClosureFaces(assembly);
   await mkdir(outputDirectory, { recursive: true });
   const closurePaths: Record<string, string> = {};
   await Promise.all(
-    closureFaces.map(async (face) => {
-      const path = resolve(outputDirectory, `closure-${face.id.toLowerCase()}.scad`);
-      closurePaths[face.id] = path;
-      await writeFile(path, closureSource(project, assembly, face), "utf8");
+    closureParts.map(async ({ partId, regions }) => {
+      const path = resolve(outputDirectory, `closure-${partId.toLowerCase()}.scad`);
+      closurePaths[partId] = path;
+      await writeFile(path, closureSource(project, assembly, regions), "utf8");
     }),
   );
   const assemblyPreview = resolve(outputDirectory, "assembly-preview.scad");
@@ -394,14 +426,14 @@ export async function emitPanelClosureCadArtifacts(
     assemblyPreviewSource(project, assembly, outputDirectory),
     "utf8",
   );
-  const parts: GeneratedClosurePart[] = closureFaces.map((face) => ({
-    id: `closure-${face.id.toLowerCase()}`,
-    closureFaceId: face.id,
+  const parts: GeneratedClosurePart[] = closureParts.map(({ partId, regions }) => ({
+    id: `closure-${partId.toLowerCase()}`,
+    closureFaceId: partId,
     quantity: 1,
-    entrypoint: `closure-${face.id.toLowerCase()}.scad`,
-    outputStl: `closure-${face.id.toLowerCase()}.stl`,
-    connectorPanelIds: face.connectors.map((connector) => connector.panelId),
-    connectorHoleIds: face.connectors.map((connector) => connector.panelHoleId),
+    entrypoint: `closure-${partId.toLowerCase()}.scad`,
+    outputStl: `closure-${partId.toLowerCase()}.stl`,
+    connectorPanelIds: regions.flatMap((face) => face.connectors.map((connector) => connector.panelId)),
+    connectorHoleIds: regions.flatMap((face) => face.connectors.map((connector) => connector.panelHoleId)),
     status: "prototype-unvalidated",
   }));
   const faceRoleById = new Map(

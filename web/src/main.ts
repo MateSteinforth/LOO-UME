@@ -536,8 +536,7 @@ async function start(): Promise<void> {
         "requires-regeneration";
 
     const updatePipelineAvailability = (): void => {
-      runPipelineButton.disabled =
-        !pipelineAvailable || !mechanicalShellIsCurrent();
+      runPipelineButton.disabled = !pipelineAvailable;
     };
 
     const renderOutputLayerControls = (): void => {
@@ -785,7 +784,7 @@ async function start(): Promise<void> {
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
             "Moved " + placement.panelId +
-            ". Pose and surface attachment are saved; CAD generation is blocked until shell regeneration is implemented.";
+            ". Pose is saved; Run will validate it against the JSON boundary and regenerate printable mechanics.";
           selectedPanelStatus.textContent =
             placement.panelId + " is attached to triangle " +
             placement.attachment.triangleIndex + ".";
@@ -812,7 +811,7 @@ async function start(): Promise<void> {
           addSurfacePanelButton.textContent = "Add panel on next surface click";
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
-            `Added ${panelId} on GLB triangle ${placement.attachment.triangleIndex}. Save JSON; CAD remains blocked pending mechanical shell regeneration.`;
+            `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. Run will regenerate from the JSON mechanical boundary.`;
           selectedPanelStatus.textContent =
             `${panelId} was added and can now be dragged across the surface.`;
           viewerError.hidden = true;
@@ -954,7 +953,7 @@ async function start(): Promise<void> {
         applyLoadedSculpture(createLoadedSculpture(project));
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent =
-          `Deleted ${panelId}. Save JSON; CAD remains blocked pending mechanical shell regeneration.`;
+          `Deleted ${panelId}. Run will regenerate the closed JSON mechanical boundary.`;
         viewerError.hidden = true;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -1060,18 +1059,11 @@ async function start(): Promise<void> {
     });
     runPipelineButton.addEventListener("click", () => {
       void (async () => {
-        if (!mechanicalShellIsCurrent()) {
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent =
-            "CAD generation is blocked: the moved panel poses need a regenerated mechanical shell.";
-          updatePipelineAvailability();
-          return;
-        }
         runPipelineButton.disabled = true;
         addPanelButton.disabled = true;
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent =
-          "Generating mapping, wiring, OpenSCAD parts, STLs, and preview renders…";
+          "Regenerating mechanical topology, then generating OpenSCAD, STLs, previews, and wiring…";
         try {
           const response = await fetch("./api/editor-pipeline", {
             method: "POST",
@@ -1082,14 +1074,22 @@ async function start(): Promise<void> {
             ok?: boolean;
             assetSculptureId?: string;
             log?: string;
+            definition?: unknown;
             error?: string;
           };
-          if (!response.ok || !result.ok || !result.assetSculptureId) {
+          if (!response.ok || !result.ok || !result.assetSculptureId || !result.definition) {
             throw new Error(
               result.error ?? `Pipeline failed with HTTP ${response.status}.`,
             );
           }
-          const previewDefinition = structuredClone(editorDefinition);
+          const regeneratedProject = createPanelAssemblyProject(
+            result.definition,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          editorDefinition = regeneratedProject.sculpture;
+          editorProject = regeneratedProject;
+          const previewDefinition = structuredClone(regeneratedProject.sculpture);
           previewDefinition.id = result.assetSculptureId;
           const previewProject = createPanelAssemblyProject(
             previewDefinition,

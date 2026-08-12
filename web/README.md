@@ -78,8 +78,11 @@ The simulator includes a small pose-first editor in the existing control panel.
 
 A JSON-shell or GLB surface move or addition marks the mechanical shell as requiring
 regeneration. The simulator then omits stale shell, mount, and printable-closure
-previews, and the CAD pipeline remains blocked rather than emitting misleading
-parts.
+previews. Run matches each pose to exactly one planar JSON boundary face, validates
+the complete cleared panel envelope, regenerates the panel opening and coplanar
+flat-printable filler part, and only then invokes OpenSCAD. The GLB remains a visual
+positioning canvas and is never used as mechanical geometry. Unsupported or unsafe
+placements return a panel-specific error instead of emitting misleading parts.
 
 Run the editor with `npm run dev:web`; a static production bundle cannot execute
 OpenSCAD on its host. An inset topology with only three populated neighbors still

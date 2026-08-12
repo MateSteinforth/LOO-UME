@@ -534,6 +534,10 @@
                 "type": "string",
                 "minLength": 1
               },
+              "partId": {
+                "type": "string",
+                "minLength": 1
+              },
               "vertexIndices": {
                 "type": "array",
                 "minItems": 3,
@@ -568,6 +572,100 @@
             "authored",
             "requires-regeneration"
           ]
+        },
+        "authoringBoundary": {
+          "type": "object",
+          "description": "Stable JSON planar boundary captured before derived topology is edited. GLB geometry is never stored or consumed here.",
+          "additionalProperties": false,
+          "required": ["vertices", "faces", "authoredPanels"],
+          "properties": {
+            "vertices": {
+              "type": "array",
+              "minItems": 4,
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  { "type": "number" },
+                  { "type": "number" },
+                  { "type": "number" }
+                ],
+                "items": false
+              }
+            },
+            "faces": {
+              "type": "array",
+              "minItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "vertexIndices"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1 },
+                  "vertexIndices": {
+                    "type": "array",
+                    "minItems": 3,
+                    "items": { "type": "integer", "minimum": 0 }
+                  }
+                }
+              }
+            },
+            "authoredPanels": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "mountFaceId", "pose"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1 },
+                  "mountFaceId": { "type": "string", "minLength": 1 },
+                  "pose": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["position", "orientation"],
+                    "properties": {
+                      "position": {
+                        "type": "array",
+                        "prefixItems": [
+                          { "type": "number" },
+                          { "type": "number" },
+                          { "type": "number" }
+                        ],
+                        "items": false
+                      },
+                      "orientation": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["xAxis", "yAxis", "normal"],
+                        "properties": {
+                          "xAxis": {
+                            "type": "array",
+                            "prefixItems": [
+                              { "type": "number" }, { "type": "number" }, { "type": "number" }
+                            ],
+                            "items": false
+                          },
+                          "yAxis": {
+                            "type": "array",
+                            "prefixItems": [
+                              { "type": "number" }, { "type": "number" }, { "type": "number" }
+                            ],
+                            "items": false
+                          },
+                          "normal": {
+                            "type": "array",
+                            "prefixItems": [
+                              { "type": "number" }, { "type": "number" }, { "type": "number" }
+                            ],
+                            "items": false
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

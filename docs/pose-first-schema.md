@@ -75,6 +75,37 @@ The current schema intentionally selects one panel profile per project. A
 future schema can add per-panel profile IDs when mixed hardware is supported by
 CAD, wiring, and WLED addressing end to end.
 
+## Mechanical regeneration contract
+
+The optional GLB is only a positioning canvas. Its triangles never define wall
+thickness, seams, clipping, segmentation, or printable material, and the GLB is
+never exported as CAD. Run can regenerate mechanics only when every edited pose
+matches exactly one face of the saved planar JSON authoring boundary.
+
+Before the first surface edit, the editor captures that stable, uncut boundary
+as `mechanicalShell.authoringBoundary`. It also records the authored panel poses
+so unchanged, physically established panel/face associations remain compatible.
+An edited panel must pass the stricter rule: its complete profile rectangle plus
+`panelEnvelopeClearance` must lie inside one convex planar boundary face.
+
+Regeneration replaces that face with an explicit panel opening and coplanar
+filler regions. Regions sharing `partId` are one flat-printable part; their
+OpenSCAD covers are unioned before the established real-hole tabs and cutters
+are applied. The outside polygons are the mechanical boundary and
+`closures.coverThickness` grows inward from them.
+
+Generation blocks when the JSON boundary is open, non-two-manifold, concave, or
+non-planar; when a pose is off-plane, ambiguous, crosses a boundary, or shares a
+face with another panel; when a grouped part is not coplanar; or when the
+existing connector compiler cannot safely allocate every eligible mounting
+hole. Blocked DIN/DOUT corners are never candidates. The measured 0.20 mm pilot
+correction, 0.50 mm flush correction, 1.6 mm pilot, and 3.2 mm by 0.7 mm lead-in
+continue to come from the panel profile.
+
+This first implementation supports one panel per convex planar JSON face.
+Curved mechanical thickening, arbitrary GLB mesh segmentation, and automatic
+panel distribution remain unsupported.
+
 ## Mechanical shell
 
 The current printable closure algorithm still needs a closed, planar,

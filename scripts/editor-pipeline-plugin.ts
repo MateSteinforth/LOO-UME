@@ -2,6 +2,8 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import type { Plugin } from "vite";
+import { createPanelAssemblyProject } from "../src/sculpture/PanelAssembly.ts";
+import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegenerator.ts";
 
 const MAX_REQUEST_BYTES = 5 * 1024 * 1024;
 
@@ -59,7 +61,7 @@ export function editorPipelinePlugin(): Plugin {
           if (typeof input !== "object" || input === null || Array.isArray(input)) {
             throw new Error("Sculpture JSON must be an object.");
           }
-          const definition = structuredClone(input) as Record<string, unknown>;
+          let definition = structuredClone(input) as Record<string, unknown>;
           const sourceId = definition.id;
           const profile = definition.panelProfile;
           if (
@@ -75,9 +77,19 @@ export function editorPipelinePlugin(): Plugin {
           ) {
             throw new Error("Sculpture and panel-profile IDs must be lowercase URL-safe slugs.");
           }
+          const shell = definition.mechanicalShell;
+          if (
+            typeof shell === "object" && shell !== null && !Array.isArray(shell) &&
+            (shell as Record<string, unknown>).derivationStatus === "requires-regeneration"
+          ) {
+            definition = regenerateMechanicalShell(
+              createPanelAssemblyProject(definition, "editor-request.json"),
+            ) as unknown as Record<string, unknown>;
+          }
+          const regeneratedDefinition = structuredClone(definition);
           const runId = `${sourceId.slice(0, 60)}-editor-preview`;
           definition.id = runId;
-          (profile as Record<string, unknown>).source =
+          (definition.panelProfile as Record<string, unknown>).source =
             `../../../catalog/panels/${(profile as Record<string, unknown>).id}.json`;
 
           const rootDirectory = process.cwd();
@@ -108,6 +120,7 @@ export function editorPipelinePlugin(): Plugin {
           response.end(JSON.stringify({
             ok: true,
             assetSculptureId: runId,
+            definition: regeneratedDefinition,
             source: relativeSource,
             log: `${generationLog}${renderLog}`.trim(),
           }));
