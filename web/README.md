@@ -60,6 +60,8 @@ The simulator includes a small pose-first editor in the existing control panel.
   the clicked GLB triangle and interpolated normal to create an authoritative pose
   plus barycentric attachment. The panel appears immediately, can be dragged, and
   joins provisional wiring. It does not invent a mechanical face association.
+- **Delete selected panel** removes the active panel, rebalances provisional wiring,
+  preserves JSON face assignment, and marks the mechanical shell for regeneration.
 - **Add panel to face** lists only closure faces that can contain the active panel
   profile. It insets the PCB rectangle, partitions the remaining face into printable
   closure sectors, derives a right-handed panel pose, and rebalances provisional

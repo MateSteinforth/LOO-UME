@@ -10,6 +10,7 @@ import {
 import {
   addPanelOnDesignSurface,
   addPanelToClosureFace,
+  deletePanel,
   movePanelOnDesignSurface,
 } from "../src/sculpture/SculptureEditor.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
@@ -150,6 +151,15 @@ describe("browser sculpture editor", () => {
     expect(mapping.printableClosures).toBeUndefined();
     expect(wiring.nodes.some((node) => node.panelId === "P-07")).toBe(true);
     expect(() => assertMechanicalShellReady(project)).toThrow(/out of date/);
+
+    const deleted = deletePanel(edited, "P-07");
+    const restored = createPanelAssemblyProject(
+      JSON.parse(JSON.stringify(deleted)),
+      "editor-test.json",
+    );
+    expect(restored.sculpture.panels).toHaveLength(6);
+    expect(restored.sculpture.wiring.chainLengths.reduce((sum, value) => sum + value, 0)).toBe(6);
+    expect(createPanelAssemblyMapping(restored).panels).toHaveLength(6);
   });
 
   it("rejects surface attachments without a design-surface GLB", async () => {

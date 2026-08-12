@@ -377,6 +377,42 @@ export function addPanelOnDesignSurface(
   return definition;
 }
 
+export function deletePanel(
+  source: PanelAssemblyDefinition,
+  panelId: string,
+): PanelAssemblyDefinition {
+  if (source.panels.length <= source.wiring.outputs.length) {
+    throw new Error(
+      "Cannot delete a panel: provisional wiring requires at least one panel per output.",
+    );
+  }
+  const definition = structuredClone(source);
+  const panelIndex = definition.panels.findIndex(
+    (candidate) => candidate.id === panelId,
+  );
+  if (panelIndex < 0) throw new Error(`Unknown panel ${panelId}.`);
+  const [panel] = definition.panels.splice(panelIndex, 1);
+  if (panel?.mountFaceId && !definition.closures.faceIds.includes(panel.mountFaceId)) {
+    definition.closures.faceIds.push(panel.mountFaceId);
+  }
+  const longestOutput = definition.wiring.chainLengths.reduce(
+    (bestIndex, length, index, lengths) =>
+      length > lengths[bestIndex]! ? index : bestIndex,
+    0,
+  );
+  definition.wiring.chainLengths[longestOutput] =
+    definition.wiring.chainLengths[longestOutput]! - 1;
+  definition.mechanicalShell.derivationStatus = "requires-regeneration";
+  definition.status = "provisional";
+  definition.calibration.panelTransforms = "generated-provisional";
+  definition.calibration.installedPanelOrientation = "provisional";
+  definition.calibration.physicalChains = "provisional";
+  definition.notes.push(
+    `Panel ${panelId} was deleted in the browser editor; mechanical shell regeneration remains required.`,
+  );
+  return definition;
+}
+
 export function sculptureJson(definition: PanelAssemblyDefinition): string {
   return `${JSON.stringify(definition, null, 2)}\n`;
 }

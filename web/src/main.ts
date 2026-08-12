@@ -18,6 +18,7 @@ import {
 import {
   addPanelOnDesignSurface,
   addPanelToClosureFace,
+  deletePanel,
   movePanelOnDesignSurface,
   sculptureJson,
 } from "../../src/sculpture/SculptureEditor";
@@ -338,6 +339,9 @@ app.innerHTML = `
           <button id="add-surface-panel" class="editor-button" type="button" disabled>
             Add panel on next surface click
           </button>
+          <button id="delete-panel" class="editor-button" type="button" disabled>
+            Delete selected panel
+          </button>
           <p id="surface-status" class="mapping-note">
             Load a GLB, then drag an existing panel across its surface.
           </p>
@@ -436,6 +440,7 @@ const loadDesignSurfaceButton =
   query<HTMLButtonElement>("#load-design-surface");
 const addSurfacePanelButton =
   query<HTMLButtonElement>("#add-surface-panel");
+const deletePanelButton = query<HTMLButtonElement>("#delete-panel");
 const surfaceScaleInput = query<HTMLInputElement>("#surface-scale");
 const surfaceStatus = query<HTMLElement>("#surface-status");
 const selectedPanelStatus = query<HTMLElement>("#selected-panel-status");
@@ -474,6 +479,7 @@ async function start(): Promise<void> {
     );
     let editorDefinition = loadedSculpture.definition;
     let editorProject = loadedSculpture.project;
+    let selectedEditorPanelId: string | null = null;
     let selectedHardwareContract = loadedSculpture.contract;
     let hardwareContract = selectedHardwareContract;
     const engine = await WledEngine.create(
@@ -749,6 +755,8 @@ async function start(): Promise<void> {
 
     renderer?.setSurfaceEditorCallbacks({
       onSelectionChange: (panelId) => {
+        selectedEditorPanelId = panelId;
+        deletePanelButton.disabled = panelId === null;
         selectedPanelStatus.textContent = panelId
           ? "Selected " + panelId + ". Drag it onto the target surface."
           : "Click a panel, then drag it across the GLB surface.";
@@ -924,6 +932,29 @@ async function start(): Promise<void> {
           sculptureFileInput.value = "";
         }
       })();
+    });
+    deletePanelButton.addEventListener("click", () => {
+      if (!selectedEditorPanelId) return;
+      const panelId = selectedEditorPanelId;
+      try {
+        const edited = deletePanel(editorDefinition, panelId);
+        const project = createPanelAssemblyProject(
+          edited,
+          editorProject.source,
+          editorProject.panelProfile,
+        );
+        applyLoadedSculpture(createLoadedSculpture(project));
+        pipelineStatus.classList.remove("pipeline-status--error");
+        pipelineStatus.textContent =
+          `Deleted ${panelId}. Save JSON; CAD remains blocked pending mechanical shell regeneration.`;
+        viewerError.hidden = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = message;
+        viewerError.hidden = false;
+        viewerError.textContent = message;
+      }
     });
     addSurfacePanelButton.addEventListener("click", () => {
       const armed = addSurfacePanelButton.dataset.armed !== "true";
