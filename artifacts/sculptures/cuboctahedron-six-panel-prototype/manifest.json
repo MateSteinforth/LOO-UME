@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "1.0.0",
+  "sculptureId": "cuboctahedron-six-panel-prototype",
+  "source": "sculptures/cuboctahedron/sculpture.json",
+  "mechanicalStatus": "prototype-unvalidated",
+  "topology": {
+    "vertices": 12,
+    "edges": 24,
+    "faces": 14,
+    "panels": 6,
+    "closures": 8,
+    "closureConnectors": 24
+  },
+  "parts": [
+    {
+      "id": "closure-tr-01",
+      "closureFaceId": "TR-01",
+      "quantity": 1,
+      "entrypoint": "closure-tr-01.scad",
+      "outputStl": "closure-tr-01.stl",
+      "connectorPanelIds": [
+        "P-01",
+        "P-02",
+        "P-05"
+      ],
+      "connectorHoleIds": [
+        "bottom-right",
+        "middle-right",
+        "top-left"
+      ],
+      "status": "prototype-unvalidated"
+    },
+    {
+      "id": "closure-tr-02",
+      "closureFaceId": "TR-02",
+      "quantity": 1,
+      "entrypoint": "closure-tr-02.scad",
+      "outputStl": "closure-tr-02.stl",
+      "connectorPanelIds": [
+        "P-01",
+        "P-02",
+        "P-03"
+      ],
+      "connectorHoleIds": [
+        "middle-left",
+        "top-left",
+        "middle-right"
+      ],
+      "status": "prototype-unvalidated"
+    },
+    {
+      "id": "closure-tr-03",
+      "closureFaceId": "TR-03",
+      "quantity": 1,
+      "entrypoint": "closure-tr-03.scad",
+      "outputStl": "closure-tr-03.stl",
+      "connectorPanelIds": [
+        "P-01",
+        "P-03",
+        "P-04"
+      ],
+      "connectorHoleIds": [
+        "top-left",
+        "top-left",
+        "middle-right"
+      ],
+      "status": "prototype-unvalidated"
+    },
+    {
+      "id": "closure-tr-04",
+      "closureFaceId": "TR-04",
+      "quantity": 1,
+      "entrypoint": "closure-tr-04.scad",
+      "outputStl": "closure-tr-04.stl",
+      "connectorPanelIds": [
+        "P-01",
+        "P-04",
+        "P-05"
+      ],
+      "connectorHoleIds": [
+        "middle-right",
+        "top-left",
+        "middle-right"
+      ],
+      "status": "prototype-unvalidated"
+    },
+    {
+      "id": "closure-tr-05",
+      "closureFaceId": "TR-05",
+      "quantity": 1,
+      "entrypoint": "closure-tr-05.scad",
+      "outputStl": "closure-tr-05.stl",
+      "connectorPanelIds": [
+        "P-02",
+        "P-05",
+        "P-06"
+      ],
+      "connectorHoleIds": [
+        "bottom-right",
+        "middle-left",
+        "middle-left"
+      ],
+      "status": "prototype-unvalidated"
+    },
+    {
+      "id": "closure-tr-06",
+      "closureFaceId": "TR-06",
+      "quantity": 1,
+      "entrypoint": "closure-tr-06.scad",
+      "outputStl": "closure-tr-06.stl",
+      "connectorPanelIds": [
+        "P-02",
+        "P-03",
+        "P-06"
+      ],
+      "connectorHoleIds": [
+        "middle-left",
+        "bottom-right",
+        "bottom-right"
+      ],
+      "status": "prototype-unvalidated"
+    },
+    {
+      "id": "closure-tr-07",
+      "closureFaceId": "TR-07",
+      "quantity": 1,
+      "entrypoint": "closure-tr-07.scad",
+      "outputStl": "closure-tr-07.stl",
+      "connectorPanelIds": [
+        "P-03",
+        "P-04",
+        "P-06"
+      ],
+      "connectorHoleIds": [
+        "middle-left",
+        "bottom-right",
+        "middle-right"
+      ],
+      "status": "prototype-unvalidated"
+    },
+    {
+      "id": "closure-tr-08",
+      "closureFaceId": "TR-08",
+      "quantity": 1,
+      "entrypoint": "closure-tr-08.scad",
+      "outputStl": "closure-tr-08.stl",
+      "connectorPanelIds": [
+        "P-04",
+        "P-05",
+        "P-06"
+      ],
+      "connectorHoleIds": [
+        "middle-left",
+        "bottom-right",
+        "top-left"
+      ],
+      "status": "prototype-unvalidated"
+    }
+  ],
+  "assemblyPreview": "assembly-preview.scad",
+  "warnings": [
+    "Every tab is centered on a real PCB mounting hole, but installed electrical keep-outs remain provisional.",
+    "Print and inspect one closure fit coupon before producing the complete set."
+  ]
+}

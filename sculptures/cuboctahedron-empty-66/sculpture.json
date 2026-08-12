@@ -1,0 +1,458 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "cuboctahedron-empty-66-authoring",
+  "name": "Empty 66 mm Cuboctahedron",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "ws2812b-8x8-66x65",
+    "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
+  },
+  "panels": [],
+  "mechanicalShell": {
+    "kind": "explicit-planar-face-graph",
+    "vertices": [
+      [
+        -46.669047558716,
+        -46.669047558716,
+        0
+      ],
+      [
+        -46.669047558716,
+        0,
+        -46.669047558716
+      ],
+      [
+        -46.669047558716,
+        0,
+        46.669047558716
+      ],
+      [
+        -46.669047558716,
+        46.669047558716,
+        0
+      ],
+      [
+        0,
+        -46.669047558716,
+        -46.669047558716
+      ],
+      [
+        0,
+        -46.669047558716,
+        46.669047558716
+      ],
+      [
+        0,
+        46.669047558716,
+        -46.669047558716
+      ],
+      [
+        0,
+        46.669047558716,
+        46.669047558716
+      ],
+      [
+        46.669047558716,
+        -46.669047558716,
+        0
+      ],
+      [
+        46.669047558716,
+        0,
+        -46.669047558716
+      ],
+      [
+        46.669047558716,
+        0,
+        46.669047558716
+      ],
+      [
+        46.669047558716,
+        46.669047558716,
+        0
+      ]
+    ],
+    "faces": [
+      {
+        "id": "SQ-01",
+        "vertexIndices": [
+          6,
+          3,
+          7,
+          11
+        ]
+      },
+      {
+        "id": "SQ-02",
+        "vertexIndices": [
+          4,
+          1,
+          6,
+          9
+        ]
+      },
+      {
+        "id": "SQ-03",
+        "vertexIndices": [
+          8,
+          9,
+          11,
+          10
+        ]
+      },
+      {
+        "id": "SQ-04",
+        "vertexIndices": [
+          5,
+          10,
+          7,
+          2
+        ]
+      },
+      {
+        "id": "SQ-05",
+        "vertexIndices": [
+          0,
+          2,
+          3,
+          1
+        ]
+      },
+      {
+        "id": "SQ-06",
+        "vertexIndices": [
+          4,
+          8,
+          5,
+          0
+        ]
+      },
+      {
+        "id": "TR-01",
+        "vertexIndices": [
+          1,
+          3,
+          6
+        ]
+      },
+      {
+        "id": "TR-02",
+        "vertexIndices": [
+          9,
+          6,
+          11
+        ]
+      },
+      {
+        "id": "TR-03",
+        "vertexIndices": [
+          10,
+          11,
+          7
+        ]
+      },
+      {
+        "id": "TR-04",
+        "vertexIndices": [
+          2,
+          7,
+          3
+        ]
+      },
+      {
+        "id": "TR-05",
+        "vertexIndices": [
+          4,
+          0,
+          1
+        ]
+      },
+      {
+        "id": "TR-06",
+        "vertexIndices": [
+          8,
+          4,
+          9
+        ]
+      },
+      {
+        "id": "TR-07",
+        "vertexIndices": [
+          5,
+          8,
+          10
+        ]
+      },
+      {
+        "id": "TR-08",
+        "vertexIndices": [
+          0,
+          5,
+          2
+        ]
+      }
+    ],
+    "derivationStatus": "requires-regeneration",
+    "authoringBoundary": {
+      "vertices": [
+        [
+          -46.669047558716,
+          -46.669047558716,
+          0
+        ],
+        [
+          -46.669047558716,
+          0,
+          -46.669047558716
+        ],
+        [
+          -46.669047558716,
+          0,
+          46.669047558716
+        ],
+        [
+          -46.669047558716,
+          46.669047558716,
+          0
+        ],
+        [
+          0,
+          -46.669047558716,
+          -46.669047558716
+        ],
+        [
+          0,
+          -46.669047558716,
+          46.669047558716
+        ],
+        [
+          0,
+          46.669047558716,
+          -46.669047558716
+        ],
+        [
+          0,
+          46.669047558716,
+          46.669047558716
+        ],
+        [
+          46.669047558716,
+          -46.669047558716,
+          0
+        ],
+        [
+          46.669047558716,
+          0,
+          -46.669047558716
+        ],
+        [
+          46.669047558716,
+          0,
+          46.669047558716
+        ],
+        [
+          46.669047558716,
+          46.669047558716,
+          0
+        ]
+      ],
+      "faces": [
+        {
+          "id": "SQ-01",
+          "vertexIndices": [
+            6,
+            3,
+            7,
+            11
+          ],
+          "panelPlacement": "whole-face"
+        },
+        {
+          "id": "SQ-02",
+          "vertexIndices": [
+            4,
+            1,
+            6,
+            9
+          ],
+          "panelPlacement": "whole-face"
+        },
+        {
+          "id": "SQ-03",
+          "vertexIndices": [
+            8,
+            9,
+            11,
+            10
+          ],
+          "panelPlacement": "whole-face"
+        },
+        {
+          "id": "SQ-04",
+          "vertexIndices": [
+            5,
+            10,
+            7,
+            2
+          ],
+          "panelPlacement": "whole-face"
+        },
+        {
+          "id": "SQ-05",
+          "vertexIndices": [
+            0,
+            2,
+            3,
+            1
+          ],
+          "panelPlacement": "whole-face"
+        },
+        {
+          "id": "SQ-06",
+          "vertexIndices": [
+            4,
+            8,
+            5,
+            0
+          ],
+          "panelPlacement": "whole-face"
+        },
+        {
+          "id": "TR-01",
+          "vertexIndices": [
+            1,
+            3,
+            6
+          ]
+        },
+        {
+          "id": "TR-02",
+          "vertexIndices": [
+            9,
+            6,
+            11
+          ]
+        },
+        {
+          "id": "TR-03",
+          "vertexIndices": [
+            10,
+            11,
+            7
+          ]
+        },
+        {
+          "id": "TR-04",
+          "vertexIndices": [
+            2,
+            7,
+            3
+          ]
+        },
+        {
+          "id": "TR-05",
+          "vertexIndices": [
+            4,
+            0,
+            1
+          ]
+        },
+        {
+          "id": "TR-06",
+          "vertexIndices": [
+            8,
+            4,
+            9
+          ]
+        },
+        {
+          "id": "TR-07",
+          "vertexIndices": [
+            5,
+            8,
+            10
+          ]
+        },
+        {
+          "id": "TR-08",
+          "vertexIndices": [
+            0,
+            5,
+            2
+          ]
+        }
+      ],
+      "authoredPanels": []
+    }
+  },
+  "closures": {
+    "faceIds": [
+      "SQ-01",
+      "SQ-02",
+      "SQ-03",
+      "SQ-04",
+      "SQ-05",
+      "SQ-06",
+      "TR-01",
+      "TR-02",
+      "TR-03",
+      "TR-04",
+      "TR-05",
+      "TR-06",
+      "TR-07",
+      "TR-08"
+    ],
+    "generator": "panel-hole-tabs",
+    "holeSelection": "minimum-total-edge-distance",
+    "exteriorClipping": "polyhedron-interior",
+    "coverThickness": 2,
+    "coverCornerRadius": 2,
+    "flangeThickness": 3,
+    "flangeOverlap": 1.25,
+    "edgeLipDepth": 3,
+    "screwTabWidth": 13,
+    "screwTabEndMargin": 4.5,
+    "connectorCornerClearance": 14,
+    "panelEnvelopeClearance": 0
+  },
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "face-adjacency-nearest-neighbor",
+    "chainLengths": [
+      0
+    ],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Cuboctahedron test output",
+        "gpio": null,
+        "color": "#36e0d0"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Empty authoring fixture: the six square faces are nominal 66 mm whole-face panel regions; the eight triangular gaps become printable closures after all six panels are placed.",
+    "The JSON face graph is the mechanical boundary. No GLB geometry is used for CAD.",
+    "Zero panel-envelope clearance is intentional because the 66 mm PCB width exactly matches the 66 mm square face."
+  ]
+}

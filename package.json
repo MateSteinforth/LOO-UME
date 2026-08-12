@@ -1,0 +1,43 @@
+{
+  "name": "led-rhombo-visualizer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "setup:emsdk": "sh scripts/setup-emsdk.sh",
+    "check:wled": "node scripts/check-wled-sync.mjs",
+    "validate:sculpture": "tsx scripts/validate-sculpture.ts",
+    "stage:sculptures": "node scripts/stage-sculpture-json.mjs",
+    "generate:mapping": "tsx scripts/generate-mapping.ts",
+    "generate:mapping:hardware": "tsx scripts/generate-mapping.ts --hardware",
+    "generate:cad": "tsx scripts/generate-cad.ts",
+    "generate:sculpture": "tsx scripts/generate-sculpture.ts",
+    "generate:cuboctahedron": "npm run generate:sculpture -- --sculpture sculptures/cuboctahedron/sculpture.json",
+    "generate:rhombicosidodecahedron:auto": "npm run generate:sculpture -- --sculpture sculptures/rhombicosidodecahedron-auto/sculpture.json",
+    "generate:truncated-octahedron": "npm run generate:sculpture -- --sculpture sculptures/truncated-octahedron/sculpture.json",
+    "generate:assets": "npm run stage:sculptures && npm run generate:mapping && npm run generate:cad && npm run generate:cuboctahedron && npm run generate:rhombicosidodecahedron:auto && npm run generate:truncated-octahedron",
+    "verify:cad": "tsx scripts/verify-cad.ts",
+    "verify:sculpture": "tsx scripts/verify-sculpture.ts",
+    "verify:cuboctahedron": "tsx scripts/verify-sculpture.ts --sculpture sculptures/cuboctahedron/sculpture.json",
+    "verify:rhombicosidodecahedron:auto": "tsx scripts/verify-sculpture.ts --sculpture sculptures/rhombicosidodecahedron-auto/sculpture.json",
+    "verify:truncated-octahedron": "tsx scripts/verify-sculpture.ts --sculpture sculptures/truncated-octahedron/sculpture.json",
+    "verify:processed-sculptures": "npm run verify:cuboctahedron && npm run verify:rhombicosidodecahedron:auto && npm run verify:truncated-octahedron",
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "dev": "npm run generate:assets && npm run build:wasm && vite",
+    "dev:web": "npm run stage:sculptures && npm run build:wasm && vite",
+    "build": "npm run generate:assets && npm run build:wasm && tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "npm run generate:assets && npm run build:wasm && vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "three": "^0.179.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "@types/three": "^0.179.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vite": "^7.1.2",
+    "vitest": "^3.2.4"
+  }
+}

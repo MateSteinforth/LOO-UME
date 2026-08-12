@@ -6,12 +6,15 @@ three mapping facts listed below.
 
 ## Hardware baseline
 
-- 42 rigid `WS2812B-64` panels: 8 x 8 RGB pixels, 5 V, 64 pixels each.
-- 2,688 pixels total: 30 square-face panels and 12 pentagon-centre panels.
+- 41 rigid `WS2812B-64` panels: 8 x 8 RGB pixels, 5 V, 64 pixels each.
+- 2,624 pixels total: 30 square-face panels and 11 pentagon-centre panels.
+- The north-pole pentagonal opening is intentionally unpopulated.
 - One ESP32-class controller running WLED, with Ethernet, an I2S microphone,
   and four level-shifted data outputs. The exact board and GPIO assignments are
   not yet selected.
-- Output lengths are 11, 10, 11, and 10 panels: 704, 640, 704, and 640 pixels.
+- Four data outputs remain planned. Their revised panel counts and lengths
+  must be assigned with the physical chain; the obsolete 42-panel split must
+  not be reused.
 - Two independent 5 V / 40 A power domains each feed two outputs. Grounds are
   common; positive rails remain separate.
 
@@ -40,17 +43,27 @@ The canonical map has one record per LED and joins:
 - controller output, chain position, and physical wire index.
 
 External renderers sample their image at each LED's UV coordinate and send RGB
-values in physical wire order. A generated `ledmap.json` lets WLED's standalone
-effects follow the same sculpture layout.
+values in physical wire order. The browser and generator now share the same
+`map[logicalIndex] = physicalIndex` contract. The generated provisional map is
+round-trip tested against the renderer for all 2,624 LEDs.
 
-The panel's RGB color order, pixel-zero corner, and row/column serpentine order
-remain bench-test facts. Do not encode them as final until a real panel passes
-a numbered diagnostic test. Panel placement, orientation, output assignment,
-and chain position also remain data rather than effect-code constants.
+A production `ledmap.json` is deliberately not emitted while any hardware
+field is provisional. The guarded exporter unlocks only after the readiness
+checks for GPIOs, chain order, panel pixel order, and installed orientation all
+pass. DIN/DOUT corner assignment is already measured in the panel profile. The
+current route generator covers data only and assumes the controller is near the
+sculpture top; it does not generate the power branches described above.
+
+The panel JSON carries the provisional back-view addressing rule: pixel 0 at
+bottom-left, left-to-right first row, then alternating rows upward. It derives
+pixel 56 at top-right and pixel 63 at top-left. Keep the status provisional
+until a numbered diagnostic test confirms the rule and RGB color order. Panel
+placement, orientation, output assignment, and chain position also remain data
+rather than effect-code constants.
 
 ## Build and CI
 
-CI will validate the 42-panel/2,688-pixel map, build the usermod against a
+CI will validate the 41-panel/2,624-pixel map, build the usermod against a
 pinned WLED release with PlatformIO, and upload the flashable binary plus its
 build metadata as artifacts. It will not flash hardware. Firmware binaries and
 device credentials are never committed.

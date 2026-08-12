@@ -5,7 +5,7 @@ These rules apply under `firmware/`.
 ## Architecture
 
 - Follow `docs/software.md` as the software and electrical baseline.
-- Preserve one WLED controller, four data outputs, 42 panels, and 2,688 pixels
+- Preserve one WLED controller, four data outputs, 41 panels, and 2,624 pixels
   unless an explicit architecture decision changes them.
 - Keep each output inside one power domain. Never join the two positive rails.
 - Treat brightness limiting as software protection in addition to physical
@@ -29,8 +29,9 @@ These rules apply under `firmware/`.
   generate derived WLED and renderer files from it.
 - Never guess the panel color order, pixel-zero corner, or serpentine direction.
   Record them only after a numbered physical-panel test.
-- Validate that all 42 panels contribute exactly 64 unique pixels, all 2,688
-  wire indices are unique and contiguous, and output lengths match the approved
-  704/640/704/640 split.
+- Validate that all 41 panels contribute exactly 64 unique pixels and all
+  2,624 wire indices are unique and contiguous. Validate output lengths against
+  the approved physical chain once assigned; do not reuse the obsolete
+  42-panel split.
 - Compile the exact CI target and report the produced firmware artifact; do not
   claim hardware validation without testing a real controller and panel.

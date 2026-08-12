@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [
+    "scripts",
+    "src",
+    "tests",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "web/src/LedMapping.ts",
+    "web/src/WiringPreview.ts",
+    "web/src/HardwareMapping.ts"
+  ]
+}

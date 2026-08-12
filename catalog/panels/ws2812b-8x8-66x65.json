@@ -1,0 +1,149 @@
+{
+  "$schema": "../../schemas/panel-profile.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "ws2812b-8x8-66x65",
+  "kind": "led-panel",
+  "units": "mm",
+  "dimensions": {
+    "width": 66,
+    "height": 65,
+    "thickness": 0.8
+  },
+  "pixelGrid": {
+    "columns": 8,
+    "rows": 8,
+    "emitterOffset": 1.2,
+    "provisionalOrder": {
+      "status": "provisional",
+      "pixelZeroCorner": "bottom-left",
+      "traversalAxis": "rows",
+      "lineProgression": "bottom-to-top",
+      "serpentine": true,
+      "firstLineDirection": "left-to-right",
+      "description": "Back-view row snake: pixel 0 at bottom-left by DIN, first row left-to-right, alternating upward; this traversal derives pixel 63 at top-left while DOUT remains at top-right."
+    }
+  },
+  "mounting": {
+    "cornerHoleInset": 8,
+    "middleHoleOffsetFromOuter": 25,
+    "pcbHolePreviewDiameter": 2.8,
+    "printedPilotDiameter": 1.6,
+    "screwLeadIn": {
+      "diameter": 3.2,
+      "depth": 0.7
+    },
+    "holes": [
+      {
+        "id": "top-left",
+        "localPosition": [
+          -25,
+          24.5
+        ],
+        "mechanicalUse": "eligible"
+      },
+      {
+        "id": "middle-left",
+        "localPosition": [
+          -25,
+          0
+        ],
+        "mechanicalUse": "eligible"
+      },
+      {
+        "id": "bottom-left",
+        "localPosition": [
+          -25,
+          -24.5
+        ],
+        "mechanicalUse": "blocked",
+        "blockedBy": "DIN"
+      },
+      {
+        "id": "top-right",
+        "localPosition": [
+          25,
+          24.5
+        ],
+        "mechanicalUse": "blocked",
+        "blockedBy": "DOUT"
+      },
+      {
+        "id": "middle-right",
+        "localPosition": [
+          25,
+          0
+        ],
+        "mechanicalUse": "eligible"
+      },
+      {
+        "id": "bottom-right",
+        "localPosition": [
+          25,
+          -24.5
+        ],
+        "mechanicalUse": "eligible"
+      }
+    ],
+    "capAllocation": {
+      "strategy": "minimum-total-edge-distance",
+      "useAllEligibleHolesWhenPossible": true,
+      "distinctClosurePerHole": true
+    },
+    "physicalCorrections": {
+      "holeEdge": 0.2,
+      "surfaceFlush": 0.5,
+      "status": "measured",
+      "note": "Preserve these physically tested corrections unless a new print test justifies a change."
+    }
+  },
+  "dataConnectors": {
+    "referenceView": "back",
+    "orientationReference": "three-mounting-holes-vertical",
+    "cornerAssignmentStatus": "measured",
+    "dinCorner": "bottom-left",
+    "doutCorner": "top-right",
+    "padPositionStatus": "unknown",
+    "note": "DIN is bottom-left and DOUT is top-right when viewed from the back with the three mounting holes vertical; exact pad centres remain to be measured."
+  },
+  "power": {
+    "status": "provisional",
+    "basis": "panel-photo-and-conservative-worst-case",
+    "nominalVoltage": 5,
+    "worstCaseCurrentPerPixel": 0.06,
+    "worstCaseCurrentPerPanel": 3.84,
+    "pads": {
+      "status": "provisional",
+      "availableAt": [
+        "din-end",
+        "dout-end"
+      ],
+      "roles": [
+        "V+",
+        "V-"
+      ],
+      "supportsIndependentFeedAndInjection": true
+    },
+    "singlePanelLead": {
+      "scope": "short-5v-and-ground-leads",
+      "minimumCrossSectionMm2": 0.75,
+      "approximateAwg": 18,
+      "sharedFeedsRequireLargerConductors": true
+    },
+    "voltageDrop": {
+      "maximumFraction": 0.05,
+      "minimumPanelVoltage": 4.75
+    },
+    "fusing": {
+      "status": "provisional",
+      "grouping": "one-fuse-per-small-panel-group",
+      "panelsPerFuse": null,
+      "sizingRule": "protect-wire"
+    },
+    "note": "Use 60 mA per pixel as a conservative design figure; actual modern WS2812B panels may draw less. Final shared-feed sizing and fuse grouping require the completed sculpture power topology."
+  },
+  "electricalKeepouts": {
+    "status": "unknown",
+    "regions": [],
+    "note": "Exact DIN, DOUT, V+, and V- pad envelopes still require measurement."
+  }
+}

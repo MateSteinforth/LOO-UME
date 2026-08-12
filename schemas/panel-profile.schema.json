@@ -1,0 +1,534 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://led-rhombo.example/schemas/panel-profile.schema.json",
+  "title": "LED panel hardware profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "kind",
+    "units",
+    "dimensions",
+    "pixelGrid",
+    "mounting",
+    "dataConnectors",
+    "power",
+    "electricalKeepouts"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "const": "led-panel"
+    },
+    "units": {
+      "const": "mm"
+    },
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height",
+        "thickness"
+      ],
+      "properties": {
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "thickness": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "pixelGrid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "columns",
+        "rows",
+        "emitterOffset",
+        "provisionalOrder"
+      ],
+      "properties": {
+        "columns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "emitterOffset": {
+          "type": "number"
+        },
+        "provisionalOrder": {
+          "$ref": "#/$defs/pixelOrder"
+        }
+      }
+    },
+    "mounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cornerHoleInset",
+        "middleHoleOffsetFromOuter",
+        "pcbHolePreviewDiameter",
+        "printedPilotDiameter",
+        "screwLeadIn",
+        "holes",
+        "capAllocation",
+        "physicalCorrections"
+      ],
+      "properties": {
+        "cornerHoleInset": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "middleHoleOffsetFromOuter": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pcbHolePreviewDiameter": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "printedPilotDiameter": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "screwLeadIn": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "diameter",
+            "depth"
+          ],
+          "properties": {
+            "diameter": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "depth": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "physicalCorrections": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "holeEdge",
+            "surfaceFlush",
+            "status",
+            "note"
+          ],
+          "properties": {
+            "holeEdge": {
+              "type": "number"
+            },
+            "surfaceFlush": {
+              "type": "number"
+            },
+            "status": {
+              "const": "measured"
+            },
+            "note": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "holes": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "localPosition",
+              "mechanicalUse"
+            ],
+            "properties": {
+              "id": {
+                "enum": [
+                  "top-left",
+                  "middle-left",
+                  "bottom-left",
+                  "top-right",
+                  "middle-right",
+                  "bottom-right"
+                ]
+              },
+              "localPosition": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "items": false
+              },
+              "mechanicalUse": {
+                "enum": [
+                  "eligible",
+                  "blocked"
+                ]
+              },
+              "blockedBy": {
+                "enum": [
+                  "DIN",
+                  "DOUT"
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "mechanicalUse": {
+                      "const": "blocked"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "blockedBy"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "capAllocation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "strategy",
+            "useAllEligibleHolesWhenPossible",
+            "distinctClosurePerHole"
+          ],
+          "properties": {
+            "strategy": {
+              "const": "minimum-total-edge-distance"
+            },
+            "useAllEligibleHolesWhenPossible": {
+              "const": true
+            },
+            "distinctClosurePerHole": {
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "dataConnectors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "referenceView",
+        "orientationReference",
+        "cornerAssignmentStatus",
+        "dinCorner",
+        "doutCorner",
+        "padPositionStatus",
+        "note"
+      ],
+      "properties": {
+        "referenceView": {
+          "const": "back"
+        },
+        "orientationReference": {
+          "const": "three-mounting-holes-vertical"
+        },
+        "cornerAssignmentStatus": {
+          "const": "measured"
+        },
+        "dinCorner": {
+          "$ref": "#/$defs/panelCorner"
+        },
+        "doutCorner": {
+          "$ref": "#/$defs/panelCorner"
+        },
+        "padPositionStatus": {
+          "$ref": "#/$defs/factStatus"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "power": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "nominalVoltage",
+        "worstCaseCurrentPerPixel",
+        "worstCaseCurrentPerPanel",
+        "pads",
+        "singlePanelLead",
+        "voltageDrop",
+        "fusing",
+        "note"
+      ],
+      "properties": {
+        "status": {
+          "const": "provisional"
+        },
+        "basis": {
+          "const": "panel-photo-and-conservative-worst-case"
+        },
+        "nominalVoltage": {
+          "const": 5
+        },
+        "worstCaseCurrentPerPixel": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "worstCaseCurrentPerPanel": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pads": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "availableAt",
+            "roles",
+            "supportsIndependentFeedAndInjection"
+          ],
+          "properties": {
+            "status": {
+              "const": "provisional"
+            },
+            "availableAt": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "din-end",
+                  "dout-end"
+                ]
+              }
+            },
+            "roles": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "V+",
+                  "V-"
+                ]
+              }
+            },
+            "supportsIndependentFeedAndInjection": {
+              "const": true
+            }
+          }
+        },
+        "singlePanelLead": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "minimumCrossSectionMm2",
+            "approximateAwg",
+            "sharedFeedsRequireLargerConductors"
+          ],
+          "properties": {
+            "scope": {
+              "const": "short-5v-and-ground-leads"
+            },
+            "minimumCrossSectionMm2": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "approximateAwg": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sharedFeedsRequireLargerConductors": {
+              "const": true
+            }
+          }
+        },
+        "voltageDrop": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximumFraction",
+            "minimumPanelVoltage"
+          ],
+          "properties": {
+            "maximumFraction": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "exclusiveMaximum": 1
+            },
+            "minimumPanelVoltage": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "fusing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "grouping",
+            "panelsPerFuse",
+            "sizingRule"
+          ],
+          "properties": {
+            "status": {
+              "const": "provisional"
+            },
+            "grouping": {
+              "const": "one-fuse-per-small-panel-group"
+            },
+            "panelsPerFuse": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "sizingRule": {
+              "const": "protect-wire"
+            }
+          }
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "electricalKeepouts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "regions",
+        "note"
+      ],
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/factStatus"
+        },
+        "regions": {
+          "type": "array"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "factStatus": {
+      "enum": [
+        "unknown",
+        "provisional",
+        "measured"
+      ]
+    },
+    "panelCorner": {
+      "enum": [
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right"
+      ]
+    },
+    "pixelOrder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "pixelZeroCorner",
+        "traversalAxis",
+        "lineProgression",
+        "serpentine",
+        "firstLineDirection",
+        "description"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "provisional",
+            "measured"
+          ]
+        },
+        "pixelZeroCorner": {
+          "enum": [
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right"
+          ]
+        },
+        "traversalAxis": {
+          "enum": [
+            "rows",
+            "columns"
+          ]
+        },
+        "lineProgression": {
+          "enum": [
+            "top-to-bottom",
+            "bottom-to-top",
+            "left-to-right",
+            "right-to-left"
+          ]
+        },
+        "serpentine": {
+          "type": "boolean"
+        },
+        "firstLineDirection": {
+          "enum": [
+            "left-to-right",
+            "right-to-left",
+            "top-to-bottom",
+            "bottom-to-top"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

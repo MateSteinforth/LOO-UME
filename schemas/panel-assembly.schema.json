@@ -1,0 +1,712 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://led-rhombo.example/schemas/panel-assembly.schema.json",
+  "title": "Pose-first panel assembly and generated closure recipe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "units",
+    "status",
+    "panelProfile",
+    "mechanicalShell",
+    "panels",
+    "closures",
+    "mapping",
+    "wiring",
+    "calibration",
+    "notes"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "panels": {
+            "contains": {
+              "required": ["surfaceAttachment"],
+              "properties": {
+                "surfaceAttachment": {
+                  "not": {
+                    "properties": {
+                      "surface": { "const": "mechanical-shell" }
+                    },
+                    "required": ["surface"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": ["panels"]
+      },
+      "then": { "required": ["designSurface"] }
+    },
+    {
+      "if": {
+        "properties": {
+          "panels": {
+            "contains": { "not": { "required": ["mountFaceId"] } }
+          }
+        },
+        "required": ["panels"]
+      },
+      "then": {
+        "properties": {
+          "mechanicalShell": {
+            "properties": {
+              "derivationStatus": { "const": "requires-regeneration" }
+            },
+            "required": ["derivationStatus"]
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": "2.0.0"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "units": {
+      "const": "mm"
+    },
+    "status": {
+      "enum": [
+        "provisional",
+        "measured"
+      ]
+    },
+    "panelProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "panels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "pose"
+        ],
+        "allOf": [
+          {
+            "if": { "not": { "required": ["mountFaceId"] } },
+            "then": { "required": ["surfaceAttachment"] }
+          }
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mountFaceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "connectorPolicy": {
+            "type": "object",
+            "description": "Explicit mechanical exception for a topology that cannot provide one distinct printable cap per eligible hole.",
+            "additionalProperties": false,
+            "required": [
+              "allowSharedClosureAcrossAdjacentEdges",
+              "reason"
+            ],
+            "properties": {
+              "allowSharedClosureAcrossAdjacentEdges": {
+                "const": true
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "pose": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "position",
+              "orientation"
+            ],
+            "properties": {
+              "position": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "items": false
+              },
+              "orientation": {
+                "type": "object",
+                "description": "Right-handed orthonormal world-space basis; local +Z is the outward panel normal.",
+                "additionalProperties": false,
+                "required": [
+                  "xAxis",
+                  "yAxis",
+                  "normal"
+                ],
+                "properties": {
+                  "xAxis": {
+                    "type": "array",
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "items": false
+                  },
+                  "yAxis": {
+                    "type": "array",
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "items": false
+                  },
+                  "normal": {
+                    "type": "array",
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "items": false
+                  }
+                }
+              }
+            }
+          },
+          "surfaceAttachment": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "triangleIndex",
+              "barycentric",
+              "normalOffset"
+            ],
+            "properties": {
+              "surface": {
+                "enum": ["design-surface", "mechanical-shell"]
+              },
+              "triangleIndex": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "barycentric": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                ],
+                "items": false
+              },
+              "normalOffset": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "closures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "faceIds",
+        "generator",
+        "holeSelection",
+        "exteriorClipping",
+        "coverThickness",
+        "coverCornerRadius",
+        "flangeThickness",
+        "flangeOverlap",
+        "edgeLipDepth",
+        "screwTabWidth",
+        "screwTabEndMargin",
+        "connectorCornerClearance",
+        "panelEnvelopeClearance"
+      ],
+      "properties": {
+        "faceIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "generator": {
+          "const": "panel-hole-tabs"
+        },
+        "holeSelection": {
+          "const": "minimum-total-edge-distance"
+        },
+        "exteriorClipping": {
+          "const": "polyhedron-interior"
+        },
+        "coverThickness": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "coverCornerRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "flangeThickness": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "flangeOverlap": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "edgeLipDepth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "screwTabWidth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "screwTabEndMargin": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "connectorCornerClearance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "panelEnvelopeClearance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "holePreferences": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "closureVertexCount",
+              "panelHoleIds"
+            ],
+            "properties": {
+              "closureVertexCount": {
+                "type": "integer",
+                "minimum": 3
+              },
+              "panelHoleIds": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "top-left",
+                    "middle-left",
+                    "bottom-left",
+                    "top-right",
+                    "middle-right",
+                    "bottom-right"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "mapping": {
+      "type": "object"
+    },
+    "wiring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "controller",
+        "routeStrategy",
+        "chainLengths",
+        "connector",
+        "outputs"
+      ],
+      "properties": {
+        "status": {
+          "const": "provisional"
+        },
+        "controller": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "placement",
+            "status"
+          ],
+          "properties": {
+            "placement": {
+              "const": "near-top"
+            },
+            "status": {
+              "const": "provisional"
+            }
+          }
+        },
+        "routeStrategy": {
+          "const": "face-adjacency-nearest-neighbor"
+        },
+        "chainLengths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "connector": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "edgeInset",
+            "surfaceOffset"
+          ],
+          "properties": {
+            "edgeInset": {
+              "type": "number",
+              "minimum": 0
+            },
+            "surfaceOffset": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "outputIndex",
+              "label",
+              "gpio",
+              "color"
+            ],
+            "properties": {
+              "outputIndex": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "gpio": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "calibration": {
+      "type": "object"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mechanicalShell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "vertices",
+        "faces"
+      ],
+      "properties": {
+        "kind": {
+          "const": "explicit-planar-face-graph"
+        },
+        "vertices": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "items": false
+          }
+        },
+        "faces": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "vertexIndices"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "partId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vertexIndices": {
+                "type": "array",
+                "minItems": 3,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "connectorPolicy": {
+                "type": "object",
+                "description": "Explicit exception for strip-like closures that are mechanically constrained with two panel-hole connectors.",
+                "additionalProperties": false,
+                "required": [
+                  "minimumPanelHoleConnectors",
+                  "reason"
+                ],
+                "properties": {
+                  "minimumPanelHoleConnectors": {
+                    "const": 2
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "derivationStatus": {
+          "enum": [
+            "authored",
+            "requires-regeneration"
+          ]
+        },
+        "authoringBoundary": {
+          "type": "object",
+          "description": "Stable JSON planar boundary captured before derived topology is edited. GLB geometry is never stored or consumed here.",
+          "additionalProperties": false,
+          "required": ["vertices", "faces", "authoredPanels"],
+          "properties": {
+            "vertices": {
+              "type": "array",
+              "minItems": 4,
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  { "type": "number" },
+                  { "type": "number" },
+                  { "type": "number" }
+                ],
+                "items": false
+              }
+            },
+            "faces": {
+              "type": "array",
+              "minItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "vertexIndices"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1 },
+                  "vertexIndices": {
+                    "type": "array",
+                    "minItems": 3,
+                    "items": { "type": "integer", "minimum": 0 }
+                  },
+                  "panelPlacement": {
+                    "const": "whole-face",
+                    "description": "When occupied, the complete planar boundary face is the panel opening."
+                  }
+                }
+              }
+            },
+            "authoredPanels": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "mountFaceId", "pose"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1 },
+                  "mountFaceId": { "type": "string", "minLength": 1 },
+                  "pose": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["position", "orientation"],
+                    "properties": {
+                      "position": {
+                        "type": "array",
+                        "prefixItems": [
+                          { "type": "number" },
+                          { "type": "number" },
+                          { "type": "number" }
+                        ],
+                        "items": false
+                      },
+                      "orientation": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["xAxis", "yAxis", "normal"],
+                        "properties": {
+                          "xAxis": {
+                            "type": "array",
+                            "prefixItems": [
+                              { "type": "number" }, { "type": "number" }, { "type": "number" }
+                            ],
+                            "items": false
+                          },
+                          "yAxis": {
+                            "type": "array",
+                            "prefixItems": [
+                              { "type": "number" }, { "type": "number" }, { "type": "number" }
+                            ],
+                            "items": false
+                          },
+                          "normal": {
+                            "type": "array",
+                            "prefixItems": [
+                              { "type": "number" }, { "type": "number" }, { "type": "number" }
+                            ],
+                            "items": false
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "designSurface": {
+      "type": "object",
+      "description": "Optional watertight GLB authoring surface; panel poses remain authoritative.",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "format",
+        "source",
+        "sha256",
+        "scaleToMillimeters",
+        "status"
+      ],
+      "properties": {
+        "kind": {
+          "const": "triangle-mesh"
+        },
+        "format": {
+          "const": "glb"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "scaleToMillimeters": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "status": {
+          "const": "watertight"
+        }
+      }
+    }
+  }
+}
