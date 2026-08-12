@@ -19,6 +19,8 @@
     "vitest.config.ts",
     "web/src/LedMapping.ts",
     "web/src/WiringPreview.ts",
-    "web/src/HardwareMapping.ts"
+    "web/src/HardwareMapping.ts",
+    "web/src/EditorCapabilities.ts",
+    "web/src/SurfacePlacementController.ts"
   ]
 }

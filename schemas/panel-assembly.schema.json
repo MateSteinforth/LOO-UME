@@ -894,6 +894,13 @@
         "generator": {
           "const": "verified-scad-wrappers"
         },
+        "compatibilityStatus": {
+          "description": "Whether the manually authored printable parts are known to match the authoritative panel population and poses. Omission is retained for backward compatibility and means verified until the first panel edit.",
+          "enum": [
+            "verified",
+            "requires-review"
+          ]
+        },
         "centerPanelMount": {
           "type": "object"
         },

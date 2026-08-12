@@ -18,6 +18,11 @@ export function createManualCadProject(
   if (!mechanics) {
     throw new Error("Sculpture does not declare manually authored mechanics.");
   }
+  if (mechanics.compatibilityStatus === "requires-review") {
+    throw new Error(
+      "Manually authored mechanics require review after panel edits and cannot be emitted as verified wrappers.",
+    );
+  }
   return {
     sculpture: {
       id: project.sculpture.id,

@@ -14,6 +14,7 @@ import type {
   Vector3Data,
 } from "./LedMapping";
 import type { WiringPreview } from "./WiringPreview";
+import type { EditorCapabilities } from "./EditorCapabilities.ts";
 import {
   SurfacePlacementController,
   type SurfacePanelPlacement,
@@ -232,6 +233,10 @@ export class SphereRenderer {
     this.surfacePlacement.setPanels(this.mapping.panels, thickness);
   }
 
+  setEditorCapabilities(capabilities: EditorCapabilities): void {
+    this.surfacePlacement.setCapabilities(capabilities);
+  }
+
   setDesignSurface(
     geometry: THREE.BufferGeometry | null,
     attachmentSurface: "design-surface" | "mechanical-shell" = "design-surface",
@@ -244,6 +249,7 @@ export class SphereRenderer {
   setSurfaceEditorCallbacks(callbacks: {
     onSelectionChange?: (panelId: string | null) => void;
     onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
+    onLocalTranslationCommit?: (panelId: string, deltaX: number, deltaY: number) => void;
     onRotationCommit?: (panelId: string, degrees: number) => void;
     onAddPanelCommit?: (placement: SurfacePlacement) => void;
     onDeletePanelRequest?: (panelId: string) => void;
@@ -254,6 +260,7 @@ export class SphereRenderer {
       callbacks.onSelectionChange?.(panelId);
     };
     this.surfacePlacement.onPlacementCommit = callbacks.onPlacementCommit;
+    this.surfacePlacement.onLocalTranslationCommit = callbacks.onLocalTranslationCommit;
     this.surfacePlacement.onRotationCommit = callbacks.onRotationCommit;
     this.surfacePlacement.onAddPanelCommit = callbacks.onAddPanelCommit;
     this.surfacePlacement.onDeletePanelRequest = callbacks.onDeletePanelRequest;

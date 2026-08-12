@@ -45,9 +45,34 @@ function normalize(value: Vector3Tuple): Vector3Tuple {
   return scale(value, 1 / length);
 }
 
-function markPoseMechanicsStale(definition: PanelAssemblyDefinition): void {
+export function markGeneratedMechanicsStale(
+  definition: PanelAssemblyDefinition,
+): void {
+  if (!definition.mechanicalShell) return;
   definition.mechanicalShell.derivationStatus = "requires-regeneration";
+}
+
+export function markManualMechanicsRequiresReview(
+  definition: PanelAssemblyDefinition,
+  _affectedPanelIds: readonly string[],
+): void {
+  if (definition.manualMechanics) {
+    definition.manualMechanics.compatibilityStatus = "requires-review";
+  }
+}
+
+export function markPanelEditConsequences(
+  definition: PanelAssemblyDefinition,
+  affectedPanelIds: readonly string[],
+): void {
+  if (definition.manualMechanics) {
+    markManualMechanicsRequiresReview(definition, affectedPanelIds);
+  } else {
+    markGeneratedMechanicsStale(definition);
+  }
   definition.status = "provisional";
+  definition.wiring.status = "provisional";
+  definition.wiring.controller.status = "provisional";
   definition.calibration.panelTransforms = "generated-provisional";
   definition.calibration.installedPanelOrientation = "provisional";
   definition.calibration.physicalChains = "provisional";
@@ -335,8 +360,11 @@ export function movePanelOnDesignSurface(
       "Load a GLB or use the sculpture JSON face graph before moving panels.",
     );
   }
+  if (source.manualMechanics && placement.attachment.surface === "mechanical-shell") {
+    throw new Error("Manual mechanics do not provide a JSON mechanical-shell placement surface.");
+  }
   const definition = structuredClone(source);
-  preserveAuthoringBoundary(definition);
+  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
   const panel = definition.panels.find((candidate) => candidate.id === panelId);
   if (!panel) throw new Error(`Unknown panel ${panelId}.`);
   panel.pose = {
@@ -355,7 +383,30 @@ export function movePanelOnDesignSurface(
     barycentric: [...placement.attachment.barycentric],
     normalOffset: placement.attachment.normalOffset,
   };
-  markPoseMechanicsStale(definition);
+  markPanelEditConsequences(definition, [panelId]);
+  return definition;
+}
+
+/** Moves one panel center by explicit distances along its saved local X/Y axes. */
+export function movePanelInLocalPlane(
+  source: PanelAssemblyDefinition,
+  panelId: string,
+  deltaX: number,
+  deltaY: number,
+): PanelAssemblyDefinition {
+  if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) {
+    throw new Error(`Panel ${panelId} local-plane movement must be finite.`);
+  }
+  const definition = structuredClone(source);
+  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
+  const panel = definition.panels.find((candidate) => candidate.id === panelId);
+  if (!panel) throw new Error(`Unknown panel ${panelId}.`);
+  const { xAxis, yAxis } = panel.pose.orientation;
+  panel.pose.position = add(
+    panel.pose.position,
+    add(scale(xAxis, deltaX), scale(yAxis, deltaY)),
+  );
+  markPanelEditConsequences(definition, [panelId]);
   return definition;
 }
 
@@ -369,9 +420,9 @@ export function rotatePanelAroundLocalZ(
     throw new Error(`Panel ${panelId} rotation must be a finite angle in degrees.`);
   }
   const definition = structuredClone(source);
+  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
   const panel = definition.panels.find((candidate) => candidate.id === panelId);
   if (!panel) throw new Error(`Unknown panel ${panelId}.`);
-  preserveAuthoringBoundary(definition);
 
   const radians = (degrees * Math.PI) / 180;
   const cosine = Math.cos(radians);
@@ -386,7 +437,7 @@ export function rotatePanelAroundLocalZ(
   panel.pose.orientation.xAxis = planarX;
   panel.pose.orientation.yAxis = planarY;
 
-  markPoseMechanicsStale(definition);
+  markPanelEditConsequences(definition, [panelId]);
   return definition;
 }
 
@@ -409,6 +460,7 @@ export interface DesignSurfacePlacement {
 export function addPanelOnDesignSurface(
   source: PanelAssemblyDefinition,
   placement: DesignSurfacePlacement,
+  metadata?: { faceType?: "square-face" | "pentagon-centre" },
 ): PanelAssemblyDefinition {
   if (
     placement.attachment.surface !== "mechanical-shell" &&
@@ -418,11 +470,20 @@ export function addPanelOnDesignSurface(
       "Load a GLB or use the sculpture JSON face graph before adding panels.",
     );
   }
+  if (source.manualMechanics && placement.attachment.surface === "mechanical-shell") {
+    throw new Error("Manual mechanics do not provide a JSON mechanical-shell placement surface.");
+  }
+  if (source.manualMechanics && !metadata?.faceType) {
+    throw new Error("Adding a panel to manual mechanics requires an explicit faceType.");
+  }
   const definition = structuredClone(source);
-  preserveAuthoringBoundary(definition);
+  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
   const panelId = nextPanelId(definition);
   definition.panels.push({
     id: panelId,
+    ...(metadata?.faceType
+      ? { faceType: metadata.faceType, neighborPanelIds: [] }
+      : {}),
     pose: {
       position: [...placement.position],
       orientation: {
@@ -447,7 +508,7 @@ export function addPanelOnDesignSurface(
   );
   definition.wiring.chainLengths[shortestOutput] =
     definition.wiring.chainLengths[shortestOutput]! + 1;
-  markPoseMechanicsStale(definition);
+  markPanelEditConsequences(definition, [panelId]);
   definition.notes.push(
     `Panel ${panelId} was placed manually on the design surface; mechanical shell regeneration remains required.`,
   );
@@ -671,7 +732,7 @@ export function automaticallySeedPanelsOnSurface(
       definition.wiring.chainLengths[shortest]! + 1;
     placedPanelIds.push(panelId);
   }
-  markPoseMechanicsStale(definition);
+  markPanelEditConsequences(definition, placedPanelIds);
   definition.notes.push(
     `Automatically seeded ${placedPanelIds.length} panels across the ${
       options.surface === "design-surface" ? "GLB" : "JSON shell"
@@ -689,14 +750,25 @@ export function deletePanel(
   panelId: string,
 ): PanelAssemblyDefinition {
   const definition = structuredClone(source);
-  preserveAuthoringBoundary(definition);
+  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
   const panelIndex = definition.panels.findIndex(
     (candidate) => candidate.id === panelId,
   );
   if (panelIndex < 0) throw new Error(`Unknown panel ${panelId}.`);
   const [panel] = definition.panels.splice(panelIndex, 1);
-  if (panel?.mountFaceId && !definition.closures.faceIds.includes(panel.mountFaceId)) {
+  if (
+    panel?.mountFaceId && definition.closures &&
+    !definition.closures.faceIds.includes(panel.mountFaceId)
+  ) {
     definition.closures.faceIds.push(panel.mountFaceId);
+  }
+  const changedNeighborPanelIds: string[] = [];
+  for (const survivor of definition.panels) {
+    if (!survivor.neighborPanelIds?.includes(panelId)) continue;
+    survivor.neighborPanelIds = survivor.neighborPanelIds.filter(
+      (neighborId) => neighborId !== panelId,
+    );
+    changedNeighborPanelIds.push(survivor.id);
   }
   const longestOutput = definition.wiring.chainLengths.reduce(
     (bestIndex, length, index, lengths) =>
@@ -705,7 +777,7 @@ export function deletePanel(
   );
   definition.wiring.chainLengths[longestOutput] =
     definition.wiring.chainLengths[longestOutput]! - 1;
-  markPoseMechanicsStale(definition);
+  markPanelEditConsequences(definition, [panelId, ...changedNeighborPanelIds]);
   definition.notes.push(
     `Panel ${panelId} was deleted in the browser editor; mechanical shell regeneration remains required.`,
   );

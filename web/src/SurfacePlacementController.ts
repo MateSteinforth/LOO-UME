@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { PanelDefinition } from "./LedMapping.ts";
+import type { EditorCapabilities } from "./EditorCapabilities.ts";
 import {
   createMechanicalSurfaceOrientation,
   createSurfaceOrientation,
@@ -28,6 +29,54 @@ function tuple(value: THREE.Vector3): Vector3Tuple {
 }
 
 
+export function intersectPanelPlane(
+  ray: THREE.Ray,
+  center: THREE.Vector3,
+  normal: THREE.Vector3,
+): THREE.Vector3 | null {
+  return ray.intersectPlane(
+    new THREE.Plane().setFromNormalAndCoplanarPoint(normal, center),
+    new THREE.Vector3(),
+  );
+}
+
+export interface PanelPlaneDrag {
+  center: THREE.Vector3;
+  offset: THREE.Vector3;
+  xAxis: THREE.Vector3;
+  yAxis: THREE.Vector3;
+  normal: THREE.Vector3;
+}
+
+export function beginPanelPlaneDrag(
+  ray: THREE.Ray, center: THREE.Vector3, xAxis: THREE.Vector3,
+  yAxis: THREE.Vector3, normal: THREE.Vector3,
+): PanelPlaneDrag | null {
+  const point = intersectPanelPlane(ray, center, normal);
+  if (!point) return null;
+  return {
+    center: center.clone(),
+    xAxis: xAxis.clone().normalize(),
+    yAxis: yAxis.clone().normalize(),
+    normal: normal.clone().normalize(),
+    offset: point.clone().sub(center),
+  };
+}
+
+export function updatePanelPlaneDrag(
+  ray: THREE.Ray, drag: PanelPlaneDrag,
+): { position: THREE.Vector3; deltaX: number; deltaY: number } | null {
+  const point = intersectPanelPlane(ray, drag.center, drag.normal);
+  if (!point) return null;
+  const position = point.sub(drag.offset);
+  const delta = position.clone().sub(drag.center);
+  return {
+    position,
+    deltaX: delta.dot(drag.xAxis),
+    deltaY: delta.dot(drag.yAxis),
+  };
+}
+
 export class SurfacePlacementController {
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
@@ -48,12 +97,27 @@ export class SurfacePlacementController {
   private rotationStartXAxis = new THREE.Vector3();
   private rotationStartYAxis = new THREE.Vector3();
   private pendingPlacement: SurfacePanelPlacement | null = null;
+  private pendingLocalDelta: { deltaX: number; deltaY: number } | null = null;
+  private planarDrag: PanelPlaneDrag | null = null;
+  private capabilities: EditorCapabilities = {
+    canSelectPanels: true,
+    canRotateSelectedPanel: true,
+    canDeleteSelectedPanel: true,
+    canTranslateOnActiveSurface: true,
+    canTranslateInPanelPlane: true,
+    canCreateOnActiveSurface: true,
+    canAutomaticallySeed: true,
+    canExportMappingAndWiring: true,
+    canGenerateGenericMechanics: true,
+    manualMechanicsRequiresReview: false,
+  };
   private attachmentSurface: "design-surface" | "mechanical-shell" =
     "design-surface";
   private normalOffset = 0.4;
 
   onSelectionChange?: (panelId: string | null) => void;
   onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
+  onLocalTranslationCommit?: (panelId: string, deltaX: number, deltaY: number) => void;
   onAddPanelCommit?: (placement: SurfacePlacement) => void;
   onRotationCommit?: (panelId: string, degrees: number) => void;
 
@@ -72,6 +136,12 @@ export class SurfacePlacementController {
     domElement.addEventListener("pointermove", this.pointerMove);
     domElement.addEventListener("pointerup", this.pointerUp);
     domElement.addEventListener("pointercancel", this.pointerUp);
+  }
+
+  setCapabilities(capabilities: EditorCapabilities): void {
+    this.capabilities = capabilities;
+    if (!capabilities.canSelectPanels) this.select(null);
+    else this.updateGizmo();
   }
 
   setSurface(
@@ -146,7 +216,8 @@ export class SurfacePlacementController {
   }
 
   selectPanel(panelId: string | null): void {
-    if (panelId !== null && !this.panelTargets.has(panelId)) return;
+    if (panelId !== null &&
+      (!this.capabilities.canSelectPanels || !this.panelTargets.has(panelId))) return;
     this.select(panelId);
   }
 
@@ -166,7 +237,7 @@ export class SurfacePlacementController {
     if (event.button !== 0) return;
     this.updateRaycaster(event);
 
-    if (this.intersects(this.deleteHandles)) {
+    if (this.capabilities.canDeleteSelectedPanel && this.intersects(this.deleteHandles)) {
       const panelId = this.selectedPanelId;
       if (!panelId) return;
       this.capturePointer(event);
@@ -174,10 +245,19 @@ export class SurfacePlacementController {
       this.onDeletePanelRequest?.(panelId);
       return;
     }
-    if (this.intersects(this.rotateHandles) && this.beginRotation(event)) return;
-    if (this.surface && this.intersects(this.translateHandles)) {
+    if (this.capabilities.canRotateSelectedPanel && this.intersects(this.rotateHandles) && this.beginRotation(event)) return;
+    if (this.intersects(this.translateHandles)) {
+      const canMove = this.surface
+        ? this.capabilities.canTranslateOnActiveSurface
+        : this.capabilities.canTranslateInPanelPlane;
+      if (!canMove || !this.selectedPanelId) return;
       this.draggingPanelId = this.selectedPanelId;
       this.pendingPlacement = null;
+      this.pendingLocalDelta = null;
+      if (!this.surface && !this.beginPlanarTranslation()) {
+        this.draggingPanelId = null;
+        return;
+      }
       this.capturePointer(event);
       this.moveSelectedPanel(event);
       return;
@@ -188,7 +268,7 @@ export class SurfacePlacementController {
       false,
     )[0];
     const panelId = panelHit?.object.userData.panelId as string | undefined;
-    if (panelId) {
+    if (panelId && this.capabilities.canSelectPanels) {
       this.select(panelId);
       this.selectingPointerId = event.pointerId;
       this.capturePointer(event);
@@ -213,12 +293,22 @@ export class SurfacePlacementController {
   private readonly pointerUp = (event: PointerEvent): void => {
     if (this.draggingPanelId) {
       this.moveSelectedPanel(event);
+      const panelId = this.draggingPanelId;
       this.draggingPanelId = null;
       this.releasePointer(event);
       if (this.pendingPlacement) {
         this.onPlacementCommit?.(this.pendingPlacement);
         this.pendingPlacement = null;
+      } else if (this.pendingLocalDelta &&
+        Math.hypot(this.pendingLocalDelta.deltaX, this.pendingLocalDelta.deltaY) > 1e-8) {
+        this.onLocalTranslationCommit?.(
+          panelId,
+          this.pendingLocalDelta.deltaX,
+          this.pendingLocalDelta.deltaY,
+        );
+        this.pendingLocalDelta = null;
       }
+      this.planarDrag = null;
       return;
     }
     if (this.rotatingPanelId) {
@@ -249,7 +339,9 @@ export class SurfacePlacementController {
       : undefined;
     if (!hit || hit.faceIndex == null) return;
     this.select(null);
-    this.onAddPanelCommit?.(this.placementFromSurfaceHit(hit));
+    if (this.capabilities.canCreateOnActiveSurface) {
+      this.onAddPanelCommit?.(this.placementFromSurfaceHit(hit));
+    }
   };
 
   private capturePointer(event: PointerEvent): void {
@@ -346,12 +438,42 @@ export class SurfacePlacementController {
     this.pendingRotationDegrees = THREE.MathUtils.radToDeg(radians);
   }
 
+  private beginPlanarTranslation(): boolean {
+    if (!this.draggingPanelId) return false;
+    const target = this.panelTargets.get(this.draggingPanelId);
+    if (!target) return false;
+    const center = new THREE.Vector3().setFromMatrixPosition(target.matrix);
+    const xAxis = new THREE.Vector3().setFromMatrixColumn(target.matrix, 0).normalize();
+    const yAxis = new THREE.Vector3().setFromMatrixColumn(target.matrix, 1).normalize();
+    const normal = new THREE.Vector3().setFromMatrixColumn(target.matrix, 2).normalize();
+    this.planarDrag = beginPanelPlaneDrag(
+      this.raycaster.ray, center, xAxis, yAxis, normal,
+    );
+    return this.planarDrag !== null;
+  }
+
   private moveSelectedPanel(event: PointerEvent): void {
-    if (!this.surface || !this.draggingPanelId) return;
+    if (!this.draggingPanelId) return;
     const target = this.panelTargets.get(this.draggingPanelId);
     if (!target) return;
     this.updatePointer(event);
     this.raycaster.setFromCamera(this.pointer, this.camera);
+    if (!this.surface) {
+      const drag = this.planarDrag;
+      if (!drag) return;
+      const update = updatePanelPlaneDrag(this.raycaster.ray, drag);
+      if (!update) return;
+      const { position } = update;
+      this.setTargetMatrix(
+        target, drag.xAxis, drag.yAxis, drag.normal, position,
+      );
+      this.gizmo.matrix.copy(target.matrix);
+      this.pendingLocalDelta = {
+        deltaX: update.deltaX,
+        deltaY: update.deltaY,
+      };
+      return;
+    }
     const hit = this.raycaster.intersectObject(this.surface, false)[0];
     if (!hit || hit.faceIndex == null) return;
     const faceIndex = hit.faceIndex;
@@ -496,6 +618,8 @@ export class SurfacePlacementController {
     translatePad.position.z = lift;
     translatePad.renderOrder = 20;
     translatePad.name = "local-xy-translate-handle";
+    translatePad.visible = this.capabilities.canTranslateOnActiveSurface ||
+      this.capabilities.canTranslateInPanelPlane;
     this.gizmo.add(translatePad);
     this.translateHandles.push(translatePad);
 
@@ -518,6 +642,8 @@ export class SurfacePlacementController {
     );
     xArrow.name = "local-x-translation-axis";
     yArrow.name = "local-y-translation-axis";
+    xArrow.visible = translatePad.visible;
+    yArrow.visible = translatePad.visible;
     xArrow.traverse((object) => { object.renderOrder = 20; });
     yArrow.traverse((object) => { object.renderOrder = 20; });
     this.gizmo.add(xArrow, yArrow);
@@ -538,6 +664,7 @@ export class SurfacePlacementController {
     rotateRing.position.z = lift;
     rotateRing.renderOrder = 20;
     rotateRing.name = "local-z-rotation-handle";
+    rotateRing.visible = this.capabilities.canRotateSelectedPanel;
     this.gizmo.add(rotateRing);
     this.rotateHandles.push(rotateRing);
 
@@ -551,6 +678,7 @@ export class SurfacePlacementController {
     close.position.set(size.x / 2 + 7, size.y / 2 + 7, lift + 0.2);
     close.renderOrder = 21;
     close.name = "delete-selected-panel";
+    close.visible = this.capabilities.canDeleteSelectedPanel;
     const crossGeometry = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(-2.4, -2.4, 0.2),
       new THREE.Vector3(2.4, 2.4, 0.2),

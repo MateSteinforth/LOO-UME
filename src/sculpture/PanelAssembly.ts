@@ -108,6 +108,8 @@ export interface PanelAssemblyDefinition {
   manualMechanics?: {
     kind: "manually-authored-parts";
     generator: "verified-scad-wrappers";
+    /** Omitted legacy values mean verified until an authoritative panel edit occurs. */
+    compatibilityStatus?: "verified" | "requires-review";
     centerPanelMount: Record<string, unknown>;
     openings: Record<string, unknown>;
   };
@@ -328,6 +330,9 @@ export function parsePanelAssemblyDefinition(
     (!isRecord(manualMechanics) ||
       manualMechanics.kind !== "manually-authored-parts" ||
       manualMechanics.generator !== "verified-scad-wrappers" ||
+      (manualMechanics.compatibilityStatus !== undefined &&
+        manualMechanics.compatibilityStatus !== "verified" &&
+        manualMechanics.compatibilityStatus !== "requires-review") ||
       !isRecord(manualMechanics.centerPanelMount) ||
       !isRecord(manualMechanics.openings))
   ) {
@@ -395,7 +400,7 @@ export function parsePanelAssemblyDefinition(
   }
   if (
     !Array.isArray(input.panels) ||
-    (input.panels.length === 0 &&
+    (input.panels.length === 0 && !usesManualMechanics &&
       (geometry.derivationStatus !== "requires-regeneration" ||
         !isRecord(geometry.authoringBoundary)))
   ) {
