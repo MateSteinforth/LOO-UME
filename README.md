@@ -1,9 +1,40 @@
-# LED Rhombicosidodecahedron
+# JSON-driven polyhedral LED sculptures
 
-Version-controlled OpenSCAD sources for a 41-panel LED sculpture based on a
-rhombicosidodecahedron:
+A pose-first design, visualization, validation, and fabrication pipeline for
+building physical LED sculptures from reusable panel hardware. A sculpture is
+authored as JSON, previewed and edited in the browser, compiled into deterministic
+LED and wiring maps, and regenerated as mechanically validated OpenSCAD, STL, and
+preview artifacts.
 
-- 30 LED panels occupy the square faces.
+The project began as a single 41-panel rhombicosidodecahedron. That sculpture is
+now the flagship design and physical reference for a more general system that can
+describe multiple polyhedra, place panels on their surfaces, preserve tested
+mechanical constraints, and produce fabrication-ready closure geometry.
+
+| Automatic 30-panel rhombicosidodecahedron | Six-panel cuboctahedron | Six-panel truncated octahedron |
+| --- | --- | --- |
+| ![Generated rhombicosidodecahedron assembly](artifacts/sculptures/automatic-rhombicosidodecahedron-30-panel-test/previews/assembly.png) | ![Generated cuboctahedron assembly](artifacts/sculptures/cuboctahedron-six-panel-prototype/previews/assembly.png) | ![Generated truncated-octahedron assembly](artifacts/sculptures/truncated-octahedron-six-panel-test/previews/assembly.png) |
+
+## What the platform does
+
+- Defines sculptures, planar mechanical shells, panel profiles, poses, and
+  surface attachments in runtime-validated JSON.
+- Treats explicit right-handed panel bases as authoritative, so editor changes
+  propagate to every LED, mounting hole, connector, and DIN/DOUT position.
+- Provides browser authoring for adding, selecting, moving, rotating, and
+  deleting panels on JSON surfaces, with optional GLB meshes used only as visual
+  placement canvases.
+- Generates visualizer mappings and provisional WLED wiring for arbitrary panel
+  assemblies.
+- Regenerates printable planar closures and rejects panels whose complete PCB
+  envelope and clearance do not fit the containing face.
+- Verifies authored and generated mechanics with TypeScript tests, schema
+  round-trips, OpenSCAD rendering, and byte-equivalence checks for established
+  sculptures.
+
+The original rhombicosidodecahedron remains fully represented:
+
+- 30 LED panels occupy its square faces.
 - 11 additional LED panels sit in pentagonal openings.
 - The north-pole pentagonal opening is intentionally unpopulated.
 - 20 identical triangle fillers close the triangular openings.
@@ -21,8 +52,8 @@ assignment. It runs custom audio-reactive effects locally and accepts realtime D
 or Art-Net data. See [docs/software.md](docs/software.md) for the controller,
 mapping, behavior, power-safety, and CI design.
 
-The `software/panel-map-visualizer` branch also contains **WLED Orbital Lab**,
-a standalone browser simulator that runs genuine WLED C++ effect bodies in
+The browser application includes **WLED Orbital Lab**, a standalone simulator
+that runs genuine WLED C++ effect bodies in
 WebAssembly and renders 2,624 LEDs as 30 square-face 8 x 8 panels plus 11
 pentagon-centre 8 x 8 panels, leaving the north-pole pentagon open. The
 displayed four-output route now generates the simulator's physical indices and
@@ -66,13 +97,15 @@ selected, dragged, deleted, saved, and regenerated from the JSON shell without
 a GLB. An optional GLB remains a positioning canvas only and never becomes
 printable geometry.
 
-Run validates panel envelopes against the stable planar JSON boundary,
-regenerates current topology, and emits OpenSCAD, STL meshes, exact previews,
-wiring, and updated JSON. See
+The selected-panel transform gizmo moves a panel across local surface XY and
+rotates it around its local Z axis without changing its centre offset, outward
+normal, attachment triangle, or proven face angles. Run validates panel
+envelopes against the stable planar JSON boundary, regenerates current topology,
+and emits OpenSCAD, STL meshes, exact previews, wiring, and updated JSON. See
 [docs/editor-mechanical-regeneration.md](docs/editor-mechanical-regeneration.md)
 for the implemented mechanical contract and
-[docs/handover-panel-local-z-rotation.md](docs/handover-panel-local-z-rotation.md)
-for the next editor slice.
+[docs/pose-first-schema.md](docs/pose-first-schema.md) for the authoritative
+pose model.
 
 ## Canonical printable parts
 
