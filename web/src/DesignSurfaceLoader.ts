@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { PanelAssemblyDefinition } from "../../src/sculpture/PanelAssembly.ts";
+import type { AutomaticSurfaceMesh } from "../../src/sculpture/SculptureEditor.ts";
 import {
   createMechanicalShellTriangleMesh,
   validateWatertightTriangleMesh,
@@ -11,6 +12,23 @@ export interface LoadedDesignSurface {
   geometry: THREE.BufferGeometry;
   sha256: string;
   validation: SurfaceMeshValidation;
+}
+
+export function placementMeshFromSurface(
+  surface: LoadedDesignSurface,
+  includeSmoothNormals: boolean,
+): AutomaticSurfaceMesh {
+  const position = surface.geometry.getAttribute("position");
+  const index = surface.geometry.index;
+  if (!index) throw new Error("The active placement surface is not indexed.");
+  const normal = surface.geometry.getAttribute("normal");
+  return {
+    positions: Array.from(position.array),
+    indices: Array.from(index.array),
+    ...(includeSmoothNormals && normal
+      ? { normals: Array.from(normal.array) }
+      : {}),
+  };
 }
 
 function hex(bytes: ArrayBuffer): string {

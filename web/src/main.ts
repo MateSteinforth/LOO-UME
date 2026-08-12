@@ -18,6 +18,7 @@ import {
 import {
   addPanelOnDesignSurface,
   addPanelToClosureFace,
+  automaticallySeedPanelsOnSurface,
   deletePanel,
   movePanelOnDesignSurface,
   rotatePanelAroundLocalZ,
@@ -26,6 +27,7 @@ import {
 import {
   loadGlbDesignSurface,
   loadMechanicalShellDesignSurface,
+  placementMeshFromSurface,
   type LoadedDesignSurface,
 } from "./DesignSurfaceLoader";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
@@ -344,6 +346,18 @@ app.innerHTML = `
           <p id="selected-panel-status" class="mapping-note">
             No design surface loaded.
           </p>
+          <div id="automatic-panel-placement-controls">
+            <label class="field">
+              <span>Target panel count</span>
+              <input id="automatic-panel-count" type="number" min="1" step="1" value="6" />
+            </label>
+            <button id="automatically-place-panels" class="editor-button" type="button" disabled>
+              Automatically place panels
+            </button>
+            <p class="mapping-note">
+              Evenly seeds new panels across the active GLB or JSON shell. Existing panels stay in place and can be edited manually.
+            </p>
+          </div>
           <label class="field">
             <span>Available closure face</span>
             <select id="add-panel-face"></select>
@@ -442,6 +456,12 @@ const loadDesignSurfaceButton =
 const surfaceScaleInput = query<HTMLInputElement>("#surface-scale");
 const surfaceStatus = query<HTMLElement>("#surface-status");
 const selectedPanelStatus = query<HTMLElement>("#selected-panel-status");
+const automaticPanelPlacementControls =
+  query<HTMLElement>("#automatic-panel-placement-controls");
+const automaticPanelCountInput =
+  query<HTMLInputElement>("#automatic-panel-count");
+const automaticallyPlacePanelsButton =
+  query<HTMLButtonElement>("#automatically-place-panels");
 const addPanelFaceSelect = query<HTMLSelectElement>("#add-panel-face");
 const addPanelButton = query<HTMLButtonElement>("#add-panel");
 const generateMappingButton =
@@ -524,6 +544,10 @@ async function start(): Promise<void> {
     let fpsWindowStart = previousTime;
     let fpsFrames = 0;
     let currentDisplayMode: DisplayMode = "wled";
+    let activePlacementSurface: {
+      surface: LoadedDesignSurface;
+      attachmentSurface: "design-surface" | "mechanical-shell";
+    } | undefined;
 
     const resetTimeline = (): void => {
       simulationTime = 0;
@@ -545,6 +569,16 @@ async function start(): Promise<void> {
       generatePrintPartsButton.title = editorDefinition.manualMechanics
         ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
         : "";
+      automaticPanelPlacementControls.hidden =
+        editorDefinition.manualMechanics !== undefined;
+      automaticallyPlacePanelsButton.disabled =
+        editorDefinition.manualMechanics !== undefined ||
+        activePlacementSurface === undefined;
+      automaticallyPlacePanelsButton.title = editorDefinition.manualMechanics
+        ? "Automatic placement is disabled for manually authored mechanics."
+        : activePlacementSurface
+          ? "Seed panels evenly across the active placement surface."
+          : "Load a GLB or sculpture JSON shell first.";
     };
 
     const renderOutputLayerControls = (): void => {
@@ -678,6 +712,10 @@ async function start(): Promise<void> {
       if (!preserveEditorDefinition) {
         editorDefinition = selected.definition;
         editorProject = selected.project;
+        automaticPanelCountInput.min = String(editorDefinition.panels.length);
+        if (Number(automaticPanelCountInput.value) < editorDefinition.panels.length) {
+          automaticPanelCountInput.value = String(editorDefinition.panels.length);
+        }
         renderEditorFaces();
       }
       engine.resize(mapping.entries.length);
@@ -694,6 +732,8 @@ async function start(): Promise<void> {
     };
 
     const clearDesignSurface = (message: string): void => {
+      activePlacementSurface = undefined;
+      automaticallyPlacePanelsButton.disabled = true;
       renderer?.setDesignSurface(null);
       surfaceStatus.textContent = message;
       selectedPanelStatus.textContent = "No design surface loaded.";
@@ -705,7 +745,9 @@ async function start(): Promise<void> {
       attachmentSurface: "design-surface" | "mechanical-shell" =
         "design-surface",
     ): void => {
+      activePlacementSurface = { surface, attachmentSurface };
       renderer?.setDesignSurface(surface.geometry, attachmentSurface);
+      updatePipelineAvailability();
       autoRotate.checked = false;
       renderer?.setAutoRotate(false);
       const size = surface.validation.bounds.size
@@ -1052,6 +1094,48 @@ async function start(): Promise<void> {
       link.click();
       URL.revokeObjectURL(objectUrl);
       pipelineStatus.textContent = `Saved ${link.download}.`;
+    });
+
+    automaticallyPlacePanelsButton.addEventListener("click", () => {
+      try {
+        if (!activePlacementSurface) {
+          throw new Error("Load a GLB or sculpture JSON shell first.");
+        }
+        const targetPanelCount = Number(automaticPanelCountInput.value);
+        const { attachmentSurface, surface } = activePlacementSurface;
+        const result = automaticallySeedPanelsOnSurface(
+          editorDefinition,
+          placementMeshFromSurface(
+            surface,
+            attachmentSurface === "design-surface",
+          ),
+          editorProject.panelProfile.dimensions,
+          {
+            targetPanelCount,
+            surface: attachmentSurface,
+            normalOffset: editorProject.panelProfile.dimensions.thickness / 2,
+          },
+        );
+        const project = createPanelAssemblyProject(
+          result.definition,
+          editorProject.source,
+          editorProject.panelProfile,
+        );
+        applyLoadedSculpture(createLoadedSculpture(project));
+        pipelineStatus.classList.remove("pipeline-status--error");
+        pipelineStatus.textContent = result.placedPanelIds.length === 0
+          ? `The sculpture already has ${targetPanelCount} panels; nothing changed.`
+          : `Placed ${result.placedPanelIds.join(", ")} across the active ${
+            attachmentSurface === "design-surface" ? "GLB" : "JSON shell"
+          }. Mapping and provisional wiring are refreshed; adjust poses manually before separate 3D generation.`;
+        viewerError.hidden = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = message;
+        viewerError.hidden = false;
+        viewerError.textContent = message;
+      }
     });
     addPanelButton.addEventListener("click", () => {
       try {

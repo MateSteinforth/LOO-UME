@@ -27,7 +27,11 @@
     "dev:web": "npm run stage:sculptures && npm run build:wasm && vite",
     "build": "npm run generate:assets && npm run build:wasm && tsc -b && vite build",
     "preview": "vite preview",
-    "test": "npm run generate:assets && npm run build:wasm && vitest run --config vitest.config.ts"
+    "test:placement": "vitest run --config vitest.config.ts tests/automatic-panel-placement.test.ts",
+    "test:editor": "vitest run --config vitest.config.ts tests/sculpture-editor.test.ts tests/automatic-panel-placement.test.ts",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:full": "npm run generate:assets && npm run build:wasm && vitest run --config vitest.config.ts",
+    "test": "npm run test:unit"
   },
   "dependencies": {
     "three": "^0.179.1"

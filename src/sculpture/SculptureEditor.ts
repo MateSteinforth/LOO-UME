@@ -1,5 +1,9 @@
 import type { PanelAssemblyDefinition } from "./PanelAssembly.ts";
 import { preserveAuthoringBoundary } from "./MechanicalShellRegenerator.ts";
+import {
+  createMechanicalSurfaceOrientation,
+  createSurfaceOrientation,
+} from "./DesignSurface.ts";
 
 type Vector3Tuple = [number, number, number];
 type Vector2Tuple = [number, number];
@@ -448,6 +452,236 @@ export function addPanelOnDesignSurface(
     `Panel ${panelId} was placed manually on the design surface; mechanical shell regeneration remains required.`,
   );
   return definition;
+}
+
+export interface AutomaticSurfaceMesh {
+  positions: readonly number[];
+  indices: readonly number[];
+  normals?: readonly number[];
+}
+export interface AutomaticSurfacePlacementOptions {
+  targetPanelCount: number;
+  surface: "design-surface" | "mechanical-shell";
+  normalOffset?: number;
+}
+export interface AutomaticSurfacePlacementResult {
+  definition: PanelAssemblyDefinition;
+  placedPanelIds: string[];
+  triangleIndices: number[];
+}
+interface SurfaceCandidate {
+  triangleIndex: number;
+  position: Vector3Tuple;
+  normal: Vector3Tuple;
+  vertices: [Vector3Tuple, Vector3Tuple, Vector3Tuple];
+  barycentric: Vector3Tuple;
+}
+function meshPoint(values: readonly number[], index: number): Vector3Tuple {
+  return [values[index * 3]!, values[index * 3 + 1]!, values[index * 3 + 2]!];
+}
+function distanceSquared(a: Vector3Tuple, b: Vector3Tuple): number {
+  return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 +
+    (a[2] - b[2]) ** 2;
+}
+function trianglePoint(
+  vertices: [Vector3Tuple, Vector3Tuple, Vector3Tuple],
+  barycentric: Vector3Tuple,
+): Vector3Tuple {
+  return add(add(
+    scale(vertices[0], barycentric[0]),
+    scale(vertices[1], barycentric[1]),
+  ), scale(vertices[2], barycentric[2]));
+}
+function surfaceCandidates(
+  mesh: AutomaticSurfaceMesh,
+  requestedCount: number,
+): SurfaceCandidate[] {
+  if (
+    mesh.positions.length < 9 || mesh.positions.length % 3 !== 0 ||
+    mesh.positions.some((value) => !Number.isFinite(value)) ||
+    mesh.indices.length < 3 || mesh.indices.length % 3 !== 0 ||
+    mesh.indices.some((index) =>
+      !Number.isInteger(index) || index < 0 ||
+      index >= mesh.positions.length / 3
+    )
+  ) {
+    throw new Error("The active placement surface needs finite indexed triangles.");
+  }
+  const hasNormals = mesh.normals?.length === mesh.positions.length &&
+    mesh.normals.every((value) => Number.isFinite(value));
+  const triangles = Array.from(
+    { length: mesh.indices.length / 3 },
+    (_, triangleIndex) => {
+      const indices = [0, 1, 2].map(
+        (corner) => mesh.indices[triangleIndex * 3 + corner]!,
+      ) as [number, number, number];
+      const vertices = indices.map((index) =>
+        meshPoint(mesh.positions, index)
+      ) as [Vector3Tuple, Vector3Tuple, Vector3Tuple];
+      const area = Math.hypot(...cross(
+        subtract(vertices[1], vertices[0]),
+        subtract(vertices[2], vertices[0]),
+      ));
+      if (area < 1e-10) {
+        throw new Error(
+          `The active placement surface has a degenerate triangle at index ${triangleIndex}.`,
+        );
+      }
+      return { triangleIndex, indices, vertices, area };
+    },
+  );
+  const totalArea = triangles.reduce((sum, triangle) => sum + triangle.area, 0);
+  const sampleCount = Math.min(
+    8192,
+    Math.max(triangles.length, requestedCount * 64),
+  );
+  const allocations = triangles.map((triangle) => {
+    const exact = triangle.area / totalArea * sampleCount;
+    return { triangle, count: Math.floor(exact), remainder: exact % 1 };
+  });
+  let remainder = sampleCount -
+    allocations.reduce((sum, item) => sum + item.count, 0);
+  for (
+    const item of [...allocations].sort((a, b) =>
+      b.remainder - a.remainder ||
+      a.triangle.triangleIndex - b.triangle.triangleIndex
+    )
+  ) {
+    if (remainder-- <= 0) break;
+    item.count += 1;
+  }
+  return allocations.flatMap(({ triangle, count }) =>
+    Array.from({ length: count }, (_, index) => {
+      const root = Math.sqrt((index + 0.5) / count);
+      const across = ((index + 1) * 0.6180339887498949) % 1;
+      const barycentric: Vector3Tuple = [
+        1 - root,
+        root * (1 - across),
+        root * across,
+      ];
+      let normal = normalize(cross(
+        subtract(triangle.vertices[1], triangle.vertices[0]),
+        subtract(triangle.vertices[2], triangle.vertices[0]),
+      ));
+      if (hasNormals) {
+        normal = normalize(trianglePoint(
+          triangle.indices.map((vertexIndex) =>
+            meshPoint(mesh.normals!, vertexIndex)
+          ) as [Vector3Tuple, Vector3Tuple, Vector3Tuple],
+          barycentric,
+        ));
+      }
+      return {
+        triangleIndex: triangle.triangleIndex,
+        position: trianglePoint(triangle.vertices, barycentric),
+        normal,
+        vertices: triangle.vertices,
+        barycentric,
+      };
+    })
+  );
+}
+/** Deterministically spreads new pose-authoritative panels over an authoring mesh. */
+export function automaticallySeedPanelsOnSurface(
+  source: PanelAssemblyDefinition,
+  mesh: AutomaticSurfaceMesh,
+  panelDimensions: AddPanelDimensions,
+  options: AutomaticSurfacePlacementOptions,
+): AutomaticSurfacePlacementResult {
+  if (source.manualMechanics) {
+    throw new Error(
+      "Automatic surface placement is disabled for manualMechanics projects.",
+    );
+  }
+  if (
+    !Number.isInteger(options.targetPanelCount) ||
+    options.targetPanelCount < source.panels.length
+  ) {
+    throw new Error(
+      `Target panel count must be an integer at least ${source.panels.length}.`,
+    );
+  }
+  if (options.surface === "design-surface" && !source.designSurface) {
+    throw new Error("Load a GLB design surface before seeding panels on it.");
+  }
+  if (
+    panelDimensions.width <= 0 || panelDimensions.height <= 0 ||
+    !Number.isFinite(panelDimensions.width + panelDimensions.height)
+  ) {
+    throw new Error("Panel dimensions must be positive finite values.");
+  }
+  const definition = structuredClone(source);
+  const newCount = options.targetPanelCount - definition.panels.length;
+  if (newCount === 0) {
+    return { definition, placedPanelIds: [], triangleIndices: [] };
+  }
+  preserveAuthoringBoundary(definition);
+  const candidates = surfaceCandidates(mesh, newCount);
+  if (candidates.length < newCount) {
+    throw new Error(
+      `The active placement surface supports at most ${candidates.length} deterministic samples.`,
+    );
+  }
+  const available = [...candidates];
+  const occupied = definition.panels.map((panel) => panel.pose.position);
+  const center = mean(candidates.map((candidate) => candidate.position));
+  const selected: SurfaceCandidate[] = [];
+  while (selected.length < newCount) {
+    let bestIndex = 0;
+    let bestDistance = -Infinity;
+    for (let index = 0; index < available.length; index += 1) {
+      const point = available[index]!.position;
+      const seeds = [...occupied, ...selected.map((item) => item.position)];
+      const distance = seeds.length === 0
+        ? -distanceSquared(point, center)
+        : Math.min(...seeds.map((seed) => distanceSquared(point, seed)));
+      if (distance > bestDistance + 1e-9) {
+        bestIndex = index;
+        bestDistance = distance;
+      }
+    }
+    selected.push(available.splice(bestIndex, 1)[0]!);
+  }
+  const normalOffset = options.normalOffset ?? 0;
+  const placedPanelIds: string[] = [];
+  for (const candidate of selected) {
+    const panelId = nextPanelId(definition);
+    const orientation = options.surface === "mechanical-shell"
+      ? createMechanicalSurfaceOrientation(candidate.normal, candidate.vertices)
+      : createSurfaceOrientation(candidate.normal);
+    definition.panels.push({
+      id: panelId,
+      pose: {
+        position: add(candidate.position, scale(candidate.normal, normalOffset)),
+        orientation,
+      },
+      surfaceAttachment: {
+        surface: options.surface,
+        triangleIndex: candidate.triangleIndex,
+        barycentric: candidate.barycentric,
+        normalOffset,
+      },
+    });
+    const shortest = definition.wiring.chainLengths.reduce(
+      (best, length, index, lengths) =>
+        length < lengths[best]! ? index : best,
+      0,
+    );
+    definition.wiring.chainLengths[shortest] =
+      definition.wiring.chainLengths[shortest]! + 1;
+    placedPanelIds.push(panelId);
+  }
+  markPoseMechanicsStale(definition);
+  definition.notes.push(
+    `Automatically seeded ${placedPanelIds.length} panels across the ${
+      options.surface === "design-surface" ? "GLB" : "JSON shell"
+    } authoring surface; manually verify placement and regenerate mechanics separately.`,
+  );
+  return {
+    definition,
+    placedPanelIds,
+    triangleIndices: selected.map((candidate) => candidate.triangleIndex),
+  };
 }
 
 export function deletePanel(

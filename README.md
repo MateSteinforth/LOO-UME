@@ -143,6 +143,28 @@ from `main`.
 See [refs/pcb_dimensions.md](refs/pcb_dimensions.md) and [AGENTS.md](AGENTS.md)
 before changing geometry.
 
+## Feature-focused tests
+
+Automatic placement has a fast test path that does not generate CAD assets,
+STLs, previews, or invoke OpenSCAD:
+
+```bash
+npm run test:placement
+```
+
+For the wider browser editor tests, including existing mechanical-regeneration
+contracts that emit temporary OpenSCAD source, run:
+
+```bash
+npm run test:editor
+```
+
+`npm test` runs the complete Vitest suite without regenerating repository
+assets. Use `npm run test:full` when the generated mapping, WLED, and CAD
+assets also need to be rebuilt first. Printable geometry remains a separate,
+explicit verification step through `npm run verify:cad` and
+`npm run verify:processed-sculptures`.
+
 ## Build locally
 
 Install the npm dependencies, OpenSCAD, Xvfb, and xauth. Generate the mapping,
