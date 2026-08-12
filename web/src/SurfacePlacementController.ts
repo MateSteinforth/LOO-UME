@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { PanelDefinition } from "./LedMapping.ts";
 import type { EditorCapabilities } from "./EditorCapabilities.ts";
@@ -9,6 +10,11 @@ import {
   type Vector3Tuple,
 } from "../../src/sculpture/DesignSurface.ts";
 import { projectPanelOrientationOntoSurface } from "../../src/sculpture/SculptureEditor.ts";
+import {
+  focusedGrey,
+  isBackgroundClick,
+  type BackgroundPointerCandidate,
+} from "./SelectionFocus.ts";
 
 export interface SurfacePlacement {
   position: Vector3Tuple;
@@ -84,14 +90,14 @@ export class SurfacePlacementController {
   private readonly gizmo = new THREE.Group();
   private readonly translateHandles: THREE.Object3D[] = [];
   private readonly rotateHandles: THREE.Object3D[] = [];
-  private readonly deleteHandles: THREE.Object3D[] = [];
   private readonly panelTargets = new Map<string, THREE.Mesh>();
   private surface: THREE.Mesh | null = null;
   private selectedPanelId: string | null = null;
   private draggingPanelId: string | null = null;
   private rotatingPanelId: string | null = null;
   private selectingPointerId: number | null = null;
-  private surfacePointerDown: { x: number; y: number; hit: boolean } | null = null;
+  private surfacePointerCandidate: BackgroundPointerCandidate | null = null;
+  private backgroundPointerCandidate: BackgroundPointerCandidate | null = null;
   private pendingRotationDegrees = 0;
   private rotationStartDirection = new THREE.Vector3();
   private rotationStartXAxis = new THREE.Vector3();
@@ -135,7 +141,7 @@ export class SurfacePlacementController {
     this.layer.add(this.gizmo);
     domElement.addEventListener("pointermove", this.pointerMove);
     domElement.addEventListener("pointerup", this.pointerUp);
-    domElement.addEventListener("pointercancel", this.pointerUp);
+    domElement.addEventListener("pointercancel", this.pointerCancel);
   }
 
   setCapabilities(capabilities: EditorCapabilities): void {
@@ -169,6 +175,7 @@ export class SurfacePlacementController {
     this.surface.name = "design-surface";
     this.surface.renderOrder = -1;
     this.layer.add(this.surface);
+    this.applySelectionFocus();
   }
 
   setPanels(panels: PanelDefinition[], thickness: number): void {
@@ -226,7 +233,7 @@ export class SurfacePlacementController {
     this.domElement.removeEventListener("pointerdown", this.pointerDown);
     this.domElement.removeEventListener("pointermove", this.pointerMove);
     this.domElement.removeEventListener("pointerup", this.pointerUp);
-    this.domElement.removeEventListener("pointercancel", this.pointerUp);
+    this.domElement.removeEventListener("pointercancel", this.pointerCancel);
     this.setSurface(null);
     this.setPanels([], 0.8);
     this.scene.remove(this.layer);
@@ -235,16 +242,9 @@ export class SurfacePlacementController {
 
   private readonly pointerDown = (event: PointerEvent): void => {
     if (event.button !== 0) return;
+    this.backgroundPointerCandidate = null;
+    this.surfacePointerCandidate = null;
     this.updateRaycaster(event);
-
-    if (this.capabilities.canDeleteSelectedPanel && this.intersects(this.deleteHandles)) {
-      const panelId = this.selectedPanelId;
-      if (!panelId) return;
-      this.capturePointer(event);
-      this.selectingPointerId = event.pointerId;
-      this.onDeletePanelRequest?.(panelId);
-      return;
-    }
     if (this.capabilities.canRotateSelectedPanel && this.intersects(this.rotateHandles) && this.beginRotation(event)) return;
     if (this.intersects(this.translateHandles)) {
       const canMove = this.surface
@@ -278,11 +278,13 @@ export class SurfacePlacementController {
     const surfaceHit = this.surface
       ? this.raycaster.intersectObject(this.surface, false)[0]
       : undefined;
-    this.surfacePointerDown = {
+    const candidate = {
+      pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      hit: surfaceHit?.faceIndex != null,
     };
+    if (surfaceHit?.faceIndex != null) this.surfacePointerCandidate = candidate;
+    else this.backgroundPointerCandidate = candidate;
   };
 
   private readonly pointerMove = (event: PointerEvent): void => {
@@ -291,6 +293,7 @@ export class SurfacePlacementController {
   };
 
   private readonly pointerUp = (event: PointerEvent): void => {
+    if (event.button !== 0) return;
     if (this.draggingPanelId) {
       this.moveSelectedPanel(event);
       const panelId = this.draggingPanelId;
@@ -329,19 +332,48 @@ export class SurfacePlacementController {
       return;
     }
 
-    const down = this.surfacePointerDown;
-    this.surfacePointerDown = null;
-    if (!down || !down.hit) return;
-    if (Math.hypot(event.clientX - down.x, event.clientY - down.y) > 5) return;
+    const background = this.backgroundPointerCandidate;
+    if (background?.pointerId === event.pointerId) {
+      this.backgroundPointerCandidate = null;
+      if (isBackgroundClick(
+        background, event.pointerId, event.clientX, event.clientY,
+      )) this.select(null);
+      return;
+    }
+    const down = this.surfacePointerCandidate;
+    if (!down || down.pointerId !== event.pointerId) return;
+    this.surfacePointerCandidate = null;
+    if (!isBackgroundClick(
+      down, event.pointerId, event.clientX, event.clientY,
+    )) return;
     this.updateRaycaster(event);
     const hit = this.surface
       ? this.raycaster.intersectObject(this.surface, false)[0]
       : undefined;
     if (!hit || hit.faceIndex == null) return;
-    this.select(null);
     if (this.capabilities.canCreateOnActiveSurface) {
+      this.select(null);
       this.onAddPanelCommit?.(this.placementFromSurfaceHit(hit));
     }
+  };
+
+  private readonly pointerCancel = (event: PointerEvent): void => {
+    if (this.backgroundPointerCandidate?.pointerId === event.pointerId) {
+      this.backgroundPointerCandidate = null;
+    }
+    if (this.surfacePointerCandidate?.pointerId === event.pointerId) {
+      this.surfacePointerCandidate = null;
+    }
+    if (this.selectingPointerId === event.pointerId) {
+      this.selectingPointerId = null;
+    }
+    this.draggingPanelId = null;
+    this.rotatingPanelId = null;
+    this.pendingPlacement = null;
+    this.pendingLocalDelta = null;
+    this.planarDrag = null;
+    this.pendingRotationDegrees = 0;
+    this.releasePointer(event);
   };
 
   private capturePointer(event: PointerEvent): void {
@@ -578,6 +610,7 @@ export class SurfacePlacementController {
     this.selectedPanelId = panelId;
     this.updateHighlight();
     this.updateGizmo();
+    this.applySelectionFocus();
     this.onSelectionChange?.(panelId);
   }
 
@@ -586,6 +619,10 @@ export class SurfacePlacementController {
       const material = target.material as THREE.MeshBasicMaterial;
       material.opacity = panelId === this.selectedPanelId ? 0.3 : 0.025;
       material.color.set(panelId === this.selectedPanelId ? 0xffb35c : 0x6ef8ee);
+      if (this.selectedPanelId && panelId !== this.selectedPanelId) {
+        const grey = focusedGrey(material.color);
+        material.color.setRGB(grey.r, grey.g, grey.b);
+      }
     }
   }
 
@@ -668,31 +705,33 @@ export class SurfacePlacementController {
     this.gizmo.add(rotateRing);
     this.rotateHandles.push(rotateRing);
 
-    const deleteMaterial = new THREE.MeshBasicMaterial({
-      color: 0xff5266,
-      side: THREE.DoubleSide,
-      depthTest: false,
-      depthWrite: false,
-    });
-    const close = new THREE.Mesh(new THREE.CircleGeometry(5.5, 24), deleteMaterial);
-    close.position.set(size.x / 2 + 7, size.y / 2 + 7, lift + 0.2);
-    close.renderOrder = 21;
-    close.name = "delete-selected-panel";
-    close.visible = this.capabilities.canDeleteSelectedPanel;
-    const crossGeometry = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(-2.4, -2.4, 0.2),
-      new THREE.Vector3(2.4, 2.4, 0.2),
-      new THREE.Vector3(-2.4, 2.4, 0.2),
-      new THREE.Vector3(2.4, -2.4, 0.2),
-    ]);
-    const cross = new THREE.LineSegments(
-      crossGeometry,
-      new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false }),
-    );
-    cross.renderOrder = 22;
-    close.add(cross);
-    this.gizmo.add(close);
-    this.deleteHandles.push(close);
+    if (this.capabilities.canDeleteSelectedPanel && this.selectedPanelId) {
+      const button = document.createElement("button");
+      button.className = "panel-delete-billboard";
+      button.type = "button";
+      button.textContent = "×";
+      button.title = `Delete selected panel ${this.selectedPanelId}`;
+      button.setAttribute(
+        "aria-label",
+        `Delete selected panel ${this.selectedPanelId}`,
+      );
+      button.addEventListener("pointerdown", (event) => {
+        event.stopPropagation();
+      });
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const panelId = this.selectedPanelId;
+        if (panelId && this.capabilities.canDeleteSelectedPanel) {
+          this.onDeletePanelRequest?.(panelId);
+        }
+      });
+      const close = new CSS2DObject(button);
+      close.name = "delete-selected-panel";
+      close.position.set(size.x / 2 + 7, size.y / 2 + 7, lift + 0.2);
+      close.renderOrder = 10_000;
+      this.gizmo.add(close);
+    }
 
     this.gizmo.matrix.copy(target.matrix);
     this.gizmo.matrixAutoUpdate = false;
@@ -703,9 +742,12 @@ export class SurfacePlacementController {
   private disposeGizmo(): void {
     this.translateHandles.length = 0;
     this.rotateHandles.length = 0;
-    this.deleteHandles.length = 0;
     for (const child of [...this.gizmo.children]) {
       child.traverse((object) => {
+        if (object instanceof CSS2DObject) {
+          object.element.remove();
+          return;
+        }
         const renderable = object as THREE.Mesh;
         renderable.geometry?.dispose();
         const material = renderable.material;
@@ -714,6 +756,20 @@ export class SurfacePlacementController {
       });
       this.gizmo.remove(child);
     }
+  }
+
+  private applySelectionFocus(): void {
+    if (this.surface) {
+      const material = this.surface.material as THREE.MeshBasicMaterial;
+      const base = new THREE.Color(0x376478);
+      if (this.selectedPanelId) {
+        const grey = focusedGrey(base);
+        material.color.setRGB(grey.r, grey.g, grey.b);
+      } else {
+        material.color.copy(base);
+      }
+    }
+    this.updateHighlight();
   }
 
   private setTargetMatrix(

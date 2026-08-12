@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { focusedGrey, selectionDisplayColor } from "./SelectionFocus.ts";
 import {
   CSS2DObject,
   CSS2DRenderer,
@@ -93,6 +94,7 @@ export class SphereRenderer {
     new THREE.MeshBasicMaterial({ color: 0x050a12 }),
   );
   private readonly color = new THREE.Color();
+  private baseLedColors = new Float32Array();
   private readonly cameraDirection = new THREE.Vector3();
   private readonly resizeObserver: ResizeObserver;
   private mapping: LedMapping;
@@ -150,6 +152,7 @@ export class SphereRenderer {
     this.clearWiringPreview();
     const positions = new Float32Array(mapping.entries.length * 3);
     const colors = new Float32Array(mapping.entries.length * 3);
+    this.baseLedColors = new Float32Array(mapping.entries.length * 3);
     for (let physical = 0; physical < mapping.entries.length; physical += 1) {
       const entry = mapping.entries[physical];
       if (!entry) continue;
@@ -160,6 +163,9 @@ export class SphereRenderer {
       colors[offset] = 0.04;
       colors[offset + 1] = 0.08;
       colors[offset + 2] = 0.12;
+      this.baseLedColors[offset] = 0.04;
+      this.baseLedColors[offset + 1] = 0.08;
+      this.baseLedColors[offset + 2] = 0.12;
     }
     this.geometry.setAttribute(
       "position",
@@ -174,6 +180,7 @@ export class SphereRenderer {
       mapping.printableClosures ?? [],
     );
     this.surfacePlacement.setPanels(mapping.panels, this.panelThickness);
+    this.applySelectionFocus();
     this.fitMapping();
   }
 
@@ -204,7 +211,14 @@ export class SphereRenderer {
         const lightness = index % 8 === 0 ? 0.78 : 0.52;
         this.color.setHSL(hue, 0.88, lightness);
       }
-      attribute.setXYZ(physical, this.color.r, this.color.g, this.color.b);
+      const offset = physical * 3;
+      this.baseLedColors[offset] = this.color.r;
+      this.baseLedColors[offset + 1] = this.color.g;
+      this.baseLedColors[offset + 2] = this.color.b;
+      const display = selectionDisplayColor(
+        this.color, entry.panelId, this.selectedPanelId,
+      );
+      attribute.setXYZ(physical, display.r, display.g, display.b);
     }
     attribute.needsUpdate = true;
   }
@@ -257,6 +271,7 @@ export class SphereRenderer {
     this.surfacePlacement.onSelectionChange = (panelId) => {
       this.selectedPanelId = panelId;
       this.updatePanelLabelSelection();
+      this.applySelectionFocus();
       callbacks.onSelectionChange?.(panelId);
     };
     this.surfacePlacement.onPlacementCommit = callbacks.onPlacementCommit;
@@ -278,6 +293,7 @@ export class SphereRenderer {
     this.clearWiringPreview();
     if (preview.status !== "generated-provisional") return;
     this.buildWiringPreview(preview);
+    this.applySelectionFocus();
   }
 
   setShellTransparency(value: number): void {
@@ -370,8 +386,10 @@ export class SphereRenderer {
 
     const positions: number[] = [];
     const colors: number[] = [];
+    const outlinePanelIds: Array<string | null> = [];
     const surfacePositions: number[] = [];
     const surfaceColors: number[] = [];
+    const surfacePanelIds: Array<string | null> = [];
     const mountPositions: number[] = [];
     const printableClosureIds = new Set(
       printableClosures.map((closure) => closure.id),
@@ -398,6 +416,7 @@ export class SphereRenderer {
           const point = this.toThree(vertex).add(offset);
           surfacePositions.push(point.x, point.y, point.z);
           surfaceColors.push(surfaceColor.r, surfaceColor.g, surfaceColor.b);
+          surfacePanelIds.push(null);
         }
       }
     }
@@ -430,6 +449,7 @@ export class SphereRenderer {
           surfaceColor.g,
           surfaceColor.b,
         );
+        surfacePanelIds.push(panel.id);
       }
       for (const [start, end] of edgePairs) {
         const first = corners[start]!;
@@ -443,6 +463,7 @@ export class SphereRenderer {
           outlineColor.g,
           outlineColor.b,
         );
+        outlinePanelIds.push(panel.id, panel.id);
       }
 
       const element = document.createElement("span");
@@ -502,6 +523,10 @@ export class SphereRenderer {
       depthTest: true,
     }));
     const surfaces = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
+    surfaces.userData.selectionFocusVertexColors = true;
+    surfaces.userData.selectionFocusBaseColors =
+      Float32Array.from(surfaceColors);
+    surfaces.userData.selectionFocusPanelIds = surfacePanelIds;
     surfaces.renderOrder = 0;
     this.panelLayer.add(surfaces);
     this.buildPrintableClosures(printableClosures, surfaceFaces);
@@ -551,6 +576,10 @@ export class SphereRenderer {
       depthWrite: false,
     });
     const outlines = new THREE.LineSegments(geometry, material);
+    outlines.userData.selectionFocusVertexColors = true;
+    outlines.userData.selectionFocusBaseColors =
+      Float32Array.from(colors);
+    outlines.userData.selectionFocusPanelIds = outlinePanelIds;
     outlines.renderOrder = 1;
     this.panelLayer.add(outlines);
   }
@@ -703,6 +732,7 @@ export class SphereRenderer {
           exact.userData.source = "generated-openscad-stl";
           closureGroup.userData.loaded = true;
           closureGroup.add(exact);
+          this.applySelectionFocus();
         },
         undefined,
         () => {
@@ -854,15 +884,107 @@ export class SphereRenderer {
     group.clear();
   }
 
+  private applySelectionFocus(): void {
+    this.applyLedSelectionFocus();
+    this.updatePanelLabelSelection();
+    for (const layer of [
+      this.panelLayer,
+      this.printableLayer,
+      this.connectorLayer,
+      this.wiringLayer,
+    ]) {
+      layer.traverse((object) => {
+        if (object.userData.selectionFocusVertexColors) {
+          this.applyVertexSelectionFocus(object);
+          return;
+        }
+        if (
+          !(object instanceof THREE.Mesh) &&
+          !(object instanceof THREE.Line) &&
+          !(object instanceof THREE.Points)
+        ) return;
+        const materials = Array.isArray(object.material)
+          ? object.material
+          : [object.material];
+        for (const material of materials) this.applyMaterialSelectionFocus(material);
+      });
+    }
+    const coreMaterials = Array.isArray(this.occlusionCore.material)
+      ? this.occlusionCore.material
+      : [this.occlusionCore.material];
+    for (const material of coreMaterials) this.applyMaterialSelectionFocus(material);
+  }
+
+  private applyLedSelectionFocus(): void {
+    const attribute = this.geometry.getAttribute("color") as
+      THREE.BufferAttribute | undefined;
+    if (!attribute) return;
+    for (let physical = 0; physical < this.mapping.entries.length; physical += 1) {
+      const offset = physical * 3;
+      const base = {
+        r: this.baseLedColors[offset] ?? 0,
+        g: this.baseLedColors[offset + 1] ?? 0,
+        b: this.baseLedColors[offset + 2] ?? 0,
+      };
+      const entry = this.mapping.entries[physical]!;
+      const display = selectionDisplayColor(
+        base, entry.panelId, this.selectedPanelId,
+      );
+      attribute.setXYZ(physical, display.r, display.g, display.b);
+    }
+    attribute.needsUpdate = true;
+  }
+
+  private applyVertexSelectionFocus(object: THREE.Object3D): void {
+    const renderable = object as THREE.Mesh | THREE.LineSegments;
+    const attribute = renderable.geometry.getAttribute("color") as
+      THREE.BufferAttribute;
+    const base = object.userData.selectionFocusBaseColors as Float32Array;
+    const panelIds = object.userData.selectionFocusPanelIds as
+      Array<string | null>;
+    for (let index = 0; index < attribute.count; index += 1) {
+      const offset = index * 3;
+      const color = { r: base[offset]!, g: base[offset + 1]!, b: base[offset + 2]! };
+      const display = selectionDisplayColor(
+        color, panelIds[index] ?? null, this.selectedPanelId,
+      );
+      attribute.setXYZ(index, display.r, display.g, display.b);
+    }
+    attribute.needsUpdate = true;
+  }
+
+  private applyMaterialSelectionFocus(material: THREE.Material): void {
+    const colored = material as THREE.Material & { color?: THREE.Color };
+    if (!colored.color) return;
+    let base = material.userData.selectionFocusBaseColor as
+      THREE.Color | undefined;
+    if (!base) {
+      base = colored.color.clone();
+      material.userData.selectionFocusBaseColor = base;
+    }
+    if (!this.selectedPanelId) {
+      colored.color.copy(base);
+    } else {
+      const grey = focusedGrey(base);
+      colored.color.setRGB(grey.r, grey.g, grey.b);
+    }
+  }
+
   private updatePanelLabelSelection(): void {
     for (const label of this.panelLabels) {
+      const isSelected =
+        label.element.dataset.panelId === this.selectedPanelId;
       label.element.classList.toggle(
         "panel-label--selected",
-        label.element.dataset.panelId === this.selectedPanelId,
+        isSelected,
+      );
+      label.element.classList.toggle(
+        "panel-label--unfocused",
+        this.selectedPanelId !== null && !isSelected,
       );
       label.element.setAttribute(
         "aria-pressed",
-        String(label.element.dataset.panelId === this.selectedPanelId),
+        String(isSelected),
       );
     }
   }

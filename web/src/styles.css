@@ -199,6 +199,32 @@ input[type="checkbox"] {
   pointer-events: none;
 }
 
+.panel-delete-billboard {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  color: #fff;
+  background: #ff5266;
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.65),
+    0 0 0 2px rgba(255, 82, 102, 0.28);
+  font: 700 30px/38px system-ui, sans-serif;
+  text-align: center;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.panel-delete-billboard:hover,
+.panel-delete-billboard:focus-visible {
+  background: #ff334c;
+  outline: 3px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
 .panel-label {
   display: block;
   padding: 2px 4px;
@@ -225,6 +251,10 @@ input[type="checkbox"] {
 
 .panel-label--pentagon {
   color: #ffad79;
+}
+
+.panel-label--unfocused {
+  filter: grayscale(1) brightness(0.6);
 }
 
 .panel-label--selected {
