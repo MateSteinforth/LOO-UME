@@ -318,7 +318,10 @@ input[type="checkbox"] {
 
 .play-button,
 .icon-button,
-.input-action button {
+.input-action button,
+.editor-actions button,
+.editor-button,
+.pipeline-button {
   border: 1px solid rgba(57, 217, 208, 0.28);
   color: #d9fffb;
   background: rgba(57, 217, 208, 0.1);
@@ -327,7 +330,10 @@ input[type="checkbox"] {
 
 .play-button:hover,
 .icon-button:hover,
-.input-action button:hover {
+.input-action button:hover,
+.editor-actions button:hover,
+.editor-button:hover,
+.pipeline-button:hover {
   border-color: rgba(57, 217, 208, 0.62);
   background: rgba(57, 217, 208, 0.16);
 }
@@ -450,6 +456,56 @@ input[type="color"] {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.editor-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.editor-actions button,
+.editor-button,
+.pipeline-button {
+  min-height: 38px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.editor-button,
+.pipeline-button {
+  width: 100%;
+  margin-top: 9px;
+}
+
+.pipeline-button {
+  margin-top: 18px;
+  color: #fff0e7;
+  border-color: rgba(255, 139, 69, 0.38);
+  background: rgba(255, 139, 69, 0.12);
+}
+
+.pipeline-status {
+  margin-top: 9px;
+  padding: 9px 10px;
+  border: 1px solid rgba(57, 217, 208, 0.12);
+  border-radius: 6px;
+  color: #7faca8;
+  background: rgba(57, 217, 208, 0.035);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.pipeline-status--error {
+  color: #ff9eaa;
+  border-color: rgba(255, 90, 107, 0.22);
+  background: rgba(255, 90, 107, 0.05);
 }
 
 .toggle-field {

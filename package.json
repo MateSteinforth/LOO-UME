@@ -17,6 +17,7 @@
     "generate:truncated-octahedron": "npm run generate:sculpture -- --sculpture sculptures/truncated-octahedron/sculpture.json",
     "generate:assets": "npm run stage:sculptures && npm run generate:mapping && npm run generate:cad && npm run generate:cuboctahedron && npm run generate:rhombicosidodecahedron:auto && npm run generate:truncated-octahedron",
     "verify:cad": "tsx scripts/verify-cad.ts",
+    "verify:sculpture": "tsx scripts/verify-sculpture.ts",
     "verify:cuboctahedron": "tsx scripts/verify-sculpture.ts --sculpture sculptures/cuboctahedron/sculpture.json",
     "verify:rhombicosidodecahedron:auto": "tsx scripts/verify-sculpture.ts --sculpture sculptures/rhombicosidodecahedron-auto/sculpture.json",
     "verify:truncated-octahedron": "tsx scripts/verify-sculpture.ts --sculpture sculptures/truncated-octahedron/sculpture.json",

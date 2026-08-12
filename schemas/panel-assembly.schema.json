@@ -81,6 +81,24 @@
             "type": "string",
             "minLength": 1
           },
+          "connectorPolicy": {
+            "type": "object",
+            "description": "Explicit mechanical exception for a topology that cannot provide one distinct printable cap per eligible hole.",
+            "additionalProperties": false,
+            "required": [
+              "allowSharedClosureAcrossAdjacentEdges",
+              "reason"
+            ],
+            "properties": {
+              "allowSharedClosureAcrossAdjacentEdges": {
+                "const": true
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
           "pose": {
             "type": "object",
             "additionalProperties": false,
@@ -432,6 +450,24 @@
                 "items": {
                   "type": "integer",
                   "minimum": 0
+                }
+              },
+              "connectorPolicy": {
+                "type": "object",
+                "description": "Explicit exception for strip-like closures that are mechanically constrained with two panel-hole connectors.",
+                "additionalProperties": false,
+                "required": [
+                  "minimumPanelHoleConnectors",
+                  "reason"
+                ],
+                "properties": {
+                  "minimumPanelHoleConnectors": {
+                    "const": 2
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               }
             }

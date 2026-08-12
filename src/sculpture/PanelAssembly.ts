@@ -28,6 +28,10 @@ export interface PanelAssemblyDefinition {
   panels: Array<{
     id: string;
     mountFaceId: string;
+    connectorPolicy?: {
+      allowSharedClosureAcrossAdjacentEdges: true;
+      reason: string;
+    };
     pose: {
       position: [number, number, number];
       orientation: {
@@ -40,7 +44,11 @@ export interface PanelAssemblyDefinition {
   mechanicalShell: {
     kind: "explicit-planar-face-graph";
     vertices: Array<[number, number, number]>;
-    faces: Array<{ id: string; vertexIndices: number[] }>;
+    faces: Array<{
+      id: string;
+      vertexIndices: number[];
+      connectorPolicy?: { minimumPanelHoleConnectors: 2; reason: string };
+    }>;
   };
   closures: {
     faceIds: string[];
@@ -270,7 +278,14 @@ export function parsePanelAssemblyDefinition(
   }
   const faceIds = new Set<string>();
   for (const face of sourceFaces) {
+    const connectorPolicy = isRecord(face) ? face.connectorPolicy : undefined;
+    const connectorPolicyIsValid = connectorPolicy === undefined ||
+      (isRecord(connectorPolicy) &&
+        connectorPolicy.minimumPanelHoleConnectors === 2 &&
+        typeof connectorPolicy.reason === "string" &&
+        connectorPolicy.reason.length > 0);
     if (
+      !connectorPolicyIsValid ||
       !isRecord(face) ||
       typeof face.id !== "string" ||
       faceIds.has(face.id) ||
@@ -293,6 +308,12 @@ export function parsePanelAssemblyDefinition(
   const panelIds = new Set<string>();
   const panelFaceIds = new Set<string>();
   for (const panel of input.panels) {
+    const connectorPolicy = isRecord(panel) ? panel.connectorPolicy : undefined;
+    const connectorPolicyIsValid = connectorPolicy === undefined ||
+      (isRecord(connectorPolicy) &&
+        connectorPolicy.allowSharedClosureAcrossAdjacentEdges === true &&
+        typeof connectorPolicy.reason === "string" &&
+        connectorPolicy.reason.length > 0);
     const pose = isRecord(panel) && isRecord(panel.pose) ? panel.pose : null;
     const position = pose?.position;
     const orientation =
@@ -338,6 +359,7 @@ export function parsePanelAssemblyDefinition(
       : Number.POSITIVE_INFINITY;
     if (
       !isRecord(panel) ||
+      !connectorPolicyIsValid ||
       typeof panel.id !== "string" ||
       typeof panel.mountFaceId !== "string" ||
       panelIds.has(panel.id) ||
@@ -738,9 +760,11 @@ export function compilePanelAssembly(
         `Panel ${panel.id} has ${interfaces.length} cap interfaces but only ${eligibleHoles.length} eligible mounting holes.`,
       );
     }
+    const sourcePanel = definition.panels.find((source) => source.id === panel.id)!;
     if (
+      !sourcePanel.connectorPolicy?.allowSharedClosureAcrossAdjacentEdges &&
       new Set(interfaces.map((candidate) => candidate.closure.id)).size !==
-      interfaces.length
+        interfaces.length
     ) {
       throw new Error(
         `Panel ${panel.id} cannot connect different caps to every screw hole.`,
@@ -832,9 +856,14 @@ export function compilePanelAssembly(
   }
 
   for (const closure of faces.filter((face) => face.role === "closure")) {
-    if (closure.connectors.length < 3) {
+    const sourceFace = definition.mechanicalShell.faces.find(
+      (face) => face.id === closure.id,
+    )!;
+    const minimumConnectors =
+      sourceFace.connectorPolicy?.minimumPanelHoleConnectors ?? 3;
+    if (closure.connectors.length < minimumConnectors) {
       throw new Error(
-        `Closure ${closure.id} needs at least three panel-hole connectors; found ${closure.connectors.length}.`,
+        "Closure " + closure.id + " needs at least " + minimumConnectors + " panel-hole connectors; found " + closure.connectors.length + ".",
       );
     }
     const adjacentPanels = closure.connectors.map((connector) => connector.panelId);
@@ -863,9 +892,11 @@ export function compilePanelAssembly(
         `Panel ${panel.id} does not use all four eligible mounting holes.`,
       );
     }
+    const sourcePanel = definition.panels.find((source) => source.id === panel.id)!;
     if (
+      !sourcePanel.connectorPolicy?.allowSharedClosureAcrossAdjacentEdges &&
       new Set(assignedHoles.map((hole) => hole.assignedClosureId)).size !==
-      assignedHoles.length
+        assignedHoles.length
     ) {
       throw new Error(
         `Panel ${panel.id} assigns more than one screw hole to the same cap.`,

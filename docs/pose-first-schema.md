@@ -78,6 +78,25 @@ The panel envelope, hole positions, LEDs, DIN/DOUT markers, and wiring nodes use
 the explicit pose. A later arbitrary-placement connector generator may replace
 the shell association without changing the panel pose representation.
 
+## Editor-generated connector policies
+
+The default mechanical invariant remains one distinct neighboring closure per
+eligible screw hole and at least three panel-hole connectors per closure. When the
+browser editor insets a panel into a face with only three populated neighbors,
+those defaults are geometrically impossible: four usable holes must connect through
+three anchored strip sectors. The editor records two explicit, reason-bearing
+exceptions in the saved JSON rather than weakening the defaults globally:
+
+- `panels[].connectorPolicy.allowSharedClosureAcrossAdjacentEdges` permits one
+  strip closure to serve two adjacent holes on that panel; and
+- `mechanicalShell.faces[].connectorPolicy.minimumPanelHoleConnectors` permits a
+  generated strip closure to use two connectors instead of three.
+
+The runtime parser and JSON Schema accept only the defined literal exception values.
+Unmarked panels and closure faces continue to use the proven stricter checks.
+Concave inset sectors use ear-clipping for the exterior clipping polyhedron; existing
+convex sculptures keep their byte-identical fan triangulation.
+
 ## Migration equivalence
 
 The cuboctahedron, automatic rhombicosidodecahedron, and truncated octahedron

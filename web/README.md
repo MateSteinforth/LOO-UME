@@ -48,6 +48,29 @@ npm run dev:web
 
 The pinned version is in `wasm/emscripten-version.txt`.
 
+## Sculpture JSON editor
+
+The simulator includes a small pose-first editor in the existing control panel.
+
+- **Load JSON file** validates a local sculpture document and resolves its panel
+  profile by ID from the staged `catalog/panels` directory.
+- **Save JSON** downloads the current authoritative sculpture definition, including
+  edits; generated mapping and mesh data are not embedded in that source file.
+- **Add panel to face** lists only closure faces that can contain the active panel
+  profile. It insets the PCB rectangle, partitions the remaining face into printable
+  closure sectors, derives a right-handed panel pose, and rebalances provisional
+  wiring lengths.
+- **Generate CAD + wiring + previews** posts the in-memory JSON to a local-only Vite
+  endpoint. It generates the compiled assembly, mapping, provisional WLED ledmap,
+  OpenSCAD sources, STL files, and PNG previews under an isolated
+  `-editor-preview` ID, then reloads the exact STL meshes in Three.js.
+
+Run the editor with `npm run dev:web`; a static production bundle cannot execute
+OpenSCAD on its host. An inset topology with only three populated neighbors still
+uses all four eligible panel holes, but explicitly records that one strip closure
+serves two adjacent holes. Existing sculptures retain the stricter one-cap-per-hole
+and three-connectors-per-closure defaults.
+
 ## Build and test
 
 ```bash

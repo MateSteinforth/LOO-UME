@@ -9,9 +9,16 @@ import {
   type HardwareMappingContract,
 } from "./HardwareMapping";
 import {
+  createPanelAssemblyProject,
   createPanelAssemblyMapping,
   loadPanelAssemblyProject,
+  type PanelAssemblyDefinition,
+  type PanelAssemblyProject,
 } from "../../src/sculpture/PanelAssembly";
+import {
+  addPanelToClosureFace,
+  sculptureJson,
+} from "../../src/sculpture/SculptureEditor";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { WledEngine } from "./WledEngine";
 import {
@@ -35,6 +42,12 @@ interface SculptureRegistry {
   schemaVersion: "1.0.0";
   defaultSource: string;
   sculptures: SculptureRegistryEntry[];
+}
+
+interface LoadedSculpture {
+  definition: PanelAssemblyDefinition;
+  project: PanelAssemblyProject;
+  contract: HardwareMappingContract;
 }
 
 async function loadSculptureRegistry(): Promise<SculptureRegistry> {
@@ -61,9 +74,27 @@ async function loadSculptureRegistry(): Promise<SculptureRegistry> {
   return registry as SculptureRegistry;
 }
 
+function createLoadedSculpture(project: PanelAssemblyProject): LoadedSculpture {
+  const geometry = createPanelAssemblyMapping(project);
+  const wiring = createProvisionalWiringPreview(
+    geometry,
+    project.sculpture,
+    project.panelProfile,
+  );
+  return {
+    definition: project.sculpture,
+    project,
+    contract: createHardwareMappingContract(
+      geometry,
+      wiring,
+      project.panelProfile,
+    ),
+  };
+}
+
 async function loadSculptureContract(
   source: string,
-): Promise<HardwareMappingContract> {
+): Promise<LoadedSculpture> {
   const response = await fetch(source);
   if (!response.ok) {
     throw new Error(
@@ -89,17 +120,27 @@ async function loadSculptureContract(
       return profileResponse.json() as Promise<unknown>;
     },
   );
-  const geometry = createPanelAssemblyMapping(project);
-  const wiring = createProvisionalWiringPreview(
-    geometry,
-    project.sculpture,
-    project.panelProfile,
+  return createLoadedSculpture(project);
+}
+
+async function loadLocalSculpture(file: File): Promise<LoadedSculpture> {
+  const input: unknown = JSON.parse(await file.text());
+  const project = await loadPanelAssemblyProject(
+    input,
+    `local:${file.name}`,
+    async (reference) => {
+      const profileResponse = await fetch(
+        new URL(`./catalog/panels/${reference.id}.json`, document.baseURI),
+      );
+      if (!profileResponse.ok) {
+        throw new Error(
+          `Unable to find panel profile ${reference.id} in the staged catalog.`,
+        );
+      }
+      return profileResponse.json() as Promise<unknown>;
+    },
   );
-  return createHardwareMappingContract(
-    geometry,
-    wiring,
-    project.panelProfile,
-  );
+  return createLoadedSculpture(project);
 }
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -266,6 +307,35 @@ app.innerHTML = `
           <p id="mapping-note" class="mapping-note">Transforms, pixel order, and wiring are unmeasured.</p>
         </section>
 
+        <section class="control-section editor-section">
+          <div class="section-heading">
+            <span>Sculpture editor</span>
+            <small>pose-first JSON</small>
+          </div>
+          <input id="sculpture-file" type="file" accept="application/json,.json" hidden />
+          <div class="editor-actions">
+            <button id="load-sculpture-file" type="button">Load JSON file</button>
+            <button id="save-sculpture-file" type="button">Save JSON</button>
+          </div>
+          <label class="field">
+            <span>Available closure face</span>
+            <select id="add-panel-face"></select>
+          </label>
+          <button id="add-panel" class="editor-button" type="button">
+            Add panel to face
+          </button>
+          <p class="mapping-note">
+            Add panel insets the PCB into a closure face, fills the surrounding ring,
+            and keeps every panel edge connected to printable closure parts.
+          </p>
+          <button id="run-pipeline" class="pipeline-button" type="button">
+            Generate CAD + wiring + previews
+          </button>
+          <div id="pipeline-status" class="pipeline-status" role="status">
+            Local Vite pipeline is ready.
+          </div>
+        </section>
+
         <section class="architecture-card">
           <span>FRAME PATH</span>
           <p>WLED FX.cpp → WASM memory → LUT → Three.js</p>
@@ -328,6 +398,20 @@ const connectorLayerToggle =
 const wiringLayerToggle = query<HTMLInputElement>("#wiring-layer");
 const wiringLayerControls = query<HTMLElement>("#wiring-layer-controls");
 const outputLayerList = query<HTMLElement>("#output-layer-list");
+const sculptureFileInput = query<HTMLInputElement>("#sculpture-file");
+const loadSculptureFileButton =
+  query<HTMLButtonElement>("#load-sculpture-file");
+const saveSculptureFileButton =
+  query<HTMLButtonElement>("#save-sculpture-file");
+const addPanelFaceSelect = query<HTMLSelectElement>("#add-panel-face");
+const addPanelButton = query<HTMLButtonElement>("#add-panel");
+const runPipelineButton = query<HTMLButtonElement>("#run-pipeline");
+const pipelineStatus = query<HTMLElement>("#pipeline-status");
+const pipelineAvailable = import.meta.env.DEV;
+runPipelineButton.disabled = !pipelineAvailable;
+if (!pipelineAvailable) {
+  pipelineStatus.textContent = "Run npm run dev:web to generate local CAD and previews.";
+}
 let outputLayerToggles: HTMLInputElement[] = [];
 
 let renderer: SphereRenderer | undefined;
@@ -349,9 +433,12 @@ async function start(): Promise<void> {
       ? initialSculptureSource
       : "";
 
-    let selectedHardwareContract = await loadSculptureContract(
+    let loadedSculpture = await loadSculptureContract(
       initialSculptureSource,
     );
+    let editorDefinition = loadedSculpture.definition;
+    let editorProject = loadedSculpture.project;
+    let selectedHardwareContract = loadedSculpture.contract;
     let hardwareContract = selectedHardwareContract;
     const engine = await WledEngine.create(
       hardwareContract.mapping.entries.length,
@@ -487,6 +574,51 @@ async function start(): Promise<void> {
       );
     };
 
+    const renderEditorFaces = (): void => {
+      const options = editorDefinition.closures.faceIds.flatMap((faceId) => {
+        try {
+          addPanelToClosureFace(
+            editorDefinition,
+            faceId,
+            editorProject.panelProfile.dimensions,
+          );
+          return [new Option(faceId, faceId)];
+        } catch {
+          return [];
+        }
+      });
+      addPanelFaceSelect.replaceChildren(
+        ...(options.length > 0
+          ? options
+          : [new Option("No closure faces available", "")]),
+      );
+      addPanelButton.disabled = options.length === 0;
+    };
+
+    const applyLoadedSculpture = (
+      selected: LoadedSculpture,
+      preserveEditorDefinition = false,
+    ): void => {
+      loadedSculpture = selected;
+      selectedHardwareContract = selected.contract;
+      hardwareContract = selected.contract;
+      mapping = selected.contract.mapping;
+      wiringPreview = selected.contract.wiring;
+      if (!preserveEditorDefinition) {
+        editorDefinition = selected.definition;
+        editorProject = selected.project;
+        renderEditorFaces();
+      }
+      engine.resize(mapping.entries.length);
+      ledCountInput.value = String(mapping.entries.length);
+      ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
+      renderer?.setMapping(mapping);
+      renderer?.setWiringPreview(wiringPreview);
+      renderOutputLayerControls();
+      resetTimeline();
+      updateMappingStatus();
+    };
+
     effectSelect.addEventListener("change", () => {
       engine.setEffect(Number(effectSelect.value));
       resetTimeline();
@@ -545,18 +677,7 @@ async function start(): Promise<void> {
       loadSculptureButton.disabled = true;
       try {
         const selected = await loadSculptureContract(source);
-        selectedHardwareContract = selected;
-        hardwareContract = selected;
-        mapping = selected.mapping;
-        wiringPreview = selected.wiring;
-        engine.resize(mapping.entries.length);
-        ledCountInput.value = String(mapping.entries.length);
-        ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
-        renderer?.setMapping(mapping);
-        renderer?.setWiringPreview(wiringPreview);
-        renderOutputLayerControls();
-        resetTimeline();
-        updateMappingStatus();
+        applyLoadedSculpture(selected);
         sculptureSelect.value = sculptureRegistry.sculptures.some(
           (entry) => entry.source === source,
         )
@@ -587,6 +708,116 @@ async function start(): Promise<void> {
     });
     sculptureJsonInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") void loadSelectedSculpture();
+    });
+    loadSculptureFileButton.addEventListener("click", () => {
+      sculptureFileInput.click();
+    });
+    sculptureFileInput.addEventListener("change", () => {
+      const file = sculptureFileInput.files?.[0];
+      if (!file) return;
+      void (async () => {
+        try {
+          const selected = await loadLocalSculpture(file);
+          applyLoadedSculpture(selected);
+          sculptureSelect.value = "";
+          sculptureJsonInput.value = file.name;
+          pipelineStatus.textContent = `Loaded ${file.name}.`;
+          viewerError.hidden = true;
+        } catch (error) {
+          viewerError.hidden = false;
+          viewerError.textContent =
+            error instanceof Error ? error.message : String(error);
+        } finally {
+          sculptureFileInput.value = "";
+        }
+      })();
+    });
+    saveSculptureFileButton.addEventListener("click", () => {
+      const blob = new Blob([sculptureJson(editorDefinition)], {
+        type: "application/json",
+      });
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `${editorDefinition.id}.sculpture.json`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      pipelineStatus.textContent = `Saved ${link.download}.`;
+    });
+    addPanelButton.addEventListener("click", () => {
+      try {
+        const faceId = addPanelFaceSelect.value;
+        if (!faceId) throw new Error("Choose an available closure face.");
+        const edited = addPanelToClosureFace(
+          editorDefinition,
+          faceId,
+          editorProject.panelProfile.dimensions,
+        );
+        const project = createPanelAssemblyProject(
+          edited,
+          editorProject.source,
+          editorProject.panelProfile,
+        );
+        applyLoadedSculpture(createLoadedSculpture(project));
+        pipelineStatus.textContent =
+          `Added ${edited.panels.at(-1)!.id} to ${faceId}. Save the JSON or run the pipeline.`;
+        viewerError.hidden = true;
+      } catch (error) {
+        viewerError.hidden = false;
+        viewerError.textContent =
+          error instanceof Error ? error.message : String(error);
+      }
+    });
+    runPipelineButton.addEventListener("click", () => {
+      void (async () => {
+        runPipelineButton.disabled = true;
+        addPanelButton.disabled = true;
+        pipelineStatus.classList.remove("pipeline-status--error");
+        pipelineStatus.textContent =
+          "Generating mapping, wiring, OpenSCAD parts, STLs, and preview renders…";
+        try {
+          const response = await fetch("./api/editor-pipeline", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: sculptureJson(editorDefinition),
+          });
+          const result = (await response.json()) as {
+            ok?: boolean;
+            assetSculptureId?: string;
+            log?: string;
+            error?: string;
+          };
+          if (!response.ok || !result.ok || !result.assetSculptureId) {
+            throw new Error(
+              result.error ?? `Pipeline failed with HTTP ${response.status}.`,
+            );
+          }
+          const previewDefinition = structuredClone(editorDefinition);
+          previewDefinition.id = result.assetSculptureId;
+          const previewProject = createPanelAssemblyProject(
+            previewDefinition,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          applyLoadedSculpture(
+            createLoadedSculpture(previewProject),
+            true,
+          );
+          const lastLogLine = result.log?.trim().split("\n").at(-1);
+          pipelineStatus.textContent =
+            lastLogLine ?? "Pipeline complete; exact STL meshes are now loaded.";
+          viewerError.hidden = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+        } finally {
+          runPipelineButton.disabled = false;
+          renderEditorFaces();
+        }
+      })();
     });
     restartButton.addEventListener("click", resetTimeline);
 
@@ -630,6 +861,7 @@ async function start(): Promise<void> {
 
     ledCountInput.value = String(mapping.entries.length);
     ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
+    renderEditorFaces();
     renderOutputLayerControls();
     updateMappingStatus();
 

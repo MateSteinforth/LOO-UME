@@ -9,6 +9,7 @@ import {
   type PanelAssemblyProject,
 } from "../sculpture/PanelAssembly.ts";
 import type { Vector3Data } from "../../web/src/LedMapping.ts";
+import { triangulatePolygon } from "./TriangulatePolygon.ts";
 
 export interface GeneratedClosurePart {
   id: string;
@@ -264,7 +265,16 @@ module gusset_${index}() {
     const radius = Math.hypot(vertex.x, vertex.y, vertex.z);
     return point3(localPoint(frame, scale(vertex, 1 + 0.03 / radius)));
   });
+  const sourceFaceById = new Map(
+    project.sculpture.mechanicalShell.faces.map((candidate) => [candidate.id, candidate]),
+  );
   const clipFaces = assembly.faces.flatMap((candidate) => {
+    if (sourceFaceById.get(candidate.id)?.connectorPolicy) {
+      return triangulatePolygon(
+        candidate.vertexIndices,
+        candidate.localVertices,
+      ).map((triangle) => `[${[...triangle].reverse().join(",")}]`);
+    }
     const reversed = [...candidate.vertexIndices].reverse();
     return Array.from({ length: reversed.length - 2 }, (_, index) =>
       `[${reversed[0]},${reversed[index + 1]},${reversed[index + 2]}]`,

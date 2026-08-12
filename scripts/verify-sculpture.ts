@@ -14,6 +14,7 @@ const rootDirectory = process.cwd();
 const sculptureFlag = process.argv.indexOf("--sculpture");
 const sculptureSource =
   sculptureFlag >= 0 ? process.argv[sculptureFlag + 1] : undefined;
+const ephemeral = process.argv.includes("--ephemeral");
 if (!sculptureSource) {
   throw new Error("Pass the source of truth with --sculpture <path-to-sculpture.json>.");
 }
@@ -156,24 +157,33 @@ if (statSync(preview).size < 1_000) {
   throw new Error("Generated panel-and-closure preview is unexpectedly empty.");
 }
 
-rmSync(artifactDirectory, { recursive: true, force: true });
+if (!ephemeral) rmSync(artifactDirectory, { recursive: true, force: true });
 rmSync(publicCadDirectory, { recursive: true, force: true });
 rmSync(publicPreviewDirectory, { recursive: true, force: true });
-mkdirSync(artifactCadDirectory, { recursive: true });
-mkdirSync(artifactPreviewDirectory, { recursive: true });
+if (!ephemeral) {
+  mkdirSync(artifactCadDirectory, { recursive: true });
+  mkdirSync(artifactPreviewDirectory, { recursive: true });
+}
 mkdirSync(publicCadDirectory, { recursive: true });
 mkdirSync(publicPreviewDirectory, { recursive: true });
-copyFileSync(generated.manifestPath, resolve(artifactDirectory, "manifest.json"));
+if (!ephemeral) {
+  copyFileSync(generated.manifestPath, resolve(artifactDirectory, "manifest.json"));
+}
 for (const part of generated.manifest.parts) {
   const output = resolve(outputDirectory, part.outputStl);
-  copyFileSync(output, resolve(artifactCadDirectory, part.outputStl));
+  if (!ephemeral) {
+    copyFileSync(output, resolve(artifactCadDirectory, part.outputStl));
+  }
   copyFileSync(output, resolve(publicCadDirectory, part.outputStl));
 }
-copyFileSync(detail, resolve(artifactPreviewDirectory, "closure-detail.png"));
+if (!ephemeral) {
+  copyFileSync(detail, resolve(artifactPreviewDirectory, "closure-detail.png"));
+  copyFileSync(preview, resolve(artifactPreviewDirectory, "assembly.png"));
+}
 copyFileSync(detail, resolve(publicPreviewDirectory, "closure-detail.png"));
-copyFileSync(preview, resolve(artifactPreviewDirectory, "assembly.png"));
 copyFileSync(preview, resolve(publicPreviewDirectory, "assembly.png"));
 console.log(
-  `Rendered ${generated.manifest.parts.length} ${project.sculpture.name} panel-hole closure STLs and previews into ` +
-    `${relative(rootDirectory, artifactDirectory)}.`,
+  ephemeral
+    ? `Rendered ${generated.manifest.parts.length} ephemeral ${project.sculpture.name} closure STLs and previews for the local simulator.`
+    : `Rendered ${generated.manifest.parts.length} ${project.sculpture.name} panel-hole closure STLs and previews into ${relative(rootDirectory, artifactDirectory)}.`,
 );
