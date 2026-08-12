@@ -79,6 +79,7 @@ for (const sculpture of registry.sculptures) {
   }
   const sourceRelativePath = sculpture.source.slice("./sculptures/".length);
   await readFile(resolve(sourceDirectory, sourceRelativePath), "utf8");
+  if (sculpture.artifactStatus === "authoring-only") continue;
   const sculptureArtifacts = resolve(artifactDirectory, sculpture.id);
   await copyTree(
     resolve(sculptureArtifacts, "3d"),
@@ -93,5 +94,5 @@ for (const sculpture of registry.sculptures) {
 console.log(
   "Staged " +
     registry.sculptures.length +
-    " sculpture JSON documents, verified STL sets, and previews for the simulator.",
+    " sculpture JSON documents plus available STL sets and previews for the simulator.",
 );

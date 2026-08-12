@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { PanelDefinition } from "./LedMapping.ts";
 import {
+  createMechanicalSurfaceOrientation,
   createSurfaceOrientation,
   type SurfaceAttachment,
   type Vector3Tuple,
@@ -158,7 +159,9 @@ export class SurfacePlacementController {
       const surfaceHit = this.raycaster.intersectObject(this.surface, false)[0];
       if (!surfaceHit || surfaceHit.faceIndex == null) return;
       const normal = this.interpolatedNormal(surfaceHit).normalize();
-      const orientation = createSurfaceOrientation(tuple(normal));
+      const orientation = this.attachmentSurface === "mechanical-shell"
+        ? this.mechanicalSurfaceOrientation(surfaceHit, normal)
+        : createSurfaceOrientation(tuple(normal));
       const position = surfaceHit.point.clone().addScaledVector(
         normal,
         this.normalOffset,
@@ -255,6 +258,31 @@ export class SurfacePlacementController {
         normalOffset: this.normalOffset,
       },
     };
+  }
+
+  private mechanicalSurfaceOrientation(
+    hit: THREE.Intersection,
+    normal: THREE.Vector3,
+  ) {
+    const geometry = this.surface!.geometry;
+    const positions = geometry.getAttribute("position");
+    const indices = geometry.index;
+    if (!indices || hit.faceIndex == null) {
+      return createSurfaceOrientation(tuple(normal));
+    }
+    const offset = hit.faceIndex * 3;
+    const vertices = [0, 1, 2].map((vertex) =>
+      tuple(
+        new THREE.Vector3().fromBufferAttribute(
+          positions,
+          indices.getX(offset + vertex),
+        ),
+      )
+    ) as [Vector3Tuple, Vector3Tuple, Vector3Tuple];
+    return createMechanicalSurfaceOrientation(
+      tuple(normal),
+      vertices,
+    );
   }
 
   private interpolatedNormal(hit: THREE.Intersection): THREE.Vector3 {

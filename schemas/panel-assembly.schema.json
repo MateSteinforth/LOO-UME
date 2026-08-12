@@ -108,7 +108,6 @@
     },
     "panels": {
       "type": "array",
-      "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -421,7 +420,7 @@
           "minItems": 1,
           "items": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 0
           }
         },
         "connector": {
@@ -605,6 +604,10 @@
                     "type": "array",
                     "minItems": 3,
                     "items": { "type": "integer", "minimum": 0 }
+                  },
+                  "panelPlacement": {
+                    "const": "whole-face",
+                    "description": "When occupied, the complete planar boundary face is the panel opening."
                   }
                 }
               }

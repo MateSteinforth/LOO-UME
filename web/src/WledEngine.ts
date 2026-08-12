@@ -35,7 +35,10 @@ type WledModuleFactory = (options?: {
 }) => Promise<EmscriptenWledModule>;
 
 export class WledEngine {
-  private constructor(private readonly module: EmscriptenWledModule) {}
+  private constructor(
+    private readonly module: EmscriptenWledModule,
+    private logicalLedCount: number,
+  ) {}
 
   static async create(ledCount: number): Promise<WledEngine> {
     const moduleUrl = new URL("./wasm/wled-engine.js", document.baseURI).href;
@@ -45,17 +48,18 @@ export class WledEngine {
     const module = await imported.default({
       locateFile: (path) => new URL("./wasm/" + path, document.baseURI).href,
     });
-    const engine = new WledEngine(module);
-    if (!module._wled_init(ledCount)) {
+    const engine = new WledEngine(module, ledCount);
+    if (!module._wled_init(Math.max(1, ledCount))) {
       throw new Error(`WLED engine rejected LED count ${ledCount}`);
     }
     return engine;
   }
 
   resize(ledCount: number): void {
-    if (!this.module._wled_resize(ledCount)) {
+    if (!this.module._wled_resize(Math.max(1, ledCount))) {
       throw new Error(`WLED engine rejected LED count ${ledCount}`);
     }
+    this.logicalLedCount = ledCount;
   }
 
   reset(seed = 0x1a2b3c4d): void {
@@ -98,7 +102,7 @@ export class WledEngine {
   }
 
   get ledCount(): number {
-    return this.module._wled_get_led_count();
+    return this.logicalLedCount;
   }
 
   get effects(): EffectInfo[] {

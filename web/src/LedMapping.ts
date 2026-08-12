@@ -691,13 +691,6 @@ export function validateMapping(
     logical.add(entry.logicalIndex);
   }
 
-  if (
-    mapping.topology === "panelized-sculpture" &&
-    mapping.panels.length === 0
-  ) {
-    errors.push("Panelized mapping must contain at least one panel.");
-  }
-
   const panelIds = new Set<string>();
   const entriesByPanel = new Map<string, LedMappingEntry[]>();
   for (const panel of mapping.panels) {

@@ -67,11 +67,15 @@ export function preserveAuthoringBoundary(
   definition: PanelAssemblyDefinition,
 ): void {
   if (definition.mechanicalShell.authoringBoundary) return;
+  const panelFaceIds = new Set(
+    definition.panels.flatMap((panel) => panel.mountFaceId ?? []),
+  );
   definition.mechanicalShell.authoringBoundary = {
     vertices: structuredClone(definition.mechanicalShell.vertices),
     faces: definition.mechanicalShell.faces.map(({ id, vertexIndices }) => ({
       id,
       vertexIndices: [...vertexIndices],
+      ...(panelFaceIds.has(id) ? { panelPlacement: "whole-face" as const } : {}),
     })),
     authoredPanels: definition.panels.flatMap((panel) =>
       panel.mountFaceId
@@ -86,7 +90,11 @@ export function preserveAuthoringBoundary(
 }
 
 interface FaceFrame {
-  face: { id: string; vertexIndices: number[] };
+  face: {
+    id: string;
+    vertexIndices: number[];
+    panelPlacement?: "whole-face";
+  };
   vertices: Vector3Tuple[];
   origin: Vector3Tuple;
   normal: Vector3Tuple;
@@ -103,7 +111,7 @@ function signedArea(polygon: Vector2Tuple[]): number {
 }
 
 function faceFrame(
-  face: { id: string; vertexIndices: number[] },
+  face: FaceFrame["face"],
   vertices: Vector3Tuple[],
 ): FaceFrame {
   const points = face.vertexIndices.map((index) => vertices[index]!);
@@ -403,6 +411,12 @@ export function regenerateMechanicalShell(
     if (!locatedPanel) {
       faces.push({ id: frame.face.id, vertexIndices: [...frame.face.vertexIndices] });
       closureFaceIds.push(frame.face.id);
+      continue;
+    }
+    if (frame.face.panelPlacement === "whole-face") {
+      locatedPanel.panel.mountFaceId = frame.face.id;
+      delete locatedPanel.panel.connectorPolicy;
+      faces.push({ id: frame.face.id, vertexIndices: [...frame.face.vertexIndices] });
       continue;
     }
     locatedPanel.panel.mountFaceId = locatedPanel.grandfathered

@@ -403,11 +403,6 @@ export function deletePanel(
   source: PanelAssemblyDefinition,
   panelId: string,
 ): PanelAssemblyDefinition {
-  if (source.panels.length <= source.wiring.outputs.length) {
-    throw new Error(
-      "Cannot delete a panel: provisional wiring requires at least one panel per output.",
-    );
-  }
   const definition = structuredClone(source);
   preserveAuthoringBoundary(definition);
   const panelIndex = definition.panels.findIndex(

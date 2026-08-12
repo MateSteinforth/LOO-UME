@@ -66,6 +66,34 @@ export function createSurfaceOrientation(
   return { xAxis, yAxis, normal };
 }
 
+/**
+ * Aligns a JSON-shell placement with a real triangle edge. Choosing the
+ * shortest edge avoids selecting a triangulation diagonal on planar quads.
+ */
+export function createMechanicalSurfaceOrientation(
+  sourceNormal: Vector3Tuple,
+  triangleVertices: [Vector3Tuple, Vector3Tuple, Vector3Tuple],
+): SurfaceOrientation {
+  const normal = vectorNormalize(sourceNormal);
+  const edges = [
+    vectorSubtract(triangleVertices[1], triangleVertices[0]),
+    vectorSubtract(triangleVertices[2], triangleVertices[1]),
+    vectorSubtract(triangleVertices[0], triangleVertices[2]),
+  ];
+  const edge = edges.reduce((shortest, candidate) =>
+    vectorDot(candidate, candidate) < vectorDot(shortest, shortest)
+      ? candidate
+      : shortest
+  );
+  const tangent = vectorSubtract(
+    edge,
+    vectorScale(normal, vectorDot(edge, normal)),
+  );
+  const xAxis = vectorNormalize(tangent);
+  const yAxis = vectorNormalize(vectorCross(normal, xAxis));
+  return { xAxis, yAxis, normal };
+}
+
 export function createMechanicalShellTriangleMesh(
   definition: PanelAssemblyDefinition,
 ): {

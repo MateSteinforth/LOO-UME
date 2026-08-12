@@ -34,7 +34,7 @@ import {
   validateWiringPreview,
 } from "./WiringPreview";
 
-const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron/sculpture.json";
+const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
 const initialSculptureSource =
   new URLSearchParams(window.location.search).get("sculptureJson") ??

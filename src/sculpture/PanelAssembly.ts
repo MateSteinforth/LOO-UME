@@ -59,7 +59,12 @@ export interface PanelAssemblyDefinition {
     /** Stable, uncut JSON boundary used to regenerate edited mechanical topology. */
     authoringBoundary?: {
       vertices: Array<[number, number, number]>;
-      faces: Array<{ id: string; vertexIndices: number[] }>;
+      faces: Array<{
+        id: string;
+        vertexIndices: number[];
+        /** The complete boundary face becomes the panel opening when occupied. */
+        panelPlacement?: "whole-face";
+      }>;
       authoredPanels: Array<{
         id: string;
         mountFaceId: string;
@@ -245,9 +250,10 @@ function validateWiring(
     throw new Error("Panel assemblies require provisional adjacency wiring.");
   }
   if (
+    wiring.outputs.length === 0 ||
     wiring.chainLengths.length !== wiring.outputs.length ||
     wiring.chainLengths.some(
-      (length) => !Number.isInteger(length) || (length as number) <= 0,
+      (length) => !Number.isInteger(length) || (length as number) < 0,
     ) ||
     wiring.chainLengths.reduce(
       (total, length) => total + (length as number),
@@ -355,8 +361,15 @@ export function parsePanelAssemblyDefinition(
     }
     faceIds.add(face.id);
   }
-  if (!Array.isArray(input.panels) || input.panels.length === 0) {
-    throw new Error("Panel assembly must assign at least one panel.");
+  if (
+    !Array.isArray(input.panels) ||
+    (input.panels.length === 0 &&
+      (geometry.derivationStatus !== "requires-regeneration" ||
+        !isRecord(geometry.authoringBoundary)))
+  ) {
+    throw new Error(
+      "An empty panel assembly must be an authoring project with a stable boundary awaiting regeneration.",
+    );
   }
   const panelIds = new Set<string>();
   const panelFaceIds = new Set<string>();
