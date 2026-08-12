@@ -52,6 +52,12 @@ The pinned version is in `wasm/emscripten-version.txt`.
 
 The simulator includes a small pose-first editor in the existing control panel.
 
+The default startup source is the empty 66 mm cuboctahedron authoring project.
+It has no initial panels or LEDs; the JSON face graph is immediately available
+as a watertight placement canvas. The WLED wrapper keeps a one-pixel backing
+buffer while reporting the correct logical count of zero until the first panel
+is added.
+
 - **Load JSON file** validates a local sculpture document and resolves its panel
   profile by ID from the staged `catalog/panels` directory.
 - **Save JSON** downloads the current authoritative sculpture definition, including
@@ -89,6 +95,13 @@ OpenSCAD on its host. An inset topology with only three populated neighbors stil
 uses all four eligible panel holes, but explicitly records that one strip closure
 serves two adjacent holes. Existing sculptures retain the stricter one-cap-per-hole
 and three-connectors-per-closure defaults.
+
+The implemented data ownership, regeneration algorithm, blocking checks,
+fixture behavior, and verification record are documented in
+[Editor and planar mechanical regeneration](../docs/editor-mechanical-regeneration.md).
+The next editor task—manual rotation of the selected panel around its saved
+local-Z normal—is described in
+[the local-Z rotation handover](../docs/handover-panel-local-z-rotation.md).
 
 ## Build and test
 

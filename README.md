@@ -58,6 +58,22 @@ visualizer/WLED mapping, and prototype printable CAD from one JSON file. See
 [`docs/cuboctahedron-e2e.md`](docs/cuboctahedron-e2e.md) for its generated
 artifacts and physical-validation boundary.
 
+## Browser sculpture authoring
+
+WLED Orbital Lab now starts with an empty watertight cuboctahedron authoring
+project whose six square faces are exactly 66 mm per side. Panels can be added,
+selected, dragged, deleted, saved, and regenerated from the JSON shell without
+a GLB. An optional GLB remains a positioning canvas only and never becomes
+printable geometry.
+
+Run validates panel envelopes against the stable planar JSON boundary,
+regenerates current topology, and emits OpenSCAD, STL meshes, exact previews,
+wiring, and updated JSON. See
+[docs/editor-mechanical-regeneration.md](docs/editor-mechanical-regeneration.md)
+for the implemented mechanical contract and
+[docs/handover-panel-local-z-rotation.md](docs/handover-panel-local-z-rotation.md)
+for the next editor slice.
+
 ## Canonical printable parts
 
 | Source | Quantity | Purpose |

@@ -47,6 +47,12 @@ An explicit basis avoids Euler-angle ambiguity and maps directly to the first
 three columns of a Three.js `Matrix4`. A browser editor can use a quaternion
 internally, but it loads and saves the basis in the sculpture JSON.
 
+An in-plane panel rotation is a rotation around local Z, which is the saved
+`normal`. It must rotate `xAxis` and `yAxis` together while preserving
+`position`, `normal`, and the surface attachment. The next implementation
+task is specified in
+[the local-Z rotation handover](handover-panel-local-z-rotation.md).
+
 `surfaceAttachment.surface` identifies the authoring mesh. `mechanical-shell` uses
 the face graph already embedded in sculpture JSON, so add and drag sessions resume
 from JSON alone. `design-surface` uses the optional external GLB reference; legacy
@@ -105,6 +111,11 @@ continue to come from the panel profile.
 This first implementation supports one panel per convex planar JSON face.
 Curved mechanical thickening, arbitrary GLB mesh segmentation, and automatic
 panel distribution remain unsupported.
+
+The complete implemented editor and CAD behavior, including whole-face regions,
+zero-panel authoring projects, blocking checks, and OpenSCAD verification, is
+recorded in
+[Editor and planar mechanical regeneration](editor-mechanical-regeneration.md).
 
 ## Mechanical shell
 

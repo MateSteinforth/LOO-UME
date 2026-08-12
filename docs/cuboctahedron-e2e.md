@@ -1,5 +1,20 @@
 # Panel-driven cuboctahedron fixture
 
+`sculptures/cuboctahedron-empty-66/sculpture.json` is the editor's default
+authoring-only fixture. It starts with zero panels on a watertight cuboctahedron
+whose six square faces are exactly 66 mm per side. Those faces are explicit
+whole-face panel regions; after all six panels are manually placed, the eight
+triangular gaps regenerate into printable closures with 24 real-hole tabs and
+384 mapped LEDs.
+
+The exact-fit fixture intentionally uses zero panel-envelope clearance because
+the PCB's 66 mm axis consumes the square width. Initial JSON-shell clicks align
+to a real face edge rather than the triangulation diagonal. Partial population
+is allowed for editing and saving but Run blocks CAD until every would-be
+printable part has enough real panel-hole attachment. See
+[Editor and planar mechanical regeneration](editor-mechanical-regeneration.md)
+for the complete contract.
+
 `sculptures/cuboctahedron/sculpture.json` is the complete authored source for
 the cuboctahedron fixture. The TypeScript compiler contains no cuboctahedron
 vertex or face table.
