@@ -46,6 +46,17 @@ After a geometry change:
 
 ## Phone preview tunnels
 
+- Use the checked-in launcher from the repository root:
+
+  ```bash
+  npm run preview:phone
+  ```
+
+  It reuses a healthy repository preview when one exists; otherwise it chooses
+  the first available port at or above 4175 and starts Vite and the
+  repository-local Cloudflare quick tunnel as detached processes. It verifies the
+  required public endpoints and content types, and prints the review URL. Pass a
+  preferred starting port with `npm run preview:phone -- 4185`.
 - For phone-accessible simulator previews, use the repository-local `.tools/cloudflared` quick tunnel instead of returning a `localhost` URL.
 - Start Vite on `0.0.0.0` with `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=.trycloudflare.com`; do not set Vite `allowedHosts` to `true`.
 - Run both Vite and `cloudflared tunnel --no-autoupdate --url http://127.0.0.1:<port>` as detached processes so the tunnel survives the agent turn boundary.
