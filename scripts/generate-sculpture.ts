@@ -1,11 +1,11 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
 import {
   compilePanelAssembly,
   createPanelAssemblyMapping,
-  createPanelAssemblyProject,
 } from "../src/sculpture/PanelAssembly.ts";
+import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
 import {
   createProvisionalWiringPreview,
@@ -16,11 +16,9 @@ const rootDirectory = process.cwd();
 const sculptureFlag = process.argv.indexOf("--sculpture");
 const source = sculptureFlag >= 0 ? process.argv[sculptureFlag + 1] : undefined;
 if (!source) throw new Error("Pass the source of truth with --sculpture <path-to-sculpture.json>.");
-const sculpturePath = resolve(rootDirectory, source);
-const sculptureInput: unknown = JSON.parse(await readFile(sculpturePath, "utf8"));
-const project = createPanelAssemblyProject(
-  sculptureInput,
-  relative(rootDirectory, sculpturePath),
+const project = await loadPanelAssemblyProjectFromFile(
+  source,
+  rootDirectory,
 );
 const assembly = compilePanelAssembly(project);
 const geometry = createPanelAssemblyMapping(project, assembly);

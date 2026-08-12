@@ -4,9 +4,8 @@
 the generic panel-assembly pipeline. It does not replace or modify the existing
 manual 41-panel rhombicosidodecahedron and its physically tested U-frame parts.
 
-The JSON is the complete pipeline handoff. It explicitly contains 60 vertices,
-62 faces, 30 square-face panel assignments, installed quarter-turns, 32 closure
-assignments, mapping policy, four provisional data outputs, and GPIO fields.
+The JSON is the complete pipeline handoff. It explicitly contains 30 world-space panel poses, a 60-vertex/62-face
+mechanical shell, mount-face associations, and 32 closure assignments, mapping policy, four provisional data outputs, and GPIO fields.
 No named rhombicosidodecahedron recipe is selected in TypeScript at runtime.
 
 The automatic sculpture deliberately mounts panels only on the 30 square

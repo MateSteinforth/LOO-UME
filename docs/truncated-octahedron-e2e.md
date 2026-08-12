@@ -1,9 +1,8 @@
 # Truncated-octahedron acceptance sculpture
 
 `sculptures/truncated-octahedron/sculpture.json` is the third independent test
-of the generic panel-assembly pipeline. The JSON is the complete handoff: 24
-vertices, 14 faces, six square-face panel assignments, eight hexagonal closure
-assignments, installed quarter-turns, mapping policy, wiring, and GPIO fields.
+of the generic panel-assembly pipeline. The JSON is the complete handoff: explicit poses for six square-face panels, a 24-vertex/14-face mechanical
+shell, mount-face associations, and eight hexagonal closure assignments, mapping policy, wiring, and GPIO fields.
 
 Every geometric edge is 66 mm. The six square faces carry the 66 x 65 mm LED
 panels. Each automatically generated hexagonal closure uses three rounded tabs

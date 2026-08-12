@@ -1,12 +1,185 @@
 {
   "$schema": "../../schemas/panel-assembly.schema.json",
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "2.0.0",
   "id": "truncated-octahedron-six-panel-test",
   "name": "Six-panel Truncated Octahedron",
   "units": "mm",
   "status": "provisional",
-  "panelProfile": "ws2812b-8x8-66x65",
-  "geometry": {
+  "panelProfile": {
+    "id": "ws2812b-8x8-66x65",
+    "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
+  },
+  "panels": [
+    {
+      "id": "P-01",
+      "mountFaceId": "SQ-01",
+      "pose": {
+        "position": [
+          0,
+          93.33809512,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.7071067811865474,
+            0,
+            -0.7071067811865474
+          ],
+          "yAxis": [
+            -0.7071067811865475,
+            0,
+            0.7071067811865475
+          ],
+          "normal": [
+            0,
+            1,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "id": "P-02",
+      "mountFaceId": "SQ-02",
+      "pose": {
+        "position": [
+          0,
+          0,
+          -93.33809512
+        ],
+        "orientation": {
+          "xAxis": [
+            0.7071067811865474,
+            -0.7071067811865474,
+            0
+          ],
+          "yAxis": [
+            -0.7071067811865475,
+            -0.7071067811865475,
+            0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ]
+        }
+      }
+    },
+    {
+      "id": "P-03",
+      "mountFaceId": "SQ-03",
+      "pose": {
+        "position": [
+          93.33809512,
+          0,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0.7071067811865474,
+            -0.7071067811865474
+          ],
+          "yAxis": [
+            0,
+            0.7071067811865475,
+            0.7071067811865475
+          ],
+          "normal": [
+            1,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "id": "P-04",
+      "mountFaceId": "SQ-04",
+      "pose": {
+        "position": [
+          0,
+          0,
+          93.33809512
+        ],
+        "orientation": {
+          "xAxis": [
+            0.7071067811865474,
+            -0.7071067811865474,
+            0
+          ],
+          "yAxis": [
+            0.7071067811865475,
+            0.7071067811865475,
+            0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "id": "P-05",
+      "mountFaceId": "SQ-05",
+      "pose": {
+        "position": [
+          -93.33809512,
+          0,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0.7071067811865474,
+            -0.7071067811865474
+          ],
+          "yAxis": [
+            0,
+            -0.7071067811865475,
+            -0.7071067811865475
+          ],
+          "normal": [
+            -1,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "id": "P-06",
+      "mountFaceId": "SQ-06",
+      "pose": {
+        "position": [
+          0,
+          -93.33809512,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0.7071067811865474,
+            0,
+            -0.7071067811865474
+          ],
+          "yAxis": [
+            0.7071067811865475,
+            0,
+            0.7071067811865475
+          ],
+          "normal": [
+            0,
+            -1,
+            0
+          ]
+        }
+      }
+    }
+  ],
+  "mechanicalShell": {
     "kind": "explicit-planar-face-graph",
     "vertices": [
       [
@@ -275,38 +448,6 @@
       }
     ]
   },
-  "panels": [
-    {
-      "id": "P-01",
-      "faceId": "SQ-01",
-      "rotationQuarterTurns": 0
-    },
-    {
-      "id": "P-02",
-      "faceId": "SQ-02",
-      "rotationQuarterTurns": 0
-    },
-    {
-      "id": "P-03",
-      "faceId": "SQ-03",
-      "rotationQuarterTurns": 0
-    },
-    {
-      "id": "P-04",
-      "faceId": "SQ-04",
-      "rotationQuarterTurns": 0
-    },
-    {
-      "id": "P-05",
-      "faceId": "SQ-05",
-      "rotationQuarterTurns": 0
-    },
-    {
-      "id": "P-06",
-      "faceId": "SQ-06",
-      "rotationQuarterTurns": 0
-    }
-  ],
   "closures": {
     "faceIds": [
       "HX-01",
@@ -368,6 +509,6 @@
     "This is an independent explicit-JSON acceptance sculpture.",
     "The six square faces carry panels; all eight hexagonal faces are automatic panel-hole-tab closures.",
     "Each hexagonal closure mounts to three neighboring panels and meets other hexagons at three clean unfastened butt seams.",
-    "The explicit vertices, faces, panel assignments, closure policy, mapping, and wiring are the pipeline source of truth."
+    "Explicit panel poses are the placement source of truth; the mechanical shell, closure policy, mapping, and wiring complete the fabrication contract."
   ]
 }

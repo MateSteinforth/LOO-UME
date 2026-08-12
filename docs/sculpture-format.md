@@ -10,7 +10,7 @@ profile JSON carries all six back-view mounting-hole positions, marks the
 DIN-overlapped bottom-left and DOUT-overlapped top-right holes mechanically
 blocked, and defines the one-hole-per-cap allocation invariant. It also carries
 the configurable within-panel pixel traversal. Each sculpture JSON supplies
-installed rotations, optional cap-type hole preferences, and per-output GPIO
+explicit installed panel poses, optional cap-type hole preferences, and per-output GPIO
 assignments. Expanded panel transforms, per-LED XYZ/UV coordinates, physical indices, and the WLED
 permutation remain generated artifacts in `layout/` and `wled/`.
 
@@ -109,8 +109,8 @@ the panel-profile reference, total routed panel count, unique output indices,
 preservation of measured physical-fit corrections, opening/closure counts, and
 the ordered triangle and populated-pentagon interfaces.
 
-The panel-assembly schema now supports the cuboctahedron acceptance fixture.
-Its JSON contains the explicit vertices, faces, panel assignments, closure faces,
+The panel-assembly schema 2.0 is pose-first; see `docs/pose-first-schema.md`.
+Its JSON contains explicit panel poses, a supporting mechanical shell, closure faces,
 and hole-tab policy shared by mapping, wiring, CAD, and visualization. The
 generic compiler allocates all four usable holes on every square panel to four
 different caps by minimizing total hole-to-edge distance. A sculpture may add
@@ -118,6 +118,6 @@ soft face-type preferences; the automatic rhombicosidodecahedron uses this to
 send triangle caps to the diagonal holes and pentagon caps to the middle holes.
 See
 `docs/cuboctahedron-e2e.md`. Additional sculpture files can reuse the same
-explicit face-graph compiler without adding a named solid to TypeScript.
+pose-first panel-assembly compiler without adding a named solid to TypeScript.
 Generated mechanics must continue to pass printable and assembly renders and
 physical fit tests before replacing a physically tested template.

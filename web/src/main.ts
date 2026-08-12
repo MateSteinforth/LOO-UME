@@ -10,7 +10,7 @@ import {
 } from "./HardwareMapping";
 import {
   createPanelAssemblyMapping,
-  createPanelAssemblyProject,
+  loadPanelAssemblyProject,
 } from "../../src/sculpture/PanelAssembly";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { WledEngine } from "./WledEngine";
@@ -70,7 +70,25 @@ async function loadSculptureContract(
       "Unable to load sculpture JSON " + source + ": HTTP " + response.status + ".",
     );
   }
-  const project = createPanelAssemblyProject(await response.json(), source);
+  const sculptureInput: unknown = await response.json();
+  const project = await loadPanelAssemblyProject(
+    sculptureInput,
+    source,
+    async (reference) => {
+      const profileUrl = new URL(reference.source, response.url);
+      const profileResponse = await fetch(profileUrl);
+      if (!profileResponse.ok) {
+        throw new Error(
+          "Unable to load panel profile " +
+            reference.id +
+            ": HTTP " +
+            profileResponse.status +
+            ".",
+        );
+      }
+      return profileResponse.json() as Promise<unknown>;
+    },
+  );
   const geometry = createPanelAssemblyMapping(project);
   const wiring = createProvisionalWiringPreview(
     geometry,

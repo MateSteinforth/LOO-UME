@@ -2,14 +2,13 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
-  readFileSync,
   rmSync,
   statSync,
 } from "node:fs";
 import { delimiter, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
-import { createPanelAssemblyProject } from "../src/sculpture/PanelAssembly.ts";
+import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 
 const rootDirectory = process.cwd();
 const sculptureFlag = process.argv.indexOf("--sculpture");
@@ -73,9 +72,9 @@ function run(command: string, args: string[]): void {
   }
 }
 
-const project = createPanelAssemblyProject(
-  JSON.parse(readFileSync(resolve(rootDirectory, sculptureSource), "utf8")),
+const project = await loadPanelAssemblyProjectFromFile(
   sculptureSource,
+  rootDirectory,
 );
 const outputDirectory = resolve(
   rootDirectory,
@@ -84,7 +83,7 @@ const outputDirectory = resolve(
   project.sculpture.id,
 );
 const assemblyRadius = Math.max(
-  ...project.sculpture.geometry.vertices.map(([x, y, z]) => Math.hypot(x, y, z)),
+  ...project.sculpture.mechanicalShell.vertices.map(([x, y, z]) => Math.hypot(x, y, z)),
 );
 const assemblyCameraDistance = Math.max(700, assemblyRadius * 5);
 const generated = await emitPanelClosureCadArtifacts(project, {

@@ -133,8 +133,8 @@ The panel JSON now defines a provisional back-view row snake: pixel 0 is
 bottom-left beside DIN, the first row runs left-to-right, and rows alternate
 upward. For an 8 x 8 panel this derives pixel 56 at top-right and pixel 63 at
 top-left; DOUT is independently at top-right. GPIO and chain order remain
-readiness blockers. Explicit panel-assembly rotations propagate directly from
-`rotationQuarterTurns`. Non-2,624 LED counts retain
+readiness blockers. Explicit panel-assembly orientation propagates directly from each panel pose's
+right-handed orthonormal basis. Non-2,624 LED counts retain
 `createUniformSphereMapping()` as a clearly labelled fallback.
 
 UV values are present as equirectangular coordinates. A later 2D view can render

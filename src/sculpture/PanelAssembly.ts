@@ -16,22 +16,32 @@ import type {
 } from "../../web/src/LedMapping.ts";
 
 export interface PanelAssemblyDefinition {
-  schemaVersion: "1.0.0";
+  schemaVersion: "2.0.0";
   id: string;
   name: string;
   units: "mm";
   status: "provisional" | "measured";
-  panelProfile: string;
-  geometry: {
+  panelProfile: {
+    id: string;
+    source: string;
+  };
+  panels: Array<{
+    id: string;
+    mountFaceId: string;
+    pose: {
+      position: [number, number, number];
+      orientation: {
+        xAxis: [number, number, number];
+        yAxis: [number, number, number];
+        normal: [number, number, number];
+      };
+    };
+  }>;
+  mechanicalShell: {
     kind: "explicit-planar-face-graph";
     vertices: Array<[number, number, number]>;
     faces: Array<{ id: string; vertexIndices: number[] }>;
   };
-  panels: Array<{
-    id: string;
-    faceId: string;
-    rotationQuarterTurns: 0 | 1 | 2 | 3;
-  }>;
   closures: {
     faceIds: string[];
     generator: "panel-hole-tabs";
@@ -83,7 +93,7 @@ export interface CompiledMountingHole {
 export interface CompiledPanelPlacement {
   id: string;
   faceId: string;
-  rotationQuarterTurns: 0 | 1 | 2 | 3;
+  rotationDegrees: number;
   position: Vector3Data;
   normal: Vector3Data;
   xAxis: Vector3Data;
@@ -220,22 +230,30 @@ export function parsePanelAssemblyDefinition(
 ): PanelAssemblyDefinition {
   if (!isRecord(input)) throw new Error("Panel assembly must be an object.");
   if (
-    input.schemaVersion !== "1.0.0" ||
+    input.schemaVersion !== "2.0.0" ||
     input.units !== "mm" ||
-    input.status !== "provisional" ||
+    (input.status !== "provisional" && input.status !== "measured") ||
     typeof input.id !== "string" ||
-    typeof input.name !== "string" ||
-    typeof input.panelProfile !== "string"
+    typeof input.name !== "string"
   ) {
     throw new Error("Unsupported panel-assembly header.");
   }
-  const geometry = record(input, "geometry");
+  const panelProfile = record(input, "panelProfile");
+  if (
+    typeof panelProfile.id !== "string" ||
+    panelProfile.id.length === 0 ||
+    typeof panelProfile.source !== "string" ||
+    panelProfile.source.length === 0
+  ) {
+    throw new Error("Panel profile requires non-empty id and source strings.");
+  }
+  const geometry = record(input, "mechanicalShell");
   if (
     geometry.kind !== "explicit-planar-face-graph" ||
     !Array.isArray(geometry.vertices) ||
     !Array.isArray(geometry.faces)
   ) {
-    throw new Error("Panel geometry must be an explicit planar face graph.");
+    throw new Error("Mechanical shell must be an explicit planar face graph.");
   }
   const sourceVertices = geometry.vertices;
   const sourceFaces = geometry.faces;
@@ -275,21 +293,71 @@ export function parsePanelAssemblyDefinition(
   const panelIds = new Set<string>();
   const panelFaceIds = new Set<string>();
   for (const panel of input.panels) {
+    const pose = isRecord(panel) && isRecord(panel.pose) ? panel.pose : null;
+    const position = pose?.position;
+    const orientation =
+      pose && isRecord(pose.orientation) ? pose.orientation : null;
+    const xAxis = orientation?.xAxis;
+    const yAxis = orientation?.yAxis;
+    const normal = orientation?.normal;
+    const isFiniteAxis = (axis: unknown): axis is number[] =>
+      Array.isArray(axis) &&
+      axis.length === 3 &&
+      axis.every(
+        (coordinate) =>
+          typeof coordinate === "number" && Number.isFinite(coordinate),
+      );
+    const orientationIsFinite =
+      isFiniteAxis(xAxis) && isFiniteAxis(yAxis) && isFiniteAxis(normal);
+    const orthonormalError = orientationIsFinite
+      ? Math.max(
+          Math.abs(Math.hypot(...xAxis) - 1),
+          Math.abs(Math.hypot(...yAxis) - 1),
+          Math.abs(Math.hypot(...normal) - 1),
+          Math.abs(
+            xAxis[0]! * yAxis[0]! +
+              xAxis[1]! * yAxis[1]! +
+              xAxis[2]! * yAxis[2]!,
+          ),
+          Math.abs(
+            xAxis[0]! * normal[0]! +
+              xAxis[1]! * normal[1]! +
+              xAxis[2]! * normal[2]!,
+          ),
+          Math.abs(
+            yAxis[0]! * normal[0]! +
+              yAxis[1]! * normal[1]! +
+              yAxis[2]! * normal[2]!,
+          ),
+          Math.hypot(
+            xAxis[1]! * yAxis[2]! - xAxis[2]! * yAxis[1]! - normal[0]!,
+            xAxis[2]! * yAxis[0]! - xAxis[0]! * yAxis[2]! - normal[1]!,
+            xAxis[0]! * yAxis[1]! - xAxis[1]! * yAxis[0]! - normal[2]!,
+          ),
+        )
+      : Number.POSITIVE_INFINITY;
     if (
       !isRecord(panel) ||
       typeof panel.id !== "string" ||
-      typeof panel.faceId !== "string" ||
+      typeof panel.mountFaceId !== "string" ||
       panelIds.has(panel.id) ||
-      panelFaceIds.has(panel.faceId) ||
-      !faceIds.has(panel.faceId) ||
-      !Number.isInteger(panel.rotationQuarterTurns) ||
-      (panel.rotationQuarterTurns as number) < 0 ||
-      (panel.rotationQuarterTurns as number) > 3
+      panelFaceIds.has(panel.mountFaceId) ||
+      !faceIds.has(panel.mountFaceId) ||
+      !Array.isArray(position) ||
+      position.length !== 3 ||
+      position.some(
+        (coordinate) =>
+          typeof coordinate !== "number" || !Number.isFinite(coordinate),
+      ) ||
+      !orientationIsFinite ||
+      orthonormalError > 1e-6
     ) {
-      throw new Error("Panels require unique IDs, unique faces, and quarter-turn rotations.");
+      throw new Error(
+        "Panels require unique IDs, unique mount faces, finite positions, and right-handed orthonormal orientations.",
+      );
     }
     panelIds.add(panel.id);
-    panelFaceIds.add(panel.faceId);
+    panelFaceIds.add(panel.mountFaceId);
   }
   const closures = record(input, "closures");
   if (
@@ -378,12 +446,28 @@ export function createPanelAssemblyProject(
 ): PanelAssemblyProject {
   const sculpture = parsePanelAssemblyDefinition(sculptureInput);
   const panelProfile = parsePanelHardwareProfile(panelProfileInput);
-  if (sculpture.panelProfile !== panelProfile.id) {
+  if (sculpture.panelProfile.id !== panelProfile.id) {
     throw new Error(
-      `Assembly requests ${sculpture.panelProfile}; loaded ${panelProfile.id}.`,
+      `Assembly requests ${sculpture.panelProfile.id}; loaded ${panelProfile.id}.`,
     );
   }
   return { sculpture, panelProfile, source };
+}
+
+export async function loadPanelAssemblyProject(
+  sculptureInput: unknown,
+  source: string,
+  loadPanelProfile: (
+    reference: PanelAssemblyDefinition["panelProfile"],
+    sculptureSource: string,
+  ) => Promise<unknown>,
+): Promise<PanelAssemblyProject> {
+  const sculpture = parsePanelAssemblyDefinition(sculptureInput);
+  const panelProfileInput = await loadPanelProfile(
+    sculpture.panelProfile,
+    source,
+  );
+  return createPanelAssemblyProject(sculpture, source, panelProfileInput);
 }
 
 function vector(x: number, y: number, z: number): Vector3Data {
@@ -432,19 +516,6 @@ function distanceSquared(a: Vector3Data, b: Vector3Data): number {
   );
 }
 
-function rotateAxes(
-  xAxis: Vector3Data,
-  yAxis: Vector3Data,
-  quarterTurns: number,
-): { xAxis: Vector3Data; yAxis: Vector3Data } {
-  if (quarterTurns === 0) return { xAxis, yAxis };
-  if (quarterTurns === 1) return { xAxis: yAxis, yAxis: scale(xAxis, -1) };
-  if (quarterTurns === 2) {
-    return { xAxis: scale(xAxis, -1), yAxis: scale(yAxis, -1) };
-  }
-  return { xAxis: scale(yAxis, -1), yAxis: xAxis };
-}
-
 function panelHoles(
   panel: Omit<CompiledPanelPlacement, "mountingHoles" | "neighborPanelIds">,
   profile: PanelHardwareProfile,
@@ -485,14 +556,14 @@ export function compilePanelAssembly(
   project: PanelAssemblyProject,
 ): CompiledPanelAssembly {
   const definition = project.sculpture;
-  const vertices = definition.geometry.vertices.map(([x, y, z]) =>
+  const vertices = definition.mechanicalShell.vertices.map(([x, y, z]) =>
     vector(x, y, z),
   );
   const panelByFace = new Map(
-    definition.panels.map((panel) => [panel.faceId, panel]),
+    definition.panels.map((panel) => [panel.mountFaceId, panel]),
   );
   const closureFaceIds = new Set(definition.closures.faceIds);
-  const faces: CompiledAssemblyFace[] = definition.geometry.faces.map((source) => {
+  const faces: CompiledAssemblyFace[] = definition.mechanicalShell.faces.map((source) => {
     const faceVertices = source.vertexIndices.map((index) => vertices[index]!);
     const center = mean(faceVertices);
     const firstEdge = subtract(faceVertices[1]!, faceVertices[0]!);
@@ -533,14 +604,27 @@ export function compilePanelAssembly(
   });
   const faceById = new Map(faces.map((face) => [face.id, face]));
   const panels: CompiledPanelPlacement[] = definition.panels.map((source) => {
-    const face = faceById.get(source.faceId)!;
-    const axes = rotateAxes(face.xAxis, face.yAxis, source.rotationQuarterTurns);
+    const face = faceById.get(source.mountFaceId)!;
+    const axes = {
+      xAxis: vector(...source.pose.orientation.xAxis),
+      yAxis: vector(...source.pose.orientation.yAxis),
+      normal: vector(...source.pose.orientation.normal),
+    };
+    const rawRotationDegrees =
+      (Math.atan2(
+        dot(axes.xAxis, face.yAxis),
+        dot(axes.xAxis, face.xAxis),
+      ) *
+        180) /
+      Math.PI;
+    const rotationDegrees =
+      Math.round(((rawRotationDegrees + 360) % 360) * 1e9) / 1e9;
     const base = {
       id: source.id,
-      faceId: source.faceId,
-      rotationQuarterTurns: source.rotationQuarterTurns,
-      position: face.center,
-      normal: face.normal,
+      faceId: source.mountFaceId,
+      rotationDegrees,
+      position: vector(...source.pose.position),
+      normal: axes.normal,
       xAxis: axes.xAxis,
       yAxis: axes.yAxis,
       width: project.panelProfile.dimensions.width,
@@ -848,7 +932,7 @@ export function createPanelAssemblyMapping(
     previewHeight: source.height,
     neighborPanelIds: source.neighborPanelIds,
     ledIndices: [],
-    rotationDegrees: source.rotationQuarterTurns * 90,
+    rotationDegrees: source.rotationDegrees,
     mirrored: false,
     pixelOrder: {
       status: project.panelProfile.pixelGrid.provisionalOrder.status,
@@ -966,7 +1050,7 @@ export function createPanelAssemblyMapping(
       normal: face.normal,
     })),
     notes: [
-      "Panel transforms and closure faces compile from the explicit face graph in sculpture.json.",
+      "Panel transforms compile directly from explicit poses in sculpture.json; the mechanical shell supplies closure faces.",
       "Each closure connector targets a real, uniquely assigned PCB mounting hole.",
       `${assembly.edges.filter((edge) => edge.faceIds.every((faceId) => assembly.faces.find((face) => face.id === faceId)?.role === "closure")).length} closure-to-closure edges are clean butt seams without PCB-hole tabs.`,
       "Wiring endpoints and internal pixel order remain provisional.",

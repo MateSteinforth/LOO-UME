@@ -148,13 +148,13 @@ describe("panel-driven cuboctahedron end-to-end compiler", () => {
     expect(
       mapping.panels.map((panel) => [
         panel.id,
-        panel.rotationDegrees,
+        [panel.position.x, panel.position.y, panel.position.z],
         panel.mirrored,
       ]),
     ).toEqual(
       project.sculpture.panels.map((panel) => [
         panel.id,
-        panel.rotationQuarterTurns * 90,
+        panel.pose.position,
         false,
       ]),
     );
@@ -223,6 +223,22 @@ describe("panel-driven cuboctahedron end-to-end compiler", () => {
       expect(source).not.toContain("panel-carrier");
       expect(source).not.toContain("edge-connector");
     }
+  });
+
+  it("treats the authored pose as authoritative over the mount face", () => {
+    const project = loadFixtureProject();
+    project.sculpture.panels[0]!.pose.position[0] += 3;
+    const assembly = compilePanelAssembly(project);
+    expect(assembly.panels[0]!.position.x).toBe(3);
+    expect(assembly.faces.find((face) => face.id === "SQ-01")!.center.x).toBe(0);
+  });
+
+  it("rejects a non-orthonormal authored pose", () => {
+    const project = loadFixtureProject();
+    project.sculpture.panels[0]!.pose.orientation.xAxis = [2, 0, 0];
+    expect(() => parsePanelAssemblyDefinition(project.sculpture)).toThrow(
+      "right-handed orthonormal orientations",
+    );
   });
 
   it("rejects an unassigned face", () => {

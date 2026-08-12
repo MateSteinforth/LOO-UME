@@ -6,8 +6,8 @@ vertex or face table.
 
 The JSON supplies:
 
-- the explicit vertices and ordered planar faces;
-- the six panel-to-face assignments and installed quarter-turns;
+- six explicit world-space panel positions and orientation bases;
+- the supporting mechanical shell and each panel's mount-face association;
 - the eight faces that must become printable closures;
 - the rule that cap interfaces are globally matched to usable panel holes
   with minimum total tab reach and one different cap per screw;
@@ -24,7 +24,7 @@ constraints, and the physically tested 0.20/0.50 mm corrections.
 ## Compilation flow
 
 ```text
-explicit face graph + panel assignments + panel hardware profile
+explicit panel poses + mechanical shell + panel hardware profile
                               |
                      validate closed manifold
                               |
@@ -76,8 +76,7 @@ producing the complete set.
 
 ## Generalization
 
-Another sculpture can use the same pipeline by supplying a different closed,
-planar face graph and assigning some faces to panels and the remainder to
-closures. The compiler fails if a face is unassigned, an edge is non-manifold,
+Another sculpture can use the same pipeline by supplying explicit panel poses, a different closed planar mechanical shell,
+and assigning mount faces to panels and the remainder to closures. The compiler fails if a face is unassigned, an edge is non-manifold,
 a closure does not border a panel, or a panel cannot give every interface a
 different eligible mounting hole.

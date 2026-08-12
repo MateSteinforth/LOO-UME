@@ -10,6 +10,8 @@ import { resolve } from "node:path";
 const rootDirectory = process.cwd();
 const sourceDirectory = resolve(rootDirectory, "sculptures");
 const artifactDirectory = resolve(rootDirectory, "artifacts", "sculptures");
+const catalogDirectory = resolve(rootDirectory, "catalog");
+const publicCatalogDirectory = resolve(rootDirectory, "web", "public", "catalog");
 const publicSculptureDirectory = resolve(
   rootDirectory,
   "web",
@@ -57,11 +59,15 @@ if (
 }
 
 await Promise.all([
+  rm(publicCatalogDirectory, { recursive: true, force: true }),
   rm(publicSculptureDirectory, { recursive: true, force: true }),
   rm(publicCadDirectory, { recursive: true, force: true }),
   rm(publicPreviewDirectory, { recursive: true, force: true }),
 ]);
-await copyTree(sourceDirectory, publicSculptureDirectory);
+await Promise.all([
+  copyTree(sourceDirectory, publicSculptureDirectory),
+  copyTree(catalogDirectory, publicCatalogDirectory),
+]);
 
 for (const sculpture of registry.sculptures) {
   if (

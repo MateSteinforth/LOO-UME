@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://led-rhombo.example/schemas/panel-assembly.schema.json",
-  "title": "Explicit panel assembly and generated closure recipe",
+  "title": "Pose-first panel assembly and generated closure recipe",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,7 +11,7 @@
     "units",
     "status",
     "panelProfile",
-    "geometry",
+    "mechanicalShell",
     "panels",
     "closures",
     "mapping",
@@ -24,7 +24,7 @@
       "type": "string"
     },
     "schemaVersion": {
-      "const": "1.0.0"
+      "const": "2.0.0"
     },
     "id": {
       "type": "string",
@@ -44,65 +44,20 @@
       ]
     },
     "panelProfile": {
-      "type": "string",
-      "minLength": 1
-    },
-    "geometry": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "kind",
-        "vertices",
-        "faces"
+        "id",
+        "source"
       ],
       "properties": {
-        "kind": {
-          "const": "explicit-planar-face-graph"
+        "id": {
+          "type": "string",
+          "minLength": 1
         },
-        "vertices": {
-          "type": "array",
-          "minItems": 4,
-          "items": {
-            "type": "array",
-            "prefixItems": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "number"
-              }
-            ],
-            "items": false
-          }
-        },
-        "faces": {
-          "type": "array",
-          "minItems": 4,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "id",
-              "vertexIndices"
-            ],
-            "properties": {
-              "id": {
-                "type": "string",
-                "minLength": 1
-              },
-              "vertexIndices": {
-                "type": "array",
-                "minItems": 3,
-                "items": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            }
-          }
+        "source": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -114,22 +69,99 @@
         "additionalProperties": false,
         "required": [
           "id",
-          "faceId",
-          "rotationQuarterTurns"
+          "mountFaceId",
+          "pose"
         ],
         "properties": {
           "id": {
             "type": "string",
             "minLength": 1
           },
-          "faceId": {
+          "mountFaceId": {
             "type": "string",
             "minLength": 1
           },
-          "rotationQuarterTurns": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 3
+          "pose": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "position",
+              "orientation"
+            ],
+            "properties": {
+              "position": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "items": false
+              },
+              "orientation": {
+                "type": "object",
+                "description": "Right-handed orthonormal world-space basis; local +Z is the outward panel normal.",
+                "additionalProperties": false,
+                "required": [
+                  "xAxis",
+                  "yAxis",
+                  "normal"
+                ],
+                "properties": {
+                  "xAxis": {
+                    "type": "array",
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "items": false
+                  },
+                  "yAxis": {
+                    "type": "array",
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "items": false
+                  },
+                  "normal": {
+                    "type": "array",
+                    "prefixItems": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ],
+                    "items": false
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -346,6 +378,65 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "mechanicalShell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "vertices",
+        "faces"
+      ],
+      "properties": {
+        "kind": {
+          "const": "explicit-planar-face-graph"
+        },
+        "vertices": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "items": false
+          }
+        },
+        "faces": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "vertexIndices"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "vertexIndices": {
+                "type": "array",
+                "minItems": 3,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
