@@ -8,6 +8,7 @@ import {
 import { delimiter, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
+import { assertMechanicalShellReady } from "../src/sculpture/PanelAssembly.ts";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 
 const rootDirectory = process.cwd();
@@ -77,6 +78,7 @@ const project = await loadPanelAssemblyProjectFromFile(
   sculptureSource,
   rootDirectory,
 );
+assertMechanicalShellReady(project);
 const outputDirectory = resolve(
   rootDirectory,
   "build",

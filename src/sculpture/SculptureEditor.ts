@@ -275,6 +275,50 @@ export function addPanelToClosureFace(
   return definition;
 }
 
+export function movePanelOnDesignSurface(
+  source: PanelAssemblyDefinition,
+  panelId: string,
+  placement: {
+    position: Vector3Tuple;
+    orientation: {
+      xAxis: Vector3Tuple;
+      yAxis: Vector3Tuple;
+      normal: Vector3Tuple;
+    };
+    attachment: {
+      triangleIndex: number;
+      barycentric: Vector3Tuple;
+      normalOffset: number;
+    };
+  },
+): PanelAssemblyDefinition {
+  if (!source.designSurface) {
+    throw new Error("Load a watertight GLB design surface before moving panels.");
+  }
+  const definition = structuredClone(source);
+  const panel = definition.panels.find((candidate) => candidate.id === panelId);
+  if (!panel) throw new Error(`Unknown panel ${panelId}.`);
+  panel.pose = {
+    position: [...placement.position],
+    orientation: {
+      xAxis: [...placement.orientation.xAxis],
+      yAxis: [...placement.orientation.yAxis],
+      normal: [...placement.orientation.normal],
+    },
+  };
+  panel.surfaceAttachment = {
+    triangleIndex: placement.attachment.triangleIndex,
+    barycentric: [...placement.attachment.barycentric],
+    normalOffset: placement.attachment.normalOffset,
+  };
+  definition.mechanicalShell.derivationStatus = "requires-regeneration";
+  definition.status = "provisional";
+  definition.calibration.panelTransforms = "generated-provisional";
+  definition.calibration.installedPanelOrientation = "provisional";
+  definition.calibration.physicalChains = "provisional";
+  return definition;
+}
+
 export function sculptureJson(definition: PanelAssemblyDefinition): string {
   return `${JSON.stringify(definition, null, 2)}\n`;
 }

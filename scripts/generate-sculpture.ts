@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
 import {
+  assertMechanicalShellReady,
   compilePanelAssembly,
   createPanelAssemblyMapping,
 } from "../src/sculpture/PanelAssembly.ts";
@@ -20,6 +21,7 @@ const project = await loadPanelAssemblyProjectFromFile(
   source,
   rootDirectory,
 );
+assertMechanicalShellReady(project);
 const assembly = compilePanelAssembly(project);
 const geometry = createPanelAssemblyMapping(project, assembly);
 const wiring = createProvisionalWiringPreview(

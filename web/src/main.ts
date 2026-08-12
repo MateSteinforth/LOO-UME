@@ -17,8 +17,13 @@ import {
 } from "../../src/sculpture/PanelAssembly";
 import {
   addPanelToClosureFace,
+  movePanelOnDesignSurface,
   sculptureJson,
 } from "../../src/sculpture/SculptureEditor";
+import {
+  loadGlbDesignSurface,
+  type LoadedDesignSurface,
+} from "./DesignSurfaceLoader";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { WledEngine } from "./WledEngine";
 import {
@@ -313,10 +318,28 @@ app.innerHTML = `
             <small>pose-first JSON</small>
           </div>
           <input id="sculpture-file" type="file" accept="application/json,.json" hidden />
+          <input id="design-surface-file" type="file" accept="model/gltf-binary,.glb" hidden />
           <div class="editor-actions">
             <button id="load-sculpture-file" type="button">Load JSON file</button>
             <button id="save-sculpture-file" type="button">Save JSON</button>
           </div>
+          <div class="section-heading editor-subheading">
+            <span>Design surface</span>
+            <small>watertight GLB</small>
+          </div>
+          <label class="field">
+            <span>GLB units to millimetres</span>
+            <input id="surface-scale" type="number" min="0.000001" step="any" value="1000" />
+          </label>
+          <button id="load-design-surface" class="editor-button" type="button">
+            Load watertight GLB
+          </button>
+          <p id="surface-status" class="mapping-note">
+            Load a GLB, then drag an existing panel across its surface.
+          </p>
+          <p id="selected-panel-status" class="mapping-note">
+            No design surface loaded.
+          </p>
           <label class="field">
             <span>Available closure face</span>
             <select id="add-panel-face"></select>
@@ -403,6 +426,13 @@ const loadSculptureFileButton =
   query<HTMLButtonElement>("#load-sculpture-file");
 const saveSculptureFileButton =
   query<HTMLButtonElement>("#save-sculpture-file");
+const designSurfaceFileInput =
+  query<HTMLInputElement>("#design-surface-file");
+const loadDesignSurfaceButton =
+  query<HTMLButtonElement>("#load-design-surface");
+const surfaceScaleInput = query<HTMLInputElement>("#surface-scale");
+const surfaceStatus = query<HTMLElement>("#surface-status");
+const selectedPanelStatus = query<HTMLElement>("#selected-panel-status");
 const addPanelFaceSelect = query<HTMLSelectElement>("#add-panel-face");
 const addPanelButton = query<HTMLButtonElement>("#add-panel");
 const runPipelineButton = query<HTMLButtonElement>("#run-pipeline");
@@ -446,6 +476,9 @@ async function start(): Promise<void> {
     let wiringPreview = hardwareContract.wiring;
     let mapping = hardwareContract.mapping;
     renderer = new SphereRenderer(viewerElement, mapping);
+    renderer.setPanelProfileThickness(
+      editorProject.panelProfile.dimensions.thickness,
+    );
     renderer.setShellTransparency(
       Number(shellTransparencyInput.value) / 100,
     );
@@ -483,6 +516,15 @@ async function start(): Promise<void> {
       simulationTime = 0;
       engine.reset();
       engine.tick(0);
+    };
+
+    const mechanicalShellIsCurrent = (): boolean =>
+      editorDefinition.mechanicalShell.derivationStatus !==
+        "requires-regeneration";
+
+    const updatePipelineAvailability = (): void => {
+      runPipelineButton.disabled =
+        !pipelineAvailable || !mechanicalShellIsCurrent();
     };
 
     const renderOutputLayerControls = (): void => {
@@ -545,12 +587,16 @@ async function start(): Promise<void> {
           mapping.id.toUpperCase() +
           " PREVIEW"
         : "PROVISIONAL UNIFORM FALLBACK";
-      mappingNote.textContent = isPanelized
-        ? `Simulator and ledmap share route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} calibration requirements are resolved.`
-        : "Custom LED counts use the panel-free Fibonacci fallback.";
+      mappingNote.textContent = !mechanicalShellIsCurrent()
+        ? "Panel poses changed on the GLB. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
+        : isPanelized
+          ? `Simulator and ledmap share route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} calibration requirements are resolved.`
+          : "Custom LED counts use the panel-free Fibonacci fallback.";
       panelLabelsToggle.disabled = !isPanelized;
       const hasPrintableClosures =
-        isPanelized && (mapping.printableClosures?.length ?? 0) > 0;
+        isPanelized &&
+        mechanicalShellIsCurrent() &&
+        (mapping.printableClosures?.length ?? 0) > 0;
       printableLayerToggle.disabled = !hasPrintableClosures;
       shellTransparencyInput.disabled = !isPanelized;
       connectorLayerToggle.disabled = !isPanelized;
@@ -572,6 +618,7 @@ async function start(): Promise<void> {
       renderer?.setWiringLayerVisible(
         isPanelized && wiringLayerToggle.checked,
       );
+      updatePipelineAvailability();
     };
 
     const renderEditorFaces = (): void => {
@@ -612,12 +659,115 @@ async function start(): Promise<void> {
       engine.resize(mapping.entries.length);
       ledCountInput.value = String(mapping.entries.length);
       ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
+      renderer?.setPanelProfileThickness(
+        selected.project.panelProfile.dimensions.thickness,
+      );
       renderer?.setMapping(mapping);
       renderer?.setWiringPreview(wiringPreview);
       renderOutputLayerControls();
       resetTimeline();
       updateMappingStatus();
     };
+
+    const clearDesignSurface = (message: string): void => {
+      renderer?.setDesignSurface(null);
+      surfaceStatus.textContent = message;
+      selectedPanelStatus.textContent = "No design surface loaded.";
+    };
+
+    const showDesignSurface = (
+      surface: LoadedDesignSurface,
+      source: string,
+    ): void => {
+      renderer?.setDesignSurface(surface.geometry);
+      autoRotate.checked = false;
+      renderer?.setAutoRotate(false);
+      const size = surface.validation.bounds.size
+        .map((value) => Math.round(value))
+        .join(" × ");
+      surfaceStatus.textContent =
+        source +
+        ": " +
+        surface.validation.triangleCount.toLocaleString() +
+        " triangles, " +
+        size +
+        " mm, watertight.";
+      selectedPanelStatus.textContent =
+        "Click a panel, then drag it across the GLB surface.";
+    };
+
+    const loadReferencedDesignSurface = async (): Promise<void> => {
+      const definition = editorDefinition.designSurface;
+      if (!definition) {
+        clearDesignSurface(
+          "Load a GLB, then drag an existing panel across its surface.",
+        );
+        return;
+      }
+      surfaceScaleInput.value = String(definition.scaleToMillimeters);
+      if (editorProject.source.startsWith("local:")) {
+        clearDesignSurface(
+          "This JSON references " + definition.source +
+            "; load that GLB from your device to edit panel poses.",
+        );
+        return;
+      }
+      clearDesignSurface("Loading referenced GLB " + definition.source + "…");
+      const sculptureUrl = new URL(editorProject.source, document.baseURI);
+      const surfaceUrl = new URL(definition.source, sculptureUrl);
+      const response = await fetch(surfaceUrl);
+      if (!response.ok) {
+        throw new Error(
+          "Unable to load design-surface GLB: HTTP " + response.status + ".",
+        );
+      }
+      const surface = await loadGlbDesignSurface(
+        await response.arrayBuffer(),
+        definition.scaleToMillimeters,
+      );
+      if (surface.sha256.toLowerCase() !== definition.sha256.toLowerCase()) {
+        surface.geometry.dispose();
+        throw new Error("The referenced GLB does not match its sculpture JSON SHA-256.");
+      }
+      showDesignSurface(surface, definition.source);
+    };
+
+    renderer?.setSurfaceEditorCallbacks({
+      onSelectionChange: (panelId) => {
+        selectedPanelStatus.textContent = panelId
+          ? "Selected " + panelId + ". Drag it onto the target surface."
+          : "Click a panel, then drag it across the GLB surface.";
+      },
+      onPlacementCommit: (placement) => {
+        try {
+          const edited = movePanelOnDesignSurface(
+            editorDefinition,
+            placement.panelId,
+            placement,
+          );
+          const project = createPanelAssemblyProject(
+            edited,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          applyLoadedSculpture(createLoadedSculpture(project));
+          pipelineStatus.classList.remove("pipeline-status--error");
+          pipelineStatus.textContent =
+            "Moved " + placement.panelId +
+            ". Pose and surface attachment are saved; CAD generation is blocked until shell regeneration is implemented.";
+          selectedPanelStatus.textContent =
+            placement.panelId + " is attached to triangle " +
+            placement.attachment.triangleIndex + ".";
+          viewerError.hidden = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+        }
+      },
+    });
 
     effectSelect.addEventListener("change", () => {
       engine.setEffect(Number(effectSelect.value));
@@ -678,6 +828,7 @@ async function start(): Promise<void> {
       try {
         const selected = await loadSculptureContract(source);
         applyLoadedSculpture(selected);
+        await loadReferencedDesignSurface();
         sculptureSelect.value = sculptureRegistry.sculptures.some(
           (entry) => entry.source === source,
         )
@@ -719,6 +870,7 @@ async function start(): Promise<void> {
         try {
           const selected = await loadLocalSculpture(file);
           applyLoadedSculpture(selected);
+          await loadReferencedDesignSurface();
           sculptureSelect.value = "";
           sculptureJsonInput.value = file.name;
           pipelineStatus.textContent = `Loaded ${file.name}.`;
@@ -729,6 +881,53 @@ async function start(): Promise<void> {
             error instanceof Error ? error.message : String(error);
         } finally {
           sculptureFileInput.value = "";
+        }
+      })();
+    });
+    loadDesignSurfaceButton.addEventListener("click", () => {
+      designSurfaceFileInput.click();
+    });
+    designSurfaceFileInput.addEventListener("change", () => {
+      const file = designSurfaceFileInput.files?.[0];
+      if (!file) return;
+      void (async () => {
+        loadDesignSurfaceButton.disabled = true;
+        try {
+          const scaleToMillimeters = Number(surfaceScaleInput.value);
+          const surface = await loadGlbDesignSurface(
+            await file.arrayBuffer(),
+            scaleToMillimeters,
+          );
+          const edited = structuredClone(editorDefinition);
+          edited.designSurface = {
+            kind: "triangle-mesh",
+            format: "glb",
+            source: file.name,
+            sha256: surface.sha256,
+            scaleToMillimeters,
+            status: "watertight",
+          };
+          const project = createPanelAssemblyProject(
+            edited,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          applyLoadedSculpture(createLoadedSculpture(project));
+          showDesignSurface(surface, file.name);
+          pipelineStatus.classList.remove("pipeline-status--error");
+          pipelineStatus.textContent =
+            "Attached " + file.name +
+            " to the sculpture JSON. Save both files together to preserve the reference.";
+          viewerError.hidden = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+        } finally {
+          designSurfaceFileInput.value = "";
+          loadDesignSurfaceButton.disabled = false;
         }
       })();
     });
@@ -770,6 +969,13 @@ async function start(): Promise<void> {
     });
     runPipelineButton.addEventListener("click", () => {
       void (async () => {
+        if (!mechanicalShellIsCurrent()) {
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent =
+            "CAD generation is blocked: the moved panel poses need a regenerated mechanical shell.";
+          updatePipelineAvailability();
+          return;
+        }
         runPipelineButton.disabled = true;
         addPanelButton.disabled = true;
         pipelineStatus.classList.remove("pipeline-status--error");
@@ -814,8 +1020,8 @@ async function start(): Promise<void> {
           viewerError.hidden = false;
           viewerError.textContent = message;
         } finally {
-          runPipelineButton.disabled = false;
           renderEditorFaces();
+          updatePipelineAvailability();
         }
       })();
     });
@@ -864,6 +1070,7 @@ async function start(): Promise<void> {
     renderEditorFaces();
     renderOutputLayerControls();
     updateMappingStatus();
+    await loadReferencedDesignSurface();
 
     const animate = (now: number): void => {
       const delta = Math.min(now - previousTime, 100);

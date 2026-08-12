@@ -19,6 +19,19 @@
     "calibration",
     "notes"
   ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "panels": {
+            "contains": { "required": ["surfaceAttachment"] }
+          }
+        },
+        "required": ["panels"]
+      },
+      "then": { "required": ["designSurface"] }
+    }
+  ],
   "properties": {
     "$schema": {
       "type": "string"
@@ -178,6 +191,43 @@
                     "items": false
                   }
                 }
+              }
+            }
+          },
+          "surfaceAttachment": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "triangleIndex",
+              "barycentric",
+              "normalOffset"
+            ],
+            "properties": {
+              "triangleIndex": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "barycentric": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                ],
+                "items": false
+              },
+              "normalOffset": {
+                "type": "number",
+                "minimum": 0
               }
             }
           }
@@ -472,6 +522,48 @@
               }
             }
           }
+        },
+        "derivationStatus": {
+          "enum": [
+            "authored",
+            "requires-regeneration"
+          ]
+        }
+      }
+    },
+    "designSurface": {
+      "type": "object",
+      "description": "Optional watertight GLB authoring surface; panel poses remain authoritative.",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "format",
+        "source",
+        "sha256",
+        "scaleToMillimeters",
+        "status"
+      ],
+      "properties": {
+        "kind": {
+          "const": "triangle-mesh"
+        },
+        "format": {
+          "const": "glb"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "scaleToMillimeters": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "status": {
+          "const": "watertight"
         }
       }
     }

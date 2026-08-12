@@ -1,11 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
+  assertMechanicalShellReady,
   compilePanelAssembly,
   createPanelAssemblyProject,
   parsePanelAssemblyDefinition,
 } from "../src/sculpture/PanelAssembly.ts";
-import { addPanelToClosureFace } from "../src/sculpture/SculptureEditor.ts";
+import {
+  addPanelToClosureFace,
+  movePanelOnDesignSurface,
+} from "../src/sculpture/SculptureEditor.ts";
 
 describe("browser sculpture editor", () => {
   it("insets a panel and leaves a pipeline-compilable closure ring", async () => {
@@ -50,5 +54,61 @@ describe("browser sculpture editor", () => {
       new Set(assignedHoles.map((hole) => hole.assignedClosureId)).size,
     ).toBe(3);
     expect(assembly.counts.closureConnectors).toBeGreaterThan(0);
+  });
+
+  it("persists a GLB surface attachment and invalidates stale CAD", async () => {
+    const source: unknown = JSON.parse(
+      await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
+    );
+    const original = parsePanelAssemblyDefinition(source);
+    const withSurface = structuredClone(original);
+    withSurface.designSurface = {
+      kind: "triangle-mesh",
+      format: "glb",
+      source: "blob.glb",
+      sha256: "a".repeat(64),
+      scaleToMillimeters: 1000,
+      status: "watertight",
+    };
+    const edited = movePanelOnDesignSurface(withSurface, "P-01", {
+      position: [10, 20, 30],
+      orientation: {
+        xAxis: [1, 0, 0],
+        yAxis: [0, 1, 0],
+        normal: [0, 0, 1],
+      },
+      attachment: {
+        triangleIndex: 12,
+        barycentric: [0.2, 0.3, 0.5],
+        normalOffset: 0.4,
+      },
+    });
+
+    expect(edited.panels[0]!.pose.position).toEqual([10, 20, 30]);
+    expect(edited.panels[0]!.surfaceAttachment).toEqual({
+      triangleIndex: 12,
+      barycentric: [0.2, 0.3, 0.5],
+      normalOffset: 0.4,
+    });
+    expect(edited.mechanicalShell.derivationStatus).toBe(
+      "requires-regeneration",
+    );
+    const project = createPanelAssemblyProject(edited, "editor-test.json");
+    expect(() => assertMechanicalShellReady(project)).toThrow(
+      /out of date/,
+    );
+  });
+
+  it("rejects surface attachments without a design-surface GLB", async () => {
+    const source: unknown = JSON.parse(
+      await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
+    );
+    const invalid = parsePanelAssemblyDefinition(source);
+    invalid.panels[0]!.surfaceAttachment = {
+      triangleIndex: 0,
+      barycentric: [1, 0, 0],
+      normalOffset: 0.4,
+    };
+    expect(() => parsePanelAssemblyDefinition(invalid)).toThrow(/Panels require/);
   });
 });

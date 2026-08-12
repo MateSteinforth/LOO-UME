@@ -458,6 +458,10 @@ input[type="color"] {
   text-transform: uppercase;
 }
 
+.editor-subheading {
+  margin-top: 17px;
+}
+
 .editor-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

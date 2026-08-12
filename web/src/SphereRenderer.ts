@@ -14,6 +14,10 @@ import type {
   Vector3Data,
 } from "./LedMapping";
 import type { WiringPreview } from "./WiringPreview";
+import {
+  SurfacePlacementController,
+  type SurfacePanelPlacement,
+} from "./SurfacePlacementController";
 
 export type DisplayMode = "wled" | "physical-index" | "logical-index";
 
@@ -62,6 +66,7 @@ export class SphereRenderer {
   ]);
   private readonly panelLabels: PanelLabel[] = [];
   private readonly controls: OrbitControls;
+  private readonly surfacePlacement: SurfacePlacementController;
   private readonly stlLoader = new STLLoader();
   private mappingRevision = 0;
   private shellTransparency = 0.35;
@@ -90,6 +95,7 @@ export class SphereRenderer {
   private readonly resizeObserver: ResizeObserver;
   private mapping: LedMapping;
   private panelLabelsVisible = true;
+  private panelThickness = 0.8;
 
   constructor(
     private readonly container: HTMLElement,
@@ -112,6 +118,12 @@ export class SphereRenderer {
     this.controls.maxDistance = 480;
     this.controls.autoRotate = true;
     this.controls.autoRotateSpeed = 0.35;
+    this.surfacePlacement = new SurfacePlacementController(
+      this.scene,
+      this.camera,
+      this.renderer.domElement,
+      this.controls,
+    );
 
     this.points.renderOrder = 4;
     this.scene.add(
@@ -158,6 +170,7 @@ export class SphereRenderer {
       mapping.mechanicalMounts ?? [],
       mapping.printableClosures ?? [],
     );
+    this.surfacePlacement.setPanels(mapping.panels, this.panelThickness);
     this.fitMapping();
   }
 
@@ -212,6 +225,25 @@ export class SphereRenderer {
     this.controls.autoRotate = enabled;
   }
 
+  setPanelProfileThickness(thickness: number): void {
+    this.panelThickness = thickness;
+    this.surfacePlacement.setPanels(this.mapping.panels, thickness);
+  }
+
+  setDesignSurface(geometry: THREE.BufferGeometry | null): void {
+    this.surfacePlacement.setSurface(geometry);
+    const bounds = this.surfacePlacement.getSurfaceBounds();
+    if (bounds) this.fitSphere(bounds);
+  }
+
+  setSurfaceEditorCallbacks(callbacks: {
+    onSelectionChange?: (panelId: string | null) => void;
+    onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
+  }): void {
+    this.surfacePlacement.onSelectionChange = callbacks.onSelectionChange;
+    this.surfacePlacement.onPlacementCommit = callbacks.onPlacementCommit;
+  }
+
   setPanelLabelsVisible(visible: boolean): void {
     this.panelLabelsVisible = visible;
   }
@@ -250,6 +282,7 @@ export class SphereRenderer {
   dispose(): void {
     this.resizeObserver.disconnect();
     this.controls.dispose();
+    this.surfacePlacement.dispose();
     this.clearPanelDecorations();
     this.disposeGroup(this.printableLayer);
     this.clearWiringPreview();
@@ -820,6 +853,10 @@ export class SphereRenderer {
   private fitMapping(): void {
     const bounds = this.geometry.boundingSphere;
     if (!bounds) return;
+    this.fitSphere(bounds);
+  }
+
+  private fitSphere(bounds: THREE.Sphere): void {
     const radius = Math.max(bounds.radius, 1);
     const centre = bounds.center;
     const currentDirection = this.camera.position

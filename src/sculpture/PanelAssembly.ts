@@ -25,12 +25,25 @@ export interface PanelAssemblyDefinition {
     id: string;
     source: string;
   };
+  designSurface?: {
+    kind: "triangle-mesh";
+    format: "glb";
+    source: string;
+    sha256: string;
+    scaleToMillimeters: number;
+    status: "watertight";
+  };
   panels: Array<{
     id: string;
     mountFaceId: string;
     connectorPolicy?: {
       allowSharedClosureAcrossAdjacentEdges: true;
       reason: string;
+    };
+    surfaceAttachment?: {
+      triangleIndex: number;
+      barycentric: [number, number, number];
+      normalOffset: number;
     };
     pose: {
       position: [number, number, number];
@@ -43,6 +56,7 @@ export interface PanelAssemblyDefinition {
   }>;
   mechanicalShell: {
     kind: "explicit-planar-face-graph";
+    derivationStatus?: "authored" | "requires-regeneration";
     vertices: Array<[number, number, number]>;
     faces: Array<{
       id: string;
@@ -255,8 +269,31 @@ export function parsePanelAssemblyDefinition(
   ) {
     throw new Error("Panel profile requires non-empty id and source strings.");
   }
+  const designSurface = input.designSurface;
+  if (
+    designSurface !== undefined &&
+    (!isRecord(designSurface) ||
+      designSurface.kind !== "triangle-mesh" ||
+      designSurface.format !== "glb" ||
+      typeof designSurface.source !== "string" ||
+      designSurface.source.length === 0 ||
+      typeof designSurface.sha256 !== "string" ||
+      designSurface.sha256.length !== 64 ||
+      [...designSurface.sha256.toLowerCase()].some(
+        (character) => !"0123456789abcdef".includes(character),
+      ) ||
+      typeof designSurface.scaleToMillimeters !== "number" ||
+      !Number.isFinite(designSurface.scaleToMillimeters) ||
+      designSurface.scaleToMillimeters <= 0 ||
+      designSurface.status !== "watertight")
+  ) {
+    throw new Error("Design surface must reference a validated GLB and SHA-256 hash.");
+  }
   const geometry = record(input, "mechanicalShell");
   if (
+    (geometry.derivationStatus !== undefined &&
+      geometry.derivationStatus !== "authored" &&
+      geometry.derivationStatus !== "requires-regeneration") ||
     geometry.kind !== "explicit-planar-face-graph" ||
     !Array.isArray(geometry.vertices) ||
     !Array.isArray(geometry.faces)
@@ -308,6 +345,27 @@ export function parsePanelAssemblyDefinition(
   const panelIds = new Set<string>();
   const panelFaceIds = new Set<string>();
   for (const panel of input.panels) {
+    const surfaceAttachment = isRecord(panel) ? panel.surfaceAttachment : undefined;
+    const attachmentBarycentric = isRecord(surfaceAttachment)
+      ? surfaceAttachment.barycentric
+      : undefined;
+    const surfaceAttachmentIsValid = surfaceAttachment === undefined ||
+      (designSurface !== undefined &&
+        isRecord(surfaceAttachment) &&
+        Number.isInteger(surfaceAttachment.triangleIndex) &&
+        (surfaceAttachment.triangleIndex as number) >= 0 &&
+        Array.isArray(attachmentBarycentric) &&
+        attachmentBarycentric.length === 3 &&
+        attachmentBarycentric.every((value) =>
+          typeof value === "number" && Number.isFinite(value) && value >= -1e-6
+        ) &&
+        Math.abs(attachmentBarycentric.reduce(
+          (sum, value) => sum + (value as number),
+          0,
+        ) - 1) <= 1e-5 &&
+        typeof surfaceAttachment.normalOffset === "number" &&
+        Number.isFinite(surfaceAttachment.normalOffset) &&
+        surfaceAttachment.normalOffset >= 0);
     const connectorPolicy = isRecord(panel) ? panel.connectorPolicy : undefined;
     const connectorPolicyIsValid = connectorPolicy === undefined ||
       (isRecord(connectorPolicy) &&
@@ -360,6 +418,7 @@ export function parsePanelAssemblyDefinition(
     if (
       !isRecord(panel) ||
       !connectorPolicyIsValid ||
+      !surfaceAttachmentIsValid ||
       typeof panel.id !== "string" ||
       typeof panel.mountFaceId !== "string" ||
       panelIds.has(panel.id) ||
@@ -459,6 +518,16 @@ export function parsePanelAssemblyDefinition(
   validateWiring(record(input, "wiring"), input.panels.length);
   if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
   return input as unknown as PanelAssemblyDefinition;
+}
+
+export function assertMechanicalShellReady(
+  project: PanelAssemblyProject,
+): void {
+  if (project.sculpture.mechanicalShell.derivationStatus === "requires-regeneration") {
+    throw new Error(
+      "Mechanical shell is out of date with design-surface panel poses; regenerate connector topology before producing CAD.",
+    );
+  }
 }
 
 export function createPanelAssemblyProject(
