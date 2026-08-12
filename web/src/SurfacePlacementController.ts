@@ -35,6 +35,8 @@ export class SurfacePlacementController {
   private draggingPanelId: string | null = null;
   private pendingPlacement: SurfacePanelPlacement | null = null;
   private enabled = false;
+  private attachmentSurface: "design-surface" | "mechanical-shell" =
+    "design-surface";
   private addingPanel = false;
   private normalOffset = 0.4;
 
@@ -56,7 +58,10 @@ export class SurfacePlacementController {
     domElement.addEventListener("pointercancel", this.pointerUp);
   }
 
-  setSurface(geometry: THREE.BufferGeometry | null): void {
+  setSurface(
+    geometry: THREE.BufferGeometry | null,
+    attachmentSurface: "design-surface" | "mechanical-shell" = "design-surface",
+  ): void {
     if (this.surface) {
       this.layer.remove(this.surface);
       this.surface.geometry.dispose();
@@ -66,11 +71,9 @@ export class SurfacePlacementController {
     }
     this.surface = null;
     this.enabled = geometry !== null;
+    this.attachmentSurface = attachmentSurface;
     if (!this.enabled) this.addingPanel = false;
-    if (!geometry) {
-      this.select(null);
-      return;
-    }
+    if (!geometry) return;
     const material = new THREE.MeshBasicMaterial({
       color: 0x376478,
       side: THREE.DoubleSide,
@@ -143,7 +146,7 @@ export class SurfacePlacementController {
   }
 
   private readonly pointerDown = (event: PointerEvent): void => {
-    if (!this.enabled || event.button !== 0) return;
+    if (event.button !== 0) return;
     this.updatePointer(event);
     this.raycaster.setFromCamera(this.pointer, this.camera);
     if (this.addingPanel && this.surface) {
@@ -160,6 +163,7 @@ export class SurfacePlacementController {
         position: tuple(position),
         orientation,
         attachment: {
+          surface: this.attachmentSurface,
           triangleIndex: surfaceHit.faceIndex,
           barycentric: tuple(this.barycentric(surfaceHit)),
           normalOffset: this.normalOffset,
@@ -177,6 +181,7 @@ export class SurfacePlacementController {
       return;
     }
     this.select(panelId);
+    if (!this.surface) return;
     this.draggingPanelId = panelId;
     this.pendingPlacement = null;
     this.controls.enabled = false;
@@ -239,6 +244,7 @@ export class SurfacePlacementController {
         normal: tuple(normal),
       },
       attachment: {
+        surface: this.attachmentSurface,
         triangleIndex: faceIndex,
         barycentric: tuple(barycentric),
         normalOffset: this.normalOffset,

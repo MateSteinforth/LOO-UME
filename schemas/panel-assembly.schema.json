@@ -24,7 +24,19 @@
       "if": {
         "properties": {
           "panels": {
-            "contains": { "required": ["surfaceAttachment"] }
+            "contains": {
+              "required": ["surfaceAttachment"],
+              "properties": {
+                "surfaceAttachment": {
+                  "not": {
+                    "properties": {
+                      "surface": { "const": "mechanical-shell" }
+                    },
+                    "required": ["surface"]
+                  }
+                }
+              }
+            }
           }
         },
         "required": ["panels"]
@@ -228,6 +240,9 @@
               "normalOffset"
             ],
             "properties": {
+              "surface": {
+                "enum": ["design-surface", "mechanical-shell"]
+              },
               "triangleIndex": {
                 "type": "integer",
                 "minimum": 0

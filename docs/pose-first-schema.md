@@ -47,6 +47,12 @@ An explicit basis avoids Euler-angle ambiguity and maps directly to the first
 three columns of a Three.js `Matrix4`. A browser editor can use a quaternion
 internally, but it loads and saves the basis in the sculpture JSON.
 
+`surfaceAttachment.surface` identifies the authoring mesh. `mechanical-shell` uses
+the face graph already embedded in sculpture JSON, so add and drag sessions resume
+from JSON alone. `design-surface` uses the optional external GLB reference; legacy
+attachments without this field also mean the GLB design surface. The GLB stays
+external and is protected by its saved relative path, scale, and SHA-256 hash.
+
 `mountFaceId` is a mechanical association used by the current closure
 generator. It identifies which face of `mechanicalShell` the panel borders, but
 does not determine its position or orientation. This separation lets the

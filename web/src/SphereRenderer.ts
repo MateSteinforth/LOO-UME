@@ -231,8 +231,11 @@ export class SphereRenderer {
     this.surfacePlacement.setPanels(this.mapping.panels, thickness);
   }
 
-  setDesignSurface(geometry: THREE.BufferGeometry | null): void {
-    this.surfacePlacement.setSurface(geometry);
+  setDesignSurface(
+    geometry: THREE.BufferGeometry | null,
+    attachmentSurface: "design-surface" | "mechanical-shell" = "design-surface",
+  ): void {
+    this.surfacePlacement.setSurface(geometry, attachmentSurface);
     const bounds = this.surfacePlacement.getSurfaceBounds();
     if (bounds) this.fitSphere(bounds);
   }

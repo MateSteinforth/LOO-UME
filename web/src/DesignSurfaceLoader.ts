@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import type { PanelAssemblyDefinition } from "../../src/sculpture/PanelAssembly.ts";
 import {
+  createMechanicalShellTriangleMesh,
   validateWatertightTriangleMesh,
   type SurfaceMeshValidation,
 } from "../../src/sculpture/DesignSurface.ts";
@@ -15,6 +17,23 @@ function hex(bytes: ArrayBuffer): string {
   return Array.from(new Uint8Array(bytes), (value) =>
     value.toString(16).padStart(2, "0")
   ).join("");
+}
+
+export function loadMechanicalShellDesignSurface(
+  definition: PanelAssemblyDefinition,
+): LoadedDesignSurface {
+  const { positions, indices, validation } =
+    createMechanicalShellTriangleMesh(definition);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  return { geometry, sha256: "", validation };
 }
 
 export async function loadGlbDesignSurface(

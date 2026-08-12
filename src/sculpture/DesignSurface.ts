@@ -1,3 +1,6 @@
+import { triangulatePolygon } from "../cad/TriangulatePolygon.ts";
+import type { PanelAssemblyDefinition } from "./PanelAssembly.ts";
+
 export type Vector3Tuple = [number, number, number];
 
 export interface DesignSurfaceDefinition {
@@ -10,6 +13,7 @@ export interface DesignSurfaceDefinition {
 }
 
 export interface SurfaceAttachment {
+  surface?: "design-surface" | "mechanical-shell";
   triangleIndex: number;
   barycentric: Vector3Tuple;
   normalOffset: number;
@@ -60,6 +64,48 @@ export function createSurfaceOrientation(
   );
   const xAxis = vectorNormalize(vectorCross(yAxis, normal));
   return { xAxis, yAxis, normal };
+}
+
+export function createMechanicalShellTriangleMesh(
+  definition: PanelAssemblyDefinition,
+): {
+  positions: number[];
+  indices: number[];
+  validation: SurfaceMeshValidation;
+} {
+  const positions = definition.mechanicalShell.vertices.flatMap(
+    (vertex) => vertex,
+  );
+  const indices = definition.mechanicalShell.faces.flatMap((face) => {
+    const vertices = face.vertexIndices.map(
+      (index) => definition.mechanicalShell.vertices[index]!,
+    );
+    const origin = vertices[0]!;
+    const xAxis = vectorNormalize(vectorSubtract(vertices[1]!, origin));
+    const normal = vectorNormalize(
+      vectorCross(
+        vectorSubtract(vertices[1]!, origin),
+        vectorSubtract(vertices[2]!, origin),
+      ),
+    );
+    const yAxis = vectorNormalize(vectorCross(normal, xAxis));
+    const local = vertices.map((vertex) => {
+      const delta = vectorSubtract(vertex, origin);
+      return [vectorDot(delta, xAxis), vectorDot(delta, yAxis)] as const;
+    });
+    return triangulatePolygon(face.vertexIndices, local);
+  }).flat();
+  let validation = validateWatertightTriangleMesh(positions, indices);
+  if (validation.signedVolume < 0) {
+    for (let index = 0; index < indices.length; index += 3) {
+      [indices[index + 1], indices[index + 2]] = [
+        indices[index + 2]!,
+        indices[index + 1]!,
+      ];
+    }
+    validation = validateWatertightTriangleMesh(positions, indices);
+  }
+  return { positions, indices, validation };
 }
 
 export interface SurfaceMeshValidation {

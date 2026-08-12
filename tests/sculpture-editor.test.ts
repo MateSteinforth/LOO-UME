@@ -1,4 +1,7 @@
 import { readFile } from "node:fs/promises";
+import {
+  createMechanicalShellTriangleMesh,
+} from "../src/sculpture/DesignSurface.ts";
 import { describe, expect, it } from "vitest";
 import {
   assertMechanicalShellReady,
@@ -103,21 +106,15 @@ describe("browser sculpture editor", () => {
     );
   });
 
-  it("adds a surface panel to JSON, simulation, and provisional wiring", async () => {
+  it("adds a JSON-shell panel without a GLB and persists its surface", async () => {
     const source: unknown = JSON.parse(
       await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
     );
     const original = parsePanelAssemblyDefinition(source);
-    const withSurface = structuredClone(original);
-    withSurface.designSurface = {
-      kind: "triangle-mesh",
-      format: "glb",
-      source: "blob.glb",
-      sha256: "b".repeat(64),
-      scaleToMillimeters: 1000,
-      status: "watertight",
-    };
-    const edited = addPanelOnDesignSurface(withSurface, {
+    const shellSurface = createMechanicalShellTriangleMesh(original);
+    expect(shellSurface.validation.watertight).toBe(true);
+    expect(shellSurface.validation.triangleCount).toBeGreaterThan(0);
+    const edited = addPanelOnDesignSurface(original, {
       position: [10, 20, 30],
       orientation: {
         xAxis: [1, 0, 0],
@@ -125,6 +122,7 @@ describe("browser sculpture editor", () => {
         normal: [0, 0, 1],
       },
       attachment: {
+        surface: "mechanical-shell",
         triangleIndex: 7,
         barycentric: [0.2, 0.3, 0.5],
         normalOffset: 0.4,
@@ -134,7 +132,10 @@ describe("browser sculpture editor", () => {
     const added = edited.panels.at(-1)!;
     expect(added.id).toBe("P-07");
     expect(added.mountFaceId).toBeUndefined();
-    expect(edited.wiring.chainLengths.reduce((sum, value) => sum + value, 0)).toBe(7);
+    expect(added.surfaceAttachment?.surface).toBe("mechanical-shell");
+    expect(
+      edited.wiring.chainLengths.reduce((sum, value) => sum + value, 0),
+    ).toBe(7);
     const project = createPanelAssemblyProject(
       JSON.parse(JSON.stringify(edited)),
       "editor-test.json",

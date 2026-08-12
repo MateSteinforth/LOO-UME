@@ -55,9 +55,11 @@ The simulator includes a small pose-first editor in the existing control panel.
 - **Load JSON file** validates a local sculpture document and resolves its panel
   profile by ID from the staged `catalog/panels` directory.
 - **Save JSON** downloads the current authoritative sculpture definition, including
-  edits; generated mapping and mesh data are not embedded in that source file.
+  edits. JSON-shell sessions resume from that file alone. An optional GLB remains a
+  separate file referenced by relative path, scale, and SHA-256 hash.
 - **Add panel on next surface click** uses the active panel profile dimensions,
-  the clicked GLB triangle and interpolated normal to create an authoritative pose
+  the clicked JSON-shell or GLB triangle and interpolated normal to create an
+  authoritative pose
   plus barycentric attachment. The panel appears immediately, can be dragged, and
   joins provisional wiring. It does not invent a mechanical face association.
 - **Delete selected panel** removes the active panel, rebalances provisional wiring,
@@ -71,7 +73,7 @@ The simulator includes a small pose-first editor in the existing control panel.
   OpenSCAD sources, STL files, and PNG previews under an isolated
   `-editor-preview` ID, then reloads the exact STL meshes in Three.js.
 
-A design-surface move or addition marks the mechanical shell as requiring
+A JSON-shell or GLB surface move or addition marks the mechanical shell as requiring
 regeneration. The simulator then omits stale shell, mount, and printable-closure
 previews, and the CAD pipeline remains blocked rather than emitting misleading
 parts.

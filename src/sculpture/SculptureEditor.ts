@@ -286,14 +286,20 @@ export function movePanelOnDesignSurface(
       normal: Vector3Tuple;
     };
     attachment: {
+      surface?: "design-surface" | "mechanical-shell";
       triangleIndex: number;
       barycentric: Vector3Tuple;
       normalOffset: number;
     };
   },
 ): PanelAssemblyDefinition {
-  if (!source.designSurface) {
-    throw new Error("Load a watertight GLB design surface before moving panels.");
+  if (
+    placement.attachment.surface !== "mechanical-shell" &&
+    !source.designSurface
+  ) {
+    throw new Error(
+      "Load a GLB or use the sculpture JSON face graph before moving panels.",
+    );
   }
   const definition = structuredClone(source);
   const panel = definition.panels.find((candidate) => candidate.id === panelId);
@@ -307,6 +313,9 @@ export function movePanelOnDesignSurface(
     },
   };
   panel.surfaceAttachment = {
+    ...(placement.attachment.surface
+      ? { surface: placement.attachment.surface }
+      : {}),
     triangleIndex: placement.attachment.triangleIndex,
     barycentric: [...placement.attachment.barycentric],
     normalOffset: placement.attachment.normalOffset,
@@ -327,6 +336,7 @@ export interface DesignSurfacePlacement {
     normal: Vector3Tuple;
   };
   attachment: {
+    surface?: "design-surface" | "mechanical-shell";
     triangleIndex: number;
     barycentric: Vector3Tuple;
     normalOffset: number;
@@ -338,8 +348,13 @@ export function addPanelOnDesignSurface(
   source: PanelAssemblyDefinition,
   placement: DesignSurfacePlacement,
 ): PanelAssemblyDefinition {
-  if (!source.designSurface) {
-    throw new Error("Load a watertight GLB design surface before adding panels.");
+  if (
+    placement.attachment.surface !== "mechanical-shell" &&
+    !source.designSurface
+  ) {
+    throw new Error(
+      "Load a GLB or use the sculpture JSON face graph before adding panels.",
+    );
   }
   const definition = structuredClone(source);
   const panelId = nextPanelId(definition);
@@ -354,6 +369,9 @@ export function addPanelOnDesignSurface(
       },
     },
     surfaceAttachment: {
+      ...(placement.attachment.surface
+        ? { surface: placement.attachment.surface }
+        : {}),
       triangleIndex: placement.attachment.triangleIndex,
       barycentric: [...placement.attachment.barycentric],
       normalOffset: placement.attachment.normalOffset,

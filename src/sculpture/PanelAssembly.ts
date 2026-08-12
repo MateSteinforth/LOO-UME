@@ -41,6 +41,7 @@ export interface PanelAssemblyDefinition {
       reason: string;
     };
     surfaceAttachment?: {
+      surface?: "design-surface" | "mechanical-shell";
       triangleIndex: number;
       barycentric: [number, number, number];
       normalOffset: number;
@@ -350,8 +351,11 @@ export function parsePanelAssemblyDefinition(
       ? surfaceAttachment.barycentric
       : undefined;
     const surfaceAttachmentIsValid = surfaceAttachment === undefined ||
-      (designSurface !== undefined &&
-        isRecord(surfaceAttachment) &&
+      (isRecord(surfaceAttachment) &&
+        (surfaceAttachment.surface === "mechanical-shell" ||
+          ((surfaceAttachment.surface === undefined ||
+            surfaceAttachment.surface === "design-surface") &&
+            designSurface !== undefined)) &&
         Number.isInteger(surfaceAttachment.triangleIndex) &&
         (surfaceAttachment.triangleIndex as number) >= 0 &&
         Array.isArray(attachmentBarycentric) &&

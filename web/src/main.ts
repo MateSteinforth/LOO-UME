@@ -24,6 +24,7 @@ import {
 } from "../../src/sculpture/SculptureEditor";
 import {
   loadGlbDesignSurface,
+  loadMechanicalShellDesignSurface,
   type LoadedDesignSurface,
 } from "./DesignSurfaceLoader";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
@@ -600,7 +601,7 @@ async function start(): Promise<void> {
           " PREVIEW"
         : "PROVISIONAL UNIFORM FALLBACK";
       mappingNote.textContent = !mechanicalShellIsCurrent()
-        ? "Panel poses changed on the GLB. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
+        ? "Panel poses changed on an authoring surface. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
         : isPanelized
           ? `Simulator and ledmap share route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} calibration requirements are resolved.`
           : "Custom LED counts use the panel-free Fibonacci fallback.";
@@ -696,8 +697,10 @@ async function start(): Promise<void> {
     const showDesignSurface = (
       surface: LoadedDesignSurface,
       source: string,
+      attachmentSurface: "design-surface" | "mechanical-shell" =
+        "design-surface",
     ): void => {
-      renderer?.setDesignSurface(surface.geometry);
+      renderer?.setDesignSurface(surface.geometry, attachmentSurface);
       addSurfacePanelButton.disabled = false;
       addSurfacePanelButton.dataset.armed = "false";
       addSurfacePanelButton.textContent = "Add panel on next surface click";
@@ -714,22 +717,27 @@ async function start(): Promise<void> {
         size +
         " mm, watertight.";
       selectedPanelStatus.textContent =
-        "Click a panel, then drag it across the GLB surface.";
+        `Click a panel to select it, then drag it across the ${attachmentSurface === "mechanical-shell" ? "JSON shell" : "GLB"} surface.`;
+    };
+
+    const showMechanicalShellSurface = (message?: string): void => {
+      const surface = loadMechanicalShellDesignSurface(editorDefinition);
+      showDesignSurface(surface, "sculpture JSON face graph", "mechanical-shell");
+      if (message) surfaceStatus.textContent = message;
     };
 
     const loadReferencedDesignSurface = async (): Promise<void> => {
       const definition = editorDefinition.designSurface;
       if (!definition) {
-        clearDesignSurface(
-          "Load a GLB, then drag an existing panel across its surface.",
-        );
+        showMechanicalShellSurface();
         return;
       }
       surfaceScaleInput.value = String(definition.scaleToMillimeters);
       if (editorProject.source.startsWith("local:")) {
-        clearDesignSurface(
-          "This JSON references " + definition.source +
-            "; load that GLB from your device to edit panel poses.",
+        showMechanicalShellSurface(
+          "Using the JSON face graph. This project references " +
+            definition.source +
+            "; load that companion GLB to use its higher-resolution surface.",
         );
         return;
       }
