@@ -30,6 +30,26 @@
         "required": ["panels"]
       },
       "then": { "required": ["designSurface"] }
+    },
+    {
+      "if": {
+        "properties": {
+          "panels": {
+            "contains": { "not": { "required": ["mountFaceId"] } }
+          }
+        },
+        "required": ["panels"]
+      },
+      "then": {
+        "properties": {
+          "mechanicalShell": {
+            "properties": {
+              "derivationStatus": { "const": "requires-regeneration" }
+            },
+            "required": ["derivationStatus"]
+          }
+        }
+      }
     }
   ],
   "properties": {
@@ -82,8 +102,13 @@
         "additionalProperties": false,
         "required": [
           "id",
-          "mountFaceId",
           "pose"
+        ],
+        "allOf": [
+          {
+            "if": { "not": { "required": ["mountFaceId"] } },
+            "then": { "required": ["surfaceAttachment"] }
+          }
         ],
         "properties": {
           "id": {

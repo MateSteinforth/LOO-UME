@@ -56,6 +56,10 @@ The simulator includes a small pose-first editor in the existing control panel.
   profile by ID from the staged `catalog/panels` directory.
 - **Save JSON** downloads the current authoritative sculpture definition, including
   edits; generated mapping and mesh data are not embedded in that source file.
+- **Add panel on next surface click** uses the active panel profile dimensions,
+  the clicked GLB triangle and interpolated normal to create an authoritative pose
+  plus barycentric attachment. The panel appears immediately, can be dragged, and
+  joins provisional wiring. It does not invent a mechanical face association.
 - **Add panel to face** lists only closure faces that can contain the active panel
   profile. It insets the PCB rectangle, partitions the remaining face into printable
   closure sectors, derives a right-handed panel pose, and rebalances provisional
@@ -64,6 +68,11 @@ The simulator includes a small pose-first editor in the existing control panel.
   endpoint. It generates the compiled assembly, mapping, provisional WLED ledmap,
   OpenSCAD sources, STL files, and PNG previews under an isolated
   `-editor-preview` ID, then reloads the exact STL meshes in Three.js.
+
+A design-surface move or addition marks the mechanical shell as requiring
+regeneration. The simulator then omits stale shell, mount, and printable-closure
+previews, and the CAD pipeline remains blocked rather than emitting misleading
+parts.
 
 Run the editor with `npm run dev:web`; a static production bundle cannot execute
 OpenSCAD on its host. An inset topology with only three populated neighbors still

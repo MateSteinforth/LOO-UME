@@ -319,6 +319,64 @@ export function movePanelOnDesignSurface(
   return definition;
 }
 
+export interface DesignSurfacePlacement {
+  position: Vector3Tuple;
+  orientation: {
+    xAxis: Vector3Tuple;
+    yAxis: Vector3Tuple;
+    normal: Vector3Tuple;
+  };
+  attachment: {
+    triangleIndex: number;
+    barycentric: Vector3Tuple;
+    normalOffset: number;
+  };
+}
+
+/** Adds one pose-authoritative panel without inventing stale shell topology. */
+export function addPanelOnDesignSurface(
+  source: PanelAssemblyDefinition,
+  placement: DesignSurfacePlacement,
+): PanelAssemblyDefinition {
+  if (!source.designSurface) {
+    throw new Error("Load a watertight GLB design surface before adding panels.");
+  }
+  const definition = structuredClone(source);
+  const panelId = nextPanelId(definition);
+  definition.panels.push({
+    id: panelId,
+    pose: {
+      position: [...placement.position],
+      orientation: {
+        xAxis: [...placement.orientation.xAxis],
+        yAxis: [...placement.orientation.yAxis],
+        normal: [...placement.orientation.normal],
+      },
+    },
+    surfaceAttachment: {
+      triangleIndex: placement.attachment.triangleIndex,
+      barycentric: [...placement.attachment.barycentric],
+      normalOffset: placement.attachment.normalOffset,
+    },
+  });
+  const shortestOutput = definition.wiring.chainLengths.reduce(
+    (bestIndex, length, index, lengths) =>
+      length < lengths[bestIndex]! ? index : bestIndex,
+    0,
+  );
+  definition.wiring.chainLengths[shortestOutput] =
+    definition.wiring.chainLengths[shortestOutput]! + 1;
+  definition.mechanicalShell.derivationStatus = "requires-regeneration";
+  definition.status = "provisional";
+  definition.calibration.panelTransforms = "generated-provisional";
+  definition.calibration.installedPanelOrientation = "provisional";
+  definition.calibration.physicalChains = "provisional";
+  definition.notes.push(
+    `Panel ${panelId} was placed manually on the design surface; mechanical shell regeneration remains required.`,
+  );
+  return definition;
+}
+
 export function sculptureJson(definition: PanelAssemblyDefinition): string {
   return `${JSON.stringify(definition, null, 2)}\n`;
 }

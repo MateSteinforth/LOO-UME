@@ -3,13 +3,16 @@ import { describe, expect, it } from "vitest";
 import {
   assertMechanicalShellReady,
   compilePanelAssembly,
+  createPanelAssemblyMapping,
   createPanelAssemblyProject,
   parsePanelAssemblyDefinition,
 } from "../src/sculpture/PanelAssembly.ts";
 import {
+  addPanelOnDesignSurface,
   addPanelToClosureFace,
   movePanelOnDesignSurface,
 } from "../src/sculpture/SculptureEditor.ts";
+import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
 describe("browser sculpture editor", () => {
   it("insets a panel and leaves a pipeline-compilable closure ring", async () => {
@@ -97,6 +100,56 @@ describe("browser sculpture editor", () => {
     expect(() => assertMechanicalShellReady(project)).toThrow(
       /out of date/,
     );
+  });
+
+  it("adds a surface panel to JSON, simulation, and provisional wiring", async () => {
+    const source: unknown = JSON.parse(
+      await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
+    );
+    const original = parsePanelAssemblyDefinition(source);
+    const withSurface = structuredClone(original);
+    withSurface.designSurface = {
+      kind: "triangle-mesh",
+      format: "glb",
+      source: "blob.glb",
+      sha256: "b".repeat(64),
+      scaleToMillimeters: 1000,
+      status: "watertight",
+    };
+    const edited = addPanelOnDesignSurface(withSurface, {
+      position: [10, 20, 30],
+      orientation: {
+        xAxis: [1, 0, 0],
+        yAxis: [0, 1, 0],
+        normal: [0, 0, 1],
+      },
+      attachment: {
+        triangleIndex: 7,
+        barycentric: [0.2, 0.3, 0.5],
+        normalOffset: 0.4,
+      },
+    });
+
+    const added = edited.panels.at(-1)!;
+    expect(added.id).toBe("P-07");
+    expect(added.mountFaceId).toBeUndefined();
+    expect(edited.wiring.chainLengths.reduce((sum, value) => sum + value, 0)).toBe(7);
+    const project = createPanelAssemblyProject(
+      JSON.parse(JSON.stringify(edited)),
+      "editor-test.json",
+    );
+    const mapping = createPanelAssemblyMapping(project);
+    const wiring = createProvisionalWiringPreview(
+      mapping,
+      project.sculpture,
+      project.panelProfile,
+    );
+    expect(mapping.panels).toHaveLength(7);
+    expect(mapping.entries).toHaveLength(7 * 64);
+    expect(mapping.mechanicalMounts).toBeUndefined();
+    expect(mapping.printableClosures).toBeUndefined();
+    expect(wiring.nodes.some((node) => node.panelId === "P-07")).toBe(true);
+    expect(() => assertMechanicalShellReady(project)).toThrow(/out of date/);
   });
 
   it("rejects surface attachments without a design-surface GLB", async () => {

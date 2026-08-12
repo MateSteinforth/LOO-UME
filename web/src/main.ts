@@ -16,6 +16,7 @@ import {
   type PanelAssemblyProject,
 } from "../../src/sculpture/PanelAssembly";
 import {
+  addPanelOnDesignSurface,
   addPanelToClosureFace,
   movePanelOnDesignSurface,
   sculptureJson,
@@ -334,6 +335,9 @@ app.innerHTML = `
           <button id="load-design-surface" class="editor-button" type="button">
             Load watertight GLB
           </button>
+          <button id="add-surface-panel" class="editor-button" type="button" disabled>
+            Add panel on next surface click
+          </button>
           <p id="surface-status" class="mapping-note">
             Load a GLB, then drag an existing panel across its surface.
           </p>
@@ -430,6 +434,8 @@ const designSurfaceFileInput =
   query<HTMLInputElement>("#design-surface-file");
 const loadDesignSurfaceButton =
   query<HTMLButtonElement>("#load-design-surface");
+const addSurfacePanelButton =
+  query<HTMLButtonElement>("#add-surface-panel");
 const surfaceScaleInput = query<HTMLInputElement>("#surface-scale");
 const surfaceStatus = query<HTMLElement>("#surface-status");
 const selectedPanelStatus = query<HTMLElement>("#selected-panel-status");
@@ -622,7 +628,8 @@ async function start(): Promise<void> {
     };
 
     const renderEditorFaces = (): void => {
-      const options = editorDefinition.closures.faceIds.flatMap((faceId) => {
+      const options = mechanicalShellIsCurrent()
+        ? editorDefinition.closures.faceIds.flatMap((faceId) => {
         try {
           addPanelToClosureFace(
             editorDefinition,
@@ -633,7 +640,8 @@ async function start(): Promise<void> {
         } catch {
           return [];
         }
-      });
+      })
+        : [];
       addPanelFaceSelect.replaceChildren(
         ...(options.length > 0
           ? options
@@ -670,7 +678,11 @@ async function start(): Promise<void> {
     };
 
     const clearDesignSurface = (message: string): void => {
+      renderer?.setSurfaceAddPanelMode(false);
       renderer?.setDesignSurface(null);
+      addSurfacePanelButton.disabled = true;
+      addSurfacePanelButton.dataset.armed = "false";
+      addSurfacePanelButton.textContent = "Add panel on next surface click";
       surfaceStatus.textContent = message;
       selectedPanelStatus.textContent = "No design surface loaded.";
     };
@@ -680,6 +692,9 @@ async function start(): Promise<void> {
       source: string,
     ): void => {
       renderer?.setDesignSurface(surface.geometry);
+      addSurfacePanelButton.disabled = false;
+      addSurfacePanelButton.dataset.armed = "false";
+      addSurfacePanelButton.textContent = "Add panel on next surface click";
       autoRotate.checked = false;
       renderer?.setAutoRotate(false);
       const size = surface.validation.bounds.size
@@ -758,6 +773,32 @@ async function start(): Promise<void> {
           selectedPanelStatus.textContent =
             placement.panelId + " is attached to triangle " +
             placement.attachment.triangleIndex + ".";
+          viewerError.hidden = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+        }
+      },
+      onAddPanelCommit: (placement) => {
+        try {
+          const edited = addPanelOnDesignSurface(editorDefinition, placement);
+          const project = createPanelAssemblyProject(
+            edited,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          applyLoadedSculpture(createLoadedSculpture(project));
+          const panelId = edited.panels.at(-1)!.id;
+          addSurfacePanelButton.dataset.armed = "false";
+          addSurfacePanelButton.textContent = "Add panel on next surface click";
+          pipelineStatus.classList.remove("pipeline-status--error");
+          pipelineStatus.textContent =
+            `Added ${panelId} on GLB triangle ${placement.attachment.triangleIndex}. Save JSON; CAD remains blocked pending mechanical shell regeneration.`;
+          selectedPanelStatus.textContent =
+            `${panelId} was added and can now be dragged across the surface.`;
           viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -883,6 +924,17 @@ async function start(): Promise<void> {
           sculptureFileInput.value = "";
         }
       })();
+    });
+    addSurfacePanelButton.addEventListener("click", () => {
+      const armed = addSurfacePanelButton.dataset.armed !== "true";
+      addSurfacePanelButton.dataset.armed = String(armed);
+      addSurfacePanelButton.textContent = armed
+        ? "Cancel surface panel"
+        : "Add panel on next surface click";
+      renderer?.setSurfaceAddPanelMode(armed);
+      selectedPanelStatus.textContent = armed
+        ? "Click the GLB surface to place one panel."
+        : "Click a panel, then drag it across the GLB surface.";
     });
     loadDesignSurfaceButton.addEventListener("click", () => {
       designSurfaceFileInput.click();

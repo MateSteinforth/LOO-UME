@@ -35,7 +35,7 @@ export interface PanelAssemblyDefinition {
   };
   panels: Array<{
     id: string;
-    mountFaceId: string;
+    mountFaceId?: string;
     connectorPolicy?: {
       allowSharedClosureAcrossAdjacentEdges: true;
       reason: string;
@@ -420,10 +420,13 @@ export function parsePanelAssemblyDefinition(
       !connectorPolicyIsValid ||
       !surfaceAttachmentIsValid ||
       typeof panel.id !== "string" ||
-      typeof panel.mountFaceId !== "string" ||
       panelIds.has(panel.id) ||
-      panelFaceIds.has(panel.mountFaceId) ||
-      !faceIds.has(panel.mountFaceId) ||
+      (panel.mountFaceId === undefined
+        ? surfaceAttachment === undefined ||
+          geometry.derivationStatus !== "requires-regeneration"
+        : typeof panel.mountFaceId !== "string" ||
+          panelFaceIds.has(panel.mountFaceId) ||
+          !faceIds.has(panel.mountFaceId)) ||
       !Array.isArray(position) ||
       position.length !== 3 ||
       position.some(
@@ -434,11 +437,11 @@ export function parsePanelAssemblyDefinition(
       orthonormalError > 1e-6
     ) {
       throw new Error(
-        "Panels require unique IDs, unique mount faces, finite positions, and right-handed orthonormal orientations.",
+        "Panels require unique IDs, valid mechanical associations (or a surface attachment while regeneration is required), finite positions, and right-handed orthonormal orientations.",
       );
     }
     panelIds.add(panel.id);
-    panelFaceIds.add(panel.mountFaceId);
+    if (panel.mountFaceId !== undefined) panelFaceIds.add(panel.mountFaceId as string);
   }
   const closures = record(input, "closures");
   if (
@@ -651,7 +654,9 @@ export function compilePanelAssembly(
     vector(x, y, z),
   );
   const panelByFace = new Map(
-    definition.panels.map((panel) => [panel.mountFaceId, panel]),
+    definition.panels.flatMap((panel) =>
+      panel.mountFaceId === undefined ? [] : [[panel.mountFaceId, panel] as const]
+    ),
   );
   const closureFaceIds = new Set(definition.closures.faceIds);
   const faces: CompiledAssemblyFace[] = definition.mechanicalShell.faces.map((source) => {
@@ -695,6 +700,9 @@ export function compilePanelAssembly(
   });
   const faceById = new Map(faces.map((face) => [face.id, face]));
   const panels: CompiledPanelPlacement[] = definition.panels.map((source) => {
+    if (source.mountFaceId === undefined) {
+      throw new Error(`Panel ${source.id} needs regenerated mechanical topology.`);
+    }
     const face = faceById.get(source.mountFaceId)!;
     const axes = {
       xAxis: vector(...source.pose.orientation.xAxis),
@@ -1015,12 +1023,29 @@ function equirectangularUv(position: Vector3Data): { u: number; v: number } {
 
 export function createPanelAssemblyMapping(
   project: PanelAssemblyProject,
-  assembly: CompiledPanelAssembly = compilePanelAssembly(project),
+  assembly?: CompiledPanelAssembly,
 ): LedMapping {
+  const resolvedAssembly = assembly ??
+    (project.sculpture.mechanicalShell.derivationStatus === "requires-regeneration"
+      ? null
+      : compilePanelAssembly(project));
   const columns = project.panelProfile.pixelGrid.columns;
   const rows = project.panelProfile.pixelGrid.rows;
   const ledsPerPanel = columns * rows;
-  const panels: PanelDefinition[] = assembly.panels.map((source) => ({
+  const panelSources = resolvedAssembly?.panels ?? project.sculpture.panels.map(
+    (source) => ({
+      id: source.id,
+      position: vector(...source.pose.position),
+      normal: vector(...source.pose.orientation.normal),
+      xAxis: vector(...source.pose.orientation.xAxis),
+      yAxis: vector(...source.pose.orientation.yAxis),
+      width: project.panelProfile.dimensions.width,
+      height: project.panelProfile.dimensions.height,
+      neighborPanelIds: [] as string[],
+      rotationDegrees: null,
+    }),
+  );
+  const panels: PanelDefinition[] = panelSources.map((source) => ({
     id: source.id,
     faceType: "square-face",
     transformStatus: project.sculpture.calibration.panelTransforms,
@@ -1099,7 +1124,7 @@ export function createPanelAssemblyMapping(
     status: project.sculpture.status,
     topology: "panelized-sculpture",
     panels,
-    mechanicalMounts: assembly.faces
+    mechanicalMounts: resolvedAssembly?.faces
       .filter((face) => face.role === "closure")
       .flatMap((face) =>
         face.connectors.map((connector) => ({
@@ -1114,7 +1139,7 @@ export function createPanelAssemblyMapping(
           pilotPosition: connector.pilotPosition,
         })),
       ),
-    printableClosures: assembly.faces
+    printableClosures: resolvedAssembly?.faces
       .filter((face) => face.role === "closure")
       .map((face) => ({
         id: face.id,
@@ -1143,7 +1168,7 @@ export function createPanelAssemblyMapping(
           pilotDiameter: project.panelProfile.mounting.printedPilotDiameter,
         })),
       })),
-    surfaceFaces: assembly.faces.map((face) => ({
+    surfaceFaces: resolvedAssembly?.faces.map((face) => ({
       id: face.id,
       role: face.role === "panel" ? "panel" : "filler",
       vertices: face.vertices,
@@ -1151,8 +1176,12 @@ export function createPanelAssemblyMapping(
     })),
     notes: [
       "Panel transforms compile directly from explicit poses in sculpture.json; the mechanical shell supplies closure faces.",
-      "Each closure connector targets a real, uniquely assigned PCB mounting hole.",
-      `${assembly.edges.filter((edge) => edge.faceIds.every((faceId) => assembly.faces.find((face) => face.id === faceId)?.role === "closure")).length} closure-to-closure edges are clean butt seams without PCB-hole tabs.`,
+      resolvedAssembly
+        ? "Each closure connector targets a real, uniquely assigned PCB mounting hole."
+        : "Mechanical previews are omitted until the design-surface poses receive regenerated shell topology.",
+      resolvedAssembly
+        ? `${resolvedAssembly.edges.filter((edge) => edge.faceIds.every((faceId) => resolvedAssembly.faces.find((face) => face.id === faceId)?.role === "closure")).length} closure-to-closure edges are clean butt seams without PCB-hole tabs.`
+        : "Printable closure and mechanical-mount layers are intentionally unavailable.",
       "Wiring endpoints and internal pixel order remain provisional.",
     ],
     entries,

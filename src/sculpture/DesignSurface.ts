@@ -15,6 +15,53 @@ export interface SurfaceAttachment {
   normalOffset: number;
 }
 
+export interface SurfaceOrientation {
+  xAxis: Vector3Tuple;
+  yAxis: Vector3Tuple;
+  normal: Vector3Tuple;
+}
+
+function vectorDot(a: Vector3Tuple, b: Vector3Tuple): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function vectorScale(value: Vector3Tuple, amount: number): Vector3Tuple {
+  return [value[0] * amount, value[1] * amount, value[2] * amount];
+}
+
+function vectorSubtract(a: Vector3Tuple, b: Vector3Tuple): Vector3Tuple {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+
+function vectorCross(a: Vector3Tuple, b: Vector3Tuple): Vector3Tuple {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+}
+
+function vectorNormalize(value: Vector3Tuple): Vector3Tuple {
+  const length = Math.hypot(...value);
+  if (length < 1e-10) throw new Error("Cannot orient a panel to a zero normal.");
+  return vectorScale(value, 1 / length);
+}
+
+/** Creates a deterministic, world-up tangent frame for a new surface panel. */
+export function createSurfaceOrientation(
+  sourceNormal: Vector3Tuple,
+): SurfaceOrientation {
+  const normal = vectorNormalize(sourceNormal);
+  const reference: Vector3Tuple = Math.abs(normal[1]) < 0.95
+    ? [0, 1, 0]
+    : [0, 0, 1];
+  const yAxis = vectorNormalize(
+    vectorSubtract(reference, vectorScale(normal, vectorDot(reference, normal))),
+  );
+  const xAxis = vectorNormalize(vectorCross(yAxis, normal));
+  return { xAxis, yAxis, normal };
+}
+
 export interface SurfaceMeshValidation {
   watertight: true;
   vertexCount: number;

@@ -1,10 +1,13 @@
 import * as THREE from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { PanelDefinition } from "./LedMapping.ts";
-import type { SurfaceAttachment, Vector3Tuple } from "../../src/sculpture/DesignSurface.ts";
+import {
+  createSurfaceOrientation,
+  type SurfaceAttachment,
+  type Vector3Tuple,
+} from "../../src/sculpture/DesignSurface.ts";
 
-export interface SurfacePanelPlacement {
-  panelId: string;
+export interface SurfacePlacement {
   position: Vector3Tuple;
   orientation: {
     xAxis: Vector3Tuple;
@@ -12,6 +15,10 @@ export interface SurfacePanelPlacement {
     normal: Vector3Tuple;
   };
   attachment: SurfaceAttachment;
+}
+
+export interface SurfacePanelPlacement extends SurfacePlacement {
+  panelId: string;
 }
 
 function tuple(value: THREE.Vector3): Vector3Tuple {
@@ -28,10 +35,12 @@ export class SurfacePlacementController {
   private draggingPanelId: string | null = null;
   private pendingPlacement: SurfacePanelPlacement | null = null;
   private enabled = false;
+  private addingPanel = false;
   private normalOffset = 0.4;
 
   onSelectionChange?: (panelId: string | null) => void;
   onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
+  onAddPanelCommit?: (placement: SurfacePlacement) => void;
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -57,6 +66,7 @@ export class SurfacePlacementController {
     }
     this.surface = null;
     this.enabled = geometry !== null;
+    if (!this.enabled) this.addingPanel = false;
     if (!geometry) {
       this.select(null);
       return;
@@ -117,6 +127,11 @@ export class SurfacePlacementController {
     return this.surface.geometry.boundingSphere?.clone() ?? null;
   }
 
+  setAddPanelMode(enabled: boolean): void {
+    this.addingPanel = enabled && this.enabled;
+    if (this.addingPanel) this.select(null);
+  }
+
   dispose(): void {
     this.domElement.removeEventListener("pointerdown", this.pointerDown);
     this.domElement.removeEventListener("pointermove", this.pointerMove);
@@ -131,6 +146,27 @@ export class SurfacePlacementController {
     if (!this.enabled || event.button !== 0) return;
     this.updatePointer(event);
     this.raycaster.setFromCamera(this.pointer, this.camera);
+    if (this.addingPanel && this.surface) {
+      const surfaceHit = this.raycaster.intersectObject(this.surface, false)[0];
+      if (!surfaceHit || surfaceHit.faceIndex == null) return;
+      const normal = this.interpolatedNormal(surfaceHit).normalize();
+      const orientation = createSurfaceOrientation(tuple(normal));
+      const position = surfaceHit.point.clone().addScaledVector(
+        normal,
+        this.normalOffset,
+      );
+      this.addingPanel = false;
+      this.onAddPanelCommit?.({
+        position: tuple(position),
+        orientation,
+        attachment: {
+          triangleIndex: surfaceHit.faceIndex,
+          barycentric: tuple(this.barycentric(surfaceHit)),
+          normalOffset: this.normalOffset,
+        },
+      });
+      return;
+    }
     const hit = this.raycaster.intersectObjects(
       [...this.panelTargets.values()],
       false,

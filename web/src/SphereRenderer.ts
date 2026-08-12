@@ -17,6 +17,7 @@ import type { WiringPreview } from "./WiringPreview";
 import {
   SurfacePlacementController,
   type SurfacePanelPlacement,
+  type SurfacePlacement,
 } from "./SurfacePlacementController";
 
 export type DisplayMode = "wled" | "physical-index" | "logical-index";
@@ -239,9 +240,15 @@ export class SphereRenderer {
   setSurfaceEditorCallbacks(callbacks: {
     onSelectionChange?: (panelId: string | null) => void;
     onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
+    onAddPanelCommit?: (placement: SurfacePlacement) => void;
   }): void {
     this.surfacePlacement.onSelectionChange = callbacks.onSelectionChange;
     this.surfacePlacement.onPlacementCommit = callbacks.onPlacementCommit;
+    this.surfacePlacement.onAddPanelCommit = callbacks.onAddPanelCommit;
+  }
+
+  setSurfaceAddPanelMode(enabled: boolean): void {
+    this.surfacePlacement.setAddPanelMode(enabled);
   }
 
   setPanelLabelsVisible(visible: boolean): void {

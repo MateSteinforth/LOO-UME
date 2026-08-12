@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateWatertightTriangleMesh } from "../src/sculpture/DesignSurface.ts";
+import { createSurfaceOrientation, validateWatertightTriangleMesh } from "../src/sculpture/DesignSurface.ts";
 
 const tetrahedron = [
   1, 1, 1,
@@ -35,5 +35,12 @@ describe("design surface validation", () => {
         [0, 2, 1, 0, 1, 3, 0, 3, 2, 1, 3, 2],
       )
     ).toThrow(/winding/);
+  });
+
+  it("creates a right-handed world-up tangent frame", () => {
+    const orientation = createSurfaceOrientation([0, 1, 0]);
+    expect(orientation.normal).toEqual([0, 1, 0]);
+    expect(orientation.yAxis).toEqual([0, 0, 1]);
+    expect(orientation.xAxis).toEqual([-1, 0, 0]);
   });
 });

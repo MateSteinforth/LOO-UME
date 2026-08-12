@@ -50,7 +50,12 @@ internally, but it loads and saves the basis in the sculpture JSON.
 `mountFaceId` is a mechanical association used by the current closure
 generator. It identifies which face of `mechanicalShell` the panel borders, but
 does not determine its position or orientation. This separation lets the
-placement editor move a panel without silently having its pose regenerated.
+placement editor move a panel without silently having its pose regenerated. A
+new panel created directly on a design surface has no `mountFaceId`: this is
+valid only while it has a surface attachment and `mechanicalShell.derivationStatus`
+is `requires-regeneration`. Pose-based simulation and provisional wiring remain
+available, while mechanical compilation and CAD stay blocked until a real face
+topology is regenerated.
 
 ## Panel profiles
 
