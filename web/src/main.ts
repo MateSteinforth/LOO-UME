@@ -355,9 +355,14 @@ app.innerHTML = `
             Add panel insets the PCB into a closure face, fills the surrounding ring,
             and keeps every panel edge connected to printable closure parts.
           </p>
-          <button id="run-pipeline" class="pipeline-button" type="button">
-            Generate CAD + wiring + previews
-          </button>
+          <div class="pipeline-actions">
+            <button id="generate-mapping" class="pipeline-button" type="button">
+              Generate WLED mapping + optimized wiring
+            </button>
+            <button id="generate-print-parts" class="pipeline-button" type="button">
+              Generate 3D print elements
+            </button>
+          </div>
           <div id="pipeline-status" class="pipeline-status" role="status">
             Local Vite pipeline is ready.
           </div>
@@ -439,12 +444,16 @@ const surfaceStatus = query<HTMLElement>("#surface-status");
 const selectedPanelStatus = query<HTMLElement>("#selected-panel-status");
 const addPanelFaceSelect = query<HTMLSelectElement>("#add-panel-face");
 const addPanelButton = query<HTMLButtonElement>("#add-panel");
-const runPipelineButton = query<HTMLButtonElement>("#run-pipeline");
+const generateMappingButton =
+  query<HTMLButtonElement>("#generate-mapping");
+const generatePrintPartsButton =
+  query<HTMLButtonElement>("#generate-print-parts");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 const pipelineAvailable = import.meta.env.DEV;
-runPipelineButton.disabled = !pipelineAvailable;
+generatePrintPartsButton.disabled = !pipelineAvailable;
 if (!pipelineAvailable) {
-  pipelineStatus.textContent = "Run npm run dev:web to generate local CAD and previews.";
+  pipelineStatus.textContent =
+    "Mapping and wiring exports are available. Run npm run dev:web to generate 3D print elements.";
 }
 let outputLayerToggles: HTMLInputElement[] = [];
 
@@ -523,11 +532,19 @@ async function start(): Promise<void> {
     };
 
     const mechanicalShellIsCurrent = (): boolean =>
+      editorDefinition.mechanicalShell !== undefined &&
       editorDefinition.mechanicalShell.derivationStatus !==
         "requires-regeneration";
 
     const updatePipelineAvailability = (): void => {
-      runPipelineButton.disabled = !pipelineAvailable;
+      generateMappingButton.disabled =
+        mapping.topology !== "panelized-sculpture";
+      generatePrintPartsButton.disabled =
+        !pipelineAvailable ||
+        editorDefinition.manualMechanics !== undefined;
+      generatePrintPartsButton.title = editorDefinition.manualMechanics
+        ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
+        : "";
     };
 
     const renderOutputLayerControls = (): void => {
@@ -590,7 +607,9 @@ async function start(): Promise<void> {
           mapping.id.toUpperCase() +
           " PREVIEW"
         : "PROVISIONAL UNIFORM FALLBACK";
-      mappingNote.textContent = !mechanicalShellIsCurrent()
+      mappingNote.textContent = editorDefinition.manualMechanics
+        ? "Mapping and wiring use authoritative poses. Printable mechanics use the manually authored SCAD parts; generic cap generation is disabled."
+        : !mechanicalShellIsCurrent()
         ? "Panel poses changed on an authoring surface. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
         : isPanelized
           ? `Simulator and ledmap share route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} calibration requirements are resolved.`
@@ -625,7 +644,7 @@ async function start(): Promise<void> {
     };
 
     const renderEditorFaces = (): void => {
-      const options = mechanicalShellIsCurrent()
+      const options = mechanicalShellIsCurrent() && editorDefinition.closures
         ? editorDefinition.closures.faceIds.flatMap((faceId) => {
         try {
           addPanelToClosureFace(
@@ -711,6 +730,12 @@ async function start(): Promise<void> {
 
     const loadReferencedDesignSurface = async (): Promise<void> => {
       const definition = editorDefinition.designSurface;
+      if (editorDefinition.manualMechanics) {
+        clearDesignSurface(
+          "This sculpture uses manually authored mechanics. Pose mapping and wiring remain available; surface editing and generic cap regeneration are disabled.",
+        );
+        return;
+      }
       if (!definition) {
         showMechanicalShellSurface();
         return;
@@ -766,7 +791,7 @@ async function start(): Promise<void> {
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
             "Moved " + placement.panelId +
-            ". Pose is saved; Run will validate it against the JSON boundary and regenerate printable mechanics.";
+            ". Pose is saved; 3D generation will validate it against the JSON boundary and regenerate printable mechanics.";
           selectedPanelStatus.textContent =
             placement.panelId + " is attached to triangle " +
             placement.attachment.triangleIndex + ".";
@@ -796,7 +821,7 @@ async function start(): Promise<void> {
           const direction = degrees >= 0 ? "counter-clockwise" : "clockwise";
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
-            `Rotated ${panelId} ${Math.abs(degrees).toFixed(1)}° ${direction} as viewed from outside. Run will revalidate its full PCB envelope.`;
+            `Rotated ${panelId} ${Math.abs(degrees).toFixed(1)}° ${direction} as viewed from outside. 3D generation will revalidate its full PCB envelope.`;
           viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -819,7 +844,7 @@ async function start(): Promise<void> {
           renderer?.selectEditorPanel(panelId);
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
-            `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. Run will regenerate from the JSON mechanical boundary.`;
+            `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. 3D generation will regenerate from the JSON mechanical boundary.`;
           selectedPanelStatus.textContent =
             `${panelId} was added and can now be dragged across the surface.`;
           viewerError.hidden = true;
@@ -842,7 +867,7 @@ async function start(): Promise<void> {
           applyLoadedSculpture(createLoadedSculpture(project));
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
-            `Deleted ${panelId}. Run will regenerate the closed JSON mechanical boundary.`;
+            `Deleted ${panelId}. 3D generation will regenerate the closed JSON mechanical boundary.`;
           viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -1044,7 +1069,7 @@ async function start(): Promise<void> {
         );
         applyLoadedSculpture(createLoadedSculpture(project));
         pipelineStatus.textContent =
-          `Added ${edited.panels.at(-1)!.id} to ${faceId}. Save the JSON or run the pipeline.`;
+          `Added ${edited.panels.at(-1)!.id} to ${faceId}. Save the JSON or generate the 3D print elements.`;
         viewerError.hidden = true;
       } catch (error) {
         viewerError.hidden = false;
@@ -1052,13 +1077,62 @@ async function start(): Promise<void> {
           error instanceof Error ? error.message : String(error);
       }
     });
-    runPipelineButton.addEventListener("click", () => {
+    const downloadJson = (filename: string, value: unknown): void => {
+      const blob = new Blob([JSON.stringify(value, null, 2) + "\n"], {
+        type: "application/json",
+      });
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    generateMappingButton.addEventListener("click", () => {
+      try {
+        if (mapping.topology !== "panelized-sculpture") {
+          throw new Error("WLED mapping requires a panelized sculpture.");
+        }
+        const baseName = editorDefinition.id;
+        downloadJson(
+          `${baseName}.wled-ledmap.json`,
+          hardwareContract.ledmap,
+        );
+        downloadJson(
+          `${baseName}.optimized-wiring.json`,
+          {
+            schemaVersion: "1.0.0",
+            sculptureId: editorDefinition.id,
+            status: wiringPreview.status,
+            optimization:
+              "configured sectors followed by deterministic nearest-neighbor routing",
+            fingerprint: hardwareContract.fingerprint,
+            outputs: hardwareContract.outputs,
+            wiring: wiringPreview,
+            readiness: hardwareContract.readiness,
+          },
+        );
+        pipelineStatus.classList.remove("pipeline-status--error");
+        pipelineStatus.textContent =
+          `Exported WLED ledmap and optimized wiring for ${mapping.entries.length.toLocaleString()} LEDs; fingerprint ${hardwareContract.fingerprint}.`;
+        viewerError.hidden = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = message;
+        viewerError.hidden = false;
+        viewerError.textContent = message;
+      }
+    });
+
+    generatePrintPartsButton.addEventListener("click", () => {
       void (async () => {
-        runPipelineButton.disabled = true;
+        generatePrintPartsButton.disabled = true;
         addPanelButton.disabled = true;
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent =
-          "Regenerating mechanical topology, then generating OpenSCAD, STLs, previews, and wiring…";
+          "Regenerating mechanical topology, then generating OpenSCAD, STLs, and printable previews…";
         try {
           const response = await fetch("./api/editor-pipeline", {
             method: "POST",

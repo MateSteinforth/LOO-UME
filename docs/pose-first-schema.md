@@ -117,6 +117,21 @@ zero-panel authoring projects, blocking checks, and OpenSCAD verification, is
 recorded in
 [Editor and planar mechanical regeneration](editor-mechanical-regeneration.md).
 
+## Manually authored mechanics
+
+Pose-first mapping and wiring do not require generated closure topology. A sculpture
+with physically established parts may provide `manualMechanics` instead of
+`mechanicalShell` and `closures`. Its panels need explicit `faceType` values but do
+not need `mountFaceId` values. The simulator compiles LED positions, logical order,
+and provisional wiring directly from the poses while omitting generated closure,
+mount, and surface layers. Generic closure compilation must reject this branch; the
+manual contract names the verified SCAD-wrapper generator and retains its tested
+centre-panel and opening policies.
+
+This is the authoritative path for the manual 41-panel rhombicosidodecahedron. It
+does not reinterpret the U-frames, middle connectors, or triangle fillers as
+automatically generated caps.
+
 ## Mechanical shell
 
 The current printable closure algorithm still needs a closed, planar,

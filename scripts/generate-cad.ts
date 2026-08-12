@@ -1,8 +1,15 @@
 import { relative } from "node:path";
-import { emitCadArtifacts } from "../src/cad/GenerateCad.ts";
-import { loadCanonicalSculptureProject } from "../src/sculpture/Definition.ts";
+import {
+  createManualCadProject,
+  emitCadArtifacts,
+} from "../src/cad/GenerateCad.ts";
+import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 
-const project = loadCanonicalSculptureProject();
+const project = createManualCadProject(
+  await loadPanelAssemblyProjectFromFile(
+    "sculptures/rhombicosidodecahedron/sculpture.json",
+  ),
+);
 const result = await emitCadArtifacts(project);
 
 console.log(

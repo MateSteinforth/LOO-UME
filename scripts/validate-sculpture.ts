@@ -1,19 +1,16 @@
-import { loadCanonicalSculptureProject } from "../src/sculpture/Definition.ts";
-import {
-  createPanelizedSculptureMapping,
-  validateMapping,
-} from "../web/src/LedMapping.ts";
+import { createPanelAssemblyMapping } from "../src/sculpture/PanelAssembly.ts";
+import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
+import { validateMapping } from "../web/src/LedMapping.ts";
 import {
   createProvisionalWiringPreview,
   validateWiringPreview,
 } from "../web/src/WiringPreview.ts";
 
-const project = loadCanonicalSculptureProject();
-const mapping = createPanelizedSculptureMapping(
-  project.sculpture,
-  project.panelProfile,
+const project = await loadPanelAssemblyProjectFromFile(
+  "sculptures/rhombicosidodecahedron/sculpture.json",
 );
+const mapping = createPanelAssemblyMapping(project);
 const mappingValidation = validateMapping(mapping, mapping.entries.length);
 if (!mappingValidation.valid) {
   throw new Error(mappingValidation.errors.join("\n"));
@@ -34,13 +31,10 @@ const contract = createHardwareMappingContract(
   wiring,
   project.panelProfile,
 );
-const triangleOpening = project.sculpture.openings.triangleFaces;
-const pentagonOpening = project.sculpture.openings.pentagonFaces;
 console.log(
   `Validated ${project.sculpture.id}: ${mapping.panels.length} panels, ` +
     `${mapping.entries.length} LEDs, ${wiring.outputs.length} outputs, ` +
-    `${triangleOpening.count} ${triangleOpening.closure.partId} closures, ` +
-    `${pentagonOpening.population.populatedCount} populated pentagon assemblies, ` +
+    "manual authored-part mechanics, " +
     `fingerprint ${contract.fingerprint}.`,
 );
 if (!contract.readiness.ready) {

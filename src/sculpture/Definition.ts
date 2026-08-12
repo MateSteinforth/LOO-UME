@@ -1,7 +1,7 @@
 import panelProfileJson from "../../catalog/panels/ws2812b-8x8-66x65.json" with {
   type: "json",
 };
-import sculptureJson from "../../sculptures/rhombicosidodecahedron/sculpture.json" with {
+import sculptureJson from "../../sculptures/rhombicosidodecahedron/legacy-migration-source.json" with {
   type: "json",
 };
 

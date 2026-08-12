@@ -1,24 +1,24 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { createPanelizedSculptureMapping } from "../web/src/LedMapping.ts";
+import { createPanelAssemblyMapping } from "../src/sculpture/PanelAssembly.ts";
+import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 import {
   createHardwareMappingContract,
   validateLedmapEquivalence,
 } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
-import { loadCanonicalSculptureProject } from "../src/sculpture/Definition.ts";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
 const hardwareExport = process.argv.includes("--hardware");
-const project = loadCanonicalSculptureProject();
-const geometry = createPanelizedSculptureMapping(
-  project.sculpture,
-  project.panelProfile,
+const project = await loadPanelAssemblyProjectFromFile(
+  "sculptures/rhombicosidodecahedron/sculpture.json",
+  repoRoot,
 );
+const geometry = createPanelAssemblyMapping(project);
 const wiring = createProvisionalWiringPreview(
   geometry,
   project.sculpture,

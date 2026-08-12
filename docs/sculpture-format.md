@@ -1,7 +1,9 @@
 # Sculpture source format
 
 The canonical authored source for the current sculpture is
-`sculptures/rhombicosidodecahedron/sculpture.json`. It references the reusable
+`sculptures/rhombicosidodecahedron/sculpture.json`. It is a pose-first
+schema-2 assembly with 41 explicit panel poses and a `manualMechanics` contract.
+It references the reusable
 66 x 65 mm panel definition in
 `catalog/panels/ws2812b-8x8-66x65.json`.
 
@@ -67,8 +69,8 @@ resolved. DIN/DOUT corner assignment is already measured in the panel profile.
 
 ## Source versus generated data
 
-The source JSON currently selects the vertex-up rhombicosidodecahedron recipe,
-the populated faces, centre-panel pose, UV/effect ordering, and provisional
+The pose-first source preserves the once-compiled vertex-up panel poses, populated
+faces, UV/effect ordering, and provisional
 four-output data-routing policy with a controller near the sculpture top. The
 reusable panel profile separately records photo-derived power-feed availability
 and conservative current, wire, voltage-drop, and fuse-design inputs. The

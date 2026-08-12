@@ -37,7 +37,7 @@ function run(command: string, args: string[], rootDirectory: string): Promise<st
   });
 }
 
-/** Local-only Vite endpoint used by the editor's explicit Run pipeline button. */
+/** Local-only Vite endpoint used by the editor.s explicit 3D print generation button. */
 export function editorPipelinePlugin(): Plugin {
   let pipelineRunning = false;
   return {
@@ -52,7 +52,7 @@ export function editorPipelinePlugin(): Plugin {
         }
         if (pipelineRunning) {
           response.statusCode = 409;
-          response.end(JSON.stringify({ error: "Another editor pipeline is running." }));
+          response.end(JSON.stringify({ error: "Another 3D print generation is running." }));
           return;
         }
         pipelineRunning = true;

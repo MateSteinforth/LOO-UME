@@ -79,7 +79,10 @@ for (const sculpture of registry.sculptures) {
   }
   const sourceRelativePath = sculpture.source.slice("./sculptures/".length);
   await readFile(resolve(sourceDirectory, sourceRelativePath), "utf8");
-  if (sculpture.artifactStatus === "authoring-only") continue;
+  if (
+    sculpture.artifactStatus === "authoring-only" ||
+    sculpture.artifactStatus === "manual-parts"
+  ) continue;
   const sculptureArtifacts = resolve(artifactDirectory, sculpture.id);
   await copyTree(
     resolve(sculptureArtifacts, "3d"),

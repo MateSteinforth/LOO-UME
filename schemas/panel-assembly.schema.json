@@ -11,9 +11,7 @@
     "units",
     "status",
     "panelProfile",
-    "mechanicalShell",
     "panels",
-    "closures",
     "mapping",
     "wiring",
     "calibration",
@@ -22,46 +20,126 @@
   "allOf": [
     {
       "if": {
-        "properties": {
-          "panels": {
-            "contains": {
-              "required": ["surfaceAttachment"],
-              "properties": {
-                "surfaceAttachment": {
-                  "not": {
-                    "properties": {
-                      "surface": { "const": "mechanical-shell" }
-                    },
-                    "required": ["surface"]
+        "allOf": [
+          {
+            "properties": {
+              "panels": {
+                "contains": {
+                  "required": [
+                    "surfaceAttachment"
+                  ],
+                  "properties": {
+                    "surfaceAttachment": {
+                      "not": {
+                        "properties": {
+                          "surface": {
+                            "const": "mechanical-shell"
+                          }
+                        },
+                        "required": [
+                          "surface"
+                        ]
+                      }
+                    }
                   }
                 }
               }
+            },
+            "required": [
+              "panels"
+            ]
+          },
+          {
+            "not": {
+              "required": [
+                "manualMechanics"
+              ]
             }
           }
-        },
-        "required": ["panels"]
+        ]
       },
-      "then": { "required": ["designSurface"] }
+      "then": {
+        "required": [
+          "designSurface"
+        ]
+      }
     },
     {
       "if": {
-        "properties": {
-          "panels": {
-            "contains": { "not": { "required": ["mountFaceId"] } }
+        "allOf": [
+          {
+            "properties": {
+              "panels": {
+                "contains": {
+                  "not": {
+                    "required": [
+                      "mountFaceId"
+                    ]
+                  }
+                }
+              }
+            },
+            "required": [
+              "panels"
+            ]
+          },
+          {
+            "not": {
+              "required": [
+                "manualMechanics"
+              ]
+            }
           }
-        },
-        "required": ["panels"]
+        ]
       },
       "then": {
         "properties": {
           "mechanicalShell": {
             "properties": {
-              "derivationStatus": { "const": "requires-regeneration" }
+              "derivationStatus": {
+                "const": "requires-regeneration"
+              }
             },
-            "required": ["derivationStatus"]
+            "required": [
+              "derivationStatus"
+            ]
           }
         }
       }
+    },
+    {
+      "oneOf": [
+        {
+          "required": [
+            "mechanicalShell",
+            "closures"
+          ],
+          "not": {
+            "required": [
+              "manualMechanics"
+            ]
+          }
+        },
+        {
+          "required": [
+            "manualMechanics"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "mechanicalShell"
+                ]
+              },
+              {
+                "required": [
+                  "closures"
+                ]
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "properties": {
@@ -114,12 +192,6 @@
         "required": [
           "id",
           "pose"
-        ],
-        "allOf": [
-          {
-            "if": { "not": { "required": ["mountFaceId"] } },
-            "then": { "required": ["surfaceAttachment"] }
-          }
         ],
         "properties": {
           "id": {
@@ -240,7 +312,10 @@
             ],
             "properties": {
               "surface": {
-                "enum": ["design-surface", "mechanical-shell"]
+                "enum": [
+                  "design-surface",
+                  "mechanical-shell"
+                ]
               },
               "triangleIndex": {
                 "type": "integer",
@@ -269,6 +344,32 @@
                 "minimum": 0
               }
             }
+          },
+          "faceType": {
+            "enum": [
+              "square-face",
+              "pentagon-centre"
+            ]
+          },
+          "neighborPanelIds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "rotationDegrees": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "mirrored": {
+            "type": [
+              "boolean",
+              "null"
+            ]
           }
         }
       }
@@ -413,7 +514,10 @@
           }
         },
         "routeStrategy": {
-          "const": "face-adjacency-nearest-neighbor"
+          "enum": [
+            "face-adjacency-nearest-neighbor",
+            "longitude-sectors-nearest-neighbor"
+          ]
         },
         "chainLengths": {
           "type": "array",
@@ -576,7 +680,11 @@
           "type": "object",
           "description": "Stable JSON planar boundary captured before derived topology is edited. GLB geometry is never stored or consumed here.",
           "additionalProperties": false,
-          "required": ["vertices", "faces", "authoredPanels"],
+          "required": [
+            "vertices",
+            "faces",
+            "authoredPanels"
+          ],
           "properties": {
             "vertices": {
               "type": "array",
@@ -584,9 +692,15 @@
               "items": {
                 "type": "array",
                 "prefixItems": [
-                  { "type": "number" },
-                  { "type": "number" },
-                  { "type": "number" }
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
                 ],
                 "items": false
               }
@@ -597,13 +711,22 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["id", "vertexIndices"],
+                "required": [
+                  "id",
+                  "vertexIndices"
+                ],
                 "properties": {
-                  "id": { "type": "string", "minLength": 1 },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
                   "vertexIndices": {
                     "type": "array",
                     "minItems": 3,
-                    "items": { "type": "integer", "minimum": 0 }
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
                   },
                   "panelPlacement": {
                     "const": "whole-face",
@@ -617,47 +740,94 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["id", "mountFaceId", "pose"],
+                "required": [
+                  "id",
+                  "mountFaceId",
+                  "pose"
+                ],
                 "properties": {
-                  "id": { "type": "string", "minLength": 1 },
-                  "mountFaceId": { "type": "string", "minLength": 1 },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mountFaceId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
                   "pose": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["position", "orientation"],
+                    "required": [
+                      "position",
+                      "orientation"
+                    ],
                     "properties": {
                       "position": {
                         "type": "array",
                         "prefixItems": [
-                          { "type": "number" },
-                          { "type": "number" },
-                          { "type": "number" }
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "number"
+                          }
                         ],
                         "items": false
                       },
                       "orientation": {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["xAxis", "yAxis", "normal"],
+                        "required": [
+                          "xAxis",
+                          "yAxis",
+                          "normal"
+                        ],
                         "properties": {
                           "xAxis": {
                             "type": "array",
                             "prefixItems": [
-                              { "type": "number" }, { "type": "number" }, { "type": "number" }
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              }
                             ],
                             "items": false
                           },
                           "yAxis": {
                             "type": "array",
                             "prefixItems": [
-                              { "type": "number" }, { "type": "number" }, { "type": "number" }
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              }
                             ],
                             "items": false
                           },
                           "normal": {
                             "type": "array",
                             "prefixItems": [
-                              { "type": "number" }, { "type": "number" }, { "type": "number" }
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "number"
+                              }
                             ],
                             "items": false
                           }
@@ -705,6 +875,30 @@
         },
         "status": {
           "const": "watertight"
+        }
+      }
+    },
+    "manualMechanics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "generator",
+        "centerPanelMount",
+        "openings"
+      ],
+      "properties": {
+        "kind": {
+          "const": "manually-authored-parts"
+        },
+        "generator": {
+          "const": "verified-scad-wrappers"
+        },
+        "centerPanelMount": {
+          "type": "object"
+        },
+        "openings": {
+          "type": "object"
         }
       }
     }

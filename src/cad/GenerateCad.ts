@@ -1,6 +1,32 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
-import type { SculptureProject } from "../sculpture/Definition.ts";
+import type {
+  PanelHardwareProfile,
+  SculptureDefinition,
+} from "../sculpture/Definition.ts";
+import type { PanelAssemblyProject } from "../sculpture/PanelAssembly.ts";
+
+export interface ManualCadProject {
+  sculpture: Pick<SculptureDefinition, "id" | "centerPanelMount" | "openings">;
+  panelProfile: PanelHardwareProfile;
+}
+
+export function createManualCadProject(
+  project: PanelAssemblyProject,
+): ManualCadProject {
+  const mechanics = project.sculpture.manualMechanics;
+  if (!mechanics) {
+    throw new Error("Sculpture does not declare manually authored mechanics.");
+  }
+  return {
+    sculpture: {
+      id: project.sculpture.id,
+      centerPanelMount: mechanics.centerPanelMount as unknown as SculptureDefinition["centerPanelMount"],
+      openings: mechanics.openings as unknown as SculptureDefinition["openings"],
+    },
+    panelProfile: project.panelProfile,
+  };
+}
 
 export interface GeneratedCadArtifact {
   id: string;
@@ -59,7 +85,7 @@ function scadIncludePath(fromFile: string, targetFile: string): string {
 }
 
 export function createTriangleClosureEntrypoint(
-  project: SculptureProject,
+  project: ManualCadProject,
   entrypointPath: string,
   rootDirectory = process.cwd(),
 ): string {
@@ -95,7 +121,7 @@ assert(panel_envelope_clearance_xy == ${scadNumber(panelInterface.panelEnvelopeC
 }
 
 export function createPentagonUFrameEntrypoint(
-  project: SculptureProject,
+  project: ManualCadProject,
   entrypointPath: string,
   rootDirectory = process.cwd(),
 ): string {
@@ -134,7 +160,7 @@ assert(center_connector_corner_clearance == ${scadNumber(part.interfaces.connect
 }
 
 export function createMiddlePanelConnectorEntrypoint(
-  project: SculptureProject,
+  project: ManualCadProject,
   entrypointPath: string,
   rootDirectory = process.cwd(),
 ): string {
@@ -167,7 +193,7 @@ assert(outer_hole_edge_distance == ${scadNumber(part.interfaces[1]!.edgeDistance
 }
 
 export function createPentagonAssemblyEntrypoint(
-  project: SculptureProject,
+  project: ManualCadProject,
   entrypointPath: string,
   rootDirectory = process.cwd(),
 ): string {
@@ -193,7 +219,7 @@ color([0.10, 0.10, 0.10, 0.75]) pentagon_u_center_panel_preview();
 }
 
 export async function emitCadArtifacts(
-  project: SculptureProject,
+  project: ManualCadProject,
   options: EmitCadOptions = {},
 ): Promise<EmitCadResult> {
   const rootDirectory = resolve(options.rootDirectory ?? process.cwd());

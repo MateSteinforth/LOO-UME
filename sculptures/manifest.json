@@ -14,6 +14,12 @@
       "source": "./sculptures/cuboctahedron/sculpture.json"
     },
     {
+      "id": "generated-rhombicosidodecahedron-41-panel-preview",
+      "name": "LED Rhombicosidodecahedron (Manual 41-panel)",
+      "source": "./sculptures/rhombicosidodecahedron/sculpture.json",
+      "artifactStatus": "manual-parts"
+    },
+    {
       "id": "automatic-rhombicosidodecahedron-30-panel-test",
       "name": "Automatic 30-panel Rhombicosidodecahedron",
       "source": "./sculptures/rhombicosidodecahedron-auto/sculpture.json"

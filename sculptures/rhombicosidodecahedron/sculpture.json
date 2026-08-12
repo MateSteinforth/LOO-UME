@@ -1,154 +1,1583 @@
 {
-  "$schema": "../../schemas/sculpture.schema.json",
-  "schemaVersion": "1.0.0",
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
   "id": "generated-rhombicosidodecahedron-41-panel-preview",
-  "name": "LED Rhombicosidodecahedron",
+  "name": "LED Rhombicosidodecahedron (Manual 41-panel)",
   "units": "mm",
   "status": "provisional",
-  "panelProfile": "ws2812b-8x8-66x65",
-  "topology": {
-    "kind": "regular-polyhedron",
-    "family": "rhombicosidodecahedron",
-    "construction": "rectified-icosahedron-dual-frames",
-    "orientation": "vertex-up",
-    "faceEdge": 66,
-    "population": {
-      "squareFaces": "all",
-      "pentagonFaces": {
-        "mode": "all-except",
-        "excluded": ["north-pole"]
-      },
-      "triangleFaces": "fillers"
-    }
+  "panelProfile": {
+    "id": "ws2812b-8x8-66x65",
+    "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
   },
-  "centerPanelMount": {
-    "rotationDegrees": 234,
-    "offsetX": 9.62,
-    "offsetY": -7.04,
-    "recess": 0.7,
-    "polarEdgeRule": "top-edge-north-bottom-edge-south"
-  },
-  "openings": {
-    "triangleFaces": {
-      "faceType": "triangle",
-      "count": 20,
-      "population": "all",
-      "closure": {
-        "partId": "triangle-filler",
-        "canonicalSource": "parts/triangle.scad",
-        "generator": "verified-scad-wrapper",
-        "generatedFile": "triangle-filler.scad",
-        "quantity": 20,
-        "modes": {
-          "print": "print",
-          "assembly": "assembly"
-        },
-        "handedness": -1,
-        "interfaces": [
-          {
-            "edgeIndex": 0,
-            "adjacentFaceType": "square",
-            "mountingHoleEnd": "opposite-electrical-connector",
-            "connectorCornerClearance": 14,
-            "panelEnvelopeClearance": 0.3
-          },
-          {
-            "edgeIndex": 1,
-            "adjacentFaceType": "square",
-            "mountingHoleEnd": "opposite-electrical-connector",
-            "connectorCornerClearance": 14,
-            "panelEnvelopeClearance": 0.3
-          },
-          {
-            "edgeIndex": 2,
-            "adjacentFaceType": "square",
-            "mountingHoleEnd": "opposite-electrical-connector",
-            "connectorCornerClearance": 14,
-            "panelEnvelopeClearance": 0.3
-          }
+  "panels": [
+    {
+      "id": "SQ-01",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -59.456342505015854,
+          118.91268501003171,
+          -43.1975613895468
         ],
-        "print": {
-          "bedSurface": "outside-cover"
+        "orientation": {
+          "xAxis": [
+            0.5877852522924731,
+            0,
+            -0.8090169943749477
+          ],
+          "yAxis": [
+            -0.6881909602355868,
+            -0.5257311121191337,
+            -0.49999999999999994
+          ],
+          "normal": [
+            -0.42532540417601994,
+            0.8506508083520399,
+            -0.30901699437494734
+          ]
         }
-      }
-    },
-    "pentagonFaces": {
-      "faceType": "pentagon",
-      "count": 12,
-      "population": {
-        "mode": "all-except",
-        "excluded": ["north-pole"],
-        "populatedCount": 11
       },
-      "closure": {
-        "assemblyId": "populated-pentagon-panel-mount",
-        "quantity": 11,
-        "openOuterEdge": 1,
-        "parts": [
-          {
-            "partId": "pentagon-u-frame",
-            "canonicalSource": "parts/pentagon_u.scad",
-            "generator": "verified-scad-wrapper",
-            "generatedFile": "pentagon-u-frame.scad",
-            "quantity": 11,
-            "modes": {
-              "print": "print",
-              "assembly": "assembly",
-              "center": "center"
-            },
-            "interfaces": {
-              "outerPanelEdges": [0, 2, 3, 4],
-              "centerPanelHoles": [
-                "bottom-left-corner",
-                "bottom-middle-edge",
-                "top-right-corner"
-              ],
-              "centerPanelClearance": 0.35,
-              "connectorCornerClearance": 14
-            },
-            "print": {
-              "bedSurface": "outside-cover"
-            }
-          },
-          {
-            "partId": "middle-panel-connector",
-            "canonicalSource": "parts/middle_panel_connector.scad",
-            "generator": "verified-scad-wrapper",
-            "generatedFile": "middle-panel-connector.scad",
-            "quantity": 11,
-            "modes": {
-              "print": "print",
-              "assembly": "assembly",
-              "installed": "part"
-            },
-            "interfaces": [
-              {
-                "panel": "center",
-                "hole": "top-middle-edge",
-                "edgeDistance": 8
-              },
-              {
-                "panel": "outer",
-                "outerEdgeIndex": 1,
-                "hole": "middle-edge",
-                "edgeDistance": 8.2
-              }
-            ],
-            "print": {
-              "bedSurface": "center-panel-pad"
-            }
-          }
+      "neighborPanelIds": [
+        "PC-01"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-02",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          22.71030199016098,
+          118.91268501003171,
+          -69.89512255939688
         ],
-        "assembly": {
-          "generatedFile": "populated-pentagon-assembly.scad",
-          "preview": "center-and-five-outer-panels"
+        "orientation": {
+          "xAxis": [
+            0.9510565162951536,
+            -2.7755575615628914e-17,
+            0.30901699437494723
+          ],
+          "yAxis": [
+            0.26286555605956663,
+            -0.5257311121191337,
+            -0.8090169943749476
+          ],
+          "normal": [
+            0.16245984811645306,
+            0.8506508083520399,
+            -0.5
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-02"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-03",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          73.49208102970974,
+          118.91268501003171,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0,
+            1
+          ],
+          "yAxis": [
+            0.85065080835204,
+            -0.5257311121191337,
+            0
+          ],
+          "normal": [
+            0.5257311121191336,
+            0.8506508083520399,
+            0
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-03"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-04",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          22.710301990160996,
+          118.91268501003171,
+          69.89512255939688
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.9510565162951536,
+            0,
+            0.30901699437494745
+          ],
+          "yAxis": [
+            0.26286555605956685,
+            -0.5257311121191337,
+            0.8090169943749475
+          ],
+          "normal": [
+            0.1624598481164532,
+            0.8506508083520399,
+            0.5
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-04"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-05",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -59.45634250501585,
+          118.91268501003171,
+          43.19756138954683
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5877852522924734,
+            2.775557561562892e-17,
+            -0.8090169943749475
+          ],
+          "yAxis": [
+            -0.6881909602355867,
+            -0.5257311121191337,
+            0.5000000000000001
+          ],
+          "normal": [
+            -0.4253254041760199,
+            0.8506508083520399,
+            0.3090169943749475
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-05"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-06",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -36.74604051485488,
+          73.49208102970974,
+          -113.09268394894369
+        ],
+        "orientation": {
+          "xAxis": [
+            0.16245984811645328,
+            0.85065080835204,
+            0.49999999999999994
+          ],
+          "yAxis": [
+            0.9510565162951535,
+            0,
+            -0.3090169943749477
+          ],
+          "normal": [
+            -0.2628655560595669,
+            0.5257311121191336,
+            -0.8090169943749473
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-01",
+        "PC-02"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-07",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          96.2023830198707,
+          73.49208102970974,
+          -69.89512255939688
+        ],
+        "orientation": {
+          "xAxis": [
+            0.42532540417602,
+            -0.85065080835204,
+            -0.30901699437494745
+          ],
+          "yAxis": [
+            -0.5877852522924731,
+            0,
+            -0.8090169943749473
+          ],
+          "normal": [
+            0.6881909602355866,
+            0.5257311121191336,
+            -0.5
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-03",
+        "PC-02"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-08",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          96.20238301987075,
+          73.49208102970974,
+          69.89512255939688
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.4253254041760199,
+            0.8506508083520399,
+            -0.30901699437494734
+          ],
+          "yAxis": [
+            -0.5877852522924731,
+            0,
+            0.8090169943749475
+          ],
+          "normal": [
+            0.6881909602355869,
+            0.5257311121191336,
+            0.5
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-03",
+        "PC-04"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-09",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -36.74604051485485,
+          73.49208102970974,
+          113.0926839489437
+        ],
+        "orientation": {
+          "xAxis": [
+            0.16245984811645311,
+            0.8506508083520399,
+            -0.5
+          ],
+          "yAxis": [
+            -0.9510565162951536,
+            0,
+            -0.30901699437494734
+          ],
+          "normal": [
+            -0.2628655560595667,
+            0.5257311121191336,
+            0.8090169943749475
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-04",
+        "PC-05"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-10",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -118.91268501003171,
+          73.49208102970974,
+          1.8244660114947043e-14
+        ],
+        "orientation": {
+          "xAxis": [
+            0.5257311121191336,
+            0.8506508083520399,
+            -5.551115123125783e-17
+          ],
+          "yAxis": [
+            -1.05588484211067e-16,
+            0,
+            -1
+          ],
+          "normal": [
+            -0.8506508083520399,
+            0.5257311121191336,
+            1.3051454412604205e-16
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-05",
+        "PC-01"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-11",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -132.9484235347256,
+          0,
+          -43.19756138954679
+        ],
+        "orientation": {
+          "xAxis": [
+            0.2628655560595667,
+            -0.5257311121191336,
+            -0.8090169943749476
+          ],
+          "yAxis": [
+            -0.1624598481164532,
+            -0.85065080835204,
+            0.5
+          ],
+          "normal": [
+            -0.9510565162951536,
+            0,
+            -0.3090169943749473
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-01",
+        "PC-10"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-12",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -82.16664449517685,
+          0,
+          -113.09268394894369
+        ],
+        "orientation": {
+          "xAxis": [
+            0.6881909602355868,
+            0.5257311121191336,
+            -0.5
+          ],
+          "yAxis": [
+            0.4253254041760199,
+            -0.85065080835204,
+            -0.3090169943749475
+          ],
+          "normal": [
+            -0.5877852522924731,
+            0,
+            -0.8090169943749473
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-01",
+        "PC-06"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-13",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -2.2805825143683804e-14,
+          0,
+          -139.79024511879376
+        ],
+        "orientation": {
+          "xAxis": [
+            0.8506508083520401,
+            -0.5257311121191336,
+            -1.3877787807814462e-16
+          ],
+          "yAxis": [
+            -0.5257311121191336,
+            -0.8506508083520401,
+            1.0558848421106701e-16
+          ],
+          "normal": [
+            -1.6314318015755258e-16,
+            0,
+            -1
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-02",
+        "PC-06"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-14",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          82.16664449517683,
+          0,
+          -113.09268394894372
+        ],
+        "orientation": {
+          "xAxis": [
+            0.6881909602355869,
+            0.5257311121191336,
+            0.49999999999999983
+          ],
+          "yAxis": [
+            0.42532540417602005,
+            -0.85065080835204,
+            0.3090169943749473
+          ],
+          "normal": [
+            0.5877852522924729,
+            0,
+            -0.8090169943749476
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-02",
+        "PC-07"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-15",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          132.9484235347256,
+          0,
+          -43.19756138954684
+        ],
+        "orientation": {
+          "xAxis": [
+            0.26286555605956685,
+            -0.5257311121191337,
+            0.8090169943749471
+          ],
+          "yAxis": [
+            -0.16245984811645325,
+            -0.8506508083520398,
+            -0.5000000000000001
+          ],
+          "normal": [
+            0.9510565162951536,
+            0,
+            -0.3090169943749476
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-03",
+        "PC-07"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-16",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          132.9484235347256,
+          0,
+          43.19756138954681
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.26286555605956674,
+            0.5257311121191336,
+            0.8090169943749473
+          ],
+          "yAxis": [
+            -0.1624598481164532,
+            -0.85065080835204,
+            0.5
+          ],
+          "normal": [
+            0.9510565162951536,
+            0,
+            0.3090169943749474
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-03",
+        "PC-08"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-17",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          82.16664449517685,
+          0,
+          113.09268394894369
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.6881909602355869,
+            -0.5257311121191336,
+            0.5000000000000001
+          ],
+          "yAxis": [
+            0.42532540417601994,
+            -0.85065080835204,
+            -0.3090169943749474
+          ],
+          "normal": [
+            0.5877852522924731,
+            0,
+            0.8090169943749473
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-04",
+        "PC-08"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-18",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          9.122330057473522e-15,
+          0,
+          139.79024511879376
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.85065080835204,
+            0.5257311121191336,
+            5.551115123125783e-17
+          ],
+          "yAxis": [
+            -0.5257311121191336,
+            -0.85065080835204,
+            1.05588484211067e-16
+          ],
+          "normal": [
+            6.525727206302103e-17,
+            0,
+            1
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-04",
+        "PC-09"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-19",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -82.16664449517684,
+          0,
+          113.09268394894372
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.6881909602355869,
+            -0.5257311121191336,
+            -0.49999999999999994
+          ],
+          "yAxis": [
+            0.42532540417601994,
+            -0.85065080835204,
+            0.3090169943749474
+          ],
+          "normal": [
+            -0.587785252292473,
+            0,
+            0.8090169943749476
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-05",
+        "PC-09"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-20",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -132.9484235347256,
+          0,
+          43.19756138954684
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.2628655560595669,
+            0.5257311121191336,
+            -0.8090169943749473
+          ],
+          "yAxis": [
+            -0.16245984811645328,
+            -0.85065080835204,
+            -0.5
+          ],
+          "normal": [
+            -0.9510565162951536,
+            0,
+            0.3090169943749476
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-05",
+        "PC-10"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-21",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -96.20238301987075,
+          -73.49208102970974,
+          -69.89512255939687
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.42532540417602005,
+            0.85065080835204,
+            -0.30901699437494734
+          ],
+          "yAxis": [
+            0.587785252292473,
+            0,
+            -0.8090169943749476
+          ],
+          "normal": [
+            -0.6881909602355869,
+            -0.5257311121191336,
+            -0.4999999999999999
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-10",
+        "PC-06"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-22",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          36.74604051485485,
+          -73.49208102970974,
+          -113.09268394894372
+        ],
+        "orientation": {
+          "xAxis": [
+            0.16245984811645303,
+            0.85065080835204,
+            -0.5
+          ],
+          "yAxis": [
+            0.9510565162951536,
+            0,
+            0.3090169943749472
+          ],
+          "normal": [
+            0.2628655560595667,
+            -0.5257311121191336,
+            -0.8090169943749476
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-06",
+        "PC-07"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-23",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          118.91268501003171,
+          -73.49208102970974,
+          -1.8244660114947043e-14
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5257311121191336,
+            -0.8506508083520399,
+            5.5511151231257815e-17
+          ],
+          "yAxis": [
+            -1.0558848421106697e-16,
+            0,
+            -1
+          ],
+          "normal": [
+            0.8506508083520399,
+            -0.5257311121191336,
+            -1.3051454412604205e-16
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-08",
+        "PC-07"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-24",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          36.746040514854876,
+          -73.49208102970974,
+          113.0926839489437
+        ],
+        "orientation": {
+          "xAxis": [
+            0.16245984811645323,
+            0.85065080835204,
+            0.5
+          ],
+          "yAxis": [
+            -0.9510565162951536,
+            0,
+            0.30901699437494756
+          ],
+          "normal": [
+            0.26286555605956685,
+            -0.5257311121191336,
+            0.8090169943749475
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-08",
+        "PC-09"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-25",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -96.20238301987071,
+          -73.49208102970974,
+          69.8951225593969
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.42532540417602,
+            0.85065080835204,
+            0.30901699437494745
+          ],
+          "yAxis": [
+            -0.5877852522924732,
+            0,
+            -0.8090169943749475
+          ],
+          "normal": [
+            -0.6881909602355867,
+            -0.5257311121191336,
+            0.5000000000000001
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-09",
+        "PC-10"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-26",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -22.710301990161003,
+          -118.91268501003171,
+          -69.89512255939688
+        ],
+        "orientation": {
+          "xAxis": [
+            0.9510565162951536,
+            0,
+            -0.30901699437494756
+          ],
+          "yAxis": [
+            0.2628655560595669,
+            -0.5257311121191337,
+            0.8090169943749475
+          ],
+          "normal": [
+            -0.16245984811645323,
+            -0.8506508083520399,
+            -0.5
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-06",
+        "PC-11"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-27",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          59.45634250501585,
+          -118.91268501003171,
+          -43.197561389546834
+        ],
+        "orientation": {
+          "xAxis": [
+            0.5877852522924734,
+            -2.7755575615628914e-17,
+            0.8090169943749472
+          ],
+          "yAxis": [
+            -0.6881909602355867,
+            -0.5257311121191337,
+            0.5000000000000002
+          ],
+          "normal": [
+            0.4253254041760199,
+            -0.8506508083520399,
+            -0.30901699437494756
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-07",
+        "PC-11"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-28",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          59.456342505015854,
+          -118.91268501003171,
+          43.19756138954681
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.587785252292473,
+            0,
+            0.8090169943749472
+          ],
+          "yAxis": [
+            -0.6881909602355868,
+            -0.5257311121191337,
+            -0.5
+          ],
+          "normal": [
+            0.42532540417601994,
+            -0.8506508083520399,
+            0.3090169943749474
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-08",
+        "PC-11"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-29",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -22.710301990160985,
+          -118.91268501003171,
+          69.89512255939688
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.9510565162951536,
+            0,
+            -0.30901699437494734
+          ],
+          "yAxis": [
+            0.2628655560595667,
+            -0.5257311121191336,
+            -0.8090169943749473
+          ],
+          "normal": [
+            -0.16245984811645311,
+            -0.8506508083520399,
+            0.5
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-09",
+        "PC-11"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "SQ-30",
+      "faceType": "square-face",
+      "pose": {
+        "position": [
+          -73.49208102970974,
+          -118.91268501003171,
+          9.000184179571194e-15
+        ],
+        "orientation": {
+          "xAxis": [
+            -1.2246467991473532e-16,
+            0,
+            -1
+          ],
+          "yAxis": [
+            0.85065080835204,
+            -0.5257311121191337,
+            -1.0417467896404344e-16
+          ],
+          "normal": [
+            -0.5257311121191336,
+            -0.8506508083520399,
+            6.438349236688752e-17
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "PC-10",
+        "PC-11"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-01",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          -93.80457091649572,
+          71.28732979684709,
+          -68.10234921154051
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.587785252292473,
+            -5.5511151231257815e-17,
+            0.8090169943749472
+          ],
+          "yAxis": [
+            0.3618033988749893,
+            0.8944271909999161,
+            0.2628655560595667
+          ],
+          "normal": [
+            -0.7236067977499789,
+            0.4472135954999579,
+            -0.5257311121191335
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-01",
+        "SQ-06",
+        "SQ-10",
+        "SQ-11",
+        "SQ-12"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-02",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          35.78197642939659,
+          71.28732979684708,
+          -110.25823169162743
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.9510565162951536,
+            -1.3877787807814457e-17,
+            -0.30901699437494723
+          ],
+          "yAxis": [
+            -0.13819660112501042,
+            0.894427190999916,
+            0.42532540417601994
+          ],
+          "normal": [
+            0.27639320225002084,
+            0.4472135954999579,
+            -0.85065080835204
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-02",
+        "SQ-06",
+        "SQ-07",
+        "SQ-13",
+        "SQ-14"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-03",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          115.91904853451042,
+          71.28732979684709,
+          -0.04098551334603684
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0,
+            -1
+          ],
+          "yAxis": [
+            -0.4472135954999578,
+            0.8944271909999161,
+            0
+          ],
+          "normal": [
+            0.8944271909999159,
+            0.4472135954999579,
+            0
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-03",
+        "SQ-07",
+        "SQ-08",
+        "SQ-15",
+        "SQ-16"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-04",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          35.85993550847952,
+          71.28732979684709,
+          110.2329012513332
+        ],
+        "orientation": {
+          "xAxis": [
+            0.9510565162951536,
+            0,
+            -0.3090169943749475
+          ],
+          "yAxis": [
+            -0.13819660112501048,
+            0.8944271909999161,
+            -0.4253254041760198
+          ],
+          "normal": [
+            0.27639320225002106,
+            0.4472135954999579,
+            0.8506508083520399
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-04",
+        "SQ-08",
+        "SQ-09",
+        "SQ-17",
+        "SQ-18"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-05",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          -93.75638955589083,
+          71.28732979684709,
+          68.16866516518078
+        ],
+        "orientation": {
+          "xAxis": [
+            0.5877852522924734,
+            0,
+            0.8090169943749475
+          ],
+          "yAxis": [
+            0.3618033988749892,
+            0.8944271909999161,
+            -0.2628655560595667
+          ],
+          "normal": [
+            -0.7236067977499788,
+            0.4472135954999579,
+            0.5257311121191337
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-05",
+        "SQ-09",
+        "SQ-10",
+        "SQ-19",
+        "SQ-20"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-06",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          -35.85993550847953,
+          -71.28732979684709,
+          -110.2329012513332
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.9510565162951536,
+            -1.3877787807814457e-17,
+            0.30901699437494756
+          ],
+          "yAxis": [
+            -0.13819660112501053,
+            0.8944271909999161,
+            -0.4253254041760198
+          ],
+          "normal": [
+            -0.2763932022500211,
+            -0.4472135954999579,
+            -0.8506508083520399
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-12",
+        "SQ-13",
+        "SQ-21",
+        "SQ-22",
+        "SQ-26"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-07",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          93.75638955589083,
+          -71.28732979684708,
+          -68.1686651651808
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5877852522924734,
+            0,
+            -0.8090169943749472
+          ],
+          "yAxis": [
+            0.36180339887498936,
+            0.894427190999916,
+            -0.26286555605956685
+          ],
+          "normal": [
+            0.7236067977499788,
+            -0.4472135954999579,
+            -0.5257311121191338
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-14",
+        "SQ-15",
+        "SQ-22",
+        "SQ-23",
+        "SQ-27"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-08",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          93.80457091649572,
+          -71.28732979684709,
+          68.10234921154053
+        ],
+        "orientation": {
+          "xAxis": [
+            0.5877852522924731,
+            -2.7755575615628907e-17,
+            -0.8090169943749473
+          ],
+          "yAxis": [
+            0.3618033988749895,
+            0.8944271909999161,
+            0.2628655560595668
+          ],
+          "normal": [
+            0.7236067977499789,
+            -0.4472135954999579,
+            0.5257311121191336
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-16",
+        "SQ-17",
+        "SQ-23",
+        "SQ-24",
+        "SQ-28"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-09",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          -35.78197642939661,
+          -71.28732979684708,
+          110.25823169162743
+        ],
+        "orientation": {
+          "xAxis": [
+            0.9510565162951536,
+            1.3877787807814457e-17,
+            0.30901699437494734
+          ],
+          "yAxis": [
+            -0.13819660112501048,
+            0.894427190999916,
+            0.42532540417601994
+          ],
+          "normal": [
+            -0.27639320225002095,
+            -0.4472135954999579,
+            0.85065080835204
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-18",
+        "SQ-19",
+        "SQ-24",
+        "SQ-25",
+        "SQ-29"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-10",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          -115.91904853451042,
+          -71.28732979684709,
+          0.040985513346051036
+        ],
+        "orientation": {
+          "xAxis": [
+            1.2246467991473535e-16,
+            -6.162975822039155e-33,
+            1
+          ],
+          "yAxis": [
+            -0.4472135954999578,
+            0.8944271909999161,
+            5.4767869826420256e-17
+          ],
+          "normal": [
+            -0.8944271909999159,
+            -0.4472135954999579,
+            1.0953573965284052e-16
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-11",
+        "SQ-20",
+        "SQ-21",
+        "SQ-25",
+        "SQ-30"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    },
+    {
+      "id": "PC-11",
+      "faceType": "pentagon-centre",
+      "pose": {
+        "position": [
+          -3.644735309747986,
+          -135.56181203614435,
+          -11.349973767453221
+        ],
+        "orientation": {
+          "xAxis": [
+            0.9510565162951536,
+            0,
+            -0.30901699437494756
+          ],
+          "yAxis": [
+            0.30901699437494756,
+            0,
+            0.9510565162951536
+          ],
+          "normal": [
+            0,
+            -1,
+            0
+          ]
+        }
+      },
+      "neighborPanelIds": [
+        "SQ-26",
+        "SQ-27",
+        "SQ-28",
+        "SQ-29",
+        "SQ-30"
+      ],
+      "rotationDegrees": null,
+      "mirrored": null
+    }
+  ],
+  "manualMechanics": {
+    "kind": "manually-authored-parts",
+    "generator": "verified-scad-wrappers",
+    "centerPanelMount": {
+      "rotationDegrees": 234,
+      "offsetX": 9.62,
+      "offsetY": -7.04,
+      "recess": 0.7,
+      "polarEdgeRule": "top-edge-north-bottom-edge-south"
+    },
+    "openings": {
+      "triangleFaces": {
+        "faceType": "triangle",
+        "count": 20,
+        "population": "all",
+        "closure": {
+          "partId": "triangle-filler",
+          "canonicalSource": "parts/triangle.scad",
+          "generator": "verified-scad-wrapper",
+          "generatedFile": "triangle-filler.scad",
+          "quantity": 20,
+          "modes": {
+            "print": "print",
+            "assembly": "assembly"
+          },
+          "handedness": -1,
+          "interfaces": [
+            {
+              "edgeIndex": 0,
+              "adjacentFaceType": "square",
+              "mountingHoleEnd": "opposite-electrical-connector",
+              "connectorCornerClearance": 14,
+              "panelEnvelopeClearance": 0.3
+            },
+            {
+              "edgeIndex": 1,
+              "adjacentFaceType": "square",
+              "mountingHoleEnd": "opposite-electrical-connector",
+              "connectorCornerClearance": 14,
+              "panelEnvelopeClearance": 0.3
+            },
+            {
+              "edgeIndex": 2,
+              "adjacentFaceType": "square",
+              "mountingHoleEnd": "opposite-electrical-connector",
+              "connectorCornerClearance": 14,
+              "panelEnvelopeClearance": 0.3
+            }
+          ],
+          "print": {
+            "bedSurface": "outside-cover"
+          }
+        }
+      },
+      "pentagonFaces": {
+        "faceType": "pentagon",
+        "count": 12,
+        "population": {
+          "mode": "all-except",
+          "excluded": [
+            "north-pole"
+          ],
+          "populatedCount": 11
+        },
+        "closure": {
+          "assemblyId": "populated-pentagon-panel-mount",
+          "quantity": 11,
+          "openOuterEdge": 1,
+          "parts": [
+            {
+              "partId": "pentagon-u-frame",
+              "canonicalSource": "parts/pentagon_u.scad",
+              "generator": "verified-scad-wrapper",
+              "generatedFile": "pentagon-u-frame.scad",
+              "quantity": 11,
+              "modes": {
+                "print": "print",
+                "assembly": "assembly",
+                "center": "center"
+              },
+              "interfaces": {
+                "outerPanelEdges": [
+                  0,
+                  2,
+                  3,
+                  4
+                ],
+                "centerPanelHoles": [
+                  "bottom-left-corner",
+                  "bottom-middle-edge",
+                  "top-right-corner"
+                ],
+                "centerPanelClearance": 0.35,
+                "connectorCornerClearance": 14
+              },
+              "print": {
+                "bedSurface": "outside-cover"
+              }
+            },
+            {
+              "partId": "middle-panel-connector",
+              "canonicalSource": "parts/middle_panel_connector.scad",
+              "generator": "verified-scad-wrapper",
+              "generatedFile": "middle-panel-connector.scad",
+              "quantity": 11,
+              "modes": {
+                "print": "print",
+                "assembly": "assembly",
+                "installed": "part"
+              },
+              "interfaces": [
+                {
+                  "panel": "center",
+                  "hole": "top-middle-edge",
+                  "edgeDistance": 8
+                },
+                {
+                  "panel": "outer",
+                  "outerEdgeIndex": 1,
+                  "hole": "middle-edge",
+                  "edgeDistance": 8.2
+                }
+              ],
+              "print": {
+                "bedSurface": "center-panel-pad"
+              }
+            }
+          ],
+          "assembly": {
+            "generatedFile": "populated-pentagon-assembly.scad",
+            "preview": "center-and-five-outer-panels"
+          }
         }
       }
     }
   },
   "mapping": {
     "projection": "equirectangular",
-    "logicalOrder": "north-to-south-then-longitude"
+    "logicalOrder": "north-to-south-then-longitude",
+    "notes": [
+      "The north-pole pentagon is intentionally unpopulated: 30 square panels plus 11 pentagon-centre panels.",
+      "Northern centre panels present their top edge toward the pole; southern centre panels present their bottom edge toward the pole.",
+      "Logical effect indices run from global north to south; physical indices remain synthetic panel-major preview order.",
+      "Pixel-zero corner, serpentine order, controller outputs, and physical chain wiring remain unmeasured."
+    ]
   },
   "wiring": {
     "status": "provisional",
@@ -157,7 +1586,12 @@
       "status": "provisional"
     },
     "routeStrategy": "longitude-sectors-nearest-neighbor",
-    "chainLengths": [11, 10, 10, 10],
+    "chainLengths": [
+      11,
+      10,
+      10,
+      10
+    ],
     "connector": {
       "edgeInset": 4,
       "surfaceOffset": 2.4
@@ -197,6 +1631,8 @@
   },
   "notes": [
     "The north-pole pentagonal opening is intentionally unpopulated.",
-    "The geographic four-output route is a preview and not a hardware fact."
+    "The geographic four-output route is a preview and not a hardware fact.",
+    "Panel poses were migrated once from the legacy named-solid compiler and are now authoritative.",
+    "Generic closure generation is intentionally disabled; use the physically tested authored SCAD parts."
   ]
 }

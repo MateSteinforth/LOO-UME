@@ -16,7 +16,7 @@ interface ArtifactManifest {
 
 describe("processed sculpture registry", () => {
   it("lists every processed sculpture with a complete versioned artifact snapshot", () => {
-    expect(registryJson.sculptures).toHaveLength(4);
+    expect(registryJson.sculptures).toHaveLength(5);
     expect(new Set(registryJson.sculptures.map((entry) => entry.id)).size).toBe(
       registryJson.sculptures.length,
     );
@@ -37,7 +37,11 @@ describe("processed sculpture registry", () => {
         name: entry.name,
       });
 
-      if ("artifactStatus" in entry && entry.artifactStatus === "authoring-only") {
+      if (
+        "artifactStatus" in entry &&
+        (entry.artifactStatus === "authoring-only" ||
+          entry.artifactStatus === "manual-parts")
+      ) {
         continue;
       }
 

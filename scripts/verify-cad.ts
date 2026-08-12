@@ -3,8 +3,8 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { delimiter, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { emitCadArtifacts } from "../src/cad/GenerateCad.ts";
-import { loadCanonicalSculptureProject } from "../src/sculpture/Definition.ts";
+import { createManualCadProject, emitCadArtifacts } from "../src/cad/GenerateCad.ts";
+import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 
 const rootDirectory = process.cwd();
 const localOpenScad = resolve(
@@ -97,7 +97,11 @@ function verifyPrintable(
   return canonicalHash;
 }
 
-const project = loadCanonicalSculptureProject();
+const project = createManualCadProject(
+  await loadPanelAssemblyProjectFromFile(
+    "sculptures/rhombicosidodecahedron/sculpture.json",
+  ),
+);
 const generated = await emitCadArtifacts(project, { rootDirectory });
 const verificationDirectory = resolve(rootDirectory, "build", "verify-cad");
 await mkdir(verificationDirectory, { recursive: true });
