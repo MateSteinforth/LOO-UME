@@ -77,7 +77,7 @@ describe("browser sculpture editor", () => {
     expect(rotated.panelProfile).toEqual(original.panelProfile);
     expect(rotated.wiring).toEqual(originalWiring);
     expect(rotated.panels).toHaveLength(original.panels.length);
-    expect(rotated.mechanicalShell.derivationStatus).toBe(
+    expect(rotated.mechanicalShell!.derivationStatus).toBe(
       "requires-regeneration",
     );
     expect(rotated.calibration).toMatchObject({
@@ -167,7 +167,7 @@ describe("browser sculpture editor", () => {
       original,
       "editor-test.json",
     );
-    const faceId = original.closures.faceIds[0]!;
+    const faceId = original.closures!.faceIds[0]!;
     const edited = addPanelToClosureFace(
       original,
       faceId,
@@ -175,11 +175,11 @@ describe("browser sculpture editor", () => {
     );
 
     expect(original.panels).toHaveLength(6);
-    expect(original.closures.faceIds).toContain(faceId);
+    expect(original.closures!.faceIds).toContain(faceId);
     expect(edited.panels).toHaveLength(7);
-    expect(edited.closures.faceIds).not.toContain(faceId);
-    expect(edited.closures.faceIds.length).toBeGreaterThan(
-      original.closures.faceIds.length,
+    expect(edited.closures!.faceIds).not.toContain(faceId);
+    expect(edited.closures!.faceIds.length).toBeGreaterThan(
+      original.closures!.faceIds.length,
     );
     expect(
       edited.wiring.chainLengths.reduce((sum, value) => sum + value, 0),
@@ -233,7 +233,7 @@ describe("browser sculpture editor", () => {
       barycentric: [0.2, 0.3, 0.5],
       normalOffset: 0.4,
     });
-    expect(edited.mechanicalShell.derivationStatus).toBe(
+    expect(edited.mechanicalShell!.derivationStatus).toBe(
       "requires-regeneration",
     );
     const project = createPanelAssemblyProject(edited, "editor-test.json");
@@ -342,12 +342,12 @@ describe("browser sculpture editor", () => {
     const assembly = compilePanelAssembly(project);
     const panel = assembly.panels.find((candidate) => candidate.id === "P-07")!;
     const partIds = new Set(
-      regenerated.mechanicalShell.faces
+      regenerated.mechanicalShell!.faces
         .filter((face) => face.partId?.includes("P-07"))
         .map((face) => face.partId),
     );
 
-    expect(regenerated.mechanicalShell.derivationStatus).toBe("authored");
+    expect(regenerated.mechanicalShell!.derivationStatus).toBe("authored");
     expect(panel.faceId).toContain("HX-01-PANEL-P-07");
     expect(partIds.size).toBe(1);
     expect(
@@ -356,7 +356,7 @@ describe("browser sculpture editor", () => {
         .every((hole) => hole.assignedClosureId !== null),
     ).toBe(true);
     expect(regenerated.designSurface?.source).toBe("visual-canvas.glb");
-    expect(regenerated.mechanicalShell.vertices).not.toEqual([]);
+    expect(regenerated.mechanicalShell!.vertices).not.toEqual([]);
     const outputDirectory = await mkdtemp(join(tmpdir(), "regenerated-cad-"));
     const cad = await emitPanelClosureCadArtifacts(project, { outputDirectory });
     expect(cad.manifest.parts).toHaveLength(8);

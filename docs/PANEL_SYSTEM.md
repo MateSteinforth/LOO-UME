@@ -64,10 +64,12 @@ After an edit:
 - Manual mechanics set `manualMechanics.compatibilityStatus` to
   `requires-review`; tested parts must not be presented as matching new poses.
 
-The agreed mechanics-free workflow extends this behavior: a project with no
-mechanics still supports every normal editor, simulator, mapping, wiring, save,
-and reload action. If referenced generated parts exist, an edit makes them
-stale; it does not require a shell to exist and does not disable the interface.
+The mechanics-free workflow is implemented: a project with no mechanics still
+supports every normal editor, simulator, mapping, wiring, save, and reload
+action. Its panels need neither `mountFaceId` nor `surfaceAttachment`. Edits do
+not call nonexistent mechanics stale or awaiting regeneration. If referenced
+generated parts exist in a later asset slice, an edit will make those assets
+stale without disabling the interface.
 
 ## Mechanical routes
 

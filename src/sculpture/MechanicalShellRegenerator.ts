@@ -5,7 +5,7 @@ import type {
 
 type Vector3Tuple = [number, number, number];
 type Vector2Tuple = [number, number];
-type ShellFace = PanelAssemblyDefinition["mechanicalShell"]["faces"][number];
+type ShellFace = NonNullable<PanelAssemblyDefinition["mechanicalShell"]>["faces"][number];
 type Panel = PanelAssemblyDefinition["panels"][number];
 
 const PLANE_TOLERANCE = 0.05;
@@ -66,13 +66,14 @@ function samePose(a: Panel["pose"], b: Panel["pose"]): boolean {
 export function preserveAuthoringBoundary(
   definition: PanelAssemblyDefinition,
 ): void {
-  if (definition.mechanicalShell.authoringBoundary) return;
+  const mechanicalShell = definition.mechanicalShell;
+  if (!mechanicalShell || mechanicalShell.authoringBoundary) return;
   const panelFaceIds = new Set(
     definition.panels.flatMap((panel) => panel.mountFaceId ?? []),
   );
-  definition.mechanicalShell.authoringBoundary = {
-    vertices: structuredClone(definition.mechanicalShell.vertices),
-    faces: definition.mechanicalShell.faces.map(({ id, vertexIndices }) => ({
+  mechanicalShell.authoringBoundary = {
+    vertices: structuredClone(mechanicalShell.vertices),
+    faces: mechanicalShell.faces.map(({ id, vertexIndices }) => ({
       id,
       vertexIndices: [...vertexIndices],
       ...(panelFaceIds.has(id) ? { panelPlacement: "whole-face" as const } : {}),
@@ -367,7 +368,12 @@ export function regenerateMechanicalShell(
   project: PanelAssemblyProject,
 ): PanelAssemblyDefinition {
   const definition = structuredClone(project.sculpture);
-  const boundary = definition.mechanicalShell.authoringBoundary;
+  const mechanicalShell = definition.mechanicalShell;
+  const closures = definition.closures;
+  if (!mechanicalShell || !closures) {
+    throw new Error("Mechanical regeneration needs an existing planar shell and closure policy.");
+  }
+  const boundary = mechanicalShell.authoringBoundary;
   if (!boundary) {
     throw new Error("Mechanical regeneration needs the stable JSON authoring boundary captured by the editor.");
   }
@@ -381,7 +387,7 @@ export function regenerateMechanicalShell(
     frames,
     authored,
     project.panelProfile.dimensions,
-    definition.closures.panelEnvelopeClearance,
+    closures.panelEnvelopeClearance,
   ));
   const byFace = new Map<string, LocatedPanel[]>();
   for (const candidate of located) {
@@ -434,10 +440,10 @@ export function regenerateMechanicalShell(
       reason: "Four eligible holes are owned by coplanar sectors of one generated face-ring part.",
     };
   }
-  definition.mechanicalShell.vertices = vertices;
-  definition.mechanicalShell.faces = faces;
-  definition.mechanicalShell.derivationStatus = "authored";
-  definition.closures.faceIds = closureFaceIds;
+  mechanicalShell.vertices = vertices;
+  mechanicalShell.faces = faces;
+  mechanicalShell.derivationStatus = "authored";
+  closures.faceIds = closureFaceIds;
   definition.notes.push(
     "Printable topology was regenerated from the planar JSON mechanical boundary; the GLB was used only as a panel-positioning canvas.",
   );

@@ -20,6 +20,8 @@ export function deriveEditorCapabilities(
 ): EditorCapabilities {
   const hasPanels = definition.panels.length > 0;
   const usesManualMechanics = definition.manualMechanics !== undefined;
+  const hasGenericGenerationInput =
+    definition.mechanicalShell !== undefined && definition.closures !== undefined;
   return {
     canSelectPanels: hasPanels,
     canRotateSelectedPanel: hasPanels,
@@ -29,7 +31,8 @@ export function deriveEditorCapabilities(
     canCreateOnActiveSurface: hasActiveSurface && !usesManualMechanics,
     canAutomaticallySeed: hasActiveSurface && !usesManualMechanics,
     canExportMappingAndWiring: true,
-    canGenerateGenericMechanics: pipelineAvailable && !usesManualMechanics,
+    canGenerateGenericMechanics:
+      pipelineAvailable && !usesManualMechanics && hasGenericGenerationInput,
     manualMechanicsRequiresReview:
       definition.manualMechanics?.compatibilityStatus === "requires-review",
   };

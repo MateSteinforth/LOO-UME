@@ -138,6 +138,27 @@
               }
             ]
           }
+        },
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "manualMechanics"
+                ]
+              },
+              {
+                "required": [
+                  "mechanicalShell"
+                ]
+              },
+              {
+                "required": [
+                  "closures"
+                ]
+              }
+            ]
+          }
         }
       ]
     }

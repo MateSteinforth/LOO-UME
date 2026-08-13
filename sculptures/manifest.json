@@ -9,6 +9,12 @@
       "artifactStatus": "authoring-only"
     },
     {
+      "id": "pose-only-two-panel-fixture",
+      "name": "Pose-only Two-panel Fixture",
+      "source": "./sculptures/pose-only-two-panel/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
       "id": "cuboctahedron-six-panel-prototype",
       "name": "Six-panel Cuboctahedron",
       "source": "./sculptures/cuboctahedron/sculpture.json"

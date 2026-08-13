@@ -196,18 +196,23 @@ export function addPanelToClosureFace(
   panelDimensions: AddPanelDimensions,
 ): PanelAssemblyDefinition {
   const definition = structuredClone(source);
-  const closureIndex = definition.closures.faceIds.indexOf(faceId);
+  const mechanicalShell = definition.mechanicalShell;
+  const closures = definition.closures;
+  if (!mechanicalShell || !closures) {
+    throw new Error("Adding to a closure face requires existing generated mechanics.");
+  }
+  const closureIndex = closures.faceIds.indexOf(faceId);
   preserveAuthoringBoundary(definition);
   if (closureIndex < 0) {
     throw new Error(`${faceId} is not an available closure face.`);
   }
-  const faceIndex = definition.mechanicalShell.faces.findIndex(
+  const faceIndex = mechanicalShell.faces.findIndex(
     (candidate) => candidate.id === faceId,
   );
-  const face = definition.mechanicalShell.faces[faceIndex];
+  const face = mechanicalShell.faces[faceIndex];
   if (!face) throw new Error("Mechanical face " + faceId + " does not exist.");
   const originalVertices = face.vertexIndices.map(
-    (vertexIndex) => definition.mechanicalShell.vertices[vertexIndex]!,
+    (vertexIndex) => mechanicalShell.vertices[vertexIndex]!,
   );
   const position = mean(originalVertices);
   const xAxis = normalize(subtract(originalVertices[1]!, originalVertices[0]!));
@@ -225,7 +230,7 @@ export function addPanelToClosureFace(
   const panelAnchorEdges = () =>
     face.vertexIndices.flatMap((start, edgeIndex) => {
       const end = face.vertexIndices[(edgeIndex + 1) % face.vertexIndices.length]!;
-      const neighbor = definition.mechanicalShell.faces.find((candidate) =>
+      const neighbor = mechanicalShell.faces.find((candidate) =>
         candidate.id !== faceId && panelFaceIds.has(candidate.id) &&
         candidate.vertexIndices.some((value, candidateIndex) => {
           const next = candidate.vertexIndices[
@@ -245,13 +250,13 @@ export function addPanelToClosureFace(
     });
   const anchors = panelAnchorEdges();
   const vertices = face.vertexIndices.map(
-    (vertexIndex) => definition.mechanicalShell.vertices[vertexIndex]!,
+    (vertexIndex) => mechanicalShell.vertices[vertexIndex]!,
   );
   const localPolygon = vertices.map<Vector2Tuple>((vertex) => {
     const delta = subtract(vertex, position);
     return [dot(delta, xAxis), dot(delta, yAxis)];
   });
-  const clearance = definition.closures.panelEnvelopeClearance;
+  const clearance = closures.panelEnvelopeClearance;
   const fit = fitPanelRectangle(
     localPolygon,
     panelDimensions.width + clearance * 2,
@@ -268,15 +273,15 @@ export function addPanelToClosureFace(
   const panelYAxis = add(scale(xAxis, -sine), scale(yAxis, cosine));
   const innerIndices = fit.corners.map(([x, y]) => {
     const vertex = add(add(position, scale(xAxis, x)), scale(yAxis, y));
-    definition.mechanicalShell.vertices.push(vertex);
-    return definition.mechanicalShell.vertices.length - 1;
+    mechanicalShell.vertices.push(vertex);
+    return mechanicalShell.vertices.length - 1;
   });
   const anchorEdgeIndices = anchors.map((anchor) => anchor.edgeIndex);
   const ringSectors = partitionRing(
     face.vertexIndices,
     innerIndices,
     anchorEdgeIndices,
-    definition.mechanicalShell.vertices,
+    mechanicalShell.vertices,
     normal,
   );
   const closureFaces = ringSectors.map((vertexIndices, index) => ({
@@ -287,13 +292,13 @@ export function addPanelToClosureFace(
       reason: "Inset ring sectors are strip-like parts anchored to both the new panel and an existing neighboring panel.",
     },
   }));
-  definition.mechanicalShell.faces.splice(
+  mechanicalShell.faces.splice(
     faceIndex,
     1,
     { id: faceId, vertexIndices: innerIndices },
     ...closureFaces,
   );
-  definition.closures.faceIds.splice(
+  closures.faceIds.splice(
     closureIndex,
     1,
     ...closureFaces.map((closure) => closure.id),
@@ -360,8 +365,8 @@ export function movePanelOnDesignSurface(
       "Load a GLB or use the sculpture JSON face graph before moving panels.",
     );
   }
-  if (source.manualMechanics && placement.attachment.surface === "mechanical-shell") {
-    throw new Error("Manual mechanics do not provide a JSON mechanical-shell placement surface.");
+  if (placement.attachment.surface === "mechanical-shell" && !source.mechanicalShell) {
+    throw new Error("This project has no JSON mechanical-shell placement surface.");
   }
   const definition = structuredClone(source);
   if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
@@ -470,8 +475,8 @@ export function addPanelOnDesignSurface(
       "Load a GLB or use the sculpture JSON face graph before adding panels.",
     );
   }
-  if (source.manualMechanics && placement.attachment.surface === "mechanical-shell") {
-    throw new Error("Manual mechanics do not provide a JSON mechanical-shell placement surface.");
+  if (placement.attachment.surface === "mechanical-shell" && !source.mechanicalShell) {
+    throw new Error("This project has no JSON mechanical-shell placement surface.");
   }
   if (source.manualMechanics && !metadata?.faceType) {
     throw new Error("Adding a panel to manual mechanics requires an explicit faceType.");
@@ -510,7 +515,9 @@ export function addPanelOnDesignSurface(
     definition.wiring.chainLengths[shortestOutput]! + 1;
   markPanelEditConsequences(definition, [panelId]);
   definition.notes.push(
-    `Panel ${panelId} was placed manually on the design surface; mechanical shell regeneration remains required.`,
+    definition.mechanicalShell
+      ? `Panel ${panelId} was placed manually on the design surface; mechanical shell regeneration remains required.`
+      : `Panel ${panelId} was placed manually on the design surface; no printable mechanics exist yet.`,
   );
   return definition;
 }
@@ -665,6 +672,9 @@ export function automaticallySeedPanelsOnSurface(
   if (options.surface === "design-surface" && !source.designSurface) {
     throw new Error("Load a GLB design surface before seeding panels on it.");
   }
+  if (options.surface === "mechanical-shell" && !source.mechanicalShell) {
+    throw new Error("This project has no JSON mechanical-shell placement surface.");
+  }
   if (
     panelDimensions.width <= 0 || panelDimensions.height <= 0 ||
     !Number.isFinite(panelDimensions.width + panelDimensions.height)
@@ -736,7 +746,9 @@ export function automaticallySeedPanelsOnSurface(
   definition.notes.push(
     `Automatically seeded ${placedPanelIds.length} panels across the ${
       options.surface === "design-surface" ? "GLB" : "JSON shell"
-    } authoring surface; manually verify placement and regenerate mechanics separately.`,
+    } authoring surface; manually verify placement${
+      definition.mechanicalShell ? " and regenerate mechanics separately" : ""
+    }.`,
   );
   return {
     definition,
@@ -779,7 +791,9 @@ export function deletePanel(
     definition.wiring.chainLengths[longestOutput]! - 1;
   markPanelEditConsequences(definition, [panelId, ...changedNeighborPanelIds]);
   definition.notes.push(
-    `Panel ${panelId} was deleted in the browser editor; mechanical shell regeneration remains required.`,
+    definition.mechanicalShell
+      ? `Panel ${panelId} was deleted in the browser editor; mechanical shell regeneration remains required.`
+      : `Panel ${panelId} was deleted in the browser editor; no printable mechanics exist yet.`,
   );
   return definition;
 }

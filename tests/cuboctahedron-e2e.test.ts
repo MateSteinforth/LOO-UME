@@ -244,7 +244,7 @@ describe("panel-driven cuboctahedron end-to-end compiler", () => {
   it("rejects an unassigned face", () => {
     const project = loadFixtureProject();
     const invalid = structuredClone(project.sculpture);
-    invalid.closures.faceIds.pop();
+    invalid.closures!.faceIds.pop();
     expect(() => parsePanelAssemblyDefinition(invalid)).toThrow(
       "Every face must be assigned",
     );

@@ -18,19 +18,20 @@ Schema 2 sculpture JSON + panel hardware profile
                      WLED ledmap
 ```
 
-Fabrication is currently a separate branch with two supported routes:
+Fabrication is a separate, optional branch with two supported routes:
 
 ```text
+(no mechanics fields) ----------> complete pose-first interface, no CAD
 manualMechanics ----------------> verified wrappers around parts/*.scad
 mechanicalShell + closures -----> planar validation -> generated SCAD/STL
 ```
 
-The code does not yet express this separation completely: the Schema 2 parser
-requires exactly one mechanics route. A pose-only mapping project is therefore
-a desired capability, not valid current JSON.
+Schema 2 pose-only projects are valid JSON. They load, edit, simulate, map,
+wire, save, and reopen without a placeholder shell. Generic 3D-part generation
+stays disabled until supported generation input exists.
 
-The agreed target adds a third, UI-driven lifecycle rather than another pose
-authority:
+The remaining UI-driven fabrication target extends that lifecycle rather than
+adding another pose authority:
 
 ```text
 referenced GLB -> automatic placement -> manual pose edits
@@ -69,7 +70,8 @@ and refuse invalid or non-manifold results.
 ## Browser lifecycle and data flow
 
 1. `web/src/main.ts` starts with the empty 66 mm cuboctahedron project, or loads
-   a registered, URL, or local Schema 2 sculpture.
+   a registered, URL, or local Schema 2 sculpture. Mechanics fields may be
+   omitted; a missing or invalid optional GLB only disables surface placement.
 2. `LoadPanelAssemblyProject.ts` resolves the panel profile and the handwritten
    runtime parser validates input. JSON Schema files are not the runtime loader.
 3. `createPanelAssemblyMapping()` expands each pose into panel metadata and LED
@@ -80,8 +82,9 @@ and refuse invalid or non-manifold results.
    physical indices and builds the WLED ledmap.
 5. Three.js renders panels, LEDs, surfaces, connectors, wiring, and available
    printable layers. One selected panel ID drives all selection-focused UI.
-6. Every edit rebuilds mapping and wiring. Generated mechanics become
-   `requires-regeneration`; manual mechanics become `requires-review`.
+6. Every edit rebuilds mapping and wiring. Existing generated mechanics become
+   `requires-regeneration`; manual mechanics become `requires-review`; a project
+   that has never had mechanics remains mechanics-free without a stale status.
 7. JSON, ledmap, and wiring downloads are client-side files. Local development
    CAD writes an isolated preview under `build/`; it does not replace canonical
    sculpture JSON.

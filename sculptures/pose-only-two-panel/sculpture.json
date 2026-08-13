@@ -1,0 +1,70 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "pose-only-two-panel-fixture",
+  "name": "Pose-only Two-panel Fixture",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "ws2812b-8x8-66x65",
+    "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
+  },
+  "panels": [
+    {
+      "id": "P-01",
+      "pose": {
+        "position": [0, 50, 0],
+        "orientation": {
+          "xAxis": [1, 0, 0],
+          "yAxis": [0, 0, -1],
+          "normal": [0, 1, 0]
+        }
+      }
+    },
+    {
+      "id": "P-02",
+      "pose": {
+        "position": [50, 0, 0],
+        "orientation": {
+          "xAxis": [0, 0, -1],
+          "yAxis": [0, 1, 0],
+          "normal": [1, 0, 0]
+        }
+      }
+    }
+  ],
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "longitude-sectors-nearest-neighbor",
+    "chainLengths": [2],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Fixture output",
+        "gpio": null,
+        "color": "#36e0d0"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Pose-only fixture: panel poses, mapping, and provisional wiring exist before any printable mechanics."
+  ]
+}

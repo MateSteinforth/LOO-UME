@@ -33,8 +33,8 @@ uses `createPanelAssemblyMapping()`.
   may constrain editing but must not silently replace a saved pose.
 - Mapping, wiring, and simulation must continue after a panel edit even when
   printable mechanics are stale or unavailable.
-- Today the Schema 2 parser still requires exactly one of `manualMechanics` or
-  `mechanicalShell` + `closures`. The agreed target is mechanics-free editing:
+- Schema 2 mechanics are optional. Omitting `manualMechanics`,
+  `mechanicalShell`, and `closures` is the implemented mechanics-free state:
   load GLB, place/edit panels, simulate, map, wire, save, and reload before any
   mechanics exist.
 - GLBs are authoring surfaces only. The planned general generator starts from

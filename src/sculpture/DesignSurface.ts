@@ -101,12 +101,16 @@ export function createMechanicalShellTriangleMesh(
   indices: number[];
   validation: SurfaceMeshValidation;
 } {
-  const positions = definition.mechanicalShell.vertices.flatMap(
+  const mechanicalShell = definition.mechanicalShell;
+  if (!mechanicalShell) {
+    throw new Error("This project has no mechanical-shell placement surface.");
+  }
+  const positions = mechanicalShell.vertices.flatMap(
     (vertex) => vertex,
   );
-  const indices = definition.mechanicalShell.faces.flatMap((face) => {
+  const indices = mechanicalShell.faces.flatMap((face) => {
     const vertices = face.vertexIndices.map(
-      (index) => definition.mechanicalShell.vertices[index]!,
+      (index) => mechanicalShell.vertices[index]!,
     );
     const origin = vertices[0]!;
     const xAxis = vectorNormalize(vectorSubtract(vertices[1]!, origin));

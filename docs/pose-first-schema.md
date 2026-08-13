@@ -81,15 +81,17 @@ The current schema intentionally selects one panel profile per project. A
 future schema can add per-panel profile IDs when mixed hardware is supported by
 CAD, wiring, and WLED addressing end to end.
 
-## Planned mechanics-free and asset-reference extension
+## Mechanics-free projects and planned asset references
 
-The agreed next contract allows a project to omit `manualMechanics`,
-`mechanicalShell`, and `closures`. Such a project still loads, edits, simulates,
-maps, wires, saves, and reloads. A panel pose does not require `mountFaceId` or a
-surface attachment; those fields describe optional authoring/mechanical
-relationships rather than the panel's existence.
+A project may omit `manualMechanics`, `mechanicalShell`, and `closures`. Such a
+project loads, edits, simulates, maps, wires, saves, and reloads. A panel pose
+does not require `mountFaceId` or a surface attachment; those fields describe
+optional authoring/mechanical relationships rather than the panel's existence.
+The browser does not create a placeholder shell, and generic 3D-part generation
+is disabled until supported boundary input exists. A missing or invalid optional
+GLB disables surface placement without invalidating the project.
 
-After **Generate 3D Parts**, the JSON will reference, rather than embed, the
+In the planned asset-contract slice, **Generate 3D Parts** will reference, rather than embed, the
 generated boundary and exact STL parts. References follow the existing GLB
 model: project-relative source plus SHA-256. The generated-mechanics record also
 needs a generator version and a deterministic fingerprint of the panel poses

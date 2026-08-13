@@ -1,9 +1,11 @@
 # UI-driven mechanics workflow
 
-This page records the agreed product direction for general sculptures. It is a
-target architecture, not a description of behavior already implemented. The
-existing manual 41-panel parts and existing planar-shell generator remain
-supported while this workflow is built in vertical slices.
+This page records the agreed product direction for general sculptures. The
+mechanics-independent interface in steps 1–4 is implemented: mechanics fields
+may be omitted and optional GLB failures are non-fatal. Boundary generation,
+asset persistence, exact STL restoration, and ZIP support remain target
+architecture. The existing manual 41-panel parts and planar-shell generator
+remain supported while later slices are built.
 
 ## User workflow
 

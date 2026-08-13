@@ -6,6 +6,9 @@ an implemented contract; settle open product/schema choices before coding.
 ## Implemented
 
 - Schema 2 registry plus URL/local sculpture JSON loading and JSON download.
+- Mechanics-free Schema 2 projects with full panel editing, GLB placement,
+  simulation, mapping, provisional wiring, save, and reopen behavior; missing
+  optional GLBs are non-fatal.
 - Optional GLB loading with source, scale, hash, and status metadata.
 - Pose-authoritative 3D panels and 64-LED expansion from a reusable profile.
 - Selection, surface/local movement, local-Z rotation, deletion, manual
@@ -22,13 +25,11 @@ an implemented contract; settle open product/schema choices before coding.
 
 Highest-priority architecture gaps:
 
-1. Schema 2 requires manual or generated mechanics; pose-only mapping projects
-   are invalid although downstream mapping/wiring can operate from poses.
-2. JSON stores chain lengths but not ordered panel sequences per output.
-3. Validation/readiness states cannot consistently represent fully measured
+1. JSON stores chain lengths but not ordered panel sequences per output.
+2. Validation/readiness states cannot consistently represent fully measured
    production wiring.
-4. The live manual CAD wrapper still depends on Schema 1 types.
-5. Static `authored` JSON can bypass editor regeneration fit checks.
+3. The live manual CAD wrapper still depends on Schema 1 types.
+4. Static `authored` JSON can bypass editor regeneration fit checks.
 
 Other known gaps:
 
@@ -52,15 +53,12 @@ Other known gaps:
 
 ## Proposed milestones
 
-### 1. Make the complete interface mechanics-independent
+### 1. Make the complete interface mechanics-independent — shipped
 
-- Represent no mechanics by omitting mechanics fields; do not add a second pose
-  authority or require a placeholder shell.
-- Update parsing, capabilities, editing, save/reload, tests, and UI so a project
-  can load a GLB, automatically place panels, edit manually, simulate, map, and
-  preview wiring before mechanics exist.
-- Keep automatic GLB placement distinct from structure generation and make an
-  unavailable GLB non-fatal to the pose-first project.
+Mechanics are represented by omitting all mechanics fields. Pose-only projects
+support GLB/automatic/manual placement, local edits, simulation, mapping,
+provisional wiring, save, and reopen. Optional GLB load failures are non-fatal,
+and generic generation explains that boundary input does not exist yet.
 
 ### 2. Define portable project assets
 

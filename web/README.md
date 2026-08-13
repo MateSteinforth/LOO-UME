@@ -71,8 +71,9 @@ is added.
 - **Panel selection** accepts either the visible panel label or the enlarged panel
   surface target. The selected label gains an amber highlight. Dragging still starts
   from the 3D panel target so a label tap cannot accidentally move hardware.
-- **Delete selected panel** removes the active panel, rebalances provisional wiring,
-  preserves JSON face assignment, and marks the mechanical shell for regeneration.
+- **Delete selected panel** removes the active panel and rebalances provisional
+  wiring. Existing generated mechanics are marked for regeneration; a pose-only
+  project remains mechanics-free.
 - **Add panel to face** lists only closure faces that can contain the active panel
   profile. It insets the PCB rectangle, partitions the remaining face into printable
   closure sectors, derives a right-handed panel pose, and rebalances provisional
@@ -82,9 +83,10 @@ is added.
   OpenSCAD sources, STL files, and PNG previews under an isolated
   `-editor-preview` ID, then reloads the exact STL meshes in Three.js.
 
-A JSON-shell or GLB surface move or addition marks the mechanical shell as requiring
-regeneration. The simulator then omits stale shell, mount, and printable-closure
-previews. Run matches each pose to exactly one planar JSON boundary face, validates
+A JSON-shell or GLB surface move or addition marks existing generated mechanics
+as requiring regeneration. A pose-only project has no mechanical state to
+invalidate and keeps simulation, mapping, wiring, editing, and save enabled. The
+simulator omits stale shell, mount, and printable-closure previews. Run matches each pose to exactly one planar JSON boundary face, validates
 the complete cleared panel envelope, regenerates the panel opening and coplanar
 flat-printable filler part, and only then invokes OpenSCAD. The GLB remains a visual
 positioning canvas and is never used as mechanical geometry. Unsupported or unsafe

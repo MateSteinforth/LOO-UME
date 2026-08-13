@@ -49,11 +49,11 @@ function dot(a: Vector3Tuple, b: Vector3Tuple): number {
 function addSquarePanel(
   definition: PanelAssemblyDefinition,
   face: NonNullable<
-    PanelAssemblyDefinition["mechanicalShell"]["authoringBoundary"]
+    NonNullable<PanelAssemblyDefinition["mechanicalShell"]>["authoringBoundary"]
   >["faces"][number],
   triangleIndex: number,
 ): PanelAssemblyDefinition {
-  const boundary = definition.mechanicalShell.authoringBoundary!;
+  const boundary = definition.mechanicalShell!.authoringBoundary!;
   const vertices = face.vertexIndices.map(
     (index) => boundary.vertices[index]!,
   );
@@ -120,7 +120,7 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
     expect(validateMapping(mapping, 0)).toEqual({ valid: true, errors: [] });
     expect(mesh.validation.watertight).toBe(true);
 
-    const boundary = definition.mechanicalShell.authoringBoundary!;
+    const boundary = definition.mechanicalShell!.authoringBoundary!;
     const squareFaces = boundary.faces.filter(
       (face) => face.panelPlacement === "whole-face",
     );
@@ -158,7 +158,7 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
       ),
     );
     let definition = parsePanelAssemblyDefinition(input);
-    const squareFaces = definition.mechanicalShell.authoringBoundary!.faces.filter(
+    const squareFaces = definition.mechanicalShell!.authoringBoundary!.faces.filter(
       (face) => face.panelPlacement === "whole-face",
     );
     for (const [index, face] of squareFaces.entries()) {
@@ -178,7 +178,7 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
     const assembly = compilePanelAssembly(project);
     const mapping = createPanelAssemblyMapping(project, assembly);
 
-    expect(regenerated.closures.faceIds).toEqual([
+    expect(regenerated.closures!.faceIds).toEqual([
       "TR-01",
       "TR-02",
       "TR-03",
@@ -210,7 +210,7 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
       ),
     );
     let definition = parsePanelAssemblyDefinition(input);
-    const squareFaces = definition.mechanicalShell.authoringBoundary!.faces.filter(
+    const squareFaces = definition.mechanicalShell!.authoringBoundary!.faces.filter(
       (face) => face.panelPlacement === "whole-face",
     );
     for (const [index, face] of squareFaces.entries()) {
@@ -258,7 +258,7 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
       rotatedProject.panelProfile,
     );
 
-    expect(rotatedDefinition.closures.faceIds).toHaveLength(8);
+    expect(rotatedDefinition.closures!.faceIds).toHaveLength(8);
     expect(rotatedAssembly.counts.closureConnectors).toBe(24);
     expect(rotatedMapping.entries).toHaveLength(384);
     const zeroPanel = zeroAssembly.panels.find((panel) => panel.id === panelId)!;
@@ -335,7 +335,7 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
       ),
     );
     let definition = parsePanelAssemblyDefinition(input);
-    const squareFaces = definition.mechanicalShell.authoringBoundary!.faces.filter(
+    const squareFaces = definition.mechanicalShell!.authoringBoundary!.faces.filter(
       (face) => face.panelPlacement === "whole-face",
     );
     for (const [index, face] of squareFaces.entries()) {
@@ -357,7 +357,7 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
       ),
     );
     const definition = parsePanelAssemblyDefinition(input);
-    const firstSquare = definition.mechanicalShell.authoringBoundary!.faces.find(
+    const firstSquare = definition.mechanicalShell!.authoringBoundary!.faces.find(
       (face) => face.panelPlacement === "whole-face",
     )!;
     const withOnePanel = addSquarePanel(definition, firstSquare, 0);

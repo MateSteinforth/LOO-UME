@@ -59,7 +59,7 @@ export interface PanelAssemblyDefinition {
       };
     };
   }>;
-  mechanicalShell: {
+  mechanicalShell?: {
     /** Stable, uncut JSON boundary used to regenerate edited mechanical topology. */
     authoringBoundary?: {
       vertices: Array<[number, number, number]>;
@@ -86,7 +86,7 @@ export interface PanelAssemblyDefinition {
       connectorPolicy?: { minimumPanelHoleConnectors: 2; reason: string };
     }>;
   };
-  closures: {
+  closures?: {
     faceIds: string[];
     generator: "panel-hole-tabs";
     holeSelection: "minimum-total-edge-distance";
@@ -325,6 +325,9 @@ export function parsePanelAssemblyDefinition(
   }
   const manualMechanics = input.manualMechanics;
   const usesManualMechanics = manualMechanics !== undefined;
+  const hasMechanicalShell = input.mechanicalShell !== undefined;
+  const hasClosures = input.closures !== undefined;
+  const usesGeneratedMechanics = hasMechanicalShell && hasClosures;
   if (
     usesManualMechanics &&
     (!isRecord(manualMechanics) ||
@@ -341,24 +344,24 @@ export function parsePanelAssemblyDefinition(
   if (usesManualMechanics && (input.mechanicalShell !== undefined || input.closures !== undefined)) {
     throw new Error("Manual mechanics cannot also request generated closure topology.");
   }
-  if (!usesManualMechanics && (input.mechanicalShell === undefined || input.closures === undefined)) {
-    throw new Error("Generated mechanics require a mechanical shell and closure policy.");
+  if (hasMechanicalShell !== hasClosures) {
+    throw new Error("Generated mechanics require both a mechanical shell and closure policy.");
   }
-  const geometry = usesManualMechanics
-    ? { kind: "explicit-planar-face-graph", vertices: [], faces: [] }
-    : record(input, "mechanicalShell");
-  if (
+  const geometry = usesGeneratedMechanics
+    ? record(input, "mechanicalShell")
+    : undefined;
+  if (geometry && (
     (geometry.derivationStatus !== undefined &&
       geometry.derivationStatus !== "authored" &&
       geometry.derivationStatus !== "requires-regeneration") ||
     geometry.kind !== "explicit-planar-face-graph" ||
     !Array.isArray(geometry.vertices) ||
     !Array.isArray(geometry.faces)
-  ) {
+  )) {
     throw new Error("Mechanical shell must be an explicit planar face graph.");
   }
-  const sourceVertices = geometry.vertices;
-  const sourceFaces = geometry.faces;
+  const sourceVertices = (geometry?.vertices ?? []) as unknown[];
+  const sourceFaces = (geometry?.faces ?? []) as unknown[];
   for (const vertex of sourceVertices) {
     if (
       !Array.isArray(vertex) ||
@@ -400,8 +403,8 @@ export function parsePanelAssemblyDefinition(
   }
   if (
     !Array.isArray(input.panels) ||
-    (input.panels.length === 0 && !usesManualMechanics &&
-      (geometry.derivationStatus !== "requires-regeneration" ||
+    (input.panels.length === 0 && usesGeneratedMechanics &&
+      (geometry?.derivationStatus !== "requires-regeneration" ||
         !isRecord(geometry.authoringBoundary)))
   ) {
     throw new Error(
@@ -417,7 +420,8 @@ export function parsePanelAssemblyDefinition(
       : undefined;
     const surfaceAttachmentIsValid = surfaceAttachment === undefined ||
       (isRecord(surfaceAttachment) &&
-        (surfaceAttachment.surface === "mechanical-shell" ||
+        ((surfaceAttachment.surface === "mechanical-shell" &&
+            usesGeneratedMechanics) ||
           ((surfaceAttachment.surface === undefined ||
             surfaceAttachment.surface === "design-surface") &&
             designSurface !== undefined)) &&
@@ -503,9 +507,9 @@ export function parsePanelAssemblyDefinition(
         panel.mirrored !== null &&
         typeof panel.mirrored !== "boolean") ||
       (panel.mountFaceId === undefined
-        ? !usesManualMechanics &&
+        ? usesGeneratedMechanics &&
           (surfaceAttachment === undefined ||
-            geometry.derivationStatus !== "requires-regeneration")
+            geometry?.derivationStatus !== "requires-regeneration")
         : typeof panel.mountFaceId !== "string" ||
           panelFaceIds.has(panel.mountFaceId) ||
           !faceIds.has(panel.mountFaceId)) ||
@@ -519,7 +523,7 @@ export function parsePanelAssemblyDefinition(
       orthonormalError > 1e-6
     ) {
       throw new Error(
-        "Panels require unique IDs, valid mechanical associations (or a surface attachment while regeneration is required), finite positions, and right-handed orthonormal orientations.",
+        "Panels require unique IDs, valid optional mechanical associations, finite positions, and right-handed orthonormal orientations.",
       );
     }
     panelIds.add(panel.id);
@@ -538,6 +542,11 @@ export function parsePanelAssemblyDefinition(
         );
       }
     }
+    validateWiring(record(input, "wiring"), input.panels.length);
+    if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
+    return input as unknown as PanelAssemblyDefinition;
+  }
+  if (!usesGeneratedMechanics) {
     validateWiring(record(input, "wiring"), input.panels.length);
     if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
     return input as unknown as PanelAssemblyDefinition;
@@ -630,7 +639,12 @@ export function assertMechanicalShellReady(
       "This sculpture uses manually authored printable parts; generic closure CAD generation is intentionally unavailable.",
     );
   }
-  if (project.sculpture.mechanicalShell!.derivationStatus === "requires-regeneration") {
+  if (!project.sculpture.mechanicalShell || !project.sculpture.closures) {
+    throw new Error(
+      "Generic 3D-part generation is unavailable until generation input exists. Add a supported mechanical boundary, or wait for panel-outline boundary generation.",
+    );
+  }
+  if (project.sculpture.mechanicalShell.derivationStatus === "requires-regeneration") {
     throw new Error(
       "Mechanical shell is out of date with design-surface panel poses; regenerate connector topology before producing CAD.",
     );
@@ -754,12 +768,14 @@ export function compilePanelAssembly(
   project: PanelAssemblyProject,
 ): CompiledPanelAssembly {
   const definition = project.sculpture;
-  if (definition.manualMechanics || !definition.mechanicalShell || !definition.closures) {
+  const mechanicalShell = definition.mechanicalShell;
+  const closures = definition.closures;
+  if (definition.manualMechanics || !mechanicalShell || !closures) {
     throw new Error(
-      "Manual authored-part sculptures do not compile generic closure topology.",
+      "Projects without generated mechanics do not compile generic closure topology.",
     );
   }
-  const vertices = definition.mechanicalShell.vertices.map(([x, y, z]) =>
+  const vertices = mechanicalShell.vertices.map(([x, y, z]) =>
     vector(x, y, z),
   );
   const panelByFace = new Map(
@@ -767,8 +783,8 @@ export function compilePanelAssembly(
       panel.mountFaceId === undefined ? [] : [[panel.mountFaceId, panel] as const]
     ),
   );
-  const closureFaceIds = new Set(definition.closures.faceIds);
-  const faces: CompiledAssemblyFace[] = definition.mechanicalShell.faces.map((source) => {
+  const closureFaceIds = new Set(closures.faceIds);
+  const faces: CompiledAssemblyFace[] = mechanicalShell.faces.map((source) => {
     const faceVertices = source.vertexIndices.map((index) => vertices[index]!);
     const center = mean(faceVertices);
     const firstEdge = subtract(faceVertices[1]!, faceVertices[0]!);
@@ -974,7 +990,7 @@ export function compilePanelAssembly(
         return;
       }
       const panelInterface = interfaces[interfaceIndex]!;
-      const preference = definition.closures.holePreferences?.find(
+      const preference = closures.holePreferences?.find(
         (candidate) =>
           candidate.closureVertexCount ===
           panelInterface.closure.vertexIndices.length,
@@ -1052,7 +1068,7 @@ export function compilePanelAssembly(
   for (const [partId, regions] of closureParts) {
     const connectors = regions.flatMap((region) => region.connectors);
     const minimumConnectors = Math.max(...regions.map((region) => {
-      const sourceFace = definition.mechanicalShell.faces.find(
+      const sourceFace = mechanicalShell.faces.find(
         (face) => face.id === region.id,
       )!;
       return sourceFace.connectorPolicy?.minimumPanelHoleConnectors ?? 3;
@@ -1085,7 +1101,7 @@ export function compilePanelAssembly(
       (hole) => hole.assignedClosureId !== null,
     );
     if (
-      definition.closures.holeSelection === "minimum-total-edge-distance" &&
+      closures.holeSelection === "minimum-total-edge-distance" &&
       assignedHoles.length !== eligibleHoles.length
     ) {
       throw new Error(
@@ -1150,7 +1166,9 @@ export function createPanelAssemblyMapping(
 ): LedMapping {
   const resolvedAssembly = assembly ??
     (project.sculpture.manualMechanics ||
-        project.sculpture.mechanicalShell?.derivationStatus === "requires-regeneration"
+        !project.sculpture.mechanicalShell ||
+        !project.sculpture.closures ||
+        project.sculpture.mechanicalShell.derivationStatus === "requires-regeneration"
       ? null
       : compilePanelAssembly(project));
   const columns = project.panelProfile.pixelGrid.columns;
@@ -1319,12 +1337,16 @@ export function createPanelAssemblyMapping(
     notes: project.sculpture.mapping.notes ?? [
       project.sculpture.manualMechanics
         ? "Panel transforms compile directly from explicit poses; printable mechanics remain in the manually authored SCAD parts."
-        : "Panel transforms compile directly from explicit poses in sculpture.json; the mechanical shell supplies closure faces.",
+        : project.sculpture.mechanicalShell
+          ? "Panel transforms compile directly from explicit poses in sculpture.json; the mechanical shell supplies closure faces."
+          : "Panel transforms compile directly from explicit poses in sculpture.json; no printable mechanics exist yet.",
       resolvedAssembly
         ? "Each closure connector targets a real, uniquely assigned PCB mounting hole."
         : project.sculpture.manualMechanics
           ? "Generic closure and mechanical-mount preview layers are intentionally omitted."
-          : "Mechanical previews are omitted until the design-surface poses receive regenerated shell topology.",
+          : project.sculpture.mechanicalShell
+            ? "Mechanical previews are omitted until the design-surface poses receive regenerated shell topology."
+            : "Mechanical previews are omitted because this project has no mechanics.",
       resolvedAssembly
         ? `${resolvedAssembly.edges.filter((edge) => edge.faceIds.every((faceId) => resolvedAssembly.faces.find((face) => face.id === faceId)?.role === "closure")).length} closure-to-closure edges are clean butt seams without PCB-hole tabs.`
         : "Printable closure and mechanical-mount layers are intentionally unavailable.",

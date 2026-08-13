@@ -182,7 +182,7 @@ function panelCutter(
   const xAxis = localVector(frame, panel.xAxis);
   const yAxis = localVector(frame, panel.yAxis);
   const inward = localVector(frame, scale(panel.normal, -1));
-  const clearance = project.sculpture.closures.panelEnvelopeClearance;
+  const clearance = project.sculpture.closures!.panelEnvelopeClearance;
   const cutterDepth =
     project.panelProfile.dimensions.thickness +
     project.panelProfile.mounting.physicalCorrections.surfaceFlush;
@@ -196,7 +196,7 @@ function closureSource(
   assembly: CompiledPanelAssembly,
   regions: CompiledAssemblyFace[],
 ): string {
-  const policy = project.sculpture.closures;
+  const policy = project.sculpture.closures!;
   const face = regions[0]!;
   const connectorEntries = regions.flatMap((region) =>
     region.connectors.map((connector) => ({ connector, region }))
@@ -274,7 +274,7 @@ module gusset_${index}() {
     return point3(localPoint(frame, scale(vertex, 1 + 0.03 / radius)));
   });
   const sourceFaceById = new Map(
-    project.sculpture.mechanicalShell.faces.map((candidate) => [candidate.id, candidate]),
+    project.sculpture.mechanicalShell!.faces.map((candidate) => [candidate.id, candidate]),
   );
   const clipFaces = assembly.faces.flatMap((candidate) => {
     if (sourceFaceById.get(candidate.id)?.connectorPolicy) {

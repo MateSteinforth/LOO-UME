@@ -67,7 +67,7 @@ describe("automatic panel placement", () => {
     expect(first.definition.panels).toEqual(repeated.definition.panels);
     expect(first.triangleIndices).toEqual(repeated.triangleIndices);
     expect(first.definition.wiring.chainLengths).toEqual([6]);
-    expect(first.definition.mechanicalShell.derivationStatus).toBe(
+    expect(first.definition.mechanicalShell!.derivationStatus).toBe(
       "requires-regeneration",
     );
     for (const panel of first.definition.panels) {

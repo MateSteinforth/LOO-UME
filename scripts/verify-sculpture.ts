@@ -86,7 +86,7 @@ const outputDirectory = resolve(
   project.sculpture.id,
 );
 const assemblyRadius = Math.max(
-  ...project.sculpture.mechanicalShell.vertices.map(([x, y, z]) => Math.hypot(x, y, z)),
+  ...project.sculpture.mechanicalShell!.vertices.map(([x, y, z]) => Math.hypot(x, y, z)),
 );
 const assemblyCameraDistance = Math.max(700, assemblyRadius * 5);
 const generated = await emitPanelClosureCadArtifacts(project, {
