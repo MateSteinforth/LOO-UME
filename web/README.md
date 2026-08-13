@@ -25,12 +25,13 @@ upstream coupling points.
 
 ## Setup
 
-Prerequisites are Git, Node.js 20 or newer, npm, Python 3, and enough disk space
+Prerequisites are Git, Node.js 22, npm, Python 3, and enough disk space
 for a project-local Emscripten SDK.
 
 ```bash
 git submodule update --init --depth 1
-npm install
+npm run setup:wled
+npm ci
 npm run setup:emsdk
 npm run dev
 ```
@@ -46,7 +47,8 @@ EMCC=/absolute/path/to/emcc npm run build:wasm
 npm run dev:web
 ```
 
-The pinned version is in `wasm/emscripten-version.txt`.
+The compiler version is pinned in `wasm/emscripten-version.txt`; the emsdk
+installer checkout is pinned independently in `wasm/emsdk-revision.txt`.
 
 ## Sculpture JSON editor
 
@@ -107,19 +109,26 @@ local-Z normal—is described in
 
 ## Build and test
 
+From a fresh clone, the single complete command is:
+
 ```bash
-npm run check:wled
-npm run generate:mapping
-npm run build
-npm test
+npm run verify:clean
 ```
 
-`npm run build` compiles the C++ engine and creates a production Vite bundle
-in `dist/`. Every WASM build first verifies that 37 selected function bodies
-match the pinned WLED submodule revision. `npm test` rebuilds WASM, then checks
-initialization, every registered effect at 2,700 LEDs, framebuffer changes,
-deterministic timestamps, resize behavior, out-of-bounds protection, and
-mapping invariants.
+It initializes the pinned WLED submodule, runs `npm ci`, installs the pinned
+project-local Emscripten SDK, regenerates assets, builds WASM, runs every Vitest
+test, type-checks, and creates the Vite production bundle in `dist/`. For an
+already prepared checkout, use `npm run verify`; it performs the same build and
+verification phases without dependency or SDK installation.
+
+`npm test` is intentionally the fast, already-prepared command. It runs all
+Vitest tests but neither builds WASM nor downloads Emscripten; it fails with a
+direct setup message when the ignored WASM files are absent. `npm run test:full`
+builds WASM with the installed pinned SDK and then runs `npm test`. Every WASM
+build first verifies the compiler version and that 37 selected function bodies
+match the pinned WLED submodule revision. The WASM tests cover initialization,
+every registered effect at 2,700 LEDs, framebuffer changes, deterministic
+timestamps, resize behavior, out-of-bounds protection, and mapping invariants.
 
 Every build regenerates `layout/panel-map.json` and
 `wled/ledmap.provisional.json`. The browser imports those actual JSON artifacts
@@ -233,7 +242,7 @@ provisional fields and unlock the production exporter.
 5. Add every copied effect/helper name to `VERIFIED_FUNCTIONS` in
    `scripts/check-wled-sync.mjs`.
 6. Record new upstream assumptions in `TECH_NOTES.md`.
-7. Run `npm run check:wled && npm test && npm run build`.
+7. Run `npm run verify`.
 
 Do not patch the WLED submodule. Hardware, networking, filesystem, and ESP32
 services belong outside this WASM target.

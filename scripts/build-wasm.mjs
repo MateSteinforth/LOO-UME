@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -8,6 +8,34 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const pinnedVersion = readFileSync(path.join(repoRoot, "wasm/emscripten-version.txt"), "utf8").trim();
 const localEmcc = path.join(repoRoot, ".tools/emsdk/upstream/emscripten/emcc");
 const emcc = process.env.EMCC || (process.platform === "win32" ? "emcc.bat" : localEmcc);
+
+const upstreamSource = path.join(repoRoot, "wled/upstream/wled00/FX.cpp");
+if (!existsSync(upstreamSource)) {
+  console.error("The pinned WLED submodule is not initialized. Run npm run setup:wled.");
+  process.exit(1);
+}
+
+const versionResult = spawnSync(emcc, ["--version"], { encoding: "utf8" });
+if (versionResult.error?.code === "ENOENT") {
+  console.error(
+    `Emscripten ${pinnedVersion} is not installed. Run npm run setup:emsdk, or set EMCC to an emcc executable.`,
+  );
+  process.exit(1);
+}
+if (versionResult.status !== 0) {
+  process.stderr.write(versionResult.stderr || versionResult.stdout || "Unable to query emcc version.\n");
+  process.exit(versionResult.status ?? 1);
+}
+const reportedVersion = `${versionResult.stdout}\n${versionResult.stderr}`.match(
+  /\b(\d+\.\d+\.\d+)\b/,
+)?.[1];
+if (reportedVersion !== pinnedVersion) {
+  console.error(
+    `Emscripten version mismatch: expected ${pinnedVersion}, found ${reportedVersion ?? "unknown"}.`,
+  );
+  process.exit(1);
+}
+
 verifyWledSync(repoRoot);
 
 const outputDir = path.join(repoRoot, "web/public/wasm");
@@ -66,10 +94,4 @@ const result = spawnSync(emcc, args, {
   stdio: "inherit"
 });
 
-if (result.error?.code === "ENOENT") {
-  console.error(
-    `Emscripten ${pinnedVersion} is not installed. Run npm run setup:emsdk, or set EMCC to an emcc executable.`
-  );
-  process.exit(1);
-}
 process.exit(result.status ?? 1);

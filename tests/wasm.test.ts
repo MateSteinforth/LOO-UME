@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 interface TestModule {
@@ -20,7 +21,14 @@ interface TestModule {
 
 async function loadModule(): Promise<TestModule> {
   const outputDir = path.resolve("web/public/wasm");
-  const url = pathToFileURL(path.join(outputDir, "wled-engine.js")).href;
+  const jsPath = path.join(outputDir, "wled-engine.js");
+  const wasmPath = path.join(outputDir, "wled-engine.wasm");
+  if (!existsSync(jsPath) || !existsSync(wasmPath)) {
+    throw new Error(
+      "WLED WASM artifacts are missing. Run npm run build:wasm or npm run test:full before npm test.",
+    );
+  }
+  const url = pathToFileURL(jsPath).href;
   const imported = (await import(url)) as {
     default(options: { locateFile(pathName: string): string }): Promise<TestModule>;
   };

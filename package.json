@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "setup:wled": "sh scripts/setup-wled.sh",
     "setup:emsdk": "sh scripts/setup-emsdk.sh",
     "check:wled": "node scripts/check-wled-sync.mjs",
     "validate:sculpture": "tsx scripts/validate-sculpture.ts",
@@ -27,13 +28,16 @@
     "dev:web": "npm run stage:sculptures && npm run build:wasm && vite",
     "preview:phone": "sh scripts/start-phone-preview.sh",
     "build": "npm run generate:assets && npm run build:wasm && tsc -b && vite build",
+    "build:web": "vite build",
     "preview": "vite preview",
     "test:panel-editing": "vitest run --config vitest.config.ts tests/panel-json-editing.test.ts tests/selection-focus.test.ts",
     "test:placement": "vitest run --config vitest.config.ts tests/automatic-panel-placement.test.ts",
     "test:editor": "vitest run --config vitest.config.ts tests/sculpture-editor.test.ts tests/panel-json-editing.test.ts tests/automatic-panel-placement.test.ts tests/selection-focus.test.ts",
     "test:unit": "vitest run --config vitest.config.ts",
-    "test:full": "npm run generate:assets && npm run build:wasm && vitest run --config vitest.config.ts",
-    "test": "npm run test:unit"
+    "test:full": "npm run build:wasm && npm test",
+    "test": "npm run test:unit",
+    "verify": "npm run generate:assets && npm run build:wasm && npm test && npx tsc -b && npm run build:web",
+    "verify:clean": "sh scripts/verify-clean.sh"
   },
   "dependencies": {
     "three": "^0.179.1"

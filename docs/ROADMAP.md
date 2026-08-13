@@ -20,6 +20,8 @@ an implemented contract; settle open product/schema choices before coding.
 - Mechanical invalidation after edits and development-only isolated CAD output.
 - Three.js layer/focus controls and a deterministic 30-effect WLED WASM preview.
 - File-based persistence; no database or browser local storage.
+- Deterministic clean-checkout verification with pinned WLED, emsdk, and
+  Emscripten revisions; CI builds ignored WASM artifacts before all tests.
 
 ## Incomplete or blocked in the current model
 
@@ -44,8 +46,7 @@ Other known gaps:
   and flat grouped parts. It does not reproduce the U-frame system.
 - No production firmware, DDP/Art-Net transport, Ethernet/microphone setup, or
   audio-reactive simulation exists.
-- WASM tests depend on generated files; `npm test` does not build them from a
-  clean checkout. Browser interaction coverage is mostly helper-level.
+- Browser interaction coverage is mostly helper-level.
 - `main.ts`, `SphereRenderer.ts`, and `SurfacePlacementController.ts` carry
   multiple responsibilities; fingerprinting ignores index bits above bit 15;
   some overlap code is unreachable; generated SCAD is not committed with
@@ -116,7 +117,7 @@ remain later slices using these same reference and hash rules.
 - Centralize complete runtime validation, including manual mechanics and full
   panel-fit checks for every automatic CAD entry.
 - Derive LED-count assumptions from the selected panel profile.
-- Make tests build required WASM inputs or provide deterministic setup.
+- Preserve the clean-checkout verification contract as WLED and Emscripten evolve.
 - Add end-to-end browser interaction tests; retain render checks for geometry.
 
 ### 8. Expand fabrication and hardware deliberately

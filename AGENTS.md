@@ -73,12 +73,12 @@ uses `createPanelAssemblyMapping()`.
 Use the narrowest relevant checks, then broaden when risk warrants it:
 
 ```bash
-npm test                         # Vitest only; does not build WASM
+npm test                         # all Vitest tests; requires prepared ignored WASM files
 npm run test:editor
 npm run test:placement
-npx tsc -b
-npm run check:wled
-npm run test:full                # regenerates assets and builds WASM first
+npm run test:full                # builds WASM with the installed pinned SDK, then tests
+npm run verify                   # assets, WASM, Vitest, TypeScript, and Vite
+npm run verify:clean             # submodule, npm ci, pinned SDK, then npm run verify
 ```
 
 After geometry changes, render every changed printable part with OpenSCAD and

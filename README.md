@@ -175,11 +175,36 @@ contracts that emit temporary OpenSCAD source, run:
 npm run test:editor
 ```
 
-`npm test` runs the complete Vitest suite without regenerating repository
-assets. Use `npm run test:full` when the generated mapping, WLED, and CAD
-assets also need to be rebuilt first. Printable geometry remains a separate,
+`npm test` runs the complete Vitest suite without building or downloading
+anything first. The ignored `web/public/wasm/wled-engine.{js,wasm}` files must
+already exist, so a missing WASM build is a clear failure. `npm run test:full`
+builds WASM with an already installed pinned Emscripten SDK and then runs the same suite.
+Use `npm run verify` for the normal prepared-checkout verification: it regenerates
+assets, builds WASM, runs all Vitest tests, runs `npx tsc -b`, and builds Vite. Printable geometry remains a separate,
 explicit verification step through `npm run verify:cad` and
 `npm run verify:processed-sculptures`.
+
+## Clean checkout verification
+
+A clean clone needs Git, Node.js 22, npm, Python 3, network access, and space for
+the project-local Emscripten SDK. From the repository root, run:
+
+```bash
+npm run verify:clean
+```
+
+That command initializes and verifies the pinned WLED submodule, runs `npm ci`,
+checks out the pinned emsdk installer revision, installs Emscripten 4.0.14,
+regenerates repository assets, builds WASM, runs every Vitest test, runs
+`npx tsc -b`, and builds the Vite application. It does not require generated
+files from another checkout. The generated
+`web/public/wasm/wled-engine.{js,wasm}` files remain ignored and must not be
+committed. CI executes the same essential sequence from `actions/checkout` with
+submodules enabled.
+
+For a checkout whose submodule, npm dependencies, and Emscripten SDK are already
+prepared, run `npm run verify`. Neither `npm test` nor `npm run verify` downloads
+the SDK.
 
 ## Build locally
 
