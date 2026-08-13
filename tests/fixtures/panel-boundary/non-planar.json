@@ -1,0 +1,9 @@
+{
+  "base": "sculptures/panel-outline-prism/sculpture.json",
+  "mutation": {
+    "kind": "translate-panel",
+    "panelId": "P-BACK",
+    "offset": [0, 0, 0.2]
+  },
+  "expectedErrorCode": "non-planar"
+}

@@ -22,6 +22,7 @@ export function deriveEditorCapabilities(
   const usesManualMechanics = definition.manualMechanics !== undefined;
   const hasGenericGenerationInput =
     definition.mechanicalShell !== undefined && definition.closures !== undefined;
+  const hasPanelBoundaryInput = definition.boundaryTopology !== undefined;
   return {
     canSelectPanels: hasPanels,
     canRotateSelectedPanel: hasPanels,
@@ -32,7 +33,9 @@ export function deriveEditorCapabilities(
     canAutomaticallySeed: hasActiveSurface && !usesManualMechanics,
     canExportMappingAndWiring: true,
     canGenerateGenericMechanics:
-      pipelineAvailable && !usesManualMechanics && hasGenericGenerationInput,
+      !usesManualMechanics &&
+      (hasPanelBoundaryInput ||
+        (pipelineAvailable && hasGenericGenerationInput)),
     manualMechanicsRequiresReview:
       definition.manualMechanics?.compatibilityStatus === "requires-review",
   };

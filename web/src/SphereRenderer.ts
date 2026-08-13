@@ -16,6 +16,7 @@ import type {
 } from "./LedMapping";
 import type { WiringPreview } from "./WiringPreview";
 import type { EditorCapabilities } from "./EditorCapabilities.ts";
+import type { ClosedPanelBoundary } from "../../src/sculpture/PanelOutlineBoundary.ts";
 import {
   SurfacePlacementController,
   type SurfacePanelPlacement,
@@ -56,6 +57,7 @@ export class SphereRenderer {
   });
   private readonly labelRenderer = new CSS2DRenderer();
   private readonly panelLayer = new THREE.Group();
+  private readonly boundaryPreviewLayer = new THREE.Group();
   private readonly printableLayer = new THREE.Group();
   private readonly connectorLayer = new THREE.Group();
   private readonly wiringLayer = new THREE.Group();
@@ -134,6 +136,7 @@ export class SphereRenderer {
     this.scene.add(
       this.occlusionCore,
       this.panelLayer,
+      this.boundaryPreviewLayer,
       this.printableLayer,
       this.wiringLayer,
       this.connectorLayer,
@@ -149,6 +152,7 @@ export class SphereRenderer {
   setMapping(mapping: LedMapping): void {
     this.mappingRevision += 1;
     this.mapping = mapping;
+    this.clearBoundaryPreview();
     this.clearWiringPreview();
     const positions = new Float32Array(mapping.entries.length * 3);
     const colors = new Float32Array(mapping.entries.length * 3);
@@ -301,6 +305,46 @@ export class SphereRenderer {
     this.applyShellTransparency();
   }
 
+  setBoundaryPreview(boundary: ClosedPanelBoundary | null): void {
+    this.clearBoundaryPreview();
+    if (!boundary) return;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(boundary.vertices.flat(), 3),
+    );
+    geometry.setIndex(boundary.triangles.flat());
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+    const surface = new THREE.Mesh(
+      geometry,
+      new THREE.MeshBasicMaterial({
+        color: 0x36e0d0,
+        opacity: 0.24,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
+      }),
+    );
+    surface.name = "panel-outline-boundary-surface";
+    surface.renderOrder = 2;
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geometry, 1),
+      new THREE.LineBasicMaterial({
+        color: 0x8fffee,
+        transparent: true,
+        opacity: 0.9,
+        depthTest: true,
+      }),
+    );
+    edges.name = "panel-outline-boundary-edges";
+    edges.renderOrder = 3;
+    this.boundaryPreviewLayer.add(surface, edges);
+  }
+
   setPrintableLayerVisible(visible: boolean): void {
     this.printableLayer.visible = visible;
   }
@@ -326,6 +370,7 @@ export class SphereRenderer {
     this.controls.dispose();
     this.surfacePlacement.dispose();
     this.clearPanelDecorations();
+    this.clearBoundaryPreview();
     this.disposeGroup(this.printableLayer);
     this.clearWiringPreview();
     this.geometry.dispose();
@@ -853,6 +898,10 @@ export class SphereRenderer {
         wiringGroup.add(arrowHead);
       }
     }
+  }
+
+  private clearBoundaryPreview(): void {
+    this.disposeGroup(this.boundaryPreviewLayer);
   }
 
   private clearWiringPreview(): void {

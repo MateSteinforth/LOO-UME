@@ -160,6 +160,14 @@ export function createGeneratedMechanicsFingerprint(
     panels: definition.panels
       .map(({ id, pose }) => ({ id, pose }))
       .sort((left, right) => compareText(left.id, right.id)),
+    boundaryTopology: definition.boundaryTopology
+      ? {
+          kind: definition.boundaryTopology.kind,
+          gaps: definition.boundaryTopology.gaps
+            .map(({ id, vertices }) => ({ id, vertices }))
+            .sort((left, right) => compareText(left.id, right.id)),
+        }
+      : undefined,
     panelProfile: {
       schemaVersion: profile.schemaVersion,
       id: profile.id,

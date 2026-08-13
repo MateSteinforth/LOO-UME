@@ -1,0 +1,9 @@
+{
+  "base": "sculptures/panel-outline-prism/sculpture.json",
+  "mutation": {
+    "kind": "duplicate-gap",
+    "gapId": "gap-top",
+    "newGapId": "gap-top-duplicate"
+  },
+  "expectedErrorCode": "cap-intersection"
+}

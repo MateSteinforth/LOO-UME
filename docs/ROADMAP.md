@@ -22,6 +22,10 @@ an implemented contract; settle open product/schema choices before coding.
 - File-based persistence; no database or browser local storage.
 - Deterministic clean-checkout verification with pinned WLED, emsdk, and
   Emscripten revisions; CI builds ignored WASM artifacts before all tests.
+- Deterministic zero-thickness closed-boundary generation from pose/profile
+  panel outlines plus connectivity-only accepted gap cycles, with cap-local and
+  global two-manifold validation, manifest-ready metadata, complete/invalid
+  fixtures, and an in-browser Three.js boundary preview.
 
 ## Incomplete or blocked in the current model
 
@@ -72,15 +76,20 @@ authority, and save-time validation rejects temporary
 `build/editor-projects/...` paths. Folder asset loading and ZIP import/export
 remain later slices using these same reference and hash rules.
 
-### 3. Generate and validate a boundary from panel outlines
+### 3. Generate and validate a boundary from panel outlines — shipped
 
 - Derive exact panel outlines and PCB envelopes from authoritative poses.
-- Infer or confirm gap topology and close each gap with one flat simple N-gon.
-  The user is responsible for arranging panels so this assumption holds.
+- Accept connectivity-only panel-corner gap cycles and close each gap with one
+  flat simple N-gon. The user remains responsible for arranging panels so this
+  assumption holds; future topology inference may feed the same contract.
 - Validate cap planarity, polygon simplicity, winding, intersections,
   connectivity, and closed two-manifold topology; report the offending gap when
   generation is impossible.
-- Save and display the generated boundary before printable-part generation.
+- Produce deterministic indexed geometry, source/mesh fingerprints, named
+  tolerances, provenance, and counts suitable for the later asset manifest.
+- Display the generated zero-thickness boundary in Three.js before
+  printable-part generation. Saving it as an exact referenced asset belongs to
+  milestone 4's atomic asset-writing slice.
 
 ### 4. Generate, reference, and display exact printable parts
 

@@ -15,6 +15,12 @@
       "artifactStatus": "authoring-only"
     },
     {
+      "id": "panel-outline-prism-boundary-fixture",
+      "name": "Panel-outline Prism Boundary Fixture",
+      "source": "./sculptures/panel-outline-prism/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
       "id": "cuboctahedron-six-panel-prototype",
       "name": "Six-panel Cuboctahedron",
       "source": "./sculptures/cuboctahedron/sculpture.json"

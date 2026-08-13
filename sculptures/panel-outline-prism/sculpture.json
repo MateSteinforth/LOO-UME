@@ -1,0 +1,119 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "panel-outline-prism-boundary-fixture",
+  "name": "Panel-outline Prism Boundary Fixture",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "ws2812b-8x8-66x65",
+    "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
+  },
+  "panels": [
+    {
+      "id": "P-FRONT",
+      "pose": {
+        "position": [0, 33, 0],
+        "orientation": {
+          "xAxis": [-1, 0, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [0, 1, 0]
+        }
+      }
+    },
+    {
+      "id": "P-RIGHT",
+      "pose": {
+        "position": [33, 0, 0],
+        "orientation": {
+          "xAxis": [0, 1, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [1, 0, 0]
+        }
+      }
+    },
+    {
+      "id": "P-BACK",
+      "pose": {
+        "position": [0, -33, 0],
+        "orientation": {
+          "xAxis": [1, 0, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [0, -1, 0]
+        }
+      }
+    },
+    {
+      "id": "P-LEFT",
+      "pose": {
+        "position": [-33, 0, 0],
+        "orientation": {
+          "xAxis": [0, -1, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [-1, 0, 0]
+        }
+      }
+    }
+  ],
+  "boundaryTopology": {
+    "kind": "panel-outline-gap-cycles",
+    "gaps": [
+      {
+        "id": "gap-top",
+        "vertices": [
+          { "panelId": "P-FRONT", "corner": "top-left" },
+          { "panelId": "P-FRONT", "corner": "top-right" },
+          { "panelId": "P-LEFT", "corner": "top-right" },
+          { "panelId": "P-BACK", "corner": "top-right" }
+        ]
+      },
+      {
+        "id": "gap-bottom",
+        "vertices": [
+          { "panelId": "P-FRONT", "corner": "bottom-right" },
+          { "panelId": "P-FRONT", "corner": "bottom-left" },
+          { "panelId": "P-RIGHT", "corner": "bottom-left" },
+          { "panelId": "P-BACK", "corner": "bottom-left" }
+        ]
+      }
+    ]
+  },
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude",
+    "notes": [
+      "Boundary topology stores only panel-corner connectivity; all geometry is regenerated from poses and profile dimensions."
+    ]
+  },
+  "wiring": {
+    "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "longitude-sectors-nearest-neighbor",
+    "chainLengths": [4],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Prism fixture output",
+        "gpio": null,
+        "color": "#36e0d0"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Complete milestone-3 fixture: four authoritative panel rectangles form the sides and two flat square caps close the boundary.",
+    "This boundary has no thickness, mounts, part split, or STL output."
+  ]
+}

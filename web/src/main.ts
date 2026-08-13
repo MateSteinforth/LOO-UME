@@ -26,6 +26,9 @@ import {
   sculptureJson,
 } from "../../src/sculpture/SculptureEditor";
 import {
+  generateClosedPanelBoundary,
+} from "../../src/sculpture/PanelOutlineBoundary";
+import {
   loadGlbDesignSurface,
   loadMechanicalShellDesignSurface,
   placementMeshFromSurface,
@@ -376,12 +379,15 @@ app.innerHTML = `
               Generate WLED mapping + optimized wiring
             </button>
             <button id="generate-print-parts" class="pipeline-button" type="button">
-              Generate 3D print elements
+              Generate boundary / 3D parts
             </button>
           </div>
           <div id="pipeline-status" class="pipeline-status" role="status">
             Local Vite pipeline is ready.
           </div>
+          <p class="mapping-note">
+            Pose-first projects with accepted gap cycles generate and display a validated zero-thickness boundary preview. Thickness, mounts, splitting, and STL output are later stages.
+          </p>
         </section>
 
         <section class="architecture-card">
@@ -472,10 +478,10 @@ const generatePrintPartsButton =
   query<HTMLButtonElement>("#generate-print-parts");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 const pipelineAvailable = import.meta.env.DEV;
-generatePrintPartsButton.disabled = !pipelineAvailable;
+generatePrintPartsButton.disabled = true;
 if (!pipelineAvailable) {
   pipelineStatus.textContent =
-    "Mapping and wiring exports are available. Run npm run dev:web to generate 3D print elements.";
+    "Mapping, wiring, and in-browser panel-outline boundary previews are available. The legacy OpenSCAD/STL pipeline requires local development mode.";
 }
 let outputLayerToggles: HTMLInputElement[] = [];
 
@@ -574,8 +580,10 @@ async function start(): Promise<void> {
         !capabilities.canGenerateGenericMechanics;
       generatePrintPartsButton.title = editorDefinition.manualMechanics
         ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
-        : !editorDefinition.mechanicalShell || !editorDefinition.closures
-          ? "Generic 3D-part generation is unavailable until generation input exists. Panel-outline boundary generation is a later milestone."
+        : editorDefinition.boundaryTopology
+          ? "Validate panel outlines and accepted gap cycles, then display the closed boundary preview."
+          : !editorDefinition.mechanicalShell || !editorDefinition.closures
+            ? "Boundary generation needs accepted panel-corner gap cycles; legacy 3D-part generation needs an explicit planar shell."
           : "";
       automaticPanelPlacementControls.hidden =
         editorDefinition.manualMechanics !== undefined;
@@ -654,6 +662,8 @@ async function start(): Promise<void> {
           : "Mapping and wiring use authoritative poses. Printable mechanics use the manually authored SCAD parts; generic cap generation is disabled."
         : editorDefinition.mechanicalShell && !mechanicalShellIsCurrent()
         ? "Panel poses changed on an authoring surface. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
+        : editorDefinition.boundaryTopology
+          ? "Mapping and wiring use authoritative poses. Accepted gap cycles contain connectivity only; Generate Boundary validates and previews the derived closed mesh."
         : !editorDefinition.mechanicalShell
           ? "Mapping and wiring use authoritative poses. No printable mechanics exist yet; the complete pose-first interface remains available."
         : isPanelized
@@ -1319,9 +1329,26 @@ async function start(): Promise<void> {
         generatePrintPartsButton.disabled = true;
         addPanelButton.disabled = true;
         pipelineStatus.classList.remove("pipeline-status--error");
-        pipelineStatus.textContent =
-          "Regenerating mechanical topology, then generating OpenSCAD, STLs, and printable previews…";
+        pipelineStatus.textContent = editorDefinition.boundaryTopology
+          ? "Deriving exact panel outlines and validating flat gap caps…"
+          : "Regenerating mechanical topology, then generating OpenSCAD, STLs, and printable previews…";
         try {
+          if (editorDefinition.boundaryTopology) {
+            const boundary = generateClosedPanelBoundary(
+              editorDefinition,
+              editorProject.panelProfile,
+            );
+            renderer?.setBoundaryPreview(boundary);
+            const counts = boundary.metadata.counts;
+            pipelineStatus.textContent =
+              `Boundary preview passed: ${counts.panelOutlines} panel outlines + ` +
+              `${counts.caps} flat caps, ${counts.faces} faces, ` +
+              `${counts.triangles} deterministic triangles. Mesh ` +
+              `${boundary.metadata.meshFingerprint.value.slice(0, 12)}…. ` +
+              "No thickness, mounts, part splitting, or STL was generated.";
+            viewerError.hidden = true;
+            return;
+          }
           const response = await fetch("./api/editor-pipeline", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

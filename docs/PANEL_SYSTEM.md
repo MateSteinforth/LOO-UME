@@ -114,9 +114,23 @@ Some truncated-octahedron closure edges are unfastened butt seams; this is a
 known limitation, not missing geometry. Generic parts are iterative fabrication
 output and still require print/fit inspection.
 
-### Planned panel-outline boundary generation
+### Panel-outline boundary generation
 
-The target **Generate 3D Parts** flow does not require a mechanical boundary
+Milestone 3 is implemented in `src/sculpture/PanelOutlineBoundary.ts`. A
+pose-first project may provide `boundaryTopology.kind =
+"panel-outline-gap-cycles"`. Each gap is an ordered cycle of stable panel IDs
+and named corners (`bottom-left`, `bottom-right`, `top-right`, `top-left`). The
+topology is connectivity only: it cannot store coordinates, dimensions, or
+transforms, so it cannot become a second pose authority.
+
+The generator derives exact 66 × 65 mm rectangles and 0.8 mm PCB envelopes
+from the resolved profile and authoritative poses. It welds coincident corners
+within named `vertexWeldMm`, validates each cap against named planarity, edge,
+area, and intersection tolerances, and then proves consistent winding,
+connectivity, closure, edge incidence, and vertex-link two-manifoldness.
+Errors carry a stable code and identify the offending gap when applicable.
+
+The **Generate boundary / 3D parts** flow does not require a mechanical boundary
 before panel placement. It derives exact rectangular panel outlines from the
 saved poses, identifies the gaps between them, and closes each gap with one flat
 simple N-gon. The user is responsible for arranging panels so this is possible.
@@ -128,6 +142,11 @@ subtraction, mounting-hole allocation, connector keep-outs, and STL generation.
 The exact STL outputs are referenced by the project JSON and loaded in Three.js.
 The design GLB may guide placement and topology suggestions but is not copied or
 thickened into printable structure.
+
+The current browser preview is the deterministic zero-thickness indexed boundary
+mesh, not a printable part and not an STL approximation. Thickness, mounts, part
+splitting, atomic asset writing, exact-STL restoration, and ZIP transport remain
+later milestones.
 
 See [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md) for the complete target
 workflow, asset bundle, staleness rules, and acceptance journey.

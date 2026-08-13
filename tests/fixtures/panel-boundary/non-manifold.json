@@ -1,0 +1,9 @@
+{
+  "base": "sculptures/panel-outline-prism/sculpture.json",
+  "mutation": {
+    "kind": "duplicate-panel",
+    "panelId": "P-FRONT",
+    "newPanelId": "P-FRONT-DUPLICATE"
+  },
+  "expectedErrorCode": "non-manifold"
+}

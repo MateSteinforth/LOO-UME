@@ -1,0 +1,8 @@
+{
+  "base": "sculptures/panel-outline-prism/sculpture.json",
+  "mutation": {
+    "kind": "remove-gap",
+    "gapId": "gap-bottom"
+  },
+  "expectedErrorCode": "open-boundary"
+}

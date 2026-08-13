@@ -54,6 +54,24 @@ export interface GeneratedMechanicsManifest {
   }>;
 }
 
+export type PanelOutlineCornerId =
+  | "bottom-left"
+  | "bottom-right"
+  | "top-right"
+  | "top-left";
+
+/** Connectivity only: all referenced corner positions are derived from poses. */
+export interface PanelBoundaryTopology {
+  kind: "panel-outline-gap-cycles";
+  gaps: Array<{
+    id: string;
+    vertices: Array<{
+      panelId: string;
+      corner: PanelOutlineCornerId;
+    }>;
+  }>;
+}
+
 export interface PanelAssemblyDefinition {
   schemaVersion: "2.0.0";
   id: string;
@@ -70,6 +88,7 @@ export interface PanelAssemblyDefinition {
     scaleToMillimeters: number;
     status: "watertight";
   };
+  boundaryTopology?: PanelBoundaryTopology;
   generatedMechanics?: GeneratedMechanicsManifest;
   panels: Array<{
     id: string;
@@ -432,6 +451,14 @@ export function parsePanelAssemblyDefinition(
   if (usesManualMechanics && (input.mechanicalShell !== undefined || input.closures !== undefined)) {
     throw new Error("Manual mechanics cannot also request generated closure topology.");
   }
+  if (
+    input.boundaryTopology !== undefined &&
+    (usesManualMechanics || hasMechanicalShell || hasClosures)
+  ) {
+    throw new Error(
+      "Panel-outline gap topology is a pose-first boundary input and cannot be combined with manual or existing planar-shell mechanics.",
+    );
+  }
   if (hasMechanicalShell !== hasClosures) {
     throw new Error("Generated mechanics require both a mechanical shell and closure policy.");
   }
@@ -616,6 +643,47 @@ export function parsePanelAssemblyDefinition(
     }
     panelIds.add(panel.id);
     if (panel.mountFaceId !== undefined) panelFaceIds.add(panel.mountFaceId as string);
+  }
+  if (input.boundaryTopology !== undefined) {
+    const topology = input.boundaryTopology;
+    const validCorners = new Set<PanelOutlineCornerId>([
+      "bottom-left",
+      "bottom-right",
+      "top-right",
+      "top-left",
+    ]);
+    if (
+      !isRecord(topology) ||
+      topology.kind !== "panel-outline-gap-cycles" ||
+      !Array.isArray(topology.gaps) ||
+      topology.gaps.length === 0
+    ) {
+      throw new Error(
+        "Boundary topology must contain one or more panel-outline gap cycles.",
+      );
+    }
+    const gapIds = new Set<string>();
+    for (const gap of topology.gaps) {
+      if (
+        !isRecord(gap) ||
+        typeof gap.id !== "string" ||
+        gap.id.length === 0 ||
+        gapIds.has(gap.id) ||
+        !Array.isArray(gap.vertices) ||
+        gap.vertices.length < 3 ||
+        gap.vertices.some((vertex) =>
+          !isRecord(vertex) ||
+          typeof vertex.panelId !== "string" ||
+          !panelIds.has(vertex.panelId) ||
+          !validCorners.has(vertex.corner as PanelOutlineCornerId)
+        )
+      ) {
+        throw new Error(
+          "Boundary gaps require unique IDs and at least three known panel-corner references.",
+        );
+      }
+      gapIds.add(gap.id);
+    }
   }
   if (usesManualMechanics) {
     for (const panel of input.panels) {

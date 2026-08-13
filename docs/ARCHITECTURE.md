@@ -38,7 +38,9 @@ referenced GLB -> automatic placement -> manual pose edits
                                       |
                                Generate 3D Parts
                                       |
-          panel outlines -> flat N-gon gap caps -> closed boundary
+ panel poses + profile -> panel outlines + accepted corner-only gap cycles
+                                      |
+                    validated closed boundary -> Three.js preview
                                       |
                        validated printable part generation
                                       |
@@ -59,6 +61,7 @@ and refuse invalid or non-manifold results.
 | `src/sculpture/PanelAssembly.ts` | Schema 2 parsing, pose compilation, face graph, LED geometry | Active model; poses remain authoritative |
 | `src/sculpture/SculptureEditor.ts` | Add/move/rotate/delete/seed and mechanics invalidation | Editing does not require successful CAD |
 | `src/sculpture/MechanicalShellRegenerator.ts` | Rebuild supported planar topology after edits | Rejects unsafe or ambiguous mechanics |
+| `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, validate accepted flat cap cycles, and emit a deterministic closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
 | `src/cad/GeneratePanelClosureCad.ts` | Generic flat closures from compiled planar faces | Not an arbitrary curved/GLB generator |
 | `src/cad/GenerateCad.ts`, `parts/` | Legacy-typed wrappers around tested manual parts | Separate from generic CAD |
 | `web/src/` | UI, Three.js rendering, placement, mapping, routing, export | `main.ts` owns most application state |
@@ -101,8 +104,12 @@ current/stale authority and panel edits do not stop the pose-first application.
 Folder asset loading, exact-STL display, and optional ZIP transport remain later
 milestones. See
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
-## Rendering and simulation
 
+Schema 2 may now accept `boundaryTopology` as stable panel-ID/named-corner
+cycles. It contains no vertex positions or transforms. The browser derives and
+validates the zero-thickness mesh on demand and displays it as a boundary preview.
+
+## Rendering and simulation
 
 `SphereRenderer.ts` uses Three.js/WebGL, instanced LED sprites, solid PCB depth,
 CSS2D labels/delete control, and separate surface, panel, closure, connector,

@@ -3,10 +3,12 @@
 This page records the agreed product direction for general sculptures. The
 mechanics-independent interface in steps 1–4 is implemented: mechanics fields
 may be omitted and optional GLB failures are non-fatal. The portable asset
-contract is also implemented. Boundary generation, folder/asset loading, exact
-STL restoration, and ZIP support remain target architecture. The existing
-manual 41-panel parts and planar-shell generator remain supported while later
-slices are built.
+contract and the zero-thickness panel-outline boundary stage are also
+implemented. Boundary topology is accepted as panel-ID/named-corner cycles,
+while every coordinate is regenerated from poses and the profile. Folder/asset
+loading, thickness, part generation, exact STL restoration, and ZIP support
+remain target architecture. The existing manual 41-panel parts and planar-shell
+generator remain supported while later slices are built.
 
 ## User workflow
 
@@ -36,6 +38,14 @@ The user is responsible for arranging panels so every gap that must be capped
 can be represented by one flat, simple N-gon. The first generator may rely on
 that product assumption, but it must verify it rather than silently flattening
 bad input.
+
+The implemented accepted-topology contract stores no geometry. Each gap owns a
+stable ID and an ordered list of `{ panelId, corner }` references. Named corner
+coordinates are derived from the resolved panel width/height and the saved
+right-handed pose. Accepted topology therefore selects adjacency and winding
+without locating a panel or boundary vertex. The complete prism fixture is
+`sculptures/panel-outline-prism/sculpture.json`; focused invalid fixtures cover
+non-planar, open, intersecting, and non-manifold layouts.
 
 For each proposed cap, generation must reject:
 
@@ -88,7 +98,11 @@ lips, and grouping of coplanar regions. Reuse those proven constraints after
 the new panel-outline boundary stage instead of creating a second mounting
 system.
 
+The implemented boundary result includes deterministic vertices/triangles,
+panel/cap face provenance, named tolerances, counts, the canonical source
+fingerprint, and a mesh fingerprint suitable for the later atomic asset stage.
 ## Project bundle
+
 
 A project is one main JSON document plus referenced 3D assets. A portable bundle
 may be an ordinary folder or a ZIP containing that folder.
@@ -178,9 +192,9 @@ restored after reopening must have matching hashes.
 `sourceFingerprint` is SHA-256 over one canonical JSON projection: panels
 sorted by stable panel ID with only their authoritative poses, plus the resolved
 profile's dimensions, mounting geometry and allocation, physical corrections,
-connector facts, and electrical keep-outs. Descriptive notes, mapping, wiring,
-and pixel order are deliberately excluded because they cannot change generated
-material.
+connector facts, electrical keep-outs, and any accepted gap cycles sorted by
+stable gap ID. Descriptive notes, mapping, wiring, and pixel order are deliberately
+excluded because they cannot change generated material.
 
 Current versus stale has one authority: recompute that canonical fingerprint
 from the loaded project and compare it with
