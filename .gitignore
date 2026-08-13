@@ -17,8 +17,6 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
-web/public/wasm/*.js
-web/public/wasm/*.wasm
 web/public/sculptures/
 web/public/catalog/
 web/public/generated-cad/

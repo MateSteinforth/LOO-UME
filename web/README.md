@@ -126,10 +126,9 @@ test, type-checks, and creates the Vite production bundle in `dist/`. For an
 already prepared checkout, use `npm run verify`; it performs the same build and
 verification phases without dependency or SDK installation.
 
-`npm test` is intentionally the fast, already-prepared command. It runs all
-Vitest tests but neither builds WASM nor downloads Emscripten; it fails with a
-direct setup message when the ignored WASM files are absent. `npm run test:full`
-builds WASM with the installed pinned SDK and then runs `npm test`. Every WASM
+`npm test` is intentionally the fast command. It uses the checked-in WASM
+runtime and neither builds WASM nor downloads Emscripten. `npm run test:full`
+rebuilds WASM with the installed pinned SDK and then runs `npm test`. Every WASM
 build first verifies the compiler version and that 37 selected function bodies
 match the pinned WLED submodule revision. The WASM tests cover initialization,
 every registered effect at 2,700 LEDs, framebuffer changes, deterministic
@@ -142,8 +141,9 @@ validates every logical-to-physical entry and requires matching fingerprints.
 The production command `npm run generate:mapping:hardware` refuses to write
 `wled/ledmap.json` until all measured-data readiness checks pass.
 
-Generated `web/public/wasm/wled-engine.{js,wasm}` files are ignored. Rebuild
-them from the pinned Emscripten version and WLED submodule.
+The built `web/public/wasm/wled-engine.{js,wasm}` runtime is checked in so
+`npm test` works without a compiler setup. Rebuild and recommit it whenever
+the pinned engine sources or Emscripten version change.
 
 ## Reused WLED source
 
