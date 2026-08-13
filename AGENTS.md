@@ -20,6 +20,10 @@ LED sculptures. The browser application is **WLED Orbital Lab**. Start with
   authored geometry or mapping truth. The portable project format may reference
   GLB/STL assets by safe relative path and SHA-256; those files are still
   derived assets, while the main sculpture JSON remains the project authority.
+- `web/public/wasm/wled-engine.js` and `wled-engine.wasm` are the deliberate
+  tracked-build exception: commit the pinned browser runtime so ordinary tests
+  and the viewer work directly after checkout. Rebuild and recommit both files
+  whenever their pinned WLED sources or Emscripten version changes.
 
 Schema 1 (`src/sculpture/Definition.ts`, `schemas/sculpture.schema.json`, the
 legacy migration fixture, and old mapping/CAD tests) is retained legacy code.
@@ -73,7 +77,7 @@ uses `createPanelAssemblyMapping()`.
 Use the narrowest relevant checks, then broaden when risk warrants it:
 
 ```bash
-npm test                         # all Vitest tests; requires prepared ignored WASM files
+npm test                         # all Vitest tests; uses the checked-in WASM runtime
 npm run test:editor
 npm run test:placement
 npm run test:full                # builds WASM with the installed pinned SDK, then tests

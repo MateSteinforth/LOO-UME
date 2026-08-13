@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -94,4 +94,7 @@ const result = spawnSync(emcc, args, {
   stdio: "inherit"
 });
 
-process.exit(result.status ?? 1);
+if (result.status !== 0) process.exit(result.status ?? 1);
+for (const output of ["wled-engine.js", "wled-engine.wasm"]) {
+  chmodSync(path.join(outputDir, output), 0o644);
+}

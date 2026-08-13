@@ -20,8 +20,9 @@ an implemented contract; settle open product/schema choices before coding.
 - Mechanical invalidation after edits and development-only isolated CAD output.
 - Three.js layer/focus controls and a deterministic 30-effect WLED WASM preview.
 - File-based persistence; no database or browser local storage.
-- Deterministic clean-checkout verification with pinned WLED, emsdk, and
-  Emscripten revisions; CI builds ignored WASM artifacts before all tests.
+- A checked-in deterministic WLED WASM runtime for immediate tests and browser
+  use, plus clean-checkout verification that rebuilds it from pinned WLED,
+  emsdk, and Emscripten revisions.
 - Deterministic zero-thickness closed-boundary generation from pose/profile
   panel outlines plus connectivity-only accepted gap cycles, with cap-local and
   global two-manifold validation, manifest-ready metadata, complete/invalid

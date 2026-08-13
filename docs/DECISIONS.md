@@ -103,6 +103,21 @@ the flagship 41-panel sculpture.
 **Consequence.** Startup and zero-panel behavior are part of the general editor
 contract, not an edge case tied to one sculpture.
 
+## D9 — The pinned browser WASM runtime is checked in
+
+**Decision.** Track `web/public/wasm/wled-engine.js` and
+`web/public/wasm/wled-engine.wasm` so the simulator and `npm test` work directly
+after checkout. The WLED submodule, source-selection checks, emsdk revision, and
+Emscripten version remain the reproducible source of that build.
+
+**Evidence.** `scripts/build-wasm.mjs`, `scripts/check-wled-sync.mjs`,
+`wasm/upstream-revision.txt`, `wasm/emsdk-revision.txt`, and
+`wasm/emscripten-version.txt`.
+
+**Consequence.** When the pinned source or compiler changes, rebuild and commit
+both runtime files with that change. Do not commit the Emscripten SDK, caches,
+or other generated build directories.
+
 The accepted but not-yet-implemented mechanics workflow is deliberately kept in
 [`ROADMAP.md`](ROADMAP.md) and
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md), because this file records

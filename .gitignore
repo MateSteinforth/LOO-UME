@@ -17,6 +17,7 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+# The two pinned WLED browser runtime files under web/public/wasm are tracked.
 web/public/sculptures/
 web/public/catalog/
 web/public/generated-cad/
