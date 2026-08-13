@@ -17,7 +17,10 @@ LED sculptures. The browser application is **WLED Orbital Lab**. Start with
 - Physically tested manual CAD: the three canonical files under `parts/`.
   Never make numbered copies; Git is the version history.
 - Generated STL, PNG, ledmap, panel-map, and `build/` files are artifacts, not
-  authored geometry or mapping truth.
+  authored geometry or mapping truth. The planned portable project format may
+  reference generated GLB/STL assets by relative path and hash; those files are
+  still derived assets, while the main sculpture JSON remains the project
+  authority.
 
 Schema 1 (`src/sculpture/Definition.ts`, `schemas/sculpture.schema.json`, the
 legacy migration fixture, and old mapping/CAD tests) is retained legacy code.
@@ -31,11 +34,19 @@ uses `createPanelAssemblyMapping()`.
 - Mapping, wiring, and simulation must continue after a panel edit even when
   printable mechanics are stale or unavailable.
 - Today the Schema 2 parser still requires exactly one of `manualMechanics` or
-  `mechanicalShell` + `closures`. Mechanics-optional projects are a target,
-  not yet valid input.
-- GLBs are authoring surfaces only. Generic printable geometry is derived from
-  a supported planar JSON face graph, never directly from arbitrary GLB mesh
-  triangles.
+  `mechanicalShell` + `closures`. The agreed target is mechanics-free editing:
+  load GLB, place/edit panels, simulate, map, wire, save, and reload before any
+  mechanics exist.
+- GLBs are authoring surfaces only. The planned general generator starts from
+  authoritative panel outlines, closes each gap with a validated flat N-gon,
+  builds a closed boundary, and only then creates printable parts. It must not
+  turn arbitrary GLB triangles directly into printable material.
+- The first boundary generator may assume the user has arranged panels so every
+  cap is a flat simple N-gon, but it must validate planarity, topology, winding,
+  intersections, and manifold closure and reject invalid layouts clearly.
+- After successful generation, the viewer must load the exact referenced STL
+  parts. A panel edit makes those parts stale without disabling the rest of the
+  interface. See `docs/MECHANICS_WORKFLOW.md`.
 - Preserve manual mechanics. The generic planar generator does not reproduce
   the 41-panel U-frame structure.
 - Never change proven panel angles, triangle handedness `-1`, the 0.20 mm

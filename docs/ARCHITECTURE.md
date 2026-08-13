@@ -18,7 +18,7 @@ Schema 2 sculpture JSON + panel hardware profile
                      WLED ledmap
 ```
 
-Fabrication is a separate branch with two supported routes:
+Fabrication is currently a separate branch with two supported routes:
 
 ```text
 manualMechanics ----------------> verified wrappers around parts/*.scad
@@ -29,7 +29,27 @@ The code does not yet express this separation completely: the Schema 2 parser
 requires exactly one mechanics route. A pose-only mapping project is therefore
 a desired capability, not valid current JSON.
 
+The agreed target adds a third, UI-driven lifecycle rather than another pose
+authority:
+
+```text
+referenced GLB -> automatic placement -> manual pose edits
+                                      |
+                               Generate 3D Parts
+                                      |
+          panel outlines -> flat N-gon gap caps -> closed boundary
+                                      |
+                       validated printable part generation
+                                      |
+                 referenced exact STL files -> Three.js
+```
+
+The GLB is still only a placement surface. The generated boundary comes from
+panel outlines and planar gap caps. The first generator may assume users arrange
+panels so each gap is a flat simple N-gon, but it must validate that assumption
+and refuse invalid or non-manifold results.
 ## Subsystems
+
 
 | Area | Responsibility | Boundary |
 | --- | --- | --- |
@@ -70,7 +90,15 @@ There is no database or browser `localStorage`. Persistence is loaded or
 downloaded JSON, optional GLB references, generated downloads, and development
 artifacts.
 
+The planned portable project model is a main `sculpture.json` plus relative,
+hash-checked GLB and STL assets in a folder, optionally transported as a ZIP.
+After generation, the JSON references a boundary mesh and exact printable STL
+parts together with the panel-pose fingerprint that produced them. Three.js
+loads those referenced STLs. Panel edits make them stale but do not stop the
+pose-first application. See
+[`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 ## Rendering and simulation
+
 
 `SphereRenderer.ts` uses Three.js/WebGL, instanced LED sprites, solid PCB depth,
 CSS2D labels/delete control, and separate surface, panel, closure, connector,
@@ -96,6 +124,9 @@ configuration.
   Split them only as a behavior-preserving refactor with appropriate tests.
 - Mapping and wiring operate while hardware-readiness data is provisional. See
   [`LED_MAPPING.md`](LED_MAPPING.md) before changing exports.
+- The current generic CAD path starts from a pre-authored planar boundary. The
+  target UI flow instead creates the boundary from panel outlines and validated
+  flat N-gon gap caps before reusing the downstream printable-part constraints.
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

@@ -81,6 +81,28 @@ The current schema intentionally selects one panel profile per project. A
 future schema can add per-panel profile IDs when mixed hardware is supported by
 CAD, wiring, and WLED addressing end to end.
 
+## Planned mechanics-free and asset-reference extension
+
+The agreed next contract allows a project to omit `manualMechanics`,
+`mechanicalShell`, and `closures`. Such a project still loads, edits, simulates,
+maps, wires, saves, and reloads. A panel pose does not require `mountFaceId` or a
+surface attachment; those fields describe optional authoring/mechanical
+relationships rather than the panel's existence.
+
+After **Generate 3D Parts**, the JSON will reference, rather than embed, the
+generated boundary and exact STL parts. References follow the existing GLB
+model: project-relative source plus SHA-256. The generated-mechanics record also
+needs a generator version and a deterministic fingerprint of the panel poses
+and profile facts used to create the files. A mismatch marks the referenced
+parts stale.
+
+The precise field names and schema version must be decided and tested in the
+project-asset contract slice. Until then, do not add ad hoc asset fields or save
+temporary build paths into authored sculpture JSON. The native layout is a
+folder containing `sculpture.json` and referenced assets; a ZIP is a portable
+container for the same layout. See
+[`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
+
 ## Mechanical regeneration contract
 
 The optional GLB is only a positioning canvas. Its triangles never define wall
@@ -116,6 +138,12 @@ The complete implemented editor and CAD behavior, including whole-face regions,
 zero-panel authoring projects, blocking checks, and OpenSCAD verification, is
 recorded in
 [Editor and planar mechanical regeneration](editor-mechanical-regeneration.md).
+
+This is the current implementation, not the final general authoring workflow.
+The planned generator creates the boundary after panel editing by joining exact
+panel outlines with validated flat N-gon caps. It then passes only a closed,
+two-manifold result to printable-part generation. The GLB remains a positioning
+canvas and is not converted into that boundary.
 
 ## Manually authored mechanics
 

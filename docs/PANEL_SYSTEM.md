@@ -64,6 +64,11 @@ After an edit:
 - Manual mechanics set `manualMechanics.compatibilityStatus` to
   `requires-review`; tested parts must not be presented as matching new poses.
 
+The agreed mechanics-free workflow extends this behavior: a project with no
+mechanics still supports every normal editor, simulator, mapping, wiring, save,
+and reload action. If referenced generated parts exist, an edit makes them
+stale; it does not require a shell to exist and does not disable the interface.
+
 ## Mechanical routes
 
 ### Manual 41-panel sculpture
@@ -107,6 +112,24 @@ Some truncated-octahedron closure edges are unfastened butt seams; this is a
 known limitation, not missing geometry. Generic parts are iterative fabrication
 output and still require print/fit inspection.
 
+### Planned panel-outline boundary generation
+
+The target **Generate 3D Parts** flow does not require a mechanical boundary
+before panel placement. It derives exact rectangular panel outlines from the
+saved poses, identifies the gaps between them, and closes each gap with one flat
+simple N-gon. The user is responsible for arranging panels so this is possible.
+The software is responsible for proving planarity and producing a closed,
+consistently wound, non-self-intersecting, two-manifold boundary.
+
+Only a valid boundary proceeds to part splitting, thickness, PCB-envelope
+subtraction, mounting-hole allocation, connector keep-outs, and STL generation.
+The exact STL outputs are referenced by the project JSON and loaded in Three.js.
+The design GLB may guide placement and topology suggestions but is not copied or
+thickened into printable structure.
+
+See [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md) for the complete target
+workflow, asset bundle, staleness rules, and acceptance journey.
+
 ## Mechanical invariants
 
 - Do not change proven polyhedron panel angles unless explicitly requested.
@@ -117,3 +140,7 @@ output and still require print/fit inspection.
 - Preserve rounded screw-tab language and triangle handedness.
 - Before automatic structure generation, validate the complete panel rectangle
   and clearance, not merely its centre point.
+- Validate every generated cap as a flat simple N-gon and validate the combined
+  panel/cap boundary as closed and two-manifold before making printable parts.
+- Display the exact generated STL assets; do not call an approximate Three.js
+  reconstruction the printable result.

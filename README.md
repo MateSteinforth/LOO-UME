@@ -107,6 +107,21 @@ for the implemented mechanical contract and
 [docs/pose-first-schema.md](docs/pose-first-schema.md) for the authoritative
 pose model.
 
+### Planned general project workflow
+
+The next fabrication milestone is mechanics-free authoring followed by explicit
+generation: load a referenced GLB, place panels automatically, edit them by
+hand, and use the full simulator/mapping interface before mechanics exist.
+**Generate 3D Parts** will then close the gaps between panel outlines with
+validated flat N-gon caps, validate one closed boundary, generate printable
+parts, and load the exact emitted STL files in Three.js.
+
+The planned portable project is a folder containing `sculpture.json` plus
+relative, hash-checked GLB and STL assets; ZIP is a transport for that folder.
+This workflow is specified in
+[`docs/MECHANICS_WORKFLOW.md`](docs/MECHANICS_WORKFLOW.md) and remains proposed
+until its roadmap slices are implemented.
+
 ## Canonical printable parts
 
 | Source | Quantity | Purpose |

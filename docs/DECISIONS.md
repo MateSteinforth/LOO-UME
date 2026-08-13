@@ -30,15 +30,18 @@ simulation/mapping.
 
 ## D3 — GLBs are authoring surfaces, not printable structure
 
-**Decision.** GLBs support placement and movement. Generic fabrication derives
-only from a validated explicit planar JSON face graph.
+**Decision.** GLBs support placement and movement. Generic fabrication does not
+use GLB triangles as printable structure; the current implementation derives
+from a validated explicit planar JSON face graph, and the planned UI-driven
+path derives a validated flat-cap boundary from panel outlines.
 
 **Evidence.** `DesignSurface.ts`, `SculptureEditor.ts`,
 `MechanicalShellRegenerator.ts`, and commit `463f371` (automatic surface panel
 placement).
 
 **Consequence.** Do not feed arbitrary GLB triangles to planar CAD or imply
-placement guarantees structural feasibility.
+placement guarantees structural feasibility. A generated panel gap must pass
+its own planar N-gon and closed-boundary validation.
 
 ## D4 — Manual and generic CAD are separate supported routes
 
@@ -99,3 +102,8 @@ the flagship 41-panel sculpture.
 
 **Consequence.** Startup and zero-panel behavior are part of the general editor
 contract, not an edge case tied to one sculpture.
+
+The accepted but not-yet-implemented mechanics workflow is deliberately kept in
+[`ROADMAP.md`](ROADMAP.md) and
+[`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md), because this file records
+implemented decisions rather than proposed contracts.

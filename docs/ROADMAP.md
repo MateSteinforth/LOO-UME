@@ -52,15 +52,50 @@ Other known gaps:
 
 ## Proposed milestones
 
-### 1. Make the pose-first core mechanics-independent
+### 1. Make the complete interface mechanics-independent
 
-- Decide whether absent mechanics or an explicit `mechanics.mode: "none"` is
-  canonical.
-- Update parsing, capabilities, tests, and UI so pose-only projects support
-  editing, simulation, mapping, and wiring.
-- Keep automatic GLB placement distinct from structure generation.
+- Represent no mechanics by omitting mechanics fields; do not add a second pose
+  authority or require a placeholder shell.
+- Update parsing, capabilities, editing, save/reload, tests, and UI so a project
+  can load a GLB, automatically place panels, edit manually, simulate, map, and
+  preview wiring before mechanics exist.
+- Keep automatic GLB placement distinct from structure generation and make an
+  unavailable GLB non-fatal to the pose-first project.
 
-### 2. Make wiring explicit and export states coherent
+### 2. Define portable project assets
+
+- Treat a project as `sculpture.json` plus relative, SHA-256-checked assets.
+- Extend Schema 2 with a generated-mechanics manifest containing the source
+  panel-pose fingerprint, boundary reference, exact STL part references, stable
+  part IDs, generator version, and status.
+- Never persist temporary `build/editor-projects/...` paths as project assets.
+- Define folder loading first, then ZIP import/export using the same reference
+  and hash rules.
+
+### 3. Generate and validate a boundary from panel outlines
+
+- Derive exact panel outlines and PCB envelopes from authoritative poses.
+- Infer or confirm gap topology and close each gap with one flat simple N-gon.
+  The user is responsible for arranging panels so this assumption holds.
+- Validate cap planarity, polygon simplicity, winding, intersections,
+  connectivity, and closed two-manifold topology; report the offending gap when
+  generation is impossible.
+- Save and display the generated boundary before printable-part generation.
+
+### 4. Generate, reference, and display exact printable parts
+
+- Split only a validated boundary into printable parts, then reuse the proven
+  thickness, PCB clearance, hole, lead-in, tab, and connector constraints.
+- Write exact STL assets and atomically update the project manifest only after
+  the complete generation succeeds.
+- Load those same referenced STL files in Three.js; do not substitute an
+  approximate preview.
+- Mark assets stale after relevant panel/profile edits while keeping all
+  non-mechanical interface features usable.
+- Complete the journey: GLB -> automatic placement -> manual edits -> generate
+  boundary/parts -> display exact STLs -> ZIP -> reopen identical project.
+
+### 5. Make wiring explicit and export states coherent
 
 - Store ordered panel IDs per output, GPIOs, installed rotation/mirroring, and
   final pixel order in sculpture JSON.
@@ -69,7 +104,7 @@ Other known gaps:
 - Define reachable provisional/review/production states and use the same
   readiness policy in browser and CLI exports.
 
-### 3. Retire Schema 1 from live paths
+### 6. Retire Schema 1 from live paths
 
 - Represent the manual 41-panel CAD contract directly in Schema 2.
 - Move manual wrappers off legacy types, then remove procedural mapping and
@@ -77,7 +112,7 @@ Other known gaps:
 - Decide whether migration JSON/script remain as isolated historical tests or
   are deleted.
 
-### 4. Harden validation and clean-checkout verification
+### 7. Harden validation and clean-checkout verification
 
 - Centralize complete runtime validation, including manual mechanics and full
   panel-fit checks for every automatic CAD entry.
@@ -85,7 +120,7 @@ Other known gaps:
 - Make tests build required WASM inputs or provide deterministic setup.
 - Add end-to-end browser interaction tests; retain render checks for geometry.
 
-### 5. Expand fabrication and hardware deliberately
+### 8. Expand fabrication and hardware deliberately
 
 - Keep the planar generator for shapes it can prove safe; improve seams,
   connectors, multi-panel, and multi-profile support with explicit tests.
@@ -96,9 +131,25 @@ Other known gaps:
 
 ## Open product decisions
 
-- How should “no mechanics” appear in Schema 2: omission or explicit mode?
+- How should users confirm or correct automatically inferred gap topology when
+  more than one flat N-gon arrangement is possible?
+- Which mesh format should carry the referenced closed boundary if STL cannot
+  preserve required topology or metadata by itself?
+- Should a stale generated part remain optionally viewable with a warning, or
+  be hidden until regeneration?
 - Should migration assets remain as isolated fixtures after legacy removal?
 - Should provisional browser exports remain downloadable with strong labeling,
   or be gated like CLI hardware exports?
 - What confirmation promotes an automatically suggested route to authored
   wiring?
+
+## Resolved product direction
+
+- Mechanics are omitted until generated; they are not required for interface
+  functionality.
+- The generation order is boundary first, printable parts second.
+- The first boundary generator assumes every panel gap is a flat simple N-gon
+  and validates that assumption.
+- Generated boundary/part files are relative, hash-checked project assets.
+- Three.js displays the exact referenced STL parts.
+- A folder is the native project layout; ZIP is its portable container.
