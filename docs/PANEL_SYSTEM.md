@@ -143,10 +143,13 @@ The exact STL outputs are referenced by the project JSON and loaded in Three.js.
 The design GLB may guide placement and topology suggestions but is not copied or
 thickened into printable structure.
 
-The current browser preview is the deterministic zero-thickness indexed boundary
-mesh, not a printable part and not an STL approximation. Thickness, mounts, part
-splitting, atomic asset writing, exact-STL restoration, and ZIP transport remain
-later milestones.
+The local browser pipeline now validates the deterministic boundary before CAD,
+derives stable gap-sorted part groups, and generates printable closure STLs with
+the established planar compiler. It writes and inspects the entire asset set
+before atomically publishing the manifest. Three.js then loads the exact
+referenced bytes after SHA-256 verification; downloads use the same verified
+bytes. A pose edit invalidates the fingerprint and removes the stale set from
+the current printable view. ZIP transport remains a later milestone.
 
 See [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md) for the complete target
 workflow, asset bundle, staleness rules, and acceptance journey.

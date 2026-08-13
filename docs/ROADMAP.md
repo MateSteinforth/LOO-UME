@@ -86,12 +86,10 @@ remain later slices using these same reference and hash rules.
   connectivity, and closed two-manifold topology; report the offending gap when
   generation is impossible.
 - Produce deterministic indexed geometry, source/mesh fingerprints, named
-  tolerances, provenance, and counts suitable for the later asset manifest.
-- Display the generated zero-thickness boundary in Three.js before
-  printable-part generation. Saving it as an exact referenced asset belongs to
-  milestone 4's atomic asset-writing slice.
+  tolerances, provenance, and counts for the asset manifest.
+- Display the generated boundary before printable-part generation.
 
-### 4. Generate, reference, and display exact printable parts
+### 4. Generate, reference, and display exact printable parts — shipped
 
 - Split only a validated boundary into printable parts, then reuse the proven
   thickness, PCB clearance, hole, lead-in, tab, and connector constraints.
@@ -101,8 +99,10 @@ remain later slices using these same reference and hash rules.
   approximate preview.
 - Mark assets stale after relevant panel/profile edits while keeping all
   non-mechanical interface features usable.
-- Complete the journey: GLB -> automatic placement -> manual edits -> generate
-  boundary/parts -> display exact STLs -> ZIP -> reopen identical project.
+- Cover panels -> boundary -> parts -> references -> exact STL reload with an
+  end-to-end test.
+- Folder reopening uses the same references and hashes. ZIP packaging remains a
+  separate portable-transport slice.
 
 ### 5. Make wiring explicit and export states coherent
 

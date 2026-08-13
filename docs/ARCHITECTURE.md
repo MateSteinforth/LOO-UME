@@ -62,7 +62,8 @@ and refuse invalid or non-manifold results.
 | `src/sculpture/SculptureEditor.ts` | Add/move/rotate/delete/seed and mechanics invalidation | Editing does not require successful CAD |
 | `src/sculpture/MechanicalShellRegenerator.ts` | Rebuild supported planar topology after edits | Rejects unsafe or ambiguous mechanics |
 | `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, validate accepted flat cap cycles, and emit a deterministic closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
-| `src/cad/GeneratePanelClosureCad.ts` | Generic flat closures from compiled planar faces | Not an arbitrary curved/GLB generator |
+| `src/cad/GeneratePanelBoundaryParts.ts` | Turn a validated panel-gap boundary into a staged, hash-verified exact STL bundle | Publishes the manifest only after every file validates |
+| `src/cad/GeneratePanelClosureCad.ts` | Generic flat closures from compiled planar faces | Reused by explicit shells and panel-gap generation; not a GLB generator |
 | `src/cad/GenerateCad.ts`, `parts/` | Legacy-typed wrappers around tested manual parts | Separate from generic CAD |
 | `web/src/` | UI, Three.js rendering, placement, mapping, routing, export | `main.ts` owns most application state |
 | `wasm/` | Deterministic portable subset of WLED 1D effects | Simulator only, not firmware |
@@ -101,8 +102,10 @@ hash-checked GLB and STL assets in a folder. Schema 2 can reference a boundary
 mesh and ordered exact printable STL parts together with the canonical
 panel/profile fingerprint that produced them. Fingerprint comparison is the one
 current/stale authority and panel edits do not stop the pose-first application.
-Folder asset loading, exact-STL display, and optional ZIP transport remain later
-milestones. See
+The local generation service stages a complete folder, validates every STL and
+hash, writes JSON last, and publishes it by atomic directory replacement.
+Three.js loads those referenced bytes after SHA-256 verification. Optional ZIP
+transport remains later work. See
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 
 Schema 2 may now accept `boundaryTopology` as stable panel-ID/named-corner

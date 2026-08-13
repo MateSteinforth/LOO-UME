@@ -5,10 +5,11 @@ mechanics-independent interface in steps 1–4 is implemented: mechanics fields
 may be omitted and optional GLB failures are non-fatal. The portable asset
 contract and the zero-thickness panel-outline boundary stage are also
 implemented. Boundary topology is accepted as panel-ID/named-corner cycles,
-while every coordinate is regenerated from poses and the profile. Folder/asset
-loading, thickness, part generation, exact STL restoration, and ZIP support
-remain target architecture. The existing manual 41-panel parts and planar-shell
-generator remain supported while later slices are built.
+while every coordinate is regenerated from poses and the profile. The local
+development pipeline now generates the printable closures, publishes an atomic
+folder asset set, verifies SHA-256, and displays the exact referenced STL bytes.
+ZIP transport remains later work. The existing manual 41-panel parts and
+planar-shell generator remain supported.
 
 ## User workflow
 
@@ -100,7 +101,16 @@ system.
 
 The implemented boundary result includes deterministic vertices/triangles,
 panel/cap face provenance, named tolerances, counts, the canonical source
-fingerprint, and a mesh fingerprint suitable for the later atomic asset stage.
+fingerprint, and a mesh fingerprint. Printable generation derives stable
+`part-001`, `part-002`, … identities from sorted gap IDs and feeds the
+validated faces to the existing planar-closure compiler. That preserves the
+profile's real holes, blocked DIN/DOUT corners, PCB envelope, 0.20 mm hole-edge
+correction, 0.50 mm flush correction, pilots, and lead-ins.
+
+Generation stages every SCAD, STL, hash, and final JSON in a sibling temporary
+directory. Only a fully inspected set is published by directory rename; failure
+removes the staging directory and retains the prior bundle.
+
 ## Project bundle
 
 
@@ -185,9 +195,10 @@ same references later; it does not change this contract.
 
 ## Viewer and staleness rules
 
-After successful generation, Three.js must display the exact referenced STL
-files, not a visually similar reconstruction. The files shown, downloaded, and
-restored after reopening must have matching hashes.
+After successful generation, Three.js fetches and parses the exact referenced
+STL files, not a visually similar reconstruction. It verifies each boundary and
+part SHA-256 before display. Downloads reuse those verified in-memory bytes, and
+reopening reloads and re-verifies the project-relative files.
 
 `sourceFingerprint` is SHA-256 over one canonical JSON projection: panels
 sorted by stable panel ID with only their authoritative poses, plus the resolved

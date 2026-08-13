@@ -362,13 +362,11 @@ function groupedClosureFaces(
 function assemblyPreviewSource(
   project: PanelAssemblyProject,
   assembly: CompiledPanelAssembly,
-  outputDirectory: string,
 ): string {
   const parts = groupedClosureFaces(assembly);
   const closureUses = parts
     .map(({ partId }) => {
-      const path = resolve(outputDirectory, `closure-${partId.toLowerCase()}.scad`);
-      return `use <${path}>;`;
+      return `use <closure-${partId.toLowerCase()}.scad>;`;
     })
     .join("\n");
   const closures = parts
@@ -423,7 +421,7 @@ export async function emitPanelClosureCadArtifacts(
   const assemblyPreview = resolve(outputDirectory, "assembly-preview.scad");
   await writeFile(
     assemblyPreview,
-    assemblyPreviewSource(project, assembly, outputDirectory),
+    assemblyPreviewSource(project, assembly),
     "utf8",
   );
   const parts: GeneratedClosurePart[] = closureParts.map(({ partId, regions }) => ({

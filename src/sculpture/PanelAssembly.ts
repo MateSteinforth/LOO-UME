@@ -1083,6 +1083,9 @@ export function compilePanelAssembly(
     if (!panelUse && first.face.role === "closure" && second.face.role === "closure") {
       continue;
     }
+    if (!closureUse && first.face.role === "panel" && second.face.role === "panel") {
+      continue;
+    }
     if (!panelUse || !closureUse) {
       throw new Error("Panel faces may border only generated closure faces.");
     }
@@ -1129,30 +1132,36 @@ export function compilePanelAssembly(
         `Panel ${panel.id} cannot connect different caps to every screw hole.`,
       );
     }
+    const allowsSharedClosure =
+      sourcePanel.connectorPolicy?.allowSharedClosureAcrossAdjacentEdges === true;
 
     let bestScore = Number.POSITIVE_INFINITY;
-    let bestAssignment: CompiledMountingHole[] | null = null;
+    let bestAssignment: number[] | null = null;
     const assign = (
-      interfaceIndex: number,
-      remainingHoles: CompiledMountingHole[],
-      assignment: CompiledMountingHole[],
+      holeIndex: number,
+      assignment: number[],
+      interfaceCounts: number[],
       score: number,
     ): void => {
-      if (interfaceIndex === interfaces.length) {
-        if (score < bestScore) {
+      if (holeIndex === eligibleHoles.length) {
+        if (
+          interfaceCounts.every((count) => count > 0) &&
+          score < bestScore
+        ) {
           bestScore = score;
           bestAssignment = [...assignment];
         }
         return;
       }
-      const panelInterface = interfaces[interfaceIndex]!;
-      const preference = closures.holePreferences?.find(
-        (candidate) =>
-          candidate.closureVertexCount ===
-          panelInterface.closure.vertexIndices.length,
-      );
-      for (let holeIndex = 0; holeIndex < remainingHoles.length; holeIndex += 1) {
-        const hole = remainingHoles[holeIndex]!;
+      const hole = eligibleHoles[holeIndex]!;
+      for (let interfaceIndex = 0; interfaceIndex < interfaces.length; interfaceIndex += 1) {
+        if (!allowsSharedClosure && interfaceCounts[interfaceIndex]! > 0) continue;
+        const panelInterface = interfaces[interfaceIndex]!;
+        const preference = closures.holePreferences?.find(
+          (candidate) =>
+            candidate.closureVertexCount ===
+            panelInterface.closure.vertexIndices.length,
+        );
         const preferencePenalty =
           preference && !preference.panelHoleIds.includes(hole.id) ? 1e12 : 0;
         const candidateScore =
@@ -1164,21 +1173,23 @@ export function compilePanelAssembly(
             panelInterface.edgeEnd,
           );
         if (candidateScore >= bestScore) continue;
+        const nextCounts = [...interfaceCounts];
+        nextCounts[interfaceIndex] = nextCounts[interfaceIndex]! + 1;
         assign(
-          interfaceIndex + 1,
-          remainingHoles.filter((_, index) => index !== holeIndex),
-          [...assignment, hole],
+          holeIndex + 1,
+          [...assignment, interfaceIndex],
+          nextCounts,
           candidateScore,
         );
       }
     };
-    assign(0, eligibleHoles, [], 0);
+    assign(0, [], interfaces.map(() => 0), 0);
     if (!bestAssignment) {
       throw new Error(`Panel ${panel.id} has no valid cap-to-hole assignment.`);
     }
 
-    interfaces.forEach((panelInterface, index) => {
-      const hole = bestAssignment![index]!;
+    eligibleHoles.forEach((hole, holeIndex) => {
+      const panelInterface = interfaces[bestAssignment![holeIndex]!]!;
       hole.assignedClosureId = panelInterface.closure.partId;
       const edgeMidpoint = scale(
         add(panelInterface.edgeStart, panelInterface.edgeEnd),

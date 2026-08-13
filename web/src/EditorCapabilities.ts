@@ -33,9 +33,8 @@ export function deriveEditorCapabilities(
     canAutomaticallySeed: hasActiveSurface && !usesManualMechanics,
     canExportMappingAndWiring: true,
     canGenerateGenericMechanics:
-      !usesManualMechanics &&
-      (hasPanelBoundaryInput ||
-        (pipelineAvailable && hasGenericGenerationInput)),
+      !usesManualMechanics && pipelineAvailable &&
+      (hasPanelBoundaryInput || hasGenericGenerationInput),
     manualMechanicsRequiresReview:
       definition.manualMechanics?.compatibilityStatus === "requires-review",
   };

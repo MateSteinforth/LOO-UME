@@ -85,6 +85,11 @@ is added.
   OpenSCAD sources, STL files, and PNG previews under an isolated
   `-editor-preview` ID, then reloads the exact STL meshes in Three.js.
 
+Projects with validated `panel-outline-gap-cycles` use the same endpoint to
+generate a deterministic boundary and gap-sorted printable closure set. The
+service publishes the files and manifest only after every STL validates. The
+browser verifies SHA-256 and parses those exact files for display and download.
+
 A JSON-shell or GLB surface move or addition marks existing generated mechanics
 as requiring regeneration. A pose-only project has no mechanical state to
 invalidate and keeps simulation, mapping, wiring, editing, and save enabled. The

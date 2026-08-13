@@ -17,6 +17,7 @@ import type {
 import type { WiringPreview } from "./WiringPreview";
 import type { EditorCapabilities } from "./EditorCapabilities.ts";
 import type { ClosedPanelBoundary } from "../../src/sculpture/PanelOutlineBoundary.ts";
+import type { VerifiedGeneratedMechanics } from "./GeneratedMechanicsAssets.ts";
 import {
   SurfacePlacementController,
   type SurfacePanelPlacement,
@@ -343,6 +344,97 @@ export class SphereRenderer {
     edges.name = "panel-outline-boundary-edges";
     edges.renderOrder = 3;
     this.boundaryPreviewLayer.add(surface, edges);
+  }
+
+  setExactGeneratedMechanics(
+    boundary: ClosedPanelBoundary | null,
+    assets?: VerifiedGeneratedMechanics,
+  ): void {
+    this.clearBoundaryPreview();
+    this.disposeGroup(this.printableLayer);
+    if (!boundary || !assets) return;
+
+    const geometryFrom = (bytes: Uint8Array): THREE.BufferGeometry => {
+      const copy = Uint8Array.from(bytes);
+      const geometry = this.stlLoader.parse(copy.buffer);
+      geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+      return geometry;
+    };
+    const boundaryGeometry = geometryFrom(assets.boundary.bytes);
+    const boundarySurface = new THREE.Mesh(
+      boundaryGeometry,
+      new THREE.MeshBasicMaterial({
+        color: 0x36e0d0,
+        opacity: 0.16,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    boundarySurface.name = "exact-generated-boundary-stl";
+    boundarySurface.userData.sha256 = assets.boundary.sha256;
+    boundarySurface.userData.source = assets.boundary.source;
+    const boundaryEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(boundaryGeometry, 1),
+      new THREE.LineBasicMaterial({
+        color: 0x8fffee,
+        transparent: true,
+        opacity: 0.72,
+      }),
+    );
+    this.boundaryPreviewLayer.add(boundarySurface, boundaryEdges);
+
+    const caps = boundary.faces
+      .filter((face) => face.role === "cap")
+      .sort((left, right) => left.gapId!.localeCompare(right.gapId!));
+    if (caps.length !== assets.parts.length) {
+      throw new Error(
+        `Generated manifest has ${assets.parts.length} parts for ${caps.length} validated caps.`,
+      );
+    }
+    assets.parts.forEach((asset, index) => {
+      const expectedId = `part-${String(index + 1).padStart(3, "0")}`;
+      if (asset.id !== expectedId) {
+        throw new Error(
+          `Generated part order is invalid: expected ${expectedId}, received ${asset.id}.`,
+        );
+      }
+      const cap = caps[index]!;
+      const points = cap.vertexIndices.map((vertexIndex) => {
+        const [x, y, z] = boundary.vertices[vertexIndex]!;
+        return new THREE.Vector3(x, y, z);
+      });
+      const origin = points.reduce(
+        (sum, point) => sum.add(point),
+        new THREE.Vector3(),
+      ).multiplyScalar(1 / points.length);
+      const xAxis = points[1]!.clone().sub(points[0]!).normalize();
+      const normal = new THREE.Vector3(...cap.normal).normalize();
+      const yAxis = normal.clone().cross(xAxis).normalize();
+      const inwardAxis = normal.clone().multiplyScalar(-1);
+      const exact = new THREE.Mesh(
+        geometryFrom(asset.bytes),
+        this.markShellMaterial(new THREE.MeshBasicMaterial({
+          color: index % 2 === 0 ? 0x2f939c : 0x287d89,
+          side: THREE.DoubleSide,
+        })),
+      );
+      exact.matrix.set(
+        xAxis.x, yAxis.x, inwardAxis.x, origin.x,
+        xAxis.y, yAxis.y, inwardAxis.y, origin.y,
+        xAxis.z, yAxis.z, inwardAxis.z, origin.z,
+        0, 0, 0, 1,
+      );
+      exact.matrixAutoUpdate = false;
+      exact.renderOrder = 1;
+      exact.name = `exact-generated-${asset.id}`;
+      exact.userData.source = asset.source;
+      exact.userData.sha256 = asset.sha256;
+      exact.userData.exactReferencedStl = true;
+      this.printableLayer.add(exact);
+    });
+    this.applySelectionFocus();
   }
 
   setPrintableLayerVisible(visible: boolean): void {

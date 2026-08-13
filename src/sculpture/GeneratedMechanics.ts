@@ -29,9 +29,8 @@ function rotateRight(value: number, amount: number): number {
   return (value >>> amount) | (value << (32 - amount));
 }
 
-/** Browser-safe SHA-256 for the small canonical JSON payload used here. */
-export function sha256Text(value: string): string {
-  const bytes = new TextEncoder().encode(value);
+/** Browser-safe SHA-256 for project fingerprints and exact binary assets. */
+export function sha256Bytes(bytes: Uint8Array): string {
   const paddedLength = Math.ceil((bytes.length + 9) / 64) * 64;
   const padded = new Uint8Array(paddedLength);
   padded.set(bytes);
@@ -93,6 +92,10 @@ export function sha256Text(value: string): string {
   return [...hash]
     .map((word) => word.toString(16).padStart(8, "0"))
     .join("");
+}
+
+export function sha256Text(value: string): string {
+  return sha256Bytes(new TextEncoder().encode(value));
 }
 
 export function isLowercaseSha256(value: unknown): value is string {

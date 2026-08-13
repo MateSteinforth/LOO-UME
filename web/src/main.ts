@@ -11,6 +11,7 @@ import {
 import {
   createPanelAssemblyProject,
   createPanelAssemblyMapping,
+  getGeneratedMechanicsState,
   loadPanelAssemblyProject,
   type PanelAssemblyDefinition,
   type PanelAssemblyProject,
@@ -41,6 +42,10 @@ import {
   createProvisionalWiringPreview,
   validateWiringPreview,
 } from "./WiringPreview";
+import {
+  loadVerifiedGeneratedMechanics,
+  type VerifiedGeneratedMechanics,
+} from "./GeneratedMechanicsAssets.ts";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -381,12 +386,15 @@ app.innerHTML = `
             <button id="generate-print-parts" class="pipeline-button" type="button">
               Generate boundary / 3D parts
             </button>
+            <button id="download-print-parts" class="pipeline-button" type="button" disabled>
+              Download verified STL files
+            </button>
           </div>
           <div id="pipeline-status" class="pipeline-status" role="status">
             Local Vite pipeline is ready.
           </div>
           <p class="mapping-note">
-            Pose-first projects with accepted gap cycles generate and display a validated zero-thickness boundary preview. Thickness, mounts, splitting, and STL output are later stages.
+            Accepted gap cycles are validated before the proven mounting system generates exact, hash-checked STL files. A failed run preserves the last successful set.
           </p>
         </section>
 
@@ -476,12 +484,14 @@ const generateMappingButton =
   query<HTMLButtonElement>("#generate-mapping");
 const generatePrintPartsButton =
   query<HTMLButtonElement>("#generate-print-parts");
+const downloadPrintPartsButton =
+  query<HTMLButtonElement>("#download-print-parts");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 const pipelineAvailable = import.meta.env.DEV;
 generatePrintPartsButton.disabled = true;
 if (!pipelineAvailable) {
   pipelineStatus.textContent =
-    "Mapping, wiring, and in-browser panel-outline boundary previews are available. The legacy OpenSCAD/STL pipeline requires local development mode.";
+    "Mapping and wiring are available. Printable STL generation requires local development mode with OpenSCAD.";
 }
 let outputLayerToggles: HTMLInputElement[] = [];
 
@@ -556,6 +566,8 @@ async function start(): Promise<void> {
       surface: LoadedDesignSurface;
       attachmentSurface: "design-surface" | "mechanical-shell";
     } | undefined;
+    let verifiedGeneratedMechanics: VerifiedGeneratedMechanics | undefined;
+    let generatedAssetLoadRevision = 0;
 
     const resetTimeline = (): void => {
       simulationTime = 0;
@@ -581,7 +593,7 @@ async function start(): Promise<void> {
       generatePrintPartsButton.title = editorDefinition.manualMechanics
         ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
         : editorDefinition.boundaryTopology
-          ? "Validate panel outlines and accepted gap cycles, then display the closed boundary preview."
+          ? "Validate the boundary, generate printable parts, and load the exact emitted STL files."
           : !editorDefinition.mechanicalShell || !editorDefinition.closures
             ? "Boundary generation needs accepted panel-corner gap cycles; legacy 3D-part generation needs an explicit planar shell."
           : "";
@@ -627,6 +639,10 @@ async function start(): Promise<void> {
     const updateMappingStatus = (): void => {
       const validation = validateMapping(mapping, engine.ledCount);
       const isPanelized = mapping.topology === "panelized-sculpture";
+      const generatedState = getGeneratedMechanicsState(
+        editorDefinition,
+        editorProject.panelProfile,
+      );
       const wiringValidation = isPanelized
         ? validateWiringPreview(wiringPreview, mapping)
         : { valid: true, errors: [] };
@@ -661,9 +677,13 @@ async function start(): Promise<void> {
           ? "Mapping and wiring use the edited authoritative poses. Manually authored printable mechanics require review and cannot be presented as verified."
           : "Mapping and wiring use authoritative poses. Printable mechanics use the manually authored SCAD parts; generic cap generation is disabled."
         : editorDefinition.mechanicalShell && !mechanicalShellIsCurrent()
-        ? "Panel poses changed on an authoring surface. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
+          ? "Panel poses changed on an authoring surface. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
+        : generatedState === "stale"
+          ? "Mapping and wiring follow the edited poses. The last generated STL set is stale and hidden until regeneration succeeds."
+        : verifiedGeneratedMechanics
+          ? `Mapping and wiring use authoritative poses. Three.js and downloads use the same SHA-256-verified STL bytes (${verifiedGeneratedMechanics.parts.length} parts).`
         : editorDefinition.boundaryTopology
-          ? "Mapping and wiring use authoritative poses. Accepted gap cycles contain connectivity only; Generate Boundary validates and previews the derived closed mesh."
+          ? "Mapping and wiring use authoritative poses. Generate 3D Parts validates the accepted gap cycles before creating printable material."
         : !editorDefinition.mechanicalShell
           ? "Mapping and wiring use authoritative poses. No printable mechanics exist yet; the complete pose-first interface remains available."
         : isPanelized
@@ -671,13 +691,15 @@ async function start(): Promise<void> {
           : "Custom LED counts use the panel-free Fibonacci fallback.";
       panelLabelsToggle.disabled = !isPanelized;
       const hasPrintableClosures =
-        isPanelized &&
-        mechanicalShellIsCurrent() &&
-        (mapping.printableClosures?.length ?? 0) > 0;
+        isPanelized && (verifiedGeneratedMechanics !== undefined ||
+          (mechanicalShellIsCurrent() &&
+            (mapping.printableClosures?.length ?? 0) > 0));
       printableLayerToggle.disabled = !hasPrintableClosures;
       shellTransparencyInput.disabled = !isPanelized;
       connectorLayerToggle.disabled = !isPanelized;
       wiringLayerToggle.disabled = !isPanelized;
+      downloadPrintPartsButton.disabled =
+        verifiedGeneratedMechanics === undefined;
       wiringLayerControls.classList.toggle(
         "layer-controls--disabled",
         !isPanelized,
@@ -696,6 +718,51 @@ async function start(): Promise<void> {
         isPanelized && wiringLayerToggle.checked,
       );
       updatePipelineAvailability();
+    };
+
+    const restoreGeneratedMechanics = async (
+      selected: LoadedSculpture,
+    ): Promise<void> => {
+      const revision = ++generatedAssetLoadRevision;
+      verifiedGeneratedMechanics = undefined;
+      renderer?.setExactGeneratedMechanics(null);
+      downloadPrintPartsButton.disabled = true;
+      const state = getGeneratedMechanicsState(
+        selected.definition,
+        selected.project.panelProfile,
+      );
+      if (state !== "current") {
+        updateMappingStatus();
+        return;
+      }
+      try {
+        if (!selected.definition.boundaryTopology) {
+          throw new Error(
+            "Exact generated assets require their panel-outline boundary topology.",
+          );
+        }
+        const boundary = generateClosedPanelBoundary(
+          selected.definition,
+          selected.project.panelProfile,
+        );
+        const assets = await loadVerifiedGeneratedMechanics(
+          selected.definition,
+          selected.project.panelProfile,
+          selected.project.source,
+        );
+        if (revision !== generatedAssetLoadRevision || !assets) return;
+        renderer?.setExactGeneratedMechanics(boundary, assets);
+        verifiedGeneratedMechanics = assets;
+        updateMappingStatus();
+      } catch (error) {
+        if (revision !== generatedAssetLoadRevision) return;
+        const message = error instanceof Error ? error.message : String(error);
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = message;
+        viewerError.hidden = false;
+        viewerError.textContent = message;
+        updateMappingStatus();
+      }
     };
 
     const renderEditorFaces = (): void => {
@@ -724,7 +791,7 @@ async function start(): Promise<void> {
     const applyLoadedSculpture = (
       selected: LoadedSculpture,
       preserveEditorDefinition = false,
-    ): void => {
+    ): Promise<void> => {
       loadedSculpture = selected;
       selectedHardwareContract = selected.contract;
       hardwareContract = selected.contract;
@@ -750,6 +817,7 @@ async function start(): Promise<void> {
       renderOutputLayerControls();
       resetTimeline();
       updateMappingStatus();
+      return restoreGeneratedMechanics(selected);
     };
 
     const clearDesignSurface = (message: string): void => {
@@ -1324,6 +1392,29 @@ async function start(): Promise<void> {
       }
     });
 
+    downloadPrintPartsButton.addEventListener("click", () => {
+      if (!verifiedGeneratedMechanics) return;
+      const assets = [
+        verifiedGeneratedMechanics.boundary,
+        ...verifiedGeneratedMechanics.parts,
+      ];
+      for (const asset of assets) {
+        const blob = new Blob([Uint8Array.from(asset.bytes)], {
+          type: "model/stl",
+        });
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = asset.source.split("/").at(-1) ?? `${asset.id}.stl`;
+        link.click();
+        URL.revokeObjectURL(objectUrl);
+      }
+      pipelineStatus.classList.remove("pipeline-status--error");
+      pipelineStatus.textContent =
+        `Downloaded ${assets.length} SHA-256-verified STL files from the exact bytes displayed in Three.js.`;
+      viewerError.hidden = true;
+    });
+
     generatePrintPartsButton.addEventListener("click", () => {
       void (async () => {
         generatePrintPartsButton.disabled = true;
@@ -1333,22 +1424,6 @@ async function start(): Promise<void> {
           ? "Deriving exact panel outlines and validating flat gap caps…"
           : "Regenerating mechanical topology, then generating OpenSCAD, STLs, and printable previews…";
         try {
-          if (editorDefinition.boundaryTopology) {
-            const boundary = generateClosedPanelBoundary(
-              editorDefinition,
-              editorProject.panelProfile,
-            );
-            renderer?.setBoundaryPreview(boundary);
-            const counts = boundary.metadata.counts;
-            pipelineStatus.textContent =
-              `Boundary preview passed: ${counts.panelOutlines} panel outlines + ` +
-              `${counts.caps} flat caps, ${counts.faces} faces, ` +
-              `${counts.triangles} deterministic triangles. Mesh ` +
-              `${boundary.metadata.meshFingerprint.value.slice(0, 12)}…. ` +
-              "No thickness, mounts, part splitting, or STL was generated.";
-            viewerError.hidden = true;
-            return;
-          }
           const response = await fetch("./api/editor-pipeline", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1359,6 +1434,7 @@ async function start(): Promise<void> {
             assetSculptureId?: string;
             log?: string;
             definition?: unknown;
+            projectSource?: string;
             error?: string;
           };
           if (!response.ok || !result.ok || !result.assetSculptureId || !result.definition) {
@@ -1366,24 +1442,30 @@ async function start(): Promise<void> {
               result.error ?? `Pipeline failed with HTTP ${response.status}.`,
             );
           }
-          const regeneratedProject = createPanelAssemblyProject(
-            result.definition,
-            editorProject.source,
-            editorProject.panelProfile,
-          );
-          editorDefinition = regeneratedProject.sculpture;
-          editorProject = regeneratedProject;
-          const previewDefinition = structuredClone(regeneratedProject.sculpture);
-          previewDefinition.id = result.assetSculptureId;
-          const previewProject = createPanelAssemblyProject(
-            previewDefinition,
-            editorProject.source,
-            editorProject.panelProfile,
-          );
-          applyLoadedSculpture(
-            createLoadedSculpture(previewProject),
-            true,
-          );
+          if (result.projectSource) {
+            const generated = await loadSculptureContract(result.projectSource);
+            await applyLoadedSculpture(generated);
+            sculptureJsonInput.value = result.projectSource;
+          } else {
+            const regeneratedProject = createPanelAssemblyProject(
+              result.definition,
+              editorProject.source,
+              editorProject.panelProfile,
+            );
+            editorDefinition = regeneratedProject.sculpture;
+            editorProject = regeneratedProject;
+            const previewDefinition = structuredClone(regeneratedProject.sculpture);
+            previewDefinition.id = result.assetSculptureId;
+            const previewProject = createPanelAssemblyProject(
+              previewDefinition,
+              editorProject.source,
+              editorProject.panelProfile,
+            );
+            await applyLoadedSculpture(
+              createLoadedSculpture(previewProject),
+              true,
+            );
+          }
           const lastLogLine = result.log?.trim().split("\n").at(-1);
           pipelineStatus.textContent =
             lastLogLine ?? "Pipeline complete; exact STL meshes are now loaded.";
@@ -1445,6 +1527,7 @@ async function start(): Promise<void> {
     renderEditorFaces();
     renderOutputLayerControls();
     updateMappingStatus();
+    await restoreGeneratedMechanics(loadedSculpture);
     await loadReferencedDesignSurface();
 
     const animate = (now: number): void => {
