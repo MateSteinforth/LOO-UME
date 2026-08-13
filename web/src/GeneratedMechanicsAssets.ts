@@ -4,7 +4,7 @@ import {
   type PanelAssemblyDefinition,
   type ProjectAssetReference,
 } from "../../src/sculpture/PanelAssembly.ts";
-import { sha256Bytes } from "../../src/sculpture/GeneratedMechanics.ts";
+import { verifyProjectAssetBytes } from "../../src/sculpture/GeneratedMechanics.ts";
 import type { PanelHardwareProfile } from "../../src/sculpture/Definition.ts";
 
 export interface VerifiedGeneratedAsset {
@@ -26,10 +26,17 @@ type FetchAsset = (input: string | URL) => Promise<Response>;
 async function fetchVerifiedAsset(
   id: string,
   reference: ProjectAssetReference,
-  projectUrl: URL,
+  projectUrl: URL | undefined,
   fetchAsset: FetchAsset,
+  assetUrls?: ReadonlyMap<string, string>,
 ): Promise<VerifiedGeneratedAsset> {
-  const url = new URL(reference.source, projectUrl);
+  const resolvedUrl = assetUrls?.get(reference.source);
+  if (!resolvedUrl && !projectUrl) {
+    throw new Error(
+      `Generated STL ${reference.source} is unavailable from this local project; import the complete folder or ZIP.`,
+    );
+  }
+  const url = resolvedUrl ?? new URL(reference.source, projectUrl!).href;
   const response = await fetchAsset(url);
   if (!response.ok) {
     throw new Error(
@@ -37,16 +44,11 @@ async function fetchVerifiedAsset(
     );
   }
   const bytes = new Uint8Array(await response.arrayBuffer());
-  const actualHash = sha256Bytes(bytes);
-  if (actualHash !== reference.sha256) {
-    throw new Error(
-      `Generated STL ${reference.source} failed SHA-256 verification; expected ${reference.sha256}, received ${actualHash}.`,
-    );
-  }
+  const actualHash = verifyProjectAssetBytes(reference, bytes, "Generated STL");
   return {
     id,
     source: reference.source,
-    url: url.href,
+    url,
     bytes,
     sha256: actualHash,
     inspection: inspectStl(bytes),
@@ -63,6 +65,7 @@ export async function loadVerifiedGeneratedMechanics(
   projectSource: string,
   fetchAsset: FetchAsset = fetch,
   baseUrl: string = globalThis.location?.href ?? "http://localhost/",
+  assetUrls?: ReadonlyMap<string, string>,
 ): Promise<VerifiedGeneratedMechanics | undefined> {
   const manifest = definition.generatedMechanics;
   if (!manifest) return undefined;
@@ -72,21 +75,19 @@ export async function loadVerifiedGeneratedMechanics(
       "Generated mechanics are stale for the current panel poses; regenerate before displaying or downloading them.",
     );
   }
-  if (projectSource.startsWith("local:")) {
-    throw new Error(
-      "This local JSON references companion STL files; reopen it from a project folder URL to verify those assets.",
-    );
-  }
-  const projectUrl = new URL(projectSource, baseUrl);
+  const projectUrl = projectSource.startsWith("local:")
+    ? undefined
+    : new URL(projectSource, baseUrl);
   const [boundary, ...parts] = await Promise.all([
     fetchVerifiedAsset(
       "boundary",
       manifest.boundary,
       projectUrl,
       fetchAsset,
+      assetUrls,
     ),
     ...manifest.parts.map((part) =>
-      fetchVerifiedAsset(part.id, part, projectUrl, fetchAsset)
+      fetchVerifiedAsset(part.id, part, projectUrl, fetchAsset, assetUrls)
     ),
   ]);
   return { boundary: boundary!, parts };

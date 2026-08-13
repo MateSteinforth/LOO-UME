@@ -8,8 +8,9 @@ implemented. Boundary topology is accepted as panel-ID/named-corner cycles,
 while every coordinate is regenerated from poses and the profile. The local
 development pipeline now generates the printable closures, publishes an atomic
 folder asset set, verifies SHA-256, and displays the exact referenced STL bytes.
-ZIP transport remains later work. The existing manual 41-panel parts and
-planar-shell generator remain supported.
+Folder and ZIP import/export use that same path/hash contract, resolve imported
+assets through browser object URLs, and retain no database or local-storage
+state. The existing manual 41-panel parts and planar-shell generator remain supported.
 
 ## User workflow
 
@@ -227,13 +228,15 @@ leave JSON references to missing files.
 ## Folder and ZIP behavior
 
 An unzipped project works when its relative files are available from the JSON
-location. ZIP import should unpack in browser memory, validate `sculpture.json`,
-validate every referenced hash, create browser object URLs for the GLB and STL
-files, and restore the project without a server-side database.
+location. Folder and ZIP import unpack in browser memory, require exactly one
+`sculpture.json`, reject duplicate or unsafe entries, validate every referenced
+file and hash, create browser object URLs for the GLB and STL files, and restore
+the project without a server-side database.
 
-ZIP export should contain the current JSON and every referenced local asset. It
-must fail clearly if an asset is missing or its hash does not match. External
-URLs should not be silently copied into a supposedly self-contained ZIP.
+Folder and ZIP export contain the current JSON and every referenced local asset.
+They fail clearly if an asset is missing or its hash does not match. Export uses
+only verified bytes already held by the browser and does not silently fetch an
+external URL into a supposedly self-contained bundle.
 
 ## Acceptance journey
 
@@ -243,6 +246,12 @@ The milestone is complete only when one testable journey works end to end:
 > flat-cap boundary -> generate STL parts -> display those exact STLs -> export
 > the project ZIP -> reopen the ZIP -> recover the same GLB, panel poses,
 > boundary, and STL parts.
+
+This journey is covered by `tests/panel-boundary-parts-e2e.test.ts`, including
+folder parity, object-URL loading, exact byte/hash recovery, and both current and
+stale fingerprint states. Container rejection cases are covered separately by
+`tests/portable-project.test.ts`.
+
 
 OpenSCAD or the chosen mesh backend must render every changed printable part,
 and the assembly inspection must confirm panel poses, holes, PCB envelopes,

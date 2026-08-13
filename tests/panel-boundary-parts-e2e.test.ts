@@ -14,6 +14,7 @@ import {
   type ScadRenderer,
 } from "../src/cad/GeneratePanelBoundaryParts.ts";
 import { serializeAsciiStl } from "../src/cad/Stl.ts";
+import { sha256Bytes } from "../src/sculpture/GeneratedMechanics.ts";
 import {
   compilePanelAssembly,
   createPanelAssemblyProject,
@@ -22,8 +23,22 @@ import {
 } from "../src/sculpture/PanelAssembly.ts";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 import { generateClosedPanelBoundary } from "../src/sculpture/PanelOutlineBoundary.ts";
-import { rotatePanelAroundLocalZ } from "../src/sculpture/SculptureEditor.ts";
+import {
+  automaticallySeedPanelsOnSurface,
+  movePanelOnDesignSurface,
+  rotatePanelAroundLocalZ,
+} from "../src/sculpture/SculptureEditor.ts";
 import { loadVerifiedGeneratedMechanics } from "../web/src/GeneratedMechanicsAssets.ts";
+import {
+  loadGlbDesignSurface,
+  placementMeshFromSurface,
+} from "../web/src/DesignSurfaceLoader.ts";
+import {
+  createPortableProjectFiles,
+  createPortableProjectZip,
+  openPortableProjectFiles,
+  openPortableProjectZip,
+} from "../web/src/PortableProject.ts";
 
 const FIXTURE = "sculptures/panel-outline-prism/sculpture.json";
 const temporaryDirectories: string[] = [];
@@ -59,6 +74,70 @@ function deterministicRenderer(seenSources: string[]): ScadRenderer {
       ),
     );
   };
+}
+
+function tetrahedronGlb(): Uint8Array {
+  const positions = new Float32Array([
+    50, 50, 50,
+    -50, -50, 50,
+    -50, 50, -50,
+    50, -50, -50,
+  ]);
+  const indices = new Uint16Array([
+    0, 2, 1,
+    0, 1, 3,
+    0, 3, 2,
+    1, 2, 3,
+  ]);
+  const binary = new Uint8Array(positions.byteLength + indices.byteLength);
+  binary.set(new Uint8Array(positions.buffer), 0);
+  binary.set(new Uint8Array(indices.buffer), positions.byteLength);
+  const json = JSON.stringify({
+    asset: { version: "2.0" },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0 }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 }, indices: 1 }] }],
+    buffers: [{ byteLength: binary.byteLength }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positions.byteLength },
+      {
+        buffer: 0,
+        byteOffset: positions.byteLength,
+        byteLength: indices.byteLength,
+      },
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 4,
+        type: "VEC3",
+        min: [-50, -50, -50],
+        max: [50, 50, 50],
+      },
+      { bufferView: 1, componentType: 5123, count: 12, type: "SCALAR" },
+    ],
+  });
+  const encodedJson = new TextEncoder().encode(json);
+  const paddedJsonLength = Math.ceil(encodedJson.length / 4) * 4;
+  const paddedBinaryLength = Math.ceil(binary.length / 4) * 4;
+  const output = new Uint8Array(
+    12 + 8 + paddedJsonLength + 8 + paddedBinaryLength,
+  );
+  const view = new DataView(output.buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, output.length, true);
+  view.setUint32(12, paddedJsonLength, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  output.fill(0x20, 20, 20 + paddedJsonLength);
+  output.set(encodedJson, 20);
+  const binaryHeader = 20 + paddedJsonLength;
+  view.setUint32(binaryHeader, paddedBinaryLength, true);
+  view.setUint32(binaryHeader + 4, 0x004e4942, true);
+  output.set(binary, binaryHeader + 8);
+  return output;
 }
 
 describe("validated panel boundary printable asset pipeline", () => {
@@ -236,5 +315,240 @@ describe("validated panel boundary printable asset pipeline", () => {
       },
     )).rejects.toThrow(/Boundary|boundary|Gap|gap/);
     expect(calls).toBe(0);
+  });
+
+  it("accepts GLB -> placement -> edit -> parts -> ZIP -> complete reopen", async () => {
+    const source = await loadProject();
+    const glbBytes = tetrahedronGlb();
+    const loadedSurface = await loadGlbDesignSurface(
+      glbBytes.slice().buffer,
+      1,
+    );
+    expect(loadedSurface.validation.watertight).toBe(true);
+
+    let definition = structuredClone(source.sculpture);
+    definition.id = "portable-panel-outline-journey";
+    definition.name = "Portable Panel Outline Journey";
+    definition.panels = [];
+    definition.wiring.chainLengths = [0];
+    delete definition.boundaryTopology;
+    delete definition.generatedMechanics;
+    definition.designSurface = {
+      kind: "triangle-mesh",
+      format: "glb",
+      source: "design/source.glb",
+      sha256: sha256Bytes(glbBytes),
+      scaleToMillimeters: 1,
+      status: "watertight",
+    };
+
+    const seeded = automaticallySeedPanelsOnSurface(
+      definition,
+      placementMeshFromSurface(loadedSurface, false),
+      source.panelProfile.dimensions,
+      {
+        targetPanelCount: 4,
+        surface: "design-surface",
+        normalOffset: source.panelProfile.dimensions.thickness / 2,
+      },
+    );
+    expect(seeded.placedPanelIds).toEqual(["P-01", "P-02", "P-03", "P-04"]);
+    definition = seeded.definition;
+
+    const editedPoses = [
+      {
+        id: "P-01",
+        position: [0, 33, 0] as [number, number, number],
+        orientation: {
+          xAxis: [-1, 0, 0] as [number, number, number],
+          yAxis: [0, 0, 1] as [number, number, number],
+          normal: [0, 1, 0] as [number, number, number],
+        },
+      },
+      {
+        id: "P-02",
+        position: [33, 0, 0] as [number, number, number],
+        orientation: {
+          xAxis: [0, 1, 0] as [number, number, number],
+          yAxis: [0, 0, 1] as [number, number, number],
+          normal: [1, 0, 0] as [number, number, number],
+        },
+      },
+      {
+        id: "P-03",
+        position: [0, -33, 0] as [number, number, number],
+        orientation: {
+          xAxis: [1, 0, 0] as [number, number, number],
+          yAxis: [0, 0, 1] as [number, number, number],
+          normal: [0, -1, 0] as [number, number, number],
+        },
+      },
+      {
+        id: "P-04",
+        position: [-33, 0, 0] as [number, number, number],
+        orientation: {
+          xAxis: [0, -1, 0] as [number, number, number],
+          yAxis: [0, 0, 1] as [number, number, number],
+          normal: [-1, 0, 0] as [number, number, number],
+        },
+      },
+    ];
+    editedPoses.forEach((pose, index) => {
+      definition = movePanelOnDesignSurface(definition, pose.id, {
+        position: pose.position,
+        orientation: pose.orientation,
+        attachment: {
+          surface: "design-surface",
+          triangleIndex: index,
+          barycentric: [1 / 3, 1 / 3, 1 / 3],
+          normalOffset: source.panelProfile.dimensions.thickness / 2,
+        },
+      });
+    });
+    definition.boundaryTopology = {
+      kind: "panel-outline-gap-cycles",
+      gaps: [
+        {
+          id: "gap-top",
+          vertices: [
+            { panelId: "P-01", corner: "top-left" },
+            { panelId: "P-01", corner: "top-right" },
+            { panelId: "P-04", corner: "top-right" },
+            { panelId: "P-03", corner: "top-right" },
+          ],
+        },
+        {
+          id: "gap-bottom",
+          vertices: [
+            { panelId: "P-01", corner: "bottom-right" },
+            { panelId: "P-01", corner: "bottom-left" },
+            { panelId: "P-02", corner: "bottom-left" },
+            { panelId: "P-03", corner: "bottom-left" },
+          ],
+        },
+      ],
+    };
+    const editedProject = createPanelAssemblyProject(
+      definition,
+      "local:acceptance/sculpture.json",
+      source.panelProfile,
+    );
+    const expectedPoses = structuredClone(editedProject.sculpture.panels.map(
+      ({ id, pose }) => ({ id, pose }),
+    ));
+
+    const parent = await mkdtemp(join(tmpdir(), "portable-project-journey-"));
+    temporaryDirectories.push(parent);
+    const generated = await generatePanelBoundaryParts(editedProject, {
+      outputDirectory: join(parent, "generated"),
+      renderScad: deterministicRenderer([]),
+    });
+    const availableAssets = new Map<string, Uint8Array>([
+      ["design/source.glb", glbBytes],
+      [
+        generated.boundaryAsset.source,
+        new Uint8Array(await readFile(generated.boundaryAsset.absolutePath)),
+      ],
+      ...await Promise.all(generated.partAssets.map(async (asset) => [
+        asset.source,
+        new Uint8Array(await readFile(asset.absolutePath)),
+      ] as [string, Uint8Array])),
+    ]);
+
+    const projectFiles = createPortableProjectFiles(
+      generated.definition,
+      availableAssets,
+    );
+    const folderBundle = await openPortableProjectFiles(
+      [...projectFiles].map(([path, bytes]) => ({
+        path: `portable-folder/${path}`,
+        bytes,
+      })),
+      "portable-folder",
+      async () => source.panelProfile,
+    );
+    expect(folderBundle.project.sculpture.designSurface?.source)
+      .toBe("design/source.glb");
+    expect(folderBundle.assets.size).toBe(4);
+    folderBundle.dispose();
+
+    const zipBytes = createPortableProjectZip(
+      generated.definition,
+      availableAssets,
+    );
+    const reopened = await openPortableProjectZip(
+      zipBytes,
+      "portable-panel-outline-journey.zip",
+      async () => source.panelProfile,
+    );
+    try {
+      expect(reopened.project.sculpture.panels.map(({ id, pose }) => ({ id, pose })))
+        .toEqual(expectedPoses);
+      expect(getGeneratedMechanicsState(
+        reopened.project.sculpture,
+        reopened.project.panelProfile,
+      )).toBe("current");
+      expect(reopened.assetUrls.get("design/source.glb")).toMatch(/^blob:/);
+      const reopenedGlb = new Uint8Array(await (
+        await fetch(reopened.assetUrls.get("design/source.glb")!)
+      ).arrayBuffer());
+      expect(reopenedGlb).toEqual(glbBytes);
+
+      const reopenedBoundary = generateClosedPanelBoundary(
+        reopened.project.sculpture,
+        reopened.project.panelProfile,
+      );
+      expect(reopenedBoundary.metadata.meshFingerprint)
+        .toEqual(generated.boundary.metadata.meshFingerprint);
+      const exact = await loadVerifiedGeneratedMechanics(
+        reopened.project.sculpture,
+        reopened.project.panelProfile,
+        reopened.project.source,
+        fetch,
+        "http://localhost/",
+        reopened.assetUrls,
+      );
+      expect(exact?.boundary.url).toMatch(/^blob:/);
+      expect(exact?.parts.map(({ sha256 }) => sha256)).toEqual(
+        generated.partAssets.map(({ sha256 }) => sha256),
+      );
+
+      const staleDefinition = rotatePanelAroundLocalZ(
+        reopened.project.sculpture,
+        "P-01",
+        1,
+      );
+      const staleZip = createPortableProjectZip(
+        staleDefinition,
+        availableAssets,
+      );
+      const staleReopened = await openPortableProjectZip(
+        staleZip,
+        "portable-panel-outline-stale.zip",
+        async () => source.panelProfile,
+      );
+      try {
+        expect(getGeneratedMechanicsState(
+          staleReopened.project.sculpture,
+          staleReopened.project.panelProfile,
+        )).toBe("stale");
+        expect([...staleReopened.assets.keys()].sort()).toEqual(
+          [...reopened.assets.keys()].sort(),
+        );
+        await expect(loadVerifiedGeneratedMechanics(
+          staleReopened.project.sculpture,
+          staleReopened.project.panelProfile,
+          staleReopened.project.source,
+          fetch,
+          "http://localhost/",
+          staleReopened.assetUrls,
+        )).rejects.toThrow(/stale/);
+      } finally {
+        staleReopened.dispose();
+      }
+    } finally {
+      reopened.dispose();
+      loadedSurface.geometry.dispose();
+    }
   });
 });

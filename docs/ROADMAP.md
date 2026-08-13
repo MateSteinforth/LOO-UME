@@ -74,8 +74,8 @@ panel/profile fingerprinting, a boundary reference, ordered exact STL
 references with stable part IDs, generator identity/version, and successful
 generation/validation status. Fingerprint comparison is the sole current/stale
 authority, and save-time validation rejects temporary
-`build/editor-projects/...` paths. Folder asset loading and ZIP import/export
-remain later slices using these same reference and hash rules.
+`build/editor-projects/...` paths. Folder and ZIP import/export now use these
+same reference and hash rules and browser-owned object URLs.
 
 ### 3. Generate and validate a boundary from panel outlines — shipped
 
@@ -102,8 +102,9 @@ remain later slices using these same reference and hash rules.
   non-mechanical interface features usable.
 - Cover panels -> boundary -> parts -> references -> exact STL reload with an
   end-to-end test.
-- Folder reopening uses the same references and hashes. ZIP packaging remains a
-  separate portable-transport slice.
+- Folder and ZIP reopening use the same references and hashes, restore GLB and
+  exact STL bytes through object URLs, and preserve derived current/stale state.
+- Export refuses missing or mismatched local bytes instead of fetching URLs.
 
 ### 5. Make wiring explicit and export states coherent
 

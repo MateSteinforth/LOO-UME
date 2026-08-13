@@ -354,6 +354,28 @@ function validateGeneratedMechanics(value: unknown): void {
   }
 }
 
+function validateUniqueProjectAssetSources(input: Record<string, unknown>): void {
+  const sources = new Set<string>();
+  const add = (value: unknown, label: string): void => {
+    if (!isRecord(value) || typeof value.source !== "string") return;
+    if (sources.has(value.source)) {
+      throw new Error(
+        `${label} duplicates project asset source ${value.source}; every referenced file path must be unique.`,
+      );
+    }
+    sources.add(value.source);
+  };
+  add(input.designSurface, "Design surface");
+  if (!isRecord(input.generatedMechanics)) return;
+  add(input.generatedMechanics.boundary, "Generated boundary");
+  if (!Array.isArray(input.generatedMechanics.parts)) return;
+  for (const part of input.generatedMechanics.parts) {
+    add(part, isRecord(part) && typeof part.id === "string"
+      ? `Generated part ${part.id}`
+      : "Generated part");
+  }
+}
+
 function validateWiring(
   wiring: Record<string, unknown>,
   panelCount: number,
@@ -430,6 +452,7 @@ export function parsePanelAssemblyDefinition(
     assertProjectAssetReference(designSurface, "Design surface");
   }
   validateGeneratedMechanics(input.generatedMechanics);
+  validateUniqueProjectAssetSources(input);
   const manualMechanics = input.manualMechanics;
   const usesManualMechanics = manualMechanics !== undefined;
   const hasMechanicalShell = input.mechanicalShell !== undefined;

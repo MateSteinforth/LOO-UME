@@ -138,6 +138,22 @@ export function assertProjectAssetReference(
   }
 }
 
+/** Applies the portable path/hash contract to bytes from any project transport. */
+export function verifyProjectAssetBytes(
+  reference: ProjectAssetReference,
+  bytes: Uint8Array,
+  label: string,
+): string {
+  assertProjectAssetReference(reference, label);
+  const actualHash = sha256Bytes(bytes);
+  if (actualHash !== reference.sha256) {
+    throw new Error(
+      `${label} ${reference.source} failed SHA-256 verification; expected ${reference.sha256}, received ${actualHash}.`,
+    );
+  }
+  return actualHash;
+}
+
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }

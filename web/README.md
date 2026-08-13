@@ -65,6 +65,12 @@ is added.
 - **Save JSON** downloads the current authoritative sculpture definition, including
   edits. JSON-shell sessions resume from that file alone. An optional GLB remains a
   separate file referenced by relative path, scale, and SHA-256 hash.
+- **Open project folder / ZIP** requires one `sculpture.json`, validates every
+  referenced GLB/STL path and SHA-256, rejects missing, duplicate, or unsafe files,
+  and serves the imported bytes to the existing loaders through object URLs.
+- **Export project folder / ZIP** writes the current JSON plus every referenced
+  verified local GLB, boundary, and STL part. It fails instead of fetching a
+  missing or external asset into the bundle.
 - **Add panel on next surface click** uses the active panel profile dimensions,
   the clicked JSON-shell or GLB triangle and interpolated normal to create an
   authoritative pose

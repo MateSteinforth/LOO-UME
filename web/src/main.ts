@@ -46,6 +46,16 @@ import {
   loadVerifiedGeneratedMechanics,
   type VerifiedGeneratedMechanics,
 } from "./GeneratedMechanicsAssets.ts";
+import {
+  createPortableProjectZip,
+  openPortableProjectFiles,
+  openPortableProjectZip,
+  portableProjectFolderName,
+  writePortableProjectFolder,
+  type PortableDirectoryHandle,
+  type PortableProjectBundle,
+  type PortableProjectFile,
+} from "./PortableProject.ts";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -149,20 +159,25 @@ async function loadLocalSculpture(file: File): Promise<LoadedSculpture> {
   const project = await loadPanelAssemblyProject(
     input,
     `local:${file.name}`,
-    async (reference) => {
-      const profileResponse = await fetch(
-        new URL(`./catalog/panels/${reference.id}.json`, document.baseURI),
-      );
-      if (!profileResponse.ok) {
-        throw new Error(
-          `Unable to find panel profile ${reference.id} in the staged catalog.`,
-        );
-      }
-      return profileResponse.json() as Promise<unknown>;
-    },
+    loadStagedPanelProfile,
   );
   return createLoadedSculpture(project);
 }
+
+async function loadStagedPanelProfile(
+  reference: PanelAssemblyDefinition["panelProfile"],
+): Promise<unknown> {
+  const profileResponse = await fetch(
+    new URL(`./catalog/panels/${reference.id}.json`, document.baseURI),
+  );
+  if (!profileResponse.ok) {
+    throw new Error(
+      `Unable to find panel profile ${reference.id} in the staged catalog.`,
+    );
+  }
+  return profileResponse.json() as Promise<unknown>;
+}
+
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) throw new Error("Missing #app");
@@ -334,11 +349,18 @@ app.innerHTML = `
             <small>pose-first JSON</small>
           </div>
           <input id="sculpture-file" type="file" accept="application/json,.json" hidden />
+          <input id="project-folder" type="file" webkitdirectory multiple hidden />
+          <input id="project-zip" type="file" accept="application/zip,.zip" hidden />
           <input id="design-surface-file" type="file" accept="model/gltf-binary,.glb" hidden />
           <div class="editor-actions">
             <button id="load-sculpture-file" type="button">Load JSON file</button>
             <button id="save-sculpture-file" type="button">Save JSON</button>
+            <button id="load-project-folder" type="button">Open project folder</button>
+            <button id="load-project-zip" type="button">Open project ZIP</button>
+            <button id="export-project-folder" type="button">Export project folder</button>
+            <button id="export-project-zip" type="button">Export project ZIP</button>
           </div>
+          <p class="mapping-note">Folder and ZIP projects keep the JSON, GLB, boundary, and exact STL parts together.</p>
           <div class="section-heading editor-subheading">
             <span>Design surface</span>
             <small>watertight GLB</small>
@@ -465,6 +487,16 @@ const loadSculptureFileButton =
   query<HTMLButtonElement>("#load-sculpture-file");
 const saveSculptureFileButton =
   query<HTMLButtonElement>("#save-sculpture-file");
+const projectFolderInput = query<HTMLInputElement>("#project-folder");
+const projectZipInput = query<HTMLInputElement>("#project-zip");
+const loadProjectFolderButton =
+  query<HTMLButtonElement>("#load-project-folder");
+const loadProjectZipButton =
+  query<HTMLButtonElement>("#load-project-zip");
+const exportProjectFolderButton =
+  query<HTMLButtonElement>("#export-project-folder");
+const exportProjectZipButton =
+  query<HTMLButtonElement>("#export-project-zip");
 const designSurfaceFileInput =
   query<HTMLInputElement>("#design-surface-file");
 const loadDesignSurfaceButton =
@@ -568,6 +600,30 @@ async function start(): Promise<void> {
     } | undefined;
     let verifiedGeneratedMechanics: VerifiedGeneratedMechanics | undefined;
     let generatedAssetLoadRevision = 0;
+    let activePortableBundle: PortableProjectBundle | undefined;
+    let availableProjectAssets = new Map<string, Uint8Array>();
+
+    const replacePortableBundle = (
+      bundle?: PortableProjectBundle,
+    ): void => {
+      activePortableBundle?.dispose();
+      activePortableBundle = bundle;
+      availableProjectAssets = new Map(
+        bundle
+          ? [...bundle.assets].map(([source, asset]) => [
+              source,
+              Uint8Array.from(asset.bytes),
+            ])
+          : [],
+      );
+    };
+
+    const rememberProjectAsset = (
+      source: string,
+      bytes: Uint8Array,
+    ): void => {
+      availableProjectAssets.set(source, Uint8Array.from(bytes));
+    };
 
     const resetTimeline = (): void => {
       simulationTime = 0;
@@ -749,8 +805,17 @@ async function start(): Promise<void> {
           selected.definition,
           selected.project.panelProfile,
           selected.project.source,
+          fetch,
+          document.baseURI,
+          selected.project.source.startsWith("local:")
+            ? activePortableBundle?.assetUrls
+            : undefined,
         );
         if (revision !== generatedAssetLoadRevision || !assets) return;
+        rememberProjectAsset(assets.boundary.source, assets.boundary.bytes);
+        for (const part of assets.parts) {
+          rememberProjectAsset(part.source, part.bytes);
+        }
         renderer?.setExactGeneratedMechanics(boundary, assets);
         verifiedGeneratedMechanics = assets;
         updateMappingStatus();
@@ -884,7 +949,11 @@ async function start(): Promise<void> {
         return;
       }
       surfaceScaleInput.value = String(definition.scaleToMillimeters);
-      if (editorProject.source.startsWith("local:")) {
+      const bundledSurface = activePortableBundle?.assets.get(definition.source);
+      const surfaceObjectUrl = bundledSurface?.sha256 === definition.sha256
+        ? bundledSurface.objectUrl
+        : undefined;
+      if (editorProject.source.startsWith("local:") && !surfaceObjectUrl) {
         if (editorDefinition.manualMechanics) {
           clearDesignSurface(
             "This local project references " + definition.source +
@@ -906,22 +975,26 @@ async function start(): Promise<void> {
       }
       clearDesignSurface("Loading referenced GLB " + definition.source + "…");
       try {
-        const sculptureUrl = new URL(editorProject.source, document.baseURI);
-        const surfaceUrl = new URL(definition.source, sculptureUrl);
+        const surfaceUrl = surfaceObjectUrl ?? new URL(
+          definition.source,
+          new URL(editorProject.source, document.baseURI),
+        );
         const response = await fetch(surfaceUrl);
         if (!response.ok) {
           throw new Error(
             "Unable to load design-surface GLB: HTTP " + response.status + ".",
           );
         }
+        const bytes = new Uint8Array(await response.arrayBuffer());
         const surface = await loadGlbDesignSurface(
-          await response.arrayBuffer(),
+          bytes.slice().buffer,
           definition.scaleToMillimeters,
         );
         if (surface.sha256.toLowerCase() !== definition.sha256.toLowerCase()) {
           surface.geometry.dispose();
           throw new Error("The referenced GLB does not match its sculpture JSON SHA-256.");
         }
+        rememberProjectAsset(definition.source, bytes);
         showDesignSurface(surface, definition.source);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -1157,7 +1230,8 @@ async function start(): Promise<void> {
       loadSculptureButton.disabled = true;
       try {
         const selected = await loadSculptureContract(source);
-        applyLoadedSculpture(selected);
+        replacePortableBundle();
+        await applyLoadedSculpture(selected);
         await loadReferencedDesignSurface();
         sculptureSelect.value = sculptureRegistry.sculptures.some(
           (entry) => entry.source === source,
@@ -1199,7 +1273,8 @@ async function start(): Promise<void> {
       void (async () => {
         try {
           const selected = await loadLocalSculpture(file);
-          applyLoadedSculpture(selected);
+          replacePortableBundle();
+          await applyLoadedSculpture(selected);
           await loadReferencedDesignSurface();
           sculptureSelect.value = "";
           sculptureJsonInput.value = file.name;
@@ -1214,6 +1289,145 @@ async function start(): Promise<void> {
         }
       })();
     });
+
+    const applyPortableBundle = async (
+      bundle: PortableProjectBundle,
+      label: string,
+    ): Promise<void> => {
+      const selected = createLoadedSculpture(bundle.project);
+      replacePortableBundle(bundle);
+      await applyLoadedSculpture(selected);
+      await loadReferencedDesignSurface();
+      sculptureSelect.value = "";
+      sculptureJsonInput.value = label;
+      pipelineStatus.classList.remove("pipeline-status--error");
+      pipelineStatus.textContent =
+        `Loaded complete project ${label} with ${bundle.assets.size} verified assets.`;
+      viewerError.hidden = true;
+    };
+
+    const reportPortableError = (error: unknown): void => {
+      const message = error instanceof Error ? error.message : String(error);
+      pipelineStatus.classList.add("pipeline-status--error");
+      pipelineStatus.textContent = message;
+      viewerError.hidden = false;
+      viewerError.textContent = message;
+    };
+
+    loadProjectFolderButton.addEventListener("click", () => {
+      projectFolderInput.click();
+    });
+    projectFolderInput.addEventListener("change", () => {
+      const files = [...(projectFolderInput.files ?? [])];
+      if (files.length === 0) return;
+      void (async () => {
+        loadProjectFolderButton.disabled = true;
+        try {
+          const entries: PortableProjectFile[] = await Promise.all(
+            files.map(async (file) => ({
+              path: file.webkitRelativePath || file.name,
+              bytes: new Uint8Array(await file.arrayBuffer()),
+            })),
+          );
+          const label = files[0]!.webkitRelativePath.split("/")[0] ||
+            "project-folder";
+          const bundle = await openPortableProjectFiles(
+            entries,
+            label,
+            loadStagedPanelProfile,
+          );
+          await applyPortableBundle(bundle, label);
+        } catch (error) {
+          reportPortableError(error);
+        } finally {
+          projectFolderInput.value = "";
+          loadProjectFolderButton.disabled = false;
+        }
+      })();
+    });
+
+    loadProjectZipButton.addEventListener("click", () => {
+      projectZipInput.click();
+    });
+    projectZipInput.addEventListener("change", () => {
+      const file = projectZipInput.files?.[0];
+      if (!file) return;
+      void (async () => {
+        loadProjectZipButton.disabled = true;
+        try {
+          const bundle = await openPortableProjectZip(
+            new Uint8Array(await file.arrayBuffer()),
+            file.name,
+            loadStagedPanelProfile,
+          );
+          await applyPortableBundle(bundle, file.name);
+        } catch (error) {
+          reportPortableError(error);
+        } finally {
+          projectZipInput.value = "";
+          loadProjectZipButton.disabled = false;
+        }
+      })();
+    });
+
+    exportProjectZipButton.addEventListener("click", () => {
+      try {
+        const folderName = portableProjectFolderName(editorDefinition);
+        const bytes = createPortableProjectZip(
+          editorDefinition,
+          availableProjectAssets,
+          folderName,
+        );
+        const objectUrl = URL.createObjectURL(new Blob(
+          [Uint8Array.from(bytes)],
+          { type: "application/zip" },
+        ));
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = `${folderName}.zip`;
+        link.click();
+        URL.revokeObjectURL(objectUrl);
+        pipelineStatus.classList.remove("pipeline-status--error");
+        pipelineStatus.textContent =
+          `Exported ${link.download} from verified in-memory project assets.`;
+        viewerError.hidden = true;
+      } catch (error) {
+        reportPortableError(error);
+      }
+    });
+
+    exportProjectFolderButton.addEventListener("click", () => {
+      void (async () => {
+        exportProjectFolderButton.disabled = true;
+        try {
+          const picker = (window as unknown as {
+            showDirectoryPicker?: () => Promise<PortableDirectoryHandle>;
+          }).showDirectoryPicker;
+          if (!picker) {
+            throw new Error(
+              "Folder export needs a browser with the directory picker; use project ZIP export here.",
+            );
+          }
+          const folderName = portableProjectFolderName(editorDefinition);
+          const parent = await picker.call(window);
+          await writePortableProjectFolder(
+            parent,
+            editorDefinition,
+            availableProjectAssets,
+            folderName,
+          );
+          pipelineStatus.classList.remove("pipeline-status--error");
+          pipelineStatus.textContent =
+            `Exported complete project folder ${folderName}.`;
+          viewerError.hidden = true;
+        } catch (error) {
+          reportPortableError(error);
+        } finally {
+          exportProjectFolderButton.disabled = false;
+        }
+      })();
+    });
+
     loadDesignSurfaceButton.addEventListener("click", () => {
       designSurfaceFileInput.click();
     });
@@ -1224,8 +1438,9 @@ async function start(): Promise<void> {
         loadDesignSurfaceButton.disabled = true;
         try {
           const scaleToMillimeters = Number(surfaceScaleInput.value);
+          const bytes = new Uint8Array(await file.arrayBuffer());
           const surface = await loadGlbDesignSurface(
-            await file.arrayBuffer(),
+            bytes.slice().buffer,
             scaleToMillimeters,
           );
           const edited = structuredClone(editorDefinition);
@@ -1243,11 +1458,12 @@ async function start(): Promise<void> {
             editorProject.panelProfile,
           );
           applyLoadedSculpture(createLoadedSculpture(project));
+          rememberProjectAsset(file.name, bytes);
           showDesignSurface(surface, file.name);
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
             "Attached " + file.name +
-            " to the sculpture JSON. Save both files together to preserve the reference.";
+            " to the sculpture JSON. Export a project folder or ZIP to preserve every referenced file.";
           viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);

@@ -65,6 +65,7 @@ and refuse invalid or non-manifold results.
 | `src/cad/GeneratePanelBoundaryParts.ts` | Turn a validated panel-gap boundary into a staged, hash-verified exact STL bundle | Publishes the manifest only after every file validates |
 | `src/cad/GeneratePanelClosureCad.ts` | Generic flat closures from compiled planar faces | Reused by explicit shells and panel-gap generation; not a GLB generator |
 | `src/cad/GenerateCad.ts`, `parts/` | Legacy-typed wrappers around tested manual parts | Separate from generic CAD |
+| `web/src/PortableProject.ts` | Shared folder/ZIP validation, object-URL resolution, and self-contained export | Never rewrites saved asset paths or fetches missing export bytes |
 | `web/src/` | UI, Three.js rendering, placement, mapping, routing, export | `main.ts` owns most application state |
 | `wasm/` | Deterministic portable subset of WLED 1D effects | Simulator only, not firmware |
 | `scripts/` | Validation, staging, mapping, CAD, WASM, verification | Development/build tooling |
@@ -89,9 +90,10 @@ and refuse invalid or non-manifold results.
 6. Every edit rebuilds mapping and wiring. Existing generated mechanics become
    `requires-regeneration`; manual mechanics become `requires-review`; a project
    that has never had mechanics remains mechanics-free without a stale status.
-7. JSON, ledmap, and wiring downloads are client-side files. Local development
-   CAD writes an isolated preview under `build/`; it does not replace canonical
-   sculpture JSON.
+7. Folder and ZIP project import validate the same relative assets and hashes,
+   then expose GLB/STL bytes through browser object URLs. Folder/ZIP export uses
+   only verified in-memory bytes. JSON, ledmap, and wiring remain client-side
+   downloads. Local CAD writes an isolated preview under `build/`.
 
 There is no database or browser `localStorage`. Persistence is loaded or
 downloaded JSON, optional GLB references, generated downloads, and development
@@ -104,8 +106,9 @@ panel/profile fingerprint that produced them. Fingerprint comparison is the one
 current/stale authority and panel edits do not stop the pose-first application.
 The local generation service stages a complete folder, validates every STL and
 hash, writes JSON last, and publishes it by atomic directory replacement.
-Three.js loads those referenced bytes after SHA-256 verification. Optional ZIP
-transport remains later work. See
+Three.js loads those referenced bytes after SHA-256 verification. The browser
+imports and exports the same layout as either a folder or ZIP without changing
+saved paths and without a database or `localStorage`. See
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 
 Schema 2 may now accept `boundaryTopology` as stable panel-ID/named-corner
