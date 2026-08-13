@@ -81,7 +81,7 @@ The current schema intentionally selects one panel profile per project. A
 future schema can add per-panel profile IDs when mixed hardware is supported by
 CAD, wiring, and WLED addressing end to end.
 
-## Mechanics-free projects and planned asset references
+## Mechanics-free projects and portable asset references
 
 A project may omit `manualMechanics`, `mechanicalShell`, and `closures`. Such a
 project loads, edits, simulates, maps, wires, saves, and reloads. A panel pose
@@ -91,18 +91,21 @@ The browser does not create a placeholder shell, and generic 3D-part generation
 is disabled until supported boundary input exists. A missing or invalid optional
 GLB disables surface placement without invalidating the project.
 
-In the planned asset-contract slice, **Generate 3D Parts** will reference, rather than embed, the
-generated boundary and exact STL parts. References follow the existing GLB
-model: project-relative source plus SHA-256. The generated-mechanics record also
-needs a generator version and a deterministic fingerprint of the panel poses
-and profile facts used to create the files. A mismatch marks the referenced
-parts stale.
+`designSurface` preserves the existing GLB `source` plus `sha256` reference.
+`generatedMechanics` uses the same project-relative identity pair for one
+closed-boundary STL and an ordered list of exact printable STL parts with stable
+IDs. It also records generator identity/version, successful generation and
+validation status, and the SHA-256 fingerprint of the authoritative panel poses
+and relevant resolved profile facts that produced the assets. The complete JSON
+example and canonical fingerprint inputs are defined in
+[`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 
-The precise field names and schema version must be decided and tested in the
-project-asset contract slice. Until then, do not add ad hoc asset fields or save
-temporary build paths into authored sculpture JSON. The native layout is a
-folder containing `sculpture.json` and referenced assets; a ZIP is a portable
-container for the same layout. See
+The generated manifest is the only authority for its asset identities. Its
+fingerprint comparison is the only authority for current versus stale; no
+second status flag is saved. Asset paths must be safe portable relative paths,
+and temporary `build/editor-projects/...` paths are rejected. The native layout
+is a folder containing `sculpture.json` and referenced assets; a future ZIP is a
+portable container for the same layout. See
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 
 ## Mechanical regeneration contract

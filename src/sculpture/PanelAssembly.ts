@@ -15,6 +15,45 @@ import type {
   Vector3Data,
 } from "../../web/src/LedMapping.ts";
 
+import {
+  assertProjectAssetReference,
+  isLowercaseSha256,
+} from "./GeneratedMechanics.ts";
+export {
+  createGeneratedMechanicsFingerprint,
+  getGeneratedMechanicsState,
+  type GeneratedMechanicsState,
+} from "./GeneratedMechanics.ts";
+
+export interface ProjectAssetReference {
+  source: string;
+  sha256: string;
+}
+
+export interface GeneratedMechanicsManifest {
+  generator: {
+    id: string;
+    version: string;
+  };
+  sourceFingerprint: {
+    algorithm: "sha256";
+    value: string;
+  };
+  status: {
+    generation: "complete";
+    validation: "passed";
+  };
+  boundary: ProjectAssetReference & {
+    kind: "closed-boundary-mesh";
+    format: "stl";
+  };
+  /** Stable order used by viewer controls and portable export. */
+  parts: Array<ProjectAssetReference & {
+    id: string;
+    format: "stl";
+  }>;
+}
+
 export interface PanelAssemblyDefinition {
   schemaVersion: "2.0.0";
   id: string;
@@ -25,14 +64,13 @@ export interface PanelAssemblyDefinition {
     id: string;
     source: string;
   };
-  designSurface?: {
+  designSurface?: ProjectAssetReference & {
     kind: "triangle-mesh";
     format: "glb";
-    source: string;
-    sha256: string;
     scaleToMillimeters: number;
     status: "watertight";
   };
+  generatedMechanics?: GeneratedMechanicsManifest;
   panels: Array<{
     id: string;
     faceType?: "square-face" | "pentagon-centre";
@@ -243,6 +281,60 @@ function nonNegative(parent: Record<string, unknown>, key: string): number {
   return value;
 }
 
+function validateGeneratedMechanics(value: unknown): void {
+  if (value === undefined) return;
+  if (!isRecord(value)) {
+    throw new Error("Generated mechanics must be a manifest object.");
+  }
+  const generator = record(value, "generator");
+  const sourceFingerprint = record(value, "sourceFingerprint");
+  const status = record(value, "status");
+  const boundary = record(value, "boundary");
+  if (
+    typeof generator.id !== "string" ||
+    generator.id.length === 0 ||
+    typeof generator.version !== "string" ||
+    generator.version.length === 0
+  ) {
+    throw new Error("Generated mechanics require generator identity and version.");
+  }
+  if (
+    sourceFingerprint.algorithm !== "sha256" ||
+    !isLowercaseSha256(sourceFingerprint.value)
+  ) {
+    throw new Error("Generated mechanics require a lowercase SHA-256 source fingerprint.");
+  }
+  if (status.generation !== "complete" || status.validation !== "passed") {
+    throw new Error(
+      "A generated-mechanics manifest must describe a complete, validated asset set.",
+    );
+  }
+  if (
+    boundary.kind !== "closed-boundary-mesh" ||
+    boundary.format !== "stl"
+  ) {
+    throw new Error("Generated mechanics require one closed-boundary STL asset.");
+  }
+  assertProjectAssetReference(boundary, "Generated boundary");
+  if (!Array.isArray(value.parts) || value.parts.length === 0) {
+    throw new Error("Generated mechanics require an ordered, non-empty STL part list.");
+  }
+  const partIds = new Set<string>();
+  for (const part of value.parts) {
+    if (
+      !isRecord(part) ||
+      typeof part.id !== "string" ||
+      part.id.length === 0 ||
+      part.format !== "stl" ||
+      partIds.has(part.id)
+    ) {
+      throw new Error("Generated STL parts require unique, non-empty stable IDs.");
+    }
+    assertProjectAssetReference(part, `Generated part ${part.id}`);
+    partIds.add(part.id);
+  }
+}
+
 function validateWiring(
   wiring: Record<string, unknown>,
   panelCount: number,
@@ -304,25 +396,21 @@ export function parsePanelAssemblyDefinition(
     throw new Error("Panel profile requires non-empty id and source strings.");
   }
   const designSurface = input.designSurface;
-  if (
-    designSurface !== undefined &&
-    (!isRecord(designSurface) ||
+  if (designSurface !== undefined) {
+    if (
+      !isRecord(designSurface) ||
       designSurface.kind !== "triangle-mesh" ||
       designSurface.format !== "glb" ||
-      typeof designSurface.source !== "string" ||
-      designSurface.source.length === 0 ||
-      typeof designSurface.sha256 !== "string" ||
-      designSurface.sha256.length !== 64 ||
-      [...designSurface.sha256.toLowerCase()].some(
-        (character) => !"0123456789abcdef".includes(character),
-      ) ||
       typeof designSurface.scaleToMillimeters !== "number" ||
       !Number.isFinite(designSurface.scaleToMillimeters) ||
       designSurface.scaleToMillimeters <= 0 ||
-      designSurface.status !== "watertight")
-  ) {
-    throw new Error("Design surface must reference a validated GLB and SHA-256 hash.");
+      designSurface.status !== "watertight"
+    ) {
+      throw new Error("Design surface must reference a validated GLB and SHA-256 hash.");
+    }
+    assertProjectAssetReference(designSurface, "Design surface");
   }
+  validateGeneratedMechanics(input.generatedMechanics);
   const manualMechanics = input.manualMechanics;
   const usesManualMechanics = manualMechanics !== undefined;
   const hasMechanicalShell = input.mechanicalShell !== undefined;

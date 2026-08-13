@@ -2,10 +2,11 @@
 
 This page records the agreed product direction for general sculptures. The
 mechanics-independent interface in steps 1–4 is implemented: mechanics fields
-may be omitted and optional GLB failures are non-fatal. Boundary generation,
-asset persistence, exact STL restoration, and ZIP support remain target
-architecture. The existing manual 41-panel parts and planar-shell generator
-remain supported while later slices are built.
+may be omitted and optional GLB failures are non-fatal. The portable asset
+contract is also implemented. Boundary generation, folder/asset loading, exact
+STL restoration, and ZIP support remain target architecture. The existing
+manual 41-panel parts and planar-shell generator remain supported while later
+slices are built.
 
 ## User workflow
 
@@ -105,24 +106,68 @@ my-sculpture/
 ```
 
 The JSON remains the authority for panel poses, profile selection, mapping, and
-asset identity. Large binary geometry remains external and is addressed by a
-relative path plus SHA-256, following the existing GLB reference model.
+asset identity. Large binary geometry remains external. Each reference owns
+exactly one identity pair: a project-relative `source` and the lowercase
+SHA-256 of that file. There is no separate asset registry to become
+inconsistent with the reference.
 
-The planned generated-mechanics record needs, at minimum:
+Schema 2 uses this contract (the hashes below are illustrative):
 
-- a generator/version identifier;
-- a deterministic fingerprint of the panel poses and relevant panel-profile
-  facts used for generation;
-- a referenced closed-boundary mesh;
-- an ordered list of referenced STL parts with stable IDs, relative paths, and
-  SHA-256 hashes;
-- generation/validation status; and
-- enough manifest data to associate a loaded STL with its part and display
-  controls.
+```json
+{
+  "designSurface": {
+    "kind": "triangle-mesh",
+    "format": "glb",
+    "source": "design/source.glb",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scaleToMillimeters": 1,
+    "status": "watertight"
+  },
+  "generatedMechanics": {
+    "generator": {
+      "id": "wled-orbital-lab/planar-boundary",
+      "version": "0.1.0"
+    },
+    "sourceFingerprint": {
+      "algorithm": "sha256",
+      "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "status": {
+      "generation": "complete",
+      "validation": "passed"
+    },
+    "boundary": {
+      "kind": "closed-boundary-mesh",
+      "format": "stl",
+      "source": "mechanics/boundary.stl",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "parts": [
+      {
+        "id": "part-001",
+        "format": "stl",
+        "source": "mechanics/parts/part-001.stl",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      {
+        "id": "part-002",
+        "format": "stl",
+        "source": "mechanics/parts/part-002.stl",
+        "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    ]
+  }
+}
+```
 
-The exact Schema 2 extension must be settled in the contract slice before code
-is written. Do not save temporary `build/editor-projects/...` paths into a
-portable project.
+`parts` order is display/export order; `id` is the stable part identity. A
+manifest represents the last completely generated and validated asset set, so
+its status is `complete`/`passed`. A failed attempt does not replace it.
+
+Asset sources use portable POSIX-style relative paths. Absolute paths, URLs,
+backslashes, empty/`.`/`..` segments, query or fragment suffixes, and temporary
+`build/editor-projects/...` sources are invalid. ZIP support will consume the
+same references later; it does not change this contract.
 
 ## Viewer and staleness rules
 
@@ -130,7 +175,19 @@ After successful generation, Three.js must display the exact referenced STL
 files, not a visually similar reconstruction. The files shown, downloaded, and
 restored after reopening must have matching hashes.
 
-When any panel pose or generation-relevant profile fact changes:
+`sourceFingerprint` is SHA-256 over one canonical JSON projection: panels
+sorted by stable panel ID with only their authoritative poses, plus the resolved
+profile's dimensions, mounting geometry and allocation, physical corrections,
+connector facts, and electrical keep-outs. Descriptive notes, mapping, wiring,
+and pixel order are deliberately excluded because they cannot change generated
+material.
+
+Current versus stale has one authority: recompute that canonical fingerprint
+from the loaded project and compare it with
+`generatedMechanics.sourceFingerprint.value`. There is no saved `stale` or
+`current` field. The manifest is current only when its generation/validation
+status is successful and the fingerprints match. When any panel pose or
+generation-relevant profile fact changes:
 
 - panels, LEDs, simulation, mapping, and wiring continue to work;
 - the generated-mechanics fingerprint no longer matches;

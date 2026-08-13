@@ -60,15 +60,16 @@ support GLB/automatic/manual placement, local edits, simulation, mapping,
 provisional wiring, save, and reopen. Optional GLB load failures are non-fatal,
 and generic generation explains that boundary input does not exist yet.
 
-### 2. Define portable project assets
+### 2. Define portable project assets — shipped
 
-- Treat a project as `sculpture.json` plus relative, SHA-256-checked assets.
-- Extend Schema 2 with a generated-mechanics manifest containing the source
-  panel-pose fingerprint, boundary reference, exact STL part references, stable
-  part IDs, generator version, and status.
-- Never persist temporary `build/editor-projects/...` paths as project assets.
-- Define folder loading first, then ZIP import/export using the same reference
-  and hash rules.
+Schema 2 now treats a project as `sculpture.json` plus safe project-relative,
+SHA-256-identified assets. Its generated-mechanics manifest contains canonical
+panel/profile fingerprinting, a boundary reference, ordered exact STL
+references with stable part IDs, generator identity/version, and successful
+generation/validation status. Fingerprint comparison is the sole current/stale
+authority, and save-time validation rejects temporary
+`build/editor-projects/...` paths. Folder asset loading and ZIP import/export
+remain later slices using these same reference and hash rules.
 
 ### 3. Generate and validate a boundary from panel outlines
 

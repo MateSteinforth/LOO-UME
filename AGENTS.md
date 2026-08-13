@@ -17,10 +17,9 @@ LED sculptures. The browser application is **WLED Orbital Lab**. Start with
 - Physically tested manual CAD: the three canonical files under `parts/`.
   Never make numbered copies; Git is the version history.
 - Generated STL, PNG, ledmap, panel-map, and `build/` files are artifacts, not
-  authored geometry or mapping truth. The planned portable project format may
-  reference generated GLB/STL assets by relative path and hash; those files are
-  still derived assets, while the main sculpture JSON remains the project
-  authority.
+  authored geometry or mapping truth. The portable project format may reference
+  GLB/STL assets by safe relative path and SHA-256; those files are still
+  derived assets, while the main sculpture JSON remains the project authority.
 
 Schema 1 (`src/sculpture/Definition.ts`, `schemas/sculpture.schema.json`, the
 legacy migration fixture, and old mapping/CAD tests) is retained legacy code.

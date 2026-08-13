@@ -93,12 +93,13 @@ There is no database or browser `localStorage`. Persistence is loaded or
 downloaded JSON, optional GLB references, generated downloads, and development
 artifacts.
 
-The planned portable project model is a main `sculpture.json` plus relative,
-hash-checked GLB and STL assets in a folder, optionally transported as a ZIP.
-After generation, the JSON references a boundary mesh and exact printable STL
-parts together with the panel-pose fingerprint that produced them. Three.js
-loads those referenced STLs. Panel edits make them stale but do not stop the
-pose-first application. See
+The portable project contract is a main `sculpture.json` plus relative,
+hash-checked GLB and STL assets in a folder. Schema 2 can reference a boundary
+mesh and ordered exact printable STL parts together with the canonical
+panel/profile fingerprint that produced them. Fingerprint comparison is the one
+current/stale authority and panel edits do not stop the pose-first application.
+Folder asset loading, exact-STL display, and optional ZIP transport remain later
+milestones. See
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 ## Rendering and simulation
 

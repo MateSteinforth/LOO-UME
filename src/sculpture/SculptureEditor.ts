@@ -1,4 +1,7 @@
-import type { PanelAssemblyDefinition } from "./PanelAssembly.ts";
+import {
+  parsePanelAssemblyDefinition,
+  type PanelAssemblyDefinition,
+} from "./PanelAssembly.ts";
 import { preserveAuthoringBoundary } from "./MechanicalShellRegenerator.ts";
 import {
   createMechanicalSurfaceOrientation,
@@ -799,5 +802,6 @@ export function deletePanel(
 }
 
 export function sculptureJson(definition: PanelAssemblyDefinition): string {
+  parsePanelAssemblyDefinition(definition);
   return `${JSON.stringify(definition, null, 2)}\n`;
 }

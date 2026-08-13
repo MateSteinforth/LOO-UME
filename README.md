@@ -116,11 +116,12 @@ The next fabrication milestone makes **Generate 3D Parts** close the gaps betwee
 validated flat N-gon caps, validate one closed boundary, generate printable
 parts, and load the exact emitted STL files in Three.js.
 
-The planned portable project is a folder containing `sculpture.json` plus
-relative, hash-checked GLB and STL assets; ZIP is a transport for that folder.
-This workflow is specified in
-[`docs/MECHANICS_WORKFLOW.md`](docs/MECHANICS_WORKFLOW.md) and remains proposed for the asset, boundary-generation, exact-STL, and ZIP
-roadmap slices.
+The portable project contract is a folder containing `sculpture.json` plus
+safe relative, SHA-256-identified GLB and STL assets. Schema 2 defines generated
+boundary and ordered exact-part references plus canonical current/stale
+fingerprinting. Folder asset loading, boundary generation, exact-STL display,
+and ZIP transport remain later roadmap slices. This workflow is specified in
+[`docs/MECHANICS_WORKFLOW.md`](docs/MECHANICS_WORKFLOW.md).
 
 ## Canonical printable parts
 
