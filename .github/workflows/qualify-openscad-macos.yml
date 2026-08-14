@@ -1,0 +1,79 @@
+name: Qualify macOS OpenSCAD artifact
+
+on:
+  push:
+    branches: [codex/install-013-managed-openscad-macos]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Qualify ${{ matrix.architecture }} snapshot
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: arm64
+          - runner: macos-15-intel
+            architecture: x86_64
+
+    steps:
+      - name: Confirm native runner
+        shell: bash
+        run: |
+          test "$(uname -m)" = "${{ matrix.architecture }}"
+          test "$(sw_vers -productVersion | cut -d. -f1)" = "15"
+          if /usr/sbin/sysctl -in sysctl.proc_translated 2>/dev/null | grep -qx 1; then
+            echo "The qualification process is running through Rosetta."
+            exit 1
+          fi
+
+      - name: Download and qualify universal snapshot
+        shell: bash
+        env:
+          OPENSCAD_DMG_URL: https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg
+          OPENSCAD_DMG_SHA256: 555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4
+        run: |
+          set -euo pipefail
+          dmg="$RUNNER_TEMP/OpenSCAD-2026.06.12.dmg"
+          mount_point="$RUNNER_TEMP/openscad-qualification-mount"
+          mkdir -p "$mount_point"
+          cleanup() { hdiutil detach "$mount_point" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          curl --fail --location --silent --show-error "$OPENSCAD_DMG_URL" --output "$dmg"
+          printf '%s  %s\n' "$OPENSCAD_DMG_SHA256" "$dmg" | shasum -a 256 --check
+          test "$(stat -f %z "$dmg")" = "64447344"
+          hdiutil attach -readonly -nobrowse -noautoopen -mountpoint "$mount_point" "$dmg"
+          app="$mount_point/OpenSCAD.app"
+          executable="$app/Contents/MacOS/OpenSCAD"
+          test -x "$executable"
+          lipo -archs "$executable" | tee "$RUNNER_TEMP/openscad-architectures.txt"
+          lipo -verify_arch arm64 x86_64 "$executable"
+          /usr/bin/arch "-${{ matrix.architecture }}" "$executable" --version | tee "$RUNNER_TEMP/openscad-version.txt"
+          codesign --verify --deep --strict --verbose=4 "$app"
+          spctl --assess --type execute --verbose=4 "$app"
+          xcrun stapler validate "$app"
+          plutil -p "$app/Contents/Info.plist" | tee "$RUNNER_TEMP/openscad-info-plist.txt"
+          "$executable" --info >"$RUNNER_TEMP/openscad-info.txt" 2>&1 || true
+          strings "$executable" | grep -E '[0-9a-f]{40}' | sort -u | head -n 50 >"$RUNNER_TEMP/openscad-commit-candidates.txt" || true
+          cleanup
+          trap - EXIT
+
+      - name: Upload qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: openscad-macos-${{ matrix.architecture }}-qualification
+          path: |
+            ${{ runner.temp }}/openscad-architectures.txt
+            ${{ runner.temp }}/openscad-version.txt
+            ${{ runner.temp }}/openscad-info-plist.txt
+            ${{ runner.temp }}/openscad-info.txt
+            ${{ runner.temp }}/openscad-commit-candidates.txt
+          if-no-files-found: warn
+          retention-days: 7
