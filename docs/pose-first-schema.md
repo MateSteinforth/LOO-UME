@@ -114,9 +114,14 @@ and relevant resolved profile facts that produced the assets. The complete JSON
 example and canonical fingerprint inputs are defined in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 
-Part generation preserves the `designSurface` reference but does not copy the
-referenced GLB into the generated folder. A self-contained portable project
-still needs the separately loaded bytes whose hash matches that reference.
+Part generation preserves the safe `designSurface.source`. The browser sends
+only those verified GLB bytes with the JSON in a bounded multipart request. The
+JSON field is limited to 5 MB and the complete request is limited to 64 MB. The
+server verifies the hash before rendering or staging, copies the exact GLB to
+the unchanged relative path, verifies the staged copy, and atomically publishes
+the GLB with the STL files and JSON. The generated folder opens directly and can
+become a ZIP without external asset injection. Missing, tampered, or reserved
+paths fail before rendering.
 
 The generated manifest is the only authority for its asset identities. Its
 fingerprint comparison is the only authority for current versus stale; no
@@ -168,13 +173,15 @@ and persists only unambiguous gap cycles, then passes only a closed,
 two-manifold result to printable-part generation. The editor does not yet let
 the user inspect, confirm, reorder, or redraw candidate gap topology, so an
 ambiguous layout stops with an error. The GLB remains a positioning canvas and
-is not converted into that boundary. Local generation preserves its path and
-hash but does not copy it into the generated folder.
+is not converted into that boundary or used to detect topology. Local
+generation copies its verified bytes only as the unchanged authoring asset in
+the atomically published project folder.
 
 The production desktop host and Vite development adapter share the same local
 generator-status and pipeline handler. Repository-local setup installs the
-pinned OpenSCAD tool on supported Linux and macOS targets and provides a
-Windows x86-64 candidate. Windows PC support remains pending `INSTALL-015`.
+pinned OpenSCAD tool on the current required Linux and macOS targets and
+provides a Windows x86-64 candidate. Windows client qualification is deferred
+and does not block installation proof for the required targets.
 Unavailable or wrong-version status disables only generation, and the host must
 restart after installation or repair. No schema state records generator
 availability.

@@ -18,6 +18,7 @@ import type {
 import {
   assertProjectAssetReference,
   isLowercaseSha256,
+  portableProjectAssetCollisionKey,
 } from "./GeneratedMechanics.ts";
 export {
   createGeneratedMechanicsFingerprint,
@@ -358,12 +359,13 @@ function validateUniqueProjectAssetSources(input: Record<string, unknown>): void
   const sources = new Set<string>();
   const add = (value: unknown, label: string): void => {
     if (!isRecord(value) || typeof value.source !== "string") return;
-    if (sources.has(value.source)) {
+    const collisionKey = portableProjectAssetCollisionKey(value.source);
+    if (sources.has(collisionKey)) {
       throw new Error(
         `${label} duplicates project asset source ${value.source}; every referenced file path must be unique.`,
       );
     }
-    sources.add(value.source);
+    sources.add(collisionKey);
   };
   add(input.designSurface, "Design surface");
   if (!isRecord(input.generatedMechanics)) return;

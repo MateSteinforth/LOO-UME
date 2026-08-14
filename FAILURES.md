@@ -138,3 +138,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   an installation dependency only to read public workflow status.
 - **Evidence:** `AGENTS.md`, under **Working safely**.
 - **Status:** Mitigated.
+
+### F-007 — Shared-worktree line numbers can become stale before a fallback patch
+
+- **Date:** 2026-08-14
+- **Context:** ASSET-010 integration with concurrent bounded agent edits.
+- **Symptom:** A line-number-only fallback could place an import in the wrong
+  part of a file after another agent changed nearby lines.
+- **Cause:** The patch coordinates came from an earlier file view in a shared
+  worktree.
+- **Correction:** Re-read the exact target block immediately before applying
+  the fallback and normalize the affected import block.
+- **Prevention:** Prefer context hunks. When zero-context line coordinates are
+  necessary, refresh them immediately before `git apply --unidiff-zero` and
+  inspect the resulting diff.
+- **Evidence:** `AGENTS.md`, under **Working safely**, and ASSET-010 integration.
+- **Status:** Mitigated.

@@ -7,15 +7,16 @@ import {
   startLocalEditorServer,
   type LocalEditorServer,
 } from "../scripts/local-editor-server.ts";
-import type { OpenScadRuntime } from "../src/cad/OpenScadRuntime.ts";
-
-const temporaryDirectories: string[] = [];
 import { serializeAsciiStl } from "../src/cad/Stl.ts";
+import type { OpenScadRuntime } from "../src/cad/OpenScadRuntime.ts";
+import { sha256Bytes } from "../src/sculpture/GeneratedMechanics.ts";
 import {
   getGeneratedMechanicsState,
   parsePanelAssemblyDefinition,
 } from "../src/sculpture/PanelAssembly.ts";
 import { parsePanelHardwareProfile } from "../src/sculpture/Definition.ts";
+
+const temporaryDirectories: string[] = [];
 const localServers: LocalEditorServer[] = [];
 
 afterEach(async () => {
@@ -230,14 +231,34 @@ describe("production local editor server", () => {
   it("generates and serves a current project through the production server", async () => {
     const server = await fixtureServer(availableRuntime());
     const origin = server.url.slice(0, -1);
-    const fixture = await readFile(
+    const fixture = JSON.parse(await readFile(
       "sculptures/panel-outline-prism/sculpture.json",
       "utf8",
+    )) as Record<string, unknown>;
+    const glbBytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 2, 0, 0, 0]);
+    fixture.designSurface = {
+      kind: "triangle-mesh",
+      format: "glb",
+      source: "design/source.glb",
+      sha256: sha256Bytes(glbBytes),
+      scaleToMillimeters: 1,
+      status: "watertight",
+    };
+    const requestBody = new FormData();
+    requestBody.append(
+      "sculpture",
+      new Blob([JSON.stringify(fixture)], { type: "application/json" }),
+      "sculpture.json",
+    );
+    requestBody.append(
+      "designSurface",
+      new Blob([Uint8Array.from(glbBytes)], { type: "model/gltf-binary" }),
+      "source.glb",
     );
     const response = await fetch(`${server.url}api/editor-pipeline`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Origin: origin },
-      body: fixture,
+      headers: { Origin: origin },
+      body: requestBody,
     });
     expect(response.status).toBe(200);
     const result = await response.json() as {
@@ -261,6 +282,15 @@ describe("production local editor server", () => {
     );
     expect(publishedDefinition).toEqual(definition);
     expect(getGeneratedMechanicsState(publishedDefinition, profile)).toBe("current");
+
+    const designSurface = publishedDefinition.designSurface!;
+    const designResponse = await fetch(new URL(
+      `${result.projectSource.slice(0, -"sculpture.json".length)}${designSurface.source}`,
+      server.url,
+    ));
+    expect(designResponse.status).toBe(200);
+    expect(designResponse.headers.get("content-type")).toBe("model/gltf-binary");
+    expect(new Uint8Array(await designResponse.arrayBuffer())).toEqual(glbBytes);
 
     for (const part of publishedDefinition.generatedMechanics?.parts ?? []) {
       const partResponse = await fetch(new URL(

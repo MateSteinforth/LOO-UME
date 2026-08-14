@@ -55,8 +55,9 @@ installer checkout is pinned independently in `wasm/emsdk-revision.txt`.
 The production interface is served from this computer rather than deployed to
 a hosted generation service. OpenSCAD is required for printable-part
 generation, but its binary is not stored in the repository. Automatic
-repository-local setup covers the declared Linux and macOS targets and provides
-a Windows x86-64 candidate. Use the Bash commands below on Linux or macOS:
+repository-local setup covers the current required Linux and macOS targets and
+retains a Windows x86-64 candidate. Use the Bash commands below on Linux or
+macOS:
 
 ```bash
 npm ci
@@ -123,10 +124,9 @@ desktop command to refresh the startup status.
 Node.js, npm, and the other project dependencies are not installed by this
 command. Linux also needs `dpkg-deb`. Clean Windows Server 2022 and 2025 x64
 runners provide surrogate proof only; they do not prove Windows PC support.
-INSTALL-015 is blocked on short-lived Windows 10 Enterprise LTSC 2021 and
-Windows 11 Enterprise 25H2 x86-64 non-N virtual machines. Windows N/KN and
-Windows ARM64 are excluded. INSTALL-011 tracks the all-dependency clean-clone
-bootstrap. INSTALL-012 tracks proof on every declared supported target.
+Windows client qualification is deferred. The candidate code and checks remain,
+but Windows does not block INSTALL-011 or INSTALL-012. Those tasks cover the
+all-dependency bootstrap and proof on the required Linux and macOS targets.
 
 Both the Vite development adapter and production server use the same bounded
 local handler for `/api/generator-status` and `/api/editor-pipeline`. Generation
@@ -171,11 +171,17 @@ is added.
   profile. It insets the PCB rectangle, partitions the remaining face into printable
   closure sectors, derives a right-handed panel pose, and rebalances provisional
   wiring lengths.
-- **Generate CAD + wiring + previews** posts the in-memory JSON to the bounded
-  local endpoint shared by Vite development and the production desktop host. It
-  generates the compiled assembly, mapping, provisional WLED ledmap, OpenSCAD
-  sources, STL files, and PNG previews under an isolated `-editor-preview` ID,
-  then reloads the exact STL meshes in Three.js.
+- **Generate CAD + wiring + previews** sends one bounded multipart request to
+  the local endpoint shared by Vite development and the production desktop
+  host. It contains the in-memory JSON and only the referenced, SHA-256-verified
+  GLB bytes. The JSON field is limited to 5 MB and the complete request is
+  limited to 64 MB. The server verifies the GLB before rendering, copies it to
+  its unchanged safe relative path, and verifies the staged copy. The
+  panel-outline route generates the validated boundary, OpenSCAD sources, and
+  exact STL parts, atomically publishes the complete GLB/STL/JSON folder, and
+  reloads the exact STL meshes in Three.js. The existing explicit-shell route
+  continues to generate its compiled assembly, mapping, provisional WLED
+  ledmap, STL files, and PNG previews under an isolated `-editor-preview` ID.
 
 Panel-outline projects use the same endpoint to generate a deterministic
 boundary and gap-sorted printable closure set. When `boundaryTopology` is
@@ -197,10 +203,11 @@ positioning canvas and is never used as mechanical geometry. Unsupported or unsa
 placements return a panel-specific error instead of emitting misleading parts.
 
 Use `npm run dev:web` for Vite development or `npm run desktop` for the built
-production interface and local OpenSCAD host. Generation preserves a referenced
-GLB path and hash but does not copy that GLB into the generated output folder;
-folder/ZIP export needs the separately loaded, verified bytes. An inset topology
-with only three populated neighbors still
+production interface and local OpenSCAD host. A generated folder includes the
+verified GLB at its unchanged safe relative path, all exact STL files, and the
+JSON. It opens directly and can become a ZIP without external asset injection.
+Missing, tampered, or reserved asset paths fail before OpenSCAD runs or staging
+starts. An inset topology with only three populated neighbors still
 uses all four eligible panel holes, but explicitly records that one strip closure
 serves two adjacent holes. Existing sculptures retain the stricter one-cap-per-hole
 and three-connectors-per-closure defaults.

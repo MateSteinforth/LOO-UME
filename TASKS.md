@@ -83,6 +83,13 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: remove collisions caused by hashing only the low 16 bits of LED indices.
 - Acceptance: indices differing by 65,536 produce different fingerprints; compatibility/migration behavior is documented and tested.
 
+### `INSTALL-015` Qualify managed OpenSCAD on Windows clients — deferred
+
+- Outcome: convert the retained Windows x86-64 candidate from `INSTALL-014` into a tested Windows PC support claim if Windows returns to the required platform set.
+- Acceptance: use disposable native Windows 10 Enterprise LTSC 2021 and Windows 11 25H2 non-N x86-64 client VMs; start without OpenSCAD, administrator rights, repository cache, registry install, or `PATH` wiring; run setup twice from a path with spaces; generate real STL files; prove clean server shutdown; destroy each trusted runner after use.
+- Depends on: `INSTALL-014` and provisioned ephemeral Windows client runner images.
+- Deferred by: the operator selected Linux and macOS as the current required targets. Windows candidate code and CI checks stay implemented, but Windows client qualification does not block `INSTALL-011` or `INSTALL-012`.
+
 ## Ready
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
@@ -92,35 +99,29 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 - Outcome: after cloning the repository, one platform-appropriate command installs and connects every project dependency needed to build, test, start, and generate parts.
 - Acceptance:
-  - POSIX and PowerShell entry points require only Git and the operating system's standard shell; every other executable is acquired or its function is supplied by a verified repository stage-zero component.
+  - The POSIX entry point for the declared Linux and macOS targets requires only Git and the operating system's standard shell; every other executable is acquired or its function is supplied by a verified repository stage-zero component.
   - A committed dependency manifest accounts for Node.js/npm, Python, download/archive utilities, OpenSCAD, WLED sources, Emscripten, and every other command invoked by setup or verification.
   - Bootstrap acquires pinned repository-local Node.js/npm and Python toolchains when absent; it must not silently use an undeclared system executable.
-  - Bootstrap initializes required submodules, installs exact npm dependencies, acquires OpenSCAD through `INSTALL-010`, `INSTALL-013`, or `INSTALL-014` for the selected platform, and installs pinned WLED/Emscripten tooling required by the documented full verification path.
+  - Bootstrap initializes required submodules, installs exact npm dependencies, acquires OpenSCAD through `INSTALL-010` or `INSTALL-013` for the selected required platform, and installs pinned WLED/Emscripten tooling required by the documented full verification path.
+  - The retained Windows PowerShell and OpenSCAD candidate may stay operational, but Windows is not a completion gate for this task.
   - Repeated and interrupted runs are safe and resumable; paths containing spaces work; no global packages, administrator access, or system package-manager changes are required.
   - Completion verifies generator availability and prints one start command; failures state the failed dependency and exact recovery action.
-- Depends on: `INSTALL-010`, `INSTALL-013`, `INSTALL-014`, and `INSTALL-015`.
+- Depends on: `INSTALL-010` and `INSTALL-013`.
 - Verify: empty-cache and warm-cache integration tests, interruption recovery, checksum/network failure tests, `npm run verify`, and a local production-server smoke test.
-- Docs: make this the primary installation path and list only Git plus the standard shell as prerequisites.
+- Docs: make this the primary Linux and macOS installation path and list only Git plus the standard shell as prerequisites.
 
 ### `INSTALL-012` Prove automatic installation on clean supported systems — P0
 
-- Outcome: every declared supported platform proves that a fresh clone becomes a working local production editor without a manual Node, npm, Python, OpenSCAD, SDK, utility, PATH, or dependency-wiring step.
+- Outcome: every current required platform proves that a fresh clone becomes a working local production editor without a manual Node, npm, Python, OpenSCAD, SDK, utility, PATH, or dependency-wiring step.
 - Acceptance:
-  - CI starts from clean Linux, macOS, and Windows environments for every OS/architecture pair declared supported by the bootstrap.
+  - CI starts from clean Linux and macOS environments for every OS/architecture pair declared required by the bootstrap.
   - Each job runs only the documented bootstrap and start commands, sees generator status `available: true`, generates exact STL files with real OpenSCAD, and shuts down cleanly.
   - Cached tools are verified before reuse; tampered downloads, unsupported systems, offline failures, and partial installs fail safely and actionably.
-- Depends on: `INSTALL-010`, `INSTALL-011`, `INSTALL-013`, `INSTALL-014`, `INSTALL-015`, and reuse of the real-render journey from `CI-010`.
+- Windows candidate CI may remain as non-gating compatibility evidence; it does not define a current supported target.
+- Depends on: `INSTALL-010`, `INSTALL-011`, `INSTALL-013`, and reuse of the real-render journey from `CI-010`.
 - Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
-- Docs: publish the tested platform matrix and state clearly which repository installation command applies to each platform.
+- Docs: publish the tested Linux and macOS matrix and state clearly which repository installation command applies to each required platform.
 
-
-### `ASSET-010` Preserve the referenced GLB in generated project folders — P0
-
-- Outcome: generation produces a folder that can be reopened directly, not JSON that points to an absent design surface.
-- Acceptance: verified input assets are copied or safely rewritten during generation; the generated folder opens directly; folder -> ZIP -> reopen preserves exact GLB/STL bytes and hashes; missing/mismatched assets fail clearly.
-- Depends on: none.
-- Verify: portable-project integration test plus parser/path/hash negative tests.
-- Docs: update the portable project contract if path rewriting is introduced.
 
 ### `TEST-010` Add a real browser smoke test for mechanics-free authoring — P0
 
@@ -172,18 +173,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 No implementation task is active.
 
 ## Blocked
-
-### `INSTALL-015` Qualify managed OpenSCAD on supported Windows clients — P0
-
-- Outcome: convert the Windows x86-64 candidate from `INSTALL-014` into a tested Windows PC support claim.
-- Acceptance:
-  - Disposable native x86-64 client VMs cover Windows 10 Enterprise LTSC 2021 and Windows 11 25H2 non-N editions; Windows N/KN and ARM64 remain excluded until their missing-runtime/native paths have separate proof.
-  - Each VM starts without OpenSCAD, administrator rights, repository tool cache, registry install, or `PATH` wiring; it runs setup twice from PowerShell in a repository path containing spaces.
-  - The receipt selects `win32-x64`; real OpenSCAD reaches generator status available, generates and serves the canonical two STL parts, and the local production server releases its port on shutdown.
-  - The VMs are isolated, registered for one trusted job, and destroyed after the run. Public pull-request code never runs on them.
-- Depends on: `INSTALL-014` and provisioned ephemeral Windows client runner images.
-- Blocked by: no disposable Windows 10/11 client runner infrastructure is connected to this repository. Standard GitHub-hosted Windows runners are Windows Server and cannot satisfy this client proof.
-- Docs: only after both client jobs pass, publish Windows PC support and the exact supported editions.
 
 ### `UI-010` Complete the arbitrary-project acceptance journey
 
@@ -253,20 +242,39 @@ No implementation task is active.
 
 ## Done
 
+### `ASSET-010` Preserve the referenced GLB in generated project folders
+
+- Browser generation sends one bounded multipart request containing the JSON
+  and only the referenced, SHA-256-verified GLB bytes. Raw and multipart JSON
+  fields are limited to 5 MB, and the complete multipart request is limited to
+  64 MB before generation can start.
+- The generator rejects missing, tampered, URL-escaped, reserved, or
+  case-folded path collisions before staging or rendering. It copies the GLB to
+  its unchanged safe relative path, verifies the staged copy, and atomically
+  publishes it with the exact STL files and `sculpture.json`.
+- The generated folder opens directly. Folder -> ZIP -> reopen preserves every
+  GLB and STL byte and hash without external asset injection. Failure preserves
+  the prior published folder and leaves no pending output.
+- Independent review approved the implementation after the portable
+  case-collision and URL-escape findings were corrected. Focused path,
+  transport, handler, generator, and server tests, the complete Vitest suite,
+  TypeScript, the production build, Markdown links, and diff hygiene passed.
+
 ### `DOC-010` Reconcile documentation with shipped behavior
 
 - Public and architecture documents now describe automatic topology detection,
   boundary validation, exact STL generation and display, folder and ZIP
   transport, and local production generation as shipped behavior.
 - The documents state that the browser has no topology confirmation or
-  correction controls and that local generation does not copy the referenced
-  GLB into the generated folder.
+  correction controls. Later `ASSET-010` work made generated folders include
+  the referenced verified GLB at its unchanged safe relative path.
 - False current claims about ESP32 firmware, DDP, Art-Net, Ethernet,
   microphones, and audio-reactive hardware behavior were removed or identified
   as proposals. The browser remains a small WLED effect simulator.
-- Platform setup text now describes the declared Linux and macOS targets and
-  the Windows x86-64 candidate that still needs the `INSTALL-015` client proof.
-  Helper-level tests no longer imply real browser-control coverage.
+- Platform setup text describes Linux and macOS as the current required targets.
+  The Windows x86-64 candidate remains implemented, while client qualification
+  is deferred and does not block installation work. Helper-level tests no
+  longer imply real browser-control coverage.
 - Independent review passed after present-tense generator, boundary timing,
   browser-test scope, printable-prototype wording, and broken-link findings were
   corrected. Repository-wide contradiction scans, all local Markdown links,
@@ -295,8 +303,8 @@ No implementation task is active.
   215 Vitest tests, TypeScript, the production desktop build, workflow lint,
   real 221-entry archive validation, and diff hygiene passed.
 - This is a verified Windows x86-64 implementation candidate, not a Windows PC
-  support claim. `INSTALL-015` remains blocked on the declared real Windows 10
-  and Windows 11 client virtual machines.
+  support claim. Windows client qualification is deferred and does not block
+  the required Linux and macOS installation work.
 
 ### `INSTALL-013` Acquire and connect pinned OpenSCAD on macOS
 
@@ -392,6 +400,11 @@ No implementation task is active.
 
 - Decision confirmed by the user on 2026-08-14: after cloning the repository, no manual Node.js, npm, OpenSCAD, SDK, PATH, or dependency-connection step is acceptable.
 - Implementation sequence: `INSTALL-010`, `INSTALL-011`, and `INSTALL-012`.
+
+### `HR-011` Linux and macOS are the current required installation targets
+
+- Decision confirmed by the operator: `INSTALL-011` and `INSTALL-012` must complete for the declared Linux and native macOS targets.
+- The implemented Windows x86-64 candidate and its CI checks remain in the repository. Windows client qualification is deferred and is not a dependency or completion gate for the current bootstrap work.
 
 ### `CORE-001` Mechanics-free Schema 2 editor (`7b40263`)
 

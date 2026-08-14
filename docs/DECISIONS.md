@@ -178,9 +178,10 @@ and uses `openscad.com`. Setup is repository-local and atomic, with no
 administrator, installer, registry, profile, or `PATH` change. Source is tag
 `openscad-2021.01`, commit `41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`,
 under GPL-2.0-or-later with the OpenSCAD CGAL exception. Windows Server CI is
-surrogate proof only. INSTALL-015 needs Windows 10 LTSC 2021 and Windows 11 25H2
-x86-64 non-N client proof. Windows N/KN and ARM64 are excluded. INSTALL-011/012
-track the complete bootstrap and all-target proof.
+surrogate proof only. Windows client qualification is deferred. The candidate
+code and checks remain, but Windows does not block INSTALL-011 or INSTALL-012.
+Those tasks cover the complete bootstrap and proof on the required Linux and
+macOS targets.
 
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in

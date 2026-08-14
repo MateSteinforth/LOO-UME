@@ -108,6 +108,9 @@ uses `createPanelAssemblyMapping()`.
   verify that no unrelated path was staged. The standalone `patch` utility is
   not installed in the current environment. Do not stop to rediscover or
   discuss this known workaround unless it also fails.
+- Before a line-number-only `git apply --unidiff-zero` fallback in a shared
+  worktree, read the exact target again. Prefer context hunks when possible.
+  Another agent can change line numbers between inspection and application.
 
 - This Codex host has neither Python `yaml`/PyYAML nor Ruby. To validate an
   edited GitHub Actions workflow, run

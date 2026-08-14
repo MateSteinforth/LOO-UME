@@ -225,6 +225,19 @@ describe("portable project folder and ZIP validation", () => {
     )).rejects.toThrow(/duplicate file/);
   });
 
+  it("rejects URL-escaped asset paths before direct folder reopen", async () => {
+    const { definition, profile, files } = await portableFixture();
+    definition.designSurface!.source = "%2e%2e/secret.glb";
+    const unsafeFiles = files.map((file) => file.path.endsWith("sculpture.json")
+      ? { ...file, bytes: new TextEncoder().encode(JSON.stringify(definition)) }
+      : file);
+    await expect(openPortableProjectFiles(
+      unsafeFiles,
+      "project",
+      async () => profile,
+    )).rejects.toThrow(/safe portable path/);
+  });
+
   it("rejects duplicate relative asset references in sculpture.json", async () => {
     const { definition } = await portableFixture();
     definition.generatedMechanics = {
@@ -242,6 +255,29 @@ describe("portable project folder and ZIP validation", () => {
         format: "stl",
         source: "mechanics/shared.stl",
         sha256: "b".repeat(64),
+      }],
+    };
+    expect(() => parsePanelAssemblyDefinition(definition))
+      .toThrow(/duplicates project asset source/);
+  });
+
+  it("rejects asset references that collide after portable case folding", async () => {
+    const { definition } = await portableFixture();
+    definition.generatedMechanics = {
+      generator: { id: "test", version: "1" },
+      sourceFingerprint: { algorithm: "sha256", value: "a".repeat(64) },
+      status: { generation: "complete", validation: "passed" },
+      boundary: {
+        kind: "closed-boundary-mesh",
+        format: "stl",
+        source: "DESIGN/SOURCE.GLB",
+        sha256: "b".repeat(64),
+      },
+      parts: [{
+        id: "part-001",
+        format: "stl",
+        source: "mechanics/part-001.stl",
+        sha256: "c".repeat(64),
       }],
     };
     expect(() => parsePanelAssemblyDefinition(definition))

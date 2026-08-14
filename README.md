@@ -74,10 +74,10 @@ current limitations are recorded in [TECH_NOTES.md](TECH_NOTES.md).
 ### Run the local desktop editor
 
 OpenSCAD is required for printable-part generation, but its binary is not
-stored in this repository. Automatic repository-local setup supports Debian 13
-x86-64, Ubuntu 24.04 x86-64, macOS 15 on Apple Silicon arm64 or Intel x86-64,
-and a Windows x86-64 candidate. On Linux or macOS, install the dependencies,
-set up the managed tool, then build and start the production interface locally:
+stored in this repository. The current required targets are Debian 13 x86-64,
+Ubuntu 24.04 x86-64, and macOS 15 on Apple Silicon arm64 or Intel x86-64. The
+repository also retains a Windows x86-64 candidate. On Linux or macOS, install
+the dependencies, set up the managed tool, then build and start locally:
 
 ```bash
 npm ci
@@ -148,12 +148,11 @@ generation service. Stop with Ctrl-C; SIGINT and SIGTERM close the HTTP server
 and active generator processes cleanly.
 
 The Windows candidate has surrogate proof on clean x64 Windows Server 2022 and
-Windows Server 2025 runners. This is not Windows PC support proof. INSTALL-015
-is blocked until clean, short-lived Windows 10 Enterprise LTSC 2021 x86-64 and
-Windows 11 Enterprise 25H2 x86-64 non-N virtual machines prove the same flow.
-Windows N/KN editions and Windows ARM64 are excluded. Node.js and npm must
-already be available. Linux also needs `dpkg-deb`. INSTALL-011 and INSTALL-012
-track the all-dependency bootstrap and proof on all declared targets.
+Windows Server 2025 runners. This is not Windows PC support proof. Client
+qualification is deferred. The candidate code and checks remain, but Windows
+does not block INSTALL-011 or INSTALL-012. Node.js and npm must already be
+available. Linux also needs `dpkg-deb`. INSTALL-011 and INSTALL-012 track the
+all-dependency bootstrap and proof on the required Linux and macOS targets.
 
 ## Canonical sculpture description
 
@@ -206,9 +205,15 @@ The portable project contract is a folder containing `sculpture.json` plus
 safe relative, SHA-256-identified GLB and STL assets. Schema 2 defines generated
 boundary and ordered exact-part references plus canonical current/stale
 fingerprinting. Folder and ZIP import/export, boundary generation, exact-STL
-display, and reopen are implemented. Local generation preserves a referenced
-GLB path and hash but does not copy the GLB into its output folder. A
-self-contained export therefore needs the matching GLB bytes to be loaded.
+display, and reopen are implemented. During browser generation, one bounded
+multipart request contains the JSON and only the referenced, verified GLB. The
+JSON field is limited to 5 MB and the complete request is limited to 64 MB. The
+server verifies the GLB before rendering, copies it to its unchanged safe
+relative path, verifies the staged copy, and atomically publishes it with the
+STLs and JSON. The generated folder opens directly and can become a ZIP without
+external asset injection. Missing, tampered, or reserved asset paths fail
+before rendering. The GLB remains an authoring surface and does not drive gap
+topology or printable geometry.
 
 The editor does not yet let the user inspect, confirm, reorder, or redraw
 candidate gap topology. An ambiguous layout stops with an error until this UI
@@ -303,10 +308,9 @@ the SDK.
 ## Build locally
 
 Install the npm dependencies. Linux rendering also needs Xvfb and xauth. On a
-supported Linux or macOS target, or on the Windows x86-64 candidate, acquire
-the target-specific managed OpenSCAD tool before you generate the mapping,
-WLED preview, CAD entrypoint, and CAD manifest. On Windows, use the `npm.cmd`
-forms shown above.
+required Linux or macOS target, acquire the target-specific managed OpenSCAD
+tool before you generate assets. The retained Windows x86-64 candidate uses the
+`npm.cmd` forms shown above.
 
 ```bash
 npm ci

@@ -57,6 +57,7 @@ import {
   type PortableProjectFile,
 } from "./PortableProject.ts";
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
+import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -1647,8 +1648,10 @@ async function start(): Promise<void> {
         try {
           const response = await fetch("./api/editor-pipeline", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: sculptureJson(editorDefinition),
+            body: createEditorPipelineFormData(
+              editorDefinition,
+              availableProjectAssets,
+            ),
           });
           const result = (await response.json()) as {
             ok?: boolean;
