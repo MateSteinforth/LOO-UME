@@ -176,12 +176,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-### `INSTALL-011A` Commit the reviewed stage-zero bootstrap executables — P0
-
-- Outcome: a POSIX-shell launcher can select one committed, source-built bootstrap executable for Linux x86-64, macOS arm64, or macOS x86-64 before Node.js or Python exists.
-- Acceptance: commit reviewed source and exact binaries for all three required targets; pin the compiler source/toolchain and license; provide a deterministic build command and per-binary SHA-256 values; implement certificate-validated HTTPS, bounded size/SHA-256 verification, safe bounded tar/gzip extraction, and atomic publication below the repository tool root; reject unsupported targets and unsafe manifests before writes.
-- Verify: source tests cover target selection, redirects, checksum/size failures, archive traversal, unsafe links/types/modes, case/NFC collisions, bounds, interruption, and warm reuse; CI rebuilds every binary and compares exact bytes; each native target runs a self-test.
-- Depends on: `HR-012`. Do not claim automatic installation until `INSTALL-011B` and `INSTALL-011C` pass.
+No implementation task is active.
 
 ## Blocked
 
@@ -252,6 +247,28 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Done
+
+### `INSTALL-011A` Commit the reviewed stage-zero bootstrap executables
+
+- `bootstrap.sh` selects the exact committed Linux x86-64, macOS arm64, or
+  macOS x86-64 file before Node.js or Python exists. Windows is not a current
+  stage-zero target.
+- The standard-library Go source supplies strict manifest parsing,
+  certificate-validated HTTPS, exact size and SHA-256 checks, bounded safe
+  tar/gzip extraction, target-bound receipts, locking, tamper detection, and
+  atomic repository-local publication.
+- Go 1.26.6 source, license, compiler archive, deterministic build policy,
+  source digest, binary sizes, and binary SHA-256 values are pinned in
+  `toolchains/bootstrap/`. A two-build check matches all committed bytes.
+- Workflow run `31826385513` passed the exact committed executable and contained
+  self-test on Linux x86-64 job `94851417447`, macOS arm64 job `94851417444`,
+  and macOS x86-64 job `94851417476`.
+- Independent review passed after deterministic directory/symbolic-link hash,
+  native self-test, compiler-provenance, and linked-receipt findings were
+  corrected. Go tests and race tests, 230 Vitest tests, TypeScript, the web
+  build, YAML lint, shell syntax, reproducible builds, and diff hygiene passed.
+- This is the stage-zero trust root only. Complete automatic installation still
+  requires `INSTALL-011B`, `INSTALL-011C`, and the Python decision in `HR-013`.
 
 ### `ASSET-010` Preserve the referenced GLB in generated project folders
 
