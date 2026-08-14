@@ -1,3 +1,4 @@
+import type { ChildProcess } from "node:child_process";
 import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -13,6 +14,8 @@ import {
 import {
   parseOpenScadVersion,
   probeOpenScad,
+  resolveOpenScadCommand,
+  stopOpenScadChildren,
 } from "../src/cad/OpenScadRuntime.ts";
 const testState = vi.hoisted(() => ({
   host: {
@@ -104,10 +107,58 @@ async function installManagedFixture(root: string, source: string): Promise<void
   );
 }
 
+function fakeChild(pid: number, exited = false): {
+  child: ChildProcess;
+  close(): void;
+  kill: ReturnType<typeof vi.fn>;
+} {
+  let exitCode: number | null = exited ? 0 : null;
+  let closeListener: (() => void) | undefined;
+  const kill = vi.fn(() => true);
+  const child = {
+    pid,
+    get exitCode() {
+      return exitCode;
+    },
+    kill,
+    once(event: string, listener: () => void) {
+      if (event === "close") closeListener = listener;
+      return child;
+    },
+  } as unknown as ChildProcess;
+  return {
+    child,
+    close() {
+      exitCode = 0;
+      closeListener?.();
+    },
+    kill,
+  };
+}
+
+
 describe("OpenSCAD runtime probe", () => {
   it("parses the supported version format", () => {
     expect(parseOpenScadVersion("OpenSCAD version 2021.01\n")).toBe("2021.01");
     expect(parseOpenScadVersion("unrelated output")).toBeUndefined();
+  });
+
+  it("uses openscad.com for Windows system fallback and keeps an override", async () => {
+    const root = await fixtureRoot("openscad-windows-command-");
+    testState.host = {
+      platform: "win32",
+      architecture: "x64",
+      nativeArchitecture: "x64",
+      osRelease: "",
+      glibcVersion: undefined,
+      operatingSystemVersion: "10.0.19045",
+    };
+    expect(resolveOpenScadCommand(root, "")).toMatchObject({
+      command: "openscad.com",
+      expectedVersion: "2021.01",
+      targetId: "win32-x64",
+    });
+    expect(resolveOpenScadCommand(root, "  custom.com  ").command).toBe("custom.com");
   });
 
   it("reports a supported explicit executable as available", async () => {
@@ -218,6 +269,36 @@ describe("OpenSCAD runtime probe", () => {
     });
   });
 
+  it("falls back from managed Windows OpenSCAD to openscad.com", async () => {
+    const root = await fixtureRoot("openscad-windows-order-");
+    const bin = join(root, "bin");
+    await mkdir(bin, { recursive: true });
+    await writeExecutable(
+      join(bin, "openscad.com"),
+      "printf '%s\\n' 'OpenSCAD version 2021.01'",
+    );
+    testState.host = {
+      platform: "win32",
+      architecture: "x64",
+      nativeArchitecture: "x64",
+      osRelease: "",
+      glibcVersion: undefined,
+      operatingSystemVersion: "10.0.20348",
+    };
+    await installManagedFixture(
+      root,
+      "printf '%s\\n' 'OpenSCAD version 2025.03'",
+    );
+    process.env.PATH = bin;
+
+    const status = await probeOpenScad(root, undefined);
+    expect(status).toMatchObject({
+      available: true,
+      supportedVersion: "2021.01",
+      detectedVersion: "2021.01",
+    });
+  });
+
   it("uses the macOS target version without changing its environment", async () => {
     const root = await fixtureRoot("openscad-macos-version-");
     testState.host = {
@@ -314,4 +395,73 @@ describe("OpenSCAD runtime probe", () => {
       expect(process.env.LD_LIBRARY_PATH).toBe("operator-libs");
     },
   );
+});
+
+describe("OpenSCAD process-tree shutdown", () => {
+  it("stops a Windows tree normally and is idempotent", async () => {
+    const process = fakeChild(41);
+    const terminate = vi.fn(async (
+      _pid: number,
+      force: boolean,
+      _timeoutMs: number,
+    ) => {
+      if (!force) process.close();
+    });
+    const children = new Set([process.child]);
+    await stopOpenScadChildren(children, 20, "win32", terminate);
+    expect(terminate).toHaveBeenCalledWith(41, false, 20);
+    expect(terminate).toHaveBeenCalledTimes(1);
+    expect(process.kill).not.toHaveBeenCalled();
+
+    await stopOpenScadChildren(children, 20, "win32", terminate);
+    expect(terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses a forced tree stop after the grace period and waits for close", async () => {
+    const process = fakeChild(42);
+    const terminate = vi.fn(async (
+      _pid: number,
+      force: boolean,
+      _timeoutMs: number,
+    ) => {
+      if (force) process.close();
+    });
+    await stopOpenScadChildren(
+      new Set([process.child]),
+      2,
+      "win32",
+      terminate,
+    );
+    expect(terminate.mock.calls.map((call) => call.slice(0, 2))).toEqual([
+      [42, false],
+      [42, true],
+    ]);
+  });
+
+  it("bounds hung attempts and reports forced-stop errors", async () => {
+    const process = fakeChild(43);
+    const terminate = vi.fn((
+      _pid: number,
+      force: boolean,
+      _timeoutMs: number,
+    ): Promise<void> => force
+      ? Promise.reject(new Error("forced failure"))
+      : new Promise(() => undefined));
+    await expect(stopOpenScadChildren(
+      new Set([process.child]),
+      2,
+      "win32",
+      terminate,
+    )).rejects.toBeInstanceOf(AggregateError);
+  });
+
+  it("reports a child that stays active after a successful forced stop", async () => {
+    const process = fakeChild(44);
+    await expect(stopOpenScadChildren(
+      new Set([process.child]),
+      2,
+      "win32",
+      async () => undefined,
+    )).rejects.toThrow(/did not exit after forced stop/);
+  });
 });

@@ -55,13 +55,21 @@ installer checkout is pinned independently in `wasm/emsdk-revision.txt`.
 The production interface is served from this computer rather than deployed to
 a hosted generation service. OpenSCAD is required for printable-part
 generation, but its binary is not stored in the repository. Automatic
-repository-local setup supports Debian 13 x86-64, Ubuntu 24.04 x86-64, and
-macOS 15 on Apple Silicon arm64 or Intel x86-64. Run:
+repository-local setup covers the declared Linux and macOS targets and provides
+a Windows x86-64 candidate. Use the Bash commands below on Linux or macOS:
 
 ```bash
 npm ci
 npm run setup:openscad
 npm run desktop
+```
+
+In PowerShell on Windows x86-64, run:
+
+```powershell
+npm.cmd ci
+npm.cmd run setup:openscad
+npm.cmd run desktop
 ```
 
 The setup command selects one declared host target and installs it in `.tools`.
@@ -71,17 +79,27 @@ snapshot at
 `https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg`. The DMG is
 64,447,344 bytes and has SHA-256
 `555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
+The Windows candidate pins the official stable portable ZIP at
+`https://files.openscad.org/OpenSCAD-2021.01-x86-64.zip`: 21,884,613 bytes,
+SHA-256
+`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`.
+It uses `openscad.com`. The matching source archive has SHA-256
+`d938c297e7e5f65dbab1461cac472fc60dfeaa4999ea2c19b31a4184f2d70359`,
+tag `openscad-2021.01`, and commit
+`41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`. The license is
+GPL-2.0-or-later with the OpenSCAD CGAL exception.
+
 The committed `toolchains/openscad-distributions.json` manifest records source
 and license metadata, exact sizes, and checksums. The snapshot does not publish
 a verified exact source revision. The manifest does not claim one.
 
-The command does not need administrator access or change `PATH`. On macOS, it
-does not copy into `/Applications` and does not need a manual OpenSCAD install
-or Rosetta. It mounts the DMG read-only, copies only `OpenSCAD.app` into a local
-staging directory, validates the app tree and native Mach-O slice, and cleans
-up the mount on success or failure. It records the selected target and version
-in a receipt, publishes the verified install atomically, and reuses a valid
-install. A failed setup is safe to retry.
+The command does not need administrator access or change `PATH`. Windows setup
+does not use an installer, system application directory, profile, or registry.
+It extracts and validates the portable payload in repository-local staging.
+macOS does not copy into `/Applications` or use Rosetta. Every target records
+the selected target, version, executable, and artifacts in a receipt, publishes
+the verified install atomically, and reuses a valid install. A failed setup is
+safe to retry.
 
 The command runs a fresh `build:desktop` before `start:desktop`, then prints the
 loopback URL, normally `http://127.0.0.1:4173/`. The server binds only to
@@ -91,9 +109,10 @@ loopback URL, normally `http://127.0.0.1:4173/`. The server binds only to
 ORBITAL_LAB_PORT=4300 OPENSCAD=/absolute/path/to/openscad npm run desktop
 ```
 
-Startup requires OpenSCAD 2021.01 on Linux and 2026.06.12 on macOS. It uses an
-explicit `OPENSCAD` override first, then the valid receipt-backed managed tool
-for the current target, then the system `openscad` on `PATH`. The shared
+Startup requires OpenSCAD 2021.01 on Linux and Windows, and 2026.06.12 on
+macOS. It uses an explicit `OPENSCAD` override first, then the valid
+receipt-backed managed tool for the current target, then the system OpenSCAD
+command on `PATH`. The shared
 `/api/generator-status` response reports the selected tool, detected
 availability, and repair guidance; the browser uses that response instead of a
 build-mode flag. If the binary is absent or the version is wrong, the server
@@ -102,10 +121,12 @@ Run `npm run setup:openscad` or repair the selected tool, then restart the
 desktop command to refresh the startup status.
 
 Node.js, npm, and the other project dependencies are not installed by this
-command. Linux also needs its standard `dpkg-deb` command. Windows is not yet
-supported. INSTALL-014 tracks Windows support. INSTALL-011 tracks the
-all-dependency clean-clone bootstrap. INSTALL-012 tracks proof on every
-declared supported target.
+command. Linux also needs `dpkg-deb`. Clean Windows Server 2022 and 2025 x64
+runners provide surrogate proof only; they do not prove Windows PC support.
+INSTALL-015 is blocked on short-lived Windows 10 Enterprise LTSC 2021 and
+Windows 11 Enterprise 25H2 x86-64 non-N virtual machines. Windows N/KN and
+Windows ARM64 are excluded. INSTALL-011 tracks the all-dependency clean-clone
+bootstrap. INSTALL-012 tracks proof on every declared supported target.
 
 Both the Vite development adapter and production server use the same bounded
 local handler for `/api/generator-status` and `/api/editor-pipeline`. Generation

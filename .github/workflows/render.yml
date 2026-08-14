@@ -2,7 +2,7 @@ name: Render OpenSCAD parts
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/install-014-managed-openscad-windows]
   pull_request:
   workflow_dispatch:
 
@@ -110,6 +110,122 @@ jobs:
           npm run build:desktop
           npm run verify:desktop-install
 
+  windows-managed-openscad-surrogate:
+    name: Managed OpenSCAD surrogate (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2022, windows-2025]
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: orbital lab source
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: orbital lab source
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Confirm clean Windows x64 surrogate
+        run: |
+          if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64") {
+            throw "Expected an x64 Windows host."
+          }
+          if ($env:OPENSCAD) {
+            throw "OPENSCAD must be unset for the managed-install proof."
+          }
+          if (Get-Command openscad, openscad.com, openscad.exe -ErrorAction SilentlyContinue) {
+            throw "A discoverable system OpenSCAD would invalidate the proof."
+          }
+
+          $standardPaths = @(
+            (Join-Path $env:ProgramFiles "OpenSCAD"),
+            (Join-Path ${env:ProgramFiles(x86)} "OpenSCAD"),
+            (Join-Path $env:LOCALAPPDATA "Programs\OpenSCAD")
+          )
+          if ($standardPaths | Where-Object { Test-Path $_ }) {
+            throw "A standard OpenSCAD installation would invalidate the proof."
+          }
+
+          $uninstallRoots = @(
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+          )
+          $registry = Get-ItemProperty -Path $uninstallRoots -ErrorAction SilentlyContinue |
+            Where-Object { $_.DisplayName -like "*OpenSCAD*" } |
+            Select-Object PSPath, DisplayName, DisplayVersion, InstallLocation
+          if ($registry) {
+            throw "An OpenSCAD uninstall record would invalidate the proof."
+          }
+
+          [ordered]@{
+            userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+            machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+            registry = @($registry)
+          } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath "$env:RUNNER_TEMP\openscad-host-before.json"
+
+      - name: Install npm dependencies
+        run: npm.cmd ci
+
+      - name: Install managed OpenSCAD twice
+        run: |
+          npm.cmd run setup:openscad
+          npm.cmd run setup:openscad
+
+      - name: Verify real render and production editor
+        env:
+          EXPECTED_OPENSCAD_TARGET: win32-x64
+        run: |
+          npm.cmd run verify:openscad
+          npm.cmd run verify:openscad-shutdown:windows
+          npm.cmd run build:desktop
+          npm.cmd run verify:desktop-install
+
+      - name: Confirm no host mutation
+        run: |
+          if ($env:OPENSCAD) {
+            throw "Setup changed OPENSCAD."
+          }
+          if (Get-Command openscad, openscad.com, openscad.exe -ErrorAction SilentlyContinue) {
+            throw "Setup exposed OpenSCAD through PATH."
+          }
+
+          $standardPaths = @(
+            (Join-Path $env:ProgramFiles "OpenSCAD"),
+            (Join-Path ${env:ProgramFiles(x86)} "OpenSCAD"),
+            (Join-Path $env:LOCALAPPDATA "Programs\OpenSCAD")
+          )
+          if ($standardPaths | Where-Object { Test-Path $_ }) {
+            throw "Setup wrote an OpenSCAD installation outside the repository."
+          }
+
+          $uninstallRoots = @(
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+            "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+          )
+          $registry = Get-ItemProperty -Path $uninstallRoots -ErrorAction SilentlyContinue |
+            Where-Object { $_.DisplayName -like "*OpenSCAD*" } |
+            Select-Object PSPath, DisplayName, DisplayVersion, InstallLocation
+          [ordered]@{
+            userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+            machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+            registry = @($registry)
+          } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath "$env:RUNNER_TEMP\openscad-host-after.json"
+
+          $before = Get-Content -Raw -LiteralPath "$env:RUNNER_TEMP\openscad-host-before.json"
+          $after = Get-Content -Raw -LiteralPath "$env:RUNNER_TEMP\openscad-host-after.json"
+          if ($before -ne $after) {
+            throw "Setup changed the user or machine PATH, or the OpenSCAD uninstall registry state."
+          }
+
   render:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -205,7 +321,7 @@ jobs:
 
   publish-latest-prototype:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: [clean-checkout, macos-managed-openscad, render, cad-contract]
+    needs: [clean-checkout, macos-managed-openscad, windows-managed-openscad-surrogate, render, cad-contract]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

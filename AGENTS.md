@@ -101,6 +101,9 @@ uses `createPanelAssemblyMapping()`.
   `npx --yes yaml-lint .github/workflows/render.yml`. This transient Node-based
   fallback is verified in this environment; do not repeat the missing-parser
   checks.
+- `npx tsx -e` compiles evaluation input as CommonJS and cannot directly import
+  a TypeScript script that has top-level `await`. For a direct ESM import check,
+  use `node --import tsx --input-type=module -e '...'` instead.
 - On the macOS GitHub runners, `lipo -verify_arch` returned a false failure for
   the qualified universal OpenSCAD DMG. Do not use that command as the native
   execution gate. Keep `lipo -archs` as evidence, then use

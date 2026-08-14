@@ -21,6 +21,7 @@
     "generate:assets": "npm run stage:sculptures && npm run generate:mapping && npm run generate:cad && npm run generate:cuboctahedron && npm run generate:rhombicosidodecahedron:auto && npm run generate:truncated-octahedron",
     "verify:cad": "tsx scripts/verify-cad.ts",
     "verify:openscad": "tsx scripts/verify-openscad-install.ts",
+    "verify:openscad-shutdown:windows": "tsx scripts/verify-windows-openscad-shutdown.ts",
     "verify:sculpture": "tsx scripts/verify-sculpture.ts",
     "verify:desktop-install": "tsx scripts/verify-local-editor-install.ts",
     "verify:cuboctahedron": "tsx scripts/verify-sculpture.ts --sculpture sculptures/cuboctahedron/sculpture.json",
