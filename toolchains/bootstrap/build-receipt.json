@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0.0",
+  "builder": {
+    "goVersion": "go1.26.6",
+    "host": "linux-x64",
+    "archiveUrl": "https://go.dev/dl/go1.26.6.linux-amd64.tar.gz",
+    "archiveSize": 66890545,
+    "archiveSha256": "708effb774be8237570d0add163225abbdfaf4fca28b2611df167beba4feef89",
+    "sourceUrl": "https://go.dev/dl/go1.26.6.src.tar.gz",
+    "sourceSha256": "a0721c54c688901448d77ad9b3ec7ea7c474730755ff891382e92ecb93ff2cb1",
+    "licenseUrl": "https://raw.githubusercontent.com/golang/go/go1.26.6/LICENSE"
+  },
+  "source": {
+    "path": "toolchains/bootstrap/src",
+    "digestAlgorithm": "sha256-of-sorted-sha256sum-lines",
+    "sha256": "f0eacd869c314cf90ba2d508aafd711b85dfb144f86ba5b456b2189e4acf03df"
+  },
+  "build": {
+    "cgoEnabled": false,
+    "goToolchain": "local",
+    "goAmd64": "v1",
+    "sourceDateEpoch": 1786665600,
+    "flags": ["-mod=readonly", "-trimpath", "-buildvcs=false"],
+    "linkerFlags": ["-s", "-w", "-buildid=", "-X main.buildTarget=<target>"]
+  },
+  "binaries": [
+    {
+      "target": "linux-x64",
+      "path": "toolchains/bootstrap/bin/linux-x64/orbital-bootstrap",
+      "size": 6545534,
+      "sha256": "4af9102068cbca2b4f3941089179d13fce7aeaff4d0235205d11cfe8a2c1f39f"
+    },
+    {
+      "target": "darwin-arm64",
+      "path": "toolchains/bootstrap/bin/darwin-arm64/orbital-bootstrap",
+      "size": 6152802,
+      "sha256": "e83cb5668c2d249b70acec12c52cab3da4b17b567a42df46dea935e66846da46"
+    },
+    {
+      "target": "darwin-x64",
+      "path": "toolchains/bootstrap/bin/darwin-x64/orbital-bootstrap",
+      "size": 6654320,
+      "sha256": "2a7c713eb4de5a84111a26b936da1e61e1f0407df2bb305ca7a5907e6575eba6"
+    }
+  ]
+}

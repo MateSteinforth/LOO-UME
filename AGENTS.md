@@ -22,10 +22,12 @@ To establish this workflow in another repository, follow
   authored geometry or mapping truth. The portable project format may reference
   GLB/STL assets by safe relative path and SHA-256; those files are still
   derived assets, while the main sculpture JSON remains the project authority.
-- `web/public/wasm/wled-engine.js` and `wled-engine.wasm` are the deliberate
-  tracked-build exception: commit the pinned browser runtime so ordinary tests
-  and the viewer work directly after checkout. Rebuild and recommit both files
-  whenever their pinned WLED sources or Emscripten version changes.
+- `web/public/wasm/wled-engine.js`, `wled-engine.wasm`, and the three native
+  files under `toolchains/bootstrap/bin/` are deliberate tracked-build
+  exceptions. The WASM files make ordinary tests and the viewer work directly
+  after checkout. The bootstrap files supply the approved Linux/macOS trust
+  root. Rebuild and recommit an artifact whenever its pinned source or compiler
+  changes, and keep its checksum and build receipt synchronized.
 
 Schema 1 (`src/sculpture/Definition.ts`, `schemas/sculpture.schema.json`, the
 legacy migration fixture, and old mapping/CAD tests) is retained legacy code.

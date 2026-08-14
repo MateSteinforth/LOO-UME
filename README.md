@@ -154,6 +154,20 @@ does not block INSTALL-011 or INSTALL-012. Node.js and npm must already be
 available. Linux also needs `dpkg-deb`. INSTALL-011 and INSTALL-012 track the
 all-dependency bootstrap and proof on the required Linux and macOS targets.
 
+### Bootstrap trust root
+
+The repository tracks one reviewed stage-zero executable for Linux x86-64,
+macOS arm64, and macOS x86-64. `bootstrap.sh` selects the native file. Source,
+deterministic build instructions, build receipt, and SHA-256 values are under
+`toolchains/bootstrap/`. Native CI rebuilds or runs the committed files. Windows
+is not a current stage-zero target and does not gate these checks.
+
+This stage-zero layer supplies the download, verification, safe archive, and
+atomic-publication functions that Git plus a POSIX shell do not supply. It does
+not yet install the complete project. Node.js/npm and the relocatable Python
+distribution must be pinned in the later operational dependency manifest
+before the one-command installation path is ready.
+
 ## Canonical sculpture description
 
 The compact authored source is

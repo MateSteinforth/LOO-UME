@@ -183,6 +183,24 @@ code and checks remain, but Windows does not block INSTALL-011 or INSTALL-012.
 Those tasks cover the complete bootstrap and proof on the required Linux and
 macOS targets.
 
+## D11 — Reviewed native files provide the bootstrap trust root
+
+**Decision.** The repository tracks one small stage-zero executable for Linux
+x86-64, macOS arm64, and macOS x86-64. Git plus the standard POSIX shell select
+the native file. Reviewed source, deterministic build instructions, build
+receipt, and SHA-256 values stay with the binaries. Windows is not a current
+stage-zero target.
+
+**Evidence.** `bootstrap.sh`, `toolchains/bootstrap/`,
+`scripts/build-bootstrap.sh`, and the native Linux/macOS workflow jobs.
+
+**Consequence.** These files may supply verified HTTPS, bounded safe archive
+handling, and atomic publication without a preinstalled download, hash, or
+archive utility. They are a deliberate tracked-binary exception, but they are
+not a complete installer. The operational manifest and base-toolchain setup
+remain incomplete until Node.js/npm and an approved relocatable Python supply
+are pinned for all three targets.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

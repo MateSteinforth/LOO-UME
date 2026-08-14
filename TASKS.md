@@ -101,18 +101,11 @@ This file is the persistent source of truth for work status. Read it before star
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
 
-### `INSTALL-011A` Define the complete bootstrap dependency contract — P0
-
-- Outcome: one committed manifest is the authority for every tool, source, version, target, executable, and setup relationship used by the Linux/macOS clean path.
-- Acceptance: declare the required Linux x86-64 and macOS arm64/x86-64 tuples; pin Node.js/npm and a relocatable Python distribution with URLs, sizes, SHA-256 values, sources, and licenses; reference the existing OpenSCAD targets, npm lockfile, WLED gitlink, emsdk revision, and Emscripten version; classify every invoked host command as stage-zero, managed, or operating-system standard.
-- Verify: strict schema/parser tests reject missing metadata, undeclared commands, wrong targets, unsafe paths, and malformed checksums without downloading or writing tools.
-- Depends on: the supply-chain choices in `HR-012`. Do not claim automatic installation until `INSTALL-011B` and `INSTALL-011C` pass.
-
 ### `INSTALL-011B` Acquire the repository-local base toolchain — P0
 
 - Outcome: the documented POSIX entry point starts from the chosen stage-zero supply and acquires pinned repository-local Node.js/npm and Python for the selected Linux/macOS target.
 - Acceptance: no administrator, system package-manager, profile, or global `PATH` change; exact size/hash verification; target-bound receipts; atomic promotion; safe warm reuse, interruption recovery, and paths with spaces; no undeclared system executable.
-- Depends on: `INSTALL-011A` and the stage-zero choice in `HR-012`.
+- Depends on: `INSTALL-011A` and the Python distribution choice in `HR-013`.
 - Verify: injected download/extraction failures, tampered cache, unsupported tuple, empty/warm retry, and native executable/version checks.
 
 ### `INSTALL-011C` Orchestrate the complete clean-checkout setup — P0
@@ -254,6 +247,28 @@ No implementation task is active.
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Done
+
+### `INSTALL-011A` Commit the reviewed stage-zero bootstrap executables
+
+- `bootstrap.sh` selects the exact committed Linux x86-64, macOS arm64, or
+  macOS x86-64 file before Node.js or Python exists. Windows is not a current
+  stage-zero target.
+- The standard-library Go source supplies strict manifest parsing,
+  certificate-validated HTTPS, exact size and SHA-256 checks, bounded safe
+  tar/gzip extraction, target-bound receipts, locking, tamper detection, and
+  atomic repository-local publication.
+- Go 1.26.6 source, license, compiler archive, deterministic build policy,
+  source digest, binary sizes, and binary SHA-256 values are pinned in
+  `toolchains/bootstrap/`. A two-build check matches all committed bytes.
+- Workflow run `31826385513` passed the exact committed executable and contained
+  self-test on Linux x86-64 job `94851417447`, macOS arm64 job `94851417444`,
+  and macOS x86-64 job `94851417476`.
+- Independent review passed after deterministic directory/symbolic-link hash,
+  native self-test, compiler-provenance, and linked-receipt findings were
+  corrected. Go tests and race tests, 230 Vitest tests, TypeScript, the web
+  build, YAML lint, shell syntax, reproducible builds, and diff hygiene passed.
+- This is the stage-zero trust root only. Complete automatic installation still
+  requires `INSTALL-011B`, `INSTALL-011C`, and the Python decision in `HR-013`.
 
 ### `ASSET-010` Preserve the referenced GLB in generated project folders
 
@@ -419,13 +434,18 @@ No implementation task is active.
 - Decision confirmed by the operator: `INSTALL-011` and `INSTALL-012` must complete for the declared Linux and native macOS targets.
 - The implemented Windows x86-64 candidate and its CI checks remain in the repository. Windows client qualification is deferred and is not a dependency or completion gate for the current bootstrap work.
 
-### `HR-012` Choose the trusted stage-zero bootstrap supply — Decision needed
+### `HR-012` Use committed native stage-zero bootstrap executables
 
-- Constraint: Git plus POSIX shell cannot by itself fetch arbitrary HTTPS artifacts, compute SHA-256 values, or unpack all required Node.js and Python archives.
-- Recommended option: commit one small, reviewed native bootstrap executable for Linux x86-64, macOS arm64, and macOS x86-64. The shell selects the exact target; the executable performs certificate-validated HTTPS, size/SHA-256 verification, safe extraction, and atomic publication.
-- Python provider: approve pinned, checksum-verified Astral `python-build-standalone` artifacts for the three required targets because python.org does not publish a relocatable Linux CPython distribution.
-- Alternative: require operating-system `curl`, hash, and archive commands. This is simpler but weakens the existing Git-plus-shell prerequisite promise.
-- Rejected default: a Git repository or submodule containing complete unpacked toolchains creates a large binary history and weaker upstream artifact maintenance.
+- Decision confirmed by the operator on 2026-08-14: commit small, reviewed bootstrap executables for Linux x86-64, macOS arm64, and macOS x86-64.
+- Each executable must be built from committed source with a pinned compiler, reproducible build instructions, exact hashes, byte-for-byte rebuild checks, and native execution checks.
+- The executable supplies certificate-validated HTTPS, exact size/SHA-256 verification, safe bounded extraction, and atomic publication before Node.js or Python exists.
+- This decision does not approve a Python binary provider. That separate supply-chain decision remains in `HR-013`.
+
+### `HR-013` Choose the managed Python distribution — Decision needed
+
+- Constraint: python.org does not publish a relocatable Linux CPython distribution, and the pinned Emscripten SDK needs Python before it can run.
+- Recommended option: use exact, checksum-verified Astral `python-build-standalone` artifacts for Linux x86-64, macOS arm64, and macOS x86-64. Record Astral as a third-party binary trust root and preserve the complete bundled license set.
+- Alternative: permit a system Python prerequisite. This weakens the no-manual-dependency requirement.
 - Unblocks: `INSTALL-011B`.
 
 ### `CORE-001` Mechanics-free Schema 2 editor (`7b40263`)

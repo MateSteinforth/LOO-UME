@@ -10,6 +10,62 @@ permissions:
   contents: read
 
 jobs:
+  stage-zero-bootstrap-linux:
+    name: Stage-zero bootstrap (Linux x86-64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      # actions/checkout v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Verify and extract the approved Go builder
+        run: |
+          archive="$RUNNER_TEMP/go1.26.6.linux-amd64.tar.gz"
+          compiler_root="$RUNNER_TEMP/go1.26.6"
+          curl --fail --silent --show-error --location --output "$archive" https://go.dev/dl/go1.26.6.linux-amd64.tar.gz
+          test "$(stat -c %s "$archive")" = "66890545"
+          echo "708effb774be8237570d0add163225abbdfaf4fca28b2611df167beba4feef89  $archive" | sha256sum --check -
+          mkdir -p "$compiler_root"
+          tar -xzf "$archive" -C "$compiler_root" --strip-components=1
+          test "$("$compiler_root/bin/go" version)" = "go version go1.26.6 linux/amd64"
+          echo "GO_BOOTSTRAP=$compiler_root/bin/go" >> "$GITHUB_ENV"
+
+      - name: Test stage-zero source
+        working-directory: toolchains/bootstrap/src
+        run: $GO_BOOTSTRAP test ./...
+
+      - name: Rebuild and verify all committed executables
+        run: sh scripts/build-bootstrap.sh --check
+
+      - name: Run the committed native executable
+        run: sh scripts/verify-bootstrap-binaries.sh linux-x64
+
+  stage-zero-bootstrap-macos:
+    name: Stage-zero bootstrap (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: arm64
+            target: darwin-arm64
+          - runner: macos-15-intel
+            architecture: x86_64
+            target: darwin-x64
+
+    steps:
+      # actions/checkout v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Confirm native target
+        run: test "$(/usr/bin/uname -m)" = "${{ matrix.architecture }}"
+
+      - name: Verify and run the committed native executable
+        run: sh scripts/verify-bootstrap-binaries.sh "${{ matrix.target }}"
+
   clean-checkout:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -323,7 +379,13 @@ jobs:
 
   publish-latest-prototype:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: [clean-checkout, macos-managed-openscad, render, cad-contract]
+    needs:
+      - stage-zero-bootstrap-linux
+      - stage-zero-bootstrap-macos
+      - clean-checkout
+      - macos-managed-openscad
+      - render
+      - cad-contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

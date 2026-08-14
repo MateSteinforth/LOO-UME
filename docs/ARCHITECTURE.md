@@ -139,6 +139,36 @@ preview.
 
 ## Local desktop host
 
+### Stage-zero bootstrap trust boundary
+
+The repository contains one small native stage-zero executable for each
+required target: Linux x86-64, macOS arm64, and macOS x86-64. These files are
+an intentional tracked-binary exception. Their reviewed source, deterministic
+build instructions, build receipt, sizes, and SHA-256 values are stored beside
+them under `toolchains/bootstrap/`. Git and the standard POSIX shell are the
+trust root for selecting and starting the exact native file.
+A binary cannot independently prove the integrity of its own bytes.
+
+The boundary covers hostile networks, replaced or truncated cache data, unsafe
+archive metadata, and partial or concurrent runs. It does not cover a
+compromised reviewed Git commit, a privileged host attacker, or a defect in an
+upstream tool that passed all declared checks.
+
+The stage-zero program supplies certificate-validated HTTPS, exact size and
+SHA-256 checks, bounded archive handling, safe portable paths, and atomic
+publication. Archive paths use printable ASCII and case-insensitive collision
+checks. Relative symbolic links and hard links are accepted only when their
+resolved targets stay inside the extracted tree. Escaping links, link cycles,
+special files, duplicate paths, and unsafe path forms are rejected.
+
+Linux CI rebuilds all three targets and checks the committed bytes. Each Linux
+or macOS runner also starts its exact committed native executable. Windows is
+not a current stage-zero target and does not gate this work.
+
+The committed executables do not yet make a complete installation claim. The
+operational dependency manifest must still pin the Node.js/npm and approved
+relocatable Python artifacts before the base-toolchain installer can ship.
+
 `npm run desktop` performs a fresh production web build and starts
 `scripts/local-editor-server.ts` on `127.0.0.1:4173` by default.
 `ORBITAL_LAB_PORT` selects another port. The host serves the built interface,
