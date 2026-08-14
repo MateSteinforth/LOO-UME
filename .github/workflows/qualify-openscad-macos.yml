@@ -40,6 +40,7 @@ jobs:
           OPENSCAD_DMG_URL: https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg
           OPENSCAD_DMG_SHA256: 555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4
         run: |
+          set +e
           set -uo pipefail
           evidence="$RUNNER_TEMP/openscad-qualification.txt"
           touch "$evidence"
