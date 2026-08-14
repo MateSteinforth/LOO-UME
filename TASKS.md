@@ -113,16 +113,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
 - Docs: publish the tested platform matrix and state clearly which repository installation command applies to each platform.
 
-### `DOC-010` Reconcile documentation with shipped behavior — P0
-
-- Outcome: the public and architectural docs describe what the repository actually does today.
-- Acceptance:
-  - README, `docs/PANEL_SYSTEM.md`, `docs/MECHANICS_WORKFLOW.md`, `docs/DECISIONS.md`, and `docs/ARCHITECTURE.md` no longer describe shipped boundary, exact-STL, or ZIP work as future work.
-  - Documentation states that arbitrary new layouts still need a UI path for authoring/confirming gap topology.
-  - Claims of implemented ESP32 firmware, DDP, Art-Net, Ethernet, or audio-reactive behavior are removed.
-  - Local production mechanics generation and the remaining automatic-install gap are described honestly.
-- Depends on: none.
-- Verify: contradiction-focused `rg` checks, link review, `git diff --check`.
 
 ### `ASSET-010` Preserve the referenced GLB in generated project folders — P0
 
@@ -263,6 +253,25 @@ No implementation task is active.
 
 ## Done
 
+### `DOC-010` Reconcile documentation with shipped behavior
+
+- Public and architecture documents now describe automatic topology detection,
+  boundary validation, exact STL generation and display, folder and ZIP
+  transport, and local production generation as shipped behavior.
+- The documents state that the browser has no topology confirmation or
+  correction controls and that local generation does not copy the referenced
+  GLB into the generated folder.
+- False current claims about ESP32 firmware, DDP, Art-Net, Ethernet,
+  microphones, and audio-reactive hardware behavior were removed or identified
+  as proposals. The browser remains a small WLED effect simulator.
+- Platform setup text now describes the declared Linux and macOS targets and
+  the Windows x86-64 candidate that still needs the `INSTALL-015` client proof.
+  Helper-level tests no longer imply real browser-control coverage.
+- Independent review passed after present-tense generator, boundary timing,
+  browser-test scope, printable-prototype wording, and broken-link findings were
+  corrected. Repository-wide contradiction scans, all local Markdown links,
+  and diff hygiene passed.
+
 ### `INSTALL-014` Acquire and connect pinned OpenSCAD on Windows x86-64
 
 - `npm.cmd run setup:openscad` now acquires the official portable OpenSCAD
@@ -281,6 +290,7 @@ No implementation task is active.
   Windows Server 2022 job `94803696105` and Windows Server 2025 job
   `94803696109`.
 - Independent review passed after ZIP type, native architecture, system command,
+- Main workflow run `31812227275` passed after integration.
   bounded process-tree, and active-render proof findings were corrected. All
   215 Vitest tests, TypeScript, the production desktop build, workflow lint,
   real 221-entry archive validation, and diff hygiene passed.

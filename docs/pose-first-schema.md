@@ -49,9 +49,9 @@ internally, but it loads and saves the basis in the sculpture JSON.
 
 An in-plane panel rotation is a rotation around local Z, which is the saved
 `normal`. It must rotate `xAxis` and `yAxis` together while preserving
-`position`, `normal`, and the surface attachment. The next implementation
-task is specified in
-[the local-Z rotation handover](handover-panel-local-z-rotation.md).
+`position`, `normal`, and the surface attachment. The selected-panel gizmo
+implements this operation. The saved basis is authoritative, and mapping and
+wiring refresh after each rotation.
 
 `surfaceAttachment.surface` identifies the authoring mesh. `mechanical-shell` uses
 the face graph already embedded in sculpture JSON, so add and drag sessions resume
@@ -165,13 +165,19 @@ recorded in
 The panel-outline route creates the boundary after panel editing by joining
 exact panel outlines with validated flat N-gon caps. It automatically detects
 and persists only unambiguous gap cycles, then passes only a closed,
-two-manifold result to printable-part generation. Ambiguous layouts still need
-future correction tools. The GLB remains a positioning canvas and is not
-converted into that boundary. The production desktop host and Vite development
-adapter share the same local generator-status and pipeline handler. OpenSCAD
-2021.01 is an unbundled system prerequisite; unavailable status disables only
-generation, and the host must restart after installation or repair. No schema
-state records generator availability.
+two-manifold result to printable-part generation. The editor does not yet let
+the user inspect, confirm, reorder, or redraw candidate gap topology, so an
+ambiguous layout stops with an error. The GLB remains a positioning canvas and
+is not converted into that boundary. Local generation preserves its path and
+hash but does not copy it into the generated folder.
+
+The production desktop host and Vite development adapter share the same local
+generator-status and pipeline handler. Repository-local setup installs the
+pinned OpenSCAD tool on supported Linux and macOS targets and provides a
+Windows x86-64 candidate. Windows PC support remains pending `INSTALL-015`.
+Unavailable or wrong-version status disables only generation, and the host must
+restart after installation or repair. No schema state records generator
+availability.
 
 ## Manually authored mechanics
 

@@ -208,14 +208,17 @@ and three-connectors-per-closure defaults.
 The implemented data ownership, regeneration algorithm, blocking checks,
 fixture behavior, and verification record are documented in
 [Editor and planar mechanical regeneration](../docs/editor-mechanical-regeneration.md).
-The next editor task—manual rotation of the selected panel around its saved
-local-Z normal—is described in
-[the local-Z rotation handover](../docs/handover-panel-local-z-rotation.md).
+The selected-panel gizmo can rotate a panel around its saved local-Z normal.
+The edit saves the changed `xAxis` and `yAxis`, refreshes mapping and wiring,
+and marks existing mechanics for regeneration or review.
 
 `tests/panel-boundary-parts-e2e.test.ts` covers GLB placement, panel edits,
 generation-time gap detection from a project with no `boundaryTopology`,
 persisted cycles, exact parts, folder/ZIP reopen, and current/stale state without
 injecting topology in the test.
+This test uses helpers and the generation pipeline. It does not operate the real
+browser controls; `TEST-010` and `TEST-011` track that missing coverage.
+
 
 ## Build and test
 
@@ -240,9 +243,12 @@ every registered effect at 2,700 LEDs, framebuffer changes, deterministic
 timestamps, resize behavior, out-of-bounds protection, and mapping invariants.
 
 Every build regenerates `layout/panel-map.json` and
-`wled/ledmap.provisional.json`. The browser imports those actual JSON artifacts
-at runtime; it does not independently regenerate the sculpture mapping. Startup
-validates every logical-to-physical entry and requires matching fingerprints.
+`wled/ledmap.provisional.json` for the flagship sculpture. The browser does not
+import these files at runtime. It loads the selected Schema 2 project, compiles
+the pose-first mapping with `createPanelAssemblyMapping()`, and creates the
+provisional wiring and hardware-mapping contract in memory. The artifact script
+uses the same compiler and contract functions. Both paths validate every
+logical-to-physical entry and require matching fingerprints.
 The production command `npm run generate:mapping:hardware` refuses to write
 `wled/ledmap.json` until all measured-data readiness checks pass.
 
