@@ -90,25 +90,38 @@ This file is the persistent source of truth for work status. Read it before star
 - Depends on: `INSTALL-014` and provisioned ephemeral Windows client runner images.
 - Deferred by: the operator selected Linux and macOS as the current required targets. Windows candidate code and CI checks stay implemented, but Windows client qualification does not block `INSTALL-011` or `INSTALL-012`.
 
+### `INSTALL-011` Complete the one-command clean-checkout bootstrap — umbrella
+
+- Outcome: one Linux/macOS command installs and connects every dependency needed to build, test, start, and generate parts after a clean clone.
+- Delivery: complete `INSTALL-011A`, `INSTALL-011B`, and `INSTALL-011C` in order. Keep this umbrella open until all three slices pass.
+- Constraint: Windows remains a retained candidate and is not a completion gate.
+
 ## Ready
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
 
-### `INSTALL-011` Add a one-command clean-checkout bootstrap — P0
+### `INSTALL-011A` Define the complete bootstrap dependency contract — P0
 
-- Outcome: after cloning the repository, one platform-appropriate command installs and connects every project dependency needed to build, test, start, and generate parts.
-- Acceptance:
-  - The POSIX entry point for the declared Linux and macOS targets requires only Git and the operating system's standard shell; every other executable is acquired or its function is supplied by a verified repository stage-zero component.
-  - A committed dependency manifest accounts for Node.js/npm, Python, download/archive utilities, OpenSCAD, WLED sources, Emscripten, and every other command invoked by setup or verification.
-  - Bootstrap acquires pinned repository-local Node.js/npm and Python toolchains when absent; it must not silently use an undeclared system executable.
-  - Bootstrap initializes required submodules, installs exact npm dependencies, acquires OpenSCAD through `INSTALL-010` or `INSTALL-013` for the selected required platform, and installs pinned WLED/Emscripten tooling required by the documented full verification path.
-  - The retained Windows PowerShell and OpenSCAD candidate may stay operational, but Windows is not a completion gate for this task.
-  - Repeated and interrupted runs are safe and resumable; paths containing spaces work; no global packages, administrator access, or system package-manager changes are required.
-  - Completion verifies generator availability and prints one start command; failures state the failed dependency and exact recovery action.
-- Depends on: `INSTALL-010` and `INSTALL-013`.
-- Verify: empty-cache and warm-cache integration tests, interruption recovery, checksum/network failure tests, `npm run verify`, and a local production-server smoke test.
-- Docs: make this the primary Linux and macOS installation path and list only Git plus the standard shell as prerequisites.
+- Outcome: one committed manifest is the authority for every tool, source, version, target, executable, and setup relationship used by the Linux/macOS clean path.
+- Acceptance: declare the required Linux x86-64 and macOS arm64/x86-64 tuples; pin Node.js/npm and a relocatable Python distribution with URLs, sizes, SHA-256 values, sources, and licenses; reference the existing OpenSCAD targets, npm lockfile, WLED gitlink, emsdk revision, and Emscripten version; classify every invoked host command as stage-zero, managed, or operating-system standard.
+- Verify: strict schema/parser tests reject missing metadata, undeclared commands, wrong targets, unsafe paths, and malformed checksums without downloading or writing tools.
+- Depends on: the supply-chain choices in `HR-012`. Do not claim automatic installation until `INSTALL-011B` and `INSTALL-011C` pass.
+
+### `INSTALL-011B` Acquire the repository-local base toolchain — P0
+
+- Outcome: the documented POSIX entry point starts from the chosen stage-zero supply and acquires pinned repository-local Node.js/npm and Python for the selected Linux/macOS target.
+- Acceptance: no administrator, system package-manager, profile, or global `PATH` change; exact size/hash verification; target-bound receipts; atomic promotion; safe warm reuse, interruption recovery, and paths with spaces; no undeclared system executable.
+- Depends on: `INSTALL-011A` and the stage-zero choice in `HR-012`.
+- Verify: injected download/extraction failures, tampered cache, unsupported tuple, empty/warm retry, and native executable/version checks.
+
+### `INSTALL-011C` Orchestrate the complete clean-checkout setup — P0
+
+- Outcome: one command uses the managed base toolchain to initialize WLED, install exact npm dependencies, acquire OpenSCAD, install pinned Emscripten, verify generator availability, and print the managed desktop start command.
+- Acceptance: all subprocesses use explicit managed paths; repeated and interrupted runs are safe; failures name the dependency and recovery action; Windows candidate behavior may remain but is not a completion gate.
+- Depends on: `INSTALL-011B`, `INSTALL-010`, and `INSTALL-013`.
+- Verify: empty-cache and warm-cache integration tests, interruption recovery, `npm run verify`, real OpenSCAD generation, and a local production-server smoke test.
+- Docs: make this the primary Linux/macOS installation path and list only the chosen stage-zero supply as the prerequisite.
 
 ### `INSTALL-012` Prove automatic installation on clean supported systems — P0
 
@@ -118,7 +131,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   - Each job runs only the documented bootstrap and start commands, sees generator status `available: true`, generates exact STL files with real OpenSCAD, and shuts down cleanly.
   - Cached tools are verified before reuse; tampered downloads, unsupported systems, offline failures, and partial installs fail safely and actionably.
 - Windows candidate CI may remain as non-gating compatibility evidence; it does not define a current supported target.
-- Depends on: `INSTALL-010`, `INSTALL-011`, `INSTALL-013`, and reuse of the real-render journey from `CI-010`.
+- Depends on: `INSTALL-010`, `INSTALL-011C`, `INSTALL-013`, and reuse of the real-render journey from `CI-010`.
 - Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
 - Docs: publish the tested Linux and macOS matrix and state clearly which repository installation command applies to each required platform.
 
@@ -399,12 +412,21 @@ No implementation task is active.
 ### `HR-010` Repository installation must acquire all dependencies automatically
 
 - Decision confirmed by the user on 2026-08-14: after cloning the repository, no manual Node.js, npm, OpenSCAD, SDK, PATH, or dependency-connection step is acceptable.
-- Implementation sequence: `INSTALL-010`, `INSTALL-011`, and `INSTALL-012`.
+- Implementation sequence: `INSTALL-010`, `INSTALL-011A`, `INSTALL-011B`, `INSTALL-011C`, and `INSTALL-012`.
 
 ### `HR-011` Linux and macOS are the current required installation targets
 
 - Decision confirmed by the operator: `INSTALL-011` and `INSTALL-012` must complete for the declared Linux and native macOS targets.
 - The implemented Windows x86-64 candidate and its CI checks remain in the repository. Windows client qualification is deferred and is not a dependency or completion gate for the current bootstrap work.
+
+### `HR-012` Choose the trusted stage-zero bootstrap supply — Decision needed
+
+- Constraint: Git plus POSIX shell cannot by itself fetch arbitrary HTTPS artifacts, compute SHA-256 values, or unpack all required Node.js and Python archives.
+- Recommended option: commit one small, reviewed native bootstrap executable for Linux x86-64, macOS arm64, and macOS x86-64. The shell selects the exact target; the executable performs certificate-validated HTTPS, size/SHA-256 verification, safe extraction, and atomic publication.
+- Python provider: approve pinned, checksum-verified Astral `python-build-standalone` artifacts for the three required targets because python.org does not publish a relocatable Linux CPython distribution.
+- Alternative: require operating-system `curl`, hash, and archive commands. This is simpler but weakens the existing Git-plus-shell prerequisite promise.
+- Rejected default: a Git repository or submodule containing complete unpacked toolchains creates a large binary history and weaker upstream artifact maintenance.
+- Unblocks: `INSTALL-011B`.
 
 ### `CORE-001` Mechanics-free Schema 2 editor (`7b40263`)
 
