@@ -87,11 +87,12 @@ A project may omit `manualMechanics`, `mechanicalShell`, and `closures`. Such a
 project loads, edits, simulates, maps, wires, saves, and reloads. A panel pose
 does not require `mountFaceId` or a surface attachment; those fields describe
 optional authoring/mechanical relationships rather than the panel's existence.
-The browser does not create a placeholder shell. In local development, a
-mechanics-free project with panels may enter generic 3D-part generation: if its
-exposed panel-outline graph is unambiguous, the generator detects and persists
-the missing boundary connectivity before validation. A missing or invalid
-optional GLB disables surface placement without invalidating the project.
+The browser does not create a placeholder shell. When served by the local
+desktop or Vite host, a mechanics-free project with panels may enter generic
+3D-part generation: if its exposed panel-outline graph is unambiguous, the
+generator detects and persists the missing boundary connectivity before
+validation. A missing or invalid optional GLB disables surface placement without
+invalidating the project.
 
 `boundaryTopology.kind = "panel-outline-gap-cycles"` stores that connectivity.
 Each gap has a stable content-derived ID and an ordered `vertices` array of
@@ -166,8 +167,11 @@ exact panel outlines with validated flat N-gon caps. It automatically detects
 and persists only unambiguous gap cycles, then passes only a closed,
 two-manifold result to printable-part generation. Ambiguous layouts still need
 future correction tools. The GLB remains a positioning canvas and is not
-converted into that boundary. OpenSCAD generation remains available only through
-the local Vite development endpoint.
+converted into that boundary. The production desktop host and Vite development
+adapter share the same local generator-status and pipeline handler. OpenSCAD
+2021.01 is an unbundled system prerequisite; unavailable status disables only
+generation, and the host must restart after installation or repair. No schema
+state records generator availability.
 
 ## Manually authored mechanics
 

@@ -79,6 +79,12 @@ uses `createPanelAssemblyMapping()`.
 - After a scoped change is clean and verified, commit it, integrate it with the
   intended branch, and push the result. Respect required approval gates. Never
   force-push, overwrite unrelated work, or bypass a remote-write restriction.
+- If a push is blocked because the destination is not verified, report the
+  exact commit, ref, and remote URL. Get explicit operator approval, then repeat
+  the same push. Do not use an indirect push method.
+- `npm run verify` requires the pinned WLED submodule. If it reports that the
+  submodule is not initialized, run `npm run setup:wled` or use
+  `npm run verify:clean` for the complete clean-checkout path.
 - Use the normal repository `apply_patch` helper for file edits first. In this
   Codex environment it can fail with `fs sandbox helper failed` / `bwrap: No
   permissions to create a new namespace` even though approved shell commands

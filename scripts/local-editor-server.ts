@@ -1,0 +1,278 @@
+import { createReadStream } from "node:fs";
+import { realpath, stat } from "node:fs/promises";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
+import type { AddressInfo, Socket } from "node:net";
+import { extname, relative, resolve, sep } from "node:path";
+import { pathToFileURL } from "node:url";
+import {
+  createEditorPipelineHandler,
+  isLoopbackHost,
+  type EditorPipelineHandler,
+} from "./editor-pipeline-handler.ts";
+import type { OpenScadRuntime } from "../src/cad/OpenScadRuntime.ts";
+
+const CONTENT_TYPES: Readonly<Record<string, string>> = Object.freeze({
+  ".css": "text/css; charset=utf-8",
+  ".glb": "model/gltf-binary",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".stl": "model/stl",
+  ".wasm": "application/wasm",
+});
+
+const GENERATED_PREFIXES = [
+  "/generated-projects/",
+  "/generated-cad/",
+  "/generated-previews/",
+] as const;
+
+export interface LocalEditorServerOptions {
+  rootDirectory?: string;
+  distDirectory?: string;
+  generatedPublicDirectory?: string;
+  host?: "127.0.0.1";
+  port?: number;
+  openScadRuntime?: OpenScadRuntime;
+  pipelineHandler?: EditorPipelineHandler;
+}
+
+export interface LocalEditorServer {
+  readonly server: Server;
+  readonly host: string;
+  readonly port: number;
+  readonly url: string;
+  readonly pipelineHandler: EditorPipelineHandler;
+  close(gracePeriodMs?: number): Promise<void>;
+}
+
+function sendText(response: ServerResponse, statusCode: number, text: string): void {
+  response.statusCode = statusCode;
+  response.setHeader("Content-Type", "text/plain; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
+  response.end(text);
+}
+
+function isInside(root: string, candidate: string): boolean {
+  const path = relative(root, candidate);
+  return path === "" || (path !== ".." && !path.startsWith(`..${sep}`));
+}
+
+async function findStaticFile(
+  requestPath: string,
+  distDirectory: string,
+  generatedPublicDirectory: string,
+): Promise<{ path: string; generated: boolean } | undefined> {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(requestPath);
+  } catch {
+    throw new Error("Malformed URL encoding.");
+  }
+  if (decoded.includes("\0") || decoded.includes("\\")) {
+    throw new Error("Unsafe static path.");
+  }
+  const generatedPrefix = GENERATED_PREFIXES.find((prefix) =>
+    decoded.startsWith(prefix)
+  );
+  const root = generatedPrefix ? generatedPublicDirectory : distDirectory;
+  const relativePath = decoded === "/"
+    ? "index.html"
+    : decoded.replace(/^\/+/, "");
+  const candidate = resolve(root, relativePath);
+  if (!isInside(root, candidate)) throw new Error("Unsafe static path.");
+  try {
+    const [canonicalRoot, canonicalCandidate] = await Promise.all([
+      realpath(root),
+      realpath(candidate),
+    ]);
+    if (!isInside(canonicalRoot, canonicalCandidate)) {
+      throw new Error("Unsafe static path.");
+    }
+    const metadata = await stat(canonicalCandidate);
+    if (!metadata.isFile()) return undefined;
+    return { path: canonicalCandidate, generated: generatedPrefix !== undefined };
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+async function serveStatic(
+  request: IncomingMessage,
+  response: ServerResponse,
+  distDirectory: string,
+  generatedPublicDirectory: string,
+): Promise<void> {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    response.setHeader("Allow", "GET, HEAD");
+    sendText(response, 405, "Use GET or HEAD.");
+    return;
+  }
+  let file: Awaited<ReturnType<typeof findStaticFile>>;
+  try {
+    const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
+    file = await findStaticFile(pathname, distDirectory, generatedPublicDirectory);
+  } catch {
+    sendText(response, 400, "Invalid static path.");
+    return;
+  }
+  if (!file) {
+    sendText(response, 404, "Not found.");
+    return;
+  }
+  response.statusCode = 200;
+  response.setHeader(
+    "Content-Type",
+    CONTENT_TYPES[extname(file.path).toLowerCase()] ?? "application/octet-stream",
+  );
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("Cache-Control", file.generated ? "no-store" : "no-cache");
+  if (request.method === "HEAD") {
+    response.end();
+    return;
+  }
+  createReadStream(file.path).on("error", () => response.destroy()).pipe(response);
+}
+
+function listen(server: Server, port: number, host: string): Promise<AddressInfo> {
+  return new Promise((resolvePromise, reject) => {
+    const onError = (error: Error): void => reject(error);
+    server.once("error", onError);
+    server.listen(port, host, () => {
+      server.off("error", onError);
+      resolvePromise(server.address() as AddressInfo);
+    });
+  });
+}
+
+export async function startLocalEditorServer(
+  options: LocalEditorServerOptions = {},
+): Promise<LocalEditorServer> {
+  const rootDirectory = resolve(options.rootDirectory ?? process.cwd());
+  const distDirectory = resolve(options.distDirectory ?? resolve(rootDirectory, "dist"));
+  const generatedPublicDirectory = resolve(
+    options.generatedPublicDirectory ?? resolve(rootDirectory, "web/public"),
+  );
+  const host = options.host ?? "127.0.0.1";
+  const port = options.port ?? 4173;
+  await stat(resolve(distDirectory, "index.html")).catch(() => {
+    throw new Error("The production UI is missing. Run the desktop build command first.");
+  });
+  const pipelineHandler = options.pipelineHandler ??
+    await createEditorPipelineHandler({
+      rootDirectory,
+      generatedPublicDirectory,
+      openScadRuntime: options.openScadRuntime,
+    });
+  const sockets = new Set<Socket>();
+  const server = createServer((request, response) => {
+    void (async () => {
+      if (!isLoopbackHost(request.headers.host)) {
+        sendText(response, 403, "The local server accepts only loopback Host values.");
+        return;
+      }
+      if (await pipelineHandler.handle(request, response)) return;
+      await serveStatic(request, response, distDirectory, generatedPublicDirectory);
+    })().catch((error) => {
+      if (!response.headersSent) {
+        sendText(
+          response,
+          500,
+          error instanceof Error ? error.message : "Internal server error.",
+        );
+      } else {
+        response.destroy();
+      }
+    });
+  });
+  server.headersTimeout = 10_000;
+  server.requestTimeout = 10 * 60_000;
+  server.keepAliveTimeout = 5_000;
+  server.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.once("close", () => sockets.delete(socket));
+  });
+  const address = await listen(server, port, host);
+  let closing: Promise<void> | undefined;
+  return {
+    server,
+    host,
+    port: address.port,
+    url: `http://${host}:${address.port}/`,
+    pipelineHandler,
+    close(gracePeriodMs = 2_000) {
+      if (closing) return closing;
+      closing = (async () => {
+        const closed = new Promise<void>((resolvePromise) => {
+          server.close(() => resolvePromise());
+          server.closeIdleConnections?.();
+        });
+        await pipelineHandler.close(gracePeriodMs);
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([
+          closed,
+          new Promise<void>((resolvePromise) => {
+            timer = setTimeout(resolvePromise, gracePeriodMs);
+          }),
+        ]);
+        if (timer) clearTimeout(timer);
+        for (const socket of sockets) socket.destroy();
+        server.closeAllConnections?.();
+      })();
+      return closing;
+    },
+  };
+}
+
+function parsePort(value: string | undefined): number {
+  if (value === undefined) return 4173;
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error("ORBITAL_LAB_PORT must be an integer from 1 through 65535.");
+  }
+  return port;
+}
+
+async function main(): Promise<void> {
+  const localServer = await startLocalEditorServer({
+    port: parsePort(process.env.ORBITAL_LAB_PORT),
+  });
+  console.log(`WLED Orbital Lab is available at ${localServer.url}`);
+  const status = localServer.pipelineHandler.openScadRuntime.status;
+  const writeStatus = status.available ? console.log : console.warn;
+  writeStatus(status.message);
+  let stopping = false;
+  const stop = (signal: NodeJS.Signals): void => {
+    if (stopping) {
+      process.exitCode = 1;
+      localServer.server.closeAllConnections?.();
+      return;
+    }
+    stopping = true;
+    console.log(`Received ${signal}. Stopping the local server.`);
+    void localServer.close().then(() => {
+      process.exitCode = 0;
+    });
+  };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+}
+
+const entrypoint = process.argv[1]
+  ? pathToFileURL(resolve(process.argv[1])).href
+  : undefined;
+if (entrypoint === import.meta.url) {
+  void main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}

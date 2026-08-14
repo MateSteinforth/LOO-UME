@@ -22,6 +22,7 @@ web/public/sculptures/
 web/public/catalog/
 web/public/generated-cad/
 web/public/generated-previews/
+web/public/generated-projects/
 
 # FreeCAD recovery/backup files
 *.FCStd1

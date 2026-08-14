@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import {
   mkdir,
@@ -7,7 +6,7 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
-import { delimiter, dirname, relative, resolve, sep } from "node:path";
+import { dirname, relative, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import {
   compilePanelAssembly,
@@ -22,6 +21,7 @@ import {
   type ClosedPanelBoundary,
 } from "../sculpture/PanelOutlineBoundary.ts";
 import { sha256Bytes } from "../sculpture/GeneratedMechanics.ts";
+import { createUnprobedOpenScadRenderer } from "./OpenScadRuntime.ts";
 import { emitPanelClosureCadArtifacts } from "./GeneratePanelClosureCad.ts";
 import { inspectStl, serializeAsciiStl, type StlInspection } from "./Stl.ts";
 
@@ -342,32 +342,5 @@ export function createOpenScadRenderer(
   rootDirectory: string,
   executable = process.env.OPENSCAD,
 ): ScadRenderer {
-  const root = resolve(rootDirectory);
-  const localOpenScad = resolve(root, ".tools/openscad-2021.01/squashfs-root/AppRun");
-  const command = executable ?? (existsSync(localOpenScad) ? localOpenScad : "openscad");
-  const localDependencies = resolve(
-    root,
-    ".tools/openscad-2021.01/local-deps/usr/lib/x86_64-linux-gnu",
-  );
-  return (inputScad, outputStl) => new Promise((resolvePromise, reject) => {
-    const child = spawn(command, ["--hardwarnings", "-o", outputStl, inputScad], {
-      cwd: root,
-      env: {
-        ...process.env,
-        LD_LIBRARY_PATH: [
-          existsSync(localDependencies) ? localDependencies : undefined,
-          process.env.LD_LIBRARY_PATH,
-        ].filter(Boolean).join(delimiter),
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let output = "";
-    child.stdout.on("data", (chunk) => { output += String(chunk); });
-    child.stderr.on("data", (chunk) => { output += String(chunk); });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) resolvePromise();
-      else reject(new Error(output || `${command} exited with ${code}.`));
-    });
-  });
+  return createUnprobedOpenScadRenderer(rootDirectory, executable);
 }

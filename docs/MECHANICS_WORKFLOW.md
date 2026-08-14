@@ -6,9 +6,9 @@ may be omitted and optional GLB failures are non-fatal. The portable asset
 contract and the zero-thickness panel-outline boundary stage are also
 implemented. Local generation detects unambiguous gap topology as
 panel-ID/named-corner cycles when it is absent, while every coordinate is
-regenerated from poses and the profile. The local development pipeline now
-generates the printable closures, publishes an atomic folder asset set, verifies
-SHA-256, and displays the exact referenced STL bytes.
+regenerated from poses and the profile. The locally hosted pipeline now generates
+the printable closures, publishes an atomic folder asset set, verifies SHA-256,
+and displays the exact referenced STL bytes.
 Folder and ZIP import/export use that same path/hash contract, resolve imported
 assets through browser object URLs, and retain no database or local-storage
 state. The existing manual 41-panel parts and planar-shell generator remain supported.
@@ -130,9 +130,26 @@ Generation stages every SCAD, STL, hash, and final JSON in a sibling temporary
 directory. Only a fully inspected set is published by directory rename; failure
 removes the staging directory and retains the prior bundle.
 
-The generation endpoint and its OpenSCAD process are currently available only
-through Vite development middleware. A static production bundle cannot execute
-OpenSCAD on its host.
+## Local desktop generation host
+
+OpenSCAD 2021.01 is a system prerequisite and is not bundled by WLED Orbital
+Lab. After `npm ci`, `npm run desktop` performs a fresh production build and
+starts the local server. It prints a loopback URL at `127.0.0.1`, using port 4173
+unless `ORBITAL_LAB_PORT` selects another valid port. Set `OPENSCAD` to the
+desired executable when it is not the `openscad` found on `PATH`.
+
+At startup the server probes the exact OpenSCAD version. Both the production
+host and Vite development use the same bounded handler for
+`/api/generator-status` and `/api/editor-pipeline`. The browser fetches status
+instead of inferring availability from its build mode. Missing, unreadable, or
+wrong-version OpenSCAD disables **Generate 3D Parts** with direct repair
+guidance; editing, simulation, mapping, wiring, save, and reopen continue. After
+installing or repairing OpenSCAD, restart the server to repeat discovery.
+
+The HTTP server, project data, generated assets, and OpenSCAD process all remain
+on the local computer. Generation is same-origin and loopback-only. Ctrl-C
+(SIGINT) or SIGTERM stops the server and active generation children cleanly. No
+public hosted generation service is required.
 
 ## Project bundle
 

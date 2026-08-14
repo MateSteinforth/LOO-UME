@@ -56,6 +56,7 @@ import {
   type PortableProjectBundle,
   type PortableProjectFile,
 } from "./PortableProject.ts";
+import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -519,12 +520,11 @@ const generatePrintPartsButton =
 const downloadPrintPartsButton =
   query<HTMLButtonElement>("#download-print-parts");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
-const pipelineAvailable = import.meta.env.DEV;
+let pipelineAvailable = false;
+let pipelineAvailabilityMessage =
+  "Checking local OpenSCAD availability. Mapping and wiring remain available.";
 generatePrintPartsButton.disabled = true;
-if (!pipelineAvailable) {
-  pipelineStatus.textContent =
-    "Mapping and wiring are available. Printable STL generation requires local development mode with OpenSCAD.";
-}
+pipelineStatus.textContent = pipelineAvailabilityMessage;
 let outputLayerToggles: HTMLInputElement[] = [];
 
 let renderer: SphereRenderer | undefined;
@@ -532,6 +532,7 @@ let animationFrame = 0;
 
 async function start(): Promise<void> {
   try {
+    const generatorStatusPromise = loadGeneratorStatus();
     const sculptureRegistry = await loadSculptureRegistry();
     sculptureSelect.replaceChildren(
       ...sculptureRegistry.sculptures.map(
@@ -648,7 +649,9 @@ async function start(): Promise<void> {
         !capabilities.canGenerateGenericMechanics;
       generatePrintPartsButton.title = editorDefinition.manualMechanics
         ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
-        : editorDefinition.boundaryTopology
+        : !pipelineAvailable
+          ? pipelineAvailabilityMessage
+          : editorDefinition.boundaryTopology
           ? "Validate the boundary, generate printable parts, and load the exact emitted STL files."
           : !editorDefinition.mechanicalShell || !editorDefinition.closures
             ? "Automatically detect unambiguous panel-corner gap cycles, validate the boundary, and generate printable parts."
@@ -1745,6 +1748,16 @@ async function start(): Promise<void> {
     renderEditorFaces();
     renderOutputLayerControls();
     updateMappingStatus();
+    const generatorStatus = await generatorStatusPromise;
+    pipelineAvailable = generatorStatus.available;
+    pipelineAvailabilityMessage = generatorStatus.message;
+    pipelineStatus.textContent = generatorStatus.message;
+    pipelineStatus.classList.toggle(
+      "pipeline-status--error",
+      !generatorStatus.available,
+    );
+    updatePipelineAvailability();
+
     await restoreGeneratedMechanics(loadedSculpture);
     await loadReferencedDesignSurface();
 
