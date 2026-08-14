@@ -289,8 +289,8 @@ No implementation task is active.
   production-editor, active-render shutdown, and no-host-mutation proof on
   Windows Server 2022 job `94803696105` and Windows Server 2025 job
   `94803696109`.
-- Independent review passed after ZIP type, native architecture, system command,
 - Main workflow run `31812227275` passed after integration.
+- Independent review passed after ZIP type, native architecture, system command,
   bounded process-tree, and active-render proof findings were corrected. All
   215 Vitest tests, TypeScript, the production desktop build, workflow lint,
   real 221-entry archive validation, and diff hygiene passed.

@@ -77,3 +77,64 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   parallel process.
 - **Evidence:** `TASKS.md` and commit `ae9022d`.
 - **Status:** Resolved.
+
+### F-003 — Shell and evaluator modes can invalidate a verification command
+
+- **Date:** 2026-08-14
+- **Context:** Direct TypeScript imports and documentation contradiction scans.
+- **Symptom:** `npx tsx -e` treated a top-level-`await` script as CommonJS, and
+  Markdown backticks in a double-quoted `rg` pattern ran as shell substitutions.
+- **Cause:** The command used an evaluator or quoting mode that did not match the
+  source text.
+- **Correction:** Use `node --import tsx --input-type=module -e` for direct ESM
+  imports. Put complete `rg` arguments that contain backticks in single quotes.
+- **Prevention:** Select the execution and quoting mode before a direct-import or
+  Markdown scan. Do not interpret these mode failures as repository failures.
+- **Evidence:** `AGENTS.md`, under **Working safely**.
+- **Status:** Resolved.
+
+### F-004 — Availability probes can fail even when a tool is usable
+
+- **Date:** 2026-08-14
+- **Context:** Native macOS OpenSCAD qualification and setup preflight.
+- **Symptom:** `lipo -verify_arch` rejected the qualified universal DMG, and
+  `ditto -h` returned a nonzero usage status although `ditto` was executable.
+- **Cause:** The checks used command behaviors that were not reliable
+  availability or native-execution tests.
+- **Correction:** Record `lipo -archs`, then run the exact binary through
+  `/usr/bin/arch -<architecture>` for version and real STL checks. Test Apple
+  tool availability with `fs.access(path, X_OK)`.
+- **Prevention:** Prefer direct executable-access checks and real target work to
+  help or metadata commands when qualifying a required tool.
+- **Evidence:** `AGENTS.md` and the `INSTALL-013` evidence in `TASKS.md`.
+- **Status:** Resolved.
+
+### F-005 — Clean Windows checks cannot rely on shell shims or PATH tools
+
+- **Date:** 2026-08-14
+- **Context:** Managed OpenSCAD setup and active-render shutdown on Windows.
+- **Symptom:** PowerShell policy can block `npm.ps1`, and a clean verification
+  that clears `PATH` cannot find a bare `taskkill` command.
+- **Cause:** The first command paths depended on user shell policy and ambient
+  host wiring that the clean-host proof intentionally removed.
+- **Correction:** Invoke `npm.cmd`. Resolve and validate the absolute
+  `%SystemRoot%\System32\taskkill.exe` path, and use argument arrays without a
+  shell.
+- **Prevention:** Windows setup and verification must use native command entry
+  points and validated absolute system-tool paths when `PATH` is not authority.
+- **Evidence:** `AGENTS.md` and `scripts/verify-windows-openscad-shutdown.ts`.
+- **Status:** Resolved.
+
+### F-006 — A repository-local GitHub CLI is not guaranteed
+
+- **Date:** 2026-08-14
+- **Context:** Monitoring required GitHub Actions runs after integration pushes.
+- **Symptom:** The expected `.tools` GitHub CLI path was absent.
+- **Cause:** The workflow assumed a local helper that is not a declared project
+  dependency.
+- **Correction:** For this public repository, query the public GitHub Actions
+  REST API with `curl` and parse the saved JSON with Node.js.
+- **Prevention:** Check for an available declared client before use. Do not add
+  an installation dependency only to read public workflow status.
+- **Evidence:** `AGENTS.md`, under **Working safely**.
+- **Status:** Mitigated.
