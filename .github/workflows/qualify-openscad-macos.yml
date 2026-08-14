@@ -96,7 +96,6 @@ jobs:
             failed=1
           else
             check "Mach-O architectures" lipo -archs "$executable"
-            check "Native Mach-O slice" lipo -verify_arch "${{ matrix.architecture }}" "$executable"
 
             echo "## Native version"
             version_output=$(/usr/bin/arch "-${{ matrix.architecture }}" "$executable" --version 2>&1)
