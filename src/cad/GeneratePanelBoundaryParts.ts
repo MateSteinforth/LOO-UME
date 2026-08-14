@@ -20,7 +20,11 @@ import {
   generateClosedPanelBoundary,
   type ClosedPanelBoundary,
 } from "../sculpture/PanelOutlineBoundary.ts";
-import { sha256Bytes } from "../sculpture/GeneratedMechanics.ts";
+import {
+  portableProjectAssetCollisionKey,
+  sha256Bytes,
+  verifyProjectAssetBytes,
+} from "../sculpture/GeneratedMechanics.ts";
 import { createUnprobedOpenScadRenderer } from "./OpenScadRuntime.ts";
 import { emitPanelClosureCadArtifacts } from "./GeneratePanelClosureCad.ts";
 import { inspectStl, serializeAsciiStl, type StlInspection } from "./Stl.ts";
@@ -49,6 +53,7 @@ export interface GeneratePanelBoundaryPartsOptions {
   outputDirectory: string;
   rootDirectory?: string;
   panelProfileSource?: string;
+  designSurfaceBytes?: Uint8Array;
   renderScad: ScadRenderer;
 }
 
@@ -201,6 +206,32 @@ export async function generatePanelBoundaryParts(
   if (project.sculpture.manualMechanics) {
     throw new Error("Manually authored mechanics cannot enter generic part generation.");
   }
+  const designSurface = project.sculpture.designSurface;
+  let designSurfaceBytes: Uint8Array | undefined;
+  if (designSurface) {
+    const collisionSource = portableProjectAssetCollisionKey(designSurface.source);
+    if (
+      collisionSource === "sculpture.json" ||
+      collisionSource.startsWith("sculpture.json/") ||
+      collisionSource === "mechanics" ||
+      collisionSource.startsWith("mechanics/")
+    ) {
+      throw new Error(
+        `Design surface source ${designSurface.source} conflicts with a reserved generated-project path.`,
+      );
+    }
+    if (!options.designSurfaceBytes) {
+      throw new Error(
+        `Generation requires verified bytes for design surface ${designSurface.source}.`,
+      );
+    }
+    designSurfaceBytes = Uint8Array.from(options.designSurfaceBytes);
+    verifyProjectAssetBytes(designSurface, designSurfaceBytes, "Design surface");
+  } else if (options.designSurfaceBytes) {
+    throw new Error(
+      "Generation received design-surface bytes, but the project has no designSurface reference.",
+    );
+  }
   const workingDefinition = structuredClone(project.sculpture);
   if (!workingDefinition.boundaryTopology) {
     workingDefinition.boundaryTopology = detectPanelBoundaryTopology(
@@ -232,6 +263,19 @@ export async function generatePanelBoundaryParts(
   const cadDirectory = resolve(mechanicsDirectory, "cad");
 
   try {
+    if (designSurface && designSurfaceBytes) {
+      const designSurfacePath = resolve(
+        temporaryDirectory,
+        designSurface.source,
+      );
+      await mkdir(dirname(designSurfacePath), { recursive: true });
+      await writeFile(designSurfacePath, designSurfaceBytes);
+      verifyProjectAssetBytes(
+        designSurface,
+        new Uint8Array(await readFile(designSurfacePath)),
+        "Staged design surface",
+      );
+    }
     await mkdir(partDirectory, { recursive: true });
     const boundaryPath = resolve(mechanicsDirectory, "boundary.stl");
     await writeFile(

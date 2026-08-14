@@ -181,6 +181,8 @@ describe("Schema 2 portable generated-mechanics assets", () => {
     "mechanics\\part.stl",
     "mechanics/part.stl?download=1",
     "mechanics/part.stl#mesh",
+    "design%2Fsource.glb",
+    "%2e%2e/secret.glb",
     "build/editor-projects/run-1/part.stl",
   ])("rejects unsafe project asset source %s", async (source) => {
     const { definition } = await portableDefinition();
@@ -199,6 +201,19 @@ describe("Schema 2 portable generated-mechanics assets", () => {
     second.definition.designSurface!.sha256 = hash("A");
     expect(() => parsePanelAssemblyDefinition(second.definition)).toThrow(
       /lowercase SHA-256/,
+    );
+  });
+
+  it.each([
+    "sculpture.json",
+    "sculpture.json/design.glb",
+    "Sculpture.json",
+    "SCULPTURE.JSON/design.glb",
+  ])("rejects asset source %s that collides with the portable manifest", async (source) => {
+    const { definition } = await portableDefinition();
+    definition.designSurface!.source = source;
+    expect(() => parsePanelAssemblyDefinition(definition)).toThrow(
+      /reserved portable project manifest path sculpture\.json/,
     );
   });
 

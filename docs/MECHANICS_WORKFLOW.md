@@ -187,22 +187,28 @@ administrator, installer, registry, profile, or `PATH` change. Source is tag
 `openscad-2021.01`, commit `41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`,
 under GPL-2.0-or-later with the OpenSCAD CGAL exception.
 
-Windows Server CI is surrogate proof only. INSTALL-015 needs Windows 10 LTSC
-2021 and Windows 11 25H2 x86-64 non-N client proof. Windows N/KN and ARM64 are
-excluded. Node.js and npm remain prerequisites; Linux also needs `dpkg-deb`.
-INSTALL-011/012 track the complete bootstrap and all-target proof.
+Windows Server CI is surrogate proof only. Windows client qualification is
+deferred. The candidate code and checks remain, but Windows does not block
+INSTALL-011 or INSTALL-012. Node.js and npm remain prerequisites; Linux also
+needs `dpkg-deb`. INSTALL-011/012 track the complete bootstrap and proof on the
+required Linux and macOS targets.
 
 The HTTP server, project data, generated assets, and OpenSCAD process all remain
 on the local computer. Generation is same-origin and loopback-only. Ctrl-C
 (SIGINT) or SIGTERM stops the server and active generation children cleanly. No
 public hosted generation service is required.
 
+The browser sends one multipart generation request with the sculpture JSON and
+only the referenced, SHA-256-verified GLB. The JSON field is limited to 5 MB and
+the complete request is limited to 64 MB. Missing, tampered, or reserved asset
+paths fail before OpenSCAD runs or the output staging directory is created.
+
 ## Project bundle
 
 A project is one main JSON document plus referenced 3D assets. A self-contained
 portable bundle can be an ordinary folder or a ZIP that contains that folder.
-The example below is a complete portable bundle. It is not the direct output of
-local part generation because local generation does not copy the design GLB.
+The example below is the complete folder that local part generation publishes
+when the project references a design GLB.
 
 ```text
 my-sculpture/
@@ -224,9 +230,12 @@ inconsistent with the reference.
 
 Schema 2 uses this contract (the hashes below are illustrative):
 
-Local part generation preserves the design-surface reference but does not copy
-the referenced GLB into its generated folder. A self-contained folder or ZIP
-therefore still requires the separately loaded, hash-verified GLB bytes.
+Before rendering or staging, local generation verifies the referenced GLB
+bytes. It preserves the safe relative `source`, writes the exact bytes at that
+path, verifies the staged copy, then writes and validates the STL set. JSON is
+written last, and the complete GLB, STL, and JSON folder replaces the prior
+folder atomically. The published folder therefore opens directly and can become
+a ZIP without external asset injection.
 
 ```json
 {
@@ -327,7 +336,8 @@ the project without a server-side database.
 Folder and ZIP export contain the current JSON and every referenced local asset.
 They fail clearly if an asset is missing or its hash does not match. Export uses
 only verified bytes already held by the browser and does not silently fetch an
-external URL into a supposedly self-contained bundle.
+external URL into a supposedly self-contained bundle. A directly generated
+folder already contains the verified GLB and STL bytes that this export needs.
 
 ## Acceptance journey and test scope
 
@@ -341,8 +351,9 @@ The implemented helper-level integration journey is:
 `tests/panel-boundary-parts-e2e.test.ts` covers this data path through helpers.
 It starts with `boundaryTopology` absent, places and edits panels, invokes part
 generation without injecting cycles, verifies that the detected topology is
-saved, and then covers folder parity, object-URL loading, exact byte and hash
-recovery, and current and stale fingerprint states. Container rejection cases
+saved, opens the generated folder without external asset injection, and then
+covers folder-to-ZIP parity, object-URL loading, exact byte and hash recovery,
+and current and stale fingerprint states. Container rejection cases
 are covered separately by `tests/portable-project.test.ts`. These tests do not
 operate the real browser interface. `TEST-010` and `TEST-011` track the missing
 browser interaction coverage for authoring and folder/ZIP controls.

@@ -10,7 +10,13 @@ import { generatePanelBoundaryParts } from "../src/cad/GeneratePanelBoundaryPart
 import { createPanelAssemblyProject } from "../src/sculpture/PanelAssembly.ts";
 import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegenerator.ts";
 
-const MAX_REQUEST_BYTES = 5 * 1024 * 1024;
+const MAX_SCULPTURE_JSON_BYTES = 5 * 1024 * 1024;
+const MAX_MULTIPART_REQUEST_BYTES = 64 * 1024 * 1024;
+
+interface ParsedEditorPipelineRequest {
+  input: unknown;
+  designSurfaceBytes?: Uint8Array;
+}
 
 class HttpError extends Error {
   constructor(readonly statusCode: number, message: string) {
@@ -69,28 +75,110 @@ export function isSameOriginRequest(request: IncomingMessage): boolean {
   }
 }
 
-async function readJsonRequest(request: IncomingMessage): Promise<unknown> {
-  const contentType = request.headers["content-type"];
-  if (typeof contentType !== "string" ||
-    !contentType.toLowerCase().startsWith("application/json")) {
-    throw new HttpError(415, "Use Content-Type: application/json.");
+async function readRequestBytes(
+  request: IncomingMessage,
+  maximumBytes: number,
+  limitMessage: string,
+): Promise<Uint8Array> {
+  const declaredLength = request.headers["content-length"];
+  if (typeof declaredLength === "string" && /^\d+$/.test(declaredLength)) {
+    const declaredBytes = Number(declaredLength);
+    if (!Number.isSafeInteger(declaredBytes) || declaredBytes > maximumBytes) {
+      request.resume();
+      throw new HttpError(413, limitMessage);
+    }
   }
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     size += buffer.length;
-    if (size > MAX_REQUEST_BYTES) {
+    if (size > maximumBytes) {
       request.resume();
-      throw new HttpError(413, "Sculpture JSON exceeds 5 MB.");
+      throw new HttpError(413, limitMessage);
     }
     chunks.push(buffer);
   }
+  return new Uint8Array(Buffer.concat(chunks));
+}
+
+function parseJsonBytes(bytes: Uint8Array): unknown {
   try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+    return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
   } catch {
-    throw new HttpError(400, "Request body must be valid JSON.");
+    throw new HttpError(400, "Sculpture field must contain valid JSON.");
   }
+}
+
+async function readEditorPipelineRequest(
+  request: IncomingMessage,
+): Promise<ParsedEditorPipelineRequest> {
+  const contentType = request.headers["content-type"];
+  if (typeof contentType !== "string") {
+    throw new HttpError(
+      415,
+      "Use Content-Type: application/json or multipart/form-data.",
+    );
+  }
+  const normalizedType = contentType.toLowerCase();
+  if (normalizedType.startsWith("application/json")) {
+    const bytes = await readRequestBytes(
+      request,
+      MAX_SCULPTURE_JSON_BYTES,
+      "Sculpture JSON exceeds 5 MB.",
+    );
+    return { input: parseJsonBytes(bytes) };
+  }
+  if (!normalizedType.startsWith("multipart/form-data")) {
+    throw new HttpError(
+      415,
+      "Use Content-Type: application/json or multipart/form-data.",
+    );
+  }
+
+  const bytes = await readRequestBytes(
+    request,
+    MAX_MULTIPART_REQUEST_BYTES,
+    "Generation request exceeds 64 MB.",
+  );
+  let formData: FormData;
+  try {
+    formData = await new Response(new Blob([Uint8Array.from(bytes)]), {
+      headers: { "Content-Type": contentType },
+    }).formData();
+  } catch {
+    throw new HttpError(400, "Generation request must be valid multipart form data.");
+  }
+  for (const [name] of formData) {
+    if (name !== "sculpture" && name !== "designSurface") {
+      throw new HttpError(400, `Generation request has unexpected field ${name}.`);
+    }
+  }
+  const sculptureFields = formData.getAll("sculpture");
+  if (sculptureFields.length !== 1) {
+    throw new HttpError(400, "Generation request requires one sculpture field.");
+  }
+  const sculptureField = sculptureFields[0]!;
+  const sculptureBytes = typeof sculptureField === "string"
+    ? new TextEncoder().encode(sculptureField)
+    : new Uint8Array(await sculptureField.arrayBuffer());
+  if (sculptureBytes.byteLength > MAX_SCULPTURE_JSON_BYTES) {
+    throw new HttpError(413, "Sculpture JSON exceeds 5 MB.");
+  }
+
+  const designFields = formData.getAll("designSurface");
+  if (designFields.length > 1) {
+    throw new HttpError(400, "Generation request accepts one designSurface field.");
+  }
+  if (typeof designFields[0] === "string") {
+    throw new HttpError(400, "designSurface must be a binary file field.");
+  }
+  return {
+    input: parseJsonBytes(sculptureBytes),
+    ...(designFields[0]
+      ? { designSurfaceBytes: new Uint8Array(await designFields[0].arrayBuffer()) }
+      : {}),
+  };
 }
 
 function validateInput(input: unknown): Record<string, unknown> {
@@ -218,8 +306,11 @@ export async function createEditorPipelineHandler(
       }
       pipelineRunning = true;
       try {
-        const input = await readJsonRequest(request);
-        let definition = validateInput(input);
+        const requestInput = await readEditorPipelineRequest(request);
+        let definition = validateInput(requestInput.input);
+        if (requestInput.designSurfaceBytes && definition.designSurface === undefined) {
+          throw new HttpError(400, "designSurface bytes require a designSurface reference.");
+        }
         const sourceId = definition.id as string;
         const profile = definition.panelProfile as Record<string, unknown>;
         const runId = `${sourceId.slice(0, 60)}-editor-preview`;
@@ -240,6 +331,7 @@ export async function createEditorPipelineHandler(
               "generated-projects",
               runId,
             ),
+            designSurfaceBytes: requestInput.designSurfaceBytes,
             panelProfileSource: `../../catalog/panels/${profile.id}.json`,
             renderScad: openScadRuntime.render.bind(openScadRuntime),
           });

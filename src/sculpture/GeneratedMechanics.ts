@@ -102,6 +102,10 @@ export function isLowercaseSha256(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
 }
 
+export function portableProjectAssetCollisionKey(source: string): string {
+  return source.normalize("NFC").toLowerCase();
+}
+
 export function assertPortableProjectAssetSource(
   source: unknown,
   label: string,
@@ -114,7 +118,7 @@ export function assertPortableProjectAssetSource(
     source !== source.trim() ||
     source.startsWith("/") ||
     /^[A-Za-z]:/.test(source) ||
-    /[\\:?#\x00-\x1f\x7f]/.test(source) ||
+    /[\\:%?#\x00-\x1f\x7f]/.test(source) ||
     segments.some((segment) => segment === "" || segment === "." || segment === "..") ||
     (segments[0] === "build" && segments[1] === "editor-projects")
   ) {
@@ -133,6 +137,15 @@ export function assertProjectAssetReference(
   }
   const asset = reference as Record<string, unknown>;
   assertPortableProjectAssetSource(asset.source, label);
+  const collisionSource = portableProjectAssetCollisionKey(asset.source);
+  if (
+    collisionSource === "sculpture.json" ||
+    collisionSource.startsWith("sculpture.json/")
+  ) {
+    throw new Error(
+      `${label} source must not use the reserved portable project manifest path sculpture.json.`,
+    );
+  }
   if (!isLowercaseSha256(asset.sha256)) {
     throw new Error(`${label} requires a lowercase SHA-256 hash.`);
   }

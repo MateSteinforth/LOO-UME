@@ -117,10 +117,14 @@ hash-checked GLB and STL assets in a folder. Schema 2 can reference a boundary
 mesh and ordered exact printable STL parts together with the canonical
 panel/profile fingerprint that produced them. Fingerprint comparison is the one
 current/stale authority and panel edits do not stop the pose-first application.
-The local generation service stages a project folder, validates every STL and
-hash, writes JSON last, and publishes it by atomic directory replacement. It
-does not copy a referenced design GLB into that folder; portable export still
-requires the separately loaded, verified GLB bytes.
+The browser sends one bounded multipart generation request with the JSON and
+only the referenced, verified GLB bytes. The JSON field is limited to 5 MB and
+the complete multipart request is limited to 64 MB. Before rendering or
+staging, the server verifies the GLB SHA-256 and rejects missing, tampered, or
+reserved paths. It copies the GLB to its unchanged safe relative path, verifies
+the staged copy, validates every STL and hash, writes JSON last, and publishes
+the complete folder by atomic directory replacement. The generated folder opens
+directly and can become a ZIP without external asset injection.
 Three.js loads those referenced bytes after SHA-256 verification. The browser
 imports and exports the same layout as either a folder or ZIP without changing
 saved paths and without a database or `localStorage`. See
@@ -176,10 +180,9 @@ printable generation when status is absent, malformed, unavailable, or
 version-mismatched; pose editing, simulation, mapping, wiring, and persistence
 remain usable. After setup or repair, restart the server because status and the
 resolved executable belong to the startup runtime. Windows Server 2022 and
-2025 x64 CI is surrogate proof only. INSTALL-015 remains blocked on clean,
-short-lived Windows 10 Enterprise LTSC 2021 and Windows 11 Enterprise 25H2
-x86-64 non-N virtual machines. Windows N/KN and ARM64 are excluded. The complete
-dependency bootstrap remains INSTALL-011 work.
+2025 x64 CI is surrogate proof only. Windows client qualification is deferred.
+The Windows candidate code and checks remain, but Windows does not block the
+INSTALL-011 bootstrap or INSTALL-012 required-target proof.
 
 The server accepts loopback hosts only, and generation additionally requires a
 same-origin request. Project data, assets, generated output, and OpenSCAD remain
@@ -217,9 +220,9 @@ configuration.
   for those ambiguous arrangements are not implemented. The browser also has
   no confirmation or correction control for an unambiguous detected cycle.
 - The desktop package does not bundle OpenSCAD. Managed setup covers the
-  declared Linux and native macOS targets. Windows x86-64 remains a candidate
-  until INSTALL-015 completes real Windows client proof. The complete dependency
-  bootstrap remains INSTALL-011 work.
+  current required Linux and native macOS targets. Windows x86-64 remains a
+  candidate, and its client qualification is deferred. It does not block the
+  INSTALL-011 bootstrap or INSTALL-012 proof for required targets.
 - macOS proof uses native `macos-15` and `macos-15-intel` CI runners. The Intel
   runner label is scheduled to retire in August 2027, so CI must move to a
   supported native Intel label before that date.

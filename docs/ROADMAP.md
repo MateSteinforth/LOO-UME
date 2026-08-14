@@ -30,9 +30,9 @@ an implemented contract; settle open product/schema choices before coding.
   closed-boundary generation with cap-local and global two-manifold validation,
   manifest-ready metadata, complete/invalid fixtures, and an in-browser Three.js
   boundary preview.
-- Managed OpenSCAD setup for the declared Linux and macOS targets and a Windows
-  x86-64 candidate. Windows PC support still needs the client proof in
-  `INSTALL-015`.
+- Managed OpenSCAD setup for the required Linux and macOS targets and a retained
+  Windows x86-64 candidate. Windows client qualification is deferred and does
+  not block the current installation milestone.
 
 ## Incomplete or blocked in the current model
 
@@ -61,9 +61,6 @@ Other known gaps:
 - Ambiguous touching gap cycles have no accept/reject/reorder/redraw correction
   tools; automatic detection rejects them with welded-vertex context.
 - Unambiguous detected cycles are saved without a browser confirmation step.
-- Local part generation preserves the GLB reference but does not copy the GLB
-  into its output folder. `ASSET-010` tracks a directly reopenable generated
-  folder.
 - `main.ts`, `SphereRenderer.ts`, and `SurfacePlacementController.ts` carry
   multiple responsibilities; fingerprinting ignores index bits above bit 15;
   some overlap code is unreachable; generated SCAD is not committed with
@@ -122,6 +119,9 @@ same reference and hash rules and browser-owned object URLs.
   interaction coverage remains in `TEST-010` and `TEST-011`.
 - Folder and ZIP reopening use the same references and hashes, restore GLB and
   exact STL bytes through object URLs, and preserve derived current/stale state.
+- Local generation verifies and copies the referenced GLB to its unchanged safe
+  relative path, then atomically publishes a directly reopenable GLB/STL/JSON
+  folder that can become a ZIP without external asset injection.
 - Export refuses missing or mismatched local bytes instead of fetching URLs.
 
 ### 5. Make wiring explicit and export states coherent

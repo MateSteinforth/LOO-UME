@@ -154,7 +154,8 @@ Only a valid boundary proceeds to part splitting, thickness, PCB-envelope
 subtraction, mounting-hole allocation, connector keep-outs, and STL generation.
 The exact STL outputs are referenced by the project JSON and loaded in Three.js.
 The design GLB supports panel placement only. It does not supply or suggest gap
-topology, and it is not copied or thickened into printable structure.
+topology, and its triangles are not converted or thickened into printable
+structure.
 
 The locally hosted browser pipeline validates the deterministic boundary before
 CAD, derives stable gap-sorted part groups, and generates printable closure STLs
@@ -162,7 +163,9 @@ with the established planar compiler. The production desktop server and Vite
 development adapter use one bounded status/generation handler. Browser
 availability comes from the local status endpoint; absent or wrong-version
 OpenSCAD disables generation without disabling panel editing, simulation,
-mapping, wiring, or persistence.
+mapping, wiring, or persistence. A multipart generation request contains the
+JSON and only the referenced, verified GLB. Its JSON field is limited to 5 MB,
+and the complete request is limited to 64 MB.
 
 OpenSCAD is required but is not stored in the repository. On the declared
 Debian 13 x86-64, Ubuntu 24.04 x86-64, and macOS 15 native arm64 and x86-64
@@ -186,20 +189,20 @@ publication. The ZIP is 21,884,613 bytes with SHA-256
 `fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`.
 Its source is tag `openscad-2021.01`, commit
 `41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`, under GPL-2.0-or-later with
-the OpenSCAD CGAL exception. Windows Server CI is surrogate proof only.
-INSTALL-015 needs Windows 10 LTSC 2021 and Windows 11 25H2 x86-64 non-N proof.
-Windows N/KN and ARM64 are excluded. INSTALL-011/012 track the complete
-bootstrap and all-target proof.
+the OpenSCAD CGAL exception. Windows Server CI is surrogate proof only. Windows
+client qualification is deferred. The candidate code and checks remain, but
+Windows does not block INSTALL-011 or INSTALL-012. Those tasks cover the
+complete bootstrap and proof on the required Linux and macOS targets.
 
-Successful generation writes and inspects the entire asset set before
-atomically publishing the manifest. Three.js then loads the exact referenced
-bytes after SHA-256 verification; downloads use the same verified bytes. A pose
-edit invalidates the fingerprint and removes the stale set from the current
-printable view. Local generation does not copy the referenced design GLB into
-its output folder. That generated folder is not self-contained when the project
-references a GLB. Folder and ZIP export preserve the full verified asset set
-only when the separately loaded GLB bytes are available through the shared
-relative-path and hash contract.
+Before rendering or staging, the server verifies the referenced GLB SHA-256 and
+rejects missing, tampered, or reserved paths. It copies the GLB to its unchanged
+safe relative path and verifies the staged copy. Successful generation then
+writes and inspects the complete STL set before atomically publishing the GLB,
+STLs, and JSON. Three.js loads the exact referenced bytes after SHA-256
+verification; downloads use the same verified bytes. A pose edit invalidates
+the fingerprint and removes the stale set from the current printable view. The
+generated folder opens directly, and folder-to-ZIP export preserves the exact
+GLB and STL bytes without external asset injection.
 
 See [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md) for the implemented data
 flow, asset bundle, staleness rules, and remaining interface-test gaps.

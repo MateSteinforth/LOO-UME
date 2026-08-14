@@ -1,4 +1,5 @@
-import { relative, resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { dirname, relative, resolve } from "node:path";
 import {
   createOpenScadRenderer,
   generatePanelBoundaryParts,
@@ -15,6 +16,13 @@ if (!source) {
   );
 }
 const project = await loadPanelAssemblyProjectFromFile(source, rootDirectory);
+const absoluteSculptureSource = resolve(rootDirectory, source);
+const designSurfaceBytes = project.sculpture.designSurface
+  ? new Uint8Array(await readFile(resolve(
+    dirname(absoluteSculptureSource),
+    project.sculpture.designSurface.source,
+  )))
+  : undefined;
 const outputDirectory = outputFlag >= 0
   ? process.argv[outputFlag + 1]
   : `build/generated-panel-boundary/${project.sculpture.id}`;
@@ -24,6 +32,7 @@ const result = await generatePanelBoundaryParts(project, {
   rootDirectory,
   outputDirectory,
   renderScad: createOpenScadRenderer(rootDirectory),
+  designSurfaceBytes,
 });
 console.log(
   `Generated ${result.partAssets.length} printable parts from ` +

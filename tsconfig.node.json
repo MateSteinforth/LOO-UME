@@ -22,6 +22,7 @@
     "web/src/HardwareMapping.ts",
     "web/src/EditorCapabilities.ts",
     "web/src/DesignSurfaceLoader.ts",
+    "web/src/EditorPipelineRequest.ts",
     "web/src/GeneratedMechanicsAssets.ts",
     "web/src/GeneratorStatus.ts",
     "web/src/PortableProject.ts",

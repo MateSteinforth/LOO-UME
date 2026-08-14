@@ -1,6 +1,7 @@
 import {
   mkdtemp,
   readFile,
+  readdir,
   rm,
   stat,
   writeFile,
@@ -34,7 +35,6 @@ import {
   placementMeshFromSurface,
 } from "../web/src/DesignSurfaceLoader.ts";
 import {
-  createPortableProjectFiles,
   createPortableProjectZip,
   openPortableProjectFiles,
   openPortableProjectZip,
@@ -138,6 +138,23 @@ function tetrahedronGlb(): Uint8Array {
   view.setUint32(binaryHeader + 4, 0x004e4942, true);
   output.set(binary, binaryHeader + 8);
   return output;
+}
+
+async function filesFromDirectory(
+  directory: string,
+  prefix = "",
+): Promise<Array<{ path: string; bytes: Uint8Array }>> {
+  const files: Array<{ path: string; bytes: Uint8Array }> = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const absolutePath = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await filesFromDirectory(absolutePath, path));
+    } else if (entry.isFile()) {
+      files.push({ path, bytes: new Uint8Array(await readFile(absolutePath)) });
+    }
+  }
+  return files;
 }
 
 describe("validated panel boundary printable asset pipeline", () => {
@@ -317,6 +334,98 @@ describe("validated panel boundary printable asset pipeline", () => {
     expect(calls).toBe(0);
   });
 
+  it("rejects missing, tampered, and reserved design assets before staging or rendering", async () => {
+    const source = await loadProject();
+    const glbBytes = tetrahedronGlb();
+    const parent = await mkdtemp(join(tmpdir(), "panel-boundary-design-guard-"));
+    temporaryDirectories.push(parent);
+    const manifestCollision = structuredClone(source.sculpture);
+    manifestCollision.designSurface = {
+      kind: "triangle-mesh",
+      format: "glb",
+      source: "sculpture.json",
+      sha256: sha256Bytes(glbBytes),
+      scaleToMillimeters: 1,
+      status: "watertight",
+    };
+    expect(() => createPanelAssemblyProject(
+      manifestCollision,
+      FIXTURE,
+      source.panelProfile,
+    )).toThrow(/reserved portable project manifest path/);
+    expect((await readdir(parent)).some((entry) =>
+      entry.includes(".pending-")
+    )).toBe(false);
+
+    const cases = [
+      {
+        label: "missing",
+        source: "design/source.glb",
+        sha256: sha256Bytes(glbBytes),
+        bytes: undefined,
+        error: /requires verified bytes/,
+      },
+      {
+        label: "tampered",
+        source: "design/source.glb",
+        sha256: sha256Bytes(glbBytes),
+        bytes: new Uint8Array([...glbBytes.slice(0, -1), 0xff]),
+        error: /failed SHA-256 verification/,
+      },
+      {
+        label: "mechanics-root-collision",
+        source: "mechanics",
+        sha256: sha256Bytes(glbBytes),
+        bytes: glbBytes,
+        error: /reserved generated-project path/,
+      },
+      {
+        label: "mechanics-collision",
+        source: "mechanics/source.glb",
+        sha256: sha256Bytes(glbBytes),
+        bytes: glbBytes,
+        error: /reserved generated-project path/,
+      },
+      {
+        label: "case-folded-mechanics-collision",
+        source: "Mechanics/source.glb",
+        sha256: sha256Bytes(glbBytes),
+        bytes: glbBytes,
+        error: /reserved generated-project path/,
+      },
+    ];
+
+    for (const testCase of cases) {
+      const definition = structuredClone(source.sculpture);
+      definition.designSurface = {
+        kind: "triangle-mesh",
+        format: "glb",
+        source: testCase.source,
+        sha256: testCase.sha256,
+        scaleToMillimeters: 1,
+        status: "watertight",
+      };
+      const project = createPanelAssemblyProject(
+        definition,
+        FIXTURE,
+        source.panelProfile,
+      );
+      const outputDirectory = join(parent, testCase.label);
+      await writeFile(outputDirectory, "prior output\n");
+      let renderCalls = 0;
+      await expect(generatePanelBoundaryParts(project, {
+        outputDirectory,
+        ...(testCase.bytes ? { designSurfaceBytes: testCase.bytes } : {}),
+        renderScad: async () => { renderCalls += 1; },
+      })).rejects.toThrow(testCase.error);
+      expect(renderCalls).toBe(0);
+      expect(await readFile(outputDirectory, "utf8")).toBe("prior output\n");
+      expect((await readdir(parent)).some((entry) =>
+        entry.startsWith(`${testCase.label}.pending-`)
+      )).toBe(false);
+    }
+  });
+
   it("accepts GLB -> placement -> edit -> parts -> ZIP -> complete reopen", async () => {
     const source = await loadProject();
     const glbBytes = tetrahedronGlb();
@@ -419,6 +528,7 @@ describe("validated panel boundary printable asset pipeline", () => {
     temporaryDirectories.push(parent);
     const generated = await generatePanelBoundaryParts(editedProject, {
       outputDirectory: join(parent, "generated"),
+      designSurfaceBytes: glbBytes,
       renderScad: deterministicRenderer([]),
     });
     expect(generated.definition.boundaryTopology).toMatchObject({
@@ -430,24 +540,12 @@ describe("validated panel boundary printable asset pipeline", () => {
     });
     expect(editedProject.sculpture.boundaryTopology).toBeUndefined();
 
-    const availableAssets = new Map<string, Uint8Array>([
-      ["design/source.glb", glbBytes],
-      [
-        generated.boundaryAsset.source,
-        new Uint8Array(await readFile(generated.boundaryAsset.absolutePath)),
-      ],
-      ...await Promise.all(generated.partAssets.map(async (asset) => [
-        asset.source,
-        new Uint8Array(await readFile(asset.absolutePath)),
-      ] as [string, Uint8Array])),
-    ]);
-
-    const projectFiles = createPortableProjectFiles(
-      generated.definition,
-      availableAssets,
-    );
+    expect(new Uint8Array(await readFile(
+      join(generated.outputDirectory, "design/source.glb"),
+    ))).toEqual(glbBytes);
+    const projectFiles = await filesFromDirectory(generated.outputDirectory);
     const folderBundle = await openPortableProjectFiles(
-      [...projectFiles].map(([path, bytes]) => ({
+      projectFiles.map(({ path, bytes }) => ({
         path: `portable-folder/${path}`,
         bytes,
       })),
@@ -459,6 +557,13 @@ describe("validated panel boundary printable asset pipeline", () => {
     expect(folderBundle.project.sculpture.boundaryTopology)
       .toEqual(generated.definition.boundaryTopology);
     expect(folderBundle.assets.size).toBe(4);
+    const availableAssets = new Map(
+      [...folderBundle.assets].map(([path, asset]) => [
+        path,
+        Uint8Array.from(asset.bytes),
+      ]),
+    );
+
     folderBundle.dispose();
 
     const zipBytes = createPortableProjectZip(
@@ -479,6 +584,12 @@ describe("validated panel boundary printable asset pipeline", () => {
         reopened.project.sculpture,
         reopened.project.panelProfile,
       )).toBe("current");
+      expect([...reopened.assets.keys()].sort())
+        .toEqual([...availableAssets.keys()].sort());
+      for (const [path, bytes] of availableAssets) {
+        expect(reopened.assets.get(path)?.bytes).toEqual(bytes);
+      }
+
       expect(reopened.assetUrls.get("design/source.glb")).toMatch(/^blob:/);
       const reopenedGlb = new Uint8Array(await (
         await fetch(reopened.assetUrls.get("design/source.glb")!)
