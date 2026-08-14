@@ -88,19 +88,6 @@ This file is the persistent source of truth for work status. Read it before star
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
 
-### `INSTALL-014` Acquire and connect pinned OpenSCAD on Windows x86-64 — P0
-
-- Outcome: the managed OpenSCAD path works after a repository clone on Windows 10/11 x86-64 (`win32-x64`) PCs without a manual OpenSCAD, administrator, installer UI, or `PATH` step.
-- Acceptance:
-  - The manifest declares Windows 10/11 x86-64 (`win32-x64`), pinned program/runtime archives, HTTPS sources, sizes, SHA-256 values, and source/license metadata. Windows ARM64 requires a separate native, no-emulation task and proof.
-  - PowerShell setup downloads and safely extracts only allow-listed archive paths into the ignored repository tool directory; it makes no registry, profile, global package, or machine-level change.
-  - Installation is receipt-backed, atomic, idempotent, safe after interruption, and compatible with repository paths containing spaces.
-  - Runtime selection remains explicit `OPENSCAD`, then the verified managed tool, then a system fallback, with Windows command and argument handling covered by tests.
-  - A clean Windows proof reaches the supported OpenSCAD version, starts the local production editor with generator status available, generates the canonical two-part STL fixture, and shuts down cleanly.
-- Depends on: `INSTALL-010` for the shared manifest, receipt, download, and runtime model.
-- Verify: Windows 10 and Windows 11 x86-64 unit tests plus required clean-host jobs; no preinstalled OpenSCAD may satisfy the proof.
-- Docs: publish the exact Windows support matrix and one repository setup command only after the clean-host proof passes.
-
 ### `INSTALL-011` Add a one-command clean-checkout bootstrap — P0
 
 - Outcome: after cloning the repository, one platform-appropriate command installs and connects every project dependency needed to build, test, start, and generate parts.
@@ -191,6 +178,19 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Depends on: none. Keep this validation slice behavior-focused rather than a broad refactor.
 
 ## In Progress
+
+### `INSTALL-014` Acquire and connect pinned OpenSCAD on Windows x86-64 — P0
+
+- Outcome: the managed OpenSCAD path works after a repository clone on Windows 10/11 x86-64 (`win32-x64`) PCs without a manual OpenSCAD, administrator, installer UI, or `PATH` step.
+- Acceptance:
+  - The manifest declares Windows 10/11 x86-64 (`win32-x64`), pinned program/runtime archives, HTTPS sources, sizes, SHA-256 values, and source/license metadata. Windows ARM64 requires a separate native, no-emulation task and proof.
+  - PowerShell setup downloads and safely extracts only allow-listed archive paths into the ignored repository tool directory; it makes no registry, profile, global package, or machine-level change.
+  - Installation is receipt-backed, atomic, idempotent, safe after interruption, and compatible with repository paths containing spaces.
+  - Runtime selection remains explicit `OPENSCAD`, then the verified managed tool, then a system fallback, with Windows command and argument handling covered by tests.
+  - A clean Windows proof reaches the supported OpenSCAD version, starts the local production editor with generator status available, generates the canonical two-part STL fixture, and shuts down cleanly.
+- Depends on: `INSTALL-010` for the shared manifest, receipt, download, and runtime model.
+- Verify: Windows 10 and Windows 11 x86-64 unit tests plus required clean-host jobs; no preinstalled OpenSCAD may satisfy the proof.
+- Docs: publish the exact Windows support matrix and one repository setup command only after the clean-host proof passes.
 
 ## Blocked
 
