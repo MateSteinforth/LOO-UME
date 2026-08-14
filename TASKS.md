@@ -129,12 +129,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Docs: publish the tested Linux and macOS matrix and state clearly which repository installation command applies to each required platform.
 
 
-### `TEST-011` Cover folder/ZIP controls in the browser — P1
-
-- Outcome: exercise the shipped portable-project controls end to end.
-- Acceptance: ZIP import restores referenced GLB and exact STL URLs; edit marks parts stale; export downloads a valid ZIP; reopen preserves bytes/hashes; missing/tampered assets show an actionable error; old object URLs are released.
-- Depends on: `TEST-010`.
-
 ### `CI-010` Exercise the panel-outline boundary-to-parts route with real OpenSCAD — P1
 
 - Outcome: CI checks the new fabrication path with OpenSCAD instead of relying only on a deterministic fake renderer.
@@ -169,7 +163,11 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-No implementation task is active.
+### `TEST-011` Cover folder/ZIP controls in the browser — P1
+
+- Outcome: exercise the shipped portable-project controls end to end.
+- Acceptance: ZIP import restores referenced GLB and exact STL URLs; edit marks parts stale; export downloads a valid ZIP; reopen preserves bytes/hashes; missing/tampered assets show an actionable error; old object URLs are released.
+- Depends on: `TEST-010`.
 
 ## Blocked
 
