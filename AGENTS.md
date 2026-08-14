@@ -107,6 +107,10 @@ uses `createPanelAssemblyMapping()`.
   `/usr/bin/arch -<architecture>` to run the exact version check and a real STL
   render on each native runner. GitHub Bash steps also start with `-e`; a
   diagnostic collector that must record all failures must use `set +e` first.
+- On macOS, do not test `hdiutil` or `ditto` availability by running a help
+  command. `ditto -h` can return a nonzero usage status. Use a direct executable
+  access check such as Node `fs.access(path, X_OK)` before repository writes.
+
 
 
 ## Verification

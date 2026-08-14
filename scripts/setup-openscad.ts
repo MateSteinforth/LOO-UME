@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { constants } from "node:fs";
 import {
+  access,
   chmod,
   lstat,
   mkdir,
@@ -59,6 +61,7 @@ export type ArtifactDownloader = (
 ) => Promise<void>;
 
 export type RenamePath = (source: string, destination: string) => Promise<void>;
+export type AccessPath = (path: string, mode?: number) => Promise<void>;
 
 export interface InstallOpenScadOptions {
   rootDirectory?: string;
@@ -69,6 +72,7 @@ export interface InstallOpenScadOptions {
   downloadArtifact?: ArtifactDownloader;
   uniqueId?: () => string;
   renamePath?: RenamePath;
+  accessPath?: AccessPath;
 }
 
 export interface InstallOpenScadResult {
@@ -309,6 +313,7 @@ async function requireMacOsNativeHost(
   runner: CommandRunner,
   rootDirectory: string,
   target: OpenScadTarget,
+  accessPath: AccessPath,
 ): Promise<void> {
   const options = { cwd: rootDirectory, environment: process.env };
   let translated: CommandResult;
@@ -338,21 +343,12 @@ async function requireMacOsNativeHost(
     );
   }
 
-  for (const [command, args] of [
-    [MACOS_HDIUTIL, ["help"]],
-    [MACOS_DITTO, ["-h"]],
-  ] as const) {
-    let result: CommandResult;
+  for (const command of [MACOS_HDIUTIL, MACOS_DITTO]) {
     try {
-      result = await runner(command, [...args], options);
+      await accessPath(command, constants.X_OK);
     } catch (error) {
       throw new Error(
         `${command} is required to install the managed OpenSCAD build: ${errorMessage(error)}`,
-      );
-    }
-    if (result.code !== 0) {
-      throw new Error(
-        `${command} is required to install the managed OpenSCAD build.`,
       );
     }
   }
@@ -728,7 +724,12 @@ export async function installOpenScad(
   const renamePath = options.renamePath ?? rename;
   const target = assertSupportedOpenScadHost(manifest, host);
   if (target.platform === "darwin") {
-    await requireMacOsNativeHost(runner, rootDirectory, target);
+    await requireMacOsNativeHost(
+      runner,
+      rootDirectory,
+      target,
+      options.accessPath ?? access,
+    );
   }
 
   const existing = resolveManagedOpenScadCommand(

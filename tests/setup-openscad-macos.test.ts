@@ -25,6 +25,7 @@ import {
   validateMacOsAppTree,
   validateNativeMachO,
   type ArtifactDownloader,
+  type AccessPath,
   type CommandResult,
   type CommandRunner,
 } from "../scripts/setup-openscad.ts";
@@ -41,6 +42,7 @@ const macArmHost: HostDescription = {
   operatingSystemVersion: "15.7.1",
 };
 const temporaryDirectories: string[] = [];
+const availableMacTools: AccessPath = async () => undefined;
 
 afterEach(async () => {
   await Promise.all(
@@ -94,12 +96,6 @@ function fakeMacRunner(state: MacRunnerState): CommandRunner {
     }
     if (command === "/usr/bin/uname") {
       return successfulResult("arm64\n");
-    }
-    if (
-      (command === "/usr/bin/hdiutil" && args[0] === "help") ||
-      (command === "/usr/bin/ditto" && args[0] === "-h")
-    ) {
-      return successfulResult();
     }
     if (command === "/usr/bin/hdiutil" && args[0] === "attach") {
       const mount = args.at(-1)!;
@@ -173,6 +169,7 @@ describe("managed OpenSCAD macOS installation", () => {
       manifest,
       host: macArmHost,
       runCommand: fakeMacRunner(state),
+      accessPath: availableMacTools,
       downloadArtifact: fakeDownloader(downloads),
       uniqueId: () => "mac-one",
       renamePath: async (source: string, destination: string) => {
@@ -255,15 +252,14 @@ describe("managed OpenSCAD macOS installation", () => {
         translated: failure === "rosetta",
       };
       const runner = fakeMacRunner(state);
-      const guardedRunner: CommandRunner = async (command, args, options) => {
+      const accessPath = vi.fn(async (path: string) => {
         if (
-          (failure === "hdiutil" && command === "/usr/bin/hdiutil") ||
-          (failure === "ditto" && command === "/usr/bin/ditto")
+          (failure === "hdiutil" && path === "/usr/bin/hdiutil") ||
+          (failure === "ditto" && path === "/usr/bin/ditto")
         ) {
-          return { code: 1, stdout: "", stderr: "missing" };
+          throw new Error("missing");
         }
-        return runner(command, args, options);
-      };
+      });
       const downloader = vi.fn(fakeDownloader({ calls: 0 }));
 
       await expect(
@@ -271,8 +267,9 @@ describe("managed OpenSCAD macOS installation", () => {
           rootDirectory: root,
           manifest,
           host: macArmHost,
-          runCommand: guardedRunner,
+          runCommand: runner,
           downloadArtifact: downloader,
+          accessPath,
         }),
       ).rejects.toThrow(
         failure === "rosetta"
@@ -280,6 +277,20 @@ describe("managed OpenSCAD macOS installation", () => {
           : new RegExp(`${failure} is required`),
       );
       expect(downloader).not.toHaveBeenCalled();
+      expect(
+        state.calls.some(
+          ({ command, args }) =>
+            (command === "/usr/bin/hdiutil" && args[0] === "help") ||
+            (command === "/usr/bin/ditto" && args[0] === "-h"),
+        ),
+      ).toBe(false);
+      expect(accessPath.mock.calls.map(([path]) => path)).toEqual(
+        failure === "rosetta"
+          ? []
+          : failure === "hdiutil"
+            ? ["/usr/bin/hdiutil"]
+            : ["/usr/bin/hdiutil", "/usr/bin/ditto"],
+      );
       await expect(access(join(root, ".tools"))).rejects.toMatchObject({
         code: "ENOENT",
       });
@@ -300,6 +311,7 @@ describe("managed OpenSCAD macOS installation", () => {
         manifest,
         host: macArmHost,
         runCommand: fakeMacRunner(state),
+        accessPath: availableMacTools,
         downloadArtifact: fakeDownloader({ calls: 0 }),
         uniqueId: () => "partial",
       }),
@@ -339,6 +351,7 @@ describe("managed OpenSCAD macOS installation", () => {
         manifest,
         host: macArmHost,
         runCommand: fakeMacRunner(state),
+        accessPath: availableMacTools,
         downloadArtifact: fakeDownloader({ calls: 0 }),
         uniqueId: () => "failure",
       }),
@@ -379,6 +392,7 @@ describe("managed OpenSCAD macOS installation", () => {
         manifest,
         host: macArmHost,
         runCommand: fakeMacRunner(state),
+        accessPath: availableMacTools,
         downloadArtifact: fakeDownloader({ calls: 0 }),
         uniqueId: () => "aggregate",
       });
