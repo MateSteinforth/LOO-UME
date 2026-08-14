@@ -96,6 +96,12 @@ uses `createPanelAssemblyMapping()`.
   not installed in the current environment. Do not stop to rediscover or
   discuss this known workaround unless it also fails.
 
+- This Codex host has neither Python `yaml`/PyYAML nor Ruby. To validate an
+  edited GitHub Actions workflow, run
+  `npx --yes yaml-lint .github/workflows/render.yml`. This transient Node-based
+  fallback is verified in this environment; do not repeat the missing-parser
+  checks.
+
 ## Verification
 
 Use the narrowest relevant checks, then broaden when risk warrants it:

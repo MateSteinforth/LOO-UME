@@ -1,6 +1,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
-import { delimiter, resolve } from "node:path";
+import { resolve } from "node:path";
+import {
+  resolveManagedOpenScadCommand,
+} from "./OpenScadDistribution.ts";
 
 export const SUPPORTED_OPENSCAD_VERSION = "2021.01";
 
@@ -25,7 +27,7 @@ export interface OpenScadCommand {
 }
 
 function failureMessage(detail: string): string {
-  return `${detail} Install OpenSCAD ${SUPPORTED_OPENSCAD_VERSION} and put openscad on PATH, or set OPENSCAD to its executable. Restart WLED Orbital Lab after you install or configure OpenSCAD.`;
+  return `${detail} Run npm run setup:openscad on a supported host, or set OPENSCAD to a supported executable. Restart WLED Orbital Lab after setup or configuration.`;
 }
 
 export function parseOpenScadVersion(output: string): string | undefined {
@@ -37,7 +39,7 @@ export function resolveOpenScadCommand(
   executable = process.env.OPENSCAD,
 ): OpenScadCommand {
   return {
-    command: executable ?? "openscad",
+    command: executable?.trim() || "openscad",
     environment: process.env,
   };
 }
@@ -46,25 +48,10 @@ function openScadCandidates(
   rootDirectory: string,
   executable: string | undefined,
 ): OpenScadCommand[] {
-  const primary = resolveOpenScadCommand(rootDirectory, executable);
-  if (executable) return [primary];
-  const local = resolve(
-    rootDirectory,
-    ".tools/openscad-2021.01/squashfs-root/AppRun",
-  );
-  if (!existsSync(local)) return [primary];
-  const localDependencies = resolve(
-    rootDirectory,
-    ".tools/openscad-2021.01/local-deps/usr/lib/x86_64-linux-gnu",
-  );
-  const localEnvironment = {
-    ...process.env,
-    LD_LIBRARY_PATH: [
-      existsSync(localDependencies) ? localDependencies : undefined,
-      process.env.LD_LIBRARY_PATH,
-    ].filter(Boolean).join(delimiter),
-  };
-  return [primary, { command: local, environment: localEnvironment }];
+  const system = resolveOpenScadCommand(rootDirectory, undefined);
+  if (executable?.trim()) return [resolveOpenScadCommand(rootDirectory, executable)];
+  const managed = resolveManagedOpenScadCommand(rootDirectory);
+  return managed ? [managed, system] : [system];
 }
 
 interface CollectedProcess {

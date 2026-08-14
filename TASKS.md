@@ -87,17 +87,6 @@ This file is the persistent source of truth for work status. Read it before star
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
-### `INSTALL-010` Acquire and connect pinned OpenSCAD automatically — P0
-
-- Outcome: a repository-managed installer acquires the supported OpenSCAD build and connects it to the local generator without a manual system installation.
-- Acceptance:
-  - Supported OS/architecture targets and exact upstream artifacts are declared explicitly; unsupported targets fail before changing the checkout.
-  - Downloads use pinned versions, HTTPS, committed SHA-256 checksums, and recorded source/license metadata.
-  - Installation is idempotent, requires no administrator access or PATH changes, and uses a Git-ignored repository tool directory.
-  - Runtime discovery prefers the verified managed tool while preserving an explicit `OPENSCAD` developer override.
-- Depends on: none.
-- Verify: downloader/selection/checksum negatives plus a clean environment that reaches `OpenSCAD version 2021.01` and generates the canonical panel-outline fixture.
-- Docs: replace the manual OpenSCAD prerequisite only after the automatic path is verified.
 
 ### `INSTALL-011` Add a one-command clean-checkout bootstrap — P0
 
@@ -262,13 +251,28 @@ None.
 
 ## Done
 
+### `INSTALL-010` Acquire and connect pinned OpenSCAD automatically
+
+- `npm run setup:openscad` acquires pinned OpenSCAD 2021.01 and `libgpg-error0`
+  artifacts on Debian 13 or Ubuntu 24.04 x86-64, verifies exact sizes and SHA-256
+  values, and publishes a receipt-backed tool below the ignored `.tools` path.
+- Setup requires no administrator access or `PATH` change, preserves a prior
+  install on failure, is safe to retry, and reuses a valid warm installation.
+- Runtime selection is explicit `OPENSCAD`, then the verified managed tool, then
+  a system fallback. The production generator uses the same selection path.
+- A clean local proof installed the tool, reused it on a second setup run, and
+  generated and inspected canonical `part-001` and `part-002` STL files.
+- Independent review passed after exact OS-tuple, rollback-error, and pinned-CI
+  findings were corrected. All 168 Vitest tests, TypeScript, the production web
+  build, YAML lint, the real OpenSCAD render, and diff hygiene passed.
+
 ### `MECH-011` Serve the production desktop UI with local OpenSCAD generation
 
 - `npm run desktop` builds and serves the production interface on loopback with
   the shared bounded status/generation handler and live generated-asset overlays.
-- OpenSCAD 2021.01 is an unbundled system prerequisite discovered from explicit
-  `OPENSCAD`, system `PATH`, then an existing developer-only repository fallback.
-  Missing or mismatched versions disable only generation with repair guidance.
+- OpenSCAD 2021.01 is discovered from explicit `OPENSCAD`, the receipt-backed
+  managed tool, then system `PATH`. Missing or mismatched versions disable only
+  generation with repair guidance.
 - Browser status discovery keeps JSON, assets, generated output, and OpenSCAD local.
 - The server enforces request bounds; tests cover origin and path safety, exact
   STL retrieval, and clean active-generation shutdown.

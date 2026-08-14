@@ -71,14 +71,25 @@ current limitations are recorded in [TECH_NOTES.md](TECH_NOTES.md).
 
 ### Run the local desktop editor
 
-OpenSCAD 2021.01 is a system prerequisite for printable-part generation; it is
-not bundled or installed by this repository. Install project dependencies once,
-then build and start the production interface locally:
+OpenSCAD 2021.01 is required for printable-part generation, but its binary is
+not bundled in the application. Automatic repository-local setup currently
+supports Debian 13 x86-64 and Ubuntu 24.04 x86-64. Install the project
+dependencies, set up the managed tool, then build and start the production
+interface locally:
 
 ```bash
 npm ci
+npm run setup:openscad
 npm run desktop
 ```
+
+`npm run setup:openscad` downloads the official OpenSCAD AppImage and a pinned
+`libgpg-error0` companion into `.tools`. The committed
+`toolchains/openscad-2021.01.json` manifest records their source and license
+information, exact sizes, and SHA-256 checksums. Setup does not need
+administrator access and does not change `PATH`. It reuses a valid
+receipt-backed install. It stages and verifies replacements before publication,
+so an interrupted or failed setup is safe to retry.
 
 `npm run desktop` creates a fresh production web build before starting the
 loopback server. Open the printed URL, normally `http://127.0.0.1:4173/`. Set
@@ -89,13 +100,22 @@ OpenSCAD executable:
 OPENSCAD=/absolute/path/to/openscad ORBITAL_LAB_PORT=4300 npm run desktop
 ```
 
-The browser reads actual generator status from the local server. If OpenSCAD is
-missing or not version 2021.01, editing, simulation, mapping, wiring, and project
-save/reopen remain available while **Generate 3D Parts** is disabled with repair
-instructions. Install or repair OpenSCAD, then restart `npm run desktop` so the
-startup probe runs again. Sculpture data, assets, and OpenSCAD stay on this
-computer; there is no hosted generation service. Stop with Ctrl-C; SIGINT and
-SIGTERM close the HTTP server and active generator processes cleanly.
+The server first uses an explicit `OPENSCAD` override. Without an override, it
+prefers the receipt-backed managed tool and then falls back to the system
+`openscad` on `PATH`. The browser reads actual generator status from the local
+server. If OpenSCAD is missing or not version 2021.01, editing, simulation,
+mapping, wiring, and project save/reopen remain available while **Generate 3D
+Parts** is disabled with repair instructions. Run `npm run setup:openscad` or
+repair the selected tool, then restart `npm run desktop` so the startup probe
+runs again. Sculpture data, assets, and OpenSCAD stay on this computer; there is
+no hosted generation service. Stop with Ctrl-C; SIGINT and SIGTERM close the
+HTTP server and active generator processes cleanly.
+
+Other operating systems and architectures are not supported by this setup
+slice. Node.js, npm, and the standard `dpkg-deb` command must already be
+available. INSTALL-011 and INSTALL-012 track the remaining platform work and
+the all-dependency bootstrap; do not treat this command as a complete
+clean-clone installer.
 
 ## Canonical sculpture description
 
@@ -238,11 +258,13 @@ the SDK.
 
 ## Build locally
 
-Install the npm dependencies, OpenSCAD, Xvfb, and xauth. Generate the mapping,
-WLED preview, CAD entrypoint, and CAD manifest with:
+Install the npm dependencies, Xvfb, and xauth. On Debian 13 x86-64 or Ubuntu
+24.04 x86-64, acquire the managed OpenSCAD 2021.01 tool before you generate the
+mapping, WLED preview, CAD entrypoint, and CAD manifest:
 
 ```bash
 npm ci
+npm run setup:openscad
 npm run generate:assets
 ```
 

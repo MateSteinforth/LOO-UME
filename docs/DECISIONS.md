@@ -122,22 +122,30 @@ or other generated build directories.
 
 **Decision.** The production editor is built and served on the user's computer,
 and it runs the same bounded generation handler as Vite development. OpenSCAD
-2021.01 is a system prerequisite: discovery tries explicit `OPENSCAD`, then the
-system `openscad` on `PATH`, then an already-present repository `.tools` AppRun
-only as a developer compatibility fallback. The application neither installs
-nor bundles OpenSCAD. No sculpture data or generation job requires a hosted
-service.
+2021.01 is not bundled in the application. On Debian 13 x86-64 and Ubuntu 24.04
+x86-64, the repository can install it as a managed local tool without
+administrator access or a `PATH` change. Runtime discovery tries explicit
+`OPENSCAD`, then a valid receipt-backed managed tool, then the system `openscad`
+on `PATH`. No sculpture data or generation job requires a hosted service.
 
 **Evidence.** `scripts/local-editor-server.ts`,
 `scripts/editor-pipeline-handler.ts`, `src/cad/OpenScadRuntime.ts`,
-`web/src/GeneratorStatus.ts`, and the desktop/server/status tests.
+`src/cad/OpenScadDistribution.ts`, `scripts/setup-openscad.ts`,
+`toolchains/openscad-2021.01.json`, `web/src/GeneratorStatus.ts`, and the
+desktop/server/status/distribution tests.
 
-**Consequence.** The browser discovers actual generator status and disables only
-printable generation when OpenSCAD is unavailable. Installation or repair
-requires restart because discovery happens at startup. The server binds to
-loopback, requires same-origin generation requests, and handles SIGINT/SIGTERM
-by closing the listener and active child processes. Packaging must not silently
-introduce a remote service or bundled OpenSCAD binary.
+**Consequence.** `npm run setup:openscad` downloads the official AppImage and a
+pinned `libgpg-error0` companion into `.tools`. The committed manifest records
+source and license information, sizes, and SHA-256 checksums. Staging, receipt
+validation, atomic publication, and valid-install reuse make setup safe to
+retry. The browser discovers actual generator status and disables only
+printable generation when OpenSCAD is unavailable. Setup or repair requires a
+restart because discovery happens at startup. The server binds to loopback,
+requires same-origin generation requests, and handles SIGINT/SIGTERM by closing
+the listener and active child processes. Packaging must not silently introduce
+a remote service or bundled OpenSCAD binary. INSTALL-011 tracks the complete
+all-dependency clean-clone bootstrap, including other targets. INSTALL-012
+tracks proof on every declared supported target.
 
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in

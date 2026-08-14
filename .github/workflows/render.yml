@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   clean-checkout:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     steps:
@@ -29,6 +29,16 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Install and verify managed OpenSCAD
+        run: |
+          if command -v openscad >/dev/null 2>&1; then
+            echo "A system OpenSCAD would invalidate the managed-install proof."
+            exit 1
+          fi
+          npm run setup:openscad
+          npm run setup:openscad
+          npm run verify:openscad
 
       - name: Install pinned Emscripten SDK
         run: npm run setup:emsdk
