@@ -118,7 +118,27 @@ Emscripten version remain the reproducible source of that build.
 both runtime files with that change. Do not commit the Emscripten SDK, caches,
 or other generated build directories.
 
-The accepted but not-yet-implemented mechanics workflow is deliberately kept in
-[`ROADMAP.md`](ROADMAP.md) and
-[`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md), because this file records
-implemented decisions rather than proposed contracts.
+## D10 — Production mechanics generation is a local loopback service
+
+**Decision.** The production editor is built and served on the user's computer,
+and it runs the same bounded generation handler as Vite development. OpenSCAD
+2021.01 is a system prerequisite: discovery tries explicit `OPENSCAD`, then the
+system `openscad` on `PATH`, then an already-present repository `.tools` AppRun
+only as a developer compatibility fallback. The application neither installs
+nor bundles OpenSCAD. No sculpture data or generation job requires a hosted
+service.
+
+**Evidence.** `scripts/local-editor-server.ts`,
+`scripts/editor-pipeline-handler.ts`, `src/cad/OpenScadRuntime.ts`,
+`web/src/GeneratorStatus.ts`, and the desktop/server/status tests.
+
+**Consequence.** The browser discovers actual generator status and disables only
+printable generation when OpenSCAD is unavailable. Installation or repair
+requires restart because discovery happens at startup. The server binds to
+loopback, requires same-origin generation requests, and handles SIGINT/SIGTERM
+by closing the listener and active child processes. Packaging must not silently
+introduce a remote service or bundled OpenSCAD binary.
+
+Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
+the full implemented fabrication workflow is recorded in
+[`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

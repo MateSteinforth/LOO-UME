@@ -87,19 +87,6 @@ This file is the persistent source of truth for work status. Read it before star
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
-### `MECH-011` Serve the production desktop UI with local OpenSCAD generation — P0
-
-- Outcome: the installed production system, not only Vite development mode, can generate mechanics on its host computer.
-- Current gap: `import.meta.env.DEV` controls availability and the generation endpoint exists only as Vite development middleware.
-- Acceptance:
-  - A production command serves the built interface locally and exposes the same bounded generation endpoint.
-  - Startup checks for the supported OpenSCAD version and gives direct installation/repair instructions if it is absent.
-  - The UI discovers actual generator availability instead of checking the Vite development flag.
-  - OpenSCAD runs locally; sculpture data and assets do not require a hosted service.
-  - Installation, clean-start, unavailable-OpenSCAD, generation, and shutdown behavior are documented and tested.
-- Depends on: none; implement after `MECH-010` to avoid overlapping changes in generation capabilities.
-- Packaging note: decide during implementation whether the desktop installer bundles a pinned OpenSCAD binary or installs/verifies it as a system prerequisite. It is not a browser or ordinary npm runtime dependency.
-
 ### `DOC-010` Reconcile documentation with shipped behavior — P0
 
 - Outcome: the public and architectural docs describe what the repository actually does today.
@@ -173,7 +160,7 @@ None.
 ### `UI-010` Complete the arbitrary-project acceptance journey
 
 - Outcome: GLB -> auto-place -> manual edit -> topology -> boundary -> exact STL parts -> display -> ZIP -> reopen works through the real UI.
-- Remaining blockers: `MECH-011`, `TEST-010`, and `TEST-011`; automatic topology detection shipped in `MECH-010`.
+- Remaining blockers: `TEST-010` and `TEST-011`; automatic topology detection shipped in `MECH-010`, and local production generation shipped in `MECH-011`.
 - Acceptance: no hand-authored topology, fake renderer, or manual asset injection is required by the test.
 
 ### `WIRE-011` Edit and confirm routes in the browser
@@ -237,6 +224,21 @@ None.
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Done
+
+### `MECH-011` Serve the production desktop UI with local OpenSCAD generation
+
+- `npm run desktop` builds and serves the production interface on loopback with
+  the shared bounded status/generation handler and live generated-asset overlays.
+- OpenSCAD 2021.01 is an unbundled system prerequisite discovered from explicit
+  `OPENSCAD`, system `PATH`, then an existing developer-only repository fallback.
+  Missing or mismatched versions disable only generation with repair guidance.
+- Browser status discovery keeps JSON, assets, generated output, and OpenSCAD local.
+- The server enforces request bounds; tests cover origin and path safety, exact
+  STL retrieval, and clean active-generation shutdown.
+- Independent review passed after environment-isolation, restart-guidance,
+  origin-scheme, and active-shutdown findings were corrected.
+- All 157 Vitest tests, TypeScript through `build:desktop`, the production Vite
+  build, and diff hygiene passed.
 
 ### `MECH-010` Automatically close flat gaps from placed panels
 

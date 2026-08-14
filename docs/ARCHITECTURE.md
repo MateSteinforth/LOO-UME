@@ -31,8 +31,8 @@ wire, save, and reopen without a placeholder shell. When panels form an
 unambiguous closed exposed-edge graph, local 3D-part generation can detect and
 persist the missing gap connectivity without a pre-authored mechanical shell.
 
-The implemented local-development fabrication route extends that lifecycle
-without adding another pose authority:
+The implemented locally hosted fabrication route extends that lifecycle without
+adding another pose authority:
 
 ```text
 referenced GLB -> automatic placement -> manual pose edits
@@ -68,6 +68,8 @@ non-manifold results.
 | `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, detect deterministic unambiguous gap cycles, validate flat caps, and emit a closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
 | `src/cad/GeneratePanelBoundaryParts.ts` | Detect and persist missing gap topology, then turn the validated boundary into a staged, hash-verified exact STL bundle | Publishes the manifest only after every file validates |
 | `src/cad/GeneratePanelClosureCad.ts` | Generic flat closures from compiled planar faces | Reused by explicit shells and panel-gap generation; not a GLB generator |
+| `scripts/editor-pipeline-handler.ts` | Shared status and bounded generation HTTP handler | Used unchanged by Vite development and production hosting; loopback and same-origin only |
+| `scripts/local-editor-server.ts` | Serve the built UI and generated assets on `127.0.0.1` | Local production host; owns startup and clean shutdown |
 | `src/cad/GenerateCad.ts`, `parts/` | Legacy-typed wrappers around tested manual parts | Separate from generic CAD |
 | `web/src/PortableProject.ts` | Shared folder/ZIP validation, object-URL resolution, and self-contained export | Never rewrites saved asset paths or fetches missing export bytes |
 | `web/src/` | UI, Three.js rendering, placement, mapping, routing, export | `main.ts` owns most application state |
@@ -94,11 +96,11 @@ non-manifold results.
 6. Every edit rebuilds mapping and wiring. Existing generated mechanics become
    `requires-regeneration`; manual mechanics become `requires-review`; a project
    that has never had mechanics remains mechanics-free without a stale status.
-7. In local development, **Generate 3D Parts** detects `boundaryTopology` when
-   it is absent, persists the detected cycles in the generated Schema 2 JSON,
-   validates the complete boundary, and only then invokes printable-part CAD.
-   Ambiguous exposed-edge junctions and invalid boundaries fail without
-   replacing the last successful bundle.
+7. When the browser discovers an available local generator, **Generate 3D
+   Parts** detects `boundaryTopology` when it is absent, persists the detected
+   cycles in the generated Schema 2 JSON, validates the complete boundary, and
+   only then invokes printable-part CAD. Ambiguous exposed-edge junctions and
+   invalid boundaries fail without replacing the last successful bundle.
 8. Folder and ZIP project import validate the same relative assets and hashes,
    then expose GLB/STL bytes through browser object URLs. Folder/ZIP export uses
    only verified in-memory bytes. JSON, ledmap, and wiring remain client-side
@@ -113,10 +115,10 @@ hash-checked GLB and STL assets in a folder. Schema 2 can reference a boundary
 mesh and ordered exact printable STL parts together with the canonical
 panel/profile fingerprint that produced them. Fingerprint comparison is the one
 current/stale authority and panel edits do not stop the pose-first application.
-The local-development generation service stages a project folder, validates
-every STL and hash, writes JSON last, and publishes it by atomic directory
-replacement. It does not copy a referenced design GLB into that folder; portable
-export still requires the separately loaded, verified GLB bytes.
+The local generation service stages a project folder, validates every STL and
+hash, writes JSON last, and publishes it by atomic directory replacement. It
+does not copy a referenced design GLB into that folder; portable export still
+requires the separately loaded, verified GLB bytes.
 Three.js loads those referenced bytes after SHA-256 verification. The browser
 imports and exports the same layout as either a folder or ZIP without changing
 saved paths and without a database or `localStorage`. See
@@ -128,6 +130,30 @@ unambiguous exposed-edge graph and saves them in the generated project. The
 field contains no vertex positions or transforms. The browser derives and
 validates the zero-thickness mesh on demand and displays it as a boundary
 preview.
+
+## Local desktop host
+
+`npm run desktop` performs a fresh production web build and starts
+`scripts/local-editor-server.ts` on `127.0.0.1:4173` by default.
+`ORBITAL_LAB_PORT` selects another port. The host serves the built interface,
+generated assets, `/api/generator-status`, and `/api/editor-pipeline`; the Vite
+plugin adapts the same `createEditorPipelineHandler()` during development.
+
+OpenSCAD 2021.01 is a system prerequisite, not a bundled application binary.
+Startup probes an explicit `OPENSCAD` executable first. Without that override it
+tries the system `openscad` on `PATH`, then an already-present repository
+`.tools/openscad-2021.01/squashfs-root/AppRun` only as a developer compatibility
+fallback. The repository does not install or package that fallback. The selected
+result is published through the status endpoint. The browser disables only
+printable generation when status is absent, malformed, unavailable, or
+version-mismatched; pose editing, simulation, mapping, wiring, and persistence
+remain usable. Repair requires a server restart because status and the resolved
+executable belong to the startup runtime.
+
+The server accepts loopback hosts only, and generation additionally requires a
+same-origin request. Project data, assets, generated output, and OpenSCAD remain
+on the local computer. Ctrl-C/SIGINT and SIGTERM close the HTTP listener and
+active generator processes, with a bounded forced-stop fallback.
 
 ## Rendering and simulation
 
@@ -158,8 +184,8 @@ configuration.
 - Automatic gap detection deliberately rejects touching cycles whose welded
   junction has more than one incoming or outgoing cap edge. Correction tools
   for those ambiguous arrangements are not implemented.
-- OpenSCAD generation is exposed only by the Vite development middleware; a
-  static production bundle cannot run it on its host.
+- The desktop package does not bundle OpenSCAD; installation/version repair and
+  restart remain an operator responsibility.
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

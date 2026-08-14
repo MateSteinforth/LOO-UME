@@ -50,6 +50,39 @@ npm run dev:web
 The compiler version is pinned in `wasm/emscripten-version.txt`; the emsdk
 installer checkout is pinned independently in `wasm/emsdk-revision.txt`.
 
+## Local production host
+
+The production interface is served from this computer rather than deployed to
+a hosted generation service. OpenSCAD 2021.01 is a system prerequisite and is
+not bundled by the application. Install npm dependencies and OpenSCAD, then run:
+
+```bash
+npm ci
+npm run desktop
+```
+
+The command runs a fresh `build:desktop` before `start:desktop`, then prints the
+loopback URL, normally `http://127.0.0.1:4173/`. The server binds only to
+`127.0.0.1`. Choose another port or executable at startup when needed:
+
+```bash
+ORBITAL_LAB_PORT=4300 OPENSCAD=/absolute/path/to/openscad npm run desktop
+```
+
+Startup runs `openscad --version` and supports exactly 2021.01. The shared
+`/api/generator-status` response reports detected availability and repair
+guidance; the browser uses that response instead of a build-mode flag. If the
+binary is absent or the version is wrong, the server still serves the complete
+editor and only printable generation is disabled. Install or repair OpenSCAD,
+then restart the desktop command to refresh the startup status.
+
+Both the Vite development adapter and production server use the same bounded
+local handler for `/api/generator-status` and `/api/editor-pipeline`. Generation
+requests must be same-origin and loopback-only. Sculpture JSON, imported assets,
+generated files, and OpenSCAD execution stay on this computer. Ctrl-C sends
+SIGINT; SIGTERM is also handled. Either signal stops accepting requests, closes
+active generator children, and shuts the server down cleanly.
+
 ## Sculpture JSON editor
 
 The simulator includes a small pose-first editor in the existing control panel.
@@ -86,10 +119,11 @@ is added.
   profile. It insets the PCB rectangle, partitions the remaining face into printable
   closure sectors, derives a right-handed panel pose, and rebalances provisional
   wiring lengths.
-- **Generate CAD + wiring + previews** posts the in-memory JSON to a local-only Vite
-  endpoint. It generates the compiled assembly, mapping, provisional WLED ledmap,
-  OpenSCAD sources, STL files, and PNG previews under an isolated
-  `-editor-preview` ID, then reloads the exact STL meshes in Three.js.
+- **Generate CAD + wiring + previews** posts the in-memory JSON to the bounded
+  local endpoint shared by Vite development and the production desktop host. It
+  generates the compiled assembly, mapping, provisional WLED ledmap, OpenSCAD
+  sources, STL files, and PNG previews under an isolated `-editor-preview` ID,
+  then reloads the exact STL meshes in Three.js.
 
 Panel-outline projects use the same endpoint to generate a deterministic
 boundary and gap-sorted printable closure set. When `boundaryTopology` is
@@ -110,10 +144,11 @@ flat-printable filler part, and only then invokes OpenSCAD. The GLB remains a vi
 positioning canvas and is never used as mechanical geometry. Unsupported or unsafe
 placements return a panel-specific error instead of emitting misleading parts.
 
-Run the editor with `npm run dev:web`; a static production bundle cannot execute
-OpenSCAD on its host. Generation preserves a referenced GLB path and hash but
-does not copy that GLB into the generated output folder; folder/ZIP export needs
-the separately loaded, verified bytes. An inset topology with only three populated neighbors still
+Use `npm run dev:web` for Vite development or `npm run desktop` for the built
+production interface and local OpenSCAD host. Generation preserves a referenced
+GLB path and hash but does not copy that GLB into the generated output folder;
+folder/ZIP export needs the separately loaded, verified bytes. An inset topology
+with only three populated neighbors still
 uses all four eligible panel holes, but explicitly records that one strip closure
 serves two adjacent holes. Existing sculptures retain the stricter one-cap-per-hole
 and three-connectors-per-closure defaults.

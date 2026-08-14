@@ -69,6 +69,34 @@ See [web/README.md](web/README.md) for setup, build, test, architecture, WASM
 memory, mapping, and upstream-update instructions. Investigation details and
 current limitations are recorded in [TECH_NOTES.md](TECH_NOTES.md).
 
+### Run the local desktop editor
+
+OpenSCAD 2021.01 is a system prerequisite for printable-part generation; it is
+not bundled or installed by this repository. Install project dependencies once,
+then build and start the production interface locally:
+
+```bash
+npm ci
+npm run desktop
+```
+
+`npm run desktop` creates a fresh production web build before starting the
+loopback server. Open the printed URL, normally `http://127.0.0.1:4173/`. Set
+`ORBITAL_LAB_PORT` to choose another port and `OPENSCAD` to use an explicit
+OpenSCAD executable:
+
+```bash
+OPENSCAD=/absolute/path/to/openscad ORBITAL_LAB_PORT=4300 npm run desktop
+```
+
+The browser reads actual generator status from the local server. If OpenSCAD is
+missing or not version 2021.01, editing, simulation, mapping, wiring, and project
+save/reopen remain available while **Generate 3D Parts** is disabled with repair
+instructions. Install or repair OpenSCAD, then restart `npm run desktop` so the
+startup probe runs again. Sculpture data, assets, and OpenSCAD stay on this
+computer; there is no hosted generation service. Stop with Ctrl-C; SIGINT and
+SIGTERM close the HTTP server and active generator processes cleanly.
+
 ## Canonical sculpture description
 
 The compact authored source is

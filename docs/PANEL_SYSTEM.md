@@ -153,16 +153,23 @@ The exact STL outputs are referenced by the project JSON and loaded in Three.js.
 The design GLB may guide placement and topology suggestions but is not copied or
 thickened into printable structure.
 
-The local-development browser pipeline now validates the deterministic boundary
-before CAD, derives stable gap-sorted part groups, and generates printable
-closure STLs with the established planar compiler. It writes and inspects the
-entire asset set before atomically publishing the manifest. Three.js then loads
-the exact referenced bytes after SHA-256 verification; downloads use the same
-verified bytes. A pose edit invalidates the fingerprint and removes the stale
-set from the current printable view. The generation endpoint requires Vite
-development middleware and does not copy the referenced design GLB into its
-output folder. Folder and ZIP import/export preserve the verified project asset
-set through the shared relative-path and hash contract.
+The locally hosted browser pipeline validates the deterministic boundary before
+CAD, derives stable gap-sorted part groups, and generates printable closure STLs
+with the established planar compiler. The production desktop server and Vite
+development adapter use one bounded status/generation handler. Browser
+availability comes from the local status endpoint; absent or wrong-version
+OpenSCAD disables generation without disabling panel editing, simulation,
+mapping, wiring, or persistence.
+
+OpenSCAD 2021.01 is an unbundled system prerequisite. `OPENSCAD` may select its
+executable, and the local server must be restarted after installation or repair.
+Successful generation writes and inspects the entire asset set before atomically
+publishing the manifest. Three.js then loads the exact referenced bytes after
+SHA-256 verification; downloads use the same verified bytes. A pose edit
+invalidates the fingerprint and removes the stale set from the current printable
+view. Generation does not copy the referenced design GLB into its output folder.
+Folder and ZIP import/export preserve the verified project asset set through the
+shared relative-path and hash contract.
 
 See [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md) for the complete target
 workflow, asset bundle, staleness rules, and acceptance journey.
