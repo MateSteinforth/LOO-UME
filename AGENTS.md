@@ -101,6 +101,13 @@ uses `createPanelAssemblyMapping()`.
   `npx --yes yaml-lint .github/workflows/render.yml`. This transient Node-based
   fallback is verified in this environment; do not repeat the missing-parser
   checks.
+- On the macOS GitHub runners, `lipo -verify_arch` returned a false failure for
+  the qualified universal OpenSCAD DMG. Do not use that command as the native
+  execution gate. Keep `lipo -archs` as evidence, then use
+  `/usr/bin/arch -<architecture>` to run the exact version check and a real STL
+  render on each native runner. GitHub Bash steps also start with `-e`; a
+  diagnostic collector that must record all failures must use `set +e` first.
+
 
 ## Verification
 

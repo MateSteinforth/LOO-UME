@@ -15,10 +15,11 @@ import {
   assertSupportedOpenScadHost,
   createManagedOpenScadReceipt,
   loadOpenScadDistribution,
-  MANAGED_OPENSCAD_DIRECTORY,
+  managedOpenScadDirectory,
   MANAGED_OPENSCAD_RECEIPT,
   parseOpenScadDistribution,
   resolveManagedOpenScadCommand,
+  selectOpenScadTarget,
   type HostDescription,
   type OpenScadDistribution,
 } from "../src/cad/OpenScadDistribution.ts";
@@ -45,6 +46,21 @@ const ubuntuHost: HostDescription = {
     'ID=ubuntu\nVERSION_ID="24.04"\nVERSION_CODENAME=noble\nPRETTY_NAME="Ubuntu 24.04 LTS"\n',
   glibcVersion: "2.39",
 };
+
+const macArmHost: HostDescription = {
+  platform: "darwin",
+  architecture: "arm64",
+  osRelease: "",
+  glibcVersion: undefined,
+  operatingSystemVersion: "15.6.1",
+};
+const macX64Host: HostDescription = {
+  ...macArmHost,
+  architecture: "x64",
+};
+const linuxTarget = selectOpenScadTarget(manifest, debianHost)!;
+const macArmTarget = selectOpenScadTarget(manifest, macArmHost)!;
+const macX64Target = selectOpenScadTarget(manifest, macX64Host)!;
 
 afterEach(async () => {
   await Promise.all(
@@ -131,69 +147,106 @@ function fakeRunner(
 }
 
 describe("managed OpenSCAD distribution policy", () => {
-  it("pins the exact upstream program, companion, source, and license metadata", () => {
+  it("pins the Linux package and both native macOS targets", () => {
     expect(manifest).toMatchObject({
-      schemaVersion: "1.0.0",
-      version: "2021.01",
-      source: {
-        url: "https://files.openscad.org/openscad-2021.01.src.tar.gz",
-        sha256:
-          "d938c297e7e5f65dbab1461cac472fc60dfeaa4999ea2c19b31a4184f2d70359",
-      },
-      license: {
-        id: "GPL-2.0-or-later WITH LicenseRef-OpenSCAD-CGAL-exception",
-      },
-      target: {
-        id: "linux-x64",
-        artifact: {
-          url: "https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage",
-          size: 40_759_336,
-          sha256:
-            "f758528f2cd213f773c7a105fb63bf3b45bf754b0f586fbb7c9cd653ffcd0882",
-        },
-        companions: [
-          {
-            url:
-              "https://deb.debian.org/debian/pool/main/libg/libgpg-error/libgpg-error0_1.51-4_amd64.deb",
-            size: 82_108,
+      schemaVersion: "2.0.0",
+      targets: [
+        {
+          id: "linux-x64",
+          version: "2021.01",
+          installDirectory: ".tools/openscad-2021.01",
+          source: {
+            url: "https://files.openscad.org/openscad-2021.01.src.tar.gz",
             sha256:
-              "22b95570fd41c113ef6f5651563b4d748292844baab1278a46eb940c1dec2322",
-            sourceUrl: "https://gnupg.org/ftp/gcrypt/libgpg-error/",
-            packageInfoUrl:
-              "https://packages.debian.org/trixie/amd64/libgpg-error0/download",
-            license: "LGPL-2.1-or-later",
+              "d938c297e7e5f65dbab1461cac472fc60dfeaa4999ea2c19b31a4184f2d70359",
+            revision: "openscad-2021.01",
           },
-        ],
-        executable: "squashfs-root/usr/bin/openscad",
-        libraryDirectories: [
-          "squashfs-root/usr/lib",
-          "local-deps/usr/lib/x86_64-linux-gnu",
-        ],
-      },
+          artifact: {
+            url: "https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage",
+            size: 40_759_336,
+            sha256:
+              "f758528f2cd213f773c7a105fb63bf3b45bf754b0f586fbb7c9cd653ffcd0882",
+          },
+          companions: [
+            {
+              sha256:
+                "22b95570fd41c113ef6f5651563b4d748292844baab1278a46eb940c1dec2322",
+              license: "LGPL-2.1-or-later",
+            },
+          ],
+        },
+        {
+          id: "darwin-arm64",
+          version: "2026.06.12",
+          installDirectory:
+            ".tools/openscad-2026.06.12-darwin-arm64",
+          source: {
+            url: "https://github.com/openscad/openscad",
+            revision: null,
+          },
+          artifact: {
+            url:
+              "https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg",
+            size: 64_447_344,
+            sha256:
+              "555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4",
+          },
+          companions: [],
+          executable: "OpenSCAD.app/Contents/MacOS/OpenSCAD",
+          libraryDirectories: [],
+        },
+        {
+          id: "darwin-x64",
+          architecture: "x64",
+          version: "2026.06.12",
+          installDirectory:
+            ".tools/openscad-2026.06.12-darwin-x64",
+          artifact: {
+            sha256:
+              "555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4",
+          },
+        },
+      ],
     });
   });
 
-  it("rejects changes to either download policy", () => {
-    const program = cloneManifest() as {
-      target: { artifact: { url: string } };
+  it("rejects changes to any pinned target artifact", () => {
+    const linuxProgram = cloneManifest() as {
+      targets: Array<{ artifact: { url: string } }>;
     };
-    program.target.artifact.url = "https://example.test/OpenSCAD.AppImage";
-    expect(() => parseOpenScadDistribution(program)).toThrow(
-      /target\.artifact\.url/,
+    linuxProgram.targets[0]!.artifact.url =
+      "https://example.test/OpenSCAD.AppImage";
+    expect(() => parseOpenScadDistribution(linuxProgram)).toThrow(
+      /targets\[0\]\.artifact\.url/,
     );
 
     const companion = cloneManifest() as {
-      target: { companions: Array<{ sha256: string }> };
+      targets: Array<{ companions: Array<{ sha256: string }> }>;
     };
-    companion.target.companions[0]!.sha256 = "0".repeat(64);
+    companion.targets[0]!.companions[0]!.sha256 = "0".repeat(64);
     expect(() => parseOpenScadDistribution(companion)).toThrow(
-      /companions\[0\]\.sha256/,
+      /targets\[0\]\.companions\[0\]\.sha256/,
+    );
+
+    const macProgram = cloneManifest() as {
+      targets: Array<{ artifact: { sha256: string } }>;
+    };
+    macProgram.targets[1]!.artifact.sha256 = "0".repeat(64);
+    expect(() => parseOpenScadDistribution(macProgram)).toThrow(
+      /targets\[1\]\.artifact\.sha256/,
     );
   });
 
-  it("accepts only the declared Debian and Ubuntu x64 hosts", () => {
-    expect(() => assertSupportedOpenScadHost(manifest, debianHost)).not.toThrow();
-    expect(() => assertSupportedOpenScadHost(manifest, ubuntuHost)).not.toThrow();
+  it("selects only exact declared operating systems and architectures", () => {
+    expect(selectOpenScadTarget(manifest, debianHost)?.id).toBe("linux-x64");
+    expect(selectOpenScadTarget(manifest, ubuntuHost)?.id).toBe("linux-x64");
+    expect(selectOpenScadTarget(manifest, macArmHost)?.id).toBe(
+      "darwin-arm64",
+    );
+    expect(selectOpenScadTarget(manifest, macX64Host)?.id).toBe(
+      "darwin-x64",
+    );
+
     for (const host of [
       { ...debianHost, architecture: "arm64" },
       {
@@ -209,11 +262,106 @@ describe("managed OpenSCAD distribution policy", () => {
         ...debianHost,
         osRelease: "ID=debian\nVERSION_ID=13\nVERSION_CODENAME=bookworm\n",
       },
-      { ...ubuntuHost, platform: "darwin" },
+      { ...macArmHost, operatingSystemVersion: "14.7.6" },
+      { ...macArmHost, architecture: "ia32" },
+      { ...macX64Host, operatingSystemVersion: undefined },
     ]) {
+      expect(selectOpenScadTarget(manifest, host)).toBeUndefined();
       expect(() => assertSupportedOpenScadHost(manifest, host)).toThrow(
-        /supports only Debian 13.*Ubuntu 24\.04/,
+        /supports only Debian 13.*macOS 15/,
       );
+    }
+  });
+
+  it("binds receipts to the target, version, and full artifact set", () => {
+    expect(createManagedOpenScadReceipt(linuxTarget)).toMatchObject({
+      schemaVersion: "2.0.0",
+      target: "linux-x64",
+      version: "2021.01",
+      artifacts: [
+        {
+          fileName: "OpenSCAD-2021.01-x86_64.AppImage",
+          sha256:
+            "f758528f2cd213f773c7a105fb63bf3b45bf754b0f586fbb7c9cd653ffcd0882",
+        },
+        {
+          fileName: "libgpg-error0_1.51-4_amd64.deb",
+          sha256:
+            "22b95570fd41c113ef6f5651563b4d748292844baab1278a46eb940c1dec2322",
+        },
+      ],
+    });
+    expect(createManagedOpenScadReceipt(macArmTarget)).toMatchObject({
+      target: "darwin-arm64",
+      version: "2026.06.12",
+      artifacts: [
+        {
+          fileName: "OpenSCAD-2026.06.12.dmg",
+          sha256:
+            "555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4",
+        },
+      ],
+    });
+  });
+
+  it("resolves a macOS receipt without a library environment change", async () => {
+    const root = await temporaryRoot("mac managed path with spaces ");
+    const installation = managedOpenScadDirectory(root, macX64Target);
+    const command = join(installation, macX64Target.executable);
+    await mkdir(join(command, ".."), { recursive: true });
+    await writeFile(command, "test", "utf8");
+    await writeFile(
+      join(installation, MANAGED_OPENSCAD_RECEIPT),
+      JSON.stringify(createManagedOpenScadReceipt(macX64Target)),
+      "utf8",
+    );
+    const environment = {
+      PATH: "/operator/bin",
+      LD_LIBRARY_PATH: "/operator/linux-libs",
+      DYLD_LIBRARY_PATH: "/operator/mac-libs",
+    };
+    expect(
+      resolveManagedOpenScadCommand(
+        root,
+        manifest,
+        environment,
+        macX64Host,
+      ),
+    ).toEqual({
+      command,
+      environment,
+      targetId: "darwin-x64",
+      expectedVersion: "2026.06.12",
+    });
+
+    const validReceipt = createManagedOpenScadReceipt(macX64Target);
+    const invalidReceipts = [
+      { ...validReceipt, target: "darwin-arm64" },
+      { ...validReceipt, version: "2021.01" },
+      {
+        ...validReceipt,
+        artifacts: [
+          {
+            ...validReceipt.artifacts[0]!,
+            sha256: "0".repeat(64),
+          },
+        ],
+      },
+    ];
+    for (const invalidReceipt of invalidReceipts) {
+      await writeFile(
+        join(installation, MANAGED_OPENSCAD_RECEIPT),
+        JSON.stringify(invalidReceipt),
+        "utf8",
+      );
+      expect(
+        resolveManagedOpenScadCommand(
+          root,
+          manifest,
+          environment,
+          macX64Host,
+        ),
+      ).toBeUndefined();
     }
   });
 });
@@ -333,21 +481,21 @@ describe("managed OpenSCAD installation", () => {
     expect(installed.reused).toBe(false);
     expect(downloads.calls).toBe(2);
     expect(installed.command).toBe(
-      join(root, MANAGED_OPENSCAD_DIRECTORY, manifest.target.executable),
+      join(root, linuxTarget.installDirectory, linuxTarget.executable),
     );
     const receipt = JSON.parse(
       await readFile(
         join(
           root,
-          MANAGED_OPENSCAD_DIRECTORY,
+          linuxTarget.installDirectory,
           MANAGED_OPENSCAD_RECEIPT,
         ),
         "utf8",
       ),
     );
-    expect(receipt).toEqual(createManagedOpenScadReceipt(manifest));
+    expect(receipt).toEqual(createManagedOpenScadReceipt(linuxTarget));
     expect(probes).toHaveLength(1);
-    const stagingLibraries = manifest.target.libraryDirectories.map((entry) =>
+    const stagingLibraries = linuxTarget.libraryDirectories.map((entry) =>
       join(root, ".tools/.openscad-2021.01.staging-one", entry)
     );
     expect(probes[0]!.libraryPath?.split(delimiter).slice(0, 2)).toEqual(
@@ -358,8 +506,8 @@ describe("managed OpenSCAD installation", () => {
     expect(reused.reused).toBe(true);
     expect(downloads.calls).toBe(2);
     expect(probes).toHaveLength(2);
-    const installedLibraries = manifest.target.libraryDirectories.map((entry) =>
-      join(root, MANAGED_OPENSCAD_DIRECTORY, entry)
+    const installedLibraries = linuxTarget.libraryDirectories.map((entry) =>
+      join(root, linuxTarget.installDirectory, entry)
     );
     expect(probes[1]!.libraryPath?.split(delimiter).slice(0, 2)).toEqual(
       installedLibraries,
@@ -368,7 +516,7 @@ describe("managed OpenSCAD installation", () => {
 
   it("preserves the prior directory on failure and replaces it on recovery", async () => {
     const root = await temporaryRoot("openscad recovery ");
-    const finalDirectory = join(root, MANAGED_OPENSCAD_DIRECTORY);
+    const finalDirectory = join(root, linuxTarget.installDirectory);
     await mkdir(finalDirectory, { recursive: true });
     await writeFile(join(finalDirectory, "keep.txt"), "previous", "utf8");
 
@@ -415,7 +563,7 @@ describe("managed OpenSCAD installation", () => {
 
   it("reports both publication and prior-install restore failures", async () => {
     const root = await temporaryRoot("openscad failed rollback ");
-    const finalDirectory = join(root, MANAGED_OPENSCAD_DIRECTORY);
+    const finalDirectory = join(root, linuxTarget.installDirectory);
     const backupDirectory = join(
       root,
       ".tools/.openscad-2021.01.previous-publication-failure",

@@ -139,25 +139,34 @@ preview.
 generated assets, `/api/generator-status`, and `/api/editor-pipeline`; the Vite
 plugin adapts the same `createEditorPipelineHandler()` during development.
 
-OpenSCAD 2021.01 is required but is not a bundled application binary.
-`npm run setup:openscad` provides automatic repository-local setup for Debian 13
-x86-64 and Ubuntu 24.04 x86-64. It downloads the official AppImage and a pinned
-`libgpg-error0` companion into `.tools`, without administrator access or a
-`PATH` change. `toolchains/openscad-2021.01.json` pins each source URL, exact
-size, SHA-256 checksum, source archive, and license reference. Setup verifies a
-staging tree before atomic publication and records a receipt. A valid
-receipt-backed install is reused, and a failed setup is safe to retry.
+OpenSCAD is required but is not stored as an application binary in the
+repository. `npm run setup:openscad` provides automatic repository-local setup
+for Debian 13 x86-64, Ubuntu 24.04 x86-64, and macOS 15 on Apple Silicon arm64
+or Intel x86-64. Linux uses OpenSCAD 2021.01 from the official AppImage and a
+pinned `libgpg-error0` companion. macOS uses the official universal OpenSCAD
+2026.06.12 snapshot. `toolchains/openscad-distributions.json` pins the declared
+targets, URLs, exact sizes, SHA-256 checksums, source metadata, and license
+references. The upstream macOS snapshot does not publish a verified exact
+source revision, so the manifest does not claim one.
+
+Setup does not need administrator access or a `PATH` change. The macOS path
+rejects Rosetta, mounts the DMG read-only, copies only `OpenSCAD.app` into the
+repository-local staging tree, validates that tree and its native Mach-O slice,
+and cleans up the mount. Setup records the selected target, version, artifacts,
+and executable in its receipt. It verifies the staged tool before atomic
+publication, reuses a valid target-specific install, and is safe to retry after
+failure.
 
 Startup probes an explicit `OPENSCAD` executable first. Without that override,
-it prefers the valid receipt-backed managed tool and then falls back to the
-system `openscad` on `PATH`. The selected result is published through the
-status endpoint. The browser disables only printable generation when status is
-absent, malformed, unavailable, or version-mismatched; pose editing,
-simulation, mapping, wiring, and persistence remain usable. After setup or
-repair, restart the server because status and the resolved executable belong to
-the startup runtime. INSTALL-011 tracks the all-dependency clean-clone
-bootstrap, including other targets. INSTALL-012 tracks proof on every declared
-supported target. The current setup still requires Node.js, npm, and `dpkg-deb`.
+it prefers the valid receipt-backed managed tool for the current target and
+then falls back to the system `openscad` on `PATH`. Runtime version policy comes
+from that target: 2021.01 for Linux and 2026.06.12 for macOS. The selected
+result is published through the status endpoint. The browser disables only
+printable generation when status is absent, malformed, unavailable, or
+version-mismatched; pose editing, simulation, mapping, wiring, and persistence
+remain usable. After setup or repair, restart the server because status and the
+resolved executable belong to the startup runtime. Windows and the complete
+dependency bootstrap remain separate INSTALL-014 and INSTALL-011 work.
 
 The server accepts loopback hosts only, and generation additionally requires a
 same-origin request. Project data, assets, generated output, and OpenSCAD remain
@@ -193,9 +202,12 @@ configuration.
 - Automatic gap detection deliberately rejects touching cycles whose welded
   junction has more than one incoming or outgoing cap edge. Correction tools
   for those ambiguous arrangements are not implemented.
-- The desktop package does not bundle OpenSCAD. Managed setup is limited to
-  Debian 13 x86-64 and Ubuntu 24.04 x86-64; INSTALL-011/012 cover other
-  platforms and the complete dependency bootstrap.
+- The desktop package does not bundle OpenSCAD. Managed setup covers the
+  declared Linux x86-64 targets and native macOS 15 arm64/x86-64 targets.
+  Windows and the complete dependency bootstrap remain INSTALL-014/011 work.
+- macOS proof uses native `macos-15` and `macos-15-intel` CI runners. The Intel
+  runner label is scheduled to retire in August 2027, so CI must move to a
+  supported native Intel label before that date.
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

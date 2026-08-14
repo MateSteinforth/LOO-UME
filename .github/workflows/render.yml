@@ -2,7 +2,7 @@ name: Render OpenSCAD parts
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/install-013-managed-openscad-macos]
   pull_request:
   workflow_dispatch:
 
@@ -54,6 +54,61 @@ jobs:
 
       - name: Build Vite application
         run: npm run build:web
+
+  macos-managed-openscad:
+    name: Managed OpenSCAD (${{ matrix.architecture }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: arm64
+            target: darwin-arm64
+          - runner: macos-15-intel
+            architecture: x86_64
+            target: darwin-x64
+    defaults:
+      run:
+        working-directory: orbital lab source
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: orbital lab source
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: orbital lab source/package-lock.json
+
+      - name: Confirm clean native host
+        run: |
+          test "$(uname -m)" = "${{ matrix.architecture }}"
+          test "$(/usr/bin/sw_vers -productVersion | cut -d. -f1)" = "15"
+          test -z "${OPENSCAD:-}"
+          ! command -v openscad
+          test ! -e /Applications/OpenSCAD.app
+          test ! -e "$HOME/Applications/OpenSCAD.app"
+          ! /usr/sbin/sysctl -in sysctl.proc_translated 2>/dev/null | grep -qx 1
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install managed OpenSCAD twice
+        run: |
+          npm run setup:openscad
+          npm run setup:openscad
+
+      - name: Verify native render and production editor
+        env:
+          EXPECTED_OPENSCAD_TARGET: ${{ matrix.target }}
+        run: |
+          npm run verify:openscad
+          npm run build:desktop
+          npm run verify:desktop-install
 
   render:
     runs-on: ubuntu-latest
@@ -150,7 +205,7 @@ jobs:
 
   publish-latest-prototype:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: [clean-checkout, render, cad-contract]
+    needs: [clean-checkout, macos-managed-openscad, render, cad-contract]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
