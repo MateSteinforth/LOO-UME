@@ -111,6 +111,39 @@ jobs:
       - name: Build Vite application
         run: npm run build:web
 
+  browser-smoke:
+    name: Browser smoke (Chromium)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install Chromium and host libraries
+        run: npm run setup:browser -- --with-deps
+
+      - name: Run real browser authoring smoke test
+        run: npm run test:browser
+
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-smoke-failure
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 30
+
   macos-managed-openscad:
     name: Managed OpenSCAD (${{ matrix.architecture }})
     runs-on: ${{ matrix.runner }}
@@ -380,6 +413,7 @@ jobs:
   publish-latest-prototype:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs:
+      - browser-smoke
       - stage-zero-bootstrap-linux
       - stage-zero-bootstrap-macos
       - clean-checkout

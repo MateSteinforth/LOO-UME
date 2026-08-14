@@ -154,3 +154,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   inspect the resulting diff.
 - **Evidence:** `AGENTS.md`, under **Working safely**, and ASSET-010 integration.
 - **Status:** Mitigated.
+
+### F-008 — CSS labels are not stable WebGL gizmo coordinates
+
+- **Date:** 2026-08-14
+- **Context:** TEST-010 real-browser authoring coverage.
+- **Symptom:** A Playwright drag that started from a CSS2D panel-label position
+  did not commit a panel move after another control scrolled the page.
+- **Cause:** The Three.js translation gizmo has no DOM target. A CSS2D label is
+  only a projected visual reference, and its viewport coordinates can change
+  with scrolling, camera state, or surface attachment.
+- **Correction:** Use the real accessible panel label and delete billboard for
+  the required saved editor mutation. Keep coordinate gestures out of the basic
+  smoke test until they have a stable operator-facing target.
+- **Prevention:** Prefer accessible DOM controls in browser smoke tests. Do not
+  infer a WebGL hit target from a projected label across scrolling or camera
+  changes.
+- **Evidence:** `tests/browser/mechanics-free-authoring.spec.ts`.
+- **Status:** Resolved.

@@ -38,6 +38,9 @@
     "start:desktop": "tsx scripts/local-editor-server.ts",
     "desktop": "npm run build:desktop && npm run start:desktop",
     "preview": "vite preview",
+    "serve:test:browser": "npm run stage:sculptures && vite --host 127.0.0.1 --port 4174 --strictPort",
+    "setup:browser": "PLAYWRIGHT_BROWSERS_PATH=.tools/playwright playwright install chromium",
+    "test:browser": "PLAYWRIGHT_BROWSERS_PATH=.tools/playwright playwright test",
     "test:panel-editing": "vitest run --config vitest.config.ts tests/panel-json-editing.test.ts tests/selection-focus.test.ts",
     "test:placement": "vitest run --config vitest.config.ts tests/automatic-panel-placement.test.ts",
     "test:editor": "vitest run --config vitest.config.ts tests/sculpture-editor.test.ts tests/panel-json-editing.test.ts tests/automatic-panel-placement.test.ts tests/selection-focus.test.ts",
@@ -52,6 +55,7 @@
     "three": "^0.179.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/node": "^22.15.30",
     "@types/three": "^0.179.0",
     "tsx": "^4.20.3",

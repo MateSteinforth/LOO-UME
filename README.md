@@ -286,6 +286,14 @@ contracts that emit temporary OpenSCAD source, run:
 npm run test:editor
 ```
 
+For the real Chromium control journey, install the matching browser once and
+run the Playwright smoke test:
+
+```bash
+npm run setup:browser
+npm run test:browser
+```
+
 `npm test` runs the complete Vitest suite without building or downloading
 anything first. It uses the checked-in
 `web/public/wasm/wled-engine.{js,wasm}` runtime. `npm run test:full` rebuilds

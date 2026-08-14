@@ -224,7 +224,11 @@ generation-time gap detection from a project with no `boundaryTopology`,
 persisted cycles, exact parts, folder/ZIP reopen, and current/stale state without
 injecting topology in the test.
 This test uses helpers and the generation pipeline. It does not operate the real
-browser controls; `TEST-010` and `TEST-011` track that missing coverage.
+browser controls. `tests/browser/mechanics-free-authoring.spec.ts` now uses
+Playwright Chromium to load a mechanics-free JSON and GLB through the file
+controls, place panels, select and delete a panel, operate simulation and wiring
+controls, and inspect the saved JSON. `TEST-011` still tracks browser coverage
+for folder and ZIP controls.
 
 
 ## Build and test
@@ -248,6 +252,19 @@ build first verifies the compiler version and that 37 selected function bodies
 match the pinned WLED submodule revision. The WASM tests cover initialization,
 every registered effect at 2,700 LEDs, framebuffer changes, deterministic
 timestamps, resize behavior, out-of-bounds protection, and mapping invariants.
+
+
+Install the Chromium revision that matches the locked Playwright package, then
+run the real-browser smoke test:
+
+```bash
+npm run setup:browser
+npm run test:browser
+```
+
+The browser is stored under the ignored `.tools/playwright` directory. The test
+starts Vite with the checked-in WLED WASM and does not need Emscripten. CI uses
+the same commands and also installs the required Linux browser libraries.
 
 Every build regenerates `layout/panel-map.json` and
 `wled/ledmap.provisional.json` for the flagship sculpture. The browser does not

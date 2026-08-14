@@ -129,13 +129,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Docs: publish the tested Linux and macOS matrix and state clearly which repository installation command applies to each required platform.
 
 
-### `TEST-010` Add a real browser smoke test for mechanics-free authoring — P0
-
-- Outcome: cover the actual interface rather than only helper modules.
-- Acceptance: a browser loads the app, imports a mechanics-free project and GLB, auto-places panels, edits/deletes a panel, keeps simulation/mapping/wiring usable, saves, and reports no page or console errors.
-- Depends on: none. Choose and document the smallest suitable browser harness as part of the slice.
-- Verify: local test command and CI job both pass from a clean checkout.
-
 ### `TEST-011` Cover folder/ZIP controls in the browser — P1
 
 - Outcome: exercise the shipped portable-project controls end to end.
@@ -176,7 +169,12 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-No implementation task is active.
+### `TEST-010` Add a real browser smoke test for mechanics-free authoring — P0
+
+- Outcome: cover the actual interface rather than only helper modules.
+- Acceptance: a browser loads the app, imports a mechanics-free project and GLB, auto-places panels, edits/deletes a panel, keeps simulation/mapping/wiring usable, saves, and reports no page or console errors.
+- Depends on: none. Choose and document the smallest suitable browser harness as part of the slice.
+- Verify: local test command and CI job both pass from a clean checkout.
 
 ## Blocked
 

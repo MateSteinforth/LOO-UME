@@ -355,8 +355,10 @@ saved, opens the generated folder without external asset injection, and then
 covers folder-to-ZIP parity, object-URL loading, exact byte and hash recovery,
 and current and stale fingerprint states. Container rejection cases
 are covered separately by `tests/portable-project.test.ts`. These tests do not
-operate the real browser interface. `TEST-010` and `TEST-011` track the missing
-browser interaction coverage for authoring and folder/ZIP controls.
+operate the real browser interface. The Playwright TEST-010 smoke test covers
+the mechanics-free JSON/GLB authoring controls, automatic placement, panel
+deletion, simulation, mapping, wiring, and save. `TEST-011` tracks the remaining
+folder/ZIP browser-control coverage.
 
 
 OpenSCAD or the chosen mesh backend must render every changed printable part,

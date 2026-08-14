@@ -73,6 +73,7 @@ non-manifold results. The GLB does not supply or suggest gap topology.
 | `src/cad/GenerateCad.ts`, `parts/` | Legacy-typed wrappers around tested manual parts | Separate from generic CAD |
 | `web/src/PortableProject.ts` | Shared folder/ZIP validation, object-URL resolution, and self-contained export | Never rewrites saved asset paths or fetches missing export bytes |
 | `web/src/` | UI, Three.js rendering, placement, mapping, routing, export | `main.ts` owns most application state |
+| `tests/browser/` | Playwright Chromium journeys through real operator controls | Uses the checked-in WLED WASM; it does not rebuild the SDK |
 | `wasm/` | Deterministic portable subset of WLED 1D effects | Simulator only, not firmware |
 | `scripts/` | Validation, staging, mapping, CAD, WASM, verification | Development/build tooling |
 | `layout/`, `wled/`, `artifacts/` | Committed generated snapshots | Regression/review artifacts |
@@ -256,9 +257,11 @@ configuration.
 - macOS proof uses native `macos-15` and `macos-15-intel` CI runners. The Intel
   runner label is scheduled to retire in August 2027, so CI must move to a
   supported native Intel label before that date.
-- Boundary, exact-STL, and portable-project journeys have helper-level and
-  integration coverage. `TEST-010` and `TEST-011` track tests that operate the
-  real browser controls.
+- A Playwright Chromium smoke test now operates the real local JSON and GLB
+  controls, automatic placement, panel selection and deletion, WLED play/pause,
+  mapping and wiring controls, and saved JSON. It also fails on browser page or
+  console errors. Folder and ZIP controls still have helper-level coverage;
+  `TEST-011` tracks their real-browser journey.
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.
