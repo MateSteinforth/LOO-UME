@@ -96,7 +96,7 @@ jobs:
             failed=1
           else
             check "Mach-O architectures" lipo -archs "$executable"
-            check "Universal slices" lipo -verify_arch arm64 x86_64 "$executable"
+            check "Native Mach-O slice" lipo -verify_arch "${{ matrix.architecture }}" "$executable"
 
             echo "## Native version"
             version_output=$(/usr/bin/arch "-${{ matrix.architecture }}" "$executable" --version 2>&1)
@@ -120,7 +120,7 @@ jobs:
             check "Code signature" codesign --verify --deep --strict --verbose=4 "$app"
             check "Signature identity" codesign -dv --verbose=4 "$app"
             check "Gatekeeper assessment" spctl --assess --type execute --verbose=4 "$app"
-            check "Notarization ticket" xcrun stapler validate "$app"
+            check "Notarization ticket" xcrun stapler validate "$dmg"
             check "Bundle metadata" plutil -p "$app/Contents/Info.plist"
             check "OpenSCAD build info" /usr/bin/arch "-${{ matrix.architecture }}" "$executable" --info
             echo "## Commit candidates"
