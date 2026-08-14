@@ -139,16 +139,25 @@ preview.
 generated assets, `/api/generator-status`, and `/api/editor-pipeline`; the Vite
 plugin adapts the same `createEditorPipelineHandler()` during development.
 
-OpenSCAD 2021.01 is a system prerequisite, not a bundled application binary.
-Startup probes an explicit `OPENSCAD` executable first. Without that override it
-tries the system `openscad` on `PATH`, then an already-present repository
-`.tools/openscad-2021.01/squashfs-root/AppRun` only as a developer compatibility
-fallback. The repository does not install or package that fallback. The selected
-result is published through the status endpoint. The browser disables only
-printable generation when status is absent, malformed, unavailable, or
-version-mismatched; pose editing, simulation, mapping, wiring, and persistence
-remain usable. Repair requires a server restart because status and the resolved
-executable belong to the startup runtime.
+OpenSCAD 2021.01 is required but is not a bundled application binary.
+`npm run setup:openscad` provides automatic repository-local setup for Debian 13
+x86-64 and Ubuntu 24.04 x86-64. It downloads the official AppImage and a pinned
+`libgpg-error0` companion into `.tools`, without administrator access or a
+`PATH` change. `toolchains/openscad-2021.01.json` pins each source URL, exact
+size, SHA-256 checksum, source archive, and license reference. Setup verifies a
+staging tree before atomic publication and records a receipt. A valid
+receipt-backed install is reused, and a failed setup is safe to retry.
+
+Startup probes an explicit `OPENSCAD` executable first. Without that override,
+it prefers the valid receipt-backed managed tool and then falls back to the
+system `openscad` on `PATH`. The selected result is published through the
+status endpoint. The browser disables only printable generation when status is
+absent, malformed, unavailable, or version-mismatched; pose editing,
+simulation, mapping, wiring, and persistence remain usable. After setup or
+repair, restart the server because status and the resolved executable belong to
+the startup runtime. INSTALL-011 tracks the all-dependency clean-clone
+bootstrap, including other targets. INSTALL-012 tracks proof on every declared
+supported target. The current setup still requires Node.js, npm, and `dpkg-deb`.
 
 The server accepts loopback hosts only, and generation additionally requires a
 same-origin request. Project data, assets, generated output, and OpenSCAD remain
@@ -184,8 +193,9 @@ configuration.
 - Automatic gap detection deliberately rejects touching cycles whose welded
   junction has more than one incoming or outgoing cap edge. Correction tools
   for those ambiguous arrangements are not implemented.
-- The desktop package does not bundle OpenSCAD; installation/version repair and
-  restart remain an operator responsibility.
+- The desktop package does not bundle OpenSCAD. Managed setup is limited to
+  Debian 13 x86-64 and Ubuntu 24.04 x86-64; INSTALL-011/012 cover other
+  platforms and the complete dependency bootstrap.
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

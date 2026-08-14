@@ -132,11 +132,28 @@ removes the staging directory and retains the prior bundle.
 
 ## Local desktop generation host
 
-OpenSCAD 2021.01 is a system prerequisite and is not bundled by WLED Orbital
-Lab. After `npm ci`, `npm run desktop` performs a fresh production build and
-starts the local server. It prints a loopback URL at `127.0.0.1`, using port 4173
-unless `ORBITAL_LAB_PORT` selects another valid port. Set `OPENSCAD` to the
-desired executable when it is not the `openscad` found on `PATH`.
+OpenSCAD 2021.01 is required but is not bundled by WLED Orbital Lab. Automatic
+repository-local setup supports Debian 13 x86-64 and Ubuntu 24.04 x86-64:
+
+```bash
+npm ci
+npm run setup:openscad
+npm run desktop
+```
+
+Setup downloads the official AppImage and a pinned `libgpg-error0` companion
+into `.tools`. The committed toolchain manifest records their source and
+license information, exact sizes, and SHA-256 checksums. Setup does not need
+administrator access or change `PATH`. It publishes a verified staging tree
+atomically, records a receipt, reuses a valid managed install, and is safe to
+retry after failure.
+
+`npm run desktop` performs a fresh production build and starts the local
+server. It prints a loopback URL at `127.0.0.1`, using port 4173 unless
+`ORBITAL_LAB_PORT` selects another valid port. At startup, an explicit
+`OPENSCAD` value has first priority. Without an override, the server prefers the
+valid receipt-backed managed tool and then falls back to the system `openscad`
+on `PATH`.
 
 At startup the server probes the exact OpenSCAD version. Both the production
 host and Vite development use the same bounded handler for
@@ -144,7 +161,12 @@ host and Vite development use the same bounded handler for
 instead of inferring availability from its build mode. Missing, unreadable, or
 wrong-version OpenSCAD disables **Generate 3D Parts** with direct repair
 guidance; editing, simulation, mapping, wiring, save, and reopen continue. After
-installing or repairing OpenSCAD, restart the server to repeat discovery.
+setup or repair, restart the server to repeat discovery.
+
+Node.js, npm, the supported host's standard `dpkg-deb` command, and all other
+project dependencies are not installed by this setup command. INSTALL-011
+tracks the complete clean-clone bootstrap, including other targets. INSTALL-012
+tracks proof on every declared supported target.
 
 The HTTP server, project data, generated assets, and OpenSCAD process all remain
 on the local computer. Generation is same-origin and loopback-only. Ctrl-C

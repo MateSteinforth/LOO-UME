@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "OpenSCAD",
+  "version": "2021.01",
+  "releaseUrl": "https://github.com/openscad/openscad/releases/tag/openscad-2021.01",
+  "source": {
+    "url": "https://files.openscad.org/openscad-2021.01.src.tar.gz",
+    "sha256": "d938c297e7e5f65dbab1461cac472fc60dfeaa4999ea2c19b31a4184f2d70359"
+  },
+  "license": {
+    "id": "GPL-2.0-or-later WITH LicenseRef-OpenSCAD-CGAL-exception",
+    "url": "https://raw.githubusercontent.com/openscad/openscad/openscad-2021.01/COPYING"
+  },
+  "target": {
+    "id": "linux-x64",
+    "platform": "linux",
+    "architecture": "x64",
+    "operatingSystems": [
+      {
+        "id": "debian",
+        "version": "13",
+        "codename": "trixie"
+      },
+      {
+        "id": "ubuntu",
+        "version": "24.04",
+        "codename": "noble"
+      }
+    ],
+    "minimumGlibc": "2.38",
+    "requiredCommand": "dpkg-deb",
+    "artifact": {
+      "fileName": "OpenSCAD-2021.01-x86_64.AppImage",
+      "url": "https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage",
+      "size": 40759336,
+      "sha256": "f758528f2cd213f773c7a105fb63bf3b45bf754b0f586fbb7c9cd653ffcd0882"
+    },
+    "companions": [
+      {
+        "id": "libgpg-error0",
+        "fileName": "libgpg-error0_1.51-4_amd64.deb",
+        "url": "https://deb.debian.org/debian/pool/main/libg/libgpg-error/libgpg-error0_1.51-4_amd64.deb",
+        "size": 82108,
+        "sha256": "22b95570fd41c113ef6f5651563b4d748292844baab1278a46eb940c1dec2322",
+        "sourceUrl": "https://gnupg.org/ftp/gcrypt/libgpg-error/",
+        "packageInfoUrl": "https://packages.debian.org/trixie/amd64/libgpg-error0/download",
+        "license": "LGPL-2.1-or-later"
+      }
+    ],
+    "executable": "squashfs-root/usr/bin/openscad",
+    "libraryDirectories": [
+      "squashfs-root/usr/lib",
+      "local-deps/usr/lib/x86_64-linux-gnu"
+    ]
+  }
+}

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "setup:wled": "sh scripts/setup-wled.sh",
+    "setup:openscad": "tsx scripts/setup-openscad.ts",
     "setup:emsdk": "sh scripts/setup-emsdk.sh",
     "check:wled": "node scripts/check-wled-sync.mjs",
     "validate:sculpture": "tsx scripts/validate-sculpture.ts",
@@ -19,6 +20,7 @@
     "generate:panel-boundary": "tsx scripts/generate-panel-boundary-parts.ts",
     "generate:assets": "npm run stage:sculptures && npm run generate:mapping && npm run generate:cad && npm run generate:cuboctahedron && npm run generate:rhombicosidodecahedron:auto && npm run generate:truncated-octahedron",
     "verify:cad": "tsx scripts/verify-cad.ts",
+    "verify:openscad": "tsx scripts/verify-openscad-install.ts",
     "verify:sculpture": "tsx scripts/verify-sculpture.ts",
     "verify:cuboctahedron": "tsx scripts/verify-sculpture.ts --sculpture sculptures/cuboctahedron/sculpture.json",
     "verify:rhombicosidodecahedron:auto": "tsx scripts/verify-sculpture.ts --sculpture sculptures/rhombicosidodecahedron-auto/sculpture.json",

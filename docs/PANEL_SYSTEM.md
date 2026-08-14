@@ -161,15 +161,22 @@ availability comes from the local status endpoint; absent or wrong-version
 OpenSCAD disables generation without disabling panel editing, simulation,
 mapping, wiring, or persistence.
 
-OpenSCAD 2021.01 is an unbundled system prerequisite. `OPENSCAD` may select its
-executable, and the local server must be restarted after installation or repair.
-Successful generation writes and inspects the entire asset set before atomically
-publishing the manifest. Three.js then loads the exact referenced bytes after
-SHA-256 verification; downloads use the same verified bytes. A pose edit
-invalidates the fingerprint and removes the stale set from the current printable
-view. Generation does not copy the referenced design GLB into its output folder.
-Folder and ZIP import/export preserve the verified project asset set through the
-shared relative-path and hash contract.
+OpenSCAD 2021.01 is required but is not bundled. On Debian 13 x86-64 and Ubuntu
+24.04 x86-64, `npm run setup:openscad` downloads the official AppImage and a
+pinned `libgpg-error0` companion into `.tools`. Its source/license/checksum
+manifest and receipt support verified, idempotent, safe-to-retry setup without
+administrator access or a `PATH` change. Runtime selection uses explicit
+`OPENSCAD` first, the valid receipt-backed managed tool second, and the system
+`openscad` on `PATH` last. Restart the local server after setup or repair. Other
+platforms and the all-dependency bootstrap remain INSTALL-011/012 work.
+
+Successful generation writes and inspects the entire asset set before
+atomically publishing the manifest. Three.js then loads the exact referenced
+bytes after SHA-256 verification; downloads use the same verified bytes. A pose
+edit invalidates the fingerprint and removes the stale set from the current
+printable view. Generation does not copy the referenced design GLB into its
+output folder. Folder and ZIP import/export preserve the verified project asset
+set through the shared relative-path and hash contract.
 
 See [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md) for the complete target
 workflow, asset bundle, staleness rules, and acceptance journey.
