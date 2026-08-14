@@ -69,7 +69,11 @@ jobs:
           probe_stl="$RUNNER_TEMP/probe.stl"
           mkdir -p "$mount_point"
           cleanup() { hdiutil detach "$mount_point" >/dev/null 2>&1 || true; }
-          trap cleanup EXIT
+          publish_result() {
+            printf '%s\n' "${failed_labels:-early_failure}" >"$RUNNER_TEMP/failed-labels.txt"
+            cleanup
+          }
+          trap publish_result EXIT
 
           check "Download" curl --fail --location --silent --show-error "$OPENSCAD_DMG_URL" --output "$dmg"
           check "SHA-256" shasum -a 256 --check <(printf '%s  %s\n' "$OPENSCAD_DMG_SHA256" "$dmg")
@@ -122,9 +126,9 @@ jobs:
             strings "$executable" | grep -E '[0-9a-f]{40}' | sort -u | head -n 50 || true
           fi
 
+          printf '%s\n' "${failed_labels:-none}" >"$RUNNER_TEMP/failed-labels.txt"
           cleanup
           trap - EXIT
-          printf '%s\n' "${failed_labels:-none}" >"$RUNNER_TEMP/failed-labels.txt"
           if [ "$failed" -ne 0 ]; then
             exit 1
           fi
