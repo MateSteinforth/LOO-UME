@@ -87,6 +87,43 @@ This file is the persistent source of truth for work status. Read it before star
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
+### `INSTALL-010` Acquire and connect pinned OpenSCAD automatically — P0
+
+- Outcome: a repository-managed installer acquires the supported OpenSCAD build and connects it to the local generator without a manual system installation.
+- Acceptance:
+  - Supported OS/architecture targets and exact upstream artifacts are declared explicitly; unsupported targets fail before changing the checkout.
+  - Downloads use pinned versions, HTTPS, committed SHA-256 checksums, and recorded source/license metadata.
+  - Installation is idempotent, requires no administrator access or PATH changes, and uses a Git-ignored repository tool directory.
+  - Runtime discovery prefers the verified managed tool while preserving an explicit `OPENSCAD` developer override.
+- Depends on: none.
+- Verify: downloader/selection/checksum negatives plus a clean environment that reaches `OpenSCAD version 2021.01` and generates the canonical panel-outline fixture.
+- Docs: replace the manual OpenSCAD prerequisite only after the automatic path is verified.
+
+### `INSTALL-011` Add a one-command clean-checkout bootstrap — P0
+
+- Outcome: after cloning the repository, one platform-appropriate command installs and connects every project dependency needed to build, test, start, and generate parts.
+- Acceptance:
+  - POSIX and PowerShell entry points require only Git and the operating system's standard shell; every other executable is acquired or its function is supplied by a verified repository stage-zero component.
+  - A committed dependency manifest accounts for Node.js/npm, Python, download/archive utilities, OpenSCAD, WLED sources, Emscripten, and every other command invoked by setup or verification.
+  - Bootstrap acquires pinned repository-local Node.js/npm and Python toolchains when absent; it must not silently use an undeclared system executable.
+  - Bootstrap initializes required submodules, installs exact npm dependencies, acquires OpenSCAD through `INSTALL-010`, and installs pinned WLED/Emscripten tooling required by the documented full verification path.
+  - Repeated and interrupted runs are safe and resumable; paths containing spaces work; no global packages, administrator access, or system package-manager changes are required.
+  - Completion verifies generator availability and prints one start command; failures state the failed dependency and exact recovery action.
+- Depends on: `INSTALL-010`.
+- Verify: empty-cache and warm-cache integration tests, interruption recovery, checksum/network failure tests, `npm run verify`, and a local production-server smoke test.
+- Docs: make this the primary installation path and list only Git plus the standard shell as prerequisites.
+
+### `INSTALL-012` Prove automatic installation on clean supported systems — P0
+
+- Outcome: every declared supported platform proves that a fresh clone becomes a working local production editor without a manual Node, npm, Python, OpenSCAD, SDK, utility, PATH, or dependency-wiring step.
+- Acceptance:
+  - CI starts from clean Linux, macOS, and Windows environments for every OS/architecture pair declared supported by the bootstrap.
+  - Each job runs only the documented bootstrap and start commands, sees generator status `available: true`, generates exact STL files with real OpenSCAD, and shuts down cleanly.
+  - Cached tools are verified before reuse; tampered downloads, unsupported systems, offline failures, and partial installs fail safely and actionably.
+- Depends on: `INSTALL-010`, `INSTALL-011`, and reuse of the real-render journey from `CI-010`.
+- Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
+- Docs: publish the tested platform matrix and state clearly which repository installation command applies to each platform.
+
 ### `DOC-010` Reconcile documentation with shipped behavior — P0
 
 - Outcome: the public and architectural docs describe what the repository actually does today.
@@ -94,7 +131,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   - README, `docs/PANEL_SYSTEM.md`, `docs/MECHANICS_WORKFLOW.md`, `docs/DECISIONS.md`, and `docs/ARCHITECTURE.md` no longer describe shipped boundary, exact-STL, or ZIP work as future work.
   - Documentation states that arbitrary new layouts still need a UI path for authoring/confirming gap topology.
   - Claims of implemented ESP32 firmware, DDP, Art-Net, Ethernet, or audio-reactive behavior are removed.
-  - Local-development-only mechanics generation is described honestly.
+  - Local production mechanics generation and the remaining automatic-install gap are described honestly.
 - Depends on: none.
 - Verify: contradiction-focused `rg` checks, link review, `git diff --check`.
 
@@ -267,6 +304,11 @@ None.
 
 - Decision confirmed by the user on 2026-08-14: OpenSCAD runs on the installed computer behind the local interface. A public hosted generation service is not the product architecture.
 - Implementation task: `MECH-011`.
+
+### `HR-010` Repository installation must acquire all dependencies automatically
+
+- Decision confirmed by the user on 2026-08-14: after cloning the repository, no manual Node.js, npm, OpenSCAD, SDK, PATH, or dependency-connection step is acceptable.
+- Implementation sequence: `INSTALL-010`, `INSTALL-011`, and `INSTALL-012`.
 
 ### `CORE-001` Mechanics-free Schema 2 editor (`7b40263`)
 
