@@ -34,6 +34,7 @@ jobs:
           fi
 
       - name: Download and qualify universal snapshot
+        id: qualify
         shell: bash
         env:
           OPENSCAD_DMG_URL: https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg
@@ -44,6 +45,7 @@ jobs:
           touch "$evidence"
           exec > >(tee -a "$evidence" "$GITHUB_STEP_SUMMARY") 2>&1
           failed=0
+          failed_labels=""
           check() {
             label="$1"
             shift
@@ -55,6 +57,8 @@ jobs:
             if [ "$status" -ne 0 ]; then
               annotation=$(printf '%s' "$output" | tr '\n' ' ' | cut -c1-500)
               echo "::error title=$label::Command failed with status $status: $annotation"
+              label_id=$(printf '%s' "$label" | tr '[:upper:] ' '[:lower:]_')
+              failed_labels="${failed_labels}${failed_labels:+-}${label_id}"
               failed=1
             fi
           }
@@ -73,6 +77,7 @@ jobs:
           echo "## Size"
           echo "$actual_size bytes"
           if [ "$actual_size" != "64447344" ]; then
+            failed_labels="${failed_labels}${failed_labels:+-}size"
             echo "::error title=Size::Expected 64447344 bytes; got $actual_size."
             failed=1
           fi
@@ -81,6 +86,7 @@ jobs:
           app="$mount_point/OpenSCAD.app"
           executable="$app/Contents/MacOS/OpenSCAD"
           if [ ! -x "$executable" ]; then
+            failed_labels="${failed_labels}${failed_labels:+-}executable"
             echo "::error title=Executable::The expected OpenSCAD executable is absent."
             failed=1
           else
@@ -94,6 +100,7 @@ jobs:
             printf '%s\n' "$version_output" >"$RUNNER_TEMP/openscad-version.txt"
             if [ "$version_status" -ne 0 ] || ! printf '%s\n' "$version_output" | grep -Eq '^OpenSCAD version 2026\.06\.12([[:space:]]|$)'; then
               echo "::error title=Native version::Expected OpenSCAD version 2026.06.12."
+              failed_labels="${failed_labels}${failed_labels:+-}native_version"
               failed=1
             fi
 
@@ -101,6 +108,7 @@ jobs:
             check "Native STL render" /usr/bin/arch "-${{ matrix.architecture }}" "$executable" --hardwarnings -o "$probe_stl" "$probe_scad"
             if [ ! -s "$probe_stl" ]; then
               echo "::error title=Native STL render::The probe STL is absent or empty."
+              failed_labels="${failed_labels}${failed_labels:+-}native_stl"
               failed=1
             fi
 
@@ -116,6 +124,7 @@ jobs:
 
           cleanup
           trap - EXIT
+          printf 'failed_labels=%s\n' "${failed_labels:-none}" >>"$GITHUB_OUTPUT"
           if [ "$failed" -ne 0 ]; then
             exit 1
           fi
@@ -124,7 +133,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: openscad-macos-${{ matrix.architecture }}-qualification
+          name: openscad-macos-${{ matrix.architecture }}-${{ steps.qualify.outputs.failed_labels }}
           path: |
             ${{ runner.temp }}/openscad-qualification.txt
             ${{ runner.temp }}/openscad-version.txt
