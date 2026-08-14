@@ -227,8 +227,12 @@ This test uses helpers and the generation pipeline. It does not operate the real
 browser controls. `tests/browser/mechanics-free-authoring.spec.ts` now uses
 Playwright Chromium to load a mechanics-free JSON and GLB through the file
 controls, place panels, select and delete a panel, operate simulation and wiring
-controls, and inspect the saved JSON. `TEST-011` still tracks browser coverage
-for folder and ZIP controls.
+controls, and inspect the saved JSON.
+`tests/browser/portable-project.spec.ts` operates the real folder and ZIP
+controls. It imports and exports verified GLB/STL assets, checks their exact
+bytes and hashes, verifies current and stale display states, rejects missing or
+tampered assets, reopens the exported ZIP, and proves that replaced object URLs
+are released.
 
 
 ## Build and test

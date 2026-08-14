@@ -116,8 +116,9 @@ same reference and hash rules and browser-owned object URLs.
 - A helper-level integration test covers panels -> automatic gap detection ->
   persisted topology -> boundary -> parts -> references -> exact STL reload. It
   begins without `boundaryTopology` and never injects cycles. A Playwright smoke
-  test covers the real mechanics-free authoring controls. Folder and ZIP browser
-  interaction coverage remains in `TEST-011`.
+  test covers the real mechanics-free authoring controls. A second Playwright
+  journey covers the real folder/ZIP controls, exact asset transport, stale
+  parts after an edit, invalid assets, reopen, and object-URL release.
 - Folder and ZIP reopening use the same references and hashes, restore GLB and
   exact STL bytes through object URLs, and preserve derived current/stale state.
 - Local generation verifies and copies the referenced GLB to its unchanged safe
@@ -148,8 +149,8 @@ same reference and hash rules and browser-owned object URLs.
   panel-fit checks for every automatic CAD entry.
 - Derive LED-count assumptions from the selected panel profile.
 - Preserve the clean-checkout verification contract as WLED and Emscripten evolve.
-- Extend end-to-end browser interaction coverage to folder/ZIP controls and
-  later generation journeys; retain render checks for geometry.
+- Extend end-to-end browser interaction coverage to the later generation
+  journeys; retain render checks for geometry.
 
 ### 8. Expand fabrication and hardware deliberately
 

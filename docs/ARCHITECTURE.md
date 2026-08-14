@@ -257,11 +257,13 @@ configuration.
 - macOS proof uses native `macos-15` and `macos-15-intel` CI runners. The Intel
   runner label is scheduled to retire in August 2027, so CI must move to a
   supported native Intel label before that date.
-- A Playwright Chromium smoke test now operates the real local JSON and GLB
-  controls, automatic placement, panel selection and deletion, WLED play/pause,
-  mapping and wiring controls, and saved JSON. It also fails on browser page or
-  console errors. Folder and ZIP controls still have helper-level coverage;
-  `TEST-011` tracks their real-browser journey.
+- Playwright Chromium now operates the real local JSON and GLB controls,
+  automatic placement, panel selection and deletion, WLED play/pause, mapping
+  and wiring controls, and saved JSON. It also fails on browser page or console
+  errors. A second real-browser journey operates folder and ZIP import and
+  export, verifies exact GLB/STL bytes and hashes, checks current and stale
+  mechanics, rejects missing or tampered assets, reopens the exported ZIP, and
+  verifies object-URL release when a project is replaced.
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

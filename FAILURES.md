@@ -172,3 +172,73 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   changes.
 - **Evidence:** `tests/browser/mechanics-free-authoring.spec.ts`.
 - **Status:** Resolved.
+
+### F-009 — A staged empty path is not a new-file patch target
+
+- **Date:** 2026-08-14
+- **Context:** Adding the new TEST-011 Playwright specification after the normal
+  patch helper failed with the known sandbox error.
+- **Symptom:** `git apply` refused a `/dev/null` new-file patch because the
+  required empty path already existed in the working tree as the staged base.
+- **Cause:** The fallback mixed two patch models: an existing empty file in the
+  index and a patch that declared the destination as a new file.
+- **Correction:** Keep the exact empty path staged, generate the diff from that
+  empty path to the intended content, apply it, and immediately unstage it.
+- **Prevention:** When the new-file fallback needs a staged base, never generate
+  its patch from `/dev/null`. Inspect the final diff and staging state before
+  continuing.
+- **Evidence:** `AGENTS.md`, under **Working safely**, and TEST-011 integration.
+- **Status:** Resolved.
+
+### F-010 — Portable browser tests used transient status signals and an invalid edit
+
+- **Date:** 2026-08-14
+- **Context:** TEST-011 real-browser folder and ZIP coverage.
+- **Symptom:** Early runs waited for a viewer error that the animation loop
+  cleared, raced startup generator text, timed out on repeated Blob digests,
+  and tried to delete a panel still referenced by stored boundary topology.
+- **Cause:** The test treated transient presentation text and an invalid
+  topology mutation as stable evidence for portable-project behavior.
+- **Correction:** Assert handled import errors in `#pipeline-status`, wait on
+  surface/mapping/control state for success, prove content hashes once, and use
+  automatic additive placement to make the generated mechanics stale validly.
+- **Prevention:** Browser tests must select stable domain-specific signals and
+  valid editor mutations. Do not repeat asynchronous proof after exact byte
+  comparison and production validation already establish the same fact.
+- **Evidence:** `tests/browser/portable-project.spec.ts` and the browser-test
+  rules in `AGENTS.md`.
+- **Status:** Resolved.
+
+### F-011 — An ignored preview output hid a clean-checkout test failure
+
+- **Date:** 2026-08-14
+- **Context:** TEST-011 real-browser folder and ZIP coverage.
+- **Symptom:** The browser test passed in the working tree but its generated
+  project fixture was absent from a clean CI checkout.
+- **Cause:** The first test version read old files below the ignored
+  `web/public/generated-projects/` runtime-output directory.
+- **Correction:** Build the fixture from the tracked panel-outline project with
+  the production generator and a deterministic renderer under
+  `testInfo.outputPath()`.
+- **Prevention:** Confirm that static fixture inputs are tracked. Create derived
+  browser fixtures in the test output directory instead of using ignored local
+  preview output.
+- **Evidence:** `tests/browser/portable-project.spec.ts` and the browser-test
+  rule in `AGENTS.md`.
+- **Status:** Resolved.
+
+### F-012 — WLED readiness did not mean the full editor was ready
+
+- **Date:** 2026-08-14
+- **Context:** TEST-011 independent clean-checkout review.
+- **Symptom:** A portable import started after WLED became ready, then the
+  remaining startup work replaced its error status with generator status.
+- **Cause:** The test used engine readiness as a proxy for completion of
+  generator discovery and initial project restoration.
+- **Correction:** Wait for the initial JSON face-graph surface status before
+  using portable-project controls.
+- **Prevention:** Use a full editor-state signal for file operations. WLED
+  readiness proves only the simulation engine.
+- **Evidence:** `tests/browser/portable-project.spec.ts` and the browser-test
+  rule in `AGENTS.md`.
+- **Status:** Resolved.

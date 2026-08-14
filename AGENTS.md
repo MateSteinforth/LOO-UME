@@ -110,6 +110,9 @@ uses `createPanelAssemblyMapping()`.
   verify that no unrelated path was staged. The standalone `patch` utility is
   not installed in the current environment. Do not stop to rediscover or
   discuss this known workaround unless it also fails.
+  When the empty new path is staged, generate the fallback diff from that path
+  to the intended content, not from `/dev/null`; a new-file patch cannot replace
+  an already present empty working-tree path.
 - Before a line-number-only `git apply --unidiff-zero` fallback in a shared
   worktree, read the exact target again. Prefer context hunks when possible.
   Another agent can change line numbers between inspection and application.
@@ -132,6 +135,19 @@ uses `createPanelAssemblyMapping()`.
 - Do not assume that a repository-local GitHub CLI exists under `.tools`. For
   this public repository, use the public GitHub Actions REST API with `curl`
   when `gh` is absent, and parse the saved JSON response with Node.js.
+- In Playwright portable-project tests, assert handled import failures in
+  `#pipeline-status`; the animation loop can clear `#viewer-error`, and startup
+  generator discovery can replace a pipeline message. Use domain-specific
+  surface, mapping, asset, and control states for successful import waits.
+- WLED engine readiness is not complete editor readiness. Before portable file
+  operations, wait for the initial surface state that is set after generator
+  discovery and project restoration finish.
+- Do not delete a panel that stored `boundaryTopology` still references only to
+  make generated mechanics stale in a test. Use a valid pose change or additive
+  placement that preserves the saved corner-cycle references.
+- Browser and CI tests must not use ignored generated preview output as fixture
+  input. Confirm static fixtures are tracked, or build derived fixtures from
+  tracked authored sources under the test output directory.
 
 - On the macOS GitHub runners, `lipo -verify_arch` returned a false failure for
   the qualified universal OpenSCAD DMG. Do not use that command as the native

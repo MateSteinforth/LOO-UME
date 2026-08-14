@@ -294,6 +294,11 @@ npm run setup:browser
 npm run test:browser
 ```
 
+The Chromium suite operates the real mechanics-free authoring controls and the
+portable folder/ZIP controls. It checks exact GLB/STL bytes and hashes, stale
+parts after an edit, missing or tampered asset errors, ZIP reopen, and release
+of replaced browser object URLs.
+
 `npm test` runs the complete Vitest suite without building or downloading
 anything first. It uses the checked-in
 `web/public/wasm/wled-engine.{js,wasm}` runtime. `npm run test:full` rebuilds

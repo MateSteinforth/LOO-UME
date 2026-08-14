@@ -357,8 +357,10 @@ and current and stale fingerprint states. Container rejection cases
 are covered separately by `tests/portable-project.test.ts`. These tests do not
 operate the real browser interface. The Playwright TEST-010 smoke test covers
 the mechanics-free JSON/GLB authoring controls, automatic placement, panel
-deletion, simulation, mapping, wiring, and save. `TEST-011` tracks the remaining
-folder/ZIP browser-control coverage.
+deletion, simulation, mapping, wiring, and save. The Playwright TEST-011 journey
+operates folder and ZIP import/export, verifies exact GLB/STL bytes and hashes,
+checks current and stale presentation, rejects missing or tampered assets, and
+proves that project replacement releases the prior object URLs.
 
 
 OpenSCAD or the chosen mesh backend must render every changed printable part,
