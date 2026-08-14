@@ -124,16 +124,25 @@ jobs:
 
           cleanup
           trap - EXIT
-          printf 'failed_labels=%s\n' "${failed_labels:-none}" >>"$GITHUB_OUTPUT"
+          printf '%s\n' "${failed_labels:-none}" >"$RUNNER_TEMP/failed-labels.txt"
           if [ "$failed" -ne 0 ]; then
             exit 1
           fi
+
+      - name: Publish qualification result
+        id: diagnosis
+        if: always()
+        shell: bash
+        run: |
+          labels=$(cat "$RUNNER_TEMP/failed-labels.txt" 2>/dev/null || printf unknown)
+          printf 'failed_labels=%s\n' "$labels" >>"$GITHUB_OUTPUT"
+          printf 'Qualification checks: %s\n' "$labels"
 
       - name: Upload qualification evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: openscad-macos-${{ matrix.architecture }}-${{ steps.qualify.outputs.failed_labels }}
+          name: openscad-macos-${{ matrix.architecture }}-${{ steps.diagnosis.outputs.failed_labels }}
           path: |
             ${{ runner.temp }}/openscad-qualification.txt
             ${{ runner.temp }}/openscad-version.txt
