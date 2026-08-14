@@ -1,16 +1,21 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { resolve } from "node:path";
 import {
+  detectOpenScadHost,
+  loadOpenScadDistribution,
   resolveManagedOpenScadCommand,
+  selectOpenScadTarget,
+  type OpenScadTarget,
 } from "./OpenScadDistribution.ts";
 
+/** The supported version on the retained Linux x86-64 target. */
 export const SUPPORTED_OPENSCAD_VERSION = "2021.01";
 
 export interface OpenScadGeneratorStatus {
   schemaVersion: "1.0.0";
   available: boolean;
   generator: "openscad";
-  supportedVersion: typeof SUPPORTED_OPENSCAD_VERSION;
+  supportedVersion: OpenScadTarget["version"];
   detectedVersion?: string;
   message: string;
 }
@@ -24,6 +29,8 @@ export interface OpenScadRuntime {
 export interface OpenScadCommand {
   command: string;
   environment: NodeJS.ProcessEnv;
+  expectedVersion: OpenScadTarget["version"];
+  targetId?: OpenScadTarget["id"];
 }
 
 function failureMessage(detail: string): string {
@@ -35,12 +42,28 @@ export function parseOpenScadVersion(output: string): string | undefined {
 }
 
 export function resolveOpenScadCommand(
-  _rootDirectory: string,
+  rootDirectory: string,
   executable = process.env.OPENSCAD,
 ): OpenScadCommand {
+  let expectedVersion: OpenScadTarget["version"] = SUPPORTED_OPENSCAD_VERSION;
+  let targetId: OpenScadTarget["id"] | undefined;
+  try {
+    const target = selectOpenScadTarget(
+      loadOpenScadDistribution(rootDirectory),
+      detectOpenScadHost(),
+    );
+    if (target) {
+      expectedVersion = target.version;
+      targetId = target.id;
+    }
+  } catch {
+    // Keep the legacy version if the target manifest cannot be loaded.
+  }
   return {
     command: executable?.trim() || "openscad",
     environment: process.env,
+    expectedVersion,
+    targetId,
   };
 }
 
@@ -131,17 +154,17 @@ async function discoverOpenScad(
         lastFailure = "The OpenSCAD version could not be read.";
         continue;
       }
-      if (detectedVersion !== SUPPORTED_OPENSCAD_VERSION) {
+      if (detectedVersion !== command.expectedVersion) {
         mismatch ??= {
           command,
           status: {
             schemaVersion: "1.0.0",
             available: false,
             generator: "openscad",
-            supportedVersion: SUPPORTED_OPENSCAD_VERSION,
+            supportedVersion: command.expectedVersion,
             detectedVersion,
             message: failureMessage(
-              `OpenSCAD ${detectedVersion} is installed, but this project supports ${SUPPORTED_OPENSCAD_VERSION}.`,
+              `OpenSCAD ${detectedVersion} is installed, but this target supports ${command.expectedVersion}.`,
             ),
           },
         };
@@ -153,7 +176,7 @@ async function discoverOpenScad(
           schemaVersion: "1.0.0",
           available: true,
           generator: "openscad",
-          supportedVersion: SUPPORTED_OPENSCAD_VERSION,
+          supportedVersion: command.expectedVersion,
           detectedVersion,
           message: `OpenSCAD ${detectedVersion} is ready for local generation.`,
         },
@@ -171,7 +194,7 @@ async function discoverOpenScad(
       schemaVersion: "1.0.0",
       available: false,
       generator: "openscad",
-      supportedVersion: SUPPORTED_OPENSCAD_VERSION,
+      supportedVersion: candidates[0]!.expectedVersion,
       message: failureMessage(lastFailure ?? "OpenSCAD was not found."),
     },
   };

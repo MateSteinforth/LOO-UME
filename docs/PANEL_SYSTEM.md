@@ -161,14 +161,23 @@ availability comes from the local status endpoint; absent or wrong-version
 OpenSCAD disables generation without disabling panel editing, simulation,
 mapping, wiring, or persistence.
 
-OpenSCAD 2021.01 is required but is not bundled. On Debian 13 x86-64 and Ubuntu
-24.04 x86-64, `npm run setup:openscad` downloads the official AppImage and a
-pinned `libgpg-error0` companion into `.tools`. Its source/license/checksum
-manifest and receipt support verified, idempotent, safe-to-retry setup without
-administrator access or a `PATH` change. Runtime selection uses explicit
-`OPENSCAD` first, the valid receipt-backed managed tool second, and the system
-`openscad` on `PATH` last. Restart the local server after setup or repair. Other
-platforms and the all-dependency bootstrap remain INSTALL-011/012 work.
+OpenSCAD is required but is not stored in the repository. On Debian 13 x86-64,
+Ubuntu 24.04 x86-64, and macOS 15 on native Apple Silicon arm64 or Intel
+x86-64, `npm run setup:openscad` installs a verified target-specific tool in
+`.tools`. Linux uses OpenSCAD 2021.01. macOS uses the official universal
+OpenSCAD 2026.06.12 snapshot. Its pinned DMG is 64,447,344 bytes with SHA-256
+`555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
+The manifest records source and license metadata, but no exact macOS source
+revision because upstream does not publish one.
+
+Setup needs no administrator access or `PATH` change. macOS needs no manual
+OpenSCAD install or Rosetta. The read-only DMG, app-only copy, native Mach-O
+check, mount cleanup, target receipt, and atomic publication make setup safe to
+retry. Runtime selection uses explicit `OPENSCAD` first, the valid
+receipt-backed managed tool for the current target second, and the system
+`openscad` on `PATH` last. Restart the local server after setup or repair.
+Windows and the all-dependency bootstrap remain INSTALL-014/011 work;
+INSTALL-012 tracks proof on all declared targets.
 
 Successful generation writes and inspects the entire asset set before
 atomically publishing the manifest. Three.js then loads the exact referenced

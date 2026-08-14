@@ -5,7 +5,6 @@ import { resolveManagedOpenScadCommand } from "../src/cad/OpenScadDistribution.t
 import {
   createOpenScadRuntime,
   type OpenScadRuntime,
-  SUPPORTED_OPENSCAD_VERSION,
 } from "../src/cad/OpenScadRuntime.ts";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 
@@ -30,7 +29,8 @@ try {
   runtime = await createOpenScadRuntime(rootDirectory);
   if (
     !runtime.status.available ||
-    runtime.status.detectedVersion !== SUPPORTED_OPENSCAD_VERSION
+    runtime.status.detectedVersion !== managed.expectedVersion ||
+    runtime.status.supportedVersion !== managed.expectedVersion
   ) {
     throw new Error(
       `Managed OpenSCAD verification failed: ${runtime.status.message}`,
@@ -60,7 +60,7 @@ try {
   }
 
   console.log(
-    `Verified managed OpenSCAD ${runtime.status.detectedVersion}: generated and inspected ${actualPartIds.join(", ")} in build/verify-managed-openscad.`,
+    `Verified ${managed.targetId} managed OpenSCAD ${runtime.status.detectedVersion}: generated and inspected ${actualPartIds.join(", ")} in build/verify-managed-openscad.`,
   );
 } finally {
   await runtime?.close();

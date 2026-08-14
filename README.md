@@ -71,11 +71,11 @@ current limitations are recorded in [TECH_NOTES.md](TECH_NOTES.md).
 
 ### Run the local desktop editor
 
-OpenSCAD 2021.01 is required for printable-part generation, but its binary is
-not bundled in the application. Automatic repository-local setup currently
-supports Debian 13 x86-64 and Ubuntu 24.04 x86-64. Install the project
-dependencies, set up the managed tool, then build and start the production
-interface locally:
+OpenSCAD is required for printable-part generation, but its binary is not
+stored in this repository. Automatic repository-local setup supports Debian 13
+x86-64, Ubuntu 24.04 x86-64, and macOS 15 on Apple Silicon arm64 or Intel
+x86-64. Install the project dependencies, set up the managed tool, then build
+and start the production interface locally:
 
 ```bash
 npm ci
@@ -83,13 +83,26 @@ npm run setup:openscad
 npm run desktop
 ```
 
-`npm run setup:openscad` downloads the official OpenSCAD AppImage and a pinned
-`libgpg-error0` companion into `.tools`. The committed
-`toolchains/openscad-2021.01.json` manifest records their source and license
-information, exact sizes, and SHA-256 checksums. Setup does not need
-administrator access and does not change `PATH`. It reuses a valid
-receipt-backed install. It stages and verifies replacements before publication,
-so an interrupted or failed setup is safe to retry.
+`npm run setup:openscad` selects the host target and installs it in `.tools`.
+Linux uses OpenSCAD 2021.01 from the official AppImage plus a pinned
+`libgpg-error0` companion. macOS uses the official universal
+`OpenSCAD-2026.06.12.dmg` snapshot. The macOS artifact URL is
+`https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg`; its exact size
+is 64,447,344 bytes and its SHA-256 is
+`555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
+The committed `toolchains/openscad-distributions.json` manifest records the
+targets, sources, licenses, sizes, and checksums. The upstream macOS snapshot
+does not publish a verified exact source revision, so the manifest records the
+source repository and license but does not claim a revision.
+
+Setup does not need administrator access, change `PATH`, or copy an app into
+`/Applications`. On macOS, it does not need a manual OpenSCAD install or
+Rosetta. It mounts the DMG read-only, copies only `OpenSCAD.app` into the
+repository-local staging directory, validates the app tree and native Mach-O
+slice, and always detaches and removes the temporary mount. A target-specific
+receipt records the expected version and artifacts. Valid receipt-backed
+installs are reused. Replacements are verified and published atomically, so a
+failed setup is safe to retry.
 
 `npm run desktop` creates a fresh production web build before starting the
 loopback server. Open the printed URL, normally `http://127.0.0.1:4173/`. Set
@@ -101,21 +114,22 @@ OPENSCAD=/absolute/path/to/openscad ORBITAL_LAB_PORT=4300 npm run desktop
 ```
 
 The server first uses an explicit `OPENSCAD` override. Without an override, it
-prefers the receipt-backed managed tool and then falls back to the system
-`openscad` on `PATH`. The browser reads actual generator status from the local
-server. If OpenSCAD is missing or not version 2021.01, editing, simulation,
-mapping, wiring, and project save/reopen remain available while **Generate 3D
-Parts** is disabled with repair instructions. Run `npm run setup:openscad` or
-repair the selected tool, then restart `npm run desktop` so the startup probe
-runs again. Sculpture data, assets, and OpenSCAD stay on this computer; there is
-no hosted generation service. Stop with Ctrl-C; SIGINT and SIGTERM close the
-HTTP server and active generator processes cleanly.
+prefers the receipt-backed managed tool for the current target and then falls
+back to the system `openscad` on `PATH`. The required version is target-specific:
+2021.01 on Linux and 2026.06.12 on macOS. The browser reads actual generator
+status from the local server. A missing or wrong-version tool disables
+**Generate 3D Parts**, but editing, simulation, mapping, wiring, and project
+save/reopen remain available. Run `npm run setup:openscad` or repair the
+selected tool, then restart `npm run desktop` so the startup probe runs again.
+Sculpture data, assets, and OpenSCAD stay on this computer; there is no hosted
+generation service. Stop with Ctrl-C; SIGINT and SIGTERM close the HTTP server
+and active generator processes cleanly.
 
-Other operating systems and architectures are not supported by this setup
-slice. Node.js, npm, and the standard `dpkg-deb` command must already be
-available. INSTALL-011 and INSTALL-012 track the remaining platform work and
-the all-dependency bootstrap; do not treat this command as a complete
-clean-clone installer.
+Windows and other undeclared targets are not supported by this setup slice.
+Node.js and npm must already be available; Linux also needs the standard
+`dpkg-deb` command. INSTALL-014 tracks Windows support. INSTALL-011 and
+INSTALL-012 track the all-dependency bootstrap and proof on all declared
+targets. Do not treat this command as a complete clean-clone installer.
 
 ## Canonical sculpture description
 
@@ -258,9 +272,10 @@ the SDK.
 
 ## Build locally
 
-Install the npm dependencies, Xvfb, and xauth. On Debian 13 x86-64 or Ubuntu
-24.04 x86-64, acquire the managed OpenSCAD 2021.01 tool before you generate the
-mapping, WLED preview, CAD entrypoint, and CAD manifest:
+Install the npm dependencies. Linux rendering also needs Xvfb and xauth. On a
+supported Linux or macOS target, acquire the target-specific managed OpenSCAD
+tool before you generate the mapping, WLED preview, CAD entrypoint, and CAD
+manifest:
 
 ```bash
 npm ci

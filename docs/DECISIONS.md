@@ -122,30 +122,52 @@ or other generated build directories.
 
 **Decision.** The production editor is built and served on the user's computer,
 and it runs the same bounded generation handler as Vite development. OpenSCAD
-2021.01 is not bundled in the application. On Debian 13 x86-64 and Ubuntu 24.04
-x86-64, the repository can install it as a managed local tool without
-administrator access or a `PATH` change. Runtime discovery tries explicit
-`OPENSCAD`, then a valid receipt-backed managed tool, then the system `openscad`
-on `PATH`. No sculpture data or generation job requires a hosted service.
+is not stored in the repository. The repository can install a managed local
+tool on Debian 13 x86-64, Ubuntu 24.04 x86-64, and macOS 15 on native Apple
+Silicon arm64 or Intel x86-64. Setup needs no administrator access or `PATH`
+change. It also needs no manual OpenSCAD install or Rosetta on macOS. Runtime
+discovery tries explicit `OPENSCAD`, then a valid receipt-backed managed tool
+for the current target, then the system `openscad` on `PATH`. No sculpture data
+or generation job requires a hosted service.
 
 **Evidence.** `scripts/local-editor-server.ts`,
 `scripts/editor-pipeline-handler.ts`, `src/cad/OpenScadRuntime.ts`,
 `src/cad/OpenScadDistribution.ts`, `scripts/setup-openscad.ts`,
-`toolchains/openscad-2021.01.json`, `web/src/GeneratorStatus.ts`, and the
+`toolchains/openscad-distributions.json`, `web/src/GeneratorStatus.ts`, and the
 desktop/server/status/distribution tests.
 
-**Consequence.** `npm run setup:openscad` downloads the official AppImage and a
-pinned `libgpg-error0` companion into `.tools`. The committed manifest records
-source and license information, sizes, and SHA-256 checksums. Staging, receipt
-validation, atomic publication, and valid-install reuse make setup safe to
-retry. The browser discovers actual generator status and disables only
-printable generation when OpenSCAD is unavailable. Setup or repair requires a
-restart because discovery happens at startup. The server binds to loopback,
-requires same-origin generation requests, and handles SIGINT/SIGTERM by closing
-the listener and active child processes. Packaging must not silently introduce
-a remote service or bundled OpenSCAD binary. INSTALL-011 tracks the complete
-all-dependency clean-clone bootstrap, including other targets. INSTALL-012
-tracks proof on every declared supported target.
+**Consequence.** `npm run setup:openscad` installs OpenSCAD 2021.01 for the
+declared Linux targets and OpenSCAD 2026.06.12 for the declared macOS targets.
+The macOS universal DMG is
+`https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg`, with exact size
+64,447,344 bytes and SHA-256
+`555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
+The manifest records the upstream source repository and the
+GPL-2.0-or-later-with-CGAL-exception license. It does not claim an exact macOS
+snapshot source revision because upstream does not publish one.
+
+On macOS, setup mounts the DMG read-only, copies only `OpenSCAD.app` into
+`.tools`, validates the app tree and native Mach-O slice, and detaches and
+removes the temporary mount on success or failure. The receipt records the
+target, expected and detected version, artifacts, executable, and library
+directories. Staging, receipt validation, atomic publication, and valid-install
+reuse make setup safe to retry. Native artifact qualification also proved the
+code signature, Gatekeeper acceptance, and DMG notarization. CI proves the
+managed process without a system OpenSCAD on native `macos-15` arm64 and
+`macos-15-intel` x86-64 runners. It runs setup twice, generates and inspects two
+real STLs, starts the production local server, checks its status and static
+content, and proves clean shutdown. The `macos-15-intel` label is scheduled to
+retire in August 2027. CI must migrate to a supported native Intel runner before
+then.
+
+The browser discovers actual generator status and disables only printable
+generation when OpenSCAD is unavailable. Setup or repair requires a restart
+because discovery happens at startup. The server binds to loopback, requires
+same-origin generation requests, and handles SIGINT/SIGTERM by closing the
+listener and active child processes. Packaging must not silently introduce a
+remote service or stored OpenSCAD binary. Windows support remains INSTALL-014
+work. INSTALL-011 tracks the complete all-dependency clean-clone bootstrap, and
+INSTALL-012 tracks proof on every declared supported target.
 
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in

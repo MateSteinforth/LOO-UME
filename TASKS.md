@@ -88,19 +88,6 @@ This file is the persistent source of truth for work status. Read it before star
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
 
-### `INSTALL-013` Acquire and connect pinned OpenSCAD on macOS — P0
-
-- Outcome: the managed OpenSCAD path works after a repository clone on supported Apple Silicon and Intel Macs without a manual OpenSCAD, Rosetta, administrator, or `PATH` step.
-- Acceptance:
-  - The manifest declares exact supported macOS versions and architectures, pinned program/runtime artifacts, HTTPS sources, sizes, SHA-256 values, and source/license metadata.
-  - Setup selects native artifacts for `darwin-arm64` and `darwin-x64`, or builds a pinned native tool when no trusted upstream artifact exists; it must not require Rosetta.
-  - Installation remains repository-local, receipt-backed, atomic, idempotent, safe after interruption, and compatible with paths containing spaces.
-  - Runtime selection remains explicit `OPENSCAD`, then the verified managed tool, then a system fallback.
-  - A clean macOS proof reaches the supported OpenSCAD version, starts the local production editor with generator status available, generates the canonical two-part STL fixture, and shuts down cleanly.
-- Depends on: `INSTALL-010` for the shared manifest, receipt, download, and runtime model.
-- Verify: macOS unit tests plus required clean-host jobs for every declared macOS architecture; no preinstalled OpenSCAD or Rosetta may satisfy the proof.
-- Docs: publish the exact macOS support matrix and one repository setup command only after both architecture proofs pass.
-
 ### `INSTALL-014` Acquire and connect pinned OpenSCAD on Windows x86-64 — P0
 
 - Outcome: the managed OpenSCAD path works after a repository clone on Windows 10/11 x86-64 (`win32-x64`) PCs without a manual OpenSCAD, administrator, installer UI, or `PATH` step.
@@ -205,8 +192,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-None.
-
 ## Blocked
 
 ### `UI-010` Complete the arbitrary-project acceptance journey
@@ -276,6 +261,28 @@ None.
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Done
+
+### `INSTALL-013` Acquire and connect pinned OpenSCAD on macOS
+
+- `npm run setup:openscad` now acquires the pinned official universal OpenSCAD
+  2026.06.12 DMG on macOS 15 arm64 and x86-64. It verifies the exact size and
+  SHA-256 value and publishes a target-bound receipt below the ignored `.tools`
+  path.
+- Setup rejects Rosetta and wrong native hosts before writes, mounts the DMG
+  read-only, copies only `OpenSCAD.app`, validates the native Mach-O slice and
+  app tree, cleans normal and partial mounts, and preserves atomic retry and
+  warm reuse in repository paths that contain spaces.
+- Runtime selection remains explicit `OPENSCAD`, then the verified native
+  managed tool, then a supported system fallback. Linux 2021.01 behavior is
+  unchanged.
+- Artifact qualification run `31803416226` passed native version and STL
+  rendering, signature, Gatekeeper, and DMG notarization checks on Apple
+  Silicon and Intel. Permanent run `31806091066` passed setup twice and the real
+  two-STL local production-server and shutdown journey on both native targets.
+- Independent review passed after runtime fallback, DMG cleanup, permanent CI,
+  and Apple-tool preflight findings were corrected. All 181 Vitest tests,
+  TypeScript, the production web build, YAML lint, Linux real-render regression,
+  local server verification, and diff hygiene passed.
 
 ### `INSTALL-010` Acquire and connect pinned OpenSCAD automatically
 

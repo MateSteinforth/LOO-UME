@@ -22,6 +22,7 @@
     "verify:cad": "tsx scripts/verify-cad.ts",
     "verify:openscad": "tsx scripts/verify-openscad-install.ts",
     "verify:sculpture": "tsx scripts/verify-sculpture.ts",
+    "verify:desktop-install": "tsx scripts/verify-local-editor-install.ts",
     "verify:cuboctahedron": "tsx scripts/verify-sculpture.ts --sculpture sculptures/cuboctahedron/sculpture.json",
     "verify:rhombicosidodecahedron:auto": "tsx scripts/verify-sculpture.ts --sculpture sculptures/rhombicosidodecahedron-auto/sculpture.json",
     "verify:truncated-octahedron": "tsx scripts/verify-sculpture.ts --sculpture sculptures/truncated-octahedron/sculpture.json",

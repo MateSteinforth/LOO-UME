@@ -5,11 +5,24 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createManagedOpenScadReceipt,
   loadOpenScadDistribution,
+  managedOpenScadDirectory,
+  OPENSCAD_MANIFEST_PATH,
+  selectOpenScadTarget,
+  type HostDescription,
 } from "../src/cad/OpenScadDistribution.ts";
 import {
   parseOpenScadVersion,
   probeOpenScad,
 } from "../src/cad/OpenScadRuntime.ts";
+const testState = vi.hoisted(() => ({
+  host: {
+    platform: "linux",
+    architecture: "x64",
+    osRelease: "ID=ubuntu\nVERSION_ID=24.04\nVERSION_CODENAME=noble\n",
+    glibcVersion: "2.39",
+  } as HostDescription,
+}));
+const linuxHost = { ...testState.host };
 
 vi.mock("../src/cad/OpenScadDistribution.ts", async (importOriginal) => {
   const actual = await importOriginal<
@@ -17,6 +30,7 @@ vi.mock("../src/cad/OpenScadDistribution.ts", async (importOriginal) => {
   >();
   return {
     ...actual,
+    detectOpenScadHost: () => testState.host,
     resolveManagedOpenScadCommand(
       rootDirectory: string,
       manifest?: Parameters<typeof actual.resolveManagedOpenScadCommand>[1],
@@ -26,13 +40,7 @@ vi.mock("../src/cad/OpenScadDistribution.ts", async (importOriginal) => {
         rootDirectory,
         manifest,
         environment,
-        {
-          platform: "linux",
-          architecture: "x64",
-          osRelease:
-            "ID=ubuntu\nVERSION_ID=24.04\nVERSION_CODENAME=noble\n",
-          glibcVersion: "2.39",
-        },
+        testState.host,
       );
     },
   };
@@ -46,6 +54,7 @@ afterEach(async () => {
   await Promise.all(temporaryDirectories.splice(0).map((directory) =>
     rm(directory, { recursive: true, force: true })
   ));
+  testState.host = { ...linuxHost };
   if (originalPath === undefined) delete process.env.PATH;
   else process.env.PATH = originalPath;
   if (originalLibraryPath === undefined) delete process.env.LD_LIBRARY_PATH;
@@ -71,7 +80,7 @@ async function fixtureRoot(prefix: string): Promise<string> {
   const manifest = loadOpenScadDistribution(process.cwd());
   await mkdir(join(root, "toolchains"), { recursive: true });
   await writeFile(
-    join(root, "toolchains/openscad-2021.01.json"),
+    join(root, OPENSCAD_MANIFEST_PATH),
     `${JSON.stringify(manifest, null, 2)}\n`,
     "utf8",
   );
@@ -80,16 +89,17 @@ async function fixtureRoot(prefix: string): Promise<string> {
 
 async function installManagedFixture(root: string, source: string): Promise<void> {
   const manifest = loadOpenScadDistribution(root);
-  const installation = join(root, ".tools/openscad-2021.01");
-  const executable = join(installation, manifest.target.executable);
-  for (const directory of manifest.target.libraryDirectories) {
+  const target = selectOpenScadTarget(manifest, testState.host)!;
+  const installation = managedOpenScadDirectory(root, target);
+  const executable = join(installation, target.executable);
+  for (const directory of target.libraryDirectories) {
     await mkdir(join(installation, directory), { recursive: true });
   }
   await mkdir(dirname(executable), { recursive: true });
   await writeExecutable(executable, source);
   await writeFile(
     join(installation, "install.json"),
-    `${JSON.stringify(createManagedOpenScadReceipt(manifest), null, 2)}\n`,
+    `${JSON.stringify(createManagedOpenScadReceipt(target), null, 2)}\n`,
     "utf8",
   );
 }
@@ -184,6 +194,95 @@ describe("OpenSCAD runtime probe", () => {
     const status = await probeOpenScad(root, undefined);
     expect(status).toMatchObject({ available: true, detectedVersion: "2021.01" });
     expect(process.env.LD_LIBRARY_PATH).toBe("operator-libs");
+  });
+
+  it("falls back to a supported system command after a managed version mismatch", async () => {
+    const root = await fixtureRoot("openscad-managed-mismatch-");
+    const bin = join(root, "bin");
+    await mkdir(bin, { recursive: true });
+    await writeExecutable(
+      join(bin, "openscad"),
+      "printf '%s\\n' 'OpenSCAD version 2021.01'",
+    );
+    await installManagedFixture(
+      root,
+      "printf '%s\\n' 'OpenSCAD version 2025.03'",
+    );
+    process.env.PATH = bin;
+
+    const status = await probeOpenScad(root, undefined);
+    expect(status).toMatchObject({
+      available: true,
+      supportedVersion: "2021.01",
+      detectedVersion: "2021.01",
+    });
+  });
+
+  it("uses the macOS target version without changing its environment", async () => {
+    const root = await fixtureRoot("openscad-macos-version-");
+    testState.host = {
+      platform: "darwin",
+      architecture: "arm64",
+      osRelease: "",
+      glibcVersion: undefined,
+      operatingSystemVersion: "15.7",
+    };
+    process.env.LD_LIBRARY_PATH = "operator-libs";
+    await installManagedFixture(root, [
+      "if [ \"$LD_LIBRARY_PATH\" = \"operator-libs\" ]; then",
+      "  printf '%s\\n' 'OpenSCAD version 2026.06.12'",
+      "else",
+      "  printf '%s\\n' 'OpenSCAD version 2021.01'",
+      "fi",
+    ].join("\n"));
+
+    const status = await probeOpenScad(root, undefined);
+    expect(status).toEqual({
+      schemaVersion: "1.0.0",
+      available: true,
+      generator: "openscad",
+      supportedVersion: "2026.06.12",
+      detectedVersion: "2026.06.12",
+      message: "OpenSCAD 2026.06.12 is ready for local generation.",
+    });
+    expect(process.env.LD_LIBRARY_PATH).toBe("operator-libs");
+  });
+
+  it("ignores a receipt for another native target", async () => {
+    const root = await fixtureRoot("openscad-cross-target-receipt-");
+    testState.host = {
+      platform: "darwin",
+      architecture: "arm64",
+      osRelease: "",
+      glibcVersion: undefined,
+      operatingSystemVersion: "15.7",
+    };
+    await installManagedFixture(
+      root,
+      "printf '%s\\n' 'OpenSCAD version 2025.03'",
+    );
+    const manifest = loadOpenScadDistribution(root);
+    const macTarget = selectOpenScadTarget(manifest, testState.host)!;
+    const linuxTarget = manifest.targets.find(({ id }) => id === "linux-x64")!;
+    await writeFile(
+      join(managedOpenScadDirectory(root, macTarget), "install.json"),
+      `${JSON.stringify(createManagedOpenScadReceipt(linuxTarget), null, 2)}\n`,
+      "utf8",
+    );
+    const bin = join(root, "bin");
+    await mkdir(bin, { recursive: true });
+    await writeExecutable(
+      join(bin, "openscad"),
+      "printf '%s\\n' 'OpenSCAD version 2026.06.12'",
+    );
+    process.env.PATH = bin;
+
+    const status = await probeOpenScad(root, undefined);
+    expect(status).toMatchObject({
+      available: true,
+      supportedVersion: "2026.06.12",
+      detectedVersion: "2026.06.12",
+    });
   });
 
   it.each(["missing", "invalid"])(

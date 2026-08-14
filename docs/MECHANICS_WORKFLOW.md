@@ -132,8 +132,9 @@ removes the staging directory and retains the prior bundle.
 
 ## Local desktop generation host
 
-OpenSCAD 2021.01 is required but is not bundled by WLED Orbital Lab. Automatic
-repository-local setup supports Debian 13 x86-64 and Ubuntu 24.04 x86-64:
+OpenSCAD is required but is not stored in the WLED Orbital Lab repository.
+Automatic repository-local setup supports Debian 13 x86-64, Ubuntu 24.04
+x86-64, and macOS 15 on Apple Silicon arm64 or Intel x86-64:
 
 ```bash
 npm ci
@@ -141,12 +142,21 @@ npm run setup:openscad
 npm run desktop
 ```
 
-Setup downloads the official AppImage and a pinned `libgpg-error0` companion
-into `.tools`. The committed toolchain manifest records their source and
-license information, exact sizes, and SHA-256 checksums. Setup does not need
-administrator access or change `PATH`. It publishes a verified staging tree
-atomically, records a receipt, reuses a valid managed install, and is safe to
-retry after failure.
+Setup selects the host target and installs it in `.tools`. Linux uses OpenSCAD
+2021.01 from the official AppImage and a pinned `libgpg-error0` companion.
+macOS uses the official universal OpenSCAD 2026.06.12 DMG. Its URL is
+`https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg`, its exact size
+is 64,447,344 bytes, and its SHA-256 is
+`555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
+The toolchain manifest records source and license metadata but does not claim
+an exact macOS source revision because upstream does not publish one.
+
+Setup does not need administrator access or change `PATH`. macOS needs no
+manual OpenSCAD install or Rosetta. Setup uses a read-only DMG mount, copies
+only `OpenSCAD.app` into the local staging tree, validates the app tree and
+native Mach-O slice, and cleans up the mount. It publishes the verified tree
+atomically, records the target and version in a receipt, reuses a valid managed
+install, and is safe to retry after failure.
 
 `npm run desktop` performs a fresh production build and starts the local
 server. It prints a loopback URL at `127.0.0.1`, using port 4173 unless
@@ -155,18 +165,20 @@ server. It prints a loopback URL at `127.0.0.1`, using port 4173 unless
 valid receipt-backed managed tool and then falls back to the system `openscad`
 on `PATH`.
 
-At startup the server probes the exact OpenSCAD version. Both the production
-host and Vite development use the same bounded handler for
+At startup the server probes the exact target version: 2021.01 on Linux and
+2026.06.12 on macOS. Both the production host and Vite development use the same
+bounded handler for
 `/api/generator-status` and `/api/editor-pipeline`. The browser fetches status
 instead of inferring availability from its build mode. Missing, unreadable, or
 wrong-version OpenSCAD disables **Generate 3D Parts** with direct repair
 guidance; editing, simulation, mapping, wiring, save, and reopen continue. After
 setup or repair, restart the server to repeat discovery.
 
-Node.js, npm, the supported host's standard `dpkg-deb` command, and all other
-project dependencies are not installed by this setup command. INSTALL-011
-tracks the complete clean-clone bootstrap, including other targets. INSTALL-012
-tracks proof on every declared supported target.
+Node.js, npm, and all other project dependencies are not installed by this
+setup command. Linux also needs its standard `dpkg-deb` command. Windows is not
+yet supported. INSTALL-014 tracks Windows support, INSTALL-011 tracks the
+complete clean-clone bootstrap, and INSTALL-012 tracks proof on every declared
+supported target.
 
 The HTTP server, project data, generated assets, and OpenSCAD process all remain
 on the local computer. Generation is same-origin and loopback-only. Ctrl-C
