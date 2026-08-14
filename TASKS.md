@@ -169,19 +169,14 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-### `TEST-010` Add a real browser smoke test for mechanics-free authoring — P0
-
-- Outcome: cover the actual interface rather than only helper modules.
-- Acceptance: a browser loads the app, imports a mechanics-free project and GLB, auto-places panels, edits/deletes a panel, keeps simulation/mapping/wiring usable, saves, and reports no page or console errors.
-- Depends on: none. Choose and document the smallest suitable browser harness as part of the slice.
-- Verify: local test command and CI job both pass from a clean checkout.
+No implementation task is active.
 
 ## Blocked
 
 ### `UI-010` Complete the arbitrary-project acceptance journey
 
 - Outcome: GLB -> auto-place -> manual edit -> topology -> boundary -> exact STL parts -> display -> ZIP -> reopen works through the real UI.
-- Remaining blockers: `TEST-010` and `TEST-011`; automatic topology detection shipped in `MECH-010`, and local production generation shipped in `MECH-011`.
+- Remaining blocker: `TEST-011`; automatic topology detection shipped in `MECH-010`, local production generation shipped in `MECH-011`, and real browser mechanics-free authoring coverage shipped in `TEST-010`.
 - Acceptance: no hand-authored topology, fake renderer, or manual asset injection is required by the test.
 
 ### `WIRE-011` Edit and confirm routes in the browser
@@ -245,6 +240,13 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Done
+
+### `TEST-010` Add a real browser smoke test for mechanics-free authoring
+
+- Playwright Chromium now operates the real browser controls from a clean Vite host. It imports a mechanics-free Schema 2 project and a deterministic GLB, auto-places panels, selects and deletes a panel, uses mapping and wiring controls, pauses and resumes the WLED simulator, and saves the edited project.
+- The test verifies the saved panel set, chain length, design-surface reference, mechanics-free state, and absence of browser page and console errors. It also records traces, screenshots, and video on failure.
+- Local verification passed: one Playwright browser test, all 230 Vitest tests, TypeScript, the production web build, workflow YAML validation, and diff hygiene. An independent review approved the slice.
+- Exact clean CI evidence: workflow run `31836393437`, Chromium job `94883512745`, commit `43671de34eab0123040befd526c4f1b29ebaf4b3`.
 
 ### `INSTALL-011A` Commit the reviewed stage-zero bootstrap executables
 
