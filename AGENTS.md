@@ -5,6 +5,8 @@ LED sculptures. The browser application is **WLED Orbital Lab**. Start with
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); use
 [`docs/PANEL_SYSTEM.md`](docs/PANEL_SYSTEM.md) for geometry work and
 [`docs/LED_MAPPING.md`](docs/LED_MAPPING.md) for addressing or wiring work.
+To establish this workflow in another repository, follow
+[`docs/AGENTIC_WORKFLOW_BOOTSTRAP.md`](docs/AGENTIC_WORKFLOW_BOOTSTRAP.md).
 
 ## Sources of truth
 
@@ -73,9 +75,9 @@ uses `createPanelAssemblyMapping()`.
   changes; avoid chat-history handovers as the only record.
 - Use ASD-STE100 simplified technical English for all operator-facing updates,
   questions, and handoffs.
-- Record each recurring environment or tool failure and its verified solution
-  in `AGENTS.md` or the relevant knowledge page. Reuse the recorded solution;
-  do not repeat the failed discovery process.
+- Record each reusable failure and its verified solution in `FAILURES.md`.
+  Promote recurring prevention rules into `AGENTS.md` or the relevant knowledge
+  page. Reuse the recorded solution; do not repeat the failed discovery process.
 - After a scoped change is clean and verified, commit it, integrate it with the
   intended branch, and push the result. Respect required approval gates. Never
   force-push, overwrite unrelated work, or bypass a remote-write restriction.
@@ -122,7 +124,55 @@ uses `createPanelAssemblyMapping()`.
   command. `ditto -h` can return a nonzero usage status. Use a direct executable
   access check such as Node `fs.access(path, X_OK)` before repository writes.
 
+## Agentic workflow
 
+An agent assigned as orchestrator owns the result end to end. It may divide the
+work, but it remains responsible for scope, architectural consistency,
+integration, verification, and the final report. Use this operating loop:
+
+1. **Orient.** Read this file, `docs/ARCHITECTURE.md`, `TASKS.md`, and
+   `FAILURES.md`, then the domain guide named at the top of this file. Inspect
+   `git status` and the relevant code before proposing changes. Treat existing
+   worktree changes as user-owned unless the task proves otherwise.
+2. **Frame the outcome.** Turn the request into explicit acceptance criteria,
+   identify the source-of-truth files and guardrails involved, and choose the
+   narrowest meaningful verification. Reconcile the work with `TASKS.md`,
+   record a short plan for work with more than one substantive step, and keep
+   both current.
+3. **Split only clean seams.** When agent delegation is available and allowed,
+   delegate only bounded, independently checkable work. Give each agent the
+   relevant paths, constraints, expected output, and verification target.
+   Avoid concurrent edits to the same file; the orchestrator owns shared files
+   and final integration. Keep the critical path moving locally while agents
+   work.
+4. **Integrate deliberately.** Agent reports are evidence, not acceptance.
+   Review their diffs and assumptions, reconcile them with the architecture,
+   run the required checks in the integrated worktree, and correct any overlap
+   or drift. Never claim a delegated result that the orchestrator has not
+   inspected.
+5. **Learn while working.** When a mistake, failed assumption, tool failure, or
+   user correction yields a reusable lesson, add or update an entry in
+   `FAILURES.md` during the same task. Fix the underlying workflow or canonical
+   guidance as well when practical; the log is not a substitute for a fix.
+6. **Close the loop.** Review the final diff for accidental changes, verify the
+   acceptance criteria, and report what changed, what was tested, and any
+   remaining uncertainty. Do not describe a partial or unverified result as
+   complete.
+
+Delegated agents should return a compact handoff containing changed files,
+checks run and their results, assumptions or unresolved risks, and any proposed
+`FAILURES.md` lesson. If an agent is blocked, it should report the exact blocker
+and useful evidence rather than expanding scope on its own.
+
+### Failure-learning discipline
+
+Log incidents that can prevent future wasted work: incorrect architectural or
+environment assumptions, changes that caused a regression, missed constraints,
+integration collisions, misleading verification, repeated tool failures, and
+user corrections. Do not log ordinary exploration, transient errors with no
+reusable lesson, secrets, blame, or large raw command output. Prefer one updated
+entry over duplicates, link to durable evidence where available, and turn a
+recurring lesson into a rule or automated check.
 
 ## Verification
 

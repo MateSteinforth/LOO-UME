@@ -348,6 +348,16 @@ No implementation task is active.
 - The GLB -> placement/edit -> parts -> folder/ZIP reopen test starts without `boundaryTopology` and injects no cycles.
 - Independent review passed; focused tests, all 134 Vitest tests, TypeScript, the production web build, and diff hygiene passed.
 
+### `CTRL-003` Establish portable agent-learning and bootstrap guidance
+
+- `AGENTS.md` defines the orchestrator's end-to-end operating loop and connects
+  task status, integration, verification, and failure learning.
+- `FAILURES.md` provides a durable, blame-free lesson format and promotion path
+  into rules or automated checks.
+- `docs/AGENTIC_WORKFLOW_BOOTSTRAP.md` gives a newly cloned or reopened
+  repository a first-agent prompt and an evidence-first setup procedure without
+  imposing this project's domain rules on another codebase.
+
 ### `CTRL-001` Establish this persistent task board
 
 - Reconstructed from repository code, tests, docs, Git history, TODO/provisional markers, and independent docs/code/UI audits.
