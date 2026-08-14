@@ -405,34 +405,12 @@ describe("validated panel boundary printable asset pipeline", () => {
         },
       });
     });
-    definition.boundaryTopology = {
-      kind: "panel-outline-gap-cycles",
-      gaps: [
-        {
-          id: "gap-top",
-          vertices: [
-            { panelId: "P-01", corner: "top-left" },
-            { panelId: "P-01", corner: "top-right" },
-            { panelId: "P-04", corner: "top-right" },
-            { panelId: "P-03", corner: "top-right" },
-          ],
-        },
-        {
-          id: "gap-bottom",
-          vertices: [
-            { panelId: "P-01", corner: "bottom-right" },
-            { panelId: "P-01", corner: "bottom-left" },
-            { panelId: "P-02", corner: "bottom-left" },
-            { panelId: "P-03", corner: "bottom-left" },
-          ],
-        },
-      ],
-    };
     const editedProject = createPanelAssemblyProject(
       definition,
       "local:acceptance/sculpture.json",
       source.panelProfile,
     );
+    expect(editedProject.sculpture.boundaryTopology).toBeUndefined();
     const expectedPoses = structuredClone(editedProject.sculpture.panels.map(
       ({ id, pose }) => ({ id, pose }),
     ));
@@ -443,6 +421,15 @@ describe("validated panel boundary printable asset pipeline", () => {
       outputDirectory: join(parent, "generated"),
       renderScad: deterministicRenderer([]),
     });
+    expect(generated.definition.boundaryTopology).toMatchObject({
+      kind: "panel-outline-gap-cycles",
+      gaps: [
+        { id: expect.stringMatching(/^gap-[0-9a-f]{12}$/) },
+        { id: expect.stringMatching(/^gap-[0-9a-f]{12}$/) },
+      ],
+    });
+    expect(editedProject.sculpture.boundaryTopology).toBeUndefined();
+
     const availableAssets = new Map<string, Uint8Array>([
       ["design/source.glb", glbBytes],
       [
@@ -469,6 +456,8 @@ describe("validated panel boundary printable asset pipeline", () => {
     );
     expect(folderBundle.project.sculpture.designSurface?.source)
       .toBe("design/source.glb");
+    expect(folderBundle.project.sculpture.boundaryTopology)
+      .toEqual(generated.definition.boundaryTopology);
     expect(folderBundle.assets.size).toBe(4);
     folderBundle.dispose();
 
@@ -484,6 +473,8 @@ describe("validated panel boundary printable asset pipeline", () => {
     try {
       expect(reopened.project.sculpture.panels.map(({ id, pose }) => ({ id, pose })))
         .toEqual(expectedPoses);
+      expect(reopened.project.sculpture.boundaryTopology)
+        .toEqual(generated.definition.boundaryTopology);
       expect(getGeneratedMechanicsState(
         reopened.project.sculpture,
         reopened.project.panelProfile,

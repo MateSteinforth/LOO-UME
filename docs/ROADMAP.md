@@ -23,10 +23,11 @@ an implemented contract; settle open product/schema choices before coding.
 - A checked-in deterministic WLED WASM runtime for immediate tests and browser
   use, plus clean-checkout verification that rebuilds it from pinned WLED,
   emsdk, and Emscripten revisions.
-- Deterministic zero-thickness closed-boundary generation from pose/profile
-  panel outlines plus connectivity-only accepted gap cycles, with cap-local and
-  global two-manifold validation, manifest-ready metadata, complete/invalid
-  fixtures, and an in-browser Three.js boundary preview.
+- Deterministic detection of unambiguous connectivity-only gap cycles from
+  pose/profile panel outlines, persistence in Schema 2, and zero-thickness
+  closed-boundary generation with cap-local and global two-manifold validation,
+  manifest-ready metadata, complete/invalid fixtures, and an in-browser Three.js
+  boundary preview.
 
 ## Incomplete or blocked in the current model
 
@@ -52,6 +53,8 @@ Other known gaps:
 - No production firmware, DDP/Art-Net transport, Ethernet/microphone setup, or
   audio-reactive simulation exists.
 - Browser interaction coverage is mostly helper-level.
+- Ambiguous touching gap cycles have no accept/reject/reorder/redraw correction
+  tools; automatic detection rejects them with welded-vertex context.
 - `main.ts`, `SphereRenderer.ts`, and `SurfacePlacementController.ts` carry
   multiple responsibilities; fingerprinting ignores index bits above bit 15;
   some overlap code is unreachable; generated SCAD is not committed with
@@ -80,9 +83,10 @@ same reference and hash rules and browser-owned object URLs.
 ### 3. Generate and validate a boundary from panel outlines — shipped
 
 - Derive exact panel outlines and PCB envelopes from authoritative poses.
-- Accept connectivity-only panel-corner gap cycles and close each gap with one
-  flat simple N-gon. The user remains responsible for arranging panels so this
-  assumption holds; future topology inference may feed the same contract.
+- Detect connectivity-only panel-corner gap cycles from welded exposed panel
+  edges when every junction is unambiguous, assign deterministic IDs, persist
+  them in Schema 2, and close each gap with one flat simple N-gon. The user
+  remains responsible for arranging panels so this assumption holds.
 - Validate cap planarity, polygon simplicity, winding, intersections,
   connectivity, and closed two-manifold topology; report the offending gap when
   generation is impossible.
@@ -100,8 +104,9 @@ same reference and hash rules and browser-owned object URLs.
   approximate preview.
 - Mark assets stale after relevant panel/profile edits while keeping all
   non-mechanical interface features usable.
-- Cover panels -> boundary -> parts -> references -> exact STL reload with an
-  end-to-end test.
+- Cover panels -> automatic gap detection -> persisted topology -> boundary ->
+  parts -> references -> exact STL reload with an end-to-end test that begins
+  without `boundaryTopology` and never injects cycles.
 - Folder and ZIP reopening use the same references and hashes, restore GLB and
   exact STL bytes through object URLs, and preserve derived current/stale state.
 - Export refuses missing or mismatched local bytes instead of fetching URLs.
@@ -162,5 +167,7 @@ same reference and hash rules and browser-owned object URLs.
 - The first boundary generator assumes every panel gap is a flat simple N-gon
   and validates that assumption.
 - Generated boundary/part files are relative, hash-checked project assets.
+- Unambiguous exposed-edge cycles are detected and persisted deterministically;
+  ambiguous touching cycles are rejected until correction tools exist.
 - Three.js displays the exact referenced STL parts.
 - A folder is the native project layout; ZIP is its portable container.

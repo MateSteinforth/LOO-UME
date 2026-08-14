@@ -651,7 +651,7 @@ async function start(): Promise<void> {
         : editorDefinition.boundaryTopology
           ? "Validate the boundary, generate printable parts, and load the exact emitted STL files."
           : !editorDefinition.mechanicalShell || !editorDefinition.closures
-            ? "Boundary generation needs accepted panel-corner gap cycles; legacy 3D-part generation needs an explicit planar shell."
+            ? "Automatically detect unambiguous panel-corner gap cycles, validate the boundary, and generate printable parts."
           : "";
       automaticPanelPlacementControls.hidden =
         editorDefinition.manualMechanics !== undefined;
@@ -1638,7 +1638,9 @@ async function start(): Promise<void> {
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent = editorDefinition.boundaryTopology
           ? "Deriving exact panel outlines and validating flat gap caps…"
-          : "Regenerating mechanical topology, then generating OpenSCAD, STLs, and printable previews…";
+          : editorDefinition.mechanicalShell && editorDefinition.closures
+            ? "Regenerating mechanical topology, then generating OpenSCAD, STLs, and printable previews…"
+            : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…";
         try {
           const response = await fetch("./api/editor-pipeline", {
             method: "POST",

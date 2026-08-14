@@ -83,7 +83,14 @@ export function editorPipelinePlugin(): Plugin {
           }
           const rootDirectory = process.cwd();
           const runId = `${sourceId.slice(0, 60)}-editor-preview`;
-          if (definition.boundaryTopology !== undefined) {
+          const canDetectPanelBoundary =
+            definition.boundaryTopology === undefined &&
+            definition.manualMechanics === undefined &&
+            definition.mechanicalShell === undefined &&
+            Array.isArray(definition.panels) && definition.panels.length > 0;
+          if (
+            definition.boundaryTopology !== undefined || canDetectPanelBoundary
+          ) {
             const project = createPanelAssemblyProject(
               definition,
               "editor-request.json",

@@ -87,9 +87,22 @@ A project may omit `manualMechanics`, `mechanicalShell`, and `closures`. Such a
 project loads, edits, simulates, maps, wires, saves, and reloads. A panel pose
 does not require `mountFaceId` or a surface attachment; those fields describe
 optional authoring/mechanical relationships rather than the panel's existence.
-The browser does not create a placeholder shell, and generic 3D-part generation
-is disabled until supported boundary input exists. A missing or invalid optional
-GLB disables surface placement without invalidating the project.
+The browser does not create a placeholder shell. In local development, a
+mechanics-free project with panels may enter generic 3D-part generation: if its
+exposed panel-outline graph is unambiguous, the generator detects and persists
+the missing boundary connectivity before validation. A missing or invalid
+optional GLB disables surface placement without invalidating the project.
+
+`boundaryTopology.kind = "panel-outline-gap-cycles"` stores that connectivity.
+Each gap has a stable content-derived ID and an ordered `vertices` array of
+`{ panelId, corner }` references, where `corner` is `bottom-left`,
+`bottom-right`, `top-right`, or `top-left`. It stores no positions, dimensions,
+or transforms. All corner coordinates are recomputed from the resolved profile
+and authoritative panel poses. When the field is absent, local generation
+detects only an unambiguous set of exposed-edge cycles, canonicalizes and sorts
+them deterministically, and writes them into the generated Schema 2 JSON.
+Open, wrongly wound, non-manifold, or ambiguous edge graphs fail instead of
+persisting a guess.
 
 `designSurface` preserves the existing GLB `source` plus `sha256` reference.
 `generatedMechanics` uses the same project-relative identity pair for one
@@ -100,11 +113,15 @@ and relevant resolved profile facts that produced the assets. The complete JSON
 example and canonical fingerprint inputs are defined in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 
+Part generation preserves the `designSurface` reference but does not copy the
+referenced GLB into the generated folder. A self-contained portable project
+still needs the separately loaded bytes whose hash matches that reference.
+
 The generated manifest is the only authority for its asset identities. Its
 fingerprint comparison is the only authority for current versus stale; no
 second status flag is saved. Asset paths must be safe portable relative paths,
 and temporary `build/editor-projects/...` paths are rejected. The native layout
-is a folder containing `sculpture.json` and referenced assets; a future ZIP is a
+is a folder containing `sculpture.json` and referenced assets; ZIP is a
 portable container for the same layout. See
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 
@@ -144,11 +161,13 @@ zero-panel authoring projects, blocking checks, and OpenSCAD verification, is
 recorded in
 [Editor and planar mechanical regeneration](editor-mechanical-regeneration.md).
 
-This is the current implementation, not the final general authoring workflow.
-The planned generator creates the boundary after panel editing by joining exact
-panel outlines with validated flat N-gon caps. It then passes only a closed,
-two-manifold result to printable-part generation. The GLB remains a positioning
-canvas and is not converted into that boundary.
+The panel-outline route creates the boundary after panel editing by joining
+exact panel outlines with validated flat N-gon caps. It automatically detects
+and persists only unambiguous gap cycles, then passes only a closed,
+two-manifold result to printable-part generation. Ambiguous layouts still need
+future correction tools. The GLB remains a positioning canvas and is not
+converted into that boundary. OpenSCAD generation remains available only through
+the local Vite development endpoint.
 
 ## Manually authored mechanics
 

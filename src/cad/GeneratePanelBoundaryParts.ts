@@ -17,6 +17,7 @@ import {
   type PanelAssemblyProject,
 } from "../sculpture/PanelAssembly.ts";
 import {
+  detectPanelBoundaryTopology,
   generateClosedPanelBoundary,
   type ClosedPanelBoundary,
 } from "../sculpture/PanelOutlineBoundary.ts";
@@ -200,11 +201,26 @@ export async function generatePanelBoundaryParts(
   if (project.sculpture.manualMechanics) {
     throw new Error("Manually authored mechanics cannot enter generic part generation.");
   }
-  const boundary = generateClosedPanelBoundary(
-    project.sculpture,
+  const workingDefinition = structuredClone(project.sculpture);
+  if (!workingDefinition.boundaryTopology) {
+    workingDefinition.boundaryTopology = detectPanelBoundaryTopology(
+      workingDefinition,
+      project.panelProfile,
+    );
+  }
+  const workingProject = createPanelAssemblyProject(
+    workingDefinition,
+    project.source,
     project.panelProfile,
   );
-  const printableProject = createPrintableBoundaryProject(project, boundary);
+  const boundary = generateClosedPanelBoundary(
+    workingProject.sculpture,
+    workingProject.panelProfile,
+  );
+  const printableProject = createPrintableBoundaryProject(
+    workingProject,
+    boundary,
+  );
   compilePanelAssembly(printableProject);
 
   const rootDirectory = resolve(options.rootDirectory ?? process.cwd());
@@ -269,11 +285,11 @@ export async function generatePanelBoundaryParts(
         sha256: part.sha256,
       })),
     };
-    const definition = structuredClone(project.sculpture);
+    const definition = structuredClone(workingProject.sculpture);
     definition.generatedMechanics = manifest;
     const originalProfilePath = resolve(
-      dirname(resolve(rootDirectory, project.source)),
-      project.sculpture.panelProfile.source,
+      dirname(resolve(rootDirectory, workingProject.source)),
+      workingProject.sculpture.panelProfile.source,
     );
     definition.panelProfile.source = options.panelProfileSource ??
       relative(outputDirectory, originalProfilePath)

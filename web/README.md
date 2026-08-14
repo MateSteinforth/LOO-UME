@@ -91,10 +91,15 @@ is added.
   OpenSCAD sources, STL files, and PNG previews under an isolated
   `-editor-preview` ID, then reloads the exact STL meshes in Three.js.
 
-Projects with validated `panel-outline-gap-cycles` use the same endpoint to
-generate a deterministic boundary and gap-sorted printable closure set. The
-service publishes the files and manifest only after every STL validates. The
-browser verifies SHA-256 and parses those exact files for display and download.
+Panel-outline projects use the same endpoint to generate a deterministic
+boundary and gap-sorted printable closure set. When `boundaryTopology` is
+absent, the service welds exact panel corners, detects only unambiguous exposed
+edge cycles, assigns stable content-derived gap IDs, and persists those cycles
+in the generated JSON. Saved cycles are reused. Open, wrongly wound,
+non-manifold, or ambiguous graphs fail with panel/corner context instead of
+guessing. The service publishes the files and manifest only after every STL
+validates. The browser verifies SHA-256 and parses those exact files for display
+and download.
 
 A JSON-shell or GLB surface move or addition marks existing generated mechanics
 as requiring regeneration. A pose-only project has no mechanical state to
@@ -106,7 +111,9 @@ positioning canvas and is never used as mechanical geometry. Unsupported or unsa
 placements return a panel-specific error instead of emitting misleading parts.
 
 Run the editor with `npm run dev:web`; a static production bundle cannot execute
-OpenSCAD on its host. An inset topology with only three populated neighbors still
+OpenSCAD on its host. Generation preserves a referenced GLB path and hash but
+does not copy that GLB into the generated output folder; folder/ZIP export needs
+the separately loaded, verified bytes. An inset topology with only three populated neighbors still
 uses all four eligible panel holes, but explicitly records that one strip closure
 serves two adjacent holes. Existing sculptures retain the stricter one-cap-per-hole
 and three-connectors-per-closure defaults.
@@ -117,6 +124,11 @@ fixture behavior, and verification record are documented in
 The next editor task—manual rotation of the selected panel around its saved
 local-Z normal—is described in
 [the local-Z rotation handover](../docs/handover-panel-local-z-rotation.md).
+
+`tests/panel-boundary-parts-e2e.test.ts` covers GLB placement, panel edits,
+generation-time gap detection from a project with no `boundaryTopology`,
+persisted cycles, exact parts, folder/ZIP reopen, and current/stale state without
+injecting topology in the test.
 
 ## Build and test
 

@@ -27,18 +27,19 @@ mechanicalShell + closures -----> planar validation -> generated SCAD/STL
 ```
 
 Schema 2 pose-only projects are valid JSON. They load, edit, simulate, map,
-wire, save, and reopen without a placeholder shell. Generic 3D-part generation
-stays disabled until supported generation input exists.
+wire, save, and reopen without a placeholder shell. When panels form an
+unambiguous closed exposed-edge graph, local 3D-part generation can detect and
+persist the missing gap connectivity without a pre-authored mechanical shell.
 
-The remaining UI-driven fabrication target extends that lifecycle rather than
-adding another pose authority:
+The implemented local-development fabrication route extends that lifecycle
+without adding another pose authority:
 
 ```text
 referenced GLB -> automatic placement -> manual pose edits
                                       |
                                Generate 3D Parts
                                       |
- panel poses + profile -> panel outlines + accepted corner-only gap cycles
+ panel poses + profile -> panel outlines -> detect or reuse corner-only gap cycles
                                       |
                     validated closed boundary -> Three.js preview
                                       |
@@ -48,9 +49,12 @@ referenced GLB -> automatic placement -> manual pose edits
 ```
 
 The GLB is still only a placement surface. The generated boundary comes from
-panel outlines and planar gap caps. The first generator may assume users arrange
-panels so each gap is a flat simple N-gon, but it must validate that assumption
-and refuse invalid or non-manifold results.
+panel outlines and planar gap caps. Detection welds exact panel corners, removes
+oppositely wound shared edges, and traces each unambiguous exposed-edge cycle.
+The generator may assume users arrange panels so each gap is a flat simple
+N-gon, but it validates that assumption and refuses ambiguous, invalid, or
+non-manifold results.
+
 ## Subsystems
 
 
@@ -61,8 +65,8 @@ and refuse invalid or non-manifold results.
 | `src/sculpture/PanelAssembly.ts` | Schema 2 parsing, pose compilation, face graph, LED geometry | Active model; poses remain authoritative |
 | `src/sculpture/SculptureEditor.ts` | Add/move/rotate/delete/seed and mechanics invalidation | Editing does not require successful CAD |
 | `src/sculpture/MechanicalShellRegenerator.ts` | Rebuild supported planar topology after edits | Rejects unsafe or ambiguous mechanics |
-| `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, validate accepted flat cap cycles, and emit a deterministic closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
-| `src/cad/GeneratePanelBoundaryParts.ts` | Turn a validated panel-gap boundary into a staged, hash-verified exact STL bundle | Publishes the manifest only after every file validates |
+| `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, detect deterministic unambiguous gap cycles, validate flat caps, and emit a closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
+| `src/cad/GeneratePanelBoundaryParts.ts` | Detect and persist missing gap topology, then turn the validated boundary into a staged, hash-verified exact STL bundle | Publishes the manifest only after every file validates |
 | `src/cad/GeneratePanelClosureCad.ts` | Generic flat closures from compiled planar faces | Reused by explicit shells and panel-gap generation; not a GLB generator |
 | `src/cad/GenerateCad.ts`, `parts/` | Legacy-typed wrappers around tested manual parts | Separate from generic CAD |
 | `web/src/PortableProject.ts` | Shared folder/ZIP validation, object-URL resolution, and self-contained export | Never rewrites saved asset paths or fetches missing export bytes |
@@ -90,7 +94,12 @@ and refuse invalid or non-manifold results.
 6. Every edit rebuilds mapping and wiring. Existing generated mechanics become
    `requires-regeneration`; manual mechanics become `requires-review`; a project
    that has never had mechanics remains mechanics-free without a stale status.
-7. Folder and ZIP project import validate the same relative assets and hashes,
+7. In local development, **Generate 3D Parts** detects `boundaryTopology` when
+   it is absent, persists the detected cycles in the generated Schema 2 JSON,
+   validates the complete boundary, and only then invokes printable-part CAD.
+   Ambiguous exposed-edge junctions and invalid boundaries fail without
+   replacing the last successful bundle.
+8. Folder and ZIP project import validate the same relative assets and hashes,
    then expose GLB/STL bytes through browser object URLs. Folder/ZIP export uses
    only verified in-memory bytes. JSON, ledmap, and wiring remain client-side
    downloads. Local CAD writes an isolated preview under `build/`.
@@ -104,16 +113,21 @@ hash-checked GLB and STL assets in a folder. Schema 2 can reference a boundary
 mesh and ordered exact printable STL parts together with the canonical
 panel/profile fingerprint that produced them. Fingerprint comparison is the one
 current/stale authority and panel edits do not stop the pose-first application.
-The local generation service stages a complete folder, validates every STL and
-hash, writes JSON last, and publishes it by atomic directory replacement.
+The local-development generation service stages a project folder, validates
+every STL and hash, writes JSON last, and publishes it by atomic directory
+replacement. It does not copy a referenced design GLB into that folder; portable
+export still requires the separately loaded, verified GLB bytes.
 Three.js loads those referenced bytes after SHA-256 verification. The browser
 imports and exports the same layout as either a folder or ZIP without changing
 saved paths and without a database or `localStorage`. See
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
 
-Schema 2 may now accept `boundaryTopology` as stable panel-ID/named-corner
-cycles. It contains no vertex positions or transforms. The browser derives and
-validates the zero-thickness mesh on demand and displays it as a boundary preview.
+Schema 2 accepts `boundaryTopology` as stable panel-ID/named-corner cycles. If
+the field is absent, local generation detects deterministic cycles for an
+unambiguous exposed-edge graph and saves them in the generated project. The
+field contains no vertex positions or transforms. The browser derives and
+validates the zero-thickness mesh on demand and displays it as a boundary
+preview.
 
 ## Rendering and simulation
 
@@ -141,9 +155,11 @@ configuration.
   Split them only as a behavior-preserving refactor with appropriate tests.
 - Mapping and wiring operate while hardware-readiness data is provisional. See
   [`LED_MAPPING.md`](LED_MAPPING.md) before changing exports.
-- The current generic CAD path starts from a pre-authored planar boundary. The
-  target UI flow instead creates the boundary from panel outlines and validated
-  flat N-gon gap caps before reusing the downstream printable-part constraints.
+- Automatic gap detection deliberately rejects touching cycles whose welded
+  junction has more than one incoming or outgoing cap edge. Correction tools
+  for those ambiguous arrangements are not implemented.
+- OpenSCAD generation is exposed only by the Vite development middleware; a
+  static production bundle cannot run it on its host.
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

@@ -76,7 +76,7 @@ describe("pose-only Schema 2 project", () => {
       canRotateSelectedPanel: true,
       canDeleteSelectedPanel: true,
       canExportMappingAndWiring: true,
-      canGenerateGenericMechanics: false,
+      canGenerateGenericMechanics: true,
     });
     expect(() => assertMechanicalShellReady(loaded)).toThrow(
       /unavailable until generation input exists/,
@@ -94,7 +94,7 @@ describe("pose-only Schema 2 project", () => {
     expect(deriveEditorCapabilities(definition, true)).toMatchObject({
       canCreateOnActiveSurface: true,
       canAutomaticallySeed: true,
-      canGenerateGenericMechanics: false,
+      canGenerateGenericMechanics: true,
     });
 
     const seeded = automaticallySeedPanelsOnSurface(

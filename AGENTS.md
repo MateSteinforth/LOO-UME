@@ -71,6 +71,14 @@ uses `createPanelAssemblyMapping()`.
 - Do not refactor production code during documentation-only work.
 - Update the knowledge pages when architecture, invariants, or project status
   changes; avoid chat-history handovers as the only record.
+- Use ASD-STE100 simplified technical English for all operator-facing updates,
+  questions, and handoffs.
+- Record each recurring environment or tool failure and its verified solution
+  in `AGENTS.md` or the relevant knowledge page. Reuse the recorded solution;
+  do not repeat the failed discovery process.
+- After a scoped change is clean and verified, commit it, integrate it with the
+  intended branch, and push the result. Respect required approval gates. Never
+  force-push, overwrite unrelated work, or bypass a remote-write restriction.
 - Use the normal repository `apply_patch` helper for file edits first. In this
   Codex environment it can fail with `fs sandbox helper failed` / `bwrap: No
   permissions to create a new namespace` even though approved shell commands
