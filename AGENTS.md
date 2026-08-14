@@ -71,6 +71,16 @@ uses `createPanelAssemblyMapping()`.
 - Do not refactor production code during documentation-only work.
 - Update the knowledge pages when architecture, invariants, or project status
   changes; avoid chat-history handovers as the only record.
+- Use the normal repository `apply_patch` helper for file edits first. In this
+  Codex environment it can fail with `fs sandbox helper failed` / `bwrap: No
+  permissions to create a new namespace` even though approved shell commands
+  still work. When that exact failure occurs, use an exact unified diff with
+  `git apply --unidiff-zero` as the established fallback. For a newly created
+  untracked file, temporarily stage only that exact path so Git has a patch
+  base, apply the diff, then immediately run `git restore --staged <path>` and
+  verify that no unrelated path was staged. The standalone `patch` utility is
+  not installed in the current environment. Do not stop to rediscover or
+  discuss this known workaround unless it also fails.
 
 ## Verification
 
