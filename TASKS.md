@@ -179,18 +179,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-### `INSTALL-014` Acquire and connect pinned OpenSCAD on Windows x86-64 — P0
-
-- Outcome: implement and verify the managed OpenSCAD candidate path for Windows x86-64 (`win32-x64`) without a manual OpenSCAD, administrator, installer UI, or `PATH` step.
-- Acceptance:
-  - The manifest declares Windows 10/11 x86-64 (`win32-x64`), pinned program/runtime archives, HTTPS sources, sizes, SHA-256 values, and source/license metadata. Windows ARM64 requires a separate native, no-emulation task and proof.
-  - PowerShell setup downloads and safely extracts only allow-listed archive paths into the ignored repository tool directory; it makes no registry, profile, global package, or machine-level change.
-  - Installation is receipt-backed, atomic, idempotent, safe after interruption, and compatible with repository paths containing spaces.
-  - Runtime selection remains explicit `OPENSCAD`, then the verified managed tool, then a system fallback, with Windows command and argument handling covered by tests.
-  - Disposable GitHub-hosted Windows Server jobs prove setup twice, the supported OpenSCAD version, the local production editor with generator status available, the canonical two-part STL fixture, and clean shutdown. They are surrogate implementation proof, not Windows client qualification.
-- Depends on: `INSTALL-010` for the shared manifest, receipt, download, and runtime model.
-- Verify: synthetic Windows 10/11 x86-64 unit tests plus required clean Windows Server 2022/2025 jobs; no preinstalled OpenSCAD may satisfy the surrogate proof.
-- Docs: document the Windows candidate command and the `INSTALL-015` qualification limit; do not publish Windows client support yet.
+No implementation task is active.
 
 ## Blocked
 
@@ -273,6 +262,31 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Done
+
+### `INSTALL-014` Acquire and connect pinned OpenSCAD on Windows x86-64
+
+- `npm.cmd run setup:openscad` now acquires the official portable OpenSCAD
+  2021.01 ZIP for the `win32-x64` candidate, verifies its exact 21,884,613-byte
+  size and SHA-256, validates all 221 allow-listed ZIP entries, and publishes a
+  target-bound receipt below the ignored `.tools` path.
+- Setup is repository-local, atomic, safe to retry, and valid in paths with
+  spaces and `&`. It does not use an installer, administrator access, registry,
+  profile, system application directory, or `PATH` change.
+- Runtime selection remains explicit `OPENSCAD`, then the verified managed
+  `openscad.com`, then the Windows system command. Native ARM64 is rejected.
+  Bounded shutdown stops the complete `openscad.com` and `openscad.exe` process
+  tree and waits for exit.
+- Actions run `31811725310` passed the clean setup-twice, real two-STL local
+  production-editor, active-render shutdown, and no-host-mutation proof on
+  Windows Server 2022 job `94803696105` and Windows Server 2025 job
+  `94803696109`.
+- Independent review passed after ZIP type, native architecture, system command,
+  bounded process-tree, and active-render proof findings were corrected. All
+  215 Vitest tests, TypeScript, the production desktop build, workflow lint,
+  real 221-entry archive validation, and diff hygiene passed.
+- This is a verified Windows x86-64 implementation candidate, not a Windows PC
+  support claim. `INSTALL-015` remains blocked on the declared real Windows 10
+  and Windows 11 client virtual machines.
 
 ### `INSTALL-013` Acquire and connect pinned OpenSCAD on macOS
 

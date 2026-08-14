@@ -2,7 +2,7 @@ name: Render OpenSCAD parts
 
 on:
   push:
-    branches: [main, codex/install-014-managed-openscad-windows]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
