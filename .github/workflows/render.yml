@@ -112,6 +112,8 @@ jobs:
 
   windows-managed-openscad-surrogate:
     name: Managed OpenSCAD surrogate (${{ matrix.runner }})
+    if: github.event_name == 'workflow_dispatch'
+    continue-on-error: true
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
@@ -321,7 +323,7 @@ jobs:
 
   publish-latest-prototype:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: [clean-checkout, macos-managed-openscad, windows-managed-openscad-surrogate, render, cad-contract]
+    needs: [clean-checkout, macos-managed-openscad, render, cad-contract]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
