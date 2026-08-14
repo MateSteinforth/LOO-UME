@@ -88,19 +88,6 @@ This file is the persistent source of truth for work status. Read it before star
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
 
-### `INSTALL-014` Acquire and connect pinned OpenSCAD on Windows x86-64 — P0
-
-- Outcome: the managed OpenSCAD path works after a repository clone on Windows 10/11 x86-64 (`win32-x64`) PCs without a manual OpenSCAD, administrator, installer UI, or `PATH` step.
-- Acceptance:
-  - The manifest declares Windows 10/11 x86-64 (`win32-x64`), pinned program/runtime archives, HTTPS sources, sizes, SHA-256 values, and source/license metadata. Windows ARM64 requires a separate native, no-emulation task and proof.
-  - PowerShell setup downloads and safely extracts only allow-listed archive paths into the ignored repository tool directory; it makes no registry, profile, global package, or machine-level change.
-  - Installation is receipt-backed, atomic, idempotent, safe after interruption, and compatible with repository paths containing spaces.
-  - Runtime selection remains explicit `OPENSCAD`, then the verified managed tool, then a system fallback, with Windows command and argument handling covered by tests.
-  - A clean Windows proof reaches the supported OpenSCAD version, starts the local production editor with generator status available, generates the canonical two-part STL fixture, and shuts down cleanly.
-- Depends on: `INSTALL-010` for the shared manifest, receipt, download, and runtime model.
-- Verify: Windows 10 and Windows 11 x86-64 unit tests plus required clean-host jobs; no preinstalled OpenSCAD may satisfy the proof.
-- Docs: publish the exact Windows support matrix and one repository setup command only after the clean-host proof passes.
-
 ### `INSTALL-011` Add a one-command clean-checkout bootstrap — P0
 
 - Outcome: after cloning the repository, one platform-appropriate command installs and connects every project dependency needed to build, test, start, and generate parts.
@@ -111,7 +98,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   - Bootstrap initializes required submodules, installs exact npm dependencies, acquires OpenSCAD through `INSTALL-010`, `INSTALL-013`, or `INSTALL-014` for the selected platform, and installs pinned WLED/Emscripten tooling required by the documented full verification path.
   - Repeated and interrupted runs are safe and resumable; paths containing spaces work; no global packages, administrator access, or system package-manager changes are required.
   - Completion verifies generator availability and prints one start command; failures state the failed dependency and exact recovery action.
-- Depends on: `INSTALL-010`, `INSTALL-013`, and `INSTALL-014`.
+- Depends on: `INSTALL-010`, `INSTALL-013`, `INSTALL-014`, and `INSTALL-015`.
 - Verify: empty-cache and warm-cache integration tests, interruption recovery, checksum/network failure tests, `npm run verify`, and a local production-server smoke test.
 - Docs: make this the primary installation path and list only Git plus the standard shell as prerequisites.
 
@@ -122,7 +109,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   - CI starts from clean Linux, macOS, and Windows environments for every OS/architecture pair declared supported by the bootstrap.
   - Each job runs only the documented bootstrap and start commands, sees generator status `available: true`, generates exact STL files with real OpenSCAD, and shuts down cleanly.
   - Cached tools are verified before reuse; tampered downloads, unsupported systems, offline failures, and partial installs fail safely and actionably.
-- Depends on: `INSTALL-010`, `INSTALL-011`, `INSTALL-013`, `INSTALL-014`, and reuse of the real-render journey from `CI-010`.
+- Depends on: `INSTALL-010`, `INSTALL-011`, `INSTALL-013`, `INSTALL-014`, `INSTALL-015`, and reuse of the real-render journey from `CI-010`.
 - Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
 - Docs: publish the tested platform matrix and state clearly which repository installation command applies to each platform.
 
@@ -192,7 +179,21 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
+No implementation task is active.
+
 ## Blocked
+
+### `INSTALL-015` Qualify managed OpenSCAD on supported Windows clients — P0
+
+- Outcome: convert the Windows x86-64 candidate from `INSTALL-014` into a tested Windows PC support claim.
+- Acceptance:
+  - Disposable native x86-64 client VMs cover Windows 10 Enterprise LTSC 2021 and Windows 11 25H2 non-N editions; Windows N/KN and ARM64 remain excluded until their missing-runtime/native paths have separate proof.
+  - Each VM starts without OpenSCAD, administrator rights, repository tool cache, registry install, or `PATH` wiring; it runs setup twice from PowerShell in a repository path containing spaces.
+  - The receipt selects `win32-x64`; real OpenSCAD reaches generator status available, generates and serves the canonical two STL parts, and the local production server releases its port on shutdown.
+  - The VMs are isolated, registered for one trusted job, and destroyed after the run. Public pull-request code never runs on them.
+- Depends on: `INSTALL-014` and provisioned ephemeral Windows client runner images.
+- Blocked by: no disposable Windows 10/11 client runner infrastructure is connected to this repository. Standard GitHub-hosted Windows runners are Windows Server and cannot satisfy this client proof.
+- Docs: only after both client jobs pass, publish Windows PC support and the exact supported editions.
 
 ### `UI-010` Complete the arbitrary-project acceptance journey
 
@@ -261,6 +262,31 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Done
+
+### `INSTALL-014` Acquire and connect pinned OpenSCAD on Windows x86-64
+
+- `npm.cmd run setup:openscad` now acquires the official portable OpenSCAD
+  2021.01 ZIP for the `win32-x64` candidate, verifies its exact 21,884,613-byte
+  size and SHA-256, validates all 221 allow-listed ZIP entries, and publishes a
+  target-bound receipt below the ignored `.tools` path.
+- Setup is repository-local, atomic, safe to retry, and valid in paths with
+  spaces and `&`. It does not use an installer, administrator access, registry,
+  profile, system application directory, or `PATH` change.
+- Runtime selection remains explicit `OPENSCAD`, then the verified managed
+  `openscad.com`, then the Windows system command. Native ARM64 is rejected.
+  Bounded shutdown stops the complete `openscad.com` and `openscad.exe` process
+  tree and waits for exit.
+- Actions run `31811725310` passed the clean setup-twice, real two-STL local
+  production-editor, active-render shutdown, and no-host-mutation proof on
+  Windows Server 2022 job `94803696105` and Windows Server 2025 job
+  `94803696109`.
+- Independent review passed after ZIP type, native architecture, system command,
+  bounded process-tree, and active-render proof findings were corrected. All
+  215 Vitest tests, TypeScript, the production desktop build, workflow lint,
+  real 221-entry archive validation, and diff hygiene passed.
+- This is a verified Windows x86-64 implementation candidate, not a Windows PC
+  support claim. `INSTALL-015` remains blocked on the declared real Windows 10
+  and Windows 11 client virtual machines.
 
 ### `INSTALL-013` Acquire and connect pinned OpenSCAD on macOS
 

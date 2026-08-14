@@ -24,6 +24,7 @@ import {
 } from "node:path";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { inflateSync } from "fflate";
 import {
   assertSupportedOpenScadHost,
   createManagedOpenScadReceipt,
@@ -476,6 +477,537 @@ interface InstalledPayload {
   environment: NodeJS.ProcessEnv;
 }
 
+interface ValidatedZipEntry {
+  name: string;
+  relativePath: string;
+  directory: boolean;
+  compressedData: Uint8Array;
+  compressionMethod: 0 | 8;
+  expandedSize: number;
+  crc32: number;
+  localStart: number;
+  localEnd: number;
+}
+
+const ZIP_LOCAL_SIGNATURE = 0x04034b50;
+const ZIP_CENTRAL_SIGNATURE = 0x02014b50;
+const ZIP_END_SIGNATURE = 0x06054b50;
+const ZIP64_LOCATOR_SIGNATURE = 0x07064b50;
+const WINDOWS_ZIP_MAX_ENTRIES = 221;
+const WINDOWS_ZIP_MAX_EXPANDED_SIZE = 49_579_491;
+const ZIP_MAX_COMMENT = 0xffff;
+const ZIP_UTF8_FLAG = 0x0800;
+const ZIP_DIRECTORY_MODE = 0o040000;
+const ZIP_REGULAR_MODE = 0o100000;
+const ZIP_TYPE_MASK = 0o170000;
+
+function zipError(message: string): Error {
+  return new Error("Unsafe OpenSCAD ZIP archive: " + message);
+}
+
+function findZipEnd(data: Buffer): number {
+  const minimum = Math.max(0, data.length - 22 - ZIP_MAX_COMMENT);
+  for (let offset = data.length - 22; offset >= minimum; offset -= 1) {
+    if (
+      data.readUInt32LE(offset) === ZIP_END_SIGNATURE &&
+      offset + 22 + data.readUInt16LE(offset + 20) === data.length
+    ) {
+      return offset;
+    }
+  }
+  throw zipError("the end-of-central-directory record is missing.");
+}
+
+function checkedZipSlice(
+  data: Buffer,
+  start: number,
+  length: number,
+  label: string,
+): Buffer {
+  if (
+    !Number.isSafeInteger(start) ||
+    !Number.isSafeInteger(length) ||
+    start < 0 ||
+    length < 0 ||
+    start + length > data.length
+  ) {
+    throw zipError(label + " is outside the archive.");
+  }
+  return data.subarray(start, start + length);
+}
+
+function decodeZipName(bytes: Buffer): string {
+  let name: string;
+  try {
+    name = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw zipError("an entry name is not valid UTF-8.");
+  }
+  if (name.length === 0) throw zipError("an entry name is empty.");
+  if (/[\u0000-\u001f\u007f]/u.test(name)) {
+    throw zipError("entry " + JSON.stringify(name) + " has a control character.");
+  }
+  if (/[<>"|?*]/u.test(name)) {
+    throw zipError(
+      "entry " + JSON.stringify(name) + " uses an invalid Windows character.",
+    );
+  }
+  if (name.includes("\\")) {
+    throw zipError("entry " + JSON.stringify(name) + " uses a backslash.");
+  }
+  if (name.startsWith("/")) {
+    throw zipError("entry " + JSON.stringify(name) + " is absolute or UNC.");
+  }
+  if (name.includes(":")) {
+    throw zipError("entry " + JSON.stringify(name) + " uses a drive or ADS colon.");
+  }
+  return name;
+}
+
+function windowsPathKey(value: string): string {
+  return value.normalize("NFC").toLocaleUpperCase("en-US");
+}
+
+function validateWindowsSegment(segment: string, name: string): void {
+  if (segment === "" || segment === "." || segment === "..") {
+    throw zipError(
+      "entry " + JSON.stringify(name) + " has an empty or dot segment.",
+    );
+  }
+  if (/[. ]$/u.test(segment)) {
+    throw zipError(
+      "entry " + JSON.stringify(name) + " has a trailing dot or space.",
+    );
+  }
+  const device = segment.split(".", 1)[0]!.toLocaleUpperCase("en-US");
+  if (
+    /^(?:CON|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3])$/u.test(
+      device,
+    )
+  ) {
+    throw zipError(
+      "entry " + JSON.stringify(name) +
+        " uses a reserved Windows device name.",
+    );
+  }
+}
+
+function validateZipExtra(extra: Buffer, label: string): void {
+  let cursor = 0;
+  while (cursor < extra.length) {
+    if (cursor + 4 > extra.length) {
+      throw zipError(label + " has a malformed extra field.");
+    }
+    const id = extra.readUInt16LE(cursor);
+    const size = extra.readUInt16LE(cursor + 2);
+    if (id === 0x0001) throw zipError(label + " uses ZIP64.");
+    cursor += 4;
+    if (cursor + size > extra.length) {
+      throw zipError(label + " has a malformed extra field.");
+    }
+    cursor += size;
+  }
+}
+
+function expandZipEntry(entry: ValidatedZipEntry): Uint8Array {
+  if (entry.compressionMethod === 0) return entry.compressedData;
+  const expanded = inflateSync(entry.compressedData, {
+    out: new Uint8Array(entry.expandedSize + 1),
+  });
+  if (expanded.byteLength !== entry.expandedSize) {
+    throw zipError(
+      "entry " + JSON.stringify(entry.name) +
+        " expands beyond or below its declared size.",
+    );
+  }
+  return expanded;
+}
+function crc32(bytes: Uint8Array): number {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+export function validateOpenScadWindowsZip(
+  bytes: Uint8Array,
+  extraction: Extract<OpenScadTarget["extraction"], { kind: "zip" }>,
+): ValidatedZipEntry[] {
+  if (
+    !Number.isSafeInteger(extraction.entryCount) ||
+    extraction.entryCount < 1 ||
+    extraction.entryCount > WINDOWS_ZIP_MAX_ENTRIES ||
+    !Number.isSafeInteger(extraction.expandedSize) ||
+    extraction.expandedSize < 0 ||
+    extraction.expandedSize > WINDOWS_ZIP_MAX_EXPANDED_SIZE
+  ) {
+    throw zipError(
+      "the manifest entry-count or expanded-size bound is invalid.",
+    );
+  }
+  const data = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const end = findZipEnd(data);
+  if (
+    (end >= 20 &&
+      data.readUInt32LE(end - 20) === ZIP64_LOCATOR_SIGNATURE)
+  ) {
+    throw zipError("ZIP64 is not supported.");
+  }
+  const disk = data.readUInt16LE(end + 4);
+  const centralDisk = data.readUInt16LE(end + 6);
+  const diskEntries = data.readUInt16LE(end + 8);
+  const entryCount = data.readUInt16LE(end + 10);
+  const centralSize = data.readUInt32LE(end + 12);
+  const centralOffset = data.readUInt32LE(end + 16);
+  if (disk !== 0 || centralDisk !== 0 || diskEntries !== entryCount) {
+    throw zipError("multi-disk archives are not supported.");
+  }
+  if (
+    entryCount === 0xffff ||
+    centralSize === 0xffffffff ||
+    centralOffset === 0xffffffff
+  ) {
+    throw zipError("ZIP64 is not supported.");
+  }
+  if (entryCount !== extraction.entryCount) {
+    throw zipError(
+      "entry count " + entryCount + " does not equal " +
+        extraction.entryCount + ".",
+    );
+  }
+  if (centralOffset + centralSize !== end) {
+    throw zipError("the central-directory bounds are inconsistent.");
+  }
+
+  const root = extraction.rootDirectory;
+  validateWindowsSegment(root, root);
+  if (root.includes("/") || root.includes(":")) {
+    throw zipError("the manifest root directory is invalid.");
+  }
+  const approvedKeys = new Set<string>();
+  const approved = extraction.allowedEntryPrefixes.map((entry) => {
+    if (
+      entry.startsWith("/") ||
+      entry.includes("\\") ||
+      entry.includes(":")
+    ) {
+      throw zipError("the manifest allowlist is invalid.");
+    }
+    const directory = entry.endsWith("/");
+    const parts = entry.split("/");
+    if (directory) parts.pop();
+    for (const part of parts) validateWindowsSegment(part!, entry);
+    const key = windowsPathKey(entry.replace(/\/$/u, ""));
+    if (approvedKeys.has(key)) {
+      throw zipError("the manifest allowlist has a duplicate.");
+    }
+    approvedKeys.add(key);
+    return { value: entry, directory };
+  });
+
+  const entries: ValidatedZipEntry[] = [];
+  const pathTypes = new Map<string, boolean>();
+  let expandedSize = 0;
+  let cursor = centralOffset;
+  for (let index = 0; index < entryCount; index += 1) {
+    const header = checkedZipSlice(data, cursor, 46, "a central header");
+    if (header.readUInt32LE(0) !== ZIP_CENTRAL_SIGNATURE) {
+      throw zipError("a central-directory header is invalid.");
+    }
+    const createdBy = header.readUInt16LE(4);
+    const flags = header.readUInt16LE(8);
+    const method = header.readUInt16LE(10);
+    const modifiedTime = header.readUInt16LE(12);
+    const modifiedDate = header.readUInt16LE(14);
+    const expectedCrc = header.readUInt32LE(16);
+    const compressedSize = header.readUInt32LE(20);
+    const uncompressedSize = header.readUInt32LE(24);
+    const nameLength = header.readUInt16LE(28);
+    const extraLength = header.readUInt16LE(30);
+    const commentLength = header.readUInt16LE(32);
+    const entryDisk = header.readUInt16LE(34);
+    const externalAttributes = header.readUInt32LE(38);
+    const localOffset = header.readUInt32LE(42);
+    if (entryDisk !== 0) throw zipError("an entry is on another disk.");
+    if (
+      compressedSize === 0xffffffff ||
+      uncompressedSize === 0xffffffff ||
+      localOffset === 0xffffffff
+    ) {
+      throw zipError("an entry uses ZIP64.");
+    }
+    if ((flags & 1) !== 0) throw zipError("an entry is encrypted.");
+    if ((flags & ~ZIP_UTF8_FLAG) !== 0) {
+      throw zipError("an entry uses unsupported general-purpose flags.");
+    }
+    if (method !== 0 && method !== 8) {
+      throw zipError("compression method " + method + " is not supported.");
+    }
+    if (method === 0 && compressedSize !== uncompressedSize) {
+      throw zipError("a stored entry has inconsistent sizes.");
+    }
+
+    const nameBytes = checkedZipSlice(
+      data,
+      cursor + 46,
+      nameLength,
+      "a central entry name",
+    );
+    const name = decodeZipName(nameBytes);
+    const centralExtra = checkedZipSlice(
+      data,
+      cursor + 46 + nameLength,
+      extraLength,
+      "central entry " + JSON.stringify(name) + " extra data",
+    );
+    validateZipExtra(
+      centralExtra,
+      "central entry " + JSON.stringify(name),
+    );
+    cursor += 46 + nameLength + extraLength + commentLength;
+    if (cursor > end) {
+      throw zipError("a central entry exceeds its directory.");
+    }
+
+    const directory = name.endsWith("/");
+    const parts = name.split("/");
+    if (directory) parts.pop();
+    for (const part of parts) validateWindowsSegment(part!, name);
+    const rootEntry = name === root + "/";
+    if (!rootEntry && !name.startsWith(root + "/")) {
+      throw zipError(
+        "entry " + JSON.stringify(name) + " is outside the approved root.",
+      );
+    }
+    const relativeToRoot = rootEntry ? "" : name.slice(root.length + 1);
+    if (!rootEntry) {
+      const allowed = approved.some(
+        ({ value, directory: prefixDirectory }) =>
+          prefixDirectory
+            ? relativeToRoot.startsWith(value)
+            : relativeToRoot === value,
+      );
+      if (!allowed) {
+        throw zipError(
+          "entry " + JSON.stringify(name) + " is not allowlisted.",
+        );
+      }
+    }
+
+    const creatorSystem = createdBy >>> 8;
+    if (creatorSystem !== 3) {
+      throw zipError(
+        "entry " + JSON.stringify(name) +
+          " does not declare the required Unix creator system.",
+      );
+    }
+    const unixType = (externalAttributes >>> 16) & ZIP_TYPE_MASK;
+    const expectedType = directory ? ZIP_DIRECTORY_MODE : ZIP_REGULAR_MODE;
+    if (unixType !== expectedType) {
+      throw zipError(
+        "entry " + JSON.stringify(name) +
+          " has an unsafe or inconsistent Unix file type.",
+      );
+    }
+    const dosDirectory = (externalAttributes & 0x10) !== 0;
+    if (dosDirectory !== directory) {
+      throw zipError(
+        "entry " + JSON.stringify(name) +
+          " has an inconsistent DOS directory type.",
+      );
+    }
+    if (directory && (compressedSize !== 0 || uncompressedSize !== 0)) {
+      throw zipError(
+        "directory " + JSON.stringify(name) + " contains file data.",
+      );
+    }
+
+    const key = windowsPathKey(name.replace(/\/$/u, ""));
+    if (pathTypes.has(key)) {
+      throw zipError(
+        "entry " + JSON.stringify(name) +
+          " is a case-insensitive duplicate.",
+      );
+    }
+    const keyParts = key.split("/");
+    for (let part = 1; part < keyParts.length; part += 1) {
+      if (pathTypes.get(keyParts.slice(0, part).join("/")) === false) {
+        throw zipError("entry " + JSON.stringify(name) + " is below a file.");
+      }
+    }
+    if (!directory) {
+      for (const existing of pathTypes.keys()) {
+        if (existing.startsWith(key + "/")) {
+          throw zipError(
+            "file " + JSON.stringify(name) + " collides with a directory.",
+          );
+        }
+      }
+    }
+    pathTypes.set(key, directory);
+
+    const local = checkedZipSlice(data, localOffset, 30, "a local header");
+    if (local.readUInt32LE(0) !== ZIP_LOCAL_SIGNATURE) {
+      throw zipError(
+        "entry " + JSON.stringify(name) + " has an invalid local header.",
+      );
+    }
+    const localNameLength = local.readUInt16LE(26);
+    const localExtraLength = local.readUInt16LE(28);
+    const localName = checkedZipSlice(
+      data,
+      localOffset + 30,
+      localNameLength,
+      "a local entry name",
+    );
+    if (
+      local.readUInt16LE(6) !== flags ||
+      local.readUInt16LE(8) !== method ||
+      local.readUInt16LE(10) !== modifiedTime ||
+      local.readUInt16LE(12) !== modifiedDate ||
+      local.readUInt32LE(14) !== expectedCrc ||
+      local.readUInt32LE(18) !== compressedSize ||
+      local.readUInt16LE(4) !== header.readUInt16LE(6) ||
+      local.readUInt32LE(22) !== uncompressedSize ||
+      !localName.equals(nameBytes)
+    ) {
+      throw zipError(
+        "entry " + JSON.stringify(name) +
+          " has different local and central headers.",
+      );
+    }
+    const localExtra = checkedZipSlice(
+      data,
+      localOffset + 30 + localNameLength,
+      localExtraLength,
+      "local entry " + JSON.stringify(name) + " extra data",
+    );
+    validateZipExtra(localExtra, "local entry " + JSON.stringify(name));
+    const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+    const compressedData = checkedZipSlice(
+      data,
+      dataStart,
+      compressedSize,
+      "entry " + JSON.stringify(name) + " data",
+    );
+    if (dataStart + compressedSize > centralOffset) {
+      throw zipError(
+        "entry " + JSON.stringify(name) +
+          " overlaps the central directory.",
+      );
+    }
+    expandedSize += uncompressedSize;
+    if (expandedSize > extraction.expandedSize) {
+      throw zipError(
+        "expanded data exceeds " + extraction.expandedSize + " bytes.",
+      );
+    }
+    entries.push({
+      name,
+      relativePath: name,
+      directory,
+      compressedData,
+      compressionMethod: method,
+      expandedSize: uncompressedSize,
+      crc32: expectedCrc,
+      localStart: localOffset,
+      localEnd: dataStart + compressedSize,
+    });
+  }
+  if (cursor !== end) {
+    throw zipError("the central-directory size is inconsistent.");
+  }
+  if (expandedSize !== extraction.expandedSize) {
+    throw zipError(
+      "expanded size " + expandedSize + " does not equal " +
+        extraction.expandedSize + ".",
+    );
+  }
+  if (pathTypes.get(windowsPathKey(root)) !== true) {
+    throw zipError(
+      "the exact approved root directory entry is missing.",
+    );
+  }
+  const ranges = entries
+    .map(({ localStart, localEnd }) => ({ localStart, localEnd }))
+    .sort((left, right) => left.localStart - right.localStart);
+  if (ranges[0]!.localStart !== 0) {
+    throw zipError("the archive has unreferenced leading data.");
+  }
+  for (let index = 1; index < ranges.length; index += 1) {
+    if (ranges[index]!.localStart !== ranges[index - 1]!.localEnd) {
+      throw zipError("local entries overlap or have unreferenced gaps.");
+    }
+  }
+  if (ranges.at(-1)!.localEnd !== centralOffset) {
+    throw zipError("the archive has unreferenced data before its directory.");
+  }
+
+  for (const entry of entries) {
+    if (entry.directory) continue;
+    let expanded: Uint8Array;
+    try {
+      expanded = expandZipEntry(entry);
+    } catch {
+      throw zipError(
+        "entry " + JSON.stringify(entry.name) + " cannot be inflated.",
+      );
+    }
+    if (
+      expanded.byteLength !== entry.expandedSize ||
+      crc32(expanded) !== entry.crc32
+    ) {
+      throw zipError(
+        "entry " + JSON.stringify(entry.name) +
+          " failed size or CRC validation.",
+      );
+    }
+  }
+  return entries;
+}
+
+async function installWindowsPayload(
+  target: OpenScadTarget,
+  staging: string,
+  downloader: ArtifactDownloader,
+  fetchImplementation: typeof globalThis.fetch | undefined,
+): Promise<InstalledPayload> {
+  if (target.extraction.kind !== "zip") {
+    throw new Error("The Windows OpenSCAD extraction policy is invalid.");
+  }
+  const archive = resolve(staging, target.artifact.fileName);
+  await downloader(target.artifact, archive, fetchImplementation);
+  const entries = validateOpenScadWindowsZip(
+    await readFile(archive),
+    target.extraction,
+  );
+  for (const entry of entries) {
+    const destination = resolve(staging, entry.relativePath);
+    if (!isContainedPath(staging, destination)) {
+      throw zipError(
+        "entry " + JSON.stringify(entry.name) +
+          " escapes the staging directory.",
+      );
+    }
+    if (entry.directory) {
+      await mkdir(destination, { recursive: true });
+      continue;
+    }
+    await mkdir(dirname(destination), { recursive: true });
+    const expanded = expandZipEntry(entry);
+    await writeFile(destination, expanded, { flag: "wx" });
+  }
+  await rm(archive, { force: true });
+  return {
+    executable: resolve(staging, target.executable),
+    environment: { ...process.env },
+  };
+}
+
 async function installLinuxPayload(
   target: OpenScadTarget,
   staging: string,
@@ -795,13 +1327,20 @@ export async function installOpenScad(
         downloader,
         options.fetch,
       )
-      : await installLinuxPayload(
-        target,
-        staging,
-        runner,
-        downloader,
-        options.fetch,
-      );
+      : target.platform === "win32"
+        ? await installWindowsPayload(
+          target,
+          staging,
+          downloader,
+          options.fetch,
+        )
+        : await installLinuxPayload(
+          target,
+          staging,
+          runner,
+          downloader,
+          options.fetch,
+        );
     if (
       !(await probeInstalledCommand(
         runner,

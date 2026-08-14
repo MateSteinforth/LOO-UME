@@ -123,6 +123,56 @@
       },
       "executable": "OpenSCAD.app/Contents/MacOS/OpenSCAD",
       "libraryDirectories": []
+    },
+    {
+      "id": "win32-x64",
+      "platform": "win32",
+      "architecture": "x64",
+      "operatingSystems": [
+        {
+          "id": "windows",
+          "version": "10.0",
+          "minimumBuild": "19044"
+        }
+      ],
+      "version": "2021.01",
+      "installDirectory": ".tools/openscad-2021.01-win32-x64",
+      "releaseUrl": "https://github.com/openscad/openscad/releases/tag/openscad-2021.01",
+      "source": {
+        "url": "https://files.openscad.org/openscad-2021.01.src.tar.gz",
+        "sha256": "d938c297e7e5f65dbab1461cac472fc60dfeaa4999ea2c19b31a4184f2d70359",
+        "revision": "openscad-2021.01"
+      },
+      "license": {
+        "id": "GPL-2.0-or-later WITH LicenseRef-OpenSCAD-CGAL-exception",
+        "url": "https://raw.githubusercontent.com/openscad/openscad/openscad-2021.01/COPYING"
+      },
+      "artifact": {
+        "fileName": "OpenSCAD-2021.01-x86-64.zip",
+        "url": "https://files.openscad.org/OpenSCAD-2021.01-x86-64.zip",
+        "size": 21884613,
+        "sha256": "fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7"
+      },
+      "companions": [],
+      "requiredCommands": [],
+      "extraction": {
+        "kind": "zip",
+        "rootDirectory": "openscad-2021.01",
+        "entryCount": 221,
+        "expandedSize": 49579491,
+        "allowedEntryPrefixes": [
+          "openscad.com",
+          "openscad.exe",
+          "fonts/",
+          "templates/",
+          "color-schemes/",
+          "examples/",
+          "locale/",
+          "libraries/"
+        ]
+      },
+      "executable": "openscad-2021.01/openscad.com",
+      "libraryDirectories": []
     }
   ]
 }

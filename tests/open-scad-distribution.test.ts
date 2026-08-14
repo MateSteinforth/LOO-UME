@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   assertSupportedOpenScadHost,
   createManagedOpenScadReceipt,
+  detectWindowsNativeArchitecture,
   loadOpenScadDistribution,
   managedOpenScadDirectory,
   MANAGED_OPENSCAD_RECEIPT,
@@ -61,6 +62,16 @@ const macX64Host: HostDescription = {
 const linuxTarget = selectOpenScadTarget(manifest, debianHost)!;
 const macArmTarget = selectOpenScadTarget(manifest, macArmHost)!;
 const macX64Target = selectOpenScadTarget(manifest, macX64Host)!;
+const windowsHost: HostDescription = {
+  platform: "win32",
+  architecture: "x64",
+  nativeArchitecture: "x64",
+  osRelease: "",
+  glibcVersion: undefined,
+  operatingSystemVersion: "10.0.19045",
+};
+const windowsTarget = selectOpenScadTarget(manifest, windowsHost)!;
+
 
 afterEach(async () => {
   await Promise.all(
@@ -147,7 +158,7 @@ function fakeRunner(
 }
 
 describe("managed OpenSCAD distribution policy", () => {
-  it("pins the Linux package and both native macOS targets", () => {
+  it("pins the Linux, native macOS, and Windows x64 packages", () => {
     expect(manifest).toMatchObject({
       schemaVersion: "2.0.0",
       targets: [
@@ -205,6 +216,27 @@ describe("managed OpenSCAD distribution policy", () => {
             sha256:
               "555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4",
           },
+        },
+        {
+          id: "win32-x64",
+          platform: "win32",
+          architecture: "x64",
+          operatingSystems: [{ id: "windows", version: "10.0", minimumBuild: "19044" }],
+          version: "2021.01",
+          installDirectory: ".tools/openscad-2021.01-win32-x64",
+          source: {
+            url: "https://files.openscad.org/openscad-2021.01.src.tar.gz",
+            sha256: "d938c297e7e5f65dbab1461cac472fc60dfeaa4999ea2c19b31a4184f2d70359",
+            revision: "openscad-2021.01",
+          },
+          artifact: {
+            url: "https://files.openscad.org/OpenSCAD-2021.01-x86-64.zip",
+            size: 21_884_613,
+            sha256: "fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7",
+          },
+          extraction: { kind: "zip", rootDirectory: "openscad-2021.01", entryCount: 221, expandedSize: 49_579_491 },
+          executable: "openscad-2021.01/openscad.com",
+          libraryDirectories: [],
         },
       ],
     });
@@ -273,6 +305,31 @@ describe("managed OpenSCAD distribution policy", () => {
     }
   });
 
+  it("selects supported Windows builds and rejects non-native hosts", () => {
+    for (const build of ["19044", "19045", "20348", "22000", "26100"]) {
+      expect(selectOpenScadTarget(manifest, {
+        ...windowsHost,
+        operatingSystemVersion: `10.0.${build}`,
+      })?.id).toBe("win32-x64");
+    }
+    for (const host of [
+      { ...windowsHost, operatingSystemVersion: "10.0.19043" },
+      { ...windowsHost, operatingSystemVersion: "10.1.26100" },
+      { ...windowsHost, nativeArchitecture: "arm64" },
+      { ...windowsHost, architecture: "arm64", nativeArchitecture: "arm64" },
+      { ...windowsHost, nativeArchitecture: undefined },
+      { ...windowsHost, operatingSystemVersion: undefined },
+    ]) {
+      expect(selectOpenScadTarget(manifest, host)).toBeUndefined();
+    }
+    expect(detectWindowsNativeArchitecture(
+      { PROCESSOR_ARCHITECTURE: "AMD64" },
+      "x64",
+      "arm64",
+    )).toBe("arm64");
+    expect(detectWindowsNativeArchitecture({}, "x64", "x86_64")).toBe("x64");
+  });
+
   it("binds receipts to the target, version, and full artifact set", () => {
     expect(createManagedOpenScadReceipt(linuxTarget)).toMatchObject({
       schemaVersion: "2.0.0",
@@ -301,6 +358,16 @@ describe("managed OpenSCAD distribution policy", () => {
             "555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4",
         },
       ],
+    });
+    expect(createManagedOpenScadReceipt(windowsTarget)).toMatchObject({
+      target: "win32-x64",
+      version: "2021.01",
+      artifacts: [{
+        fileName: "OpenSCAD-2021.01-x86-64.zip",
+        sha256: "fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7",
+      }],
+      executable: "openscad-2021.01/openscad.com",
+      libraryDirectories: [],
     });
   });
 
@@ -363,6 +430,45 @@ describe("managed OpenSCAD distribution policy", () => {
         ),
       ).toBeUndefined();
     }
+  });
+
+  it("keeps the Windows environment and rejects a cross-target receipt", async () => {
+    const root = await temporaryRoot("windows managed path with spaces ");
+    const installation = managedOpenScadDirectory(root, windowsTarget);
+    const command = join(installation, windowsTarget.executable);
+    await mkdir(join(command, ".."), { recursive: true });
+    await writeFile(command, "test", "utf8");
+    await writeFile(
+      join(installation, MANAGED_OPENSCAD_RECEIPT),
+      JSON.stringify(createManagedOpenScadReceipt(windowsTarget)),
+      "utf8",
+    );
+    const environment = {
+      PATH: "C:\\operator\\bin",
+      LD_LIBRARY_PATH: "/operator/linux-libs",
+    };
+    expect(resolveManagedOpenScadCommand(
+      root,
+      manifest,
+      environment,
+      windowsHost,
+    )).toEqual({
+      command,
+      environment,
+      targetId: "win32-x64",
+      expectedVersion: "2021.01",
+    });
+    await writeFile(
+      join(installation, MANAGED_OPENSCAD_RECEIPT),
+      JSON.stringify(createManagedOpenScadReceipt(macX64Target)),
+      "utf8",
+    );
+    expect(resolveManagedOpenScadCommand(
+      root,
+      manifest,
+      environment,
+      windowsHost,
+    )).toBeUndefined();
   });
 });
 

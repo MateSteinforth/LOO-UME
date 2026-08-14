@@ -174,11 +174,19 @@ wrong-version OpenSCAD disables **Generate 3D Parts** with direct repair
 guidance; editing, simulation, mapping, wiring, save, and reopen continue. After
 setup or repair, restart the server to repeat discovery.
 
-Node.js, npm, and all other project dependencies are not installed by this
-setup command. Linux also needs its standard `dpkg-deb` command. Windows is not
-yet supported. INSTALL-014 tracks Windows support, INSTALL-011 tracks the
-complete clean-clone bootstrap, and INSTALL-012 tracks proof on every declared
-supported target.
+On Windows x86-64 PowerShell, use `npm.cmd run setup:openscad`. The candidate
+pins the official portable OpenSCAD 2021.01 ZIP at 21,884,613 bytes with
+SHA-256
+`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`
+and uses `openscad.com`. Setup is repository-local and atomic, with no
+administrator, installer, registry, profile, or `PATH` change. Source is tag
+`openscad-2021.01`, commit `41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`,
+under GPL-2.0-or-later with the OpenSCAD CGAL exception.
+
+Windows Server CI is surrogate proof only. INSTALL-015 needs Windows 10 LTSC
+2021 and Windows 11 25H2 x86-64 non-N client proof. Windows N/KN and ARM64 are
+excluded. Node.js and npm remain prerequisites; Linux also needs `dpkg-deb`.
+INSTALL-011/012 track the complete bootstrap and all-target proof.
 
 The HTTP server, project data, generated assets, and OpenSCAD process all remain
 on the local computer. Generation is same-origin and loopback-only. Ctrl-C

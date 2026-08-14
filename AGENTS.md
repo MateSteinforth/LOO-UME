@@ -101,6 +101,17 @@ uses `createPanelAssemblyMapping()`.
   `npx --yes yaml-lint .github/workflows/render.yml`. This transient Node-based
   fallback is verified in this environment; do not repeat the missing-parser
   checks.
+- `npx tsx -e` compiles evaluation input as CommonJS and cannot directly import
+  a TypeScript script that has top-level `await`. For a direct ESM import check,
+  use `node --import tsx --input-type=module -e '...'` instead.
+- Windows PowerShell verification must call npm through `npm.cmd`; do not rely
+  on the `npm.ps1` shim or its execution policy. Clean checks clear `PATH`, so
+  required Windows system tools must use validated absolute paths such as
+  `%SystemRoot%\System32\taskkill.exe` with argument arrays and no shell.
+- Do not assume that a repository-local GitHub CLI exists under `.tools`. For
+  this public repository, use the public GitHub Actions REST API with `curl`
+  when `gh` is absent, and parse the saved JSON response with Node.js.
+
 - On the macOS GitHub runners, `lipo -verify_arch` returned a false failure for
   the qualified universal OpenSCAD DMG. Do not use that command as the native
   execution gate. Keep `lipo -archs` as evidence, then use

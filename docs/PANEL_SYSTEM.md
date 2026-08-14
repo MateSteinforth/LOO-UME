@@ -176,8 +176,16 @@ check, mount cleanup, target receipt, and atomic publication make setup safe to
 retry. Runtime selection uses explicit `OPENSCAD` first, the valid
 receipt-backed managed tool for the current target second, and the system
 `openscad` on `PATH` last. Restart the local server after setup or repair.
-Windows and the all-dependency bootstrap remain INSTALL-014/011 work;
-INSTALL-012 tracks proof on all declared targets.
+The Windows x86-64 candidate uses the official portable OpenSCAD 2021.01 ZIP,
+`openscad.com`, repository-local extraction, receipt validation, and atomic
+publication. The ZIP is 21,884,613 bytes with SHA-256
+`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`.
+Its source is tag `openscad-2021.01`, commit
+`41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`, under GPL-2.0-or-later with
+the OpenSCAD CGAL exception. Windows Server CI is surrogate proof only.
+INSTALL-015 needs Windows 10 LTSC 2021 and Windows 11 25H2 x86-64 non-N proof.
+Windows N/KN and ARM64 are excluded. INSTALL-011/012 track the complete
+bootstrap and all-target proof.
 
 Successful generation writes and inspects the entire asset set before
 atomically publishing the manifest. Three.js then loads the exact referenced

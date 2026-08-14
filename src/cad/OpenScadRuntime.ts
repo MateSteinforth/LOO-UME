@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { resolve } from "node:path";
+import { resolve, win32 } from "node:path";
 import {
   detectOpenScadHost,
   loadOpenScadDistribution,
@@ -46,11 +46,12 @@ export function resolveOpenScadCommand(
   executable = process.env.OPENSCAD,
 ): OpenScadCommand {
   let expectedVersion: OpenScadTarget["version"] = SUPPORTED_OPENSCAD_VERSION;
+  const host = detectOpenScadHost();
   let targetId: OpenScadTarget["id"] | undefined;
   try {
     const target = selectOpenScadTarget(
       loadOpenScadDistribution(rootDirectory),
-      detectOpenScadHost(),
+      host,
     );
     if (target) {
       expectedVersion = target.version;
@@ -60,7 +61,7 @@ export function resolveOpenScadCommand(
     // Keep the legacy version if the target manifest cannot be loaded.
   }
   return {
-    command: executable?.trim() || "openscad",
+    command: executable?.trim() || (host.platform === "win32" ? "openscad.com" : "openscad"),
     environment: process.env,
     expectedVersion,
     targetId,
@@ -93,6 +94,8 @@ function collectProcess(
     cwd: rootDirectory,
     env: environment,
     stdio: ["ignore", "pipe", "pipe"],
+    shell: false,
+    windowsHide: true,
   });
   let output = "";
   child.stdout?.on("data", (chunk) => { output += String(chunk); });
@@ -207,27 +210,147 @@ export async function probeOpenScad(
   return (await discoverOpenScad(rootDirectory, executable)).status;
 }
 
-async function stopChildren(
+export type WindowsProcessTreeTerminator = (
+  pid: number,
+  force: boolean,
+  timeoutMs: number,
+) => Promise<void>;
+
+function windowsTaskkillPath(environment: NodeJS.ProcessEnv): string {
+  const root = environment.SystemRoot?.trim();
+  if (
+    !root ||
+    !/^[a-z]:[\\/]/i.test(root) ||
+    root.split(/[\\/]/).includes("..") ||
+    root.includes("\0")
+  ) {
+    throw new Error("SystemRoot must be an absolute local Windows path.");
+  }
+  return win32.join(root, "System32", "taskkill.exe");
+}
+
+function bounded<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  return new Promise<T>((resolvePromise, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(message));
+    }, Math.max(1, timeoutMs));
+    operation.then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolvePromise(value);
+      },
+      (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+export async function terminateWindowsProcessTree(
+  pid: number,
+  force: boolean,
+  timeoutMs = 5_000,
+  environment: NodeJS.ProcessEnv = process.env,
+): Promise<void> {
+  if (!Number.isSafeInteger(pid) || pid <= 0) {
+    throw new Error("The Windows process identifier is invalid.");
+  }
+  const args = ["/PID", String(pid), "/T"];
+  if (force) args.push("/F");
+  const taskkill = spawn(windowsTaskkillPath(environment), args, {
+    stdio: "ignore",
+    shell: false,
+    windowsHide: true,
+  });
+  try {
+    await bounded(
+      new Promise<void>((resolvePromise, reject) => {
+        taskkill.once("error", reject);
+        taskkill.once("close", (code) => {
+          if (code === 0) resolvePromise();
+          else reject(new Error(
+            `taskkill exited with code ${code ?? "unknown"}.`,
+          ));
+        });
+      }),
+      timeoutMs,
+      `taskkill did not respond within ${timeoutMs} ms.`,
+    );
+  } catch (error) {
+    if (taskkill.exitCode === null) taskkill.kill("SIGKILL");
+    throw error;
+  }
+}
+
+export async function stopOpenScadChildren(
   children: Set<ChildProcess>,
   gracePeriodMs: number,
+  platform = process.platform,
+  terminateWindowsTree: WindowsProcessTreeTerminator =
+    terminateWindowsProcessTree,
 ): Promise<void> {
   const active = [...children].filter((child) => child.exitCode === null);
-  for (const child of active) child.kill("SIGTERM");
   if (active.length === 0) return;
+  const timeoutMs = Math.max(1, gracePeriodMs);
+  const stop = async (child: ChildProcess, force: boolean): Promise<void> => {
+    if (platform === "win32" && child.pid !== undefined) {
+      await bounded(
+        terminateWindowsTree(child.pid, force, timeoutMs),
+        timeoutMs,
+        `Windows process-tree stop timed out for PID ${child.pid}.`,
+      );
+      return;
+    }
+    child.kill(force ? "SIGKILL" : "SIGTERM");
+  };
+  const deadline = Date.now() + timeoutMs;
+  await Promise.allSettled(active.map((child) => stop(child, false)));
   const closed = Promise.all(active.map((child) => new Promise<void>((resolvePromise) => {
     if (child.exitCode !== null) resolvePromise();
     else child.once("close", () => resolvePromise());
   })));
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  await Promise.race([
-    closed,
-    new Promise<void>((resolvePromise) => {
-      timer = setTimeout(resolvePromise, gracePeriodMs);
-    }),
-  ]);
-  if (timer) clearTimeout(timer);
-  for (const child of active) {
-    if (child.exitCode === null) child.kill("SIGKILL");
+  const remainingGraceMs = Math.max(0, deadline - Date.now());
+  if (remainingGraceMs > 0) {
+    await bounded(
+      closed,
+      remainingGraceMs,
+      "OpenSCAD did not exit during the graceful stop.",
+    ).catch(() => undefined);
+  }
+  const forced = await Promise.allSettled(
+    active
+      .filter((child) => child.exitCode === null)
+      .map((child) => stop(child, true)),
+  );
+  const failures = forced
+    .filter((result): result is PromiseRejectedResult =>
+      result.status === "rejected"
+    )
+    .map((result) => result.reason);
+  if (failures.length > 0) {
+    throw new AggregateError(
+      failures,
+      "OpenSCAD process-tree termination failed.",
+    );
+  }
+  if (active.some((child) => child.exitCode === null)) {
+    await bounded(
+      closed,
+      timeoutMs,
+      "OpenSCAD did not exit after forced stop.",
+    );
   }
 }
 
@@ -259,7 +382,7 @@ export async function createOpenScadRuntime(
     },
     async close(gracePeriodMs = 2_000) {
       closing = true;
-      await stopChildren(children, gracePeriodMs);
+      await stopOpenScadChildren(children, gracePeriodMs);
     },
   };
 }

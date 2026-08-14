@@ -141,32 +141,42 @@ plugin adapts the same `createEditorPipelineHandler()` during development.
 
 OpenSCAD is required but is not stored as an application binary in the
 repository. `npm run setup:openscad` provides automatic repository-local setup
-for Debian 13 x86-64, Ubuntu 24.04 x86-64, and macOS 15 on Apple Silicon arm64
-or Intel x86-64. Linux uses OpenSCAD 2021.01 from the official AppImage and a
+for the declared Linux and macOS targets and a Windows x86-64 candidate. Linux
+uses OpenSCAD 2021.01 from the official AppImage and a
 pinned `libgpg-error0` companion. macOS uses the official universal OpenSCAD
 2026.06.12 snapshot. `toolchains/openscad-distributions.json` pins the declared
 targets, URLs, exact sizes, SHA-256 checksums, source metadata, and license
 references. The upstream macOS snapshot does not publish a verified exact
 source revision, so the manifest does not claim one.
+The Windows candidate uses
+`https://files.openscad.org/OpenSCAD-2021.01-x86-64.zip`, size 21,884,613
+bytes, SHA-256
+`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`,
+and executable `openscad.com`. Its source maps to tag `openscad-2021.01`,
+commit `41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`, and the
+GPL-2.0-or-later-with-CGAL-exception license.
 
-Setup does not need administrator access or a `PATH` change. The macOS path
-rejects Rosetta, mounts the DMG read-only, copies only `OpenSCAD.app` into the
-repository-local staging tree, validates that tree and its native Mach-O slice,
-and cleans up the mount. Setup records the selected target, version, artifacts,
-and executable in its receipt. It verifies the staged tool before atomic
-publication, reuses a valid target-specific install, and is safe to retry after
-failure.
+Setup does not need administrator access or a `PATH` change. Windows extracts
+and validates the portable payload in repository-local staging. It does not use
+an installer, system application directory, profile, or registry. The macOS
+path rejects Rosetta, mounts the DMG read-only, and copies only
+`OpenSCAD.app`. Setup records the selected target, version, artifacts, and
+executable in its receipt. It verifies the staged tool before atomic
+publication, reuses a valid target-specific install, and is safe to retry.
 
 Startup probes an explicit `OPENSCAD` executable first. Without that override,
 it prefers the valid receipt-backed managed tool for the current target and
-then falls back to the system `openscad` on `PATH`. Runtime version policy comes
-from that target: 2021.01 for Linux and 2026.06.12 for macOS. The selected
+then falls back to the system OpenSCAD command on `PATH`. Runtime version
+policy is 2021.01 for Linux and Windows, and 2026.06.12 for macOS. The selected
 result is published through the status endpoint. The browser disables only
 printable generation when status is absent, malformed, unavailable, or
 version-mismatched; pose editing, simulation, mapping, wiring, and persistence
 remain usable. After setup or repair, restart the server because status and the
-resolved executable belong to the startup runtime. Windows and the complete
-dependency bootstrap remain separate INSTALL-014 and INSTALL-011 work.
+resolved executable belong to the startup runtime. Windows Server 2022 and
+2025 x64 CI is surrogate proof only. INSTALL-015 remains blocked on clean,
+short-lived Windows 10 Enterprise LTSC 2021 and Windows 11 Enterprise 25H2
+x86-64 non-N virtual machines. Windows N/KN and ARM64 are excluded. The complete
+dependency bootstrap remains INSTALL-011 work.
 
 The server accepts loopback hosts only, and generation additionally requires a
 same-origin request. Project data, assets, generated output, and OpenSCAD remain
@@ -203,8 +213,9 @@ configuration.
   junction has more than one incoming or outgoing cap edge. Correction tools
   for those ambiguous arrangements are not implemented.
 - The desktop package does not bundle OpenSCAD. Managed setup covers the
-  declared Linux x86-64 targets and native macOS 15 arm64/x86-64 targets.
-  Windows and the complete dependency bootstrap remain INSTALL-014/011 work.
+  declared Linux and native macOS targets. Windows x86-64 remains a candidate
+  until INSTALL-015 completes real Windows client proof. The complete dependency
+  bootstrap remains INSTALL-011 work.
 - macOS proof uses native `macos-15` and `macos-15-intel` CI runners. The Intel
   runner label is scheduled to retire in August 2027, so CI must move to a
   supported native Intel label before that date.

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
+import { machine as osMachine, release as osReleaseVersion } from "node:os";
 import { delimiter, isAbsolute, resolve } from "node:path";
 import { report } from "node:process";
 
@@ -25,9 +26,11 @@ export interface OpenScadCompanion extends DownloadArtifact {
 }
 
 export interface OpenScadOperatingSystem {
-  id: "debian" | "ubuntu" | "macos";
+  id: "debian" | "ubuntu" | "macos" | "windows";
   version: string;
   codename?: string;
+  minimumBuild?: string;
+  maximumBuild?: string;
 }
 
 export interface OpenScadSource {
@@ -38,8 +41,8 @@ export interface OpenScadSource {
 }
 
 export interface OpenScadTarget {
-  id: "linux-x64" | "darwin-arm64" | "darwin-x64";
-  platform: "linux" | "darwin";
+  id: "linux-x64" | "darwin-arm64" | "darwin-x64" | "win32-x64";
+  platform: "linux" | "darwin" | "win32";
   architecture: "x64" | "arm64";
   operatingSystems: OpenScadOperatingSystem[];
   minimumGlibc?: string;
@@ -53,7 +56,14 @@ export interface OpenScadTarget {
   requiredCommands: string[];
   extraction:
     | { kind: "legacy-appimage"; patchHeader: true }
-    | { kind: "dmg"; bundlePath: string };
+    | { kind: "dmg"; bundlePath: string }
+    | {
+      kind: "zip";
+      rootDirectory: string;
+      entryCount: number;
+      expandedSize: number;
+      allowedEntryPrefixes: string[];
+    };
   executable: string;
   libraryDirectories: string[];
 }
@@ -92,6 +102,7 @@ export interface HostDescription {
   osRelease: string;
   glibcVersion: string | undefined;
   operatingSystemVersion?: string;
+  nativeArchitecture?: string;
 }
 
 const EXPECTED_MANIFEST = Object.freeze({
@@ -214,6 +225,52 @@ const EXPECTED_MANIFEST = Object.freeze({
       requiredCommands: ["hdiutil"],
       extraction: { kind: "dmg", bundlePath: "OpenSCAD.app" },
       executable: "OpenSCAD.app/Contents/MacOS/OpenSCAD",
+      libraryDirectories: [],
+    },
+    {
+      id: "win32-x64",
+      platform: "win32",
+      architecture: "x64",
+      operatingSystems: [
+        { id: "windows", version: "10.0", minimumBuild: "19044" },
+      ],
+      version: "2021.01",
+      installDirectory: ".tools/openscad-2021.01-win32-x64",
+      releaseUrl: "https://github.com/openscad/openscad/releases/tag/openscad-2021.01",
+      source: {
+        url: "https://files.openscad.org/openscad-2021.01.src.tar.gz",
+        sha256: "d938c297e7e5f65dbab1461cac472fc60dfeaa4999ea2c19b31a4184f2d70359",
+        revision: "openscad-2021.01",
+      },
+      license: {
+        id: "GPL-2.0-or-later WITH LicenseRef-OpenSCAD-CGAL-exception",
+        url: "https://raw.githubusercontent.com/openscad/openscad/openscad-2021.01/COPYING",
+      },
+      artifact: {
+        fileName: "OpenSCAD-2021.01-x86-64.zip",
+        url: "https://files.openscad.org/OpenSCAD-2021.01-x86-64.zip",
+        size: 21_884_613,
+        sha256: "fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7",
+      },
+      companions: [],
+      requiredCommands: [],
+      extraction: {
+        kind: "zip",
+        rootDirectory: "openscad-2021.01",
+        entryCount: 221,
+        expandedSize: 49_579_491,
+        allowedEntryPrefixes: [
+          "openscad.com",
+          "openscad.exe",
+          "fonts/",
+          "templates/",
+          "color-schemes/",
+          "examples/",
+          "locale/",
+          "libraries/",
+        ],
+      },
+      executable: "openscad-2021.01/openscad.com",
       libraryDirectories: [],
     },
   ],
@@ -347,6 +404,18 @@ function validateTargetPathsAndUrls(
       `${label}.extraction.bundlePath`,
     );
   }
+  if (target.extraction.kind === "zip") {
+    safeRelativePath(
+      target.extraction.rootDirectory,
+      `${label}.extraction.rootDirectory`,
+    );
+    target.extraction.allowedEntryPrefixes.forEach((entry, entryIndex) =>
+      safeRelativePath(
+        entry.endsWith("/") ? entry.slice(0, -1) : entry,
+        `${label}.extraction.allowedEntryPrefixes[${entryIndex}]`,
+      )
+    );
+  }
 }
 
 export function parseOpenScadDistribution(
@@ -408,6 +477,40 @@ function readMacOsVersion(): string | undefined {
   }
 }
 
+export function normalizeWindowsArchitecture(
+  value: string | undefined,
+): string | undefined {
+  if (!value?.trim()) return undefined;
+  switch (value.trim().toUpperCase()) {
+    case "AMD64":
+    case "X86_64":
+      return "x64";
+    case "ARM64":
+      return "arm64";
+    case "X86":
+      return "ia32";
+    default:
+      return value.trim().toLowerCase();
+  }
+}
+
+export function detectWindowsNativeArchitecture(
+  environment: NodeJS.ProcessEnv = process.env,
+  processArchitecture: string = process.arch,
+  nativeMachine: string | undefined = osMachine(),
+): string {
+  for (const value of [
+    nativeMachine,
+    environment.PROCESSOR_ARCHITEW6432,
+    environment.PROCESSOR_ARCHITECTURE,
+    processArchitecture,
+  ]) {
+    const normalized = normalizeWindowsArchitecture(value);
+    if (normalized) return normalized;
+  }
+  return "unknown";
+}
+
 export function detectOpenScadHost(): HostDescription {
   const diagnostic = report?.getReport?.() as
     | { header?: { glibcVersionRuntime?: string } }
@@ -418,13 +521,19 @@ export function detectOpenScadHost(): HostDescription {
   } catch {
     // Host selection below produces one complete operator-facing error.
   }
+  const platform = process.platform;
   return {
-    platform: process.platform,
+    platform,
     architecture: process.arch,
+    nativeArchitecture:
+      platform === "win32" ? detectWindowsNativeArchitecture() : undefined,
     osRelease,
     glibcVersion: diagnostic?.header?.glibcVersionRuntime,
-    operatingSystemVersion:
-      process.platform === "darwin" ? readMacOsVersion() : undefined,
+    operatingSystemVersion: platform === "darwin"
+      ? readMacOsVersion()
+      : platform === "win32"
+      ? osReleaseVersion()
+      : undefined,
   };
 }
 
@@ -442,6 +551,24 @@ function targetSupportsHost(
     const major = host.operatingSystemVersion?.split(".")[0];
     return target.operatingSystems.some(
       (system) => system.id === "macos" && system.version === major,
+    );
+  }
+  if (target.platform === "win32") {
+    if (host.nativeArchitecture !== target.architecture) return false;
+    const version = host.operatingSystemVersion?.match(
+      /^(\d+)\.(\d+)\.(\d+)(?:\.\d+)?$/,
+    );
+    if (!version) return false;
+    const ntVersion = `${version[1]}.${version[2]}`;
+    const build = version[3]!;
+    return target.operatingSystems.some(
+      (system) =>
+        system.id === "windows" &&
+        system.version === ntVersion &&
+        system.minimumBuild !== undefined &&
+        versionAtLeast(build, system.minimumBuild) &&
+        (system.maximumBuild === undefined ||
+          versionAtLeast(system.maximumBuild, build)),
     );
   }
   const release = parseOsRelease(host.osRelease);
@@ -479,16 +606,19 @@ export function assertSupportedOpenScadHost(
   const target = selectOpenScadTarget(manifest, host);
   if (target) return target;
   const release = parseOsRelease(host.osRelease);
-  const detectedSystem =
-    host.platform === "darwin"
-      ? `macOS ${host.operatingSystemVersion ?? "unknown"}`
-      : release.PRETTY_NAME ?? "unknown operating system";
+  const detectedSystem = host.platform === "darwin"
+    ? `macOS ${host.operatingSystemVersion ?? "unknown"}`
+    : host.platform === "win32"
+    ? `Windows NT ${host.operatingSystemVersion ?? "unknown"}`
+    : release.PRETTY_NAME ?? "unknown operating system";
   throw new Error(
     "OpenSCAD automatic installation supports only Debian 13 (trixie) or " +
-      "Ubuntu 24.04 (noble) x86-64 with glibc 2.38 or newer, or macOS 15 " +
-      "on arm64 or x64. " +
-      `Detected ${host.platform}/${host.architecture}, ${detectedSystem}, ` +
-      `glibc ${host.glibcVersion ?? "not applicable"}.`,
+      "Ubuntu 24.04 (noble) x86-64 with glibc 2.38 or newer, macOS 15 " +
+      "on arm64 or x64, or a Windows NT 10.0 x64 candidate at build 19044 " +
+      "or newer. " +
+      `Detected ${host.platform}/${host.architecture}, native ` +
+      `${host.nativeArchitecture ?? "unknown"}, ${detectedSystem}, glibc ` +
+      `${host.glibcVersion ?? "not applicable"}.`,
   );
 }
 
