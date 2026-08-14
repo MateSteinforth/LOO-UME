@@ -6,6 +6,7 @@ import {
   type PanelAssemblyDefinition,
 } from "../src/sculpture/PanelAssembly.ts";
 import {
+  detectPanelBoundaryTopology,
   generateClosedPanelBoundary,
   PANEL_BOUNDARY_TOLERANCES,
   PanelBoundaryGenerationError,
@@ -63,6 +64,140 @@ async function loadInvalidFixture(name: string): Promise<{
   return { definition, expectedErrorCode: fixture.expectedErrorCode };
 }
 
+function planarPanel(
+  id: string,
+  position: [number, number, number],
+  xAxis: [number, number, number] = [1, 0, 0],
+  normal: [number, number, number] = [0, 0, 1],
+): PanelAssemblyDefinition["panels"][number] {
+  return {
+    id,
+    pose: {
+      position,
+      orientation: { xAxis, yAxis: [0, 1, 0], normal },
+    },
+  };
+}
+
+describe("automatic panel-boundary topology detection", () => {
+  it("detects stable, oppositely wound cap cycles for the prism", async () => {
+    const definition = await loadDefinition();
+    const project = createPanelAssemblyProject(definition, VALID_FIXTURE);
+    delete definition.boundaryTopology;
+
+    const topology = detectPanelBoundaryTopology(
+      definition,
+      project.panelProfile,
+    );
+    const keys = topology.gaps.map(({ vertices }) =>
+      vertices.map(({ panelId, corner }) => `${panelId}.${corner}`).join("|")
+    ).sort();
+
+    expect(topology.kind).toBe("panel-outline-gap-cycles");
+    expect(topology.gaps).toHaveLength(2);
+    expect(topology.gaps.map(({ id }) => id)).toEqual(
+      [...topology.gaps.map(({ id }) => id)].sort(),
+    );
+    expect(topology.gaps.every(({ id }) => /^gap-[0-9a-f]{12}$/.test(id)))
+      .toBe(true);
+    expect(keys).toEqual([
+      "P-BACK.bottom-left|P-FRONT.bottom-right|P-FRONT.bottom-left|P-BACK.bottom-right",
+      "P-BACK.top-left|P-BACK.top-right|P-FRONT.top-left|P-FRONT.top-right",
+    ]);
+
+    const boundary = generateClosedPanelBoundary(
+      definition,
+      project.panelProfile,
+      topology,
+    );
+    expect(boundary.metadata.counts).toMatchObject({
+      vertices: 8,
+      edges: 12,
+      panelOutlines: 4,
+      caps: 2,
+      connectedComponents: 1,
+    });
+  });
+
+  it("is independent of panel array order, including stable gap IDs", async () => {
+    const definition = await loadDefinition();
+    const project = createPanelAssemblyProject(definition, VALID_FIXTURE);
+    delete definition.boundaryTopology;
+    const expected = detectPanelBoundaryTopology(
+      definition,
+      project.panelProfile,
+    );
+    definition.panels.reverse();
+
+    expect(detectPanelBoundaryTopology(definition, project.panelProfile))
+      .toEqual(expected);
+  });
+
+  it("rejects a corner where two exposed gap cycles touch ambiguously", async () => {
+    const definition = await loadDefinition();
+    const project = createPanelAssemblyProject(definition, VALID_FIXTURE);
+    definition.panels = [
+      planarPanel("A", [0, 0, 0]),
+      planarPanel("B", [66, 65, 0]),
+    ];
+
+    try {
+      detectPanelBoundaryTopology(definition, project.panelProfile);
+      throw new Error("Expected ambiguous topology detection to fail.");
+    } catch (error) {
+      expect(error).toBeInstanceOf(PanelBoundaryGenerationError);
+      expect((error as PanelBoundaryGenerationError).code).toBe(
+        "ambiguous-topology",
+      );
+      expect((error as Error).message).toMatch(
+        /ambiguous.*A\.top-right, B\.bottom-left.*Separate the touching gaps/i,
+      );
+    }
+  });
+
+  it("rejects panel edges used by more than two outlines as non-manifold", async () => {
+    const definition = await loadDefinition();
+    const project = createPanelAssemblyProject(definition, VALID_FIXTURE);
+    definition.panels = [
+      planarPanel("A", [0, 0, 0]),
+      planarPanel("B", [0, 0, 0]),
+      planarPanel("C", [0, 0, 0]),
+    ];
+
+    try {
+      detectPanelBoundaryTopology(definition, project.panelProfile);
+      throw new Error("Expected non-manifold topology detection to fail.");
+    } catch (error) {
+      expect(error).toBeInstanceOf(PanelBoundaryGenerationError);
+      expect((error as PanelBoundaryGenerationError).code).toBe("non-manifold");
+      expect((error as Error).message).toMatch(
+        /used by 3 panel outlines.*at most two are permitted/i,
+      );
+    }
+  });
+
+  it("rejects a shared edge whose panel windings match", async () => {
+    const definition = await loadDefinition();
+    const project = createPanelAssemblyProject(definition, VALID_FIXTURE);
+    definition.panels = [
+      planarPanel("A", [0, 0, 0]),
+      planarPanel("B", [66, 0, 0], [-1, 0, 0], [0, 0, -1]),
+    ];
+
+    try {
+      detectPanelBoundaryTopology(definition, project.panelProfile);
+      throw new Error("Expected matching shared-edge winding to fail.");
+    } catch (error) {
+      expect(error).toBeInstanceOf(PanelBoundaryGenerationError);
+      expect((error as PanelBoundaryGenerationError).code).toBe(
+        "inconsistent-winding",
+      );
+      expect((error as Error).message).toMatch(
+        /shared with matching direction.*opposite directions/i,
+      );
+    }
+  });
+});
 describe("panel-outline closed-boundary generation", () => {
   it("builds the complete deterministic prism fixture from poses and profile dimensions", async () => {
     const definition = await loadDefinition();

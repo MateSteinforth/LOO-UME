@@ -4,10 +4,11 @@ This page records the agreed product direction for general sculptures. The
 mechanics-independent interface in steps 1–4 is implemented: mechanics fields
 may be omitted and optional GLB failures are non-fatal. The portable asset
 contract and the zero-thickness panel-outline boundary stage are also
-implemented. Boundary topology is accepted as panel-ID/named-corner cycles,
-while every coordinate is regenerated from poses and the profile. The local
-development pipeline now generates the printable closures, publishes an atomic
-folder asset set, verifies SHA-256, and displays the exact referenced STL bytes.
+implemented. Local generation detects unambiguous gap topology as
+panel-ID/named-corner cycles when it is absent, while every coordinate is
+regenerated from poses and the profile. The local development pipeline now
+generates the printable closures, publishes an atomic folder asset set, verifies
+SHA-256, and displays the exact referenced STL bytes.
 Folder and ZIP import/export use that same path/hash contract, resolve imported
 assets through browser object URLs, and retain no database or local-storage
 state. The existing manual 41-panel parts and planar-shell generator remain supported.
@@ -22,7 +23,8 @@ The intended end-to-end workflow is:
 4. Use simulation, mapping, wiring preview, save, and reload without generating
    any mechanics.
 5. Press **Generate 3D Parts**.
-6. Generate a closed boundary by filling every gap between panel outlines.
+6. Detect and persist the ordered corner cycle around every unambiguous gap,
+   then generate a closed boundary by filling those cycles.
 7. Validate the boundary, split it into printable parts, and add the proven PCB
    clearances and mounting details.
 8. Export the exact STL files and load those same STL files into Three.js.
@@ -41,11 +43,27 @@ can be represented by one flat, simple N-gon. The first generator may rely on
 that product assumption, but it must verify it rather than silently flattening
 bad input.
 
-The implemented accepted-topology contract stores no geometry. Each gap owns a
-stable ID and an ordered list of `{ panelId, corner }` references. Named corner
-coordinates are derived from the resolved panel width/height and the saved
-right-handed pose. Accepted topology therefore selects adjacency and winding
-without locating a panel or boundary vertex. The complete prism fixture is
+The implemented topology contract stores no geometry. Each gap owns a stable ID
+and an ordered list of `{ panelId, corner }` references. Named corner coordinates
+are derived from the resolved panel width/height and the saved right-handed pose.
+Topology therefore selects adjacency and winding without locating a panel or
+boundary vertex.
+
+When `boundaryTopology` is absent, detection sorts panels by ID, welds exact
+outline corners within `vertexWeldMm`, removes shared edges only when the two
+panels traverse them in opposite directions, and reverses each remaining panel
+edge to obtain the cap winding. Every exposed vertex must have exactly one
+incoming and one outgoing cap edge. Each resulting cycle is rotated to a
+canonical panel/corner sequence, assigned a content-derived `gap-<12 hex>` ID,
+and sorted by that ID. The generated Schema 2 JSON persists those cycles, so
+save/reopen and later regeneration reuse the same connectivity. Detection is
+independent of panel array order.
+
+Detection fails actionably when no exposed edges exist, an exposed graph is
+open, more than two panels use one welded edge, a shared edge has matching
+winding, or touching gaps make a welded vertex ambiguous. It does not guess or
+silently choose between multiple cycles; the user must separate the touching
+gaps or use a future correction tool. The complete prism fixture is
 `sculptures/panel-outline-prism/sculpture.json`; focused invalid fixtures cover
 non-planar, open, intersecting, and non-manifold layouts.
 
@@ -73,7 +91,7 @@ authoritative panel poses
 exact panel outlines and PCB envelopes
           |
           v
-gap topology + planar N-gon cap candidates
+detected or persisted gap topology + planar N-gon cap candidates
           |
           v
 closed-boundary validation
@@ -112,8 +130,11 @@ Generation stages every SCAD, STL, hash, and final JSON in a sibling temporary
 directory. Only a fully inspected set is published by directory rename; failure
 removes the staging directory and retains the prior bundle.
 
-## Project bundle
+The generation endpoint and its OpenSCAD process are currently available only
+through Vite development middleware. A static production bundle cannot execute
+OpenSCAD on its host.
 
+## Project bundle
 
 A project is one main JSON document plus referenced 3D assets. A portable bundle
 may be an ordinary folder or a ZIP containing that folder.
@@ -137,6 +158,10 @@ SHA-256 of that file. There is no separate asset registry to become
 inconsistent with the reference.
 
 Schema 2 uses this contract (the hashes below are illustrative):
+
+Local part generation preserves the design-surface reference but does not copy
+the referenced GLB into its generated folder. A self-contained folder or ZIP
+therefore still requires the separately loaded, hash-verified GLB bytes.
 
 ```json
 {
@@ -191,8 +216,8 @@ its status is `complete`/`passed`. A failed attempt does not replace it.
 
 Asset sources use portable POSIX-style relative paths. Absolute paths, URLs,
 backslashes, empty/`.`/`..` segments, query or fragment suffixes, and temporary
-`build/editor-projects/...` sources are invalid. ZIP support will consume the
-same references later; it does not change this contract.
+`build/editor-projects/...` sources are invalid. Folder and ZIP support consume
+the same references; neither changes this contract.
 
 ## Viewer and staleness rules
 
@@ -204,8 +229,9 @@ reopening reloads and re-verifies the project-relative files.
 `sourceFingerprint` is SHA-256 over one canonical JSON projection: panels
 sorted by stable panel ID with only their authoritative poses, plus the resolved
 profile's dimensions, mounting geometry and allocation, physical corrections,
-connector facts, electrical keep-outs, and any accepted gap cycles sorted by
-stable gap ID. Descriptive notes, mapping, wiring, and pixel order are deliberately
+connector facts, electrical keep-outs, and the detected or previously accepted
+gap cycles sorted by stable gap ID. Descriptive notes, mapping, wiring, and
+pixel order are deliberately
 excluded because they cannot change generated material.
 
 Current versus stale has one authority: recompute that canonical fingerprint
@@ -247,10 +273,12 @@ The milestone is complete only when one testable journey works end to end:
 > the project ZIP -> reopen the ZIP -> recover the same GLB, panel poses,
 > boundary, and STL parts.
 
-This journey is covered by `tests/panel-boundary-parts-e2e.test.ts`, including
-folder parity, object-URL loading, exact byte/hash recovery, and both current and
-stale fingerprint states. Container rejection cases are covered separately by
-`tests/portable-project.test.ts`.
+This journey is covered by `tests/panel-boundary-parts-e2e.test.ts`. The test
+starts with `boundaryTopology` absent, places and edits panels, invokes part
+generation without injecting cycles, verifies the detected topology is persisted,
+and then covers folder parity, object-URL loading, exact byte/hash recovery, and
+both current and stale fingerprint states. Container rejection cases are covered
+separately by `tests/portable-project.test.ts`.
 
 
 OpenSCAD or the chosen mesh backend must render every changed printable part,

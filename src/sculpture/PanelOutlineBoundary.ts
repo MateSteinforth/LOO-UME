@@ -30,6 +30,7 @@ export type PanelBoundaryToleranceName =
 
 export type PanelBoundaryErrorCode =
   | "missing-topology"
+  | "ambiguous-topology"
   | "invalid-gap"
   | "non-planar"
   | "degenerate"
@@ -613,6 +614,224 @@ function panelCorner(
     ),
     scale(orientation.yAxis as Vector3Tuple, ySign * profile.dimensions.height / 2),
   );
+}
+
+interface DetectedCornerReference {
+  panelId: string;
+  corner: PanelOutlineCornerId;
+}
+
+interface DetectedPanelEdgeUse {
+  panelId: string;
+  start: number;
+  end: number;
+  startCorner: PanelOutlineCornerId;
+  endCorner: PanelOutlineCornerId;
+}
+
+interface DetectedCapEdge {
+  start: number;
+  end: number;
+}
+
+function compareDetectedCornerReferences(
+  left: DetectedCornerReference,
+  right: DetectedCornerReference,
+): number {
+  const panelComparison = compareText(left.panelId, right.panelId);
+  if (panelComparison !== 0) return panelComparison;
+  return PANEL_CORNER_ORDER.indexOf(left.corner) -
+    PANEL_CORNER_ORDER.indexOf(right.corner);
+}
+
+function detectedCornerKey(reference: DetectedCornerReference): string {
+  return `${reference.panelId}.${reference.corner}`;
+}
+
+function describeDetectedPanelEdge(use: DetectedPanelEdgeUse): string {
+  return `${use.panelId}.${use.startCorner}->${use.panelId}.${use.endCorner}`;
+}
+
+function canonicalizeDetectedGap(
+  vertexIndices: number[],
+  cornerReferences: Map<number, DetectedCornerReference[]>,
+): { key: string; vertices: DetectedCornerReference[] } {
+  const references = vertexIndices.map((index) => {
+    const reference = cornerReferences.get(index)?.[0];
+    if (!reference) {
+      throw new PanelBoundaryGenerationError(
+        "open-boundary",
+        `Detected gap reaches welded vertex ${index}, but that vertex has no panel-corner reference.`,
+      );
+    }
+    return reference;
+  });
+  const rotations = references.map((_, offset) => {
+    const vertices = references.map(
+      (__, index) => references[(index + offset) % references.length]!,
+    );
+    return {
+      key: vertices.map(detectedCornerKey).join("|"),
+      vertices,
+    };
+  });
+  rotations.sort((left, right) => compareText(left.key, right.key));
+  return rotations[0]!;
+}
+
+/**
+ * Detects cap connectivity from welded panel-outline edges. Shared, oppositely
+ * wound panel edges are removed; each remaining panel edge is reversed so the
+ * resulting cap winding opposes its panel-outline winding.
+ */
+export function detectPanelBoundaryTopology(
+  definition: PanelAssemblyDefinition,
+  profile: PanelHardwareProfile,
+): PanelBoundaryTopology {
+  const vertices: Vector3Tuple[] = [];
+  const cornerReferences = new Map<number, DetectedCornerReference[]>();
+  const edgeUses = new Map<string, DetectedPanelEdgeUse[]>();
+  const sortedPanels = [...definition.panels].sort((left, right) =>
+    compareText(left.id, right.id)
+  );
+
+  for (const panel of sortedPanels) {
+    const indices = PANEL_CORNER_ORDER.map((corner) => {
+      const index = addWeldedVertex(vertices, panelCorner(panel, corner, profile));
+      cornerReferences.set(index, [
+        ...(cornerReferences.get(index) ?? []),
+        { panelId: panel.id, corner },
+      ]);
+      return index;
+    });
+    if (new Set(indices).size !== PANEL_CORNER_ORDER.length) {
+      throw new PanelBoundaryGenerationError(
+        "degenerate",
+        `Panel ${panel.id} outline collapses within named tolerance vertexWeldMm (${PANEL_BOUNDARY_TOLERANCES.vertexWeldMm} mm).`,
+      );
+    }
+    indices.forEach((start, index) => {
+      const end = indices[(index + 1) % indices.length]!;
+      const use: DetectedPanelEdgeUse = {
+        panelId: panel.id,
+        start,
+        end,
+        startCorner: PANEL_CORNER_ORDER[index]!,
+        endCorner: PANEL_CORNER_ORDER[(index + 1) % indices.length]!,
+      };
+      const key = edgeKey(start, end);
+      edgeUses.set(key, [...(edgeUses.get(key) ?? []), use]);
+    });
+  }
+  for (const references of cornerReferences.values()) {
+    references.sort(compareDetectedCornerReferences);
+  }
+
+  const sortedEdgeEntries = [...edgeUses.entries()].sort(([left], [right]) =>
+    compareText(left, right)
+  );
+  const nonManifold = sortedEdgeEntries.find(([, uses]) => uses.length > 2);
+  if (nonManifold) {
+    const [key, uses] = nonManifold;
+    throw new PanelBoundaryGenerationError(
+      "non-manifold",
+      `Welded panel edge ${key} is used by ${uses.length} panel outlines (${uses.map(describeDetectedPanelEdge).join(", ")}); at most two are permitted.`,
+    );
+  }
+
+  const exposedEdges: DetectedCapEdge[] = [];
+  for (const [key, uses] of sortedEdgeEntries) {
+    if (uses.length === 2) {
+      const [first, second] = uses;
+      if (first!.start !== second!.end || first!.end !== second!.start) {
+        throw new PanelBoundaryGenerationError(
+          "inconsistent-winding",
+          `Welded panel edge ${key} is shared with matching direction (${uses.map(describeDetectedPanelEdge).join(", ")}); adjacent panel outlines must traverse a shared edge in opposite directions.`,
+        );
+      }
+      continue;
+    }
+    const panelUse = uses[0]!;
+    exposedEdges.push({ start: panelUse.end, end: panelUse.start });
+  }
+
+  if (exposedEdges.length === 0) {
+    throw new PanelBoundaryGenerationError(
+      "missing-topology",
+      "Automatic gap detection found no exposed panel-outline edges to close.",
+    );
+  }
+
+  const outgoing = new Map<number, DetectedCapEdge[]>();
+  const incoming = new Map<number, DetectedCapEdge[]>();
+  for (const edge of exposedEdges) {
+    outgoing.set(edge.start, [...(outgoing.get(edge.start) ?? []), edge]);
+    incoming.set(edge.end, [...(incoming.get(edge.end) ?? []), edge]);
+  }
+  const exposedVertices = [...new Set(
+    exposedEdges.flatMap(({ start, end }) => [start, end]),
+  )].sort((left, right) => left - right);
+  for (const vertex of exposedVertices) {
+    const next = outgoing.get(vertex) ?? [];
+    const previous = incoming.get(vertex) ?? [];
+    const references = (cornerReferences.get(vertex) ?? [])
+      .map(detectedCornerKey)
+      .join(", ");
+    if (next.length === 0 || previous.length === 0) {
+      throw new PanelBoundaryGenerationError(
+        "open-boundary",
+        `Exposed panel-edge graph is open at welded vertex ${vertex} (${references}): ${previous.length} incoming and ${next.length} outgoing cap edges were found.`,
+      );
+    }
+    if (next.length !== 1 || previous.length !== 1) {
+      throw new PanelBoundaryGenerationError(
+        "ambiguous-topology",
+        `Automatic gap detection is ambiguous at welded vertex ${vertex} (${references}): ${previous.length} incoming and ${next.length} outgoing cap edges meet there. Separate the touching gaps or author a correction.`,
+      );
+    }
+  }
+
+  const remaining = new Set(exposedEdges);
+  const cycles: Array<{ key: string; vertices: DetectedCornerReference[] }> = [];
+  while (remaining.size > 0) {
+    const startEdge = [...remaining].sort((left, right) =>
+      left.start - right.start || left.end - right.end
+    )[0]!;
+    const startVertex = startEdge.start;
+    const vertexIndices: number[] = [];
+    let current = startVertex;
+    while (true) {
+      vertexIndices.push(current);
+      const edge = outgoing.get(current)?.[0];
+      if (!edge || !remaining.delete(edge)) {
+        throw new PanelBoundaryGenerationError(
+          "open-boundary",
+          `Exposed panel-edge traversal starting at welded vertex ${startVertex} did not close; it stopped at vertex ${current}.`,
+        );
+      }
+      current = edge.end;
+      if (current === startVertex) break;
+      if (vertexIndices.length > exposedEdges.length) {
+        throw new PanelBoundaryGenerationError(
+          "open-boundary",
+          `Exposed panel-edge traversal starting at welded vertex ${startVertex} exceeded the available edge count without closing.`,
+        );
+      }
+    }
+    if (vertexIndices.length < 3) {
+      throw new PanelBoundaryGenerationError(
+        "degenerate",
+        `Detected gap at welded vertex ${startVertex} has only ${vertexIndices.length} boundary edges; at least three are required.`,
+      );
+    }
+    cycles.push(canonicalizeDetectedGap(vertexIndices, cornerReferences));
+  }
+
+  const gaps = cycles.map(({ key, vertices: cycleVertices }) => ({
+    id: `gap-${sha256Text(key).slice(0, 12)}`,
+    vertices: cycleVertices,
+  })).sort((left, right) => compareText(left.id, right.id));
+  return { kind: "panel-outline-gap-cycles", gaps };
 }
 
 function triangulateFace(

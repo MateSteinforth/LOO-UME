@@ -87,20 +87,6 @@ This file is the persistent source of truth for work status. Read it before star
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
-### `MECH-010` Automatically close flat gaps from placed panels — P0
-
-- Outcome: **Generate 3D Parts** works on a newly arranged project without requiring hand-written `boundaryTopology` JSON.
-- Current gap: placement saves panel poses, but the present acceptance test manually inserts the ordered panel-corner cycles before calling the boundary generator.
-- Acceptance:
-  - Starting with a GLB and placed/edited panels, the generator derives the connectivity-only ordered corner cycle around every enclosed gap.
-  - The project rule may assume the user arranged every intended cap as a flat N-gon.
-  - The existing boundary validator still rejects non-planar, self-intersecting, wrongly wound, incomplete, or non-manifold results with a useful panel/gap error.
-  - The detected topology is stored in Schema 2, the watertight boundary is previewed, and the existing printable-parts pipeline consumes that exact boundary.
-  - A real workflow test covers GLB -> placement/edit -> Generate -> boundary -> STL references without injecting topology in test code.
-- Depends on: none; the product behavior was confirmed by the user on 2026-08-14.
-- Verify: focused detection/validation tests, boundary regressions, editor tests, and the end-to-end workflow fixture.
-- Docs: update the mechanics workflow and boundary-topology contract.
-
 ### `MECH-011` Serve the production desktop UI with local OpenSCAD generation — P0
 
 - Outcome: the installed production system, not only Vite development mode, can generate mechanics on its host computer.
@@ -180,14 +166,14 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-None. The board must be reviewed before new implementation starts.
+None.
 
 ## Blocked
 
 ### `UI-010` Complete the arbitrary-project acceptance journey
 
 - Outcome: GLB -> auto-place -> manual edit -> topology -> boundary -> exact STL parts -> display -> ZIP -> reopen works through the real UI.
-- Blocked by: `MECH-010`, `MECH-011`, `TEST-010`, and `TEST-011`.
+- Remaining blockers: `MECH-011`, `TEST-010`, and `TEST-011`; automatic topology detection shipped in `MECH-010`.
 - Acceptance: no hand-authored topology, fake renderer, or manual asset injection is required by the test.
 
 ### `WIRE-011` Edit and confirm routes in the browser
@@ -252,6 +238,14 @@ None. The board must be reviewed before new implementation starts.
 
 ## Done
 
+### `MECH-010` Automatically close flat gaps from placed panels
+
+- Deterministic exposed-edge detection derives reverse-wound cap cycles from authoritative panel poses/profile facts and rejects ambiguous, open, wrongly wound, or non-manifold graphs actionably.
+- Missing topology is stored as content-derived stable gap IDs in Schema 2; previously accepted topology remains unchanged.
+- The existing boundary validator and exact printable-parts pipeline consume the detected topology before any artifact is published.
+- The GLB -> placement/edit -> parts -> folder/ZIP reopen test starts without `boundaryTopology` and injects no cycles.
+- Independent review passed; focused tests, all 134 Vitest tests, TypeScript, the production web build, and diff hygiene passed.
+
 ### `CTRL-001` Establish this persistent task board
 
 - Reconstructed from repository code, tests, docs, Git history, TODO/provisional markers, and independent docs/code/UI audits.
@@ -283,7 +277,7 @@ None. The board must be reviewed before new implementation starts.
 ### `BOUNDARY-001` Validated closed-boundary generation (`d12b48e`)
 
 - Authoritative panel/profile outlines plus supplied connectivity-only corner cycles generate a planar/simple/manifold closed boundary.
-- Scope note: discovering or authoring those cycles from a new arbitrary UI layout is not done; see `MECH-010` and `MECH-020`.
+- Scope note: this initial slice required supplied cycles; automatic unambiguous discovery shipped in `MECH-010`, while ambiguous correction remains in `MECH-020`.
 
 ### `PARTS-001` Exact printable STL generation and display (`a9a9d43`)
 

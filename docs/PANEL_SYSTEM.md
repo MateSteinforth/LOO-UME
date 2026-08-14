@@ -118,24 +118,34 @@ output and still require print/fit inspection.
 
 Milestone 3 is implemented in `src/sculpture/PanelOutlineBoundary.ts`. A
 pose-first project may provide `boundaryTopology.kind =
-"panel-outline-gap-cycles"`. Each gap is an ordered cycle of stable panel IDs
-and named corners (`bottom-left`, `bottom-right`, `top-right`, `top-left`). The
-topology is connectivity only: it cannot store coordinates, dimensions, or
-transforms, so it cannot become a second pose authority.
+"panel-outline-gap-cycles"`, or local generation detects it when the field is
+absent. Each gap is an ordered cycle of stable panel IDs and named corners
+(`bottom-left`, `bottom-right`, `top-right`, `top-left`). The topology is
+connectivity only: it cannot store coordinates, dimensions, or transforms, so
+it cannot become a second pose authority.
 
 The generator derives exact 66 × 65 mm rectangles and 0.8 mm PCB envelopes
 from the resolved profile and authoritative poses. It welds coincident corners
-within named `vertexWeldMm`, validates each cap against named planarity, edge,
-area, and intersection tolerances, and then proves consistent winding,
-connectivity, closure, edge incidence, and vertex-link two-manifoldness.
-Errors carry a stable code and identify the offending gap when applicable.
+within named `vertexWeldMm`. Detection removes oppositely wound shared panel
+edges and traces the remaining reversed exposed edges only when every welded
+vertex has one incoming and one outgoing cap edge. It canonicalizes every cycle,
+derives a stable content-based gap ID, sorts the result, and persists it in the
+generated Schema 2 JSON. The result is independent of panel array order.
+
+The existing boundary validator then checks each cap against named planarity,
+edge, area, and intersection tolerances and proves consistent winding,
+connectivity, closure, edge incidence, and vertex-link two-manifoldness. Errors
+carry a stable code and identify the offending panel, welded vertex, or gap when
+applicable. Detection rejects open graphs, overused or wrongly wound shared
+edges, and ambiguous touching cycles instead of choosing topology silently.
 
 The **Generate boundary / 3D parts** flow does not require a mechanical boundary
-before panel placement. It derives exact rectangular panel outlines from the
-saved poses, identifies the gaps between them, and closes each gap with one flat
-simple N-gon. The user is responsible for arranging panels so this is possible.
-The software is responsible for proving planarity and producing a closed,
-consistently wound, non-self-intersecting, two-manifold boundary.
+or hand-written gap cycles before panel placement. It derives exact rectangular
+panel outlines from the saved poses, detects every unambiguous gap, and closes
+each cycle with one flat simple N-gon. The user is responsible for arranging
+panels so this is possible. The software is responsible for proving planarity
+and producing a closed, consistently wound, non-self-intersecting, two-manifold
+boundary.
 
 Only a valid boundary proceeds to part splitting, thickness, PCB-envelope
 subtraction, mounting-hole allocation, connector keep-outs, and STL generation.
@@ -143,13 +153,16 @@ The exact STL outputs are referenced by the project JSON and loaded in Three.js.
 The design GLB may guide placement and topology suggestions but is not copied or
 thickened into printable structure.
 
-The local browser pipeline now validates the deterministic boundary before CAD,
-derives stable gap-sorted part groups, and generates printable closure STLs with
-the established planar compiler. It writes and inspects the entire asset set
-before atomically publishing the manifest. Three.js then loads the exact
-referenced bytes after SHA-256 verification; downloads use the same verified
-bytes. A pose edit invalidates the fingerprint and removes the stale set from
-the current printable view. ZIP transport remains a later milestone.
+The local-development browser pipeline now validates the deterministic boundary
+before CAD, derives stable gap-sorted part groups, and generates printable
+closure STLs with the established planar compiler. It writes and inspects the
+entire asset set before atomically publishing the manifest. Three.js then loads
+the exact referenced bytes after SHA-256 verification; downloads use the same
+verified bytes. A pose edit invalidates the fingerprint and removes the stale
+set from the current printable view. The generation endpoint requires Vite
+development middleware and does not copy the referenced design GLB into its
+output folder. Folder and ZIP import/export preserve the verified project asset
+set through the shared relative-path and hash contract.
 
 See [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md) for the complete target
 workflow, asset bundle, staleness rules, and acceptance journey.

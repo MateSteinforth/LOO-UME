@@ -34,7 +34,7 @@ export function deriveEditorCapabilities(
     canExportMappingAndWiring: true,
     canGenerateGenericMechanics:
       !usesManualMechanics && pipelineAvailable &&
-      (hasPanelBoundaryInput || hasGenericGenerationInput),
+      (hasPanels || hasPanelBoundaryInput || hasGenericGenerationInput),
     manualMechanicsRequiresReview:
       definition.manualMechanics?.compatibilityStatus === "requires-review",
   };
