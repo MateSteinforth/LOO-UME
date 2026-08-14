@@ -31,17 +31,19 @@ simulation/mapping.
 ## D3 — GLBs are authoring surfaces, not printable structure
 
 **Decision.** GLBs support placement and movement. Generic fabrication does not
-use GLB triangles as printable structure; the current implementation derives
-from a validated explicit planar JSON face graph, and the planned UI-driven
-path derives a validated flat-cap boundary from panel outlines.
+use GLB triangles as printable structure or as gap-topology input. The current
+implementation supports validated explicit planar JSON face graphs and derives
+a validated flat-cap boundary from panel outlines.
 
 **Evidence.** `DesignSurface.ts`, `SculptureEditor.ts`,
-`MechanicalShellRegenerator.ts`, and commit `463f371` (automatic surface panel
+`MechanicalShellRegenerator.ts`, `PanelOutlineBoundary.ts`,
+`GeneratePanelBoundaryParts.ts`, and commit `463f371` (automatic surface panel
 placement).
 
 **Consequence.** Do not feed arbitrary GLB triangles to planar CAD or imply
 placement guarantees structural feasibility. A generated panel gap must pass
-its own planar N-gon and closed-boundary validation.
+its own planar N-gon and closed-boundary validation. The interface still needs
+controls to confirm or correct detected gap cycles.
 
 ## D4 — Manual and generic CAD are separate supported routes
 
@@ -124,10 +126,12 @@ or other generated build directories.
 and it runs the same bounded generation handler as Vite development. OpenSCAD
 is not stored in the repository. The repository can install a managed local
 tool on Debian 13 x86-64, Ubuntu 24.04 x86-64, and macOS 15 on native Apple
-Silicon arm64 or Intel x86-64. Setup needs no administrator access or `PATH`
-change. It also needs no manual OpenSCAD install or Rosetta on macOS. Runtime
+Silicon arm64 or Intel x86-64. It also provides a Windows x86-64 candidate.
+Setup needs no administrator access, manual OpenSCAD install, or `PATH` change;
+the macOS targets do not need Rosetta. Runtime
 discovery tries explicit `OPENSCAD`, then a valid receipt-backed managed tool
-for the current target, then the system `openscad` on `PATH`. No sculpture data
+for the current target, then the system command on `PATH`. That command is
+`openscad` on Linux and macOS and `openscad.com` on Windows. No sculpture data
 or generation job requires a hosted service.
 
 **Evidence.** `scripts/local-editor-server.ts`,
@@ -137,7 +141,7 @@ or generation job requires a hosted service.
 desktop/server/status/distribution tests.
 
 **Consequence.** `npm run setup:openscad` installs OpenSCAD 2021.01 for the
-declared Linux targets and OpenSCAD 2026.06.12 for the declared macOS targets.
+declared Linux targets and Windows candidate, and 2026.06.12 for macOS.
 The macOS universal DMG is
 `https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg`, with exact size
 64,447,344 bytes and SHA-256

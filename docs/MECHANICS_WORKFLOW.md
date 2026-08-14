@@ -1,7 +1,7 @@
 # UI-driven mechanics workflow
 
-This page records the agreed product direction for general sculptures. The
-mechanics-independent interface in steps 1–4 is implemented: mechanics fields
+This page records the current workflow for general sculptures. The
+mechanics-independent interface is implemented: mechanics fields
 may be omitted and optional GLB failures are non-fatal. The portable asset
 contract and the zero-thickness panel-outline boundary stage are also
 implemented. Local generation detects unambiguous gap topology as
@@ -15,7 +15,7 @@ state. The existing manual 41-panel parts and planar-shell generator remain supp
 
 ## User workflow
 
-The intended end-to-end workflow is:
+The implemented generation and portable-project data flow is:
 
 1. Load a GLB design surface.
 2. Automatically place a requested number of LED panels on that surface.
@@ -62,9 +62,11 @@ independent of panel array order.
 Detection fails actionably when no exposed edges exist, an exposed graph is
 open, more than two panels use one welded edge, a shared edge has matching
 winding, or touching gaps make a welded vertex ambiguous. It does not guess or
-silently choose between multiple cycles; the user must separate the touching
-gaps or use a future correction tool. The complete prism fixture is
-`sculptures/panel-outline-prism/sculpture.json`; focused invalid fixtures cover
+silently choose between multiple cycles. The interface has no topology
+confirmation or correction control. It cannot accept, reject, reorder, or
+redraw detected cycles. The user must move the panels until detection is
+unambiguous or edit `boundaryTopology` outside the interface. The prism fixture is
+`sculptures/panel-outline-prism/sculpture.json`. Invalid fixtures cover
 non-planar, open, intersecting, and non-manifold layouts.
 
 For each proposed cap, generation must reject:
@@ -78,9 +80,9 @@ For each proposed cap, generation must reject:
 - disconnected boundary components unless the project explicitly supports
   multiple bodies.
 
-The first supported class is therefore a panel layout whose holes form valid
-planar N-gons. It is not arbitrary curved gap filling. If a layout does not meet
-the assumption, the UI should identify the offending gap and return to editing.
+The first supported class is a panel layout whose holes form valid planar
+N-gons. It is not arbitrary curved gap filling. Generation rejects other
+layouts with available error context, and the user can return to editing.
 
 ## Geometry pipeline
 
@@ -107,16 +109,15 @@ exact STL parts + manifest
 ```
 
 The boundary stage and printable-part stage are separate. Part generation must
-not guess around or repair an invalid boundary. The GLB may help with panel
-placement and gap/topology suggestions, but its triangles do not become
-printable material and are not the boundary source of truth.
+not guess around or repair an invalid boundary. The GLB supports panel
+placement only. It does not supply or suggest gap topology. Its triangles do
+not become printable material and are not the boundary source of truth.
 
 The current generic generator already contains useful downstream behavior for
 validated planar faces: real mounting-hole allocation, blocked DIN/DOUT corner
 avoidance, inward cover thickness, PCB-envelope subtraction, tabs, lead-ins,
-lips, and grouping of coplanar regions. Reuse those proven constraints after
-the new panel-outline boundary stage instead of creating a second mounting
-system.
+lips, and grouping of coplanar regions. The panel-outline boundary stage reuses
+those proven constraints instead of creating a second mounting system.
 
 The implemented boundary result includes deterministic vertices/triangles,
 panel/cap face provenance, named tolerances, counts, the canonical source
@@ -133,8 +134,9 @@ removes the staging directory and retains the prior bundle.
 ## Local desktop generation host
 
 OpenSCAD is required but is not stored in the WLED Orbital Lab repository.
-Automatic repository-local setup supports Debian 13 x86-64, Ubuntu 24.04
-x86-64, and macOS 15 on Apple Silicon arm64 or Intel x86-64:
+Automatic repository-local setup supports the declared Debian 13 x86-64,
+Ubuntu 24.04 x86-64, and macOS 15 native arm64 and x86-64 targets. It also
+provides the Windows x86-64 candidate. On Linux and macOS, run:
 
 ```bash
 npm ci
@@ -162,11 +164,11 @@ install, and is safe to retry after failure.
 server. It prints a loopback URL at `127.0.0.1`, using port 4173 unless
 `ORBITAL_LAB_PORT` selects another valid port. At startup, an explicit
 `OPENSCAD` value has first priority. Without an override, the server prefers the
-valid receipt-backed managed tool and then falls back to the system `openscad`
-on `PATH`.
+valid receipt-backed managed tool and then uses `openscad` on Linux and macOS or
+`openscad.com` on Windows as the system command on `PATH`.
 
-At startup the server probes the exact target version: 2021.01 on Linux and
-2026.06.12 on macOS. Both the production host and Vite development use the same
+At startup the server probes the exact target version: 2021.01 on Linux and the
+Windows candidate, and 2026.06.12 on macOS. Both local hosts use the same
 bounded handler for
 `/api/generator-status` and `/api/editor-pipeline`. The browser fetches status
 instead of inferring availability from its build mode. Missing, unreadable, or
@@ -174,8 +176,10 @@ wrong-version OpenSCAD disables **Generate 3D Parts** with direct repair
 guidance; editing, simulation, mapping, wiring, save, and reopen continue. After
 setup or repair, restart the server to repeat discovery.
 
-On Windows x86-64 PowerShell, use `npm.cmd run setup:openscad`. The candidate
-pins the official portable OpenSCAD 2021.01 ZIP at 21,884,613 bytes with
+On the Windows x86-64 candidate, PowerShell must use
+`npm.cmd run setup:openscad`. Runtime selection falls back to `openscad.com` on
+`PATH`, and the required version is 2021.01. The candidate pins the official
+portable OpenSCAD 2021.01 ZIP at 21,884,613 bytes with
 SHA-256
 `fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`
 and uses `openscad.com`. Setup is repository-local and atomic, with no
@@ -195,8 +199,10 @@ public hosted generation service is required.
 
 ## Project bundle
 
-A project is one main JSON document plus referenced 3D assets. A portable bundle
-may be an ordinary folder or a ZIP containing that folder.
+A project is one main JSON document plus referenced 3D assets. A self-contained
+portable bundle can be an ordinary folder or a ZIP that contains that folder.
+The example below is a complete portable bundle. It is not the direct output of
+local part generation because local generation does not copy the design GLB.
 
 ```text
 my-sculpture/
@@ -323,21 +329,23 @@ They fail clearly if an asset is missing or its hash does not match. Export uses
 only verified bytes already held by the browser and does not silently fetch an
 external URL into a supposedly self-contained bundle.
 
-## Acceptance journey
+## Acceptance journey and test scope
 
-The milestone is complete only when one testable journey works end to end:
+The implemented helper-level integration journey is:
 
 > Import GLB -> automatically place panels -> edit panels -> generate a closed
 > flat-cap boundary -> generate STL parts -> display those exact STLs -> export
 > the project ZIP -> reopen the ZIP -> recover the same GLB, panel poses,
 > boundary, and STL parts.
 
-This journey is covered by `tests/panel-boundary-parts-e2e.test.ts`. The test
-starts with `boundaryTopology` absent, places and edits panels, invokes part
-generation without injecting cycles, verifies the detected topology is persisted,
-and then covers folder parity, object-URL loading, exact byte/hash recovery, and
-both current and stale fingerprint states. Container rejection cases are covered
-separately by `tests/portable-project.test.ts`.
+`tests/panel-boundary-parts-e2e.test.ts` covers this data path through helpers.
+It starts with `boundaryTopology` absent, places and edits panels, invokes part
+generation without injecting cycles, verifies that the detected topology is
+saved, and then covers folder parity, object-URL loading, exact byte and hash
+recovery, and current and stale fingerprint states. Container rejection cases
+are covered separately by `tests/portable-project.test.ts`. These tests do not
+operate the real browser interface. `TEST-010` and `TEST-011` track the missing
+browser interaction coverage for authoring and folder/ZIP controls.
 
 
 OpenSCAD or the chosen mesh backend must render every changed printable part,

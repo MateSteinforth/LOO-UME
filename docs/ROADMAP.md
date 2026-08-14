@@ -6,7 +6,8 @@ an implemented contract; settle open product/schema choices before coding.
 ## Implemented
 
 - Schema 2 registry plus URL/local sculpture JSON loading and JSON download.
-- Mechanics-free Schema 2 projects with full panel editing, GLB placement,
+- Mechanics-free Schema 2 projects with full panel editing and placement-only
+  GLB use,
   simulation, mapping, provisional wiring, save, and reopen behavior; missing
   optional GLBs are non-fatal.
 - Optional GLB loading with source, scale, hash, and status metadata.
@@ -17,7 +18,8 @@ an implemented contract; settle open product/schema choices before coding.
 - WLED ledmap/wiring downloads with readiness diagnostics.
 - Separate manual mechanics for the printed 41-panel sculpture and generic
   planar closure generation for supported closed face graphs.
-- Mechanical invalidation after edits and development-only isolated CAD output.
+- Mechanical invalidation after edits and exact referenced STL generation and
+  display through the local production host.
 - Three.js layer/focus controls and a deterministic 30-effect WLED WASM preview.
 - File-based persistence; no database or browser local storage.
 - A checked-in deterministic WLED WASM runtime for immediate tests and browser
@@ -28,6 +30,9 @@ an implemented contract; settle open product/schema choices before coding.
   closed-boundary generation with cap-local and global two-manifold validation,
   manifest-ready metadata, complete/invalid fixtures, and an in-browser Three.js
   boundary preview.
+- Managed OpenSCAD setup for the declared Linux and macOS targets and a Windows
+  x86-64 candidate. Windows PC support still needs the client proof in
+  `INSTALL-015`.
 
 ## Incomplete or blocked in the current model
 
@@ -55,19 +60,24 @@ Other known gaps:
 - Browser interaction coverage is mostly helper-level.
 - Ambiguous touching gap cycles have no accept/reject/reorder/redraw correction
   tools; automatic detection rejects them with welded-vertex context.
+- Unambiguous detected cycles are saved without a browser confirmation step.
+- Local part generation preserves the GLB reference but does not copy the GLB
+  into its output folder. `ASSET-010` tracks a directly reopenable generated
+  folder.
 - `main.ts`, `SphereRenderer.ts`, and `SurfacePlacementController.ts` carry
   multiple responsibilities; fingerprinting ignores index bits above bit 15;
   some overlap code is unreachable; generated SCAD is not committed with
   artifact snapshots.
 
-## Proposed milestones
+## Milestones
 
 ### 1. Make the complete interface mechanics-independent — shipped
 
 Mechanics are represented by omitting all mechanics fields. Pose-only projects
 support GLB/automatic/manual placement, local edits, simulation, mapping,
-provisional wiring, save, and reopen. Optional GLB load failures are non-fatal,
-and generic generation explains that boundary input does not exist yet.
+provisional wiring, save, and reopen. Optional GLB load failures are non-fatal.
+Generation detects unambiguous gap topology from panel outlines when the
+project does not contain `boundaryTopology`.
 
 ### 2. Define portable project assets — shipped
 
@@ -92,7 +102,9 @@ same reference and hash rules and browser-owned object URLs.
   generation is impossible.
 - Produce deterministic indexed geometry, source/mesh fingerprints, named
   tolerances, provenance, and counts for the asset manifest.
-- Display the generated boundary before printable-part generation.
+- Validate the complete generated boundary before printable-part generation.
+  The browser displays the returned boundary after generation completes; it
+  does not provide a separate approval step.
 
 ### 4. Generate, reference, and display exact printable parts — shipped
 
@@ -104,9 +116,10 @@ same reference and hash rules and browser-owned object URLs.
   approximate preview.
 - Mark assets stale after relevant panel/profile edits while keeping all
   non-mechanical interface features usable.
-- Cover panels -> automatic gap detection -> persisted topology -> boundary ->
-  parts -> references -> exact STL reload with an end-to-end test that begins
-  without `boundaryTopology` and never injects cycles.
+- A helper-level integration test covers panels -> automatic gap detection ->
+  persisted topology -> boundary -> parts -> references -> exact STL reload. It
+  begins without `boundaryTopology` and never injects cycles. Real browser
+  interaction coverage remains in `TEST-010` and `TEST-011`.
 - Folder and ZIP reopening use the same references and hashes, restore GLB and
   exact STL bytes through object URLs, and preserve derived current/stale state.
 - Export refuses missing or mismatched local bytes instead of fetching URLs.
@@ -147,8 +160,9 @@ same reference and hash rules and browser-owned object URLs.
 
 ## Open product decisions
 
-- How should users confirm or correct automatically inferred gap topology when
-  more than one flat N-gon arrangement is possible?
+- Which browser controls let a user confirm an unambiguous detected cycle and
+  accept, reject, reorder, or redraw a cycle when more than one flat N-gon
+  arrangement is possible?
 - Which mesh format should carry the referenced closed boundary if STL cannot
   preserve required topology or metadata by itself?
 - Should a stale generated part remain optionally viewable with a warning, or

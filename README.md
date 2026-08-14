@@ -9,7 +9,8 @@ preview artifacts.
 The project began as a single 41-panel rhombicosidodecahedron. That sculpture is
 now the flagship design and physical reference for a more general system that can
 describe multiple polyhedra, place panels on their surfaces, preserve tested
-mechanical constraints, and produce fabrication-ready closure geometry.
+mechanical constraints, and produce printable closure geometry for supported
+planar layouts.
 
 | Automatic 30-panel rhombicosidodecahedron | Six-panel cuboctahedron | Six-panel truncated octahedron |
 | --- | --- | --- |
@@ -44,13 +45,14 @@ The source geometry was migrated from the project's
 Git history is the version history; do not create numbered copies such as
 `triangle_v2.scad`.
 
-## Software and firmware
+## Browser software and hardware proposal
 
-One ESP32 running WLED drives all 2,624 WS2812B pixels over four parallel
-outputs. The revised per-output panel split still needs a physical chain
-assignment. It runs custom audio-reactive effects locally and accepts realtime DDP
-or Art-Net data. See [docs/software.md](docs/software.md) for the controller,
-mapping, behavior, power-safety, and CI design.
+The repository does not contain production ESP32 firmware or implemented
+network or audio transport. The current hardware proposal uses one ESP32-class
+controller and four data outputs for all 2,624 WS2812B pixels. The exact board,
+GPIO assignments, physical chains, and installed panel orientations are not yet
+verified. See [docs/software.md](docs/software.md) for the proposal, current
+mapping behavior, power-safety rules, and remaining implementation work.
 
 The browser application includes **WLED Orbital Lab**, a standalone simulator
 that runs genuine WLED C++ effect bodies in
@@ -191,20 +193,26 @@ for the implemented mechanical contract and
 [docs/pose-first-schema.md](docs/pose-first-schema.md) for the authoritative
 pose model.
 
-### Planned general project workflow
+### General project workflow
 
 Mechanics-free authoring is implemented: load a referenced GLB, place panels
 automatically, edit them by hand, and use the full simulator/mapping interface
 before mechanics exist. A missing optional GLB does not invalidate saved poses.
-The next fabrication milestone makes **Generate 3D Parts** close the gaps between panel outlines with
-validated flat N-gon caps, validate one closed boundary, generate printable
-parts, and load the exact emitted STL files in Three.js.
+**Generate 3D Parts** detects unambiguous gaps between panel outlines, persists
+their stable topology, validates flat N-gon caps and one closed boundary,
+generates printable parts, and loads the exact emitted STL files in Three.js.
 
 The portable project contract is a folder containing `sculpture.json` plus
 safe relative, SHA-256-identified GLB and STL assets. Schema 2 defines generated
 boundary and ordered exact-part references plus canonical current/stale
-fingerprinting. Folder asset loading, boundary generation, exact-STL display,
-and ZIP transport remain later roadmap slices. This workflow is specified in
+fingerprinting. Folder and ZIP import/export, boundary generation, exact-STL
+display, and reopen are implemented. Local generation preserves a referenced
+GLB path and hash but does not copy the GLB into its output folder. A
+self-contained export therefore needs the matching GLB bytes to be loaded.
+
+The editor does not yet let the user inspect, confirm, reorder, or redraw
+candidate gap topology. An ambiguous layout stops with an error until this UI
+path is implemented. The complete workflow is specified in
 [`docs/MECHANICS_WORKFLOW.md`](docs/MECHANICS_WORKFLOW.md).
 
 ## Canonical printable parts
@@ -295,9 +303,10 @@ the SDK.
 ## Build locally
 
 Install the npm dependencies. Linux rendering also needs Xvfb and xauth. On a
-supported Linux or macOS target, acquire the target-specific managed OpenSCAD
-tool before you generate the mapping, WLED preview, CAD entrypoint, and CAD
-manifest:
+supported Linux or macOS target, or on the Windows x86-64 candidate, acquire
+the target-specific managed OpenSCAD tool before you generate the mapping,
+WLED preview, CAD entrypoint, and CAD manifest. On Windows, use the `npm.cmd`
+forms shown above.
 
 ```bash
 npm ci

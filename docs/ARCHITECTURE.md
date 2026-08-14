@@ -53,7 +53,7 @@ panel outlines and planar gap caps. Detection welds exact panel corners, removes
 oppositely wound shared edges, and traces each unambiguous exposed-edge cycle.
 The generator may assume users arrange panels so each gap is a flat simple
 N-gon, but it validates that assumption and refuses ambiguous, invalid, or
-non-manifold results.
+non-manifold results. The GLB does not supply or suggest gap topology.
 
 ## Subsystems
 
@@ -101,6 +101,8 @@ non-manifold results.
    cycles in the generated Schema 2 JSON, validates the complete boundary, and
    only then invokes printable-part CAD. Ambiguous exposed-edge junctions and
    invalid boundaries fail without replacing the last successful bundle.
+   Detection saves unambiguous cycles without a confirmation step. The browser
+   has no control to accept, reject, reorder, or redraw those cycles.
 8. Folder and ZIP project import validate the same relative assets and hashes,
    then expose GLB/STL bytes through browser object URLs. Folder/ZIP export uses
    only verified in-memory bytes. JSON, ledmap, and wiring remain client-side
@@ -166,8 +168,9 @@ publication, reuses a valid target-specific install, and is safe to retry.
 
 Startup probes an explicit `OPENSCAD` executable first. Without that override,
 it prefers the valid receipt-backed managed tool for the current target and
-then falls back to the system OpenSCAD command on `PATH`. Runtime version
-policy is 2021.01 for Linux and Windows, and 2026.06.12 for macOS. The selected
+then falls back to the system OpenSCAD command on `PATH`: `openscad` on Linux
+and macOS, or `openscad.com` on Windows. Runtime version policy is 2021.01 for
+Linux and the Windows candidate, and 2026.06.12 for macOS. The selected
 result is published through the status endpoint. The browser disables only
 printable generation when status is absent, malformed, unavailable, or
 version-mismatched; pose editing, simulation, mapping, wiring, and persistence
@@ -211,7 +214,8 @@ configuration.
   [`LED_MAPPING.md`](LED_MAPPING.md) before changing exports.
 - Automatic gap detection deliberately rejects touching cycles whose welded
   junction has more than one incoming or outgoing cap edge. Correction tools
-  for those ambiguous arrangements are not implemented.
+  for those ambiguous arrangements are not implemented. The browser also has
+  no confirmation or correction control for an unambiguous detected cycle.
 - The desktop package does not bundle OpenSCAD. Managed setup covers the
   declared Linux and native macOS targets. Windows x86-64 remains a candidate
   until INSTALL-015 completes real Windows client proof. The complete dependency
@@ -219,6 +223,9 @@ configuration.
 - macOS proof uses native `macos-15` and `macos-15-intel` CI runners. The Intel
   runner label is scheduled to retire in August 2027, so CI must move to a
   supported native Intel label before that date.
+- Boundary, exact-STL, and portable-project journeys have helper-level and
+  integration coverage. `TEST-010` and `TEST-011` track tests that operate the
+  real browser controls.
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

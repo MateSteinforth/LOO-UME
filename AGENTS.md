@@ -42,15 +42,15 @@ uses `createPanelAssemblyMapping()`.
   `mechanicalShell`, and `closures` is the implemented mechanics-free state:
   load GLB, place/edit panels, simulate, map, wire, save, and reload before any
   mechanics exist.
-- GLBs are authoring surfaces only. The planned general generator starts from
+- GLBs are authoring surfaces only. The general generator starts from
   authoritative panel outlines, closes each gap with a validated flat N-gon,
-  builds a closed boundary, and only then creates printable parts. It must not
+  builds a closed boundary, and only then creates printable parts. It does not
   turn arbitrary GLB triangles directly into printable material.
-- The first boundary generator may assume the user has arranged panels so every
-  cap is a flat simple N-gon, but it must validate planarity, topology, winding,
-  intersections, and manifold closure and reject invalid layouts clearly.
-- After successful generation, the viewer must load the exact referenced STL
-  parts. A panel edit makes those parts stale without disabling the rest of the
+- The first boundary generator supports layouts in which every cap is a flat
+  simple N-gon. It validates planarity, topology, winding, intersections, and
+  manifold closure and rejects invalid layouts clearly.
+- After successful generation, the viewer loads the exact referenced STL parts.
+  A panel edit makes those parts stale without disabling the rest of the
   interface. See `docs/MECHANICS_WORKFLOW.md`.
 - Preserve manual mechanics. The generic planar generator does not reproduce
   the 41-panel U-frame structure.
@@ -106,6 +106,9 @@ uses `createPanelAssemblyMapping()`.
 - `npx tsx -e` compiles evaluation input as CommonJS and cannot directly import
   a TypeScript script that has top-level `await`. For a direct ESM import check,
   use `node --import tsx --input-type=module -e '...'` instead.
+- When an `rg` pattern contains Markdown backticks, put the complete shell
+  argument in single quotes. Backticks inside double quotes execute as command
+  substitutions and can produce false tool failures.
 - Windows PowerShell verification must call npm through `npm.cmd`; do not rely
   on the `npm.ps1` shim or its execution policy. Clean checks clear `PATH`, so
   required Windows system tools must use validated absolute paths such as

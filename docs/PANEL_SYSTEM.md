@@ -68,8 +68,7 @@ The mechanics-free workflow is implemented: a project with no mechanics still
 supports every normal editor, simulator, mapping, wiring, save, and reload
 action. Its panels need neither `mountFaceId` nor `surfaceAttachment`. Edits do
 not call nonexistent mechanics stale or awaiting regeneration. If referenced
-generated parts exist in a later asset slice, an edit will make those assets
-stale without disabling the interface.
+generated parts exist, an edit makes them stale without disabling the interface.
 
 ## Mechanical routes
 
@@ -138,6 +137,10 @@ connectivity, closure, edge incidence, and vertex-link two-manifoldness. Errors
 carry a stable code and identify the offending panel, welded vertex, or gap when
 applicable. Detection rejects open graphs, overused or wrongly wound shared
 edges, and ambiguous touching cycles instead of choosing topology silently.
+The browser has no control to confirm or correct detected topology. It also has
+no control to accept, reject, reorder, or redraw gap cycles. For an ambiguous
+result, the user must change the panel poses until detection is unambiguous or
+edit `boundaryTopology` outside the interface.
 
 The **Generate boundary / 3D parts** flow does not require a mechanical boundary
 or hand-written gap cycles before panel placement. It derives exact rectangular
@@ -150,8 +153,8 @@ boundary.
 Only a valid boundary proceeds to part splitting, thickness, PCB-envelope
 subtraction, mounting-hole allocation, connector keep-outs, and STL generation.
 The exact STL outputs are referenced by the project JSON and loaded in Three.js.
-The design GLB may guide placement and topology suggestions but is not copied or
-thickened into printable structure.
+The design GLB supports panel placement only. It does not supply or suggest gap
+topology, and it is not copied or thickened into printable structure.
 
 The locally hosted browser pipeline validates the deterministic boundary before
 CAD, derives stable gap-sorted part groups, and generates printable closure STLs
@@ -161,9 +164,9 @@ availability comes from the local status endpoint; absent or wrong-version
 OpenSCAD disables generation without disabling panel editing, simulation,
 mapping, wiring, or persistence.
 
-OpenSCAD is required but is not stored in the repository. On Debian 13 x86-64,
-Ubuntu 24.04 x86-64, and macOS 15 on native Apple Silicon arm64 or Intel
-x86-64, `npm run setup:openscad` installs a verified target-specific tool in
+OpenSCAD is required but is not stored in the repository. On the declared
+Debian 13 x86-64, Ubuntu 24.04 x86-64, and macOS 15 native arm64 and x86-64
+targets, `npm run setup:openscad` installs a verified target-specific tool in
 `.tools`. Linux uses OpenSCAD 2021.01. macOS uses the official universal
 OpenSCAD 2026.06.12 snapshot. Its pinned DMG is 64,447,344 bytes with SHA-256
 `555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
@@ -175,7 +178,8 @@ OpenSCAD install or Rosetta. The read-only DMG, app-only copy, native Mach-O
 check, mount cleanup, target receipt, and atomic publication make setup safe to
 retry. Runtime selection uses explicit `OPENSCAD` first, the valid
 receipt-backed managed tool for the current target second, and the system
-`openscad` on `PATH` last. Restart the local server after setup or repair.
+command on `PATH` last. The system command is `openscad` on Linux and macOS and
+`openscad.com` on Windows. Restart the local server after setup or repair.
 The Windows x86-64 candidate uses the official portable OpenSCAD 2021.01 ZIP,
 `openscad.com`, repository-local extraction, receipt validation, and atomic
 publication. The ZIP is 21,884,613 bytes with SHA-256
@@ -191,12 +195,14 @@ Successful generation writes and inspects the entire asset set before
 atomically publishing the manifest. Three.js then loads the exact referenced
 bytes after SHA-256 verification; downloads use the same verified bytes. A pose
 edit invalidates the fingerprint and removes the stale set from the current
-printable view. Generation does not copy the referenced design GLB into its
-output folder. Folder and ZIP import/export preserve the verified project asset
-set through the shared relative-path and hash contract.
+printable view. Local generation does not copy the referenced design GLB into
+its output folder. That generated folder is not self-contained when the project
+references a GLB. Folder and ZIP export preserve the full verified asset set
+only when the separately loaded GLB bytes are available through the shared
+relative-path and hash contract.
 
-See [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md) for the complete target
-workflow, asset bundle, staleness rules, and acceptance journey.
+See [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md) for the implemented data
+flow, asset bundle, staleness rules, and remaining interface-test gaps.
 
 ## Mechanical invariants
 

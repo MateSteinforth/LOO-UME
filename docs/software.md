@@ -1,38 +1,39 @@
 # Software architecture
 
-This document records the agreed design. Firmware implementation starts after
-the exact controller board and pins are selected and one panel establishes the
-three mapping facts listed below.
+This document records a hardware and firmware proposal. The repository does not
+contain production controller firmware, network transport, or audio-reactive
+behavior. Implementation can start after the exact controller board and pins
+are selected and one panel establishes the three mapping facts listed below.
 
 ## Hardware baseline
 
 - 41 rigid `WS2812B-64` panels: 8 x 8 RGB pixels, 5 V, 64 pixels each.
 - 2,624 pixels total: 30 square-face panels and 11 pentagon-centre panels.
 - The north-pole pentagonal opening is intentionally unpopulated.
-- One ESP32-class controller running WLED, with Ethernet, an I2S microphone,
-  and four level-shifted data outputs. The exact board and GPIO assignments are
-  not yet selected.
+- The proposed controller is one ESP32-class device with WLED, Ethernet, an I2S
+  microphone, and four level-shifted data outputs. The exact board and GPIO
+  assignments are not yet selected.
 - Four data outputs remain planned. Their revised panel counts and lengths
   must be assigned with the physical chain; the obsolete 42-panel split must
   not be reused.
 - Two independent 5 V / 40 A power domains each feed two outputs. Grounds are
   common; positive rails remain separate.
 
-Power is injected through fused parallel branches. Panel `V+` and `V-`
-pass-through pads must not carry the accumulated current of a long chain.
-WLED per-output brightness limiting is a secondary safeguard, not a substitute
-for correct wiring and fusing.
+The proposed power system would use fused parallel branches. Panel `V+` and
+`V-` pass-through pads must not carry the accumulated current of a long chain.
+Any future WLED per-output brightness limit would be a secondary safeguard, not
+a substitute for correct wiring and fusing.
 
 ## Operating modes
 
-At startup WLED loads a saved custom audio-reactive preset. An incoming DDP or
-Art-Net stream takes realtime control; when the stream times out, WLED returns
-to the standalone preset. Controls must expose power, brightness, preset, and
-realtime override through WLED's normal web UI and JSON API. Wired Ethernet is
-preferred for realtime input.
+In the proposal, WLED would load a saved custom audio-reactive preset at startup.
+An incoming DDP or Art-Net stream would take realtime control. WLED would return
+to the standalone preset when that stream stops. Controls would expose power,
+brightness, preset, and realtime override through WLED's normal web UI and JSON
+API. The proposed realtime input would use wired Ethernet.
 
-Custom effects belong in a WLED usermod, not in patched WLED core files. Pin
-the WLED release used for production builds.
+Future custom effects would belong in a WLED usermod, not in patched WLED core
+files. A production build would pin its WLED release.
 
 ## Mapping
 
@@ -63,11 +64,12 @@ rather than effect-code constants.
 
 ## Build and CI
 
-CI will validate the 41-panel/2,624-pixel map, build the usermod against a
-pinned WLED release with PlatformIO, and upload the flashable binary plus its
-build metadata as artifacts. It will not flash hardware. Firmware binaries and
-device credentials are never committed.
+A future firmware CI job would validate the 41-panel/2,624-pixel map, build the
+usermod against a pinned WLED release with PlatformIO, and upload the flashable
+binary plus its build metadata as artifacts. It would not flash hardware.
+Firmware binaries and device credentials must not be committed.
 
-The implementation belongs under `firmware/` and will contain the pinned WLED
-build configuration, sculpture usermod, canonical mapping data, map generator,
-and mapping tests. See `firmware/AGENTS.md` before changing it.
+A future implementation would belong under `firmware/` and would contain the
+pinned WLED build configuration, sculpture usermod, canonical mapping data, map
+generator, and mapping tests. The current directory contains instructions only.
+See `firmware/AGENTS.md` before changing it.

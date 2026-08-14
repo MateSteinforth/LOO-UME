@@ -7,8 +7,7 @@ This is the next focused editor slice after commit `0917794`
 Start from the latest remote state of that branch. Read
 [AGENTS.md](../AGENTS.md), [Pose-first sculpture schema](pose-first-schema.md),
 [Editor and planar mechanical regeneration](editor-mechanical-regeneration.md),
-[Automatic panel placement handover](handover-automatic-panel-placement.md), and
-[Panel JSON editing decoupling](handover-panel-json-editing-decoupling.md)
+and [Automatic panel placement handover](handover-automatic-panel-placement.md)
 before changing code.
 
 ## User expectation
