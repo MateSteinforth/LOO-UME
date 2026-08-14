@@ -88,6 +88,32 @@ This file is the persistent source of truth for work status. Read it before star
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
 
+### `INSTALL-013` Acquire and connect pinned OpenSCAD on macOS — P0
+
+- Outcome: the managed OpenSCAD path works after a repository clone on supported Apple Silicon and Intel Macs without a manual OpenSCAD, Rosetta, administrator, or `PATH` step.
+- Acceptance:
+  - The manifest declares exact supported macOS versions and architectures, pinned program/runtime artifacts, HTTPS sources, sizes, SHA-256 values, and source/license metadata.
+  - Setup selects native artifacts for `darwin-arm64` and `darwin-x64`, or builds a pinned native tool when no trusted upstream artifact exists; it must not require Rosetta.
+  - Installation remains repository-local, receipt-backed, atomic, idempotent, safe after interruption, and compatible with paths containing spaces.
+  - Runtime selection remains explicit `OPENSCAD`, then the verified managed tool, then a system fallback.
+  - A clean macOS proof reaches the supported OpenSCAD version, starts the local production editor with generator status available, generates the canonical two-part STL fixture, and shuts down cleanly.
+- Depends on: `INSTALL-010` for the shared manifest, receipt, download, and runtime model.
+- Verify: macOS unit tests plus required clean-host jobs for every declared macOS architecture; no preinstalled OpenSCAD or Rosetta may satisfy the proof.
+- Docs: publish the exact macOS support matrix and one repository setup command only after both architecture proofs pass.
+
+### `INSTALL-014` Acquire and connect pinned OpenSCAD on Windows x86-64 — P0
+
+- Outcome: the managed OpenSCAD path works after a repository clone on Windows 10/11 x86-64 (`win32-x64`) PCs without a manual OpenSCAD, administrator, installer UI, or `PATH` step.
+- Acceptance:
+  - The manifest declares Windows 10/11 x86-64 (`win32-x64`), pinned program/runtime archives, HTTPS sources, sizes, SHA-256 values, and source/license metadata. Windows ARM64 requires a separate native, no-emulation task and proof.
+  - PowerShell setup downloads and safely extracts only allow-listed archive paths into the ignored repository tool directory; it makes no registry, profile, global package, or machine-level change.
+  - Installation is receipt-backed, atomic, idempotent, safe after interruption, and compatible with repository paths containing spaces.
+  - Runtime selection remains explicit `OPENSCAD`, then the verified managed tool, then a system fallback, with Windows command and argument handling covered by tests.
+  - A clean Windows proof reaches the supported OpenSCAD version, starts the local production editor with generator status available, generates the canonical two-part STL fixture, and shuts down cleanly.
+- Depends on: `INSTALL-010` for the shared manifest, receipt, download, and runtime model.
+- Verify: Windows 10 and Windows 11 x86-64 unit tests plus required clean-host jobs; no preinstalled OpenSCAD may satisfy the proof.
+- Docs: publish the exact Windows support matrix and one repository setup command only after the clean-host proof passes.
+
 ### `INSTALL-011` Add a one-command clean-checkout bootstrap — P0
 
 - Outcome: after cloning the repository, one platform-appropriate command installs and connects every project dependency needed to build, test, start, and generate parts.
@@ -95,10 +121,10 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   - POSIX and PowerShell entry points require only Git and the operating system's standard shell; every other executable is acquired or its function is supplied by a verified repository stage-zero component.
   - A committed dependency manifest accounts for Node.js/npm, Python, download/archive utilities, OpenSCAD, WLED sources, Emscripten, and every other command invoked by setup or verification.
   - Bootstrap acquires pinned repository-local Node.js/npm and Python toolchains when absent; it must not silently use an undeclared system executable.
-  - Bootstrap initializes required submodules, installs exact npm dependencies, acquires OpenSCAD through `INSTALL-010`, and installs pinned WLED/Emscripten tooling required by the documented full verification path.
+  - Bootstrap initializes required submodules, installs exact npm dependencies, acquires OpenSCAD through `INSTALL-010`, `INSTALL-013`, or `INSTALL-014` for the selected platform, and installs pinned WLED/Emscripten tooling required by the documented full verification path.
   - Repeated and interrupted runs are safe and resumable; paths containing spaces work; no global packages, administrator access, or system package-manager changes are required.
   - Completion verifies generator availability and prints one start command; failures state the failed dependency and exact recovery action.
-- Depends on: `INSTALL-010`.
+- Depends on: `INSTALL-010`, `INSTALL-013`, and `INSTALL-014`.
 - Verify: empty-cache and warm-cache integration tests, interruption recovery, checksum/network failure tests, `npm run verify`, and a local production-server smoke test.
 - Docs: make this the primary installation path and list only Git plus the standard shell as prerequisites.
 
@@ -109,7 +135,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   - CI starts from clean Linux, macOS, and Windows environments for every OS/architecture pair declared supported by the bootstrap.
   - Each job runs only the documented bootstrap and start commands, sees generator status `available: true`, generates exact STL files with real OpenSCAD, and shuts down cleanly.
   - Cached tools are verified before reuse; tampered downloads, unsupported systems, offline failures, and partial installs fail safely and actionably.
-- Depends on: `INSTALL-010`, `INSTALL-011`, and reuse of the real-render journey from `CI-010`.
+- Depends on: `INSTALL-010`, `INSTALL-011`, `INSTALL-013`, `INSTALL-014`, and reuse of the real-render journey from `CI-010`.
 - Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
 - Docs: publish the tested platform matrix and state clearly which repository installation command applies to each platform.
 
