@@ -78,9 +78,20 @@ uses `createPanelAssemblyMapping()`.
 - Record each reusable failure and its verified solution in `FAILURES.md`.
   Promote recurring prevention rules into `AGENTS.md` or the relevant knowledge
   page. Reuse the recorded solution; do not repeat the failed discovery process.
-- After a scoped change is clean and verified, commit it, integrate it with the
-  intended branch, and push the result. Respect required approval gates. Never
-  force-push, overwrite unrelated work, or bypass a remote-write restriction.
+- Treat delivery cleanup as part of every successfully completed task; the
+  operator must not need to request it again. After a scoped change is clean and
+  verified, commit it, merge or fast-forward it into the intended base branch,
+  and push the integrated result. After the push succeeds, remove any temporary
+  task worktree, delete its merged local task branch, and delete a remote task
+  branch only when this task created it and repository policy does not require
+  it to remain. If the work ran in a separate agent, task, or thread, archive or
+  close it after its handoff is captured and its result is integrated.
+- Before cleanup, verify that the task worktree is clean, the task branch is
+  merged into the intended base, and the integrated commit is present on the
+  destination remote. Never delete a dirty worktree, an unmerged branch, another
+  task's branch or worktree, or the only copy of useful agent output. Respect
+  required approval gates. Never force-push, overwrite unrelated work, or bypass
+  a remote-write restriction.
 - If a push is blocked because the destination is not verified, report the
   exact commit, ref, and remote URL. Get explicit operator approval, then repeat
   the same push. Do not use an indirect push method.
@@ -158,9 +169,11 @@ integration, verification, and the final report. Use this operating loop:
    `FAILURES.md` during the same task. Fix the underlying workflow or canonical
    guidance as well when practical; the log is not a substitute for a fix.
 6. **Close the loop.** Review the final diff for accidental changes, verify the
-   acceptance criteria, and report what changed, what was tested, and any
-   remaining uncertainty. Do not describe a partial or unverified result as
-   complete.
+   acceptance criteria, commit, integrate, push, and safely clean up the task
+   branch, worktree, and separate agent or thread as required by **Working
+   safely**. Then report what changed, what was tested, the integrated commit,
+   and any remaining uncertainty. Do not describe a partial or unverified
+   result as complete.
 
 Delegated agents should return a compact handoff containing changed files,
 checks run and their results, assumptions or unresolved risks, and any proposed
