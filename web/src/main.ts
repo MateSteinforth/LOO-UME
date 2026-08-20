@@ -58,6 +58,7 @@ import {
 } from "./PortableProject.ts";
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
+import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -604,6 +605,7 @@ async function start(): Promise<void> {
     let generatedAssetLoadRevision = 0;
     let activePortableBundle: PortableProjectBundle | undefined;
     let availableProjectAssets = new Map<string, Uint8Array>();
+    let generatedMemoryUrls = new Map<string, string>();
 
     const replacePortableBundle = (
       bundle?: PortableProjectBundle,
@@ -811,8 +813,11 @@ async function start(): Promise<void> {
           selected.project.source,
           fetch,
           document.baseURI,
-          selected.project.source.startsWith("local:")
-            ? activePortableBundle?.assetUrls
+          selected.project.source.startsWith("local:") || generatedMemoryUrls.size > 0
+            ? new Map([
+              ...(activePortableBundle?.assetUrls ?? []),
+              ...generatedMemoryUrls,
+            ])
             : undefined,
         );
         if (revision !== generatedAssetLoadRevision || !assets) return;
@@ -1646,7 +1651,38 @@ async function start(): Promise<void> {
             ? "Regenerating mechanical topology, then generating Manifold STLs and printable previews…"
             : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…";
         try {
-          const response = await fetch("./api/editor-pipeline", {
+          try {
+            const bundle = await compilePanelBoundaryBundle(
+              editorProject,
+              editorDefinition.panelProfile.source,
+            );
+            generatedMemoryUrls.forEach((url) => URL.revokeObjectURL(url));
+            generatedMemoryUrls = new Map();
+            for (const file of bundle.files) {
+              rememberProjectAsset(file.source, file.bytes);
+              generatedMemoryUrls.set(
+                file.source,
+                URL.createObjectURL(
+                new Blob([Uint8Array.from(file.bytes)], { type: "model/stl" }),
+              ),
+              );
+            }
+            const inProcessProject = createPanelAssemblyProject(
+              bundle.definition,
+              "local:in-process-manifold",
+              editorProject.panelProfile,
+            );
+            await applyLoadedSculpture(
+              createLoadedSculpture(inProcessProject),
+            );
+            const partCount = bundle.files.filter((file) =>
+              file.source.startsWith("mechanics/parts/")
+            ).length;
+            pipelineStatus.textContent =
+              `Generated and SHA-256 verified ${partCount} exact printable STL files in the browser.`;
+            viewerError.hidden = true;
+          } catch {
+            const response = await fetch("./api/editor-pipeline", {
             method: "POST",
             body: createEditorPipelineFormData(
               editorDefinition,
@@ -1694,6 +1730,7 @@ async function start(): Promise<void> {
           pipelineStatus.textContent =
             lastLogLine ?? "Pipeline complete; exact STL meshes are now loaded.";
           viewerError.hidden = true;
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");

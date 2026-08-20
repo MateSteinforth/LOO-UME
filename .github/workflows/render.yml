@@ -111,6 +111,44 @@ jobs:
       - name: Build Vite application
         run: npm run build:web
 
+  manifold-panel-parts:
+    name: Manifold panel-outline parts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Generate prism parts without OpenSCAD
+        run: |
+          if command -v openscad >/dev/null 2>&1; then
+            echo "This job must not use a system OpenSCAD."
+            exit 1
+          fi
+          npx tsx scripts/generate-panel-boundary-parts.ts \
+            --sculpture sculptures/panel-outline-prism/sculpture.json \
+            --output build/ci-manifold-prism
+          test -s build/ci-manifold-prism/mechanics/boundary.stl
+          test -s build/ci-manifold-prism/mechanics/parts/part-001.stl
+          test -s build/ci-manifold-prism/mechanics/parts/part-002.stl
+
+      - name: Keep failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: manifold-panel-parts-failure
+          path: build/ci-manifold-prism/
+          if-no-files-found: ignore
+          retention-days: 14
+
   browser-smoke:
     name: Browser smoke (Chromium)
     runs-on: ubuntu-24.04

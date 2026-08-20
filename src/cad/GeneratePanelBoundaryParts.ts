@@ -9,15 +9,10 @@ import {
 import { dirname, relative, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import {
-  compilePanelAssembly,
-  createPanelAssemblyProject,
-  type GeneratedMechanicsManifest,
   type PanelAssemblyDefinition,
   type PanelAssemblyProject,
 } from "../sculpture/PanelAssembly.ts";
 import {
-  detectPanelBoundaryTopology,
-  generateClosedPanelBoundary,
   type ClosedPanelBoundary,
 } from "../sculpture/PanelOutlineBoundary.ts";
 import {
@@ -27,23 +22,13 @@ import {
 } from "../sculpture/GeneratedMechanics.ts";
 import { createUnprobedOpenScadRenderer } from "./OpenScadRuntime.ts";
 import { emitPanelClosureCadArtifacts } from "./GeneratePanelClosureCad.ts";
-import { inspectStl, serializeAsciiStl, serializeManifoldMeshAsciiStl, type StlInspection } from "./Stl.ts";
-import { buildPanelClosureSolids } from "./GeneratePanelClosureSolids.ts";
+import { inspectStl, type StlInspection } from "./Stl.ts";
+import {
+  compilePanelBoundaryBundle,
+  createPrintableBoundaryProject,
+} from "./CompilePanelBoundaryBundle.ts";
 
-const GENERATED_CLOSURE_POLICY = Object.freeze({
-  generator: "panel-hole-tabs" as const,
-  holeSelection: "minimum-total-edge-distance" as const,
-  exteriorClipping: "polyhedron-interior" as const,
-  coverThickness: 2,
-  coverCornerRadius: 2,
-  flangeThickness: 3,
-  flangeOverlap: 1.25,
-  edgeLipDepth: 3,
-  screwTabWidth: 13,
-  screwTabEndMargin: 4.5,
-  connectorCornerClearance: 14,
-  panelEnvelopeClearance: 0.3,
-});
+export { createPrintableBoundaryProject };
 
 export type ScadRenderer = (
   inputScad: string,
@@ -80,87 +65,6 @@ export interface GeneratePanelBoundaryPartsResult {
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
-}
-
-/**
- * Converts only a previously validated boundary into the established planar
- * closure compiler contract. This object is derived build input and is never
- * stored as a second project pose authority.
- */
-export function createPrintableBoundaryProject(
-  project: PanelAssemblyProject,
-  boundary: ClosedPanelBoundary,
-): PanelAssemblyProject {
-  if (
-    boundary.metadata.status.generation !== "complete" ||
-    boundary.metadata.status.validation !== "passed"
-  ) {
-    throw new Error("Printable-part generation requires a complete validated boundary.");
-  }
-  const sourceFingerprint = generateClosedPanelBoundary(
-    project.sculpture,
-    project.panelProfile,
-  ).metadata.sourceFingerprint.value;
-  if (boundary.metadata.sourceFingerprint.value !== sourceFingerprint) {
-    throw new Error("Printable-part generation refused a boundary from different panel poses.");
-  }
-
-  const panelFaces = boundary.faces
-    .filter((face) => face.role === "panel-outline")
-    .sort((left, right) => compareText(left.panelId!, right.panelId!));
-  const capFaces = boundary.faces
-    .filter((face) => face.role === "cap")
-    .sort((left, right) => compareText(left.gapId!, right.gapId!));
-  const faceIdentity = new Map<string, { id: string; partId?: string }>();
-  panelFaces.forEach((face, index) => {
-    faceIdentity.set(face.id, {
-      id: `panel-${String(index + 1).padStart(3, "0")}`,
-    });
-  });
-  capFaces.forEach((face, index) => {
-    faceIdentity.set(face.id, {
-      id: `closure-${String(index + 1).padStart(3, "0")}`,
-      partId: `part-${String(index + 1).padStart(3, "0")}`,
-    });
-  });
-
-  const definition = structuredClone(project.sculpture);
-  delete definition.boundaryTopology;
-  delete definition.generatedMechanics;
-  definition.panels = definition.panels.map((panel) => {
-    const face = panelFaces.find((candidate) => candidate.panelId === panel.id);
-    if (!face) throw new Error(`Validated boundary omitted panel outline ${panel.id}.`);
-    return {
-      ...panel,
-      mountFaceId: faceIdentity.get(face.id)!.id,
-      connectorPolicy: {
-        allowSharedClosureAcrossAdjacentEdges: true as const,
-        reason:
-          "A validated panel-outline boundary may expose fewer gap edges than the four eligible real mounting holes; all holes still use the proven tab geometry.",
-      },
-    };
-  });
-  definition.mechanicalShell = {
-    kind: "explicit-planar-face-graph",
-    derivationStatus: "authored",
-    vertices: boundary.vertices.map((vertex) => [...vertex]),
-    faces: [...panelFaces, ...capFaces].map((face) => ({
-      id: faceIdentity.get(face.id)!.id,
-      ...(faceIdentity.get(face.id)!.partId
-        ? { partId: faceIdentity.get(face.id)!.partId }
-        : {}),
-      vertexIndices: [...face.vertexIndices],
-    })),
-  };
-  definition.closures = {
-    faceIds: capFaces.map((face) => faceIdentity.get(face.id)!.id),
-    ...GENERATED_CLOSURE_POLICY,
-  };
-  return createPanelAssemblyProject(
-    definition,
-    `generated from ${project.source}`,
-    project.panelProfile,
-  );
 }
 
 async function inspectedAsset(
@@ -234,35 +138,19 @@ export async function generatePanelBoundaryParts(
       "Generation received design-surface bytes, but the project has no designSurface reference.",
     );
   }
-  const workingDefinition = structuredClone(project.sculpture);
-  if (!workingDefinition.boundaryTopology) {
-    workingDefinition.boundaryTopology = detectPanelBoundaryTopology(
-      workingDefinition,
-      project.panelProfile,
-    );
-  }
-  const workingProject = createPanelAssemblyProject(
-    workingDefinition,
-    project.source,
-    project.panelProfile,
-  );
-  const boundary = generateClosedPanelBoundary(
-    workingProject.sculpture,
-    workingProject.panelProfile,
-  );
-  const printableProject = createPrintableBoundaryProject(
-    workingProject,
-    boundary,
-  );
-  compilePanelAssembly(printableProject);
 
   const rootDirectory = resolve(options.rootDirectory ?? process.cwd());
   const outputDirectory = resolve(rootDirectory, options.outputDirectory);
+  const originalProfilePath = resolve(
+    dirname(resolve(rootDirectory, project.source)),
+    project.sculpture.panelProfile.source,
+  );
+  const panelProfileSource = options.panelProfileSource ??
+    relative(outputDirectory, originalProfilePath).split(sep).join("/");
+  const bundle = await compilePanelBoundaryBundle(project, panelProfileSource);
   const temporaryDirectory =
     `${outputDirectory}.pending-${process.pid}-${randomUUID()}`;
-  const mechanicsDirectory = resolve(temporaryDirectory, "mechanics");
-  const partDirectory = resolve(mechanicsDirectory, "parts");
-  const cadDirectory = resolve(mechanicsDirectory, "cad");
+  const cadDirectory = resolve(temporaryDirectory, "mechanics", "cad");
 
   try {
     if (designSurface && designSurfaceBytes) {
@@ -278,90 +166,34 @@ export async function generatePanelBoundaryParts(
         "Staged design surface",
       );
     }
-    await mkdir(partDirectory, { recursive: true });
-    const boundaryPath = resolve(mechanicsDirectory, "boundary.stl");
-    await writeFile(
-      boundaryPath,
-      serializeAsciiStl(
-        "validated-panel-boundary",
-        boundary.vertices,
-        boundary.triangles,
-      ),
-    );
-
-    const cad = await emitPanelClosureCadArtifacts(printableProject, {
+    for (const file of bundle.files) {
+      const absolutePath = resolve(temporaryDirectory, file.source);
+      await mkdir(dirname(absolutePath), { recursive: true });
+      await writeFile(absolutePath, file.bytes);
+    }
+    const cad = await emitPanelClosureCadArtifacts(bundle.printableProject, {
       rootDirectory,
       outputDirectory: cadDirectory,
     });
-    const solids = await buildPanelClosureSolids(printableProject);
-    const rendered: GeneratedPanelBoundaryAsset[] = [];
-    for (const solid of solids) {
-      const outputStl = resolve(partDirectory, `${solid.partId}.stl`);
-      await writeFile(
-        outputStl,
-        serializeManifoldMeshAsciiStl(
-          solid.partId,
-          solid.vertProperties,
-          solid.triVerts,
-        ),
-      );
-      rendered.push(
-        await inspectedAsset(solid.partId, `mechanics/parts/${solid.partId}.stl`, outputStl),
+    const boundaryPath = resolve(temporaryDirectory, "mechanics/boundary.stl");
+    const partAssets: GeneratedPanelBoundaryAsset[] = [];
+    for (const file of bundle.files) {
+      if (!file.source.startsWith("mechanics/parts/")) continue;
+      const id = file.source.slice("mechanics/parts/".length).replace(/\.stl$/, "");
+      partAssets.push(
+        await inspectedAsset(id, file.source, resolve(temporaryDirectory, file.source)),
       );
     }
+    partAssets.sort((left, right) => compareText(left.id, right.id));
     const boundaryAsset = await inspectedAsset(
       "boundary",
       "mechanics/boundary.stl",
       boundaryPath,
     );
-    const partAssets = rendered.sort((left, right) => compareText(left.id, right.id));
-    const manifest: GeneratedMechanicsManifest = {
-      generator: {
-        id: "wled-orbital-lab/panel-outline-parts",
-        version: "0.2.0",
-      },
-      sourceFingerprint: boundary.metadata.sourceFingerprint,
-      status: { generation: "complete", validation: "passed" },
-      boundary: {
-        kind: "closed-boundary-mesh",
-        format: "stl",
-        source: boundaryAsset.source,
-        sha256: boundaryAsset.sha256,
-      },
-      parts: partAssets.map((part) => ({
-        id: part.id,
-        format: "stl",
-        source: part.source,
-        sha256: part.sha256,
-      })),
-    };
-    const definition = structuredClone(workingProject.sculpture);
-    definition.generatedMechanics = manifest;
-    const originalProfilePath = resolve(
-      dirname(resolve(rootDirectory, workingProject.source)),
-      workingProject.sculpture.panelProfile.source,
-    );
-    definition.panelProfile.source = options.panelProfileSource ??
-      relative(outputDirectory, originalProfilePath)
-        .split(sep)
-        .join("/");
-    definition.notes = [
-      ...definition.notes.filter((note) =>
-        !note.startsWith("Generated printable asset set ")
-      ),
-      `Generated printable asset set ${boundary.metadata.sourceFingerprint.value.slice(0, 12)} from the validated panel-gap boundary.`,
-    ];
-
-    // Validate the final manifest before it becomes visible, then write it last.
-    createPanelAssemblyProject(
-      definition,
-      resolve(temporaryDirectory, "sculpture.json"),
-      project.panelProfile,
-    );
     const pendingManifest = resolve(temporaryDirectory, "sculpture.json.pending");
     await writeFile(
       pendingManifest,
-      `${JSON.stringify(definition, null, 2)}\n`,
+      `${JSON.stringify(bundle.definition, null, 2)}\n`,
       "utf8",
     );
     await rename(pendingManifest, resolve(temporaryDirectory, "sculpture.json"));
@@ -372,9 +204,9 @@ export async function generatePanelBoundaryParts(
     return {
       outputDirectory,
       projectSource: resolve(outputDirectory, "sculpture.json"),
-      definition,
-      boundary,
-      printableProject,
+      definition: bundle.definition,
+      boundary: bundle.boundary,
+      printableProject: bundle.printableProject,
       boundaryAsset: { ...boundaryAsset, absolutePath: published(boundaryPath) },
       partAssets: partAssets.map((asset) => ({
         ...asset,

@@ -139,33 +139,8 @@ and SCAD text. Native OpenSCAD only tessellates each closure: `linear_extrude`,
 cutters, `polyhedron` exterior clip, then union/difference/intersection.
 Most tests inject a fake STL. The boundary STL never uses OpenSCAD.
 
-`manifold-3d` (WASM) provides CrossSection offset/hull, extrude, 3D boolean,
-cylinders, and hull. That matches this kernel. First delivery keeps the current
-local HTTP generator contract and swaps the renderer. Browser-in-process
-generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
-
-### `CAD-034` Run generic part generation in the browser — P1
-
-- Outcome: the editor can build printable parts in-process with Manifold so
-  **Generate 3D Parts** does not need a native CAD child process.
-- Acceptance: Node and browser use the same solids kernel; WASM load is
-  bounded; large jobs stay interruptible; folder/ZIP export still uses verified
-  in-memory bytes; fail-closed errors match the server path.
-- Depends on: `CAD-033`.
-- Note: keep the loopback host for static UI and optional server generation
-  until this slice proves the in-process path. Do not invent a hosted CAD
-  service.
-
-### `CAD-035` Prove generic Manifold generation in CI — P1
-
-- Outcome: CI generates the canonical panel-outline fixture with Manifold, not
-  a fake renderer and not OpenSCAD.
-- Acceptance: one supported fixture yields a boundary and every exact part;
-  invalid topology fails before solids; useful failure artifacts are retained.
-- Depends on: `CAD-032`. Prefer to land with `CAD-033` so the pipeline is the
-  CI entry.
-- Likely conflicts: `.github/workflows/render.yml` (also `BUILD-010` and
-  later `INSTALL-012`). Manual `parts/*.scad` OpenSCAD jobs stay.
+The Manifold generic path is implemented on `grok/workspace`. Manual
+`parts/*.scad` stays on OpenSCAD.
 
 ### `CI-010` Exercise the panel-outline route with real OpenSCAD — superseded
 
@@ -351,6 +326,12 @@ generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
 - Unblocks: `INSTALL-011B`, then `INSTALL-011C` and `INSTALL-012`.
 
 ## Ready to Merge
+
+### `UI-010` Complete the arbitrary-project acceptance journey — P0
+
+- Playwright Chromium loads a mechanics-free prism JSON, clicks **Generate 3D
+  Parts**, saves JSON with topology and two Manifold STLs, and exports a ZIP
+  containing those parts. Test: `tests/browser/generate-parts.spec.ts`.
 
 ### `CAD-033` Serve Manifold from the local editor pipeline — P0
 
