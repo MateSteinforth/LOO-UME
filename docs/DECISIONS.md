@@ -221,6 +221,56 @@ URL fetching during export, or a second archive-specific project model. ZIP
 resource limits remain required hardening under `SEC-010`; they must preserve
 this folder-first contract.
 
+## D13 — Hardware parity is an evidence-gated deployment contract
+
+**Decision.** The operator confirmed on 2026-08-20 that the physical 41-panel
+build must reproduce the simulator's spatial LED result. Sculpture JSON remains
+authoritative; the simulator must display its persisted, explicitly confirmed
+route and measured addressing facts. A heuristic route is a draft. An
+installation-ready export is blocked until the saved route, installed panel
+transforms, pixel and color order, WLED buses/GPIOs, power limit, and firmware
+identity agree. Hardware-verified status additionally requires deployed hashes,
+device read-back, the as-built record, and bench proof.
+
+**Evidence.** `createPanelAssemblyMapping()`,
+`createHardwareMappingContract()`, the current parity tests in
+`tests/hardware-mapping.test.ts`, the provisional limitations in
+`docs/LED_MAPPING.md`, and the operator's physical-build direction. The official
+[WLED mapping contract](https://kno.wled.ge/advanced/mapping/) defines the map
+array position as the natural/logical index and its value as the remapped
+physical index. WLED bus start, length, GPIO, color order, and reversal remain
+separate [LED settings](https://kno.wled.ge/features/settings/).
+
+**Consequence.** Do not wire from a screenshot, nearest-neighbor suggestion,
+`layout/panel-map.json`, or `wled/ledmap.provisional.json`. Diagnostic exports
+may remain clearly labelled. An installation-ready bundle needs stable hashes
+and an install/read-back checklist; it is not hardware-verified before that
+checklist and the bench proof pass. Static address/RGB proof comes before any
+claim of effect timing, transport, network, or audio parity. Full-sculpture
+operation also requires the separately approved `PWR-010` protection plan.
+
+## D14 — Installed address calibration is not a second pose
+
+**Decision.** The saved panel pose continues to define panel geometry and LED
+world positions. Physical addressing uses a separate measured transform from
+pose-local display coordinates to PCB wire coordinates. Its frame is the panel
+profile's marked back view and its square-panel operations are discrete quarter
+turns plus optional mirroring. It changes local-to-wire indexing only; it never
+moves a panel or an LED in the sculpture.
+
+**Evidence.** The pose basis already drives LED world positions in
+`createPanelAssemblyMapping()`. The current `rotationDegrees` also has mechanical
+face meaning, while `rotationDegrees` and `mirrored` do not affect
+`panelWireIndex()` in `web/src/HardwareMapping.ts`. Reusing those ambiguous
+fields without a frame would permit a physically wrong but internally valid
+map.
+
+**Consequence.** `MAP-021` must define the new address-transform schema,
+reference view, allowed operations, validation, and migration rule before it
+changes mapping. Existing geometry/mechanical rotation stays unchanged. Color
+order and WLED bus reversal are not part of this transform; `MAP-030` records
+color order and fixes bus reversal to false so direction has one authority.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

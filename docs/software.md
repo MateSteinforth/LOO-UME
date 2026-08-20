@@ -4,6 +4,8 @@ This document records a hardware and firmware proposal. The repository does not
 contain production controller firmware, network transport, or audio-reactive
 behavior. Implementation can start after the exact controller board and pins
 are selected and one panel establishes the three mapping facts listed below.
+The active milestone is static simulator-to-device address and RGB parity;
+networking, audio, and custom effects remain later work.
 
 ## Hardware baseline
 
@@ -18,6 +20,13 @@ are selected and one panel establishes the three mapping facts listed below.
   not be reused.
 - Two independent 5 V / 40 A power domains each feed two outputs. Grounds are
   common; positive rails remain separate.
+
+The two-domain statement is a proposal, not an approved full-brightness design.
+At the conservative 60 mA profile value, 2,624 pixels can require 157.44 A and
+the draft 11-panel output alone can require 42.24 A. Two 40 A supplies cannot
+support conservative unrestricted full white. `HR-015` and `PWR-010` must define
+and verify the actual operating envelope before the complete sculpture is
+energized.
 
 The proposed power system would use fused parallel branches. Panel `V+` and
 `V-` pass-through pads must not carry the accumulated current of a long chain.
@@ -55,6 +64,17 @@ pass. DIN/DOUT corner assignment is already measured in the panel profile. The
 current route generator covers data only and assumes the controller is near the
 sculpture top; it does not generate the power branches described above.
 
+Production output also needs a WLED bus contract. For each output, it records
+the global start index, length, GPIO, LED type, color order, reversal policy,
+level shifter, and power domain. The deployed device must report the same
+values, pinned firmware identity, current limit, and ledmap hash. The browser
+WASM host cannot supply that proof.
+
+The production policy fixes WLED bus reversal to false. The authored panel route
+and ledmap are the only direction authorities. Deployment identity hashes the
+exact bytes of each emitted file and a versioned canonical manifest of paths,
+sizes, and file hashes.
+
 The panel JSON carries the provisional back-view addressing rule: pixel 0 at
 bottom-left, left-to-right first row, then alternating rows upward. It derives
 pixel 56 at top-right and pixel 63 at top-left. Keep the status provisional
@@ -73,3 +93,9 @@ A future implementation would belong under `firmware/` and would contain the
 pinned WLED build configuration, sculpture usermod, canonical mapping data, map
 generator, and mapping tests. The current directory contains instructions only.
 See `firmware/AGENTS.md` before changing it.
+
+The first firmware slice is `FIRM-011`: build and deploy only the minimum pinned
+WLED target needed for mapping proof. `DIAG-010` supplies deterministic local
+test frames, and `PROOF-010` then checks every address and RGB channel. DDP,
+Art-Net, Ethernet, microphone, audio, presets, and custom effects remain under
+later `FIRM-010` work.

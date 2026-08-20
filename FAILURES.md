@@ -259,3 +259,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The failed CTRL-004 commit attempt and existing commits authored
   by `Codex <codex@openai.com>`.
 - **Status:** Resolved.
+
+### F-014 — A task title and its board section can contradict each other
+
+- **Date:** 2026-08-20
+- **Context:** CTRL-005 wiring-priority task reconciliation.
+- **Symptom:** `HR-013` said “Decision needed” and blocked installation tasks,
+  but it remained under **Done**.
+- **Cause:** The earlier board audit checked dependencies and main task moves
+  without checking whether every task's wording agreed with its containing
+  lifecycle section.
+- **Correction:** Move `HR-013` to **Human Review** and keep the dependent
+  installation tasks blocked.
+- **Prevention:** During board reconciliation, validate task headings and
+  dependency language against the containing lifecycle section, not only task
+  IDs and duplicate entries.
+- **Evidence:** `TASKS.md` status correction in `CTRL-005`.
+- **Status:** Resolved.

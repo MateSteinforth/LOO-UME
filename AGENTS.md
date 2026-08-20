@@ -64,6 +64,20 @@ uses `createPanelAssemblyMapping()`.
   filler surfaces flat-printable.
 - Current wiring, GPIOs, installed rotations/mirroring, and within-panel pixel
   order are provisional. Do not describe an export as hardware-ready.
+- Do not use the current simulator route, `layout/panel-map.json`, or
+  `wled/ledmap.provisional.json` as physical build instructions. The simulator
+  must display a persisted, explicitly confirmed route before the route can
+  guide assembly.
+- Hardware parity requires the same authored route, measured panel addressing,
+  WLED bus configuration, color order, GPIOs, deployment identity, and bench
+  result. A ledmap permutation or WASM effect test alone is not device proof.
+- Keep installed address calibration separate from the pose. The pose owns LED
+  world positions; a measured back-view quarter-turn/mirror transform may change
+  local wire indexing only. Do not reuse an ambiguous mechanical rotation or
+  WLED bus reversal as a second addressing authority.
+- Do not energize the complete 41-panel sculpture before the power domains,
+  injection branches, wire sizes, fuses, voltage drop, and maximum operating
+  current pass `PWR-010`. WLED current limiting is secondary protection.
 - Do not claim firmware, DDP, Art-Net, networking, Ethernet, or audio-reactive
   behavior: `firmware/` contains instructions only and the browser runs a small
   WLED effect simulator.

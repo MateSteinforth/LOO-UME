@@ -136,6 +136,15 @@ same reference and hash rules and browser-owned object URLs.
   once edited or confirmed.
 - Define reachable provisional/review/production states and use the same
   readiness policy in browser and CLI exports.
+- Measure one panel before mass wiring, then define the exact WLED board, four
+  buses, GPIOs, color order, level shifting, power domains, and deployment
+  identity.
+- Record the as-built route for all 41 panels and prove all 2,624 addresses plus
+  RGB channels with diagnostic frames. Keep animation timing, networking, and
+  audio as later claims.
+- Approve supply, injection, wire, fuse, voltage-drop, and operating-current
+  limits before the complete sculpture is energized. The conservative
+  full-white profile load is 157.44 A at 5 V.
 
 ### 6. Retire Schema 1 from live paths
 

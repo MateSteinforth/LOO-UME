@@ -2,7 +2,12 @@
 
 Last reconciled: 2026-08-20
 Backlog reconstructed from: `main` at `ab9a96a`
-Current milestone: make the arbitrary-project workflow complete: GLB -> panel placement/editing -> automatically close the flat gaps between panels -> watertight boundary -> printable parts -> exact referenced assets -> folder/ZIP reopen. The installed desktop system serves its interface locally and runs OpenSCAD on that same computer.
+Current milestone: make the manual 41-panel sculpture reproduce the simulator's
+spatial LED output on one selected ESP32/WLED target. The path is: measured
+single-panel facts -> authored four-output route -> installed-panel address
+transforms -> guarded WLED deployment bundle -> one-panel proof -> 41-panel
+proof. Fabrication and installation-bootstrap work remain supported but are not
+the active priority.
 
 This file is the persistent source of truth for work status. Read it before starting work and update it whenever a task changes state.
 
@@ -94,6 +99,92 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: remove collisions caused by hashing only the low 16 bits of LED indices.
 - Acceptance: indices differing by 65,536 produce different fingerprints; compatibility/migration behavior is documented and tested.
 
+### `MAP-021` Compile installed-panel address transforms
+
+- Outcome: add an explicit installed address transform that maps pose-local
+  display coordinates to the PCB's measured wire coordinates without changing
+  the authoritative pose or LED world positions. Do not reuse the existing
+  geometry/mechanical `rotationDegrees` as an address transform.
+- Acceptance: the schema defines a back-view reference frame, discrete quarter
+  turns, and mirroring with a migration rule for existing fields; the mapping
+  compiler covers all eight square-panel transforms plus supported pixel-zero,
+  traversal, and serpentine combinations; distinctive corner and row-transition
+  vectors produce the expected physical indices; incomplete measured data is
+  rejected. Measured color order flows separately into the WLED bus contract.
+- Depends on: `WIRE-010` and measured facts from `CAL-010`.
+- Verify: focused mapping tests, all 2,624 canonical LED records, save/reopen,
+  and negative incomplete/contradictory fixtures.
+
+### `WIRE-013` Add production-capable wiring lifecycle states
+
+- Outcome: replace the provisional-only parser constraint with explicit draft,
+  authored, requires-review, measured, and hardware-verified states.
+- Acceptance: a complete measured fixture can reach readiness; missing evidence
+  gives specific blockers; pose, panel-set, route, or profile edits invalidate
+  the affected approval without silently replacing the authored route. This
+  task defines the states and transitions; only evidence accepted by
+  `PROOF-010` can trigger the hardware-verified transition.
+- Depends on: `WIRE-010`.
+- Verify: parser and mutation tests for every state transition plus browser and
+  CLI readiness parity.
+
+### `MAP-030` Define the WLED controller bus contract
+
+- Outcome: generate one non-secret controller contract for the selected board,
+  pinned WLED build, four output buses, global start indices, lengths, GPIOs,
+  LED type/color order, explicit `reversed: false`, level shifting, and
+  power-domain assignment. The authored route and ledmap own direction; WLED bus
+  reversal must not add a second transform.
+- Acceptance: every bus range agrees with the authored route; the 2,624-entry
+  ledmap uses `map[logicalIndex] = globalPhysicalIndex`; configuration and map
+  have SHA-256 deployment identities and reject stale or contradictory input.
+  Hash the exact emitted bytes of every deployable file; build the root identity
+  from a versioned canonical manifest of path, byte length, and file SHA-256.
+  The manifest does not list or hash itself; its exact-byte SHA-256 is the root
+  identity recorded in the external deployment receipt.
+- Depends on: `MAP-020`, `MAP-021`, `WIRE-013`, `CAL-010`, `HR-014`, and
+  `PWR-010`.
+- Verify: golden configuration vectors, boundary indices for all four outputs,
+  exact pinned-WLED compatibility tests, and tamper/staleness negatives.
+
+### `FIRM-011` Build and deploy the minimum pinned WLED target
+
+- Outcome: produce a reproducible firmware artifact and non-secret device
+  configuration for mapping proof only, without adding network/audio feature
+  claims.
+- Acceptance: device read-back confirms board/build identity, WLED revision,
+  four GPIOs, bus starts/lengths, color order, current limit, and installed
+  `ledmap.json` SHA-256; every bus reports reversal disabled; credentials remain
+  outside Git.
+- Depends on: `MAP-030` and `WIRE-012`.
+- Verify: clean firmware build, artifact receipt, flash/install procedure, and
+  one-panel hardware smoke test.
+
+### `DIAG-010` Deliver deterministic hardware diagnostic frames
+
+- Outcome: provide one repository-owned method to send known logical frames to
+  the selected local WLED target and record the expected physical result.
+- Acceptance: the chosen local transport and capture procedure are explicit;
+  frames identify output, panel, local coordinate, logical index, physical
+  index, and RGB channel; large updates are serialized within the pinned
+  target's request/buffer limits; no cloud service is required and any
+  operator-supplied local device credential stays outside Git and artifacts.
+- Depends on: `FIRM-011` and `MAP-030`.
+- Verify: one-panel walking-pixel and RGB proof, deterministic frame fixtures,
+  retry/error behavior, and exact comparison with the mapping manifest.
+
+### `PROOF-010` Prove simulator-to-device address and color parity
+
+- Outcome: show that a known logical frame reaches the same physical LED and
+  RGB color on the assembled sculpture as the simulator predicts.
+- Acceptance: walking-pixel, per-output, per-panel, corner, row-transition, and
+  RGB diagnostics cover all 2,624 addresses; observed results are compared with
+  the deployment manifest and recorded; corrections regenerate all dependent
+  hashes and receipts.
+- Depends on: `DIAG-010`, `HW-012`, and `WIRE-012`.
+- Verify: automated capture where practical plus a structured signed bench
+  record. Static address/color parity does not claim identical animation timing.
+
 ### `INSTALL-015` Qualify managed OpenSCAD on Windows clients — deferred
 
 - Outcome: convert the retained Windows x86-64 candidate from `INSTALL-014` into a tested Windows PC support claim if Windows returns to the required platform set.
@@ -105,7 +196,23 @@ This file is the persistent source of truth for work status. Read it before star
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
-### `UI-010` Complete the arbitrary-project acceptance journey — P0
+### `WIRE-010` Store an explicit ordered panel route per output — P0
+
+- Outcome: Schema 2 preserves the exact ordered DIN-to-DOUT panel route for
+  every output instead of recomputing a nearest-neighbor suggestion on load.
+- Acceptance: ordered panel IDs and optional GPIO data parse, validate,
+  round-trip, and drive mapping/wiring; every panel occurs exactly once; output
+  lengths match route lengths; old projects retain only a clearly labelled
+  draft suggestion; edits never silently replace an authored route.
+- Depends on: none. Do not insert measured values before `CAL-010`, `HR-014`,
+  and installation evidence exist.
+- Verify: parser/schema negatives, deterministic route and mapping tests,
+  save/reopen, panel-set edit invalidation, and existing regression suites.
+- Likely conflicts: `schemas/panel-assembly.schema.json`,
+  `src/sculpture/PanelAssembly.ts`, `src/sculpture/SculptureEditor.ts`,
+  `web/src/WiringPreview.ts`, mapping/wiring tests, and format/mapping docs.
+
+### `UI-010` Complete the arbitrary-project acceptance journey — P2
 
 - Outcome: GLB -> auto-place -> manual edit -> automatic topology -> boundary ->
   exact STL parts -> display -> ZIP -> reopen works through the real UI.
@@ -130,14 +237,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Acceptance: after the pinned rebuild, CI runs a scoped Git diff check for both tracked WASM files and fails on any change.
 - Depends on: none.
 
-### `WIRE-010` Store an explicit ordered panel route per output — P1
-
-- Outcome: Schema 2 can preserve authored physical panel order instead of recomputing it on every load.
-- Acceptance: ordered panel IDs and optional GPIO data parse, validate, round-trip, and drive mapping/wiring; every panel is covered exactly once; existing projects retain heuristic routing as a clearly labelled suggestion/fallback.
-- Depends on: none.
-- Verify: parser/schema negatives, mapping/wiring tests, save/reopen fixture, existing regression suites.
-- Docs: update architecture, Schema 2 format, and LED mapping docs.
-
 ### `VALID-010` Make LED dimensions profile-driven end to end — P1
 
 - Outcome: remove remaining hard-coded 8x8/64 validation assumptions.
@@ -152,7 +251,8 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-No implementation task is active. `CTRL-004` is awaiting merge review below.
+No implementation task is active. `CTRL-004` and `CTRL-005` are awaiting merge
+review below.
 
 ## Blocked
 
@@ -191,24 +291,75 @@ No implementation task is active. `CTRL-004` is awaiting merge review below.
 
 ### `WIRE-011` Edit and confirm routes in the browser
 
-- Outcome: reorder/assign outputs and persist a user-confirmed route without silent replacement after panel edits.
-- Blocked by: `WIRE-010`, `HR-003`.
+- Outcome: let the operator assign and reorder panels by the actual assembly
+  sequence, inspect DIN-to-DOUT direction, and explicitly confirm the stored
+  route.
+- Acceptance: the UI shows output, GPIO when known, chain position,
+  predecessor/successor, and connector direction; confirmation persists a
+  revision; later relevant edits mark it requires-review without replacement;
+  the interface does not call a heuristic route optimized or physical.
+- Blocked by: `WIRE-010` and `WIRE-013`.
+- Verify: focused UI state tests, Playwright route edit/confirm/save/reopen, and
+  mapping equivalence before and after confirmation.
 
 ### `WIRE-012` Unify readiness and export policy
 
-- Outcome: browser and CLI share coherent provisional, review, and measured states and never present provisional files as hardware-ready.
-- Blocked by: `WIRE-010`, `HR-003`, `HR-004`.
+- Outcome: browser and CLI use one evidence-gated production export and never
+  present provisional or stale files as controller-ready.
+- Acceptance: draft data can produce only clearly named diagnostic artifacts;
+  an installation-ready bundle contains `ledmap.json`, non-secret bus
+  configuration, route/mapping manifest, source and artifact SHA-256 values,
+  pinned WLED/build identity, current-limit data, and an install/read-back
+  checklist; any missing, stale, or tampered prerequisite blocks that bundle;
+  `WIRE-013` defines the lifecycle and only accepted `PROOF-010` evidence can
+  authorize the hardware-verified transition.
+- Blocked by: `WIRE-011`, `MAP-030`, `CAL-010`, and `PWR-010`.
+- Verify: shared readiness tests, browser/CLI bundle equivalence, tamper and
+  staleness negatives, and portable save/reopen.
 
-### `HW-010` Record production wiring facts
+### `HW-010` Establish the production hardware evidence — umbrella
 
-- Blocked by: bench measurements and physical installation evidence.
-- Required facts: exact ordered panel chains, GPIOs, DIN/DOUT endpoints, installed rotation/mirroring, numbered pixel-zero/order/color proof, electrical keep-outs, pad centers, power budget, and fusing.
-- Acceptance: evidence-backed values replace provisional metadata and readiness can truthfully become measured.
+- Outcome: replace every provisional addressing and electrical fact with a
+  measured value tied to the physical 41-panel build.
+- Acceptance: `CAL-010`, `PWR-010`, `HW-012`, and `PROOF-010` complete; each
+  panel and output has traceable evidence; software readiness can truthfully
+  reach hardware-verified.
+- Blocked by: its component tasks and physical assembly evidence.
 
-### `FIRM-010` Implement production firmware/transport/network/audio behavior
+### `PWR-010` Approve the operating power and protection plan
 
-- Blocked by: `HW-010` plus explicit board, network, microphone, power, and transport decisions.
-- Constraint: do not claim firmware, DDP, Art-Net, Ethernet, or audio-reactive support before implementation and verification exist.
+- Outcome: define a safe power envelope before full-sculpture operation.
+- Acceptance: measured panel current and the selected maximum operating mode
+  determine supply capacity, independent positive-rail domains, common ground,
+  injection points, wire sizes, connector ratings, fuse groups/values, voltage
+  drop limits, supply derating, branch return/data-ground routing, backfeed
+  prevention, fuse placement, short-circuit/inrush behavior, and WLED current
+  limit. The plan states that software limiting is secondary protection and
+  that accumulated chain current does not pass through panel pads.
+- Blocked by: `CAL-010`, `HR-015`, and available power hardware.
+- Verify: electrical calculation, continuity/polarity procedure, fuse schedule,
+  loaded voltage measurements, and human review before energizing all panels.
+
+### `HW-012` Record the installed 41-panel route
+
+- Outcome: create the as-built record while panels are installed.
+- Acceptance: all 41 panel IDs record installed orientation/mirroring, output,
+  chain position, predecessor DOUT, successor DIN, controller GPIO, power
+  domain, injection point, fuse, wire size, and continuity result; every panel
+  appears once and no positive connection crosses power domains.
+- Blocked by: `WIRE-011`, `CAL-010`, `PWR-010`, `FIRM-011`, and the physical
+  assembly.
+- Verify: generated build worksheet versus saved Schema 2 route, continuity and
+  polarity checks before power, photographs/notes, and save/reopen.
+
+### `FIRM-010` Add later production transport and audio behavior
+
+- Outcome: add only explicitly selected network, realtime, microphone, preset,
+  or custom-effect behavior after static mapping parity is proven.
+- Blocked by: `PROOF-010` plus separate board, network, microphone, power, and
+  transport decisions.
+- Constraint: do not claim DDP, Art-Net, Ethernet, audio-reactive, or exact
+  animation behavior before each item is implemented and device-tested.
 
 ### `FAB-030` Claim generic CAD equivalence with the manual 41-panel route
 
@@ -216,16 +367,52 @@ No implementation task is active. `CTRL-004` is awaiting merge review below.
 
 ## Human Review
 
-### `HR-003` Define when a suggested wiring route becomes authored — Decision needed
+### `CAL-010` Measure one panel before mass wiring — Physical check
 
-- Recommended rule: a route remains provisional until the user explicitly confirms it; later pose edits flag it for review and never silently replace it.
-- Unblocks: `WIRE-011`, part of `WIRE-012`.
+- Outcome: establish the real addressing and electrical facts of the installed
+  WS2812B panel type before those facts are copied across 41 panels.
+- Required evidence: back-view DIN/DOUT orientation; numbered pixel zero; all
+  64 addresses; traversal and serpentine direction; red/green/blue color order;
+  actual current at defined patterns/brightness; pad centres; connector and
+  electrical keep-outs; panel model/revision/batch; photos or video tied to the
+  panel identifier.
+- Acceptance: measured values replace only the matching provisional profile
+  facts; a repeatable diagnostic agrees with compiler corner/row vectors; test
+  one representative from every identifiable panel batch. If batches cannot be
+  identified or any sample differs, require per-panel proof or explicit
+  per-panel overrides before readiness.
+- Depends on: a fused current-limited 5 V bench supply and a test controller.
+  Repeat controller-dependent facts on the `HR-014` production target if the
+  first test uses different hardware.
+- Unblocks: `MAP-021`, `PWR-010`, and later hardware readiness.
 
-### `HR-004` Choose provisional browser export policy — Decision needed
+### `HR-014` Select the production ESP32/WLED execution contract — Decision needed
 
-- Question: permit downloads with unmistakable provisional names/warnings, or gate them like the guarded CLI?
-- Constraint: browser and CLI must share one readiness evaluator and no provisional export may be called optimized or hardware-ready.
-- Unblocks: `WIRE-012`.
+- Decide: exact ESP32 board/variant, pinned WLED revision/build target, four
+  legal data GPIOs, LED driver/bus type, level shifter, configuration/deployment
+  method, and whether PSRAM or other board limits affect 2,624 pixels.
+- Recommended scope: prove native WLED 1D ledmap plus four buses first. Defer
+  Ethernet, DDP, Art-Net, microphone, audio, presets, and custom effects.
+- Unblocks: `MAP-030` and `FIRM-011`.
+
+### `HR-015` Select the operating power envelope — Decision needed
+
+- Decide: whether full-white at full brightness is a required operating mode,
+  the available 5 V supplies, number of independent positive-rail domains, and
+  the approved maximum continuous current.
+- Evidence: the conservative profile limit is 157.44 A for 2,624 pixels and
+  42.24/38.40/38.40/38.40 A for the current draft output lengths. The existing
+  two 40 A proposal cannot supply conservative unrestricted full white.
+- Constraint: grounds are common; positive rails remain isolated; software
+  brightness/current limiting is secondary protection.
+- Unblocks: `PWR-010`.
+
+### `HR-013` Choose the managed Python distribution — Decision needed
+
+- Constraint: python.org does not publish a relocatable Linux CPython distribution, and the pinned Emscripten SDK needs Python before it can run.
+- Recommended option: use exact, checksum-verified Astral `python-build-standalone` artifacts for Linux x86-64, macOS arm64, and macOS x86-64. Record Astral as a third-party binary trust root and preserve the complete bundled license set.
+- Alternative: permit a system Python prerequisite. This weakens the no-manual-dependency requirement.
+- Unblocks: `INSTALL-011B`.
 
 ### `HR-005` Decide whether migration fixtures remain after Schema 1 retirement
 
@@ -251,6 +438,23 @@ No implementation task is active. `CTRL-004` is awaiting merge review below.
 
 ## Ready to Merge
 
+### `CTRL-005` Prioritize exact 41-panel wiring and ESP32 mapping parity
+
+- Scope: turn the physical-build direction into ordered software, calibration,
+  controller, electrical, installation, deployment, and proof tasks without
+  implementing production code or inventing measurements.
+- Acceptance: the active milestone and task priority reflect wiring/mapping;
+  provisional exports cannot be mistaken for build instructions; one-panel,
+  power, controller, as-built, and final parity gates are explicit; architecture
+  and LED-mapping documents agree with the board.
+- Depends on: `CTRL-004`.
+- Owner: branch `codex/ctrl-004-reconstruct-project`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: `TASKS.md`, `AGENTS.md`, `FAILURES.md`,
+  `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/LED_MAPPING.md`,
+  `docs/ROADMAP.md`, and `docs/software.md`.
+- Merge rule: operator approval is required before integration into `main`.
+
 ### `CTRL-004` Reconstruct current project control and architecture documents
 
 - Scope: reconcile repository state, architecture, decisions, work status,
@@ -269,6 +473,24 @@ No implementation task is active. `CTRL-004` is awaiting merge review below.
 - Merge rule: operator approval is required before integration into `main`.
 
 ## Done
+
+### `HR-003` Confirm when a suggested route becomes authored
+
+- Decision confirmed by the operator direction on 2026-08-20: the simulator
+  must show the exact route that will be built. A heuristic route remains a
+  draft until explicit confirmation. The confirmed ordered route persists;
+  relevant edits mark it for review and never silently replace it.
+- Implements through: `WIRE-010`, `WIRE-013`, and `WIRE-011`.
+
+### `HR-004` Gate production exports on hardware evidence
+
+- Decision confirmed by the operator direction on 2026-08-20: controller-ready
+  output must be blocked until route, panel order, installed orientation, pixel
+  order, color order, GPIO/bus configuration, power limit, and deployment
+  identity are current and verified.
+- Clearly named diagnostic artifacts may remain available while provisional;
+  they must not look hardware-ready.
+- Implements through: `WIRE-012`.
 
 ### `TEST-011` Cover folder/ZIP controls in the browser (`ab9a96a`)
 
@@ -481,13 +703,6 @@ No implementation task is active. `CTRL-004` is awaiting merge review below.
 - Each executable must be built from committed source with a pinned compiler, reproducible build instructions, exact hashes, byte-for-byte rebuild checks, and native execution checks.
 - The executable supplies certificate-validated HTTPS, exact size/SHA-256 verification, safe bounded extraction, and atomic publication before Node.js or Python exists.
 - This decision does not approve a Python binary provider. That separate supply-chain decision remains in `HR-013`.
-
-### `HR-013` Choose the managed Python distribution — Decision needed
-
-- Constraint: python.org does not publish a relocatable Linux CPython distribution, and the pinned Emscripten SDK needs Python before it can run.
-- Recommended option: use exact, checksum-verified Astral `python-build-standalone` artifacts for Linux x86-64, macOS arm64, and macOS x86-64. Record Astral as a third-party binary trust root and preserve the complete bundled license set.
-- Alternative: permit a system Python prerequisite. This weakens the no-manual-dependency requirement.
-- Unblocks: `INSTALL-011B`.
 
 ### `CORE-001` Mechanics-free Schema 2 editor (`7b40263`)
 
