@@ -144,21 +144,6 @@ cylinders, and hull. That matches this kernel. First delivery keeps the current
 local HTTP generator contract and swaps the renderer. Browser-in-process
 generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
 
-### `UI-010` Complete the arbitrary-project acceptance journey — P0
-
-- Outcome: GLB -> auto-place -> manual edit -> automatic topology -> boundary ->
-  exact STL parts -> display -> ZIP -> reopen works through the real UI.
-- Acceptance: the browser test starts without `boundaryTopology`, drives the
-  real local Manifold generator, injects no topology or asset bytes, and
-  verifies the saved/reopened project and exact referenced parts.
-- Depends on: `CAD-033`, plus completed `MECH-010`, `MECH-011`, `ASSET-010`,
-  `TEST-010`, and `TEST-011`.
-- Verify: focused Playwright Chromium journey, existing browser journeys,
-  focused pipeline tests, and inspection of Manifold STL output.
-- Likely conflicts: `web/src/main.ts`, `tests/browser/*`,
-  `scripts/editor-pipeline-handler.ts`, `web/src/PortableProject.ts`.
-- Do not overlap with `ARCH-010` or `CAD-033`.
-
 ### `CAD-034` Run generic part generation in the browser — P1
 
 - Outcome: the editor can build printable parts in-process with Manifold so
