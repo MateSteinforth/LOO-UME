@@ -170,7 +170,9 @@ uses `createPanelAssemblyMapping()`.
   ref.
 - Use `main` only as the integration baseline. Give each substantial
   implementation slice its own branch and worktree. Record that ownership and
-  likely file conflicts in `TASKS.md` before code changes start.
+  likely file conflicts in `TASKS.md` before code changes start. Run npm, git
+  writes, and tests with that worktree as the working directory; the session
+  cwd may be another agent's tree.
 - Never force-push, reset shared history, delete another agent's branch or
   worktree, or merge into `main` without explicit operator authorization.
 - Parallelize only independent seams. Do not assign concurrent edits to the

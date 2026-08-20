@@ -234,6 +234,22 @@ arbitrary-project acceptance path. `UI-010` still requires the real
 **Generate 3D Parts** control and OpenSCAD. Do not treat helper CAD tests as
 physical-fit or CI real-render evidence.
 
+## D14 — Generic CAD kernel is pinned `manifold-3d` 3.5.1
+
+**Decision.** The future generic panel-outline solids kernel is pinned to npm
+package `manifold-3d` version `3.5.1` (Apache-2.0) from
+https://github.com/elalish/manifold. CAD-030 only loads the WASM and proves a
+boolean in tests. Production panel generation still emits SCAD for OpenSCAD
+until `CAD-032`.
+
+**Evidence.** `package.json`, `src/cad/ManifoldRuntime.ts`,
+`tests/manifold-runtime.test.ts`, and operator approval of `CAD-030` on
+2026-08-20.
+
+**Consequence.** Do not float the Manifold version. WASM objects must be
+`delete()`d. Do not feed Manifold the manual `parts/*.scad` route in this
+epic. Do not describe an export as hardware-ready because the kernel changed.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

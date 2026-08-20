@@ -242,3 +242,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/browser/portable-project.spec.ts` and the browser-test
   rule in `AGENTS.md`.
 - **Status:** Resolved.
+
+### F-013 — npm install follows the session cwd, not the task worktree
+
+- **Date:** 2026-08-20
+- **Context:** CAD-030 pin of `manifold-3d` while Grok's session root was the
+  Codex reconstruction worktree.
+- **Symptom:** `npm install manifold-3d@3.5.1` changed `package.json` and
+  `package-lock.json` in `/home/mate/Documents/led-rhombicosidodecahedron`.
+- **Cause:** The command ran without an explicit working directory in the
+  isolated CAD-030 worktree.
+- **Correction:** Restore the two tracked files in the Codex worktree. Repeat
+  the install in `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030`
+  with Node 22+.
+- **Prevention:** For every npm/git write, set the command cwd to the claimed
+  task worktree. Confirm `git status` in the other agents' worktrees after a
+  path mistake.
+- **Evidence:** CAD-030 worktree path and the restored Codex `git status`.
+- **Status:** Resolved.

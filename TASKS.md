@@ -16,11 +16,12 @@ This file is the persistent source of truth for work status. Read it before star
 
 | Agent | Task | Status | Branch | Worktree |
 | --- | --- | --- | --- | --- |
-| Grok | Manifold task split; no implementation claimed | idle | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
+| Grok | `CAD-030` | Ready to Merge | `grok/cad-030-manifold-pin` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030` |
+| Grok | standing workspace | idle | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
 | Grok | `CTRL-004` reconstruction snapshot | frozen | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
 | Codex | `CTRL-004` | committed on that branch | `codex/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron` |
 
-Grok now works only in `/home/mate/Documents/led-rhombicosidodecahedron-grok` on `grok/workspace`. Do not edit the Codex worktree or the frozen reconstruction worktree. Do not start an implementation slice until the operator approves one. `CTRL-004` remains documentation-only and is not merged to `main`.
+Grok implements `CAD-030` only in `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030`. Do not edit the Codex worktree, the frozen reconstruction worktree, or `grok/workspace` for this slice. `CTRL-004` remains documentation-only and is not merged to `main`.
 
 ## Control rules
 
@@ -119,10 +120,10 @@ Grok now works only in `/home/mate/Documents/led-rhombicosidodecahedron-grok` on
 
 ## Ready
 
-Tasks are ordered. The operator asked to replace OpenSCAD with Manifold for
-panel generation. Do not start coding until one slice below is approved.
-Each Manifold slice uses its own branch from `grok/workspace` (or from `main`
-after integration). Do not edit Codex or frozen reconstruction worktrees.
+Tasks are ordered. `CAD-030` is Ready to Merge. Later Manifold slices wait for
+operator integration or an explicit start on the next slice. Each remaining
+slice uses its own branch. Do not edit Codex or frozen reconstruction
+worktrees.
 
 ### Epic note — generic parts today
 
@@ -136,20 +137,6 @@ Most tests inject a fake STL. The boundary STL never uses OpenSCAD.
 cylinders, and hull. That matches this kernel. First delivery keeps the current
 local HTTP generator contract and swaps the renderer. Browser-in-process
 generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
-
-### `CAD-030` Pin and load `manifold-3d` — P0
-
-- Outcome: Node tests can construct a solid, run one boolean, and export a
-  manifold triangle mesh without OpenSCAD.
-- Acceptance: exact npm version and license recorded; WASM loads in Vitest;
-  a cube-minus-cylinder smoke test asserts watertight output; no production
-  generator call sites change.
-- Depends on: none. Recommended scope from this request; `HR-014` records the
-  leftover product choices but does not block this slice.
-- Verify: new focused Vitest file only.
-- Likely conflicts: `package.json`, `package-lock.json`, Vite/Vitest WASM
-  config, a new `src/cad/` wrapper. Avoid `GeneratePanelClosureCad.ts`.
-- Owner after approval: Grok; new branch/worktree from `grok/workspace`.
 
 ### `CAD-031` Port one closure solid to Manifold — P0
 
@@ -426,9 +413,25 @@ generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
 
 ## Ready to Merge
 
-No task is waiting for operator integration. `CTRL-004` remains In Progress
-until independent review and operator direction. Do not merge either Grok or
-Codex reconstruction branch into `main` without that request.
+### `CAD-030` Pin and load `manifold-3d` — P0
+
+- Outcome: Node tests construct a solid, run one boolean, and export a
+  manifold triangle mesh without OpenSCAD.
+- Pin: npm `manifold-3d` `3.5.1`, Apache-2.0, https://github.com/elalish/manifold.
+- Loader: `src/cad/ManifoldRuntime.ts`. Smoke: `tests/manifold-runtime.test.ts`
+  (cube minus through-cylinder, `status() === "NoError"`, genus 1).
+- Production generator call sites are unchanged.
+- Owner: Grok; branch `grok/cad-030-manifold-pin`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030`.
+- Verify: `npx vitest run tests/manifold-runtime.test.ts` passed (2 tests);
+  `npx tsc -b` passed. Independent review passed after the uncommitted-state
+  finding; this commit is the required task-branch snapshot.
+- Merge rule: operator approval is required before integration into `main`.
+  Do not start `CAD-031` until that request, or until the operator explicitly
+  starts the next slice on a new branch.
+
+No reconstruction branch is merged. Do not merge Grok or Codex `CTRL-004`
+into `main` without a separate operator request.
 
 ## Done
 
