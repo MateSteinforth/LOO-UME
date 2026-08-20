@@ -196,22 +196,6 @@ This file is the persistent source of truth for work status. Read it before star
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
-### `WIRE-010` Store an explicit ordered panel route per output — P0
-
-- Outcome: Schema 2 preserves the exact ordered DIN-to-DOUT panel route for
-  every output instead of recomputing a nearest-neighbor suggestion on load.
-- Acceptance: ordered panel IDs and optional GPIO data parse, validate,
-  round-trip, and drive mapping/wiring; every panel occurs exactly once; output
-  lengths match route lengths; old projects retain only a clearly labelled
-  draft suggestion; edits never silently replace an authored route.
-- Depends on: none. Do not insert measured values before `CAL-010`, `HR-014`,
-  and installation evidence exist.
-- Verify: parser/schema negatives, deterministic route and mapping tests,
-  save/reopen, panel-set edit invalidation, and existing regression suites.
-- Likely conflicts: `schemas/panel-assembly.schema.json`,
-  `src/sculpture/PanelAssembly.ts`, `src/sculpture/SculptureEditor.ts`,
-  `web/src/WiringPreview.ts`, mapping/wiring tests, and format/mapping docs.
-
 ### `UI-010` Complete the arbitrary-project acceptance journey — P2
 
 - Outcome: GLB -> auto-place -> manual edit -> automatic topology -> boundary ->
@@ -251,8 +235,23 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-No implementation task is active. `CTRL-004` and `CTRL-005` are awaiting merge
-review below.
+### `WIRE-010` Store an explicit ordered panel route per output — P0
+
+- Outcome: Schema 2 preserves the exact ordered DIN-to-DOUT panel route for
+  every output instead of recomputing a nearest-neighbor suggestion on load.
+- Acceptance: ordered panel IDs and optional GPIO data parse, validate,
+  round-trip, and drive mapping/wiring; every panel occurs exactly once; output
+  lengths match route lengths; old projects retain only a clearly labelled
+  draft suggestion; edits never silently replace an authored route.
+- Depends on: none. Do not insert measured values before `CAL-010`, `HR-014`,
+  and installation evidence exist.
+- Verify: parser/schema negatives, deterministic route and mapping tests,
+  save/reopen, panel-set edit invalidation, and existing regression suites.
+- Owner: branch `codex/wire-010-authored-routes`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: `schemas/panel-assembly.schema.json`,
+  `src/sculpture/PanelAssembly.ts`, `src/sculpture/SculptureEditor.ts`,
+  `web/src/WiringPreview.ts`, mapping/wiring tests, and format/mapping docs.
 
 ## Blocked
 
