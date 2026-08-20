@@ -99,25 +99,6 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: remove collisions caused by hashing only the low 16 bits of LED indices.
 - Acceptance: indices differing by 65,536 produce different fingerprints; compatibility/migration behavior is documented and tested.
 
-### `MAP-030` Define the WLED controller bus contract
-
-- Outcome: generate one non-secret controller contract for the selected board,
-  pinned WLED build, four output buses, global start indices, lengths, GPIOs,
-  LED type/color order, explicit `reversed: false`, level shifting, and
-  power-domain assignment. The authored route and ledmap own direction; WLED bus
-  reversal must not add a second transform.
-- Acceptance: every bus range agrees with the authored route; the 2,624-entry
-  ledmap uses `map[logicalIndex] = globalPhysicalIndex`; configuration and map
-  have SHA-256 deployment identities and reject stale or contradictory input.
-  Hash the exact emitted bytes of every deployable file; build the root identity
-  from a versioned canonical manifest of path, byte length, and file SHA-256.
-  The manifest does not list or hash itself; its exact-byte SHA-256 is the root
-  identity recorded in the external deployment receipt.
-- Depends on: `MAP-020`, `MAP-021`, `WIRE-013`, `CAL-010`, `HR-014`, and
-  `PWR-010`.
-- Verify: golden configuration vectors, boundary indices for all four outputs,
-  exact pinned-WLED compatibility tests, and tamper/staleness negatives.
-
 ### `FIRM-011` Build and deploy the minimum pinned WLED target
 
 - Outcome: produce a reproducible firmware artifact and non-secret device
@@ -356,6 +337,33 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `MAP-030` Define the WLED controller bus contract — P0
+
+- Outcome: generation now emits one non-secret assumed-review WLED fragment for
+  the pinned target and exact four mapping outputs.
+- Contract: total 2,624, global `maxpwr: 0`, GPIOs 16/17/18/19, starts
+  0/704/1344/1984, lengths 704/640/640/640, type 22, GRB order 0, no reversal,
+  60 mA/LED, 14 A/bus, RMT driver 0, and domains A/A/B/B.
+- Identity: a canonical manifest records exact path, byte length, and SHA-256
+  for config and ledmap plus source-project and pinned-target identities. Its
+  exact-byte SHA-256 is the external review deployment identity; it does not
+  list itself.
+- Safety: filenames are provisional and status is `assumed-review-only`;
+  physical calibration, device read-back, and PWR-010 remain gates.
+- Evidence: pinned source commit and all WLED field semantics were audited;
+  generator identity is `d798327877bedf46dee3d63216b1ecb0e5bf31c917276664eb6bbdfd91087c57`;
+  golden and tamper tests pass; full Vitest passes 250/250; TypeScript and
+  `git diff --check` pass. Independent re-review has no findings.
+- Depends on: `MAP-021` at `05ae747`, `WIRE-014` at `359cb0f`, and `HW-016` at
+  `f1b728c`. Exact SHA-256 supplies deployment identity; MAP-020 remains for the
+  legacy UI fingerprint.
+- Owner: branch `codex/map-030-wled-bus-contract`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: mapping generator, WLED review artifacts, hardware docs,
+  task state, and future deployment scripts.
+- Merge rule: stop at Ready to Merge; do not merge into `main` without explicit
+  operator authorization.
 
 ### `MAP-021` Compile installed-panel address transforms — P0
 

@@ -51,6 +51,14 @@ The fuse and wire plan is still the primary protection. A nonzero global
 `hw.led.maxpwr` would replace the per-bus limiting behavior and is invalid for
 this contract.
 
+`wled/cfg.provisional.json` is the exact non-secret WLED configuration fragment
+for these four buses. `wled/deployment-manifest.provisional.json` records the
+exact-byte SHA-256 and byte length of that file and the review ledmap. The
+SHA-256 of the exact manifest bytes is the review deployment identity printed
+by `npm run generate:mapping`. The manifest does not hash itself. These files
+remain review-only until device read-back, panel calibration, and power tests
+pass.
+
 ## Panel address convention
 
 Until a test corrects it, use this back-view convention:

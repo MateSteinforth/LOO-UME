@@ -67,8 +67,14 @@ Schema 2 can now represent draft, authored, requires-review, measured, and
 hardware-verified wiring. The last state defines a structured `PROOF-010`
 receipt but cannot activate until that task provides an acceptance validator.
 No current project contains measured route facts or a receipt. The current
-measured-fact checks are intentionally not hardware readiness; MAP-030 and
-PWR-010 also remain required.
+measured-fact checks are intentionally not hardware readiness; physical
+calibration, device read-back, and PWR-010 also remain required.
+
+The WLED review deployment is generated from the same hardware mapping. It
+contains an exact four-bus configuration fragment and the ledmap. A canonical
+manifest hashes the exact bytes and records the source-project hash and pinned
+target. Its own exact-byte SHA-256 is the external deployment identity. The
+review bundle cannot set hardware readiness.
 
 The target hardware-parity flow keeps sculpture JSON as the authority and makes
 the simulator a faithful view of it:

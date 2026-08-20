@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { createPanelAssemblyMapping } from "../src/sculpture/PanelAssembly.ts";
@@ -8,6 +9,9 @@ import {
   validateLedmapEquivalence,
 } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
+import {
+  createWledDeploymentBundle,
+} from "../src/wled/DeploymentContract.ts";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -77,10 +81,29 @@ writeFileSync(
 const ledmapName = hardwareExport
   ? "ledmap.json"
   : "ledmap.provisional.json";
-writeFileSync(
-  path.join(wledDirectory, ledmapName),
-  JSON.stringify(contract.ledmap) + "\n",
-);
+const ledmapBytes = JSON.stringify(contract.ledmap) + "\n";
+writeFileSync(path.join(wledDirectory, ledmapName), ledmapBytes);
+
+if (!hardwareExport) {
+  const sculptureBytes = readFileSync(
+    path.join(repoRoot, "sculptures/rhombicosidodecahedron/sculpture.json"),
+    "utf8",
+  );
+  const deployment = createWledDeploymentBundle(
+    contract,
+    ledmapBytes,
+    sculptureBytes,
+  );
+  writeFileSync(
+    path.join(wledDirectory, "cfg.provisional.json"),
+    deployment.configBytes,
+  );
+  writeFileSync(
+    path.join(wledDirectory, "deployment-manifest.provisional.json"),
+    deployment.manifestBytes,
+  );
+  console.log("Review deployment identity " + deployment.deploymentIdentity + ".");
+}
 
 console.log(
   "Generated layout/panel-map.json and wled/" +

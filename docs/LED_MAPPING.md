@@ -150,7 +150,9 @@ clockwise quarter turns. Existing projects without this field use an assumed
 identity transform; legacy `rotationDegrees` and `mirrored` values are never
 inferred. A measured calibration requires an explicit measured transform on
 every panel. Color order is a WLED bus fact. Bus reversal stays false because
-the authored route and ledmap already own direction.
+the authored route and ledmap already own direction. The assumed WLED fragment
+records type 22, GRB order 0, RMT driver 0, GPIO, global start, length, current
+limits, and power-domain labels for all four outputs.
 
 A panel pose or panel-set edit keeps the quarter-turn and mirror values, but
 changes their status to assumed and changes the global installed-orientation
@@ -165,7 +167,7 @@ WIRE-010 explicit route
     -> WIRE-011 route editor and confirmation
 MAP-021 installed address transform -> CAL-010 physical measurement
 HR-014 controller choice + PWR-010 approved power plan
-    -> MAP-030 WLED bus/deployment contract
+    -> MAP-030 WLED bus/deployment contract (assumed review files exist)
     -> WIRE-012 guarded production bundle
     -> FIRM-011 device deployment
     -> DIAG-010 deterministic frame delivery
@@ -190,10 +192,10 @@ artifact.
 `assessHardwareReadiness()` exposes `currentChecksPass` for the existing
 transforms/UVs, chains, GPIOs, pixel order, and installed-address checks. It is
 not hardware readiness: every controller-ready export remains blocked until
-`MAP-030` and `PWR-010` complete. Draft,
+physical calibration, device read-back, and `PWR-010` complete. Draft,
 authored, requires-review, and inactive hardware-verified routes report a
 lifecycle blocker. The flagship route, GPIOs, and identity address transforms
-are authored assumptions. Pixel traversal, color order, bus configuration,
+are authored assumptions. Pixel traversal, color order, bus read-back,
 power acceptance, and proof remain incomplete. Each address transform must be
 physically measured before the installed-orientation check can pass.
 

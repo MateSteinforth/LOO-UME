@@ -308,6 +308,24 @@ replace the controller assumptions. A current or voltage failure must reduce
 the operating limit or change the physical power plan before more panels are
 energized.
 
+## D16 — Hash exact provisional WLED deployment bytes
+
+**Decision.** The assumed WLED review deployment consists of the exact
+`cfg.provisional.json` and `ledmap.provisional.json` bytes. A versioned canonical
+manifest records each fixed path, byte length, and SHA-256 plus the source
+project hash, mapping fingerprint, and pinned target. The manifest does not list
+itself. Its exact-byte SHA-256 is the external review deployment identity.
+
+**Evidence.** WLED consumes JSON bytes, while a semantic JSON hash could hide a
+format or emitted-file change. Exact-byte hashes detect both data and formatting
+drift. Excluding the manifest from its file list avoids a recursive identity.
+Golden and tamper tests cover all bus fields, changed routes, stale ledmaps,
+modified files, and a contradictory re-hashed bus configuration.
+
+**Consequence.** The generated files are non-secret and reproducible, but their
+status remains `assumed-review-only`. A later installation receipt records the
+manifest SHA-256 after device read-back. Credentials never enter this bundle.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
