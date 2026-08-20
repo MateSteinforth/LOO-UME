@@ -222,7 +222,22 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-- None.
+### `WIRE-011` Edit and confirm routes in the browser — P0
+
+- Outcome: let the operator assign and reorder panels by the actual assembly
+  sequence, inspect DIN-to-DOUT direction, and explicitly confirm the stored
+  route.
+- Acceptance: the UI shows output, GPIO when known, chain position,
+  predecessor/successor, and connector direction; confirmation persists a
+  revision; later relevant edits mark it requires-review without replacement;
+  the interface does not call a heuristic route optimized or physical.
+- Depends on: `WIRE-010` at `c0c58b8` and `WIRE-013` at `139f0c0`.
+- Verify: focused UI state tests, Playwright route edit/confirm/save/reopen, and
+  mapping equivalence before and after confirmation.
+- Owner: branch `codex/wire-011-route-editor`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: browser orchestration and styles, editor route mutations,
+  wiring preview state, portable save/reopen tests, and wiring documentation.
 
 ## Blocked
 
@@ -258,19 +273,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Blocked by: `INSTALL-011C`. `INSTALL-010` and `INSTALL-013` are complete; reuse the real-render journey from `CI-010`.
 - Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
 - Docs: publish the tested Linux and macOS matrix and state clearly which repository installation command applies to each required platform.
-
-### `WIRE-011` Edit and confirm routes in the browser
-
-- Outcome: let the operator assign and reorder panels by the actual assembly
-  sequence, inspect DIN-to-DOUT direction, and explicitly confirm the stored
-  route.
-- Acceptance: the UI shows output, GPIO when known, chain position,
-  predecessor/successor, and connector direction; confirmation persists a
-  revision; later relevant edits mark it requires-review without replacement;
-  the interface does not call a heuristic route optimized or physical.
-- Blocked by: `WIRE-010` and `WIRE-013`.
-- Verify: focused UI state tests, Playwright route edit/confirm/save/reopen, and
-  mapping equivalence before and after confirmation.
 
 ### `WIRE-012` Unify readiness and export policy
 
