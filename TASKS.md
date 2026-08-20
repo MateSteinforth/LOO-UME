@@ -320,6 +320,14 @@ does not execute OpenSCAD. Codex keeps OpenSCAD for manual `parts/*.scad`.
 
 ## Ready to Merge
 
+### Empty pose-only default and honest Generate copy
+
+- Default project is `sculptures/pose-only-empty/sculpture.json` (no JSON shell).
+- Generate keeps the panel-outline contract: the operator welds neighbouring
+  corners. Topology errors surface; leftover JSON shells are refused with a
+  start-from-empty message.
+- Owner: Grok; `grok/workspace`.
+
 ### `PLACE-011` Sit automatic panels on mesh faces — P0
 
 - Outcome: **Automatically place panels** puts each panel on a connected planar
