@@ -274,9 +274,8 @@ through the **Generate 3D Parts** control.
 
 ## Current architectural seams
 
-- `manifold-3d` 3.5.1 is pinned and loadable in Node tests
-  (`src/cad/ManifoldRuntime.ts`). Generic printable-part generation still
-  emits SCAD for OpenSCAD. The kernel swap is `CAD-031` onward.
+- Generic printable-part generation uses pinned `manifold-3d` 3.5.1 in the
+  local pipeline. OpenSCAD remains for the manual `parts/*.scad` route.
 - Schema 1 remains in `Definition.ts`, its JSON Schema/migration fixture,
   procedural mapping, manual CAD types, generated-artifact loader, and tests.
   The browser normal path is Schema 2; legacy code is not the extension point.

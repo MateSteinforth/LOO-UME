@@ -21,3 +21,36 @@ export function loadManifoldRuntime(): Promise<ManifoldToplevel> {
   }
   return loaded;
 }
+
+export interface ManifoldGeneratorStatus {
+  schemaVersion: "1.0.0";
+  available: boolean;
+  generator: "manifold";
+  supportedVersion: string;
+  detectedVersion?: string;
+  message: string;
+}
+
+export async function probeManifoldGeneratorStatus(): Promise<ManifoldGeneratorStatus> {
+  try {
+    await loadManifoldRuntime();
+    return {
+      schemaVersion: "1.0.0",
+      available: true,
+      generator: "manifold",
+      supportedVersion: MANIFOLD_VERSION,
+      detectedVersion: MANIFOLD_VERSION,
+      message: `Manifold ${MANIFOLD_VERSION} is ready for local generation.`,
+    };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return {
+      schemaVersion: "1.0.0",
+      available: false,
+      generator: "manifold",
+      supportedVersion: MANIFOLD_VERSION,
+      message:
+        `Printable STL generation is unavailable because Manifold WASM could not be loaded: ${detail}`,
+    };
+  }
+}

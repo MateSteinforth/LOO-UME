@@ -239,8 +239,8 @@ physical-fit or CI real-render evidence.
 **Decision.** The future generic panel-outline solids kernel is pinned to npm
 package `manifold-3d` version `3.5.1` (Apache-2.0) from
 https://github.com/elalish/manifold. CAD-030 only loads the WASM and proves a
-boolean in tests. Production panel generation still emits SCAD for OpenSCAD
-until `CAD-032`.
+boolean in tests. Generic panel generation now writes Manifold STLs
+(`CAD-032` / `CAD-033`). OpenSCAD remains for the manual `parts/*.scad` route.
 
 **Evidence.** `package.json`, `src/cad/ManifoldRuntime.ts`,
 `tests/manifold-runtime.test.ts`, and operator approval of `CAD-030` on

@@ -117,10 +117,16 @@ describe("shared editor pipeline handler", () => {
     const origin = await listen(handler);
     const response = await fetch(`${origin}/api/generator-status`);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual(status(false));
+    expect(await response.json()).toMatchObject({
+      schemaVersion: "1.0.0",
+      available: true,
+      generator: "manifold",
+      supportedVersion: "3.5.1",
+      detectedVersion: "3.5.1",
+    });
   });
 
-  it("returns 503 before reading a generation request when OpenSCAD is absent", async () => {
+  it("rejects an empty generation body after Manifold is available", async () => {
     const handler = await createEditorPipelineHandler({
       openScadRuntime: fakeRuntime(false),
     });
@@ -130,8 +136,7 @@ describe("shared editor pipeline handler", () => {
       headers: { "Content-Type": "application/json", Origin: origin },
       body: "{}",
     });
-    expect(response.status).toBe(503);
-    expect((await response.json() as { error: string }).error).toContain("not found");
+    expect(response.status).toBe(400);
   });
 
   it("rejects cross-origin generation requests", async () => {

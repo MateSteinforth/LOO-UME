@@ -73,15 +73,14 @@ try {
   const status = await statusResponse.json() as Record<string, unknown>;
   if (
     status.schemaVersion !== "1.0.0" ||
-    status.message !==
-      `OpenSCAD ${managed.expectedVersion} is ready for local generation.` ||
+    status.message !== "Manifold 3.5.1 is ready for local generation." ||
     Object.keys(status).sort().join(",") !==
       "available,detectedVersion,generator,message,schemaVersion,supportedVersion" ||
     !statusResponse.ok ||
     status.available !== true ||
-    status.generator !== "openscad" ||
-    status.supportedVersion !== managed.expectedVersion ||
-    status.detectedVersion !== managed.expectedVersion
+    status.generator !== "manifold" ||
+    status.supportedVersion !== "3.5.1" ||
+    status.detectedVersion !== "3.5.1"
   ) {
     throw new Error(
       `The local server published an invalid generator status: ${JSON.stringify(status)}.`,

@@ -7,6 +7,10 @@ import {
   type OpenScadRuntime,
 } from "../src/cad/OpenScadRuntime.ts";
 import { generatePanelBoundaryParts } from "../src/cad/GeneratePanelBoundaryParts.ts";
+import {
+  probeManifoldGeneratorStatus,
+  type ManifoldGeneratorStatus,
+} from "../src/cad/ManifoldRuntime.ts";
 import { createPanelAssemblyProject } from "../src/sculpture/PanelAssembly.ts";
 import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegenerator.ts";
 
@@ -260,6 +264,8 @@ export async function createEditorPipelineHandler(
   );
   const openScadRuntime = options.openScadRuntime ??
     await createOpenScadRuntime(rootDirectory);
+  const manifoldStatus: ManifoldGeneratorStatus =
+    await probeManifoldGeneratorStatus();
   const children = new Set<ChildProcess>();
   let pipelineRunning = false;
   let closing = false;
@@ -279,7 +285,7 @@ export async function createEditorPipelineHandler(
           response.setHeader("Allow", "GET");
           jsonResponse(response, 405, { error: "Use GET." });
         } else {
-          jsonResponse(response, 200, openScadRuntime.status);
+          jsonResponse(response, 200, manifoldStatus);
         }
         return true;
       }
@@ -296,8 +302,8 @@ export async function createEditorPipelineHandler(
         jsonResponse(response, 503, { error: "The local generation service is shutting down." });
         return true;
       }
-      if (!openScadRuntime.status.available) {
-        jsonResponse(response, 503, { error: openScadRuntime.status.message });
+      if (!manifoldStatus.available) {
+        jsonResponse(response, 503, { error: manifoldStatus.message });
         return true;
       }
       if (pipelineRunning) {
@@ -333,7 +339,6 @@ export async function createEditorPipelineHandler(
             ),
             designSurfaceBytes: requestInput.designSurfaceBytes,
             panelProfileSource: `../../catalog/panels/${profile.id}.json`,
-            renderScad: openScadRuntime.render.bind(openScadRuntime),
           });
           jsonResponse(response, 200, {
             ok: true,

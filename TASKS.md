@@ -144,25 +144,6 @@ cylinders, and hull. That matches this kernel. First delivery keeps the current
 local HTTP generator contract and swaps the renderer. Browser-in-process
 generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
 
-### `CAD-033` Serve Manifold from the local editor pipeline — P0
-
-- Outcome: **Generate 3D Parts** in the desktop/Vite host uses Manifold.
-  Generator status reports a Manifold runtime and is `available` without
-  OpenSCAD.
-- Acceptance: status JSON remains fail-closed; missing WASM disables only
-  generation; pose editing, mapping, wiring, and save still work; the bounded
-  multipart handler still verifies GLB bytes and publishes the same folder
-  contract.
-- Depends on: `CAD-032`.
-- Verify: pipeline, local-server, and generator-status tests; one production
-  `npm run desktop` generation of the prism fixture.
-- Likely conflicts: `scripts/editor-pipeline-handler.ts`,
-  `web/src/GeneratorStatus.ts`, `src/cad/OpenScadRuntime.ts` status union,
-  desktop/status tests. Do not overlap `UI-010` until this slice is Ready to
-  Merge.
-- Docs: update architecture and D10 consequence: generic generation no longer
-  needs OpenSCAD; D10 loopback hosting remains.
-
 ### `UI-010` Complete the arbitrary-project acceptance journey — P0
 
 - Outcome: GLB -> auto-place -> manual edit -> automatic topology -> boundary ->
@@ -385,6 +366,20 @@ generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
 - Unblocks: `INSTALL-011B`, then `INSTALL-011C` and `INSTALL-012`.
 
 ## Ready to Merge
+
+### `CAD-033` Serve Manifold from the local editor pipeline — P0
+
+- Outcome: generator status is `manifold` 3.5.1 and **Generate 3D Parts** does
+  not require OpenSCAD.
+- Verify: generator-status, editor-pipeline-handler, and local-editor-server
+  tests passed.
+
+### `CAD-032` Generate the portable STL bundle with Manifold — P0
+
+- Outcome: `generatePanelBoundaryParts()` writes hash-checked Manifold STLs.
+  `renderScad` is optional and unused.
+- Verify: `tests/panel-boundary-parts-e2e.test.ts` (5 passed) without a fake
+  renderer. Invalid topology still fails before publish.
 
 ### `CAD-031` Port one closure solid to Manifold — P0
 

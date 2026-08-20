@@ -313,7 +313,7 @@ app.innerHTML = `
           </label>
           <label class="toggle-field">
             <input id="printable-layer" type="checkbox" checked />
-            <span>Exact OpenSCAD closures + screw tabs</span>
+            <span>Exact Manifold closures + screw tabs</span>
           </label>
           <label class="field slider-field">
             <span>Shell transparency <output id="shell-transparency-value">35%</output></span>
@@ -523,7 +523,7 @@ const downloadPrintPartsButton =
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 let pipelineAvailable = false;
 let pipelineAvailabilityMessage =
-  "Checking local OpenSCAD availability. Mapping and wiring remain available.";
+  "Checking local Manifold availability. Mapping and wiring remain available.";
 generatePrintPartsButton.disabled = true;
 pipelineStatus.textContent = pipelineAvailabilityMessage;
 let outputLayerToggles: HTMLInputElement[] = [];
@@ -1643,7 +1643,7 @@ async function start(): Promise<void> {
         pipelineStatus.textContent = editorDefinition.boundaryTopology
           ? "Deriving exact panel outlines and validating flat gap caps…"
           : editorDefinition.mechanicalShell && editorDefinition.closures
-            ? "Regenerating mechanical topology, then generating OpenSCAD, STLs, and printable previews…"
+            ? "Regenerating mechanical topology, then generating Manifold STLs and printable previews…"
             : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…";
         try {
           const response = await fetch("./api/editor-pipeline", {

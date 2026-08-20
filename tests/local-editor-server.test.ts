@@ -125,9 +125,9 @@ describe("production local editor server", () => {
     expect(status.status).toBe(200);
     expect(await status.json()).toMatchObject({
       schemaVersion: "1.0.0",
-      available: false,
-      generator: "openscad",
-      supportedVersion: "2021.01",
+      available: true,
+      generator: "manifold",
+      supportedVersion: "3.5.1",
     });
   });
 
@@ -157,7 +157,7 @@ describe("production local editor server", () => {
     expect(unsafePath.status).toBe(400);
   });
 
-  it("returns 503 for generation while OpenSCAD is unavailable", async () => {
+  it("rejects invalid generation JSON while Manifold is available without OpenSCAD", async () => {
     const server = await fixtureServer();
     const origin = server.url.slice(0, -1);
     const response = await fetch(`${server.url}api/editor-pipeline`, {
@@ -165,7 +165,7 @@ describe("production local editor server", () => {
       headers: { "Content-Type": "application/json", Origin: origin },
       body: "{}",
     });
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(400);
   });
 
   it("stops accepting connections after clean shutdown", async () => {
@@ -175,12 +175,7 @@ describe("production local editor server", () => {
   });
 
 
-  it("settles active generation and closes its runtime once", async () => {
-    let markRenderStarted!: () => void;
-    const renderStarted = new Promise<void>((resolvePromise) => {
-      markRenderStarted = resolvePromise;
-    });
-    let stopRender: ((error: Error) => void) | undefined;
+  it("closes the leftover OpenSCAD runtime once", async () => {
     let closeCalls = 0;
     const runtime: OpenScadRuntime = {
       status: {
@@ -192,39 +187,18 @@ describe("production local editor server", () => {
         message: "OpenSCAD 2021.01 is ready for local generation.",
       },
       async render() {
-        markRenderStarted();
-        await new Promise<void>((_resolvePromise, reject) => {
-          stopRender = reject;
-        });
+        throw new Error("OpenSCAD should not render generic panel parts.");
       },
       async close() {
         closeCalls += 1;
-        stopRender?.(new Error("OpenSCAD stopped for test shutdown."));
       },
     };
     const server = await fixtureServer(runtime);
-    const origin = server.url.slice(0, -1);
-    const fixture = await readFile(
-      "sculptures/panel-outline-prism/sculpture.json",
-      "utf8",
-    );
-    const request = fetch(`${server.url}api/editor-pipeline`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Origin: origin },
-      body: fixture,
-    });
-
-    await renderStarted;
     const firstClose = server.close(100);
     const secondClose = server.close(100);
     expect(secondClose).toBe(firstClose);
     await expect(firstClose).resolves.toBeUndefined();
     expect(closeCalls).toBe(1);
-
-    const response = await request;
-    expect(response.status).toBe(400);
-    expect((await response.json() as { error: string }).error)
-      .toContain("stopped for test shutdown");
     await expect(fetch(server.url)).rejects.toThrow();
   });
 
