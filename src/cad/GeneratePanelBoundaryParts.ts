@@ -27,7 +27,8 @@ import {
 } from "../sculpture/GeneratedMechanics.ts";
 import { createUnprobedOpenScadRenderer } from "./OpenScadRuntime.ts";
 import { emitPanelClosureCadArtifacts } from "./GeneratePanelClosureCad.ts";
-import { inspectStl, serializeAsciiStl, type StlInspection } from "./Stl.ts";
+import { inspectStl, serializeAsciiStl, serializeManifoldMeshAsciiStl, type StlInspection } from "./Stl.ts";
+import { buildPanelClosureSolids } from "./GeneratePanelClosureSolids.ts";
 
 const GENERATED_CLOSURE_POLICY = Object.freeze({
   generator: "panel-hole-tabs" as const,
@@ -54,7 +55,8 @@ export interface GeneratePanelBoundaryPartsOptions {
   rootDirectory?: string;
   panelProfileSource?: string;
   designSurfaceBytes?: Uint8Array;
-  renderScad: ScadRenderer;
+  /** Ignored. Generic parts are tessellated with Manifold, not OpenSCAD. */
+  renderScad?: ScadRenderer;
 }
 
 export interface GeneratedPanelBoundaryAsset {
@@ -291,16 +293,20 @@ export async function generatePanelBoundaryParts(
       rootDirectory,
       outputDirectory: cadDirectory,
     });
+    const solids = await buildPanelClosureSolids(printableProject);
     const rendered: GeneratedPanelBoundaryAsset[] = [];
-    for (const part of cad.manifest.parts) {
-      const id = part.closureFaceId;
-      const outputStl = resolve(partDirectory, `${id}.stl`);
-      await options.renderScad(
-        cad.entrypointPaths.closures[part.closureFaceId]!,
+    for (const solid of solids) {
+      const outputStl = resolve(partDirectory, `${solid.partId}.stl`);
+      await writeFile(
         outputStl,
+        serializeManifoldMeshAsciiStl(
+          solid.partId,
+          solid.vertProperties,
+          solid.triVerts,
+        ),
       );
       rendered.push(
-        await inspectedAsset(id, `mechanics/parts/${id}.stl`, outputStl),
+        await inspectedAsset(solid.partId, `mechanics/parts/${solid.partId}.stl`, outputStl),
       );
     }
     const boundaryAsset = await inspectedAsset(
@@ -312,7 +318,7 @@ export async function generatePanelBoundaryParts(
     const manifest: GeneratedMechanicsManifest = {
       generator: {
         id: "wled-orbital-lab/panel-outline-parts",
-        version: "0.1.0",
+        version: "0.2.0",
       },
       sourceFingerprint: boundary.metadata.sourceFingerprint,
       status: { generation: "complete", validation: "passed" },

@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import {
-  createOpenScadRenderer,
   generatePanelBoundaryParts,
 } from "../src/cad/GeneratePanelBoundaryParts.ts";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
@@ -31,7 +30,6 @@ if (!outputDirectory) throw new Error("--output requires a directory.");
 const result = await generatePanelBoundaryParts(project, {
   rootDirectory,
   outputDirectory,
-  renderScad: createOpenScadRenderer(rootDirectory),
   designSurfaceBytes,
 });
 console.log(

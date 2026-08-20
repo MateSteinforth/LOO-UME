@@ -144,20 +144,6 @@ cylinders, and hull. That matches this kernel. First delivery keeps the current
 local HTTP generator contract and swaps the renderer. Browser-in-process
 generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
 
-### `CAD-032` Generate the portable STL bundle with Manifold — P0
-
-- Outcome: `generatePanelBoundaryParts()` writes hash-checked part STLs from
-  Manifold. `renderScad` is no longer required for the generic path.
-- Acceptance: prism fixture and existing e2e tests pass without a fake
-  renderer; invalid topology still fails before solids; atomic folder publish,
-  GLB copy, and sculpture.json-last write are unchanged; manual mechanics still
-  cannot enter this path.
-- Depends on: `CAD-031`.
-- Verify: `tests/panel-boundary-parts-e2e.test.ts` and generator tests; no
-  OpenSCAD process.
-- Likely conflicts: `src/cad/GeneratePanelBoundaryParts.ts`, CAD e2e tests,
-  `scripts/generate-panel-boundary-parts.ts`.
-
 ### `CAD-033` Serve Manifold from the local editor pipeline — P0
 
 - Outcome: **Generate 3D Parts** in the desktop/Vite host uses Manifold.

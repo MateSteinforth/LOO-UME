@@ -1,13 +1,11 @@
 import { createHash } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { unzipSync, zipSync } from "fflate";
 import {
   generatePanelBoundaryParts,
-  type ScadRenderer,
 } from "../../src/cad/GeneratePanelBoundaryParts.ts";
-import { serializeAsciiStl } from "../../src/cad/Stl.ts";
 import {
   createPanelAssemblyProject,
   getGeneratedMechanicsState,
@@ -122,20 +120,9 @@ async function createPortableFixture(directory: string): Promise<PortableFixture
     status: "watertight",
   };
   const project = createPanelAssemblyProject(definition, source);
-  const renderScad: ScadRenderer = async (_inputScad, outputStl) => {
-    await writeFile(
-      outputStl,
-      serializeAsciiStl(
-        "browser-test-part",
-        [[0, 0, 0], [10, 0, 0], [0, 10, 2]],
-        [[0, 1, 2]],
-      ),
-    );
-  };
   const result = await generatePanelBoundaryParts(project, {
     outputDirectory: directory,
     designSurfaceBytes: glb,
-    renderScad,
   });
   const generatedMechanics = result.definition.generatedMechanics;
   if (!generatedMechanics) {
