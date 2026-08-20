@@ -7,8 +7,8 @@ Current milestone: make the arbitrary-project workflow complete: GLB -> panel pl
 Current engineering epic (operator, 2026-08-20): replace native OpenSCAD with
 the `manifold-3d` JavaScript/WASM library for **generic panel-outline printable
 parts**. Keep the physically tested manual `parts/*.scad` route on OpenSCAD
-until a later epic. Do not start a Manifold implementation slice until the
-operator approves the first Ready item below.
+until a later epic. Grok integrates on `grok/workspace`, in parallel with
+Codex. Do not merge Grok work into `main` unless the operator asks.
 
 This file is the persistent source of truth for work status. Read it before starting work and update it whenever a task changes state.
 
@@ -16,12 +16,15 @@ This file is the persistent source of truth for work status. Read it before star
 
 | Agent | Task | Status | Branch | Worktree |
 | --- | --- | --- | --- | --- |
-| Grok | `CAD-030` | Ready to Merge | `grok/cad-030-manifold-pin` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030` |
-| Grok | standing workspace | idle | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
+| Grok | Grok integration line; `CAD-030` fast-forwarded here | active | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
+| Grok | `CAD-030` task snapshot | same commit as `grok/workspace` | `grok/cad-030-manifold-pin` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030` |
 | Grok | `CTRL-004` reconstruction snapshot | frozen | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
-| Codex | `CTRL-004` | committed on that branch | `codex/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron` |
+| Codex | `CTRL-004` plus later docs | parallel, do not edit | `codex/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron` |
 
-Grok implements `CAD-030` only in `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030`. Do not edit the Codex worktree, the frozen reconstruction worktree, or `grok/workspace` for this slice. `CTRL-004` remains documentation-only and is not merged to `main`.
+Grok works in `/home/mate/Documents/led-rhombicosidodecahedron-grok` on
+`grok/workspace`. Merge finished Grok slices into this branch. Do not edit
+the Codex worktree. Do not merge into `main` without an operator request.
+`CTRL-004` is not merged to `main`.
 
 ## Control rules
 
@@ -41,10 +44,14 @@ Grok implements `CAD-030` only in `/home/mate/Documents/led-rhombicosidodecahedr
 10. Every active task records scope/outcome, acceptance criteria, dependencies,
     and verification. An **In Progress** or **Ready to Merge** task also records
     its owning branch and worktree plus likely file conflicts.
-11. A completed task stops at **Ready to Merge**. Merge into `main` only after
-    explicit operator authorization. After authorized integration and remote
-    verification, move it to **Done** and apply the safe cleanup rules in
-    `AGENTS.md`.
+11. A completed task stops at **Ready to Merge**. Grok may fast-forward or
+    merge its own task branches into `grok/workspace`. Merge into `main` only
+    after explicit operator authorization. After authorized integration and
+    remote verification, move it to **Done** and apply the safe cleanup rules
+    in `AGENTS.md`.
+12. Stay parallel to Codex: never switch to, reset, or write the Codex
+    worktree. Shared files such as `TASKS.md` will diverge until `main`
+    integration; do not reconcile them by editing Codex's copy.
 
 ## Backlog
 
@@ -120,10 +127,9 @@ Grok implements `CAD-030` only in `/home/mate/Documents/led-rhombicosidodecahedr
 
 ## Ready
 
-Tasks are ordered. `CAD-030` is Ready to Merge. Later Manifold slices wait for
-operator integration or an explicit start on the next slice. Each remaining
-slice uses its own branch. Do not edit Codex or frozen reconstruction
-worktrees.
+Tasks are ordered. `CAD-030` is on `grok/workspace` and still waits for `main`.
+`CAD-031` is the next Manifold slice. Continue it in this Grok worktree unless
+it would require editing Codex-owned files.
 
 ### Epic note — generic parts today
 
@@ -421,14 +427,14 @@ generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
 - Loader: `src/cad/ManifoldRuntime.ts`. Smoke: `tests/manifold-runtime.test.ts`
   (cube minus through-cylinder, `status() === "NoError"`, genus 1).
 - Production generator call sites are unchanged.
-- Owner: Grok; branch `grok/cad-030-manifold-pin`; worktree
-  `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030`.
+- Owner: Grok. Task branch `grok/cad-030-manifold-pin` at `79a973b`.
+  Fast-forwarded into `grok/workspace` (worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron-grok`). Not on `main`.
 - Verify: `npx vitest run tests/manifold-runtime.test.ts` passed (2 tests);
   `npx tsc -b` passed. Independent review passed after the uncommitted-state
-  finding; this commit is the required task-branch snapshot.
-- Merge rule: operator approval is required before integration into `main`.
-  Do not start `CAD-031` until that request, or until the operator explicitly
-  starts the next slice on a new branch.
+  finding.
+- Merge rule: on the Grok line. Operator approval is still required before
+  `main`. `CAD-031` may start on `grok/workspace`.
 
 No reconstruction branch is merged. Do not merge Grok or Codex `CTRL-004`
 into `main` without a separate operator request.
