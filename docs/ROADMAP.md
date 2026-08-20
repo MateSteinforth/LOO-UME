@@ -38,11 +38,14 @@ an implemented contract; settle open product/schema choices before coding.
 
 Highest-priority architecture gaps:
 
-1. JSON stores chain lengths but not ordered panel sequences per output.
-2. Validation/readiness states cannot consistently represent fully measured
+1. Generic printable parts still tessellate through native OpenSCAD. The
+   operator selected `manifold-3d` as the replacement kernel; see `CAD-030`
+   through `CAD-035` in `TASKS.md`. This is not implemented yet.
+2. JSON stores chain lengths but not ordered panel sequences per output.
+3. Validation/readiness states cannot consistently represent fully measured
    production wiring.
-3. The live manual CAD wrapper still depends on Schema 1 types.
-4. Static `authored` JSON can bypass editor regeneration fit checks.
+4. The live manual CAD wrapper still depends on Schema 1 types.
+5. Static `authored` JSON can bypass editor regeneration fit checks.
 
 Other known gaps:
 
@@ -175,6 +178,10 @@ same reference and hash rules and browser-owned object URLs.
   or be gated like CLI hardware exports?
 - What confirmation promotes an automatically suggested route to authored
   wiring?
+- Should generic Manifold generation stay on the local Node pipeline first, or
+  move into the browser in the first shipping slice (`HR-014`)?
+- When, if ever, should the manual 41-panel `parts/*.scad` route leave
+  OpenSCAD?
 
 ## Resolved product direction
 

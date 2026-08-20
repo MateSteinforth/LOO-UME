@@ -2,7 +2,13 @@
 
 Last reconciled: 2026-08-20
 Backlog reconstructed from: `main` at `ab9a96a`
-Current milestone: make the arbitrary-project workflow complete: GLB -> panel placement/editing -> automatically close the flat gaps between panels -> watertight boundary -> printable parts -> exact referenced assets -> folder/ZIP reopen. The installed desktop system serves its interface locally and runs OpenSCAD on that same computer.
+Current milestone: make the arbitrary-project workflow complete: GLB -> panel placement/editing -> automatically close the flat gaps between panels -> watertight boundary -> printable parts -> exact referenced assets -> folder/ZIP reopen.
+
+Current engineering epic (operator, 2026-08-20): replace native OpenSCAD with
+the `manifold-3d` JavaScript/WASM library for **generic panel-outline printable
+parts**. Keep the physically tested manual `parts/*.scad` route on OpenSCAD
+until a later epic. Do not start a Manifold implementation slice until the
+operator approves the first Ready item below.
 
 This file is the persistent source of truth for work status. Read it before starting work and update it whenever a task changes state.
 
@@ -10,7 +16,7 @@ This file is the persistent source of truth for work status. Read it before star
 
 | Agent | Task | Status | Branch | Worktree |
 | --- | --- | --- | --- | --- |
-| Grok | standing workspace; no implementation claimed | idle | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
+| Grok | Manifold task split; no implementation claimed | idle | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
 | Grok | `CTRL-004` reconstruction snapshot | frozen | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
 | Codex | `CTRL-004` | committed on that branch | `codex/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron` |
 
@@ -113,39 +119,139 @@ Grok now works only in `/home/mate/Documents/led-rhombicosidodecahedron-grok` on
 
 ## Ready
 
-Tasks are ordered. Do not start the first unblocked item until the operator
-approves a vertical slice after `CTRL-004`.
+Tasks are ordered. The operator asked to replace OpenSCAD with Manifold for
+panel generation. Do not start coding until one slice below is approved.
+Each Manifold slice uses its own branch from `grok/workspace` (or from `main`
+after integration). Do not edit Codex or frozen reconstruction worktrees.
+
+### Epic note — generic parts today
+
+TypeScript already owns poses, gap topology, the zero-thickness boundary mesh,
+and SCAD text. Native OpenSCAD only tessellates each closure: `linear_extrude`,
+`offset` rounding, `hull` tabs, `cylinder` pilots and lead-ins, cube PCB
+cutters, `polyhedron` exterior clip, then union/difference/intersection.
+Most tests inject a fake STL. The boundary STL never uses OpenSCAD.
+
+`manifold-3d` (WASM) provides CrossSection offset/hull, extrude, 3D boolean,
+cylinders, and hull. That matches this kernel. First delivery keeps the current
+local HTTP generator contract and swaps the renderer. Browser-in-process
+generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
+
+### `CAD-030` Pin and load `manifold-3d` — P0
+
+- Outcome: Node tests can construct a solid, run one boolean, and export a
+  manifold triangle mesh without OpenSCAD.
+- Acceptance: exact npm version and license recorded; WASM loads in Vitest;
+  a cube-minus-cylinder smoke test asserts watertight output; no production
+  generator call sites change.
+- Depends on: none. Recommended scope from this request; `HR-014` records the
+  leftover product choices but does not block this slice.
+- Verify: new focused Vitest file only.
+- Likely conflicts: `package.json`, `package-lock.json`, Vite/Vitest WASM
+  config, a new `src/cad/` wrapper. Avoid `GeneratePanelClosureCad.ts`.
+- Owner after approval: Grok; new branch/worktree from `grok/workspace`.
+
+### `CAD-031` Port one closure solid to Manifold — P0
+
+- Outcome: one generated closure (cover, rounded offset, flanges, screw tabs,
+  gussets, pilots, lead-ins, PCB envelope cutters, exterior clip) is built as
+  Manifold solids from the same compiled face/connector facts the SCAD emitter
+  uses.
+- Acceptance: `sculptures/panel-outline-prism` produces a watertight part;
+  PCB envelopes are cut; DIN/DOUT corners stay clear; holes use the 0.20 mm
+  and 0.50 mm profile corrections; the SCAD emitter still exists and is unused
+  by this test.
+- Depends on: `CAD-030`.
+- Verify: new `GeneratePanelClosureSolids.ts` (do not rewrite the SCAD emitter
+  in place); manifoldness, triangle bounds, hole/cutter presence, and
+  envelope-clearance tests. Optional local OpenSCAD comparison is evidence,
+  not a CI gate.
+- Likely conflicts: new `src/cad/GeneratePanelClosureSolids.ts`, compiled
+  closure types in `PanelAssembly.ts` only if a read-only helper is required.
+  Do not overlap `CAD-032` until this slice is Ready to Merge.
+
+### `CAD-032` Generate the portable STL bundle with Manifold — P0
+
+- Outcome: `generatePanelBoundaryParts()` writes hash-checked part STLs from
+  Manifold. `renderScad` is no longer required for the generic path.
+- Acceptance: prism fixture and existing e2e tests pass without a fake
+  renderer; invalid topology still fails before solids; atomic folder publish,
+  GLB copy, and sculpture.json-last write are unchanged; manual mechanics still
+  cannot enter this path.
+- Depends on: `CAD-031`.
+- Verify: `tests/panel-boundary-parts-e2e.test.ts` and generator tests; no
+  OpenSCAD process.
+- Likely conflicts: `src/cad/GeneratePanelBoundaryParts.ts`, CAD e2e tests,
+  `scripts/generate-panel-boundary-parts.ts`.
+
+### `CAD-033` Serve Manifold from the local editor pipeline — P0
+
+- Outcome: **Generate 3D Parts** in the desktop/Vite host uses Manifold.
+  Generator status reports a Manifold runtime and is `available` without
+  OpenSCAD.
+- Acceptance: status JSON remains fail-closed; missing WASM disables only
+  generation; pose editing, mapping, wiring, and save still work; the bounded
+  multipart handler still verifies GLB bytes and publishes the same folder
+  contract.
+- Depends on: `CAD-032`.
+- Verify: pipeline, local-server, and generator-status tests; one production
+  `npm run desktop` generation of the prism fixture.
+- Likely conflicts: `scripts/editor-pipeline-handler.ts`,
+  `web/src/GeneratorStatus.ts`, `src/cad/OpenScadRuntime.ts` status union,
+  desktop/status tests. Do not overlap `UI-010` until this slice is Ready to
+  Merge.
+- Docs: update architecture and D10 consequence: generic generation no longer
+  needs OpenSCAD; D10 loopback hosting remains.
 
 ### `UI-010` Complete the arbitrary-project acceptance journey — P0
 
 - Outcome: GLB -> auto-place -> manual edit -> automatic topology -> boundary ->
   exact STL parts -> display -> ZIP -> reopen works through the real UI.
 - Acceptance: the browser test starts without `boundaryTopology`, drives the
-  real local generator and OpenSCAD, injects no topology or asset bytes, and
+  real local Manifold generator, injects no topology or asset bytes, and
   verifies the saved/reopened project and exact referenced parts.
-- Depends on: completed `MECH-010`, `MECH-011`, `ASSET-010`, `TEST-010`, and
-  `TEST-011`. Reuse `CI-010` real-render setup where practical, but do not
-  duplicate its helper-level assertions.
+- Depends on: `CAD-033`, plus completed `MECH-010`, `MECH-011`, `ASSET-010`,
+  `TEST-010`, and `TEST-011`.
 - Verify: focused Playwright Chromium journey, existing browser journeys,
-  focused pipeline tests, and real OpenSCAD output inspection.
+  focused pipeline tests, and inspection of Manifold STL output.
 - Likely conflicts: `web/src/main.ts`, `tests/browser/*`,
   `scripts/editor-pipeline-handler.ts`, `web/src/PortableProject.ts`.
-- Recommended owner after approval: Grok, dedicated branch/worktree. Do not
-  overlap with `ARCH-010`.
+- Do not overlap with `ARCH-010` or `CAD-033`.
 
-### `CI-010` Exercise the panel-outline boundary-to-parts route with real OpenSCAD — P1
+### `CAD-034` Run generic part generation in the browser — P1
 
-- Outcome: CI checks the new fabrication path with OpenSCAD instead of relying only on a deterministic fake renderer.
-- Acceptance: one canonical supported fixture generates a boundary and every exact part through OpenSCAD; invalid topology fails before OpenSCAD; useful failure artifacts are retained.
-- Depends on: none.
-- Likely conflicts: `.github/workflows/render.yml` (also `BUILD-010` and later `INSTALL-012`). Safe for Grok only if no other agent claims the workflow file.
+- Outcome: the editor can build printable parts in-process with Manifold so
+  **Generate 3D Parts** does not need a native CAD child process.
+- Acceptance: Node and browser use the same solids kernel; WASM load is
+  bounded; large jobs stay interruptible; folder/ZIP export still uses verified
+  in-memory bytes; fail-closed errors match the server path.
+- Depends on: `CAD-033`.
+- Note: keep the loopback host for static UI and optional server generation
+  until this slice proves the in-process path. Do not invent a hosted CAD
+  service.
+
+### `CAD-035` Prove generic Manifold generation in CI — P1
+
+- Outcome: CI generates the canonical panel-outline fixture with Manifold, not
+  a fake renderer and not OpenSCAD.
+- Acceptance: one supported fixture yields a boundary and every exact part;
+  invalid topology fails before solids; useful failure artifacts are retained.
+- Depends on: `CAD-032`. Prefer to land with `CAD-033` so the pipeline is the
+  CI entry.
+- Likely conflicts: `.github/workflows/render.yml` (also `BUILD-010` and
+  later `INSTALL-012`). Manual `parts/*.scad` OpenSCAD jobs stay.
+
+### `CI-010` Exercise the panel-outline route with real OpenSCAD — superseded
+
+- Do not implement. Generic parts will use Manifold (`CAD-032` / `CAD-035`).
+- Manual canonical SCAD renders in CI remain as they are.
 
 ### `BUILD-010` Fail CI when a pinned WASM rebuild changes tracked bytes — P1
 
 - Outcome: the checked-in runtime is demonstrably reproducible.
 - Acceptance: after the pinned rebuild, CI runs a scoped Git diff check for both tracked WASM files and fails on any change.
 - Depends on: none.
-- Likely conflicts: `.github/workflows/render.yml` and `scripts/build-wasm.mjs`. Do not run in parallel with `CI-010`.
+- Likely conflicts: `.github/workflows/render.yml` and `scripts/build-wasm.mjs`. Do not run in parallel with `CAD-035`.
 
 ### `WIRE-010` Store an explicit ordered panel route per output — P1
 
@@ -294,6 +400,22 @@ approves a vertical slice after `CTRL-004`.
 ### `HR-009` Choose a topology-preserving boundary asset format if STL proves insufficient
 
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
+
+### `HR-014` Confirm Manifold replacement scope — Decision needed
+
+- Confirmed by this request: generic panel-outline printable parts stop using
+  native OpenSCAD and use `manifold-3d` instead.
+- Recommended remaining defaults:
+  1. Keep `parts/*.scad` and managed OpenSCAD for the manual 41-panel route.
+  2. First shipping path is Node/WASM Manifold behind the existing local
+     generator HTTP contract (`CAD-030`–`CAD-033`).
+  3. Browser-in-process generation is `CAD-034`, not the first slice.
+  4. `HR-002` still means local software on the user's computer. It no longer
+     means generic parts require an OpenSCAD executable.
+- Alternative: also port the manual U-frame/middle-connector parts to Manifold
+  before removing OpenSCAD from install. That is a later epic with physical
+  review (`HR-006` / `FAB-030`).
+- Unblocks: implementation of `CAD-030` with the recommended defaults.
 
 ### `HR-013` Choose the managed Python distribution — Decision needed
 
