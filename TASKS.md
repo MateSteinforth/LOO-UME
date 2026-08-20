@@ -222,23 +222,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-### `WIRE-013` Add production-capable wiring lifecycle states — P0
-
-- Outcome: replace the provisional-only parser constraint with explicit draft,
-  authored, requires-review, measured, and hardware-verified states.
-- Acceptance: a complete measured fixture can reach readiness; missing evidence
-  gives specific blockers; pose, panel-set, route, or profile edits invalidate
-  the affected approval without silently replacing the authored route. This
-  task defines the states and transitions; only evidence accepted by
-  `PROOF-010` can trigger the hardware-verified transition.
-- Depends on: `WIRE-010` at `c0c58b8`.
-- Verify: parser and mutation tests for every state transition plus browser and
-  CLI readiness parity.
-- Owner: branch `codex/wire-013-lifecycle`; worktree
-  `/home/mate/Documents/led-rhombicosidodecahedron`.
-- Likely conflicts: Schema 2 wiring types/schema/parser, editor invalidation,
-  wiring preview, hardware readiness, browser status text, and related tests
-  and mapping docs.
+- None.
 
 ## Blocked
 
@@ -423,6 +407,34 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `WIRE-013` Add production-capable wiring lifecycle states — P0
+
+- Outcome: Schema 2 now defines draft, authored, requires-review, measured, and
+  hardware-verified wiring states. Legacy provisional projects derive as draft
+  or authored without changing their saved bytes.
+- Acceptance: explicit non-draft routes require ordered panel IDs; measured
+  wiring requires a measured controller; current measured-fact checks can pass
+  without claiming address or hardware readiness; hardware export remains
+  blocked by `MAP-021`, `MAP-030`, and `PWR-010`; hardware-verified activation
+  is rejected until `PROOF-010` supplies an acceptance validator.
+- Invalidation: pose and panel-set edits preserve the last authored route and
+  enter requires-review. A stale panel-set route remains saved while a clearly
+  labelled temporary suggestion keeps mapping and simulation operational.
+- Evidence: lifecycle and mutation tests pass 39/39; the full Vitest suite
+  passes 240/240 with loopback access; `npx tsc -b --pretty false`, schema JSON
+  parsing, and `git diff --check` pass; independent review confirmed all safety
+  blockers are resolved.
+- Depends on: `WIRE-010` at `c0c58b8`.
+- Remaining gates: profile, installed-address, bus, power, deployment, and proof
+  changes cannot unlock hardware output until their owning tasks add validated
+  contracts and call the requires-review transition.
+- Owner: branch `codex/wire-013-lifecycle`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: Schema 2 wiring types/schema/parser, editor invalidation,
+  wiring preview, hardware readiness, browser status text, and related tests
+  and mapping docs.
+- Merge rule: operator approval is required before integration into `main`.
 
 ### `WIRE-010` Store an explicit ordered panel route per output — P0
 

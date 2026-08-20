@@ -516,7 +516,14 @@
       ],
       "properties": {
         "status": {
-          "const": "provisional"
+          "enum": [
+            "provisional",
+            "draft",
+            "authored",
+            "requires-review",
+            "measured",
+            "hardware-verified"
+          ]
         },
         "controller": {
           "type": "object",
@@ -530,7 +537,10 @@
               "const": "near-top"
             },
             "status": {
-              "const": "provisional"
+              "enum": [
+                "provisional",
+                "measured"
+              ]
             }
           }
         },
@@ -608,8 +618,133 @@
               }
             }
           }
+        },
+        "hardwareProof": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "taskId",
+            "status",
+            "deploymentIdentity",
+            "deviceReadbackSha256",
+            "asBuiltRecordSha256",
+            "parityProofSha256"
+          ],
+          "properties": {
+            "kind": {
+              "const": "proof-010-hardware-verification"
+            },
+            "taskId": {
+              "const": "PROOF-010"
+            },
+            "status": {
+              "const": "passed"
+            },
+            "deploymentIdentity": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "deviceReadbackSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "asBuiltRecordSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "parityProofSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "hardware-verified"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "hardwareProof"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "authored",
+                  "requires-review",
+                  "measured",
+                  "hardware-verified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "outputs": {
+                "items": {
+                  "required": [
+                    "panelIds"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "measured",
+                  "hardware-verified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "controller": {
+                "properties": {
+                  "status": {
+                    "const": "measured"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "provisional",
+                  "draft",
+                  "authored",
+                  "measured"
+                ]
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "hardwareProof"
+              ]
+            }
+          }
+        }
+      ]
     },
     "calibration": {
       "type": "object"

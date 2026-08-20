@@ -228,15 +228,23 @@ export interface PentagonOpeningDefinition {
   };
 }
 
+export type WiringLifecycleStatus =
+  | "draft"
+  | "authored"
+  | "requires-review"
+  | "measured"
+  | "hardware-verified";
+
 export interface WiringDefinition {
-  status: "provisional" | "measured";
+  /** `provisional` is retained only to load pre-WIRE-013 Schema 2 files. */
+  status: WiringLifecycleStatus | "provisional";
   routeStrategy:
     | "longitude-sectors-nearest-neighbor"
     | "face-adjacency-nearest-neighbor";
   chainLengths: number[];
   controller: {
     placement: "near-top";
-    status: "provisional";
+    status: "provisional" | "measured";
   };
   connector: {
     edgeInset: number;
@@ -253,6 +261,16 @@ export interface WiringDefinition {
      */
     panelIds?: string[];
   }>;
+  /** Only a passed PROOF-010 record may make this wiring hardware-verified. */
+  hardwareProof?: {
+    kind: "proof-010-hardware-verification";
+    taskId: "PROOF-010";
+    status: "passed";
+    deploymentIdentity: string;
+    deviceReadbackSha256: string;
+    asBuiltRecordSha256: string;
+    parityProofSha256: string;
+  };
 }
 
 /**
@@ -267,6 +285,13 @@ export function hasAuthoredWiringRoutes(
     wiring.outputs.length > 0 &&
     wiring.outputs.every((output) => Array.isArray(output.panelIds))
   );
+}
+
+export function getWiringLifecycleStatus(
+  wiring: WiringDefinition,
+): WiringLifecycleStatus {
+  if (wiring.status !== "provisional") return wiring.status;
+  return hasAuthoredWiringRoutes(wiring) ? "authored" : "draft";
 }
 
 export interface SculptureDefinition {

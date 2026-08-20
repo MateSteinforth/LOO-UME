@@ -2,6 +2,7 @@ import panelProfileJson from "../../catalog/panels/ws2812b-8x8-66x65.json" with 
   type: "json",
 };
 import {
+  getWiringLifecycleStatus,
   parsePanelHardwareProfile,
   type FactStatus,
   type PanelHardwareProfile,
@@ -386,18 +387,23 @@ function validateWiring(
   const controller = record(wiring, "controller");
   if (
     controller.placement !== "near-top" ||
-    controller.status !== "provisional"
+    (controller.status !== "provisional" && controller.status !== "measured")
   ) {
-    throw new Error("Panel assemblies require a provisional near-top controller.");
+    throw new Error("Panel assemblies require a near-top controller with a known lifecycle state.");
   }
   if (
-    wiring.status !== "provisional" ||
+    (wiring.status !== "provisional" &&
+      wiring.status !== "draft" &&
+      wiring.status !== "authored" &&
+      wiring.status !== "requires-review" &&
+      wiring.status !== "measured" &&
+      wiring.status !== "hardware-verified") ||
     (wiring.routeStrategy !== "face-adjacency-nearest-neighbor" &&
       wiring.routeStrategy !== "longitude-sectors-nearest-neighbor") ||
     !Array.isArray(wiring.chainLengths) ||
     !Array.isArray(wiring.outputs)
   ) {
-    throw new Error("Panel assemblies require provisional adjacency wiring.");
+    throw new Error("Panel assemblies require a supported wiring lifecycle and route strategy.");
   }
   if (
     wiring.outputs.length === 0 ||
@@ -443,35 +449,83 @@ function validateWiring(
   }
 
   const hasRoute = outputs.some((output) => output.panelIds !== undefined);
-  if (!hasRoute) return;
-  if (outputs.some((output) => !Array.isArray(output.panelIds))) {
+  const lifecycle = getWiringLifecycleStatus(
+    wiring as unknown as WiringDefinition,
+  );
+  if (lifecycle === "draft") {
+    if (hasRoute || wiring.hardwareProof !== undefined) {
+      throw new Error("Draft wiring cannot contain an authored route or proof.");
+    }
+    return;
+  }
+  if (!hasRoute || outputs.some((output) => !Array.isArray(output.panelIds))) {
     throw new Error(
-      "Authored wiring routes must provide ordered panelIds for every output.",
+      "Non-draft wiring routes must provide ordered panelIds for every output.",
     );
   }
 
   const routedPanelIds = new Set<string>();
+  let routesMatchCurrentPanels = true;
   for (let index = 0; index < outputs.length; index += 1) {
     const output = outputs[index]!;
     const route = output.panelIds as unknown[];
-    if (
-      route.length !== wiring.chainLengths[index] ||
-      route.some(
-        (panelId) =>
-          typeof panelId !== "string" ||
-          !knownPanelIds.has(panelId) ||
-          routedPanelIds.has(panelId),
-      )
-    ) {
-      throw new Error(
-        "Authored wiring routes must match chain lengths and cover each known panel exactly once.",
-      );
+    if (route.some((panelId) => typeof panelId !== "string")) {
+      throw new Error("Authored wiring routes must contain only panel IDs.");
     }
-    for (const panelId of route) routedPanelIds.add(panelId as string);
+    if (route.length !== wiring.chainLengths[index]) {
+      routesMatchCurrentPanels = false;
+    }
+    for (const panelId of route as string[]) {
+      if (routedPanelIds.has(panelId)) {
+        throw new Error("Authored wiring routes cannot repeat a panel ID.");
+      }
+      routedPanelIds.add(panelId);
+      if (!knownPanelIds.has(panelId)) routesMatchCurrentPanels = false;
+    }
   }
   if (routedPanelIds.size !== panelCount) {
+    routesMatchCurrentPanels = false;
+  }
+  if (lifecycle !== "requires-review" && !routesMatchCurrentPanels) {
     throw new Error(
       "Authored wiring routes must match chain lengths and cover each known panel exactly once.",
+    );
+  }
+  if (
+    (lifecycle === "measured" || lifecycle === "hardware-verified") &&
+    controller.status !== "measured"
+  ) {
+    throw new Error("Measured wiring requires a measured controller.");
+  }
+  const proof = wiring.hardwareProof;
+  if (
+    proof !== undefined &&
+    (!isRecord(proof) ||
+      proof.kind !== "proof-010-hardware-verification" ||
+      proof.taskId !== "PROOF-010" ||
+      proof.status !== "passed" ||
+      !isLowercaseSha256(proof.deploymentIdentity) ||
+      !isLowercaseSha256(proof.deviceReadbackSha256) ||
+      !isLowercaseSha256(proof.asBuiltRecordSha256) ||
+      !isLowercaseSha256(proof.parityProofSha256))
+  ) {
+    throw new Error("Wiring proof records must be passed PROOF-010 evidence.");
+  }
+  if (lifecycle === "hardware-verified") {
+    if (
+      proof === undefined ||
+      controller.status !== "measured"
+    ) {
+      throw new Error(
+        "Hardware-verified wiring requires a passed PROOF-010 evidence record and a measured controller.",
+      );
+    }
+    throw new Error(
+      "Hardware-verified wiring cannot activate before accepted PROOF-010 validation exists.",
+    );
+  } else if (proof !== undefined && lifecycle !== "requires-review") {
+    throw new Error(
+      "Only hardware-verified wiring can contain PROOF-010 evidence; stale proof records use requires-review.",
     );
   }
 }

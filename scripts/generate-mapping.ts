@@ -54,10 +54,11 @@ const panelMap = {
   id: contract.mapping.id,
   topology: contract.mapping.topology,
   notes: contract.mapping.notes,
-  status: contract.readiness.ready ? "measured" : "provisional",
+  status: contract.mapping.status,
   hardwareReady: contract.readiness.ready,
   ledmapFingerprint: contract.fingerprint,
   readinessBlockers: contract.readiness.blockers,
+  wiringLifecycle: contract.readiness.wiringLifecycle,
   assumptions: {
     withinPanelOrder: project.panelProfile.pixelGrid.provisionalOrder,
     note: "The panel JSON drives addressing; retain provisional status until a numbered bench test confirms it.",

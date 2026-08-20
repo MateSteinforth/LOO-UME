@@ -18,7 +18,7 @@ describe("provisional wiring preview", () => {
       valid: true,
       errors: [],
     });
-    expect(preview.status).toBe("generated-provisional");
+    expect(preview.status).toBe("draft");
     expect(preview.controller).toEqual({
       placement: "near-top",
       status: "provisional",

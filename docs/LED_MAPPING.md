@@ -68,11 +68,21 @@ Older projects without `panelIds` remain **draft** projects.
 - each route starts near the top under the provisional controller rule.
 
 This is not global optimization. A draft suggestion is review data, not an
-assembly instruction. A panel-set edit clears every authored `panelIds` list,
-adds a saved review note, and returns the project to a draft suggestion. Pose
-edits preserve the authored list. `WIRE-013` will add lifecycle states and
-evidence-based stale handling; this first route contract does not claim that an
-authored provisional route is measured or hardware-ready.
+assembly instruction. Wiring lifecycle states are `draft`, `authored`,
+`requires-review`, `measured`, and `hardware-verified`. A panel-set edit
+preserves the saved `panelIds` as historical route evidence and sets
+`requires-review`. If that route no longer covers the current panel set, the
+preview uses a clearly labelled temporary draft route so mapping and simulation
+continue. Pose edits also set `requires-review` without changing `panelIds`.
+
+`measured` requires a measured controller and a current exact route. It can
+pass the current measured-fact checks, but that substate is not MAP-021 address
+readiness or hardware readiness. `hardware-verified` additionally defines a
+passed `PROOF-010` receipt with the deployment identity plus SHA-256 values for
+device read-back, the as-built record, and the parity proof. Runtime activation
+of that state is rejected until `PROOF-010` supplies its acceptance validator.
+A later relevant edit retains a receipt only as stale evidence under
+`requires-review`.
 
 The manual 41-panel snapshot currently resolves to:
 
@@ -98,11 +108,13 @@ The production mapping must join these facts without an implicit transform:
 5. source-project, route, ledmap, bus-configuration, and firmware identities;
 6. device read-back and a physical diagnostic result.
 
-The current code does not meet this contract. `rotationDegrees` and `mirrored`
-can block readiness, but they do not currently transform `panelWireIndex()`.
-Color order is absent from the panel/deployment contract. Runtime parsing also
-requires provisional controller and wiring states, so a measured fixture cannot
-yet represent a valid finished project.
+The current code does not meet the complete deployment contract.
+`rotationDegrees` and `mirrored` can block readiness, but they do not currently
+transform `panelWireIndex()`. Color order is absent from the panel/deployment
+contract. The Schema and types define measured and hardware-verified wiring
+lifecycle states. The parser accepts measured wiring, but rejects
+hardware-verified activation until `PROOF-010` supplies an acceptance validator.
+No authored sculpture contains measured route, controller, or proof facts yet.
 
 `MAP-021` will not reuse the geometry/mechanical rotation as a hidden address
 transform. The pose remains the world-space authority. A separate measured
@@ -141,12 +153,18 @@ artifact.
 
 ## Readiness and exports
 
-`assessHardwareReadiness()` blocks hardware-ready status until transforms/UVs,
-chains, GPIOs, pixel order, and installed rotation/mirroring are measured.
-Current flagship data is provisional and GPIOs are unknown. There is also a
-model inconsistency: runtime wiring validation requires the controller status
-to remain provisional, while readiness requires a measured wiring preview, so
-the model cannot reach a clean production-ready state end to end.
+`assessHardwareReadiness()` exposes `currentChecksPass` for the existing
+transforms/UVs, chains, GPIOs, pixel order, and installed rotation/mirroring
+checks. It is not address or hardware readiness: every controller-ready export
+remains blocked until `MAP-021`, `MAP-030`, and `PWR-010` complete. Draft,
+authored, requires-review, and inactive hardware-verified routes report a
+lifecycle blocker. Current flagship data remains draft and GPIOs are unknown.
+
+The JSON Schema requires `panelIds` for explicit non-draft lifecycle states and
+requires the shaped proof receipt for `hardware-verified`. Exact all-output
+coverage, unique cross-output panel membership, current-panel correspondence,
+chain-length agreement, stale-route fallback, and accepted-proof activation are
+cross-record runtime invariants enforced by the parser and preview.
 
 The CLI hardware export enforces readiness. The browser currently allows ledmap
 and wiring downloads while presenting readiness blockers; treat those files as

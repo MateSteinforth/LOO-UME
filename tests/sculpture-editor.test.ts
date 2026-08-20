@@ -75,7 +75,10 @@ describe("browser sculpture editor", () => {
     expect(rotatedPanel.id).toBe(originalPanel.id);
     expect(rotatedPanel.mountFaceId).toBe(originalPanel.mountFaceId);
     expect(rotated.panelProfile).toEqual(original.panelProfile);
-    expect(rotated.wiring).toEqual(originalWiring);
+    expect(rotated.wiring).toEqual({
+      ...originalWiring,
+      status: "draft",
+    });
     expect(rotated.panels).toHaveLength(original.panels.length);
     expect(rotated.mechanicalShell!.derivationStatus).toBe(
       "requires-regeneration",
@@ -167,6 +170,16 @@ describe("browser sculpture editor", () => {
       original,
       "editor-test.json",
     );
+    const draftWiring = createProvisionalWiringPreview(
+      createPanelAssemblyMapping(originalProject),
+      original,
+      originalProject.panelProfile,
+    );
+    original.wiring.outputs[0]!.panelIds = [
+      ...draftWiring.outputs[0]!.panelIds,
+    ];
+    original.wiring.status = "authored";
+    const originalRoute = structuredClone(original.wiring.outputs);
     const faceId = original.closures!.faceIds[0]!;
     const edited = addPanelToClosureFace(
       original,
@@ -184,6 +197,8 @@ describe("browser sculpture editor", () => {
     expect(
       edited.wiring.chainLengths.reduce((sum, value) => sum + value, 0),
     ).toBe(7);
+    expect(edited.wiring.status).toBe("requires-review");
+    expect(edited.wiring.outputs).toEqual(originalRoute);
 
     const project = createPanelAssemblyProject(edited, "editor-test.json");
     const assembly = compilePanelAssembly(project);

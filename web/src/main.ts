@@ -732,7 +732,7 @@ async function start(): Promise<void> {
           mapping.id.toUpperCase() +
           " PREVIEW"
         : "PROVISIONAL UNIFORM FALLBACK";
-      mappingNote.textContent = editorDefinition.manualMechanics
+      const mechanicalNote = editorDefinition.manualMechanics
         ? editorDefinition.manualMechanics.compatibilityStatus === "requires-review"
           ? "Mapping and wiring use the edited authoritative poses. Manually authored printable mechanics require review and cannot be presented as verified."
           : "Mapping and wiring use authoritative poses. Printable mechanics use the manually authored SCAD parts; generic cap generation is disabled."
@@ -746,9 +746,17 @@ async function start(): Promise<void> {
           ? "Mapping and wiring use authoritative poses. Generate 3D Parts validates the accepted gap cycles before creating printable material."
         : !editorDefinition.mechanicalShell
           ? "Mapping and wiring use authoritative poses. No printable mechanics exist yet; the complete pose-first interface remains available."
-        : isPanelized
-          ? `Simulator and ledmap share ${wiringPreview.status === "authored-provisional" ? "an authored but provisional" : "a draft suggested"} route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} calibration requirements are resolved.`
-          : "Custom LED counts use the panel-free Fibonacci fallback.";
+        : "Custom LED counts use the panel-free Fibonacci fallback.";
+      const routeLifecycleNote = !isPanelized
+        ? ""
+        : hardwareContract.readiness.ready
+          ? wiringPreview.status === "hardware-verified"
+            ? `Simulator and ledmap share hardware-verified route ${hardwareContract.fingerprint}.`
+            : `Simulator and ledmap share measured route ${hardwareContract.fingerprint}; PROOF-010 hardware verification remains separate.`
+          : `Simulator and ledmap share a ${wiringPreview.status.replace("-", " ")} route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} readiness requirements are resolved.`;
+      mappingNote.textContent = routeLifecycleNote
+        ? mechanicalNote + " " + routeLifecycleNote
+        : mechanicalNote;
       panelLabelsToggle.disabled = !isPanelized;
       const hasPrintableClosures =
         isPanelized && (verifiedGeneratedMechanics !== undefined ||
@@ -1586,19 +1594,13 @@ async function start(): Promise<void> {
           hardwareContract.ledmap,
         );
         downloadJson(
-          `${baseName}.${
-            wiringPreview.status === "generated-provisional"
-              ? "draft-wiring"
-              : "authored-route-wiring"
-          }.json`,
+          `${baseName}.${wiringPreview.status}-wiring.json`,
           {
             schemaVersion: "1.0.0",
             sculptureId: editorDefinition.id,
             status: wiringPreview.status,
-            routeSource:
-              wiringPreview.status === "generated-provisional"
-                ? "draft deterministic nearest-neighbor suggestion"
-                : "authored ordered panel route",
+            routeSource: wiringPreview.routeSource,
+            savedOutputPanelIds: wiringPreview.savedOutputPanelIds,
             fingerprint: hardwareContract.fingerprint,
             outputs: hardwareContract.outputs,
             wiring: wiringPreview,
@@ -1607,7 +1609,7 @@ async function start(): Promise<void> {
         );
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent =
-          `Exported WLED ledmap and ${wiringPreview.status === "generated-provisional" ? "draft wiring review" : "authored route review"} for ${mapping.entries.length.toLocaleString()} LEDs; fingerprint ${hardwareContract.fingerprint}.`;
+          `Exported WLED ledmap and ${wiringPreview.status === "draft" ? "draft wiring review" : wiringPreview.status + " route review"} for ${mapping.entries.length.toLocaleString()} LEDs; fingerprint ${hardwareContract.fingerprint}.`;
         viewerError.hidden = true;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

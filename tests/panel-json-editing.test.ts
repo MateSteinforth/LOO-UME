@@ -52,6 +52,7 @@ describe("mechanics-independent panel JSON editing", () => {
         ...draft.outputs[index]!.panelIds,
       ];
     }
+    authored.wiring.status = "authored";
     authored.wiring.outputs[0]!.panelIds!.reverse();
 
     const reparsed = roundTrip(authored);
@@ -63,7 +64,7 @@ describe("mechanics-independent panel JSON editing", () => {
       restored.mapping, preview, restored.project.panelProfile,
     );
 
-    expect(preview.status).toBe("authored-provisional");
+    expect(preview.status).toBe("authored");
     expect(preview.outputs.map((output) => output.panelIds)).toEqual(
       reparsed.wiring.outputs.map((output) => output.panelIds),
     );
@@ -75,8 +76,10 @@ describe("mechanics-independent panel JSON editing", () => {
 
     const poseEdited = rotatePanelAroundLocalZ(reparsed, "SQ-01", 1);
     expect(poseEdited.wiring.outputs).toEqual(reparsed.wiring.outputs);
+    expect(poseEdited.wiring.status).toBe("requires-review");
     const moved = movePanelInLocalPlane(reparsed, "SQ-01", 1, -1);
     expect(moved.wiring.outputs).toEqual(reparsed.wiring.outputs);
+    expect(moved.wiring.status).toBe("requires-review");
   });
 
   it("rejects partial, duplicate, and length-mismatched authored routes", async () => {
@@ -91,6 +94,7 @@ describe("mechanics-independent panel JSON editing", () => {
         ...draft.outputs[index]!.panelIds,
       ];
     }
+    authored.wiring.status = "authored";
 
     const partial = structuredClone(authored);
     delete partial.wiring.outputs[3]!.panelIds;
@@ -99,7 +103,7 @@ describe("mechanics-independent panel JSON editing", () => {
     const duplicate = structuredClone(authored);
     duplicate.wiring.outputs[1]!.panelIds![0] =
       duplicate.wiring.outputs[0]!.panelIds![0]!;
-    expect(() => roundTrip(duplicate)).toThrow(/exactly once/);
+    expect(() => roundTrip(duplicate)).toThrow(/cannot repeat/);
 
     const mismatchedLength = structuredClone(authored);
     mismatchedLength.wiring.outputs[0]!.panelIds!.pop();
@@ -204,19 +208,23 @@ describe("mechanics-independent panel JSON editing", () => {
         ...draft.outputs[index]!.panelIds,
       ];
     }
+    source.wiring.status = "authored";
 
     const edited = deletePanel(source, source.panels[0]!.id);
     expect(source.wiring.outputs.map((output) => output.panelIds)).toEqual(
       draft.outputs.map((output) => output.panelIds),
     );
-    expect(edited.wiring.outputs.every((output) => output.panelIds === undefined))
-      .toBe(true);
+    expect(edited.wiring.outputs.map((output) => output.panelIds)).toEqual(
+      source.wiring.outputs.map((output) => output.panelIds),
+    );
+    expect(edited.wiring.status).toBe("requires-review");
     expect(edited.notes.some((note) =>
-      note.includes("authored wiring route was cleared")
+      note.includes("authored wiring route is preserved")
     )).toBe(true);
     expect(createProvisionalWiringPreview(
       mappingFor(edited).mapping, edited, mappingFor(edited).project.panelProfile,
-    ).status).toBe("generated-provisional");
+    ).status).toBe("requires-review");
+    expect(() => roundTrip(edited)).not.toThrow();
   });
 
   it("allows a manual pose-first project to reach zero panels", async () => {
@@ -236,6 +244,17 @@ describe("mechanics-independent panel JSON editing", () => {
       kind: "triangle-mesh", format: "glb", source: "canvas.glb",
       sha256: "a".repeat(64), scaleToMillimeters: 1, status: "watertight",
     };
+    const { project, mapping } = mappingFor(source);
+    const draft = createProvisionalWiringPreview(
+      mapping, source, project.panelProfile,
+    );
+    for (let index = 0; index < source.wiring.outputs.length; index += 1) {
+      source.wiring.outputs[index]!.panelIds = [
+        ...draft.outputs[index]!.panelIds,
+      ];
+    }
+    source.wiring.status = "authored";
+    const originalRoute = structuredClone(source.wiring.outputs);
     const placement = {
       position: [1, 2, 3] as [number, number, number],
       orientation: {
@@ -257,6 +276,8 @@ describe("mechanics-independent panel JSON editing", () => {
       pose: { position: [1, 2, 3] },
     });
     expect(edited.wiring.chainLengths).toEqual([11, 11, 10, 10]);
+    expect(edited.wiring.status).toBe("requires-review");
+    expect(edited.wiring.outputs).toEqual(originalRoute);
     expect(edited.manualMechanics?.compatibilityStatus).toBe("requires-review");
   });
 

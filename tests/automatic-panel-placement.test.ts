@@ -11,6 +11,7 @@ import {
 import {
   automaticallySeedPanelsOnSurface,
 } from "../src/sculpture/SculptureEditor.ts";
+import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
 type Vector3Tuple = [number, number, number];
 
@@ -114,6 +115,19 @@ describe("automatic panel placement", () => {
       { targetPanelCount: 2, surface: "mechanical-shell" },
     );
     const preserved = structuredClone(first.definition.panels);
+    const authoredProject = createPanelAssemblyProject(
+      first.definition, "automatic-shell.json",
+    );
+    const draftWiring = createProvisionalWiringPreview(
+      createPanelAssemblyMapping(authoredProject),
+      first.definition,
+      authoredProject.panelProfile,
+    );
+    first.definition.wiring.outputs[0]!.panelIds = [
+      ...draftWiring.outputs[0]!.panelIds,
+    ];
+    first.definition.wiring.status = "authored";
+    const originalRoute = structuredClone(first.definition.wiring.outputs);
     const filled = automaticallySeedPanelsOnSurface(
       first.definition,
       { positions: mesh.positions, indices: mesh.indices },
@@ -123,6 +137,8 @@ describe("automatic panel placement", () => {
     expect(filled.definition.panels.slice(0, 2)).toEqual(preserved);
     expect(filled.placedPanelIds).toEqual(["P-03", "P-04", "P-05"]);
     expect(filled.definition.wiring.chainLengths).toEqual([5]);
+    expect(filled.definition.wiring.status).toBe("requires-review");
+    expect(filled.definition.wiring.outputs).toEqual(originalRoute);
   });
 
   it("rejects automatic placement for manual mechanics", async () => {

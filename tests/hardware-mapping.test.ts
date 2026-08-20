@@ -19,12 +19,13 @@ describe("hardware mapping contract", () => {
         ...draft.outputs[index]!.panelIds,
       ];
     }
+    definition.wiring.status = "authored";
     definition.wiring.outputs[0]!.panelIds!.reverse();
 
     const wiring = createProvisionalWiringPreview(geometry, definition);
     const contract = createHardwareMappingContract(geometry, wiring);
 
-    expect(wiring.status).toBe("authored-provisional");
+    expect(wiring.status).toBe("authored");
     expect(contract.outputs[0]!.panelIds).toEqual(
       definition.wiring.outputs[0]!.panelIds,
     );
@@ -160,6 +161,7 @@ describe("hardware mapping contract", () => {
     const loaded = loadGeneratedHardwareMappingContract(panelMap, ledmap);
 
     expect(loaded.fingerprint).toBe("31291c59");
+    expect(loaded.wiring.status).toBe("draft");
     expect(loaded.mapping.entries).toHaveLength(2624);
     expect(loaded.wiring.outputs).toHaveLength(4);
 
@@ -170,6 +172,30 @@ describe("hardware mapping contract", () => {
     expect(() =>
       loadGeneratedHardwareMappingContract(panelMap, divergentLedmap),
     ).toThrow();
+
+    const contradictoryLifecycle = structuredClone(panelMap) as {
+      wiringLifecycle?: string;
+    };
+    contradictoryLifecycle.wiringLifecycle = "measured";
+    expect(() =>
+      loadGeneratedHardwareMappingContract(contradictoryLifecycle, ledmap),
+    ).toThrow(/lifecycle disagrees/);
+
+    const hardwareReadyTamper = structuredClone(panelMap) as {
+      hardwareReady?: boolean;
+    };
+    hardwareReadyTamper.hardwareReady = true;
+    expect(() =>
+      loadGeneratedHardwareMappingContract(hardwareReadyTamper, ledmap),
+    ).toThrow(/cannot claim hardware-ready/);
+
+    const hardwareVerifiedTamper = structuredClone(panelMap) as {
+      wiring: { status: string };
+    };
+    hardwareVerifiedTamper.wiring.status = "hardware-verified";
+    expect(() =>
+      loadGeneratedHardwareMappingContract(hardwareVerifiedTamper, ledmap),
+    ).toThrow(/accepted PROOF-010/);
   });
 
   it("refuses to describe provisional routing as hardware-ready", () => {

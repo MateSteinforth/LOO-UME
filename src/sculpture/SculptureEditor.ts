@@ -77,8 +77,9 @@ export function markPanelEditConsequences(
     markGeneratedMechanicsStale(definition);
   }
   definition.status = "provisional";
-  definition.wiring.status = "provisional";
-  definition.wiring.controller.status = "provisional";
+  definition.wiring.status = hasAuthoredWiringRoutes(definition.wiring)
+    ? "requires-review"
+    : "draft";
   definition.calibration.panelTransforms = "generated-provisional";
   definition.calibration.installedPanelOrientation = "provisional";
   definition.calibration.physicalChains = "provisional";
@@ -120,11 +121,9 @@ function invalidateAuthoredRoutesForPanelSetEdit(
   definition: PanelAssemblyDefinition,
 ): void {
   if (!hasAuthoredWiringRoutes(definition.wiring)) return;
-  for (const output of definition.wiring.outputs) {
-    delete output.panelIds;
-  }
+  definition.wiring.status = "requires-review";
   definition.notes.push(
-    "The panel set changed, so the authored wiring route was cleared. The displayed route is now a draft suggestion and must be authored again before assembly.",
+    "The panel set changed. The authored wiring route is preserved but requires review before assembly.",
   );
 }
 

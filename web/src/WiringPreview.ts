@@ -5,6 +5,7 @@ import type {
 } from "./LedMapping.ts";
 import {
   CANONICAL_SCULPTURE_PROJECT,
+  getWiringLifecycleStatus,
   hasAuthoredWiringRoutes,
   type PanelCorner,
   type PanelHardwareProfile,
@@ -36,11 +37,23 @@ export interface WiringOutputRoute {
 
 export interface WiringPreview {
   status:
-    | "generated-provisional"
-    | "authored-provisional"
+    | "draft"
+    | "authored"
+    | "requires-review"
     | "measured"
+    | "hardware-verified"
     | "unavailable";
   controller: WiringDefinition["controller"] | null;
+  routeSource:
+    | "draft-suggestion"
+    | "authored-route"
+    | "temporary-draft-suggestion"
+    | null;
+  /** Preserved stale route evidence, distinct from a temporary preview route. */
+  savedOutputPanelIds: Array<{
+    outputIndex: number;
+    panelIds: string[];
+  }> | null;
   outputs: WiringOutputRoute[];
   nodes: WiringPanelNode[];
   notes: string[];
@@ -139,6 +152,41 @@ function cornerDirections(corner: PanelCorner): [-1 | 1, -1 | 1] {
   ];
 }
 
+function routesMatchCurrentPanels(
+  definition: WiringSourceDefinition,
+  panelById: ReadonlyMap<string, PanelDefinition>,
+): boolean {
+  if (!hasAuthoredWiringRoutes(definition.wiring)) return false;
+  const routed = new Set<string>();
+  for (let index = 0; index < definition.wiring.outputs.length; index += 1) {
+    const route = definition.wiring.outputs[index]!.panelIds!;
+    if (route.length !== definition.wiring.chainLengths[index]!) return false;
+    for (const panelId of route) {
+      if (!panelById.has(panelId) || routed.has(panelId)) return false;
+      routed.add(panelId);
+    }
+  }
+  return routed.size === panelById.size;
+}
+
+function assertStoredRoutesAreStructurallySound(
+  definition: WiringSourceDefinition,
+): void {
+  const routed = new Set<string>();
+  for (const output of definition.wiring.outputs) {
+    const route = output.panelIds!;
+    for (const panelId of route) {
+      if (typeof panelId !== "string") {
+        throw new Error("Authored wiring routes must contain only panel IDs.");
+      }
+      if (routed.has(panelId)) {
+        throw new Error("Authored wiring routes cannot repeat a panel ID.");
+      }
+      routed.add(panelId);
+    }
+  }
+}
+
 /**
  * Produces complete view-only output routes using measured panel connector
  * corners without claiming exact pad centres or GPIO assignments. Persisted
@@ -154,6 +202,8 @@ export function createProvisionalWiringPreview(
     return {
       status: "unavailable",
       controller: null,
+      routeSource: null,
+      savedOutputPanelIds: null,
       outputs: [],
       nodes: [],
       notes: ["Wiring preview is available only for the panelized sculpture."],
@@ -176,46 +226,40 @@ export function createProvisionalWiringPreview(
 
   const outputs: WiringOutputRoute[] = [];
   const nodes: WiringPanelNode[] = [];
-  const usesAuthoredRoutes = hasAuthoredWiringRoutes(definition.wiring);
-  const routeFieldCount = definition.wiring.outputs.filter((output) =>
-    output.panelIds !== undefined
+  const lifecycle = getWiringLifecycleStatus(definition.wiring);
+  if (lifecycle === "hardware-verified") {
+    throw new Error(
+      "Hardware-verified wiring cannot activate before accepted PROOF-010 validation exists.",
+    );
+  }
+  const hasStoredRoutes = hasAuthoredWiringRoutes(definition.wiring);
+  const routeFieldCount = definition.wiring.outputs.filter(
+    (output) => "panelIds" in output,
+  ).length;
+  const authoredRouteCount = definition.wiring.outputs.filter(
+    (output) => Array.isArray(output.panelIds),
   ).length;
   if (
     routeFieldCount > 0 &&
     (routeFieldCount !== definition.wiring.outputs.length ||
-      !usesAuthoredRoutes)
+      authoredRouteCount !== definition.wiring.outputs.length)
   ) {
     throw new Error(
       "Authored wiring routes must provide ordered panelIds for every output.",
     );
   }
   const panelById = new Map(mapping.panels.map((panel) => [panel.id, panel]));
+  if (hasStoredRoutes) assertStoredRoutesAreStructurallySound(definition);
+  const usesAuthoredRoutes = routesMatchCurrentPanels(definition, panelById);
   for (let index = 0; index < definition.wiring.outputs.length; index += 1) {
     if (definition.wiring.outputs[index]!.outputIndex !== index) {
       throw new Error("Wiring output indices must match their array order.");
     }
   }
-  if (usesAuthoredRoutes) {
-    const routedPanelIds = new Set<string>();
-    for (let index = 0; index < definition.wiring.outputs.length; index += 1) {
-      const route = definition.wiring.outputs[index]!.panelIds!;
-      if (
-        route.length !== definition.wiring.chainLengths[index] ||
-        route.some((panelId) =>
-          !panelById.has(panelId) || routedPanelIds.has(panelId)
-        )
-      ) {
-        throw new Error(
-          "Authored wiring routes must match chain lengths and cover each panel exactly once.",
-        );
-      }
-      for (const panelId of route) routedPanelIds.add(panelId);
-    }
-    if (routedPanelIds.size !== mapping.panels.length) {
-      throw new Error(
-        "Authored wiring routes must match chain lengths and cover each panel exactly once.",
-      );
-    }
+  if (hasStoredRoutes && !usesAuthoredRoutes && lifecycle !== "requires-review") {
+    throw new Error(
+      "Authored wiring routes must match chain lengths and cover each panel exactly once.",
+    );
   }
   const [dinXDirection, dinYDirection] = cornerDirections(
     panelProfile.dataConnectors.dinCorner,
@@ -294,22 +338,35 @@ export function createProvisionalWiringPreview(
   }
 
   return {
-    status:
-      definition.wiring.status === "measured"
-        ? "measured"
-        : usesAuthoredRoutes
-          ? "authored-provisional"
-          : "generated-provisional",
+    status: lifecycle,
     controller: definition.wiring.controller,
+    routeSource: usesAuthoredRoutes
+      ? "authored-route"
+      : lifecycle === "requires-review"
+        ? "temporary-draft-suggestion"
+        : "draft-suggestion",
+    savedOutputPanelIds:
+      lifecycle === "requires-review" && hasStoredRoutes
+        ? definition.wiring.outputs.map((output) => ({
+            outputIndex: output.outputIndex,
+            panelIds: [...output.panelIds!],
+          }))
+        : null,
     outputs,
     nodes,
     notes: [
-      usesAuthoredRoutes
-        ? "Panel route order is authored and persists exactly as saved; it remains provisional until hardware evidence is recorded."
-        : "Draft route suggestion begins near the sculpture top according to the provisional controller placement.",
+      lifecycle === "requires-review"
+        ? usesAuthoredRoutes
+          ? "The stored panel route remains displayed but requires review before assembly."
+          : "The stored panel route no longer matches the panel set, so the displayed route is a draft suggestion. The stored route remains unchanged for review."
+        : usesAuthoredRoutes
+          ? "Panel route order is authored and persists exactly as saved."
+          : "Draft route suggestion begins near the sculpture top according to the provisional controller placement.",
       "DIN is bottom-left and DOUT is top-right in the measured back-view panel convention.",
       "The connector marker inset remains schematic until exact pad centres are measured.",
-      usesAuthoredRoutes
+      lifecycle === "measured"
+        ? "Route and controller facts are measured. Hardware verification still requires the separate PROOF-010 evidence record."
+        : usesAuthoredRoutes
         ? "GPIO numbers, installed panel orientation, and within-panel pixel order remain TBD."
         : "GPIO numbers and the final per-output chain order remain TBD.",
     ],
@@ -324,11 +381,18 @@ export function validateWiringPreview(
   if (preview.status === "unavailable") {
     return { valid: mapping.panels.length === 0, errors };
   }
+  if (preview.controller?.placement !== "near-top") {
+    errors.push("Wiring preview requires a near-top controller.");
+  }
   if (
-    preview.controller?.placement !== "near-top" ||
-    preview.controller.status !== "provisional"
+    (preview.status === "measured" ||
+      preview.status === "hardware-verified") &&
+    preview.controller?.status !== "measured"
   ) {
-    errors.push("Wiring preview requires a provisional near-top controller.");
+    errors.push("Measured wiring requires a measured controller.");
+  }
+  if (preview.status === "requires-review") {
+    errors.push("The stored wiring route requires review before assembly.");
   }
   if (preview.outputs.length === 0 && mapping.panels.length > 0) {
     errors.push("Wiring preview has no outputs.");

@@ -26,7 +26,10 @@ export interface OutputAddressRange {
 
 export interface HardwareReadiness {
   ready: boolean;
+  /** Current legacy checks only; this is not MAP-021 address readiness. */
+  currentChecksPass: boolean;
   blockers: string[];
+  wiringLifecycle: WiringPreview["status"];
 }
 
 export interface HardwareMappingContract {
@@ -178,7 +181,11 @@ function assignPanel(
     ledIndices,
     pixelOrder: effectivePixelOrder(panel, panelProfile),
     wiring: {
-      status: wiringStatus === "measured" ? "assigned" : "provisional",
+      status:
+        wiringStatus === "measured" ||
+        wiringStatus === "hardware-verified"
+          ? "assigned"
+          : "provisional",
       output: output.outputIndex,
       chainPosition,
       previousPanelId,
@@ -337,6 +344,7 @@ interface GeneratedPanelMap {
   hardwareReady: boolean;
   ledmapFingerprint: string;
   readinessBlockers: string[];
+  wiringLifecycle?: string;
   outputs: OutputAddressRange[];
   wiring: WiringPreview;
   panels: PanelDefinition[];
@@ -372,6 +380,45 @@ export function loadGeneratedHardwareMappingContract(
   ) {
     throw new Error("Generated mapping artifacts are incomplete.");
   }
+  const legacyStatus = panelMap.wiring.status as string;
+  const normalizedStatus = legacyStatus === "generated-provisional"
+    ? "draft"
+    : legacyStatus === "authored-provisional"
+      ? "authored"
+      : legacyStatus;
+  if (normalizedStatus === "hardware-verified") {
+    throw new Error("Hardware-verified mapping artifacts require accepted PROOF-010 validation.");
+  }
+  if (
+    normalizedStatus !== "draft" &&
+    normalizedStatus !== "authored" &&
+    normalizedStatus !== "requires-review" &&
+    normalizedStatus !== "measured" &&
+    normalizedStatus !== "unavailable"
+  ) {
+    throw new Error("Panel map has an unsupported wiring lifecycle.");
+  }
+  if (
+    panelMap.wiringLifecycle !== undefined &&
+    panelMap.wiringLifecycle !== normalizedStatus
+  ) {
+    throw new Error("Panel map wiring lifecycle disagrees with the wiring preview.");
+  }
+  if (panelMap.hardwareReady) {
+    throw new Error("Generated mapping artifacts cannot claim hardware-ready status before MAP-021, MAP-030, and PWR-010.");
+  }
+  const wiring = {
+    ...panelMap.wiring,
+    status: normalizedStatus,
+    routeSource:
+      panelMap.wiring.routeSource ??
+      (normalizedStatus === "requires-review"
+        ? "temporary-draft-suggestion"
+        : normalizedStatus === "draft" || normalizedStatus === "unavailable"
+          ? "draft-suggestion"
+          : "authored-route"),
+    savedOutputPanelIds: panelMap.wiring.savedOutputPanelIds ?? null,
+  } as WiringPreview;
 
   const mapping: LedMapping = {
     id: panelMap.id,
@@ -393,15 +440,13 @@ export function loadGeneratedHardwareMappingContract(
     throw new Error("Panel map and WLED ledmap fingerprints differ.");
   }
 
+  const readiness = assessHardwareReadiness(mapping, wiring);
   return {
     mapping,
-    wiring: panelMap.wiring,
+    wiring,
     ledmap,
     outputs: panelMap.outputs,
-    readiness: {
-      ready: panelMap.hardwareReady,
-      blockers: panelMap.readinessBlockers,
-    },
+    readiness,
     fingerprint,
   };
 }
@@ -471,43 +516,61 @@ export function assessHardwareReadiness(
   mapping: LedMapping,
   wiring: WiringPreview,
 ): HardwareReadiness {
-  const blockers = new Set<string>();
+  const currentCheckBlockers = new Set<string>();
   if (mapping.status !== "measured") {
-    blockers.add("Sculpture transforms and UV placement are provisional.");
+    currentCheckBlockers.add("Sculpture transforms and UV placement are provisional.");
   }
   if (wiring.status !== "measured") {
-    blockers.add("The panel data chains are still provisional.");
+    currentCheckBlockers.add(
+      wiring.status === "requires-review"
+        ? "The stored panel data chains require review."
+        : wiring.status === "authored"
+          ? "The panel data chains are authored but not measured."
+          : wiring.status === "hardware-verified"
+            ? "Hardware-verified wiring cannot activate before accepted PROOF-010 validation exists."
+          : "The panel data chains are still a draft suggestion.",
+    );
   }
   if (wiring.outputs.some((output) => output.gpio === null)) {
-    blockers.add("Controller GPIO assignments are unknown.");
+    currentCheckBlockers.add("Controller GPIO assignments are unknown.");
   }
   if (
     wiring.nodes.some(
       (node) => node.dinDoutAssignmentStatus !== "measured",
     )
   ) {
-    blockers.add("DIN/DOUT endpoint assignment is not bench-verified.");
+    currentCheckBlockers.add("DIN/DOUT endpoint assignment is not bench-verified.");
   }
   if (
     mapping.panels.some(
       (panel) => panel.pixelOrder.status !== "measured",
     )
   ) {
-    blockers.add("Panel pixel-zero and within-panel order are not bench-verified.");
+    currentCheckBlockers.add("Panel pixel-zero and within-panel order are not bench-verified.");
   }
   if (
     mapping.panels.some((panel) => panel.wiring.status !== "assigned")
   ) {
-    blockers.add("The panel data chains are still provisional.");
+    currentCheckBlockers.add("The panel data chains are still provisional.");
   }
   if (
     mapping.panels.some(
       (panel) => panel.rotationDegrees === null || panel.mirrored === null,
     )
   ) {
-    blockers.add("Installed panel rotation and mirroring are unmeasured.");
+    currentCheckBlockers.add("Legacy rotation and mirroring fields are unmeasured.");
   }
-  return { ready: blockers.size === 0, blockers: [...blockers] };
+  const currentChecksPass = currentCheckBlockers.size === 0;
+  const blockers = new Set(currentCheckBlockers);
+  blockers.add("MAP-021 installed address transforms are not implemented.");
+  blockers.add("MAP-030 WLED bus, color-order, and deployment contract is not implemented.");
+  blockers.add("PWR-010 power-plan approval is required before hardware export.");
+  return {
+    ready: false,
+    currentChecksPass,
+    blockers: [...blockers],
+    wiringLifecycle: wiring.status,
+  };
 }
 
 export function fingerprintLedmap(ledmap: WledLedmap): string {
