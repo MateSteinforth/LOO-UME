@@ -327,6 +327,16 @@ The Manifold generic path is implemented on `grok/workspace`. Manual
 
 ## Ready to Merge
 
+### `CAD-035` Prove generic Manifold generation in CI — P1
+
+- Workflow job `manifold-panel-parts` generates the prism fixture with
+  `scripts/generate-panel-boundary-parts.ts` and no OpenSCAD.
+
+### `CAD-034` Run generic part generation in the browser — P1
+
+- **Generate 3D Parts** compiles Manifold STLs in-process, then falls back to
+  the local pipeline. Shared kernel: `compilePanelBoundaryBundle()`.
+
 ### `UI-010` Complete the arbitrary-project acceptance journey — P0
 
 - Playwright Chromium loads a mechanics-free prism JSON, clicks **Generate 3D
