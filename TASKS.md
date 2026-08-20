@@ -99,22 +99,6 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: remove collisions caused by hashing only the low 16 bits of LED indices.
 - Acceptance: indices differing by 65,536 produce different fingerprints; compatibility/migration behavior is documented and tested.
 
-### `MAP-021` Compile installed-panel address transforms
-
-- Outcome: add an explicit installed address transform that maps pose-local
-  display coordinates to the PCB's measured wire coordinates without changing
-  the authoritative pose or LED world positions. Do not reuse the existing
-  geometry/mechanical `rotationDegrees` as an address transform.
-- Acceptance: the schema defines a back-view reference frame, discrete quarter
-  turns, and mirroring with a migration rule for existing fields; the mapping
-  compiler covers all eight square-panel transforms plus supported pixel-zero,
-  traversal, and serpentine combinations; distinctive corner and row-transition
-  vectors produce the expected physical indices; incomplete measured data is
-  rejected. Measured color order flows separately into the WLED bus contract.
-- Depends on: `WIRE-010` and measured facts from `CAL-010`.
-- Verify: focused mapping tests, all 2,624 canonical LED records, save/reopen,
-  and negative incomplete/contradictory fixtures.
-
 ### `MAP-030` Define the WLED controller bus contract
 
 - Outcome: generate one non-secret controller contract for the selected board,
@@ -339,7 +323,8 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Depends on: a fused current-limited 5 V bench supply and a test controller.
   Repeat controller-dependent facts on the `HR-014` production target if the
   first test uses different hardware.
-- Unblocks: `MAP-021`, `PWR-010`, and later hardware readiness.
+- Unblocks: measured activation of the `MAP-021` transform contract,
+  `PWR-010`, and later hardware readiness.
 
 ### `HR-013` Choose the managed Python distribution — Decision needed
 
@@ -371,6 +356,32 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `MAP-021` Compile installed-panel address transforms — P0
+
+- Outcome: Schema 2 now stores and compiles an installed address transform
+  without changing poses, world LED positions, or logical coordinates.
+- Acceptance: the frame is back view; mirroring occurs first; zero to three
+  clockwise quarter turns follow. Missing legacy fields become assumed identity
+  and never infer from mechanical fields. Measured global calibration requires
+  every transform measured; the converse contradiction is rejected. Panel edits
+  keep numeric values but explicitly change their status to assumed.
+- Assumed flagship decision: all 41 panels start as identity, zero-turn,
+  non-mirrored, status assumed. Physical calibration can change each value later
+  without changing the route or panel pose.
+- Evidence: fixed corner and row-transition vectors pass; all eight transforms
+  crossed with all 16 supported pixel orders produce complete 64-address
+  permutations; focused tests pass 39/39; full Vitest passes 248/248;
+  TypeScript, sculpture validation, schema JSON parsing, and `git diff --check`
+  pass. All 2,624 canonical addresses remain unique and fingerprint
+  `31291c59` is unchanged. Independent re-review has no findings.
+- Depends on: `WIRE-014` at `359cb0f`; physical measurement remains `CAL-010`.
+- Owner: branch `codex/map-021-installed-transform`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: Schema 2 panel contract/parser, mapping compiler and
+  readiness, editor invalidation, flagship JSON, generated panel map, and docs.
+- Merge rule: stop at Ready to Merge; do not merge into `main` without explicit
+  operator authorization.
 
 ### `WIRE-014` Save the assumed 41-panel prototype route and GPIOs — P0
 

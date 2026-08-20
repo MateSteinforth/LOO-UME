@@ -130,7 +130,7 @@ same reference and hash rules and browser-owned object URLs.
 
 ### 5. Make wiring explicit and export states coherent
 
-- Store ordered panel IDs per output, GPIOs, installed rotation/mirroring, and
+- Store ordered panel IDs per output, GPIOs, installed address transforms, and
   final pixel order in sculpture JSON.
 - Treat heuristic routing as an initial suggestion that becomes authored data
   once edited or confirmed.

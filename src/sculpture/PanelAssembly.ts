@@ -62,6 +62,15 @@ export type PanelOutlineCornerId =
   | "top-right"
   | "top-left";
 
+export interface InstalledAddressTransform {
+  /** Assumed values keep simulation usable but cannot satisfy hardware readiness. */
+  status: "assumed" | "measured";
+  /** The panel is viewed from behind, with display-local Y increasing downward. */
+  referenceView: "back";
+  quarterTurnsClockwise: 0 | 1 | 2 | 3;
+  mirrored: boolean;
+}
+
 /** Connectivity only: all referenced corner positions are derived from poses. */
 export interface PanelBoundaryTopology {
   kind: "panel-outline-gap-cycles";
@@ -98,6 +107,7 @@ export interface PanelAssemblyDefinition {
     neighborPanelIds?: string[];
     rotationDegrees?: number | null;
     mirrored?: boolean | null;
+    installedAddressTransform?: InstalledAddressTransform;
     mountFaceId?: string;
     connectorPolicy?: {
       allowSharedClosureAcrossAdjacentEdges: true;
@@ -712,6 +722,18 @@ export function parsePanelAssemblyDefinition(
         connectorPolicy.allowSharedClosureAcrossAdjacentEdges === true &&
         typeof connectorPolicy.reason === "string" &&
         connectorPolicy.reason.length > 0);
+    const installedAddressTransform = isRecord(panel)
+      ? panel.installedAddressTransform
+      : undefined;
+    const installedAddressTransformIsValid = installedAddressTransform === undefined ||
+      (isRecord(installedAddressTransform) &&
+        (installedAddressTransform.status === "assumed" ||
+          installedAddressTransform.status === "measured") &&
+        installedAddressTransform.referenceView === "back" &&
+        Number.isInteger(installedAddressTransform.quarterTurnsClockwise) &&
+        (installedAddressTransform.quarterTurnsClockwise as number) >= 0 &&
+        (installedAddressTransform.quarterTurnsClockwise as number) <= 3 &&
+        typeof installedAddressTransform.mirrored === "boolean");
     const pose = isRecord(panel) && isRecord(panel.pose) ? panel.pose : null;
     const position = pose?.position;
     const orientation =
@@ -758,6 +780,7 @@ export function parsePanelAssemblyDefinition(
     if (
       !isRecord(panel) ||
       !connectorPolicyIsValid ||
+      !installedAddressTransformIsValid ||
       !surfaceAttachmentIsValid ||
       typeof panel.id !== "string" ||
       panelIds.has(panel.id) ||
@@ -795,6 +818,29 @@ export function parsePanelAssemblyDefinition(
     }
     panelIds.add(panel.id);
     if (panel.mountFaceId !== undefined) panelFaceIds.add(panel.mountFaceId as string);
+  }
+  const calibration = record(input, "calibration");
+  if (
+    calibration.installedPanelOrientation === "measured" &&
+    input.panels.some((panel) =>
+      !isRecord(panel.installedAddressTransform) ||
+      panel.installedAddressTransform.status !== "measured"
+    )
+  ) {
+    throw new Error(
+      "Measured installed-panel orientation requires an explicit measured address transform for every panel.",
+    );
+  }
+  if (
+    calibration.installedPanelOrientation !== "measured" &&
+    input.panels.some((panel) =>
+      isRecord(panel.installedAddressTransform) &&
+      panel.installedAddressTransform.status === "measured"
+    )
+  ) {
+    throw new Error(
+      "A measured panel address transform requires measured installed-panel orientation calibration.",
+    );
   }
   if (input.boundaryTopology !== undefined) {
     const topology = input.boundaryTopology;
@@ -1524,6 +1570,12 @@ export function createPanelAssemblyMapping(
     ledIndices: [],
     rotationDegrees: source.rotationDegrees,
     mirrored: sourcePanel?.mirrored === undefined ? false : sourcePanel.mirrored,
+    installedAddressTransform: sourcePanel?.installedAddressTransform ?? {
+      status: "assumed",
+      referenceView: "back",
+      quarterTurnsClockwise: 0,
+      mirrored: false,
+    },
     pixelOrder: {
       status: project.panelProfile.pixelGrid.provisionalOrder.status,
       pixelZeroCorner:

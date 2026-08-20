@@ -60,14 +60,15 @@ non-manifold results. The GLB does not supply or suggest gap topology.
 The browser currently proves a logical-to-physical permutation in memory. It
 does not yet prove an ESP32 installation. The 41-panel project stores an
 authored assumed route with chain lengths `11/10/10/10` and assumed GPIOs
-16–19. Installed rotations/mirroring are unknown, panel pixel order is
-provisional, and RGB/GRB color order is not part of the project contract.
+16–19. Each panel stores an assumed identity installed-address transform in a
+back-view frame. Panel pixel order is provisional, and RGB/GRB color order is
+not part of the project contract.
 Schema 2 can now represent draft, authored, requires-review, measured, and
 hardware-verified wiring. The last state defines a structured `PROOF-010`
 receipt but cannot activate until that task provides an acceptance validator.
 No current project contains measured route facts or a receipt. The current
-measured-fact checks are intentionally not MAP-021 address or hardware
-readiness; MAP-030 and PWR-010 also remain required.
+measured-fact checks are intentionally not hardware readiness; MAP-030 and
+PWR-010 also remain required.
 
 The target hardware-parity flow keeps sculpture JSON as the authority and makes
 the simulator a faithful view of it:

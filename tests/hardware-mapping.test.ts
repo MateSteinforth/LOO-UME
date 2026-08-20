@@ -4,12 +4,158 @@ import { createPanelizedSculptureMapping } from "../web/src/LedMapping.ts";
 import {
   createHardwareMappingContract,
   loadGeneratedHardwareMappingContract,
+  transformInstalledPanelCoordinate,
   validateLedmapEquivalence,
 } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 import { CANONICAL_SCULPTURE_PROJECT } from "../src/sculpture/Definition.ts";
 
 describe("hardware mapping contract", () => {
+  it("rotates fixed back-view corner vectors clockwise after mirroring", () => {
+    const transform = (
+      x: number,
+      y: number,
+      quarterTurnsClockwise: 0 | 1 | 2 | 3,
+      mirrored: boolean,
+    ) => transformInstalledPanelCoordinate(
+      x,
+      y,
+      { status: "assumed", referenceView: "back", quarterTurnsClockwise, mirrored },
+      8,
+      8,
+    );
+    expect(transform(0, 0, 1, false)).toEqual({ x: 7, y: 0 });
+    expect(transform(0, 0, 2, false)).toEqual({ x: 7, y: 7 });
+    expect(transform(0, 0, 1, true)).toEqual({ x: 7, y: 7 });
+  });
+
+  it("uses the documented back-view corner and row-transition vectors", () => {
+    const pixelZeroByTransform = [
+      { turns: 0, mirrored: false, local: [0, 7] },
+      { turns: 0, mirrored: true, local: [7, 7] },
+      { turns: 1, mirrored: false, local: [7, 7] },
+      { turns: 1, mirrored: true, local: [0, 7] },
+      { turns: 2, mirrored: false, local: [7, 0] },
+      { turns: 2, mirrored: true, local: [0, 0] },
+      { turns: 3, mirrored: false, local: [0, 0] },
+      { turns: 3, mirrored: true, local: [7, 0] },
+    ] as const;
+    for (const vector of pixelZeroByTransform) {
+      const geometry = createPanelizedSculptureMapping();
+      const wiring = createProvisionalWiringPreview(geometry);
+      const panelId = wiring.outputs[0]!.panelIds[0]!;
+      geometry.panels.find((panel) => panel.id === panelId)!.installedAddressTransform = {
+        status: "measured",
+        referenceView: "back",
+        quarterTurnsClockwise: vector.turns,
+        mirrored: vector.mirrored,
+      };
+      const contract = createHardwareMappingContract(geometry, wiring);
+      const physicalAt = (x: number, y: number): number =>
+        contract.mapping.entries.find((entry) =>
+          entry.panelId === panelId &&
+          entry.panelPixelX === x &&
+          entry.panelPixelY === y
+        )!.physicalIndex;
+      expect(physicalAt(vector.local[0], vector.local[1])).toBe(0);
+      if (vector.turns === 3 && vector.mirrored) {
+        expect(physicalAt(7, 7)).toBe(7);
+        expect(physicalAt(6, 7)).toBe(8);
+      }
+    }
+  });
+
+  it("combines all eight installed transforms with all supported panel orders", () => {
+    const corners = [
+      "top-left",
+      "top-right",
+      "bottom-left",
+      "bottom-right",
+    ] as const;
+    const transformCoordinate = (
+      x: number,
+      y: number,
+      turns: 0 | 1 | 2 | 3,
+      mirrored: boolean,
+    ): [number, number] => {
+      let transformedX = mirrored ? 7 - x : x;
+      let transformedY = y;
+      if (turns === 1) [transformedX, transformedY] = [7 - transformedY, transformedX];
+      if (turns === 2) [transformedX, transformedY] = [7 - transformedX, 7 - transformedY];
+      if (turns === 3) [transformedX, transformedY] = [transformedY, 7 - transformedX];
+      return [transformedX, transformedY];
+    };
+    const expectedWireIndex = (
+      x: number,
+      y: number,
+      corner: typeof corners[number],
+      traversalAxis: "rows" | "columns",
+      serpentine: boolean,
+    ): number => {
+      const startsRight = corner.endsWith("right");
+      const startsBottom = corner.startsWith("bottom");
+      const line = traversalAxis === "rows"
+        ? startsBottom ? 7 - y : y
+        : startsRight ? 7 - x : x;
+      let offset = traversalAxis === "rows"
+        ? startsRight ? 7 - x : x
+        : startsBottom ? 7 - y : y;
+      if (serpentine && line % 2 === 1) offset = 7 - offset;
+      return line * 8 + offset;
+    };
+
+    for (const mirrored of [false, true]) {
+      for (const turns of [0, 1, 2, 3] as const) {
+        for (const corner of corners) {
+          for (const traversalAxis of ["rows", "columns"] as const) {
+            for (const serpentine of [false, true]) {
+              const geometry = createPanelizedSculptureMapping();
+              const wiring = createProvisionalWiringPreview(geometry);
+              const panelId = wiring.outputs[0]!.panelIds[0]!;
+              const panel = geometry.panels.find((candidate) => candidate.id === panelId)!;
+              const startsRight = corner.endsWith("right");
+              const startsBottom = corner.startsWith("bottom");
+              panel.installedAddressTransform = {
+                status: "measured",
+                referenceView: "back",
+                quarterTurnsClockwise: turns,
+                mirrored,
+              };
+              panel.pixelOrder = {
+                status: "measured",
+                pixelZeroCorner: corner,
+                traversalAxis,
+                lineProgression: traversalAxis === "rows"
+                  ? startsBottom ? "bottom-to-top" : "top-to-bottom"
+                  : startsRight ? "right-to-left" : "left-to-right",
+                serpentine,
+                firstLineDirection: traversalAxis === "rows"
+                  ? startsRight ? "right-to-left" : "left-to-right"
+                  : startsBottom ? "bottom-to-top" : "top-to-bottom",
+              };
+              const contract = createHardwareMappingContract(geometry, wiring);
+              const panelEntries = contract.mapping.entries.filter(
+                (entry) => entry.panelId === panelId,
+              );
+              expect(new Set(panelEntries.map((entry) => entry.physicalIndex)).size).toBe(64);
+              for (const entry of panelEntries) {
+                const [wireX, wireY] = transformCoordinate(
+                  entry.panelPixelX!,
+                  entry.panelPixelY!,
+                  turns,
+                  mirrored,
+                );
+                expect(entry.physicalIndex).toBe(
+                  expectedWireIndex(wireX, wireY, corner, traversalAxis, serpentine),
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
   it("uses a persisted authored panel order for physical output addresses", () => {
     const geometry = createPanelizedSculptureMapping();
     const draft = createProvisionalWiringPreview(geometry);
@@ -167,6 +313,29 @@ describe("hardware mapping contract", () => {
     ]);
     expect(loaded.mapping.entries).toHaveLength(2624);
     expect(loaded.wiring.outputs).toHaveLength(4);
+
+    const legacyTransformMap = structuredClone(panelMap) as {
+      panels: Array<{ installedAddressTransform?: unknown }>;
+    };
+    delete legacyTransformMap.panels[0]!.installedAddressTransform;
+    expect(loadGeneratedHardwareMappingContract(
+      legacyTransformMap,
+      ledmap,
+    ).mapping.panels[0]!.installedAddressTransform).toEqual({
+      status: "assumed",
+      referenceView: "back",
+      quarterTurnsClockwise: 0,
+      mirrored: false,
+    });
+
+    const invalidTransformMap = structuredClone(panelMap) as {
+      panels: Array<{ installedAddressTransform: { quarterTurnsClockwise: number } }>;
+    };
+    invalidTransformMap.panels[0]!.installedAddressTransform.quarterTurnsClockwise = 4;
+    expect(() => loadGeneratedHardwareMappingContract(
+      invalidTransformMap,
+      ledmap,
+    )).toThrow(/invalid installed address transform/);
 
     const divergentLedmap = {
       map: [...ledmap.map],

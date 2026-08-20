@@ -26,7 +26,7 @@ export interface OutputAddressRange {
 
 export interface HardwareReadiness {
   ready: boolean;
-  /** Current legacy checks only; this is not MAP-021 address readiness. */
+  /** Current measured-fact checks only; this is not hardware readiness. */
   currentChecksPass: boolean;
   blockers: string[];
   wiringLifecycle: WiringPreview["status"];
@@ -143,6 +143,54 @@ function panelWireIndex(
   return line * (order.traversalAxis === "rows" ? columns : rows) + offset;
 }
 
+/** Map a display-local coordinate into PCB wire coordinates in back view. */
+export function transformInstalledPanelCoordinate(
+  x: number,
+  y: number,
+  transform: PanelDefinition["installedAddressTransform"],
+  columns: number,
+  rows: number,
+): { x: number; y: number } {
+  if (columns !== rows && transform.quarterTurnsClockwise % 2 === 1) {
+    throw new Error("Quarter-turn installed transforms require a square pixel grid.");
+  }
+  x = transform.mirrored ? columns - 1 - x : x;
+  switch (transform.quarterTurnsClockwise) {
+    case 1:
+      [x, y] = [rows - 1 - y, x];
+      break;
+    case 2:
+      [x, y] = [columns - 1 - x, rows - 1 - y];
+      break;
+    case 3:
+      [x, y] = [y, columns - 1 - x];
+      break;
+  }
+  return { x, y };
+}
+
+function applyInstalledAddressTransform(
+  entry: LedMappingEntry,
+  panel: PanelDefinition,
+  panelProfile: PanelHardwareProfile,
+): LedMappingEntry {
+  if (entry.panelPixelX === null || entry.panelPixelY === null) {
+    throw new Error("Panel LED is missing panel-local coordinates.");
+  }
+  const transformed = transformInstalledPanelCoordinate(
+    entry.panelPixelX,
+    entry.panelPixelY,
+    panel.installedAddressTransform,
+    panelProfile.pixelGrid.columns,
+    panelProfile.pixelGrid.rows,
+  );
+  return {
+    ...entry,
+    panelPixelX: transformed.x,
+    panelPixelY: transformed.y,
+  };
+}
+
 function createOutputRanges(
   preview: WiringPreview,
   panelProfile: PanelHardwareProfile,
@@ -253,7 +301,7 @@ export function createHardwareMappingContract(
       assignment.output.startIndex +
       assignment.chainPosition * ledsPerPanel +
       panelWireIndex(
-        entry,
+        applyInstalledAddressTransform(entry, panel, panelProfile),
         effectivePixelOrder(panel, panelProfile),
         panelProfile,
       );
@@ -354,6 +402,32 @@ interface GeneratedPanelMap {
   leds: LedMappingEntry[];
 }
 
+function normalizeGeneratedPanelTransform(panel: PanelDefinition): PanelDefinition {
+  const transform = (panel as Partial<PanelDefinition>).installedAddressTransform;
+  if (transform === undefined) {
+    return {
+      ...panel,
+      installedAddressTransform: {
+        status: "assumed",
+        referenceView: "back",
+        quarterTurnsClockwise: 0,
+        mirrored: false,
+      },
+    };
+  }
+  if (
+    (transform.status !== "assumed" && transform.status !== "measured") ||
+    transform.referenceView !== "back" ||
+    !Number.isInteger(transform.quarterTurnsClockwise) ||
+    transform.quarterTurnsClockwise < 0 ||
+    transform.quarterTurnsClockwise > 3 ||
+    typeof transform.mirrored !== "boolean"
+  ) {
+    throw new Error("Generated panel map has an invalid installed address transform.");
+  }
+  return panel;
+}
+
 export function loadGeneratedHardwareMappingContract(
   panelMapInput: unknown,
   ledmapInput: unknown,
@@ -405,7 +479,7 @@ export function loadGeneratedHardwareMappingContract(
     throw new Error("Panel map wiring lifecycle disagrees with the wiring preview.");
   }
   if (panelMap.hardwareReady) {
-    throw new Error("Generated mapping artifacts cannot claim hardware-ready status before MAP-021, MAP-030, and PWR-010.");
+    throw new Error("Generated mapping artifacts cannot claim hardware-ready status before MAP-030 and PWR-010.");
   }
   const wiring = {
     ...panelMap.wiring,
@@ -425,7 +499,7 @@ export function loadGeneratedHardwareMappingContract(
     status: panelMap.status,
     topology: panelMap.topology,
     notes: panelMap.notes,
-    panels: panelMap.panels,
+    panels: panelMap.panels.map(normalizeGeneratedPanelTransform),
     surfaceFaces: panelMap.surfaceFaces,
     mechanicalMounts: panelMap.mechanicalMounts,
     printableClosures: panelMap.printableClosures,
@@ -553,16 +627,13 @@ export function assessHardwareReadiness(
   ) {
     currentCheckBlockers.add("The panel data chains are still provisional.");
   }
-  if (
-    mapping.panels.some(
-      (panel) => panel.rotationDegrees === null || panel.mirrored === null,
-    )
-  ) {
-    currentCheckBlockers.add("Legacy rotation and mirroring fields are unmeasured.");
+  if (mapping.panels.some(
+    (panel) => panel.installedAddressTransform.status !== "measured",
+  )) {
+    currentCheckBlockers.add("Installed address transforms are assumed, not measured.");
   }
   const currentChecksPass = currentCheckBlockers.size === 0;
   const blockers = new Set(currentCheckBlockers);
-  blockers.add("MAP-021 installed address transforms are not implemented.");
   blockers.add("MAP-030 WLED bus, color-order, and deployment contract is not implemented.");
   blockers.add("PWR-010 power-plan approval is required before hardware export.");
   return {

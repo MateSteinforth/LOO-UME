@@ -258,18 +258,20 @@ profile's marked back view and its square-panel operations are discrete quarter
 turns plus optional mirroring. It changes local-to-wire indexing only; it never
 moves a panel or an LED in the sculpture.
 
-**Evidence.** The pose basis already drives LED world positions in
-`createPanelAssemblyMapping()`. The current `rotationDegrees` also has mechanical
-face meaning, while `rotationDegrees` and `mirrored` do not affect
-`panelWireIndex()` in `web/src/HardwareMapping.ts`. Reusing those ambiguous
-fields without a frame would permit a physically wrong but internally valid
-map.
+**Evidence.** The pose basis drives LED world positions in
+`createPanelAssemblyMapping()`. `installedAddressTransform` now maps those
+unchanged display-local coordinates into PCB coordinates before
+`panelWireIndex()`. The compiler tests all eight square transforms against all
+16 supported pixel-order combinations. Reusing the legacy mechanical fields
+would permit a physically wrong but internally valid map.
 
-**Consequence.** `MAP-021` must define the new address-transform schema,
-reference view, allowed operations, validation, and migration rule before it
-changes mapping. Existing geometry/mechanical rotation stays unchanged. Color
-order and WLED bus reversal are not part of this transform; `MAP-030` records
-color order and fixes bus reversal to false so direction has one authority.
+**Consequence.** Schema 2 uses back view, mirror first, then zero to three
+clockwise quarter turns. Missing fields migrate to assumed identity and never
+infer from legacy `rotationDegrees` or `mirrored`. Measured orientation requires
+an explicit measured transform for every panel. Existing geometry/mechanical
+rotation stays unchanged. Color order and WLED bus reversal are not part of
+this transform; `MAP-030` records color order and fixes bus reversal to false so
+direction has one authority.
 
 ## D15 — Use one conservative assumed prototype contract
 

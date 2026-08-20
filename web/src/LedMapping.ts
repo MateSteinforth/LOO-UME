@@ -3,6 +3,7 @@ import {
   type PanelHardwareProfile,
   type SculptureDefinition,
 } from "../../src/sculpture/Definition.ts";
+import type { InstalledAddressTransform } from "../../src/sculpture/PanelAssembly.ts";
 
 export interface LedMappingEntry {
   physicalIndex: number;
@@ -39,6 +40,7 @@ export interface PanelDefinition {
   ledIndices: number[];
   rotationDegrees: number | null;
   mirrored: boolean | null;
+  installedAddressTransform: InstalledAddressTransform;
   pixelOrder: {
     status: "unknown" | "provisional" | "measured";
     pixelZeroCorner:
@@ -426,6 +428,12 @@ export function createPanelizedSculptureMapping(
       ledIndices: [],
       rotationDegrees: null,
       mirrored: null,
+      installedAddressTransform: {
+        status: "assumed",
+        referenceView: "back",
+        quarterTurnsClockwise: 0,
+        mirrored: false,
+      },
       pixelOrder: {
         status: "unknown",
         pixelZeroCorner: null,

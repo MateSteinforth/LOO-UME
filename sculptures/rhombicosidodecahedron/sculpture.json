@@ -41,7 +41,13 @@
         "PC-01"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-02",
@@ -74,7 +80,13 @@
         "PC-02"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-03",
@@ -107,7 +119,13 @@
         "PC-03"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-04",
@@ -140,7 +158,13 @@
         "PC-04"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-05",
@@ -173,7 +197,13 @@
         "PC-05"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-06",
@@ -207,7 +237,13 @@
         "PC-02"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-07",
@@ -241,7 +277,13 @@
         "PC-02"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-08",
@@ -275,7 +317,13 @@
         "PC-04"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-09",
@@ -309,7 +357,13 @@
         "PC-05"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-10",
@@ -343,7 +397,13 @@
         "PC-01"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-11",
@@ -377,7 +437,13 @@
         "PC-10"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-12",
@@ -411,7 +477,13 @@
         "PC-06"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-13",
@@ -445,7 +517,13 @@
         "PC-06"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-14",
@@ -479,7 +557,13 @@
         "PC-07"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-15",
@@ -513,7 +597,13 @@
         "PC-07"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-16",
@@ -547,7 +637,13 @@
         "PC-08"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-17",
@@ -581,7 +677,13 @@
         "PC-08"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-18",
@@ -615,7 +717,13 @@
         "PC-09"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-19",
@@ -649,7 +757,13 @@
         "PC-09"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-20",
@@ -683,7 +797,13 @@
         "PC-10"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-21",
@@ -717,7 +837,13 @@
         "PC-06"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-22",
@@ -751,7 +877,13 @@
         "PC-07"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-23",
@@ -785,7 +917,13 @@
         "PC-07"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-24",
@@ -819,7 +957,13 @@
         "PC-09"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-25",
@@ -853,7 +997,13 @@
         "PC-10"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-26",
@@ -887,7 +1037,13 @@
         "PC-11"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-27",
@@ -921,7 +1077,13 @@
         "PC-11"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-28",
@@ -955,7 +1117,13 @@
         "PC-11"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-29",
@@ -989,7 +1157,13 @@
         "PC-11"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "SQ-30",
@@ -1023,7 +1197,13 @@
         "PC-11"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-01",
@@ -1060,7 +1240,13 @@
         "SQ-12"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-02",
@@ -1097,7 +1283,13 @@
         "SQ-14"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-03",
@@ -1134,7 +1326,13 @@
         "SQ-16"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-04",
@@ -1171,7 +1369,13 @@
         "SQ-18"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-05",
@@ -1208,7 +1412,13 @@
         "SQ-20"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-06",
@@ -1245,7 +1455,13 @@
         "SQ-26"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-07",
@@ -1282,7 +1498,13 @@
         "SQ-27"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-08",
@@ -1319,7 +1541,13 @@
         "SQ-28"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-09",
@@ -1356,7 +1584,13 @@
         "SQ-29"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-10",
@@ -1393,7 +1627,13 @@
         "SQ-30"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     },
     {
       "id": "PC-11",
@@ -1430,7 +1670,13 @@
         "SQ-30"
       ],
       "rotationDegrees": null,
-      "mirrored": null
+      "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      }
     }
   ],
   "manualMechanics": {
@@ -1676,7 +1922,7 @@
   },
   "calibration": {
     "panelTransforms": "generated-provisional",
-    "installedPanelOrientation": "unknown",
+    "installedPanelOrientation": "provisional",
     "panelPixelOrder": "provisional",
     "physicalChains": "provisional"
   },

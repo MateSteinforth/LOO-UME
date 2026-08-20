@@ -391,6 +391,35 @@
               "boolean",
               "null"
             ]
+          },
+          "installedAddressTransform": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "referenceView",
+              "quarterTurnsClockwise",
+              "mirrored"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "assumed",
+                  "measured"
+                ]
+              },
+              "referenceView": {
+                "const": "back"
+              },
+              "quarterTurnsClockwise": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3
+              },
+              "mirrored": {
+                "type": "boolean"
+              }
+            }
           }
         }
       }

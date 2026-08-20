@@ -82,8 +82,8 @@ preview uses a clearly labelled temporary draft route so mapping and simulation
 continue. Pose edits also set `requires-review` without changing `panelIds`.
 
 `measured` requires a measured controller and a current exact route. It can
-pass the current measured-fact checks, but that substate is not MAP-021 address
-readiness or hardware readiness. `hardware-verified` additionally defines a
+pass the current measured-fact checks, but that substate is not hardware
+readiness. `hardware-verified` additionally defines a
 passed `PROOF-010` receipt with the deployment identity plus SHA-256 values for
 device read-back, the as-built record, and the parity proof. Runtime activation
 of that state is rejected until `PROOF-010` supplies its acceptance validator.
@@ -135,20 +135,27 @@ The production mapping must join these facts without an implicit transform:
 5. source-project, route, ledmap, bus-configuration, and firmware identities;
 6. device read-back and a physical diagnostic result.
 
-The current code does not meet the complete deployment contract.
-`rotationDegrees` and `mirrored` can block readiness, but they do not currently
-transform `panelWireIndex()`. Color order is absent from the panel/deployment
-contract. The Schema and types define measured and hardware-verified wiring
-lifecycle states. The parser accepts measured wiring, but rejects
+The current code does not meet the complete deployment contract. The installed
+address transform now compiles before `panelWireIndex()`. Color order is absent
+from the panel/deployment contract. The Schema and types define measured and
+hardware-verified wiring lifecycle states. The parser accepts measured wiring, but rejects
 hardware-verified activation until `PROOF-010` supplies an acceptance validator.
 No authored sculpture contains measured route, controller, or proof facts yet.
 
-`MAP-021` will not reuse the geometry/mechanical rotation as a hidden address
-transform. The pose remains the world-space authority. A separate measured
-back-view address transform maps pose-local display coordinates to PCB wire
-coordinates with discrete quarter turns and optional mirroring. Color order is
-a WLED bus fact. Bus reversal stays false because the authored route and ledmap
-already own direction.
+`installedAddressTransform` does not reuse the geometry/mechanical rotation as
+a hidden address transform. The pose remains the world-space authority. The
+separate back-view transform maps pose-local display coordinates to PCB wire
+coordinates. It applies optional horizontal mirroring first, then zero to three
+clockwise quarter turns. Existing projects without this field use an assumed
+identity transform; legacy `rotationDegrees` and `mirrored` values are never
+inferred. A measured calibration requires an explicit measured transform on
+every panel. Color order is a WLED bus fact. Bus reversal stays false because
+the authored route and ledmap already own direction.
+
+A panel pose or panel-set edit keeps the quarter-turn and mirror values, but
+changes their status to assumed and changes the global installed-orientation
+calibration to provisional. This makes invalidation explicit and prevents stale
+measurement status from silently passing readiness.
 
 The implementation sequence is:
 
@@ -156,7 +163,7 @@ The implementation sequence is:
 WIRE-010 explicit route
     -> WIRE-013 lifecycle/invalidation
     -> WIRE-011 route editor and confirmation
-CAL-010 measured panel facts -> MAP-021 installed address transform
+MAP-021 installed address transform -> CAL-010 physical measurement
 HR-014 controller choice + PWR-010 approved power plan
     -> MAP-030 WLED bus/deployment contract
     -> WIRE-012 guarded production bundle
@@ -181,13 +188,14 @@ artifact.
 ## Readiness and exports
 
 `assessHardwareReadiness()` exposes `currentChecksPass` for the existing
-transforms/UVs, chains, GPIOs, pixel order, and installed rotation/mirroring
-checks. It is not address or hardware readiness: every controller-ready export
-remains blocked until `MAP-021`, `MAP-030`, and `PWR-010` complete. Draft,
+transforms/UVs, chains, GPIOs, pixel order, and installed-address checks. It is
+not hardware readiness: every controller-ready export remains blocked until
+`MAP-030` and `PWR-010` complete. Draft,
 authored, requires-review, and inactive hardware-verified routes report a
-lifecycle blocker. The flagship route and GPIOs are authored assumptions.
-Installed address transforms, pixel traversal, color order, bus configuration,
-power acceptance, and proof remain incomplete.
+lifecycle blocker. The flagship route, GPIOs, and identity address transforms
+are authored assumptions. Pixel traversal, color order, bus configuration,
+power acceptance, and proof remain incomplete. Each address transform must be
+physically measured before the installed-orientation check can pass.
 
 The JSON Schema requires `panelIds` for explicit non-draft lifecycle states and
 requires the shaped proof receipt for `hardware-verified`. Exact all-output

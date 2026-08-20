@@ -40,6 +40,66 @@ function mappingFor(definition: Awaited<ReturnType<typeof loadManual>>) {
 }
 
 describe("mechanics-independent panel JSON editing", () => {
+  it("validates installed address transforms and migrates missing values to assumed identity", async () => {
+    const source = await loadManual();
+    expect(source.panels.every((panel) =>
+      panel.installedAddressTransform?.status === "assumed" &&
+      panel.installedAddressTransform.referenceView === "back" &&
+      panel.installedAddressTransform.quarterTurnsClockwise === 0 &&
+      panel.installedAddressTransform.mirrored === false
+    )).toBe(true);
+
+    const legacy = structuredClone(source);
+    delete legacy.panels[0]!.installedAddressTransform;
+    legacy.panels[0]!.rotationDegrees = 90;
+    legacy.panels[0]!.mirrored = true;
+    const legacyPanel = mappingFor(roundTrip(legacy)).mapping.panels[0]!;
+    expect(legacyPanel.installedAddressTransform).toEqual({
+      status: "assumed",
+      referenceView: "back",
+      quarterTurnsClockwise: 0,
+      mirrored: false,
+    });
+
+    const incompleteMeasured = structuredClone(source);
+    incompleteMeasured.calibration.installedPanelOrientation = "measured";
+    expect(() => roundTrip(incompleteMeasured)).toThrow(
+      /explicit measured address transform for every panel/,
+    );
+    for (const panel of incompleteMeasured.panels) {
+      panel.installedAddressTransform!.status = "measured";
+    }
+    expect(() => roundTrip(incompleteMeasured)).not.toThrow();
+    incompleteMeasured.calibration.installedPanelOrientation = "provisional";
+    expect(() => roundTrip(incompleteMeasured)).toThrow(
+      /requires measured installed-panel orientation calibration/,
+    );
+
+    incompleteMeasured.calibration.installedPanelOrientation = "measured";
+    incompleteMeasured.panels[0]!.installedAddressTransform = {
+      status: "measured",
+      referenceView: "back",
+      quarterTurnsClockwise: 2,
+      mirrored: true,
+    };
+    const edited = rotatePanelAroundLocalZ(incompleteMeasured, "SQ-01", 1);
+    expect(edited.calibration.installedPanelOrientation).toBe("provisional");
+    expect(edited.panels.every((panel) =>
+      panel.installedAddressTransform?.status === "assumed"
+    )).toBe(true);
+    expect(edited.panels[0]!.installedAddressTransform).toMatchObject({
+      quarterTurnsClockwise: 2,
+      mirrored: true,
+    });
+    expect(() => roundTrip(edited)).not.toThrow();
+
+    const invalid = structuredClone(source) as unknown as {
+      panels: Array<{ installedAddressTransform: { quarterTurnsClockwise: number } }>;
+    };
+    invalid.panels[0]!.installedAddressTransform.quarterTurnsClockwise = 4;
+    expect(() => parsePanelAssemblyDefinition(invalid)).toThrow(/Panels require/);
+  });
+
   it("persists an authored DIN-to-DOUT route and uses it for physical mapping", async () => {
     const source = await loadManual();
     const { project, mapping } = mappingFor(source);

@@ -149,6 +149,12 @@ describe("Schema 2 wiring lifecycle", () => {
     definition.panels.forEach((panel) => {
       panel.rotationDegrees = 0;
       panel.mirrored = false;
+      panel.installedAddressTransform = {
+        status: "measured",
+        referenceView: "back",
+        quarterTurnsClockwise: 0,
+        mirrored: false,
+      };
     });
 
     const { project: draftProfileProject } = projectFor(definition);

@@ -19,8 +19,7 @@
     "The panel data chains are authored but not measured.",
     "Panel pixel-zero and within-panel order are not bench-verified.",
     "The panel data chains are still provisional.",
-    "Legacy rotation and mirroring fields are unmeasured.",
-    "MAP-021 installed address transforms are not implemented.",
+    "Installed address transforms are assumed, not measured.",
     "MAP-030 WLED bus, color-order, and deployment contract is not implemented.",
     "PWR-010 power-plan approval is required before hardware export."
   ],
@@ -1167,6 +1166,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -1280,6 +1285,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -1393,6 +1404,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -1506,6 +1523,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -1619,6 +1642,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -1733,6 +1762,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -1847,6 +1882,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -1961,6 +2002,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -2075,6 +2122,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -2189,6 +2242,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -2303,6 +2362,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -2417,6 +2482,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -2531,6 +2602,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -2645,6 +2722,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -2759,6 +2842,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -2873,6 +2962,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -2987,6 +3082,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -3101,6 +3202,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -3215,6 +3322,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -3329,6 +3442,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -3443,6 +3562,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -3557,6 +3682,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -3671,6 +3802,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -3785,6 +3922,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -3899,6 +4042,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -4013,6 +4162,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -4127,6 +4282,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -4241,6 +4402,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -4355,6 +4522,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -4469,6 +4642,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -4586,6 +4765,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -4703,6 +4888,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -4820,6 +5011,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -4937,6 +5134,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -5054,6 +5257,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -5171,6 +5380,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -5288,6 +5503,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -5405,6 +5626,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -5522,6 +5749,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -5639,6 +5872,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",
@@ -5756,6 +5995,12 @@
       ],
       "rotationDegrees": null,
       "mirrored": null,
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false
+      },
       "pixelOrder": {
         "status": "provisional",
         "pixelZeroCorner": "bottom-left",

@@ -82,6 +82,11 @@ export function markPanelEditConsequences(
     : "draft";
   definition.calibration.panelTransforms = "generated-provisional";
   definition.calibration.installedPanelOrientation = "provisional";
+  for (const panel of definition.panels) {
+    if (panel.installedAddressTransform) {
+      panel.installedAddressTransform.status = "assumed";
+    }
+  }
   definition.calibration.physicalChains = "provisional";
 }
 
@@ -353,6 +358,11 @@ export function addPanelToClosureFace(
   definition.status = "provisional";
   definition.calibration.panelTransforms = "generated-provisional";
   definition.calibration.installedPanelOrientation = "provisional";
+  for (const panel of definition.panels) {
+    if (panel.installedAddressTransform) {
+      panel.installedAddressTransform.status = "assumed";
+    }
+  }
   definition.calibration.physicalChains = "provisional";
   return definition;
 }
