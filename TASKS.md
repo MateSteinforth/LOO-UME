@@ -16,7 +16,7 @@ This file is the persistent source of truth for work status. Read it before star
 
 | Agent | Task | Status | Branch | Worktree |
 | --- | --- | --- | --- | --- |
-| Grok | Grok integration line; `CAD-030` fast-forwarded here | active | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
+| Grok | `CAD-031` then remaining Manifold slices | In Progress | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
 | Grok | `CAD-030` task snapshot | same commit as `grok/workspace` | `grok/cad-030-manifold-pin` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030` |
 | Grok | `CTRL-004` reconstruction snapshot | frozen | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
 | Codex | `CTRL-004` plus later docs | parallel, do not edit | `codex/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron` |
@@ -143,25 +143,6 @@ Most tests inject a fake STL. The boundary STL never uses OpenSCAD.
 cylinders, and hull. That matches this kernel. First delivery keeps the current
 local HTTP generator contract and swaps the renderer. Browser-in-process
 generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
-
-### `CAD-031` Port one closure solid to Manifold — P0
-
-- Outcome: one generated closure (cover, rounded offset, flanges, screw tabs,
-  gussets, pilots, lead-ins, PCB envelope cutters, exterior clip) is built as
-  Manifold solids from the same compiled face/connector facts the SCAD emitter
-  uses.
-- Acceptance: `sculptures/panel-outline-prism` produces a watertight part;
-  PCB envelopes are cut; DIN/DOUT corners stay clear; holes use the 0.20 mm
-  and 0.50 mm profile corrections; the SCAD emitter still exists and is unused
-  by this test.
-- Depends on: `CAD-030`.
-- Verify: new `GeneratePanelClosureSolids.ts` (do not rewrite the SCAD emitter
-  in place); manifoldness, triangle bounds, hole/cutter presence, and
-  envelope-clearance tests. Optional local OpenSCAD comparison is evidence,
-  not a CI gate.
-- Likely conflicts: new `src/cad/GeneratePanelClosureSolids.ts`, compiled
-  closure types in `PanelAssembly.ts` only if a read-only helper is required.
-  Do not overlap `CAD-032` until this slice is Ready to Merge.
 
 ### `CAD-032` Generate the portable STL bundle with Manifold — P0
 
@@ -418,6 +399,16 @@ generation is a later slice. Manual `parts/*.scad` stays on OpenSCAD.
 - Unblocks: `INSTALL-011B`, then `INSTALL-011C` and `INSTALL-012`.
 
 ## Ready to Merge
+
+### `CAD-031` Port one closure solid to Manifold — P0
+
+- Outcome: prism closures build as Manifold solids from compiled face and
+  connector facts. SCAD emitter is unused by the new test.
+- Acceptance: watertight `NoError` mesh; PCB envelope probes empty; DIN/DOUT
+  holes unused; 0.20 mm and 0.50 mm profile corrections present.
+- Owner: Grok; `grok/workspace`.
+- Verify: `tests/panel-closure-solids.test.ts` passed with
+  `tests/manifold-runtime.test.ts` and `npx tsc -b`.
 
 ### `CAD-030` Pin and load `manifold-3d` — P0
 
