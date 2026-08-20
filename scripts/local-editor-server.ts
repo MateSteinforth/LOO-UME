@@ -14,7 +14,6 @@ import {
   isLoopbackHost,
   type EditorPipelineHandler,
 } from "./editor-pipeline-handler.ts";
-import type { OpenScadRuntime } from "../src/cad/OpenScadRuntime.ts";
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = Object.freeze({
   ".css": "text/css; charset=utf-8",
@@ -39,7 +38,6 @@ export interface LocalEditorServerOptions {
   generatedPublicDirectory?: string;
   host?: "127.0.0.1";
   port?: number;
-  openScadRuntime?: OpenScadRuntime;
   pipelineHandler?: EditorPipelineHandler;
 }
 
@@ -171,7 +169,6 @@ export async function startLocalEditorServer(
     await createEditorPipelineHandler({
       rootDirectory,
       generatedPublicDirectory,
-      openScadRuntime: options.openScadRuntime,
     });
   const sockets = new Set<Socket>();
   const server = createServer((request, response) => {
@@ -247,7 +244,7 @@ async function main(): Promise<void> {
     port: parsePort(process.env.ORBITAL_LAB_PORT),
   });
   console.log(`WLED Orbital Lab is available at ${localServer.url}`);
-  const status = localServer.pipelineHandler.openScadRuntime.status;
+  const status = localServer.pipelineHandler.generatorStatus;
   const writeStatus = status.available ? console.log : console.warn;
   writeStatus(status.message);
   let stopping = false;

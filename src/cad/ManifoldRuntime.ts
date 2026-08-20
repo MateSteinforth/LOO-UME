@@ -1,6 +1,6 @@
 import Module, { type ManifoldToplevel } from "manifold-3d";
 
-/** Pinned npm identity for the generic CAD kernel. Generator call sites do not use this yet. */
+/** Pinned npm identity for the generic CAD kernel. */
 export const MANIFOLD_PACKAGE = "manifold-3d";
 export const MANIFOLD_VERSION = "3.5.1";
 export const MANIFOLD_LICENSE = "Apache-2.0";

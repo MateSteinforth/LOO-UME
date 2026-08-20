@@ -259,10 +259,11 @@ npm run verify                   # assets, WASM, Vitest, TypeScript, and Vite
 npm run verify:clean             # submodule, npm ci, pinned SDK, then npm run verify
 ```
 
-After geometry changes, render every changed printable part with OpenSCAD and
-inspect assembly mode where provided. Confirm holes, PCB poses, panel angles,
-envelopes, connector corners, and flat print surfaces. If OpenSCAD cannot run,
-say so explicitly; static inspection is not a successful render.
+After generic geometry changes on this Grok line, compile the changed
+printable parts with Manifold and inspect the STLs. Confirm holes, PCB poses,
+panel angles, envelopes, connector corners, and flat print surfaces. Codex
+keeps OpenSCAD for the manual `parts/*.scad` route. Do not edit the Codex
+worktree from this Grok line.
 
 For a phone review link, run `npm run preview:phone` from the repository root.
 It creates a temporary Cloudflare quick-tunnel URL and verifies the public HTML,

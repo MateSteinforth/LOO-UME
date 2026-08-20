@@ -866,7 +866,7 @@ export class SphereRenderer {
           );
           exact.matrixAutoUpdate = false;
           exact.renderOrder = 1;
-          exact.userData.source = "generated-openscad-stl";
+          exact.userData.source = "generated-stl";
           closureGroup.userData.loaded = true;
           closureGroup.add(exact);
           this.applySelectionFocus();

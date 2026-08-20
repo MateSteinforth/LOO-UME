@@ -176,49 +176,21 @@ relocatable Python artifacts before the base-toolchain installer can ship.
 generated assets, `/api/generator-status`, and `/api/editor-pipeline`; the Vite
 plugin adapts the same `createEditorPipelineHandler()` during development.
 
-OpenSCAD is required but is not stored as an application binary in the
-repository. `npm run setup:openscad` provides automatic repository-local setup
-for the declared Linux and macOS targets and a Windows x86-64 candidate. Linux
-uses OpenSCAD 2021.01 from the official AppImage and a
-pinned `libgpg-error0` companion. macOS uses the official universal OpenSCAD
-2026.06.12 snapshot. `toolchains/openscad-distributions.json` pins the declared
-targets, URLs, exact sizes, SHA-256 checksums, source metadata, and license
-references. The upstream macOS snapshot does not publish a verified exact
-source revision, so the manifest does not claim one.
-The Windows candidate uses
-`https://files.openscad.org/OpenSCAD-2021.01-x86-64.zip`, size 21,884,613
-bytes, SHA-256
-`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`,
-and executable `openscad.com`. Its source maps to tag `openscad-2021.01`,
-commit `41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`, and the
-GPL-2.0-or-later-with-CGAL-exception license.
+Generic printable-part generation uses pinned `manifold-3d` 3.5.1 in Node and
+in the browser. `grok/workspace` does not install, probe, or execute OpenSCAD.
+The local status endpoint reports `generator: "manifold"` and version `3.5.1`.
+The browser disables only printable generation when that status is absent,
+malformed, or unavailable; pose editing, simulation, mapping, wiring, and
+persistence remain usable.
 
-Setup does not need administrator access or a `PATH` change. Windows extracts
-and validates the portable payload in repository-local staging. It does not use
-an installer, system application directory, profile, or registry. The macOS
-path rejects Rosetta, mounts the DMG read-only, and copies only
-`OpenSCAD.app`. Setup records the selected target, version, artifacts, and
-executable in its receipt. It verifies the staged tool before atomic
-publication, reuses a valid target-specific install, and is safe to retry.
-
-Startup probes an explicit `OPENSCAD` executable first. Without that override,
-it prefers the valid receipt-backed managed tool for the current target and
-then falls back to the system OpenSCAD command on `PATH`: `openscad` on Linux
-and macOS, or `openscad.com` on Windows. Runtime version policy is 2021.01 for
-Linux and the Windows candidate, and 2026.06.12 for macOS. The selected
-result is published through the status endpoint. The browser disables only
-printable generation when status is absent, malformed, unavailable, or
-version-mismatched; pose editing, simulation, mapping, wiring, and persistence
-remain usable. After setup or repair, restart the server because status and the
-resolved executable belong to the startup runtime. Windows Server 2022 and
-2025 x64 CI is surrogate proof only. Windows client qualification is deferred.
-The Windows candidate code and checks remain, but Windows does not block the
-INSTALL-011 bootstrap or INSTALL-012 required-target proof.
+The leftover OpenSCAD sculpture path is rejected. Manual `parts/*.scad` sources
+remain authored truth. Codex keeps the OpenSCAD install and render route for
+those parts. Do not edit the Codex worktree from this Grok line.
 
 The server accepts loopback hosts only, and generation additionally requires a
-same-origin request. Project data, assets, generated output, and OpenSCAD remain
-on the local computer. Ctrl-C/SIGINT and SIGTERM close the HTTP listener and
-active generator processes, with a bounded forced-stop fallback.
+same-origin request. Project data, assets, generated output, and Manifold
+compilation remain on the local computer. Ctrl-C/SIGINT and SIGTERM close the
+HTTP listener, with a bounded forced-stop fallback.
 
 ## Rendering and simulation
 
@@ -236,10 +208,10 @@ configuration.
 ## Current milestone status
 
 `main` at `ab9a96a` has the pose-first editor, portable folder/ZIP contract,
-automatic unambiguous gap detection, local OpenSCAD generation, and two
-Playwright journeys. The remaining product gap is one vertical operator path:
-real UI generation through OpenSCAD, exact-part display, ZIP, and reopen
-without injected topology or a fake renderer (`UI-010`).
+automatic unambiguous gap detection, and two Playwright journeys.
+`grok/workspace` generates generic panel-outline parts with Manifold, including
+the real **Generate 3D Parts** browser journey (`UI-010`). Codex keeps OpenSCAD
+for the manual `parts/*.scad` route.
 
 Schema 2 wiring still stores `chainLengths` and output metadata, not an
 authored ordered panel route. Heuristic routing is regenerated on load
@@ -257,17 +229,16 @@ The repository has three verification layers, and they prove different things:
 
 - Vitest covers the active Schema 2 model, editing, placement, mapping/wiring,
   boundary validation, CAD staging, portable-project handling, local hosting,
-  managed OpenSCAD, and the deterministic WLED host. Most CAD tests use a
-  deterministic renderer so geometry contracts can run without OpenSCAD.
-- Playwright Chromium has two real operator journeys. One covers mechanics-free
+  Manifold solids, and the deterministic WLED host. OpenSCAD install and
+  runtime tests are not part of this Grok line.
+- Playwright Chromium has three real operator journeys. One covers mechanics-free
   JSON/GLB authoring, placement, editing, simulation, mapping, wiring, and save.
-  The other covers folder/ZIP controls, exact GLB/STL transport, staleness,
-  invalid assets, reopen, and object-URL cleanup. The portable-project fixture
-  is built with a deterministic fake STL renderer, not OpenSCAD.
+  One covers folder/ZIP controls, exact GLB/STL transport, staleness,
+  invalid assets, reopen, and object-URL cleanup. One clicks **Generate 3D
+  Parts** and exports Manifold STLs (`UI-010`).
 - CI rebuilds and tests the pinned WLED runtime, runs TypeScript and Vite
-  checks, validates managed OpenSCAD on the declared platforms, and renders
-  canonical manual parts. A real-OpenSCAD CI journey for the generic
-  panel-outline boundary-to-parts route remains open as `CI-010`.
+  checks, and generates the prism fixture with Manifold. It does not install
+  or execute OpenSCAD. Codex keeps the OpenSCAD CI jobs.
 
 The two browser journeys do not yet prove the complete arbitrary-project flow
 through the **Generate 3D Parts** control.
@@ -275,7 +246,8 @@ through the **Generate 3D Parts** control.
 ## Current architectural seams
 
 - Generic printable-part generation uses pinned `manifold-3d` 3.5.1 in the
-  local pipeline. OpenSCAD remains for the manual `parts/*.scad` route.
+  local pipeline and in the browser. This Grok line does not execute OpenSCAD.
+  Codex keeps OpenSCAD for the manual `parts/*.scad` route.
 - Schema 1 remains in `Definition.ts`, its JSON Schema/migration fixture,
   procedural mapping, manual CAD types, generated-artifact loader, and tests.
   The browser normal path is Schema 2; legacy code is not the extension point.
@@ -296,10 +268,9 @@ through the **Generate 3D Parts** control.
   junction has more than one incoming or outgoing cap edge. Correction tools
   for those ambiguous arrangements are not implemented. The browser also has
   no confirmation or correction control for an unambiguous detected cycle.
-- The desktop package does not bundle OpenSCAD. Managed setup covers the
-  current required Linux and native macOS targets. Windows x86-64 remains a
-  candidate, and its client qualification is deferred. It does not block the
-  INSTALL-011 bootstrap or INSTALL-012 proof for required targets.
+- The desktop package does not install or bundle OpenSCAD on this Grok line.
+  Generic generation uses Manifold 3.5.1. Codex keeps managed OpenSCAD setup
+  for the manual CAD route.
 - macOS proof uses native `macos-15` and `macos-15-intel` CI runners. The Intel
   runner label is scheduled to retire in August 2027, so CI must move to a
   supported native Intel label before that date.

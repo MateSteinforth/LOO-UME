@@ -7,8 +7,6 @@ import {
   startLocalEditorServer,
   type LocalEditorServer,
 } from "../scripts/local-editor-server.ts";
-import { serializeAsciiStl } from "../src/cad/Stl.ts";
-import type { OpenScadRuntime } from "../src/cad/OpenScadRuntime.ts";
 import { sha256Bytes } from "../src/sculpture/GeneratedMechanics.ts";
 import {
   getGeneratedMechanicsState,
@@ -26,46 +24,7 @@ afterEach(async () => {
   ));
 });
 
-function unavailableRuntime(): OpenScadRuntime {
-  return {
-    status: {
-      schemaVersion: "1.0.0",
-      available: false,
-      generator: "openscad",
-      supportedVersion: "2021.01",
-      message: "OpenSCAD was not found. Install OpenSCAD 2021.01.",
-    },
-    async render() {
-      throw new Error("OpenSCAD is unavailable.");
-    },
-    async close() {},
-  };
-}
-function availableRuntime(): OpenScadRuntime {
-  return {
-    status: {
-      schemaVersion: "1.0.0",
-      available: true,
-      generator: "openscad",
-      supportedVersion: "2021.01",
-      detectedVersion: "2021.01",
-      message: "OpenSCAD 2021.01 is ready for local generation.",
-    },
-    async render(_inputScad, outputStl) {
-      await writeFile(outputStl, serializeAsciiStl(
-        "production-server-fake-part",
-        [[0, 0, 0], [10, 0, 0], [0, 10, 2]],
-        [[0, 1, 2]],
-      ));
-    },
-    async close() {},
-  };
-}
-
-
-async function fixtureServer(
-  openScadRuntime: OpenScadRuntime = unavailableRuntime(),
-): Promise<LocalEditorServer> {
+async function fixtureServer(): Promise<LocalEditorServer> {
   const root = await mkdtemp(join(tmpdir(), "local-editor-server-"));
   temporaryDirectories.push(root);
   const distDirectory = join(root, "dist");
@@ -84,7 +43,6 @@ async function fixtureServer(
     distDirectory,
     generatedPublicDirectory,
     port: 0,
-    openScadRuntime,
   });
   localServers.push(server);
   return server;
@@ -116,7 +74,7 @@ function requestWithHost(
 }
 
 describe("production local editor server", () => {
-  it("starts without OpenSCAD and serves the UI and status", async () => {
+  it("starts without OpenSCAD and serves the UI and Manifold status", async () => {
     const server = await fixtureServer();
     const page = await fetch(server.url);
     expect(page.status).toBe(200);
@@ -157,7 +115,7 @@ describe("production local editor server", () => {
     expect(unsafePath.status).toBe(400);
   });
 
-  it("rejects invalid generation JSON while Manifold is available without OpenSCAD", async () => {
+  it("rejects invalid generation JSON while Manifold is available", async () => {
     const server = await fixtureServer();
     const origin = server.url.slice(0, -1);
     const response = await fetch(`${server.url}api/editor-pipeline`, {
@@ -175,35 +133,17 @@ describe("production local editor server", () => {
   });
 
 
-  it("closes the leftover OpenSCAD runtime once", async () => {
-    let closeCalls = 0;
-    const runtime: OpenScadRuntime = {
-      status: {
-        schemaVersion: "1.0.0",
-        available: true,
-        generator: "openscad",
-        supportedVersion: "2021.01",
-        detectedVersion: "2021.01",
-        message: "OpenSCAD 2021.01 is ready for local generation.",
-      },
-      async render() {
-        throw new Error("OpenSCAD should not render generic panel parts.");
-      },
-      async close() {
-        closeCalls += 1;
-      },
-    };
-    const server = await fixtureServer(runtime);
+  it("closes the production server once", async () => {
+    const server = await fixtureServer();
     const firstClose = server.close(100);
     const secondClose = server.close(100);
     expect(secondClose).toBe(firstClose);
     await expect(firstClose).resolves.toBeUndefined();
-    expect(closeCalls).toBe(1);
     await expect(fetch(server.url)).rejects.toThrow();
   });
 
   it("generates and serves a current project through the production server", async () => {
-    const server = await fixtureServer(availableRuntime());
+    const server = await fixtureServer();
     const origin = server.url.slice(0, -1);
     const fixture = JSON.parse(await readFile(
       "sculptures/panel-outline-prism/sculpture.json",

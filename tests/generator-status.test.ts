@@ -11,7 +11,7 @@ const READY = {
 } as const;
 
 describe("local generator status discovery", () => {
-  it("accepts a ready OpenSCAD status", async () => {
+  it("accepts a ready Manifold status", async () => {
     const fetchStatus = vi.fn(async () => Response.json(READY));
 
     await expect(loadGeneratorStatus(fetchStatus)).resolves.toEqual(READY);

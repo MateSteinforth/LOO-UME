@@ -243,6 +243,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   rule in `AGENTS.md`.
 - **Status:** Resolved.
 
+### F-014 — Relative `rm` follows the session cwd, not the claimed worktree
+
+- **Date:** 2026-08-20
+- **Context:** CAD-036 removal of OpenSCAD tests from `grok/workspace` while
+  the session cwd was the Codex worktree.
+- **Symptom:** `rm -f tests/open-scad-*.test.ts tests/setup-openscad-*.test.ts`
+  deleted Codex files and left the Grok copies in place.
+- **Cause:** The command used relative paths without `cd` to the claimed
+  worktree.
+- **Correction:** Restore the four Codex test files with `git restore`. Delete
+  the same paths under `/home/mate/Documents/led-rhombicosidodecahedron-grok`.
+- **Prevention:** For every write, delete, or git mutation, use the claimed
+  worktree as an absolute path or `cd` into it first. Confirm Codex
+  `git status` after a path mistake.
+- **Evidence:** F-013 and the restored Codex OpenSCAD tests.
+- **Status:** Resolved.
+
 ### F-013 — npm install follows the session cwd, not the task worktree
 
 - **Date:** 2026-08-20

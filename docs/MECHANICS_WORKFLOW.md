@@ -133,75 +133,36 @@ removes the staging directory and retains the prior bundle.
 
 ## Local desktop generation host
 
-OpenSCAD is required but is not stored in the WLED Orbital Lab repository.
-Automatic repository-local setup supports the declared Debian 13 x86-64,
-Ubuntu 24.04 x86-64, and macOS 15 native arm64 and x86-64 targets. It also
-provides the Windows x86-64 candidate. On Linux and macOS, run:
+Generic panel-outline parts compile with pinned `manifold-3d` 3.5.1. This Grok
+line does not install or execute OpenSCAD. On Linux and macOS, run:
 
 ```bash
 npm ci
-npm run setup:openscad
 npm run desktop
 ```
 
-Setup selects the host target and installs it in `.tools`. Linux uses OpenSCAD
-2021.01 from the official AppImage and a pinned `libgpg-error0` companion.
-macOS uses the official universal OpenSCAD 2026.06.12 DMG. Its URL is
-`https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg`, its exact size
-is 64,447,344 bytes, and its SHA-256 is
-`555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
-The toolchain manifest records source and license metadata but does not claim
-an exact macOS source revision because upstream does not publish one.
-
-Setup does not need administrator access or change `PATH`. macOS needs no
-manual OpenSCAD install or Rosetta. Setup uses a read-only DMG mount, copies
-only `OpenSCAD.app` into the local staging tree, validates the app tree and
-native Mach-O slice, and cleans up the mount. It publishes the verified tree
-atomically, records the target and version in a receipt, reuses a valid managed
-install, and is safe to retry after failure.
-
 `npm run desktop` performs a fresh production build and starts the local
 server. It prints a loopback URL at `127.0.0.1`, using port 4173 unless
-`ORBITAL_LAB_PORT` selects another valid port. At startup, an explicit
-`OPENSCAD` value has first priority. Without an override, the server prefers the
-valid receipt-backed managed tool and then uses `openscad` on Linux and macOS or
-`openscad.com` on Windows as the system command on `PATH`.
+`ORBITAL_LAB_PORT` selects another valid port.
 
-At startup the server probes the exact target version: 2021.01 on Linux and the
-Windows candidate, and 2026.06.12 on macOS. Both local hosts use the same
-bounded handler for
+Both local hosts use the same bounded handler for
 `/api/generator-status` and `/api/editor-pipeline`. The browser fetches status
-instead of inferring availability from its build mode. Missing, unreadable, or
-wrong-version OpenSCAD disables **Generate 3D Parts** with direct repair
-guidance; editing, simulation, mapping, wiring, save, and reopen continue. After
-setup or repair, restart the server to repeat discovery.
+instead of inferring availability from its build mode. Unavailable Manifold
+disables **Generate 3D Parts**; editing, simulation, mapping, wiring, save, and
+reopen continue.
 
-On the Windows x86-64 candidate, PowerShell must use
-`npm.cmd run setup:openscad`. Runtime selection falls back to `openscad.com` on
-`PATH`, and the required version is 2021.01. The candidate pins the official
-portable OpenSCAD 2021.01 ZIP at 21,884,613 bytes with
-SHA-256
-`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`
-and uses `openscad.com`. Setup is repository-local and atomic, with no
-administrator, installer, registry, profile, or `PATH` change. Source is tag
-`openscad-2021.01`, commit `41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`,
-under GPL-2.0-or-later with the OpenSCAD CGAL exception.
+Codex keeps managed OpenSCAD for the manual `parts/*.scad` route. Do not edit
+the Codex worktree from this Grok line.
 
-Windows Server CI is surrogate proof only. Windows client qualification is
-deferred. The candidate code and checks remain, but Windows does not block
-INSTALL-011 or INSTALL-012. Node.js and npm remain prerequisites; Linux also
-needs `dpkg-deb`. INSTALL-011/012 track the complete bootstrap and proof on the
-required Linux and macOS targets.
-
-The HTTP server, project data, generated assets, and OpenSCAD process all remain
-on the local computer. Generation is same-origin and loopback-only. Ctrl-C
-(SIGINT) or SIGTERM stops the server and active generation children cleanly. No
-public hosted generation service is required.
+The HTTP server, project data, generated assets, and Manifold compilation all
+remain on the local computer. Generation is same-origin and loopback-only.
+Ctrl-C (SIGINT) or SIGTERM stops the server cleanly. No public hosted
+generation service is required.
 
 The browser sends one multipart generation request with the sculpture JSON and
 only the referenced, SHA-256-verified GLB. The JSON field is limited to 5 MB and
 the complete request is limited to 64 MB. Missing, tampered, or reserved asset
-paths fail before OpenSCAD runs or the output staging directory is created.
+paths fail before Manifold runs or the output staging directory is created.
 
 ## Project bundle
 
@@ -363,6 +324,7 @@ checks current and stale presentation, rejects missing or tampered assets, and
 proves that project replacement releases the prior object URLs.
 
 
-OpenSCAD or the chosen mesh backend must render every changed printable part,
-and the assembly inspection must confirm panel poses, holes, PCB envelopes,
-connector access, cap planarity, closed topology, and flat print surfaces.
+Manifold must compile every changed generic printable part. Inspect the
+resulting STLs for panel poses, holes, PCB envelopes, connector access, cap
+planarity, closed topology, and flat print surfaces. Codex keeps OpenSCAD for
+manual `parts/*.scad`.

@@ -6,9 +6,9 @@ Current milestone: make the arbitrary-project workflow complete: GLB -> panel pl
 
 Current engineering epic (operator, 2026-08-20): replace native OpenSCAD with
 the `manifold-3d` JavaScript/WASM library for **generic panel-outline printable
-parts**. Keep the physically tested manual `parts/*.scad` route on OpenSCAD
-until a later epic. Grok integrates on `grok/workspace`, in parallel with
-Codex. Do not merge Grok work into `main` unless the operator asks.
+parts**. `grok/workspace` does not execute OpenSCAD. Codex keeps OpenSCAD for
+the physically tested manual `parts/*.scad` route. Do not merge Grok work into
+`main` unless the operator asks.
 
 This file is the persistent source of truth for work status. Read it before starting work and update it whenever a task changes state.
 
@@ -16,10 +16,10 @@ This file is the persistent source of truth for work status. Read it before star
 
 | Agent | Task | Status | Branch | Worktree |
 | --- | --- | --- | --- | --- |
-| Grok | `CAD-031` then remaining Manifold slices | In Progress | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
+| Grok | `CAD-036` OpenSCAD-free Grok line | Ready to Merge | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
 | Grok | `CAD-030` task snapshot | same commit as `grok/workspace` | `grok/cad-030-manifold-pin` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030` |
 | Grok | `CTRL-004` reconstruction snapshot | frozen | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
-| Codex | `CTRL-004` plus later docs | parallel, do not edit | `codex/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron` |
+| Codex | `WIRE-013` lifecycle | parallel, do not edit | `codex/wire-013-lifecycle` | `/home/mate/Documents/led-rhombicosidodecahedron` |
 
 Grok works in `/home/mate/Documents/led-rhombicosidodecahedron-grok` on
 `grok/workspace`. Merge finished Grok slices into this branch. Do not edit
@@ -127,20 +127,13 @@ the Codex worktree. Do not merge into `main` without an operator request.
 
 ## Ready
 
-Tasks are ordered. `CAD-030` is on `grok/workspace` and still waits for `main`.
-`CAD-031` is the next Manifold slice. Continue it in this Grok worktree unless
-it would require editing Codex-owned files.
+No implementation slice is Ready. `CAD-036` is Ready to Merge on
+`grok/workspace`. Do not edit Codex-owned files.
 
 ### Epic note — generic parts today
 
-TypeScript already owns poses, gap topology, the zero-thickness boundary mesh,
-and SCAD text. Native OpenSCAD only tessellates each closure: `linear_extrude`,
-`offset` rounding, `hull` tabs, `cylinder` pilots and lead-ins, cube PCB
-cutters, `polyhedron` exterior clip, then union/difference/intersection.
-Most tests inject a fake STL. The boundary STL never uses OpenSCAD.
-
-The Manifold generic path is implemented on `grok/workspace`. Manual
-`parts/*.scad` stays on OpenSCAD.
+The Manifold generic path is implemented on `grok/workspace`. This Grok line
+does not execute OpenSCAD. Codex keeps OpenSCAD for manual `parts/*.scad`.
 
 ### `CI-010` Exercise the panel-outline route with real OpenSCAD — superseded
 
@@ -326,6 +319,18 @@ The Manifold generic path is implemented on `grok/workspace`. Manual
 - Unblocks: `INSTALL-011B`, then `INSTALL-011C` and `INSTALL-012`.
 
 ## Ready to Merge
+
+### `CAD-036` Make `grok/workspace` OpenSCAD-free — P0
+
+- Outcome: tests, verify, desktop, and CI on this Grok line do not install,
+  probe, or execute OpenSCAD. Generic parts stay on Manifold 3.5.1. Codex
+  keeps the OpenSCAD worktree path.
+- Acceptance: OpenSCAD Vitest files are removed; leftover `generate:sculpture`
+  OpenSCAD rendering is rejected; `npm test` does not run OpenSCAD tests.
+- Owner: Grok; `grok/workspace`.
+- Verify: `npx vitest run` 30 files / 169 tests passed; `npx tsc -b` passed;
+  YAML lint of `.github/workflows/render.yml` passed. OpenSCAD tests remain
+  on Codex.
 
 ### `CAD-035` Prove generic Manifold generation in CI — P1
 

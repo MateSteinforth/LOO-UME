@@ -13,7 +13,7 @@ Describe the physical problem and the smallest geometry change that addresses it
 
 ## Verification
 
-- [ ] OpenSCAD render completed.
+- [ ] Manifold STL compiled, or marked as docs-only.
 - [ ] Assembly/PCB preview inspected where available.
 - [ ] Generated STL inspected.
 - [ ] Physical print tested, or marked as not yet tested.

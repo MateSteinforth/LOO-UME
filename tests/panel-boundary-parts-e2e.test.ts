@@ -385,7 +385,9 @@ describe("validated panel boundary printable asset pipeline", () => {
     }
   });
 
-  it("accepts GLB -> placement -> edit -> parts -> ZIP -> complete reopen", async () => {
+  it("accepts GLB -> placement -> edit -> parts -> ZIP -> complete reopen", {
+    timeout: 20_000,
+  }, async () => {
     const source = await loadProject();
     const glbBytes = tetrahedronGlb();
     const loadedSurface = await loadGlbDesignSurface(

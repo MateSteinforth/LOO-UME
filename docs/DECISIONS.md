@@ -218,29 +218,31 @@ task branch, then waits. Automatic integration into `main` is not allowed.
 `TASKS.md` records owning branch, worktree, and likely file conflicts for
 every **In Progress** or **Ready to Merge** task.
 
-## D13 — Browser, helper, and OpenSCAD proofs are different contracts
+## D13 — Browser, helper, and mesh-kernel proofs are different contracts
 
 **Decision.** A Playwright journey through real controls proves operator UI
 behavior. A Vitest or generator helper with a deterministic fake renderer
-proves JSON, topology, hashing, and staging contracts. Only a real OpenSCAD
-render proves printable-part geometry.
+proves JSON, topology, hashing, and staging contracts. Generic printable-part
+geometry on this Grok line is proved by Manifold STLs. OpenSCAD proofs for
+manual `parts/*.scad` stay on Codex.
 
 **Evidence.** `tests/browser/mechanics-free-authoring.spec.ts`,
 `tests/browser/portable-project.spec.ts` (fake STL renderer for fixtures),
-`CI-010`, and managed OpenSCAD verification in `.github/workflows/render.yml`.
+`tests/browser/generate-parts.spec.ts`, and Manifold CI in
+`.github/workflows/render.yml`.
 
 **Consequence.** Do not treat TEST-010 or TEST-011 as the complete
-arbitrary-project acceptance path. `UI-010` still requires the real
-**Generate 3D Parts** control and OpenSCAD. Do not treat helper CAD tests as
-physical-fit or CI real-render evidence.
+arbitrary-project acceptance path. `UI-010` uses the real **Generate 3D Parts**
+control with Manifold. Do not treat helper CAD tests as physical-fit evidence.
 
 ## D14 — Generic CAD kernel is pinned `manifold-3d` 3.5.1
 
-**Decision.** The future generic panel-outline solids kernel is pinned to npm
+**Decision.** The generic panel-outline solids kernel is pinned to npm
 package `manifold-3d` version `3.5.1` (Apache-2.0) from
 https://github.com/elalish/manifold. CAD-030 only loads the WASM and proves a
 boolean in tests. Generic panel generation now writes Manifold STLs
-(`CAD-032` / `CAD-033`). OpenSCAD remains for the manual `parts/*.scad` route.
+(`CAD-032` / `CAD-033`). This Grok line does not execute OpenSCAD. Codex keeps
+OpenSCAD for the manual `parts/*.scad` route.
 
 **Evidence.** `package.json`, `src/cad/ManifoldRuntime.ts`,
 `tests/manifold-runtime.test.ts`, and operator approval of `CAD-030` on
@@ -249,6 +251,19 @@ boolean in tests. Generic panel generation now writes Manifold STLs
 **Consequence.** Do not float the Manifold version. WASM objects must be
 `delete()`d. Do not feed Manifold the manual `parts/*.scad` route in this
 epic. Do not describe an export as hardware-ready because the kernel changed.
+
+## D15 — Grok line does not execute OpenSCAD
+
+**Decision.** `grok/workspace` generates generic panel-outline parts with
+Manifold only. Tests, `npm run verify`, desktop, and CI on this line do not
+install, probe, or render OpenSCAD. Codex keeps the OpenSCAD worktree path.
+
+**Evidence.** Operator instruction on 2026-08-20; `vitest.config.ts` excludes
+OpenSCAD tests; pipeline rejects leftover `generate:sculpture` OpenSCAD
+rendering.
+
+**Consequence.** Do not restore OpenSCAD as a required tool on Grok. Do not
+edit Codex to remove OpenSCAD. Manual `parts/*.scad` remain authored sources.
 
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in

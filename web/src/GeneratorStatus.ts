@@ -1,7 +1,7 @@
 export interface GeneratorStatus {
   schemaVersion: "1.0.0";
   available: boolean;
-  generator: "manifold" | "openscad";
+  generator: "manifold";
   supportedVersion: string;
   detectedVersion?: string;
   message: string;
@@ -36,8 +36,8 @@ function parseGeneratorStatus(input: unknown): GeneratorStatus {
   if (typeof value.available !== "boolean") {
     throw new Error("available must be a boolean.");
   }
-  if (value.generator !== "manifold" && value.generator !== "openscad") {
-    throw new Error("generator must be manifold or openscad.");
+  if (value.generator !== "manifold") {
+    throw new Error("generator must be manifold.");
   }
   if (typeof value.supportedVersion !== "string" || value.supportedVersion.trim() === "") {
     throw new Error("supportedVersion must be a non-empty string.");

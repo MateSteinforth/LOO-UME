@@ -30,17 +30,16 @@ an implemented contract; settle open product/schema choices before coding.
   closed-boundary generation with cap-local and global two-manifold validation,
   manifest-ready metadata, complete/invalid fixtures, and an in-browser Three.js
   boundary preview.
-- Managed OpenSCAD setup for the required Linux and macOS targets and a retained
-  Windows x86-64 candidate. Windows client qualification is deferred and does
-  not block the current installation milestone.
+- Generic panel-outline parts on `grok/workspace` compile with Manifold 3.5.1.
+  Codex keeps managed OpenSCAD for the manual `parts/*.scad` route.
 
 ## Incomplete or blocked in the current model
 
 Highest-priority architecture gaps:
 
-1. Generic printable parts still tessellate through native OpenSCAD. The
-   operator selected `manifold-3d` as the replacement kernel; see `CAD-030`
-   through `CAD-035` in `TASKS.md`. This is not implemented yet.
+1. Generic printable parts on `grok/workspace` compile with Manifold 3.5.1.
+   Codex keeps OpenSCAD for the manual `parts/*.scad` route. This is not on
+   `main` until the operator asks.
 2. JSON stores chain lengths but not ordered panel sequences per output.
 3. Validation/readiness states cannot consistently represent fully measured
    production wiring.
