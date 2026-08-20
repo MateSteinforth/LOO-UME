@@ -1,22 +1,42 @@
 # Project task board
 
-Last reconciled: 2026-08-14
-Backlog reconstructed from: `main` at `5fa1b60`
+Last reconciled: 2026-08-20
+Backlog reconstructed from: `main` at `ab9a96a`
 Current milestone: make the arbitrary-project workflow complete: GLB -> panel placement/editing -> automatically close the flat gaps between panels -> watertight boundary -> printable parts -> exact referenced assets -> folder/ZIP reopen. The installed desktop system serves its interface locally and runs OpenSCAD on that same computer.
 
 This file is the persistent source of truth for work status. Read it before starting work and update it whenever a task changes state.
+
+## Active agents
+
+| Agent | Task | Status | Branch | Worktree |
+| --- | --- | --- | --- | --- |
+| Grok | `CTRL-004` | In Progress | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
+| Codex | `CTRL-004` (concurrent uncommitted reconstruction) | see that worktree | `codex/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron` |
+
+Do not start an implementation slice until the operator approves a vertical slice. `CTRL-004` is documentation-only.
 
 ## Control rules
 
 1. Use the stable task IDs below in commits, reviews, and handoffs.
 2. Prefer independently testable end-to-end slices. Do not introduce a second pose, mapping, boundary, fabrication, or project-file architecture.
-3. Pick the first unblocked task in **Ready** unless the user changes priorities. Keep at most one implementation slice in **In Progress**; bounded audits may run in parallel.
+3. Use this lifecycle in order: **Backlog** -> **Ready** -> **In Progress** ->
+   **Blocked** or **Human Review** when needed -> **Ready to Merge** ->
+   **Done**. Pick the first unblocked task in **Ready** unless the user changes
+   priorities. Keep at most one implementation slice in **In Progress** per
+   agent; bounded audits may run in parallel.
 4. Record dependencies and acceptance checks before moving a task to **In Progress**.
 5. After implementation, assign a separate subagent to test/review it. A failed review returns the task to **In Progress** or **Ready** with the failure recorded.
 6. Move tasks requiring a product decision, visual check, or physical check to **Human Review**. Do not mark them **Done** without explicit approval.
 7. Update the relevant architecture and knowledge pages in the same slice whenever behavior or an invariant changes.
 8. Subagents report to the primary agent. The user is never used as a message relay.
 9. Generated artifacts are not authored truth, except for the deliberately tracked WLED WASM runtime documented in `AGENTS.md`.
+10. Every active task records scope/outcome, acceptance criteria, dependencies,
+    and verification. An **In Progress** or **Ready to Merge** task also records
+    its owning branch and worktree plus likely file conflicts.
+11. A completed task stops at **Ready to Merge**. Merge into `main` only after
+    explicit operator authorization. After authorized integration and remote
+    verification, move it to **Done** and apply the safe cleanup rules in
+    `AGENTS.md`.
 
 ## Backlog
 
@@ -90,29 +110,111 @@ This file is the persistent source of truth for work status. Read it before star
 - Depends on: `INSTALL-014` and provisioned ephemeral Windows client runner images.
 - Deferred by: the operator selected Linux and macOS as the current required targets. Windows candidate code and CI checks stay implemented, but Windows client qualification does not block `INSTALL-011` or `INSTALL-012`.
 
+## Ready
+
+Tasks are ordered. Do not start the first unblocked item until the operator
+approves a vertical slice after `CTRL-004`.
+
+### `UI-010` Complete the arbitrary-project acceptance journey — P0
+
+- Outcome: GLB -> auto-place -> manual edit -> automatic topology -> boundary ->
+  exact STL parts -> display -> ZIP -> reopen works through the real UI.
+- Acceptance: the browser test starts without `boundaryTopology`, drives the
+  real local generator and OpenSCAD, injects no topology or asset bytes, and
+  verifies the saved/reopened project and exact referenced parts.
+- Depends on: completed `MECH-010`, `MECH-011`, `ASSET-010`, `TEST-010`, and
+  `TEST-011`. Reuse `CI-010` real-render setup where practical, but do not
+  duplicate its helper-level assertions.
+- Verify: focused Playwright Chromium journey, existing browser journeys,
+  focused pipeline tests, and real OpenSCAD output inspection.
+- Likely conflicts: `web/src/main.ts`, `tests/browser/*`,
+  `scripts/editor-pipeline-handler.ts`, `web/src/PortableProject.ts`.
+- Recommended owner after approval: Grok, dedicated branch/worktree. Do not
+  overlap with `ARCH-010`.
+
+### `CI-010` Exercise the panel-outline boundary-to-parts route with real OpenSCAD — P1
+
+- Outcome: CI checks the new fabrication path with OpenSCAD instead of relying only on a deterministic fake renderer.
+- Acceptance: one canonical supported fixture generates a boundary and every exact part through OpenSCAD; invalid topology fails before OpenSCAD; useful failure artifacts are retained.
+- Depends on: none.
+- Likely conflicts: `.github/workflows/render.yml` (also `BUILD-010` and later `INSTALL-012`). Safe for Grok only if no other agent claims the workflow file.
+
+### `BUILD-010` Fail CI when a pinned WASM rebuild changes tracked bytes — P1
+
+- Outcome: the checked-in runtime is demonstrably reproducible.
+- Acceptance: after the pinned rebuild, CI runs a scoped Git diff check for both tracked WASM files and fails on any change.
+- Depends on: none.
+- Likely conflicts: `.github/workflows/render.yml` and `scripts/build-wasm.mjs`. Do not run in parallel with `CI-010`.
+
+### `WIRE-010` Store an explicit ordered panel route per output — P1
+
+- Outcome: Schema 2 can preserve authored physical panel order instead of recomputing it on every load.
+- Acceptance: ordered panel IDs and optional GPIO data parse, validate, round-trip, and drive mapping/wiring; every panel is covered exactly once; existing projects retain heuristic routing as a clearly labelled suggestion/fallback.
+- Depends on: none.
+- Verify: parser/schema negatives, mapping/wiring tests, save/reopen fixture, existing regression suites.
+- Docs: update architecture, Schema 2 format, and LED mapping docs.
+- Likely conflicts: `src/sculpture/PanelAssembly.ts`, `schemas/panel-assembly.schema.json`, `web/src/WiringPreview.ts`, mapping tests. Do not run in parallel with `VALID-010` or `VALID-011`.
+
+### `VALID-010` Make LED dimensions profile-driven end to end — P1
+
+- Outcome: remove remaining hard-coded 8x8/64 validation assumptions.
+- Acceptance: one non-8x8 profile parses, maps, validates, exports, and reloads correctly; errors report resolved profile dimensions.
+- Depends on: none.
+- Likely conflicts: `src/sculpture/PanelAssembly.ts` and mapping/validation tests. Do not run in parallel with `WIRE-010` or `VALID-011`.
+
+### `VALID-011` Centralize deep Schema 2 runtime validation — P2
+
+- Outcome: browser and CLI reject the same malformed nested mapping, calibration, notes, manual-mechanics, boundary, and generated-asset data.
+- Acceptance: a single loader is shared; JSON Schema/runtime parity tests cover valid and invalid nested fixtures; notes require strings.
+- Depends on: none. Keep this validation slice behavior-focused rather than a broad refactor.
+- Likely conflicts: `src/sculpture/PanelAssembly.ts`, `src/sculpture/LoadPanelAssemblyProject.ts`. Do not run in parallel with `WIRE-010` or `VALID-010`.
+
+## In Progress
+
+### `CTRL-004` Reconstruct current project control and architecture documents
+
+- Scope: reconcile repository state, architecture, decisions, work status,
+  collaboration rules, dependencies, and conflict risks without production-code
+  changes.
+- Acceptance: `AGENTS.md`, this board, `docs/ARCHITECTURE.md`, and
+  `docs/DECISIONS.md` agree with `main` at `ab9a96a`; `TEST-011` is closed;
+  blocked installation work is not listed as Ready; the full task lifecycle and
+  no-automatic-merge rule are explicit; Grok and Codex routing are recorded;
+  Markdown links and diff hygiene pass.
+- Depends on: none.
+- Owner: Grok; branch `grok/ctrl-004-reconstruct-project`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004`.
+- Concurrent risk: Codex has uncommitted edits to the same four files on
+  `codex/ctrl-004-reconstruct-project` in
+  `/home/mate/Documents/led-rhombicosidodecahedron`. Do not merge either copy
+  into `main` without operator choice.
+- Likely conflicts: `AGENTS.md`, `TASKS.md`, `docs/ARCHITECTURE.md`,
+  `docs/DECISIONS.md`.
+- Merge rule: operator approval is required before integration into `main`.
+  This task stays In Progress until an independent review and operator
+  direction; it does not start a feature slice.
+
+## Blocked
+
 ### `INSTALL-011` Complete the one-command clean-checkout bootstrap — umbrella
 
 - Outcome: one Linux/macOS command installs and connects every dependency needed to build, test, start, and generate parts after a clean clone.
-- Delivery: complete `INSTALL-011A`, `INSTALL-011B`, and `INSTALL-011C` in order. Keep this umbrella open until all three slices pass.
-- Constraint: Windows remains a retained candidate and is not a completion gate.
-
-## Ready
-
-Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
-
+- Acceptance: `INSTALL-011A`, `INSTALL-011B`, and `INSTALL-011C` all pass in order; Windows remains a retained candidate and is not a completion gate.
+- Blocked by: `HR-013`, then `INSTALL-011B` and `INSTALL-011C`.
 
 ### `INSTALL-011B` Acquire the repository-local base toolchain — P0
 
 - Outcome: the documented POSIX entry point starts from the chosen stage-zero supply and acquires pinned repository-local Node.js/npm and Python for the selected Linux/macOS target.
 - Acceptance: no administrator, system package-manager, profile, or global `PATH` change; exact size/hash verification; target-bound receipts; atomic promotion; safe warm reuse, interruption recovery, and paths with spaces; no undeclared system executable.
-- Depends on: `INSTALL-011A` and the Python distribution choice in `HR-013`.
+- Blocked by: the Python distribution choice in `HR-013`. `INSTALL-011A` is complete.
 - Verify: injected download/extraction failures, tampered cache, unsupported tuple, empty/warm retry, and native executable/version checks.
+- Likely conflicts: `bootstrap.sh`, `toolchains/bootstrap/`, `scripts/`, `.github/workflows/render.yml`.
 
 ### `INSTALL-011C` Orchestrate the complete clean-checkout setup — P0
 
 - Outcome: one command uses the managed base toolchain to initialize WLED, install exact npm dependencies, acquire OpenSCAD, install pinned Emscripten, verify generator availability, and print the managed desktop start command.
 - Acceptance: all subprocesses use explicit managed paths; repeated and interrupted runs are safe; failures name the dependency and recovery action; Windows candidate behavior may remain but is not a completion gate.
-- Depends on: `INSTALL-011B`, `INSTALL-010`, and `INSTALL-013`.
+- Blocked by: `INSTALL-011B`; `INSTALL-010` and `INSTALL-013` are complete.
 - Verify: empty-cache and warm-cache integration tests, interruption recovery, `npm run verify`, real OpenSCAD generation, and a local production-server smoke test.
 - Docs: make this the primary Linux/macOS installation path and list only the chosen stage-zero supply as the prerequisite.
 
@@ -124,58 +226,10 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   - Each job runs only the documented bootstrap and start commands, sees generator status `available: true`, generates exact STL files with real OpenSCAD, and shuts down cleanly.
   - Cached tools are verified before reuse; tampered downloads, unsupported systems, offline failures, and partial installs fail safely and actionably.
 - Windows candidate CI may remain as non-gating compatibility evidence; it does not define a current supported target.
-- Depends on: `INSTALL-010`, `INSTALL-011C`, `INSTALL-013`, and reuse of the real-render journey from `CI-010`.
+- Blocked by: `INSTALL-011C`. `INSTALL-010` and `INSTALL-013` are complete; reuse the real-render journey from `CI-010`.
 - Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
 - Docs: publish the tested Linux and macOS matrix and state clearly which repository installation command applies to each required platform.
-
-
-### `CI-010` Exercise the panel-outline boundary-to-parts route with real OpenSCAD — P1
-
-- Outcome: CI checks the new fabrication path with OpenSCAD instead of relying only on a deterministic fake renderer.
-- Acceptance: one canonical supported fixture generates a boundary and every exact part through OpenSCAD; invalid topology fails before OpenSCAD; useful failure artifacts are retained.
-- Depends on: none.
-
-### `BUILD-010` Fail CI when a pinned WASM rebuild changes tracked bytes — P1
-
-- Outcome: the checked-in runtime is demonstrably reproducible.
-- Acceptance: after the pinned rebuild, CI runs a scoped Git diff check for both tracked WASM files and fails on any change.
-- Depends on: none.
-
-### `WIRE-010` Store an explicit ordered panel route per output — P1
-
-- Outcome: Schema 2 can preserve authored physical panel order instead of recomputing it on every load.
-- Acceptance: ordered panel IDs and optional GPIO data parse, validate, round-trip, and drive mapping/wiring; every panel is covered exactly once; existing projects retain heuristic routing as a clearly labelled suggestion/fallback.
-- Depends on: none.
-- Verify: parser/schema negatives, mapping/wiring tests, save/reopen fixture, existing regression suites.
-- Docs: update architecture, Schema 2 format, and LED mapping docs.
-
-### `VALID-010` Make LED dimensions profile-driven end to end — P1
-
-- Outcome: remove remaining hard-coded 8x8/64 validation assumptions.
-- Acceptance: one non-8x8 profile parses, maps, validates, exports, and reloads correctly; errors report resolved profile dimensions.
-- Depends on: none.
-
-### `VALID-011` Centralize deep Schema 2 runtime validation — P2
-
-- Outcome: browser and CLI reject the same malformed nested mapping, calibration, notes, manual-mechanics, boundary, and generated-asset data.
-- Acceptance: a single loader is shared; JSON Schema/runtime parity tests cover valid and invalid nested fixtures; notes require strings.
-- Depends on: none. Keep this validation slice behavior-focused rather than a broad refactor.
-
-## In Progress
-
-### `TEST-011` Cover folder/ZIP controls in the browser — P1
-
-- Outcome: exercise the shipped portable-project controls end to end.
-- Acceptance: ZIP import restores referenced GLB and exact STL URLs; edit marks parts stale; export downloads a valid ZIP; reopen preserves bytes/hashes; missing/tampered assets show an actionable error; old object URLs are released.
-- Depends on: `TEST-010`.
-
-## Blocked
-
-### `UI-010` Complete the arbitrary-project acceptance journey
-
-- Outcome: GLB -> auto-place -> manual edit -> topology -> boundary -> exact STL parts -> display -> ZIP -> reopen works through the real UI.
-- Remaining blocker: `TEST-011`; automatic topology detection shipped in `MECH-010`, local production generation shipped in `MECH-011`, and real browser mechanics-free authoring coverage shipped in `TEST-010`.
-- Acceptance: no hand-authored topology, fake renderer, or manual asset injection is required by the test.
+- Likely conflicts: `.github/workflows/render.yml` (also `CI-010` and `BUILD-010`).
 
 ### `WIRE-011` Edit and confirm routes in the browser
 
@@ -237,7 +291,34 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
+### `HR-013` Choose the managed Python distribution — Decision needed
+
+- Constraint: python.org does not publish a relocatable Linux CPython distribution, and the pinned Emscripten SDK needs Python before it can run.
+- Recommended option: use exact, checksum-verified Astral `python-build-standalone` artifacts for Linux x86-64, macOS arm64, and macOS x86-64. Record Astral as a third-party binary trust root and preserve the complete bundled license set.
+- Alternative: permit a system Python prerequisite. This weakens the no-manual-dependency requirement.
+- Unblocks: `INSTALL-011B`, then `INSTALL-011C` and `INSTALL-012`.
+
+## Ready to Merge
+
+No task is waiting for operator integration. `CTRL-004` remains In Progress
+until independent review and operator direction. Do not merge either Grok or
+Codex reconstruction branch into `main` without that request.
+
 ## Done
+
+### `TEST-011` Cover folder/ZIP controls in the browser (`ab9a96a`)
+
+- Playwright Chromium now imports a portable ZIP, restores referenced GLB and
+  exact STL object URLs, exports folder and ZIP forms, reopens the exported ZIP,
+  and verifies exact bytes and hashes.
+- The journey marks generated mechanics stale after a valid additive panel
+  edit, rejects missing and tampered assets with domain-specific status, and
+  verifies object-URL release when the project is replaced.
+- The portable fixture is generated with a deterministic fake STL renderer.
+  Real OpenSCAD through the **Generate 3D Parts** control remains `UI-010`.
+- `main` and `origin/main` contain the implementation at `ab9a96a`. This
+  2026-08-20 reconstruction inspected the test, commit, architecture, and
+  failure log; it did not re-run Playwright in the Grok worktree.
 
 ### `TEST-010` Add a real browser smoke test for mechanics-free authoring
 
@@ -439,13 +520,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - The executable supplies certificate-validated HTTPS, exact size/SHA-256 verification, safe bounded extraction, and atomic publication before Node.js or Python exists.
 - This decision does not approve a Python binary provider. That separate supply-chain decision remains in `HR-013`.
 
-### `HR-013` Choose the managed Python distribution — Decision needed
-
-- Constraint: python.org does not publish a relocatable Linux CPython distribution, and the pinned Emscripten SDK needs Python before it can run.
-- Recommended option: use exact, checksum-verified Astral `python-build-standalone` artifacts for Linux x86-64, macOS arm64, and macOS x86-64. Record Astral as a third-party binary trust root and preserve the complete bundled license set.
-- Alternative: permit a system Python prerequisite. This weakens the no-manual-dependency requirement.
-- Unblocks: `INSTALL-011B`.
-
 ### `CORE-001` Mechanics-free Schema 2 editor (`7b40263`)
 
 - GLB placement, automatic/manual panel editing, simulation, mapping, wiring, save, and reload work without mechanics.
@@ -474,7 +548,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 ### `PORTABLE-001` Folder and ZIP import/export (`5fa1b60`)
 
 - Portable helpers validate paths/hashes, preserve exact assets, and round-trip project bundles at library/integration-test level.
-- Scope note: real-browser control coverage remains in `TEST-011`.
+- Real-browser control coverage shipped in `TEST-011`. ZIP resource bounds remain `SEC-010`.
 
 ### `MANUAL-001` Preserve the physically tested 41-panel manual CAD route
 

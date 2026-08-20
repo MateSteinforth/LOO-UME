@@ -233,6 +233,45 @@ guarded writes, and a zero-copy `0x00RRGGBB` buffer. It excludes networking,
 drivers, presets, multiple segments, 2D/audio effects, DDP, Art-Net, and firmware
 configuration.
 
+## Current milestone status
+
+`main` at `ab9a96a` has the pose-first editor, portable folder/ZIP contract,
+automatic unambiguous gap detection, local OpenSCAD generation, and two
+Playwright journeys. The remaining product gap is one vertical operator path:
+real UI generation through OpenSCAD, exact-part display, ZIP, and reopen
+without injected topology or a fake renderer (`UI-010`).
+
+Schema 2 wiring still stores `chainLengths` and output metadata, not an
+authored ordered panel route. Heuristic routing is regenerated on load
+(`WIRE-010`). Mapping fingerprints hash only the low 16 bits of LED indices
+(`MAP-020`).
+
+Automatic installation is incomplete. The committed stage-zero binaries are
+the present trust root. Node.js/npm and relocatable Python acquisition wait
+for the Python provider decision in `HR-013`, so `INSTALL-011B`,
+`INSTALL-011C`, and `INSTALL-012` are blocked rather than Ready work.
+
+## Verification boundaries
+
+The repository has three verification layers, and they prove different things:
+
+- Vitest covers the active Schema 2 model, editing, placement, mapping/wiring,
+  boundary validation, CAD staging, portable-project handling, local hosting,
+  managed OpenSCAD, and the deterministic WLED host. Most CAD tests use a
+  deterministic renderer so geometry contracts can run without OpenSCAD.
+- Playwright Chromium has two real operator journeys. One covers mechanics-free
+  JSON/GLB authoring, placement, editing, simulation, mapping, wiring, and save.
+  The other covers folder/ZIP controls, exact GLB/STL transport, staleness,
+  invalid assets, reopen, and object-URL cleanup. The portable-project fixture
+  is built with a deterministic fake STL renderer, not OpenSCAD.
+- CI rebuilds and tests the pinned WLED runtime, runs TypeScript and Vite
+  checks, validates managed OpenSCAD on the declared platforms, and renders
+  canonical manual parts. A real-OpenSCAD CI journey for the generic
+  panel-outline boundary-to-parts route remains open as `CI-010`.
+
+The two browser journeys do not yet prove the complete arbitrary-project flow
+through the **Generate 3D Parts** control.
+
 ## Current architectural seams
 
 - Schema 1 remains in `Definition.ts`, its JSON Schema/migration fixture,
@@ -242,10 +281,15 @@ configuration.
   depends on Schema 1 types.
 - Runtime Schema 2 validation is handwritten and shallow for nested manual
   mechanics; authored JSON can avoid some editor-regeneration fit checks.
-- Large browser files combine UI state, rendering, and interaction concerns.
-  Split them only as a behavior-preserving refactor with appropriate tests.
+- Large browser files combine UI state, rendering, and interaction concerns
+  (`web/src/main.ts` is about 1,800 lines, `SphereRenderer.ts` about 1,200,
+  `SurfacePlacementController.ts` about 800). Split them only as a
+  behavior-preserving refactor with appropriate tests (`ARCH-010`), and not
+  while `UI-010` is in progress.
 - Mapping and wiring operate while hardware-readiness data is provisional. See
-  [`LED_MAPPING.md`](LED_MAPPING.md) before changing exports.
+  [`LED_MAPPING.md`](LED_MAPPING.md) before changing exports. Runtime wiring
+  validation currently requires controller status to remain provisional, so a
+  measured production-ready state is not reachable end to end.
 - Automatic gap detection deliberately rejects touching cycles whose welded
   junction has more than one incoming or outgoing cap edge. Correction tools
   for those ambiguous arrangements are not implemented. The browser also has
@@ -264,6 +308,11 @@ configuration.
   export, verifies exact GLB/STL bytes and hashes, checks current and stale
   mechanics, rejects missing or tampered assets, reopens the exported ZIP, and
   verifies object-URL release when a project is replaced.
+- ZIP import validates paths and hashes but does not yet enforce entry-count,
+  per-entry size, aggregate uncompressed-size, or compression-ratio limits
+  before buffering the archive (`SEC-010`).
+- Automatic surface placement distributes panel centers but does not preflight
+  complete panel footprints for overlap (`PLACE-010`).
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

@@ -199,7 +199,40 @@ handling, and atomic publication without a preinstalled download, hash, or
 archive utility. They are a deliberate tracked-binary exception, but they are
 not a complete installer. The operational manifest and base-toolchain setup
 remain incomplete until Node.js/npm and an approved relocatable Python supply
-are pinned for all three targets.
+are pinned for all three targets. That Python supply is an open product
+decision (`HR-013`); it is not implied by this bootstrap-binary decision.
+
+## D12 — `main` is the integration baseline
+
+**Decision.** Substantial implementation work uses a dedicated branch and
+worktree. Finished work stops at **Ready to Merge**. Merge or fast-forward
+into `main` only after explicit operator authorization. Concurrent agents
+must not force-push, reset shared history, or delete another agent's branch
+or worktree.
+
+**Evidence.** Operator instruction on 2026-08-20; `TASKS.md` lifecycle;
+`AGENTS.md` working-safely and agentic-workflow rules.
+
+**Consequence.** Successful closeout commits and, when permitted, pushes the
+task branch, then waits. Automatic integration into `main` is not allowed.
+`TASKS.md` records owning branch, worktree, and likely file conflicts for
+every **In Progress** or **Ready to Merge** task.
+
+## D13 — Browser, helper, and OpenSCAD proofs are different contracts
+
+**Decision.** A Playwright journey through real controls proves operator UI
+behavior. A Vitest or generator helper with a deterministic fake renderer
+proves JSON, topology, hashing, and staging contracts. Only a real OpenSCAD
+render proves printable-part geometry.
+
+**Evidence.** `tests/browser/mechanics-free-authoring.spec.ts`,
+`tests/browser/portable-project.spec.ts` (fake STL renderer for fixtures),
+`CI-010`, and managed OpenSCAD verification in `.github/workflows/render.yml`.
+
+**Consequence.** Do not treat TEST-010 or TEST-011 as the complete
+arbitrary-project acceptance path. `UI-010` still requires the real
+**Generate 3D Parts** control and OpenSCAD. Do not treat helper CAD tests as
+physical-fit or CI real-render evidence.
 
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
