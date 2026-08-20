@@ -22,6 +22,10 @@ function cross(a: Vector3Tuple, b: Vector3Tuple): Vector3Tuple {
   ];
 }
 
+function dot(a: Vector3Tuple, b: Vector3Tuple): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
 function expectVectorClose(
   actual: Vector3Tuple,
   expected: Vector3Tuple,
@@ -123,6 +127,62 @@ describe("automatic panel placement", () => {
     expect(filled.definition.panels.slice(0, 2)).toEqual(preserved);
     expect(filled.placedPanelIds).toEqual(["P-03", "P-04", "P-05"]);
     expect(filled.definition.wiring.chainLengths).toEqual([5]);
+  });
+
+  it("sits each panel on a planar mesh face instead of tilting off the surface", async () => {
+    const size = 50;
+    const positions = [
+      -size, -size, -size, size, -size, -size, size, size, -size, -size, size, -size,
+      -size, -size, size, size, -size, size, size, size, size, -size, size, size,
+    ];
+    const indices = [
+      0, 2, 1, 0, 3, 2,
+      4, 5, 6, 4, 6, 7,
+      0, 1, 5, 0, 5, 4,
+      3, 7, 6, 3, 6, 2,
+      0, 4, 7, 0, 7, 3,
+      1, 2, 6, 1, 6, 5,
+    ];
+    const loaded: unknown = JSON.parse(
+      await readFile("sculptures/pose-only-two-panel/sculpture.json", "utf8"),
+    );
+    const source = parsePanelAssemblyDefinition(loaded);
+    source.panels = [];
+    source.wiring.chainLengths = [0];
+    source.designSurface = {
+      kind: "triangle-mesh",
+      format: "glb",
+      source: "design/cube.glb",
+      sha256: "a".repeat(64),
+      scaleToMillimeters: 1,
+      status: "watertight",
+    };
+    const result = automaticallySeedPanelsOnSurface(
+      source,
+      { positions, indices },
+      { width: 66, height: 65 },
+      {
+        targetPanelCount: 6,
+        surface: "design-surface",
+        normalOffset: 0.4,
+      },
+    );
+    expect(result.placedPanelIds).toHaveLength(6);
+    const axes = result.definition.panels.map((panel) => {
+      const { position, orientation } = panel.pose;
+      const axis = orientation.normal.map((value) => Math.round(value)) as Vector3Tuple;
+      const offsetAxis = axis.findIndex((value) => value !== 0);
+      expect(Math.abs(axis[0]!) + Math.abs(axis[1]!) + Math.abs(axis[2]!)).toBe(1);
+      expect(position[offsetAxis]!).toBeCloseTo(axis[offsetAxis]! * (size + 0.4), 8);
+      expect(Math.abs(dot(position, orientation.normal) - (size + 0.4))).toBeLessThan(1e-8);
+      expectVectorClose(
+        cross(orientation.xAxis, orientation.yAxis),
+        orientation.normal,
+        10,
+      );
+      return axis.join(",");
+    });
+    expect(new Set(axes).size).toBe(6);
   });
 
   it("rejects automatic placement for manual mechanics", async () => {

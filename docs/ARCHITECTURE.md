@@ -284,8 +284,9 @@ through the **Generate 3D Parts** control.
 - ZIP import validates paths and hashes but does not yet enforce entry-count,
   per-entry size, aggregate uncompressed-size, or compression-ratio limits
   before buffering the archive (`SEC-010`).
-- Automatic surface placement distributes panel centers but does not preflight
-  complete panel footprints for overlap (`PLACE-010`).
+- Automatic surface placement sits panels on connected planar mesh faces with
+  those face normals. It does not yet preflight complete panel footprints for
+  overlap (`PLACE-010`).
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

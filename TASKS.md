@@ -16,7 +16,7 @@ This file is the persistent source of truth for work status. Read it before star
 
 | Agent | Task | Status | Branch | Worktree |
 | --- | --- | --- | --- | --- |
-| Grok | `CAD-036` OpenSCAD-free Grok line | Ready to Merge | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
+| Grok | `PLACE-011` align auto-place to mesh faces | Ready to Merge | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
 | Grok | `CAD-030` task snapshot | same commit as `grok/workspace` | `grok/cad-030-manifold-pin` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030` |
 | Grok | `CTRL-004` reconstruction snapshot | frozen | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
 | Codex | `WIRE-013` lifecycle | parallel, do not edit | `codex/wire-013-lifecycle` | `/home/mate/Documents/led-rhombicosidodecahedron` |
@@ -319,6 +319,15 @@ does not execute OpenSCAD. Codex keeps OpenSCAD for manual `parts/*.scad`.
 - Unblocks: `INSTALL-011B`, then `INSTALL-011C` and `INSTALL-012`.
 
 ## Ready to Merge
+
+### `PLACE-011` Sit automatic panels on mesh faces — P0
+
+- Outcome: **Automatically place panels** puts each panel on a connected planar
+  region of the active GLB or JSON shell, using that region's face normal.
+  Smoothed vertex normals are not used.
+- Owner: Grok; `grok/workspace`.
+- Verify: `tests/automatic-panel-placement.test.ts` including the cube face
+  alignment case; `npx tsc -b`.
 
 ### `CAD-036` Make `grok/workspace` OpenSCAD-free — P0
 

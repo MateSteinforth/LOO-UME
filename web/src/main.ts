@@ -1508,10 +1508,7 @@ async function start(): Promise<void> {
         const { attachmentSurface, surface } = activePlacementSurface;
         const result = automaticallySeedPanelsOnSurface(
           editorDefinition,
-          placementMeshFromSurface(
-            surface,
-            attachmentSurface === "design-surface",
-          ),
+          placementMeshFromSurface(surface, false),
           editorProject.panelProfile.dimensions,
           {
             targetPanelCount,
