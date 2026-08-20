@@ -1,0 +1,47 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "pose-only-empty-authoring",
+  "name": "Empty pose-only project",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "ws2812b-8x8-66x65",
+    "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
+  },
+  "panels": [],
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "longitude-sectors-nearest-neighbor",
+    "chainLengths": [0],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Authoring output",
+        "gpio": null,
+        "color": "#36e0d0"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Mechanics-free start: load a GLB, place panels, then weld neighbouring outline corners before generating printable parts."
+  ]
+}

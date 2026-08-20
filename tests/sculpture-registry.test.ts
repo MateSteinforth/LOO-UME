@@ -16,7 +16,7 @@ interface ArtifactManifest {
 
 describe("processed sculpture registry", () => {
   it("lists every processed sculpture with a complete versioned artifact snapshot", () => {
-    expect(registryJson.sculptures).toHaveLength(7);
+    expect(registryJson.sculptures).toHaveLength(8);
     expect(new Set(registryJson.sculptures.map((entry) => entry.id)).size).toBe(
       registryJson.sculptures.length,
     );

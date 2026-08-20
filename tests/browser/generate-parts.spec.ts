@@ -39,9 +39,8 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   await page.goto("/");
   await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
   await expect(page.locator("#surface-status")).toContainText(
-    "sculpture JSON face graph",
+    "No authoring surface is referenced",
   );
-  await expect(page.locator("#generate-print-parts")).toBeEnabled();
 
   await chooseFile(page, "#load-sculpture-file", {
     name: "panel-outline-prism.json",
@@ -55,6 +54,7 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   await expect(page.locator("#mapping-note")).toContainText(
     "No printable mechanics exist yet",
   );
+  await expect(page.locator("#generate-print-parts")).toBeEnabled();
 
   await page.locator("#generate-print-parts").click();
   await expect(page.locator("#pipeline-status")).toContainText(

@@ -263,15 +263,22 @@ export async function createEditorPipelineHandler(
         const sourceId = definition.id as string;
         const profile = definition.panelProfile as Record<string, unknown>;
         const runId = `${sourceId.slice(0, 60)}-editor-preview`;
+        if (definition.manualMechanics) {
+          throw new HttpError(
+            400,
+            "Manually authored mechanics cannot enter generic part generation.",
+          );
+        }
         const canDetectPanelBoundary =
           definition.boundaryTopology === undefined &&
-          definition.manualMechanics === undefined &&
           definition.mechanicalShell === undefined &&
           Array.isArray(definition.panels) && definition.panels.length > 0;
         if (definition.boundaryTopology === undefined && !canDetectPanelBoundary) {
           throw new HttpError(
             400,
-            "This generator uses Manifold for panel-outline parts. Projects without a panel-outline boundary are not generated here.",
+            definition.mechanicalShell
+              ? "This project still has a JSON mechanical shell. Start from the empty pose-only project, load a GLB, place panels so neighbouring outline corners meet, then generate."
+              : "Place panels and weld neighbouring outline corners before generating printable parts.",
           );
         }
         const project = createPanelAssemblyProject(

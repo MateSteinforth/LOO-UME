@@ -309,7 +309,26 @@ describe("shared editor pipeline handler", () => {
     });
     expect(response.status).toBe(400);
     expect((await response.json() as { error: string }).error).toContain(
-      "Manifold for panel-outline parts",
+      "Manually authored mechanics",
+    );
+  });
+
+  it("tells the operator to start pose-only when a JSON shell is still present", async () => {
+    const handler = await createEditorPipelineHandler({});
+    const origin = await listen(handler);
+    const response = await fetch(`${origin}/api/editor-pipeline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: origin },
+      body: JSON.stringify({
+        id: "leftover-json-shell",
+        panelProfile: { id: "ws2812b-8x8-66x65" },
+        mechanicalShell: { kind: "explicit-planar-face-graph" },
+        panels: [{ id: "P-01" }],
+      }),
+    });
+    expect(response.status).toBe(400);
+    expect((await response.json() as { error: string }).error).toContain(
+      "JSON mechanical shell",
     );
   });
 });

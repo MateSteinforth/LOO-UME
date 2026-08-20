@@ -47,4 +47,3 @@ describe("Manifold panel closure solids", () => {
     expect(emitter).toContain("linear_extrude");
   });
 });
-

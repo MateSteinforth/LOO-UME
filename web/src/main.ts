@@ -60,7 +60,7 @@ import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
 import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
 
-const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
+const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-empty/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
 const initialSculptureSource =
   new URLSearchParams(window.location.search).get("sculptureJson") ??
@@ -390,7 +390,7 @@ app.innerHTML = `
               Automatically place panels
             </button>
             <p class="mapping-note">
-              Evenly seeds new panels across the active GLB or JSON shell. Existing panels stay in place and can be edited manually.
+              Seeds panels on the active GLB. Move them until neighbouring outline corners meet. Generate then closes those flat gaps; it does not fill the mesh.
             </p>
           </div>
           <label class="field">
@@ -419,7 +419,7 @@ app.innerHTML = `
             Local Vite pipeline is ready.
           </div>
           <p class="mapping-note">
-            Accepted gap cycles are validated before the proven mounting system generates exact, hash-checked STL files. A failed run preserves the last successful set.
+            Generate closes flat gaps between panel outlines whose corners already meet. It does not invent topology from the GLB. A failed run preserves the last successful STL set.
           </p>
         </section>
 
@@ -655,10 +655,10 @@ async function start(): Promise<void> {
         : !pipelineAvailable
           ? pipelineAvailabilityMessage
           : editorDefinition.boundaryTopology
-          ? "Validate the boundary, generate printable parts, and load the exact emitted STL files."
+          ? "Validate the stored gap cycles, generate printable parts, and load the exact emitted STL files."
           : !editorDefinition.mechanicalShell || !editorDefinition.closures
-            ? "Automatically detect unambiguous panel-corner gap cycles, validate the boundary, and generate printable parts."
-          : "";
+            ? "Detect unambiguous flat gaps where neighbouring panel outline corners already meet. The GLB is not used as topology."
+          : "This JSON mechanical shell is not the GLB panel-outline generate path. Load the empty pose-only project first.";
       automaticPanelPlacementControls.hidden =
         editorDefinition.manualMechanics !== undefined;
       automaticallyPlacePanelsButton.disabled =
@@ -1678,7 +1678,13 @@ async function start(): Promise<void> {
             pipelineStatus.textContent =
               `Generated and SHA-256 verified ${partCount} exact printable STL files in the browser.`;
             viewerError.hidden = true;
-          } catch {
+          } catch (inProcessError) {
+            const inProcessMessage = inProcessError instanceof Error
+              ? inProcessError.message
+              : String(inProcessError);
+            if (!/manifold|wasm|WebAssembly/i.test(inProcessMessage)) {
+              throw inProcessError;
+            }
             const response = await fetch("./api/editor-pipeline", {
             method: "POST",
             body: createEditorPipelineFormData(

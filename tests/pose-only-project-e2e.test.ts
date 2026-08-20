@@ -48,6 +48,25 @@ const placement = {
 };
 
 describe("pose-only Schema 2 project", () => {
+  it("loads the empty editor default without a mechanical shell", async () => {
+    const loaded = await loadPanelAssemblyProjectFromFile(
+      "sculptures/pose-only-empty/sculpture.json",
+    );
+    expect(loaded.sculpture.panels).toEqual([]);
+    expect(loaded.sculpture).not.toHaveProperty("mechanicalShell");
+    expect(loaded.sculpture).not.toHaveProperty("closures");
+    expect(loaded.sculpture).not.toHaveProperty("manualMechanics");
+    expect(createPanelAssemblyMapping(loaded).entries).toEqual([]);
+    expect(deriveEditorCapabilities(loaded.sculpture, false)).toMatchObject({
+      canAutomaticallySeed: false,
+      canGenerateGenericMechanics: false,
+    });
+    expect(deriveEditorCapabilities(loaded.sculpture, true)).toMatchObject({
+      canAutomaticallySeed: true,
+      canGenerateGenericMechanics: false,
+    });
+  });
+
   it("loads, places, edits, maps, wires, saves, and reopens without mechanics", async () => {
     const loaded = await loadPanelAssemblyProjectFromFile(
       "sculptures/pose-only-two-panel/sculpture.json",
