@@ -449,12 +449,25 @@ function validateWiring(
   }
 
   const hasRoute = outputs.some((output) => output.panelIds !== undefined);
+  if (
+    wiring.routeRevision !== undefined &&
+    (!Number.isInteger(wiring.routeRevision) ||
+      (wiring.routeRevision as number) < 1)
+  ) {
+    throw new Error("Wiring route revision must be an integer of at least 1.");
+  }
   const lifecycle = getWiringLifecycleStatus(
     wiring as unknown as WiringDefinition,
   );
   if (lifecycle === "draft") {
-    if (hasRoute || wiring.hardwareProof !== undefined) {
-      throw new Error("Draft wiring cannot contain an authored route or proof.");
+    if (
+      hasRoute ||
+      wiring.routeRevision !== undefined ||
+      wiring.hardwareProof !== undefined
+    ) {
+      throw new Error(
+        "Draft wiring cannot contain an authored route, route revision, or proof.",
+      );
     }
     return;
   }

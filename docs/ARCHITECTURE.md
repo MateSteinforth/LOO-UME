@@ -11,7 +11,7 @@ Schema 2 sculpture JSON + panel hardware profile
                 v
        authoritative panel poses
         /          |           \
-  3D/LED view   logical map   provisional wiring
+  3D/LED view   logical map   draft/authored wiring
                     \           /
                      physical map
                           |
@@ -145,6 +145,9 @@ primary over-current protection.
    exists, otherwise derives a labelled draft route from chain lengths and panel
    positions. A stale saved route remains evidence under `requires-review`; an
    incomplete stale route uses a temporary draft preview.
+   `WiringRouteEditor.ts` keeps route changes in browser-only working state. An
+   explicit confirmation writes the exact panel order and a new route revision;
+   it does not create measured, GPIO, or hardware-ready facts.
    `createHardwareMappingContract()` assigns physical indices and builds the
    WLED ledmap.
 5. Three.js renders panels, LEDs, surfaces, connectors, wiring, and available

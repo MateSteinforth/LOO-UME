@@ -84,6 +84,24 @@ of that state is rejected until `PROOF-010` supplies its acceptance validator.
 A later relevant edit retains a receipt only as stale evidence under
 `requires-review`.
 
+## Browser route editor
+
+The browser route editor shows each output label, known GPIO or `unknown`,
+one-based chain position, predecessor, successor, and back-view DIN/DOUT
+direction. It uses buttons and output selectors to change a working route; the
+saved sculpture JSON does not change until **Confirm wiring route revision**.
+
+A draft or temporary draft suggestion must first be copied explicitly. This
+prevents the geographic heuristic from becoming an assembly route by accident.
+The confirmation stores exact `panelIds`, derives the output `chainLengths`,
+sets `status: authored`, clears stale proof evidence, resets physical-chain
+calibration to provisional, and increments `routeRevision` (first revision is
+`1`). It does not create GPIO, measured, optimized, or physical claims.
+
+When a panel-set edit makes a stored route stale, the editor shows the saved
+route evidence separately and starts with the temporary current-panel draft.
+The operator can use it only after explicit copy and confirmation.
+
 The manual 41-panel snapshot currently resolves to:
 
 | Output | Panels | Physical range | GPIO |

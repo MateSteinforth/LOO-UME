@@ -222,22 +222,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-### `WIRE-011` Edit and confirm routes in the browser — P0
-
-- Outcome: let the operator assign and reorder panels by the actual assembly
-  sequence, inspect DIN-to-DOUT direction, and explicitly confirm the stored
-  route.
-- Acceptance: the UI shows output, GPIO when known, chain position,
-  predecessor/successor, and connector direction; confirmation persists a
-  revision; later relevant edits mark it requires-review without replacement;
-  the interface does not call a heuristic route optimized or physical.
-- Depends on: `WIRE-010` at `c0c58b8` and `WIRE-013` at `139f0c0`.
-- Verify: focused UI state tests, Playwright route edit/confirm/save/reopen, and
-  mapping equivalence before and after confirmation.
-- Owner: branch `codex/wire-011-route-editor`; worktree
-  `/home/mate/Documents/led-rhombicosidodecahedron`.
-- Likely conflicts: browser orchestration and styles, editor route mutations,
-  wiring preview state, portable save/reopen tests, and wiring documentation.
+None.
 
 ## Blocked
 
@@ -409,6 +394,32 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `WIRE-011` Edit and confirm routes in the browser — P0
+
+- Outcome: the browser now lets the operator copy a labelled draft, assign and
+  reorder panels in controller-to-DIN-to-DOUT order, inspect route metadata,
+  and explicitly confirm the exact stored route.
+- Acceptance: each row shows output, GPIO or `unknown`, one-based chain
+  position, predecessor/successor, and connector direction. Confirmation
+  stores exact `panelIds`, derives chain lengths, advances `routeRevision`,
+  clears stale proof, and returns measured or review state to authored with
+  provisional physical-chain calibration. Later relevant sculpture edits keep
+  the route and revision but mark them requires-review.
+- Safety: draft suggestions need an explicit copy action; GPIO and output
+  metadata are read-only; confirmation does not create measured, physical, or
+  hardware-ready claims.
+- Evidence: focused route/lifecycle/mapping tests pass 30/30; the full Vitest
+  suite passes 244/244; the 41-panel Playwright copy/edit/confirm/save/reopen
+  journey passes; TypeScript, Vite production build, JSON parsing, and
+  `git diff --check` pass; independent review findings are resolved.
+- Depends on: `WIRE-010` at `c0c58b8` and `WIRE-013` at `139f0c0`.
+- Owner: branch `codex/wire-011-route-editor`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: browser orchestration and styles, Schema 2 wiring contract,
+  browser tests, and wiring/architecture documentation.
+- Merge rule: stop at Ready to Merge; do not merge into `main` without explicit
+  operator authorization.
 
 ### `WIRE-013` Add production-capable wiring lifecycle states — P0
 

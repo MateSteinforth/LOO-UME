@@ -619,6 +619,10 @@
             }
           }
         },
+        "routeRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
         "hardwareProof": {
           "type": "object",
           "additionalProperties": false,
@@ -661,6 +665,47 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "draft"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "routeRevision"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "provisional"
+              },
+              "outputs": {
+                "not": {
+                  "items": {
+                    "required": [
+                      "panelIds"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "routeRevision"
+              ]
+            }
+          }
+        },
         {
           "if": {
             "properties": {

@@ -43,6 +43,15 @@ import {
   validateWiringPreview,
 } from "./WiringPreview";
 import {
+  confirmWiringRouteEditorModel,
+  copyDraftSuggestionToRouteEditor,
+  createWiringRouteEditorModel,
+  moveRoutePanelToOutput,
+  moveRoutePanelWithinOutput,
+  validateWiringRouteEditorModel,
+  type WiringRouteEditorModel,
+} from "./WiringRouteEditor";
+import {
   loadVerifiedGeneratedMechanics,
   type VerifiedGeneratedMechanics,
 } from "./GeneratedMechanicsAssets.ts";
@@ -363,6 +372,17 @@ app.innerHTML = `
             <button id="export-project-zip" type="button">Export project ZIP</button>
           </div>
           <p class="mapping-note">Folder and ZIP projects keep the JSON, GLB, boundary, and exact STL parts together.</p>
+          <section id="route-editor-section" class="route-editor-section" hidden>
+            <div class="section-heading editor-subheading">
+              <span>Wiring route editor</span>
+              <small>controller to DIN to DOUT</small>
+            </div>
+            <p id="route-editor-note" class="mapping-note"></p>
+            <div id="route-editor" class="route-editor" aria-label="Panel wiring route editor"></div>
+            <button id="copy-draft-route" class="editor-button" type="button">Copy draft suggestion to edit</button>
+            <button id="confirm-wiring-route" class="editor-button" type="button">Confirm wiring route revision</button>
+            <p id="route-editor-status" class="route-editor-status" aria-live="polite"></p>
+          </section>
           <div class="section-heading editor-subheading">
             <span>Design surface</span>
             <small>watertight GLB</small>
@@ -499,6 +519,12 @@ const exportProjectFolderButton =
   query<HTMLButtonElement>("#export-project-folder");
 const exportProjectZipButton =
   query<HTMLButtonElement>("#export-project-zip");
+const routeEditorSection = query<HTMLElement>("#route-editor-section");
+const routeEditorNote = query<HTMLElement>("#route-editor-note");
+const routeEditor = query<HTMLElement>("#route-editor");
+const copyDraftRouteButton = query<HTMLButtonElement>("#copy-draft-route");
+const confirmWiringRouteButton = query<HTMLButtonElement>("#confirm-wiring-route");
+const routeEditorStatus = query<HTMLElement>("#route-editor-status");
 const designSurfaceFileInput =
   query<HTMLInputElement>("#design-surface-file");
 const loadDesignSurfaceButton =
@@ -560,6 +586,8 @@ async function start(): Promise<void> {
     );
     let wiringPreview = hardwareContract.wiring;
     let mapping = hardwareContract.mapping;
+    let routeEditorModel: WiringRouteEditorModel | null =
+      createWiringRouteEditorModel(editorDefinition, wiringPreview);
     renderer = new SphereRenderer(viewerElement, mapping);
     renderer.setPanelProfileThickness(
       editorProject.panelProfile.dimensions.thickness,
@@ -694,6 +722,150 @@ async function start(): Promise<void> {
       outputLayerToggles = controls.map(
         (label) => label.querySelector<HTMLInputElement>("input")!,
       );
+    };
+
+    const renderRouteEditor = (): void => {
+      const isPanelized = mapping.topology === "panelized-sculpture";
+      routeEditorSection.hidden = !isPanelized;
+      if (!isPanelized || !routeEditorModel) {
+        routeEditor.replaceChildren();
+        routeEditorNote.textContent = "A panelized sculpture is required for route editing.";
+        copyDraftRouteButton.hidden = true;
+        confirmWiringRouteButton.disabled = true;
+        routeEditorStatus.textContent = "No panel route is available.";
+        return;
+      }
+      const model = routeEditorModel;
+      const validation = validateWiringRouteEditorModel(
+        editorDefinition,
+        model,
+      );
+      const isDraftSuggestion = !model.copiedDraftSuggestion;
+      const sourceLabel = model.source === "temporary-draft-suggestion"
+        ? "The shown route is a temporary draft suggestion. The saved route evidence is below."
+        : model.source === "draft-suggestion"
+          ? "The shown route is a draft suggestion. Copy it before you edit or confirm it."
+          : wiringPreview.status === "measured"
+            ? "This is the saved measured route. A new confirmation saves an authored revision and removes the old measurement approval."
+            : editorDefinition.wiring.routeRevision === undefined
+              ? "This saved route has no confirmed revision. Review it, then confirm revision 1."
+              : wiringPreview.status === "requires-review"
+                ? "This saved route requires review. Confirm it only after its order matches the sculpture."
+                : "This is the saved authored route. Edit it, then confirm a new route revision.";
+      routeEditorNote.textContent = sourceLabel;
+      copyDraftRouteButton.hidden = !isDraftSuggestion;
+      copyDraftRouteButton.disabled = !isDraftSuggestion;
+      confirmWiringRouteButton.disabled = !validation.valid;
+      routeEditorStatus.classList.toggle("route-editor-status--error", !validation.valid);
+      routeEditorStatus.textContent = validation.valid
+        ? `Route is complete. Confirm to save revision ${(editorDefinition.wiring.routeRevision ?? 0) + 1}.`
+        : validation.errors[0]!;
+
+      const nodeById = new Map(wiringPreview.nodes.map((node) => [node.panelId, node]));
+      const outputFields = model.outputs.map((output) => {
+        const fieldset = document.createElement("fieldset");
+        fieldset.className = "route-output";
+        fieldset.dataset.outputIndex = String(output.outputIndex);
+        const legend = document.createElement("legend");
+        legend.textContent = `${output.label} · GPIO ${output.gpio ?? "unknown"} · ${output.panelIds.length} panels`;
+        fieldset.append(legend);
+        const list = document.createElement("ol");
+        list.className = "route-output__list";
+        output.panelIds.forEach((panelId, chainPosition) => {
+          const item = document.createElement("li");
+          item.className = "route-panel";
+          item.dataset.panelId = panelId;
+          const node = nodeById.get(panelId);
+          const previousPanelId = output.panelIds[chainPosition - 1] ?? null;
+          const nextPanelId = output.panelIds[chainPosition + 1] ?? null;
+          const detail = document.createElement("div");
+          detail.className = "route-panel__detail";
+          const heading = document.createElement("strong");
+          heading.textContent = `${chainPosition + 1} / ${output.panelIds.length}. ${panelId}`;
+          const direction = document.createElement("small");
+          const din = node?.dinCorner ?? "DIN";
+          const dout = node?.doutCorner ?? "DOUT";
+          direction.textContent = `${previousPanelId ? `${previousPanelId} DOUT` : "Controller"} → ${panelId} DIN ${din}; ${panelId} DOUT ${dout} → ${nextPanelId ? `${nextPanelId} DIN` : "output end"}.`;
+          detail.append(heading, direction);
+          const selectPanel = document.createElement("button");
+          selectPanel.type = "button";
+          selectPanel.textContent = "Select";
+          selectPanel.setAttribute("aria-label", `Select panel ${panelId}`);
+          selectPanel.addEventListener("click", () => {
+            renderer?.selectEditorPanel(panelId);
+          });
+          const up = document.createElement("button");
+          up.type = "button";
+          up.textContent = "Up";
+          up.setAttribute(
+            "aria-label",
+            `Move ${panelId} up in ${output.label}`,
+          );
+          up.disabled = isDraftSuggestion || chainPosition === 0;
+          up.addEventListener("click", () => {
+            routeEditorModel = moveRoutePanelWithinOutput(
+              model, output.outputIndex, panelId, -1,
+            );
+            renderRouteEditor();
+          });
+          const down = document.createElement("button");
+          down.type = "button";
+          down.textContent = "Down";
+          down.setAttribute(
+            "aria-label",
+            `Move ${panelId} down in ${output.label}`,
+          );
+          down.disabled = isDraftSuggestion || chainPosition === output.panelIds.length - 1;
+          down.addEventListener("click", () => {
+            routeEditorModel = moveRoutePanelWithinOutput(
+              model, output.outputIndex, panelId, 1,
+            );
+            renderRouteEditor();
+          });
+          const assignment = document.createElement("label");
+          assignment.className = "route-panel__assignment";
+          assignment.textContent = "Output ";
+          const outputSelect = document.createElement("select");
+          outputSelect.setAttribute("aria-label", `Assign ${panelId} to controller output`);
+          outputSelect.disabled = isDraftSuggestion;
+          outputSelect.append(...model.outputs.map((candidate) => new Option(
+            `${candidate.label} (GPIO ${candidate.gpio ?? "unknown"})`,
+            String(candidate.outputIndex),
+            candidate.outputIndex === output.outputIndex,
+            candidate.outputIndex === output.outputIndex,
+          )));
+          outputSelect.addEventListener("change", () => {
+            routeEditorModel = moveRoutePanelToOutput(
+              model, panelId, Number(outputSelect.value),
+            );
+            renderRouteEditor();
+          });
+          assignment.append(outputSelect);
+          item.append(detail, selectPanel, up, down, assignment);
+          list.append(item);
+        });
+        fieldset.append(list);
+        return fieldset;
+      });
+      if (
+        wiringPreview.routeSource === "temporary-draft-suggestion" &&
+        wiringPreview.savedOutputPanelIds
+      ) {
+        const evidence = document.createElement("div");
+        evidence.className = "route-editor__evidence";
+        const heading = document.createElement("strong");
+        heading.textContent = "Saved route evidence requiring review";
+        const lines = document.createElement("ul");
+        for (const output of wiringPreview.savedOutputPanelIds) {
+          const line = document.createElement("li");
+          line.textContent = `Output ${output.outputIndex + 1}: ${output.panelIds.join(" → ")}`;
+          lines.append(line);
+        }
+        evidence.append(heading, lines);
+        routeEditor.replaceChildren(...outputFields, evidence);
+      } else {
+        routeEditor.replaceChildren(...outputFields);
+      }
     };
 
     const updateMappingStatus = (): void => {
@@ -883,6 +1055,10 @@ async function start(): Promise<void> {
         }
         renderEditorFaces();
       }
+      routeEditorModel = createWiringRouteEditorModel(
+        editorDefinition,
+        wiringPreview,
+      );
       engine.resize(mapping.entries.length);
       ledCountInput.value = String(mapping.entries.length);
       ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
@@ -892,6 +1068,7 @@ async function start(): Promise<void> {
       renderer?.setMapping(mapping);
       renderer?.setWiringPreview(wiringPreview);
       renderOutputLayerControls();
+      renderRouteEditor();
       resetTimeline();
       updateMappingStatus();
       return restoreGeneratedMechanics(selected);
@@ -1230,6 +1407,40 @@ async function start(): Promise<void> {
     });
     wiringLayerToggle.addEventListener("change", () => {
       renderer?.setWiringLayerVisible(wiringLayerToggle.checked);
+    });
+    copyDraftRouteButton.addEventListener("click", () => {
+      if (!routeEditorModel) return;
+      routeEditorModel = copyDraftSuggestionToRouteEditor(routeEditorModel);
+      renderRouteEditor();
+    });
+    confirmWiringRouteButton.addEventListener("click", () => {
+      void (async () => {
+        try {
+          if (!routeEditorModel) {
+            throw new Error("A panelized wiring route is unavailable.");
+          }
+          const edited = confirmWiringRouteEditorModel(
+            editorDefinition,
+            routeEditorModel,
+          );
+          const project = createPanelAssemblyProject(
+            edited,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          await applyLoadedSculpture(createLoadedSculpture(project));
+          pipelineStatus.classList.remove("pipeline-status--error");
+          pipelineStatus.textContent =
+            `Confirmed wiring route revision ${edited.wiring.routeRevision}. Save the JSON to keep this authored route.`;
+          viewerError.hidden = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+        }
+      })();
     });
     const loadSelectedSculpture = async (): Promise<void> => {
       const source = sculptureJsonInput.value.trim();
@@ -1748,7 +1959,12 @@ async function start(): Promise<void> {
       }
       renderer?.setMapping(mapping);
       renderer?.setWiringPreview(wiringPreview);
+      routeEditorModel = createWiringRouteEditorModel(
+        editorDefinition,
+        wiringPreview,
+      );
       renderOutputLayerControls();
+      renderRouteEditor();
       resetTimeline();
       ledCountDisplay.textContent = requested.toLocaleString();
       updateMappingStatus();
@@ -1758,6 +1974,7 @@ async function start(): Promise<void> {
     ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
     renderEditorFaces();
     renderOutputLayerControls();
+    renderRouteEditor();
     updateMappingStatus();
     const generatorStatus = await generatorStatusPromise;
     pipelineAvailable = generatorStatus.available;

@@ -261,6 +261,8 @@ export interface WiringDefinition {
      */
     panelIds?: string[];
   }>;
+  /** Incremented only after an operator confirms an exact route revision. */
+  routeRevision?: number;
   /** Only a passed PROOF-010 record may make this wiring hardware-verified. */
   hardwareProof?: {
     kind: "proof-010-hardware-verification";
