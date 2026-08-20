@@ -6,7 +6,8 @@
     "The north-pole pentagon is intentionally unpopulated: 30 square panels plus 11 pentagon-centre panels.",
     "Northern centre panels present their top edge toward the pole; southern centre panels present their bottom edge toward the pole.",
     "Logical effect indices run from global north to south; physical indices remain synthetic panel-major preview order.",
-    "Pixel-zero corner, serpentine order, controller outputs, and physical chain wiring remain unmeasured.",
+    "Pixel-zero corner and serpentine order use the assumed prototype convention until a numbered panel test replaces them.",
+    "The saved output route and GPIOs are the assumed prototype assembly contract; they are authored but not measured.",
     "Physical indices follow the displayed output routes.",
     "Within-panel physical order follows the panel profile: Back-view row snake: pixel 0 at bottom-left by DIN, first row left-to-right, alternating upward; this traversal derives pixel 63 at top-left while DOUT remains at top-right."
   ],
@@ -15,11 +16,15 @@
   "ledmapFingerprint": "31291c59",
   "readinessBlockers": [
     "Sculpture transforms and UV placement are provisional.",
-    "The panel data chains are still provisional.",
-    "Controller GPIO assignments are unknown.",
+    "The panel data chains are authored but not measured.",
     "Panel pixel-zero and within-panel order are not bench-verified.",
-    "Installed panel rotation and mirroring are unmeasured."
+    "The panel data chains are still provisional.",
+    "Legacy rotation and mirroring fields are unmeasured.",
+    "MAP-021 installed address transforms are not implemented.",
+    "MAP-030 WLED bus, color-order, and deployment contract is not implemented.",
+    "PWR-010 power-plan approval is required before hardware export."
   ],
+  "wiringLifecycle": "authored",
   "assumptions": {
     "withinPanelOrder": {
       "status": "provisional",
@@ -35,7 +40,7 @@
   "outputs": [
     {
       "outputIndex": 0,
-      "gpio": null,
+      "gpio": 16,
       "startIndex": 0,
       "pixelCount": 704,
       "panelIds": [
@@ -54,7 +59,7 @@
     },
     {
       "outputIndex": 1,
-      "gpio": null,
+      "gpio": 17,
       "startIndex": 704,
       "pixelCount": 640,
       "panelIds": [
@@ -72,7 +77,7 @@
     },
     {
       "outputIndex": 2,
-      "gpio": null,
+      "gpio": 18,
       "startIndex": 1344,
       "pixelCount": 640,
       "panelIds": [
@@ -90,7 +95,7 @@
     },
     {
       "outputIndex": 3,
-      "gpio": null,
+      "gpio": 19,
       "startIndex": 1984,
       "pixelCount": 640,
       "panelIds": [
@@ -108,16 +113,18 @@
     }
   ],
   "wiring": {
-    "status": "generated-provisional",
+    "status": "authored",
     "controller": {
       "placement": "near-top",
       "status": "provisional"
     },
+    "routeSource": "authored-route",
+    "savedOutputPanelIds": null,
     "outputs": [
       {
         "outputIndex": 0,
         "label": "Output 1",
-        "gpio": null,
+        "gpio": 16,
         "color": 3596496,
         "cssColor": "#36e0d0",
         "panelIds": [
@@ -137,7 +144,7 @@
       {
         "outputIndex": 1,
         "label": "Output 2",
-        "gpio": null,
+        "gpio": 17,
         "color": 16751964,
         "cssColor": "#ff9d5c",
         "panelIds": [
@@ -156,7 +163,7 @@
       {
         "outputIndex": 2,
         "label": "Output 3",
-        "gpio": null,
+        "gpio": 18,
         "color": 11898111,
         "cssColor": "#b58cff",
         "panelIds": [
@@ -175,7 +182,7 @@
       {
         "outputIndex": 3,
         "label": "Output 4",
-        "gpio": null,
+        "gpio": 19,
         "color": 13036904,
         "cssColor": "#c6ed68",
         "panelIds": [
@@ -1056,10 +1063,10 @@
       }
     ],
     "notes": [
-      "Data routes begin near the sculpture top according to the provisional controller placement.",
+      "Panel route order is authored and persists exactly as saved.",
       "DIN is bottom-left and DOUT is top-right in the measured back-view panel convention.",
       "The connector marker inset remains schematic until exact pad centres are measured.",
-      "GPIO numbers and the final per-output chain order remain TBD."
+      "GPIO numbers are assigned but not measured. Installed panel orientation and within-panel pixel order remain provisional."
     ]
   },
   "panels": [

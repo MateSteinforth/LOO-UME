@@ -354,17 +354,16 @@ effect engine.
 
 ### Wiring preview layers
 
-The generated wiring is data-only and assumes the controller is near the
+The saved wiring route is data-only and assumes the controller is near the
 sculpture top. The panelized view has independently hideable DIN/DOUT markers,
 within-panel direction arrows, panel-to-panel routes, and one toggle for each
 of four output routes. The connector direction comes from the reusable panel
 profile: DIN is bottom-left and DOUT is top-right when viewed from the back
 with the three
 mounting holes vertical. The marker inset remains schematic until the exact pad
-centres are measured. The current 11/10/10/10 panel grouping is a generated
-geographic design used by both the layer UI and provisional WLED map. GPIO
-assignments are deliberately `null`, and panel wiring is marked `provisional`
-rather than measured.
+centres are measured. The current 11/10/10/10 panel grouping is the saved
+authored prototype route used by both the layer UI and WLED map. GPIOs 16–19
+are saved assumptions. The route is authored, but it is not measured.
 
 `tests/hardware-mapping.test.ts` loads the same two JSON files as the browser,
 sends a logical frame through the ledmap, and verifies that every resulting

@@ -25,9 +25,20 @@ test("copies, confirms, saves, and reopens an authored wiring route", async ({ p
     "sculpture JSON face graph",
   );
 
-  const projectBytes = await readFile(
+  const project = JSON.parse(await readFile(
     "sculptures/rhombicosidodecahedron/sculpture.json",
-  );
+    "utf8",
+  )) as {
+    wiring: {
+      status: string;
+      routeRevision?: number;
+      outputs: Array<{ panelIds?: string[] }>;
+    };
+  };
+  project.wiring.status = "provisional";
+  delete project.wiring.routeRevision;
+  for (const output of project.wiring.outputs) delete output.panelIds;
+  const projectBytes = Buffer.from(JSON.stringify(project));
   await chooseFile(page, "#load-sculpture-file", {
     name: "rhombicosidodecahedron.json",
     mimeType: "application/json",
@@ -38,7 +49,7 @@ test("copies, confirms, saves, and reopens an authored wiring route", async ({ p
   await expect(page.locator("#copy-draft-route")).toBeVisible();
   await expect(page.locator("#confirm-wiring-route")).toBeDisabled();
   await expect(page.locator(".route-output legend").first()).toContainText(
-    "GPIO unknown",
+    "GPIO 16",
   );
   await expect(page.locator(".route-panel")).toHaveCount(41);
   await expect(page.locator(".route-panel").first()).toContainText("Controller →");

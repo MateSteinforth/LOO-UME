@@ -367,7 +367,9 @@ export function createProvisionalWiringPreview(
       lifecycle === "measured"
         ? "Route and controller facts are measured. Hardware verification still requires the separate PROOF-010 evidence record."
         : usesAuthoredRoutes
-        ? "GPIO numbers, installed panel orientation, and within-panel pixel order remain TBD."
+        ? definition.wiring.outputs.every((output) => output.gpio !== null)
+          ? "GPIO numbers are assigned but not measured. Installed panel orientation and within-panel pixel order remain provisional."
+          : "GPIO numbers remain TBD. Installed panel orientation and within-panel pixel order remain provisional."
         : "GPIO numbers and the final per-output chain order remain TBD.",
     ],
   };

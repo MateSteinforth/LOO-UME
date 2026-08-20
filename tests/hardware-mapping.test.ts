@@ -161,7 +161,10 @@ describe("hardware mapping contract", () => {
     const loaded = loadGeneratedHardwareMappingContract(panelMap, ledmap);
 
     expect(loaded.fingerprint).toBe("31291c59");
-    expect(loaded.wiring.status).toBe("draft");
+    expect(loaded.wiring.status).toBe("authored");
+    expect(loaded.wiring.outputs.map((output) => output.gpio)).toEqual([
+      16, 17, 18, 19,
+    ]);
     expect(loaded.mapping.entries).toHaveLength(2624);
     expect(loaded.wiring.outputs).toHaveLength(4);
 

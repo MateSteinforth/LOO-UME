@@ -40,7 +40,7 @@ describe("manual 41-panel pose-first sculpture", () => {
     );
   });
 
-  it("preserves the golden mapping and four provisional outputs", () => {
+  it("preserves the golden mapping and exact assumed prototype outputs", () => {
     const project = loadProject();
     const mapping = createPanelAssemblyMapping(project);
     const wiring = createProvisionalWiringPreview(
@@ -60,6 +60,18 @@ describe("manual 41-panel pose-first sculpture", () => {
     expect(mapping.printableClosures).toBeUndefined();
     expect(wiring.outputs.map((output) => output.panelIds.length)).toEqual([
       11, 10, 10, 10,
+    ]);
+    expect(wiring.status).toBe("authored");
+    expect(wiring.routeSource).toBe("authored-route");
+    expect(wiring.outputs.map((output) => output.gpio)).toEqual([
+      16, 17, 18, 19,
+    ]);
+    expect(wiring.notes.join(" ")).toContain(
+      "GPIO numbers are assigned but not measured",
+    );
+    expect(project.sculpture.wiring.routeRevision).toBe(1);
+    expect(contract.outputs.map((output) => output.startIndex)).toEqual([
+      0, 704, 1_344, 1_984,
     ]);
     expect(contract.fingerprint).toBe("31291c59");
   });

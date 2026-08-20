@@ -222,8 +222,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-None.
-
 ## Blocked
 
 ### `INSTALL-011` Complete the one-command clean-checkout bootstrap — umbrella
@@ -373,6 +371,27 @@ None.
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `WIRE-014` Save the assumed 41-panel prototype route and GPIOs — P0
+
+- Outcome: the flagship source now stores the exact simulator route as
+  authored route revision 1 and binds outputs 0–3 to GPIOs 16–19.
+- Acceptance: all 41 panel IDs occur exactly once in saved 11/10/10/10 order;
+  the lifecycle is authored; notes and UI identify the route and GPIOs as
+  assumptions, not measurements; browser draft coverage remains synthetic.
+- Evidence: Schema validation reports 41 panels and 2,624 LEDs; focused tests
+  pass 32/32; full Vitest passes 244/244; the Playwright draft journey passes;
+  TypeScript and `git diff --check` pass. The generated panel map has the saved
+  authored route, 2,624 unique addresses, and unchanged fingerprint
+  `31291c59`. Independent review found the route internally consistent and its
+  stale-documentation finding is resolved.
+- Depends on: `WIRE-011` at `d8ac08d` and `HW-016` at `f1b728c`.
+- Owner: branch `codex/wire-014-prototype-route`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: flagship sculpture JSON, generated panel-map review
+  artifact, wiring preview wording, and route/browser tests.
+- Merge rule: stop at Ready to Merge; do not merge into `main` without explicit
+  operator authorization.
 
 ### `HW-016` Establish the assumed prototype hardware baseline — P0
 

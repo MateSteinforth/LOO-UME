@@ -1,6 +1,6 @@
 # LED mapping and wiring
 
-> **Assembly gate:** the current 11/10/10/10 route and provisional ledmap are
+> **Assembly gate:** the current authored 11/10/10/10 route and review ledmap are
 > review data, not build instructions. The assumed prototype contract permits
 > staged assembly only after that route is explicitly saved and the matching
 > bus/power files exist. Start with one fused panel, then one output. Do not
@@ -8,8 +8,8 @@
 
 The operator authorized a concrete assumed prototype baseline on 2026-08-20.
 See [`PROTOTYPE_HARDWARE.md`](PROTOTYPE_HARDWARE.md). It selects the controller,
-GPIOs, and a limited power topology, but it does not convert the draft route or
-unmeasured panel facts into measured evidence.
+GPIOs, and a limited power topology, but it does not convert the authored
+assumed route or unmeasured panel facts into measured evidence.
 
 ## Three orders, one contract
 
@@ -112,10 +112,13 @@ The manual 41-panel snapshot currently resolves to:
 
 | Output | Panels | Physical range | GPIO |
 | ---: | ---: | ---: | --- |
-| 0 | 11 | 0–703 | `null` |
-| 1 | 10 | 704–1343 | `null` |
-| 2 | 10 | 1344–1983 | `null` |
-| 3 | 10 | 1984–2623 | `null` |
+| 0 | 11 | 0–703 | 16 |
+| 1 | 10 | 704–1343 | 17 |
+| 2 | 10 | 1344–1983 | 18 |
+| 3 | 10 | 1984–2623 | 19 |
+
+This is the saved route revision 1. The route and GPIO assignments are
+prototype assumptions. They are authored, but they are not measured.
 
 The committed fingerprint is `31291c59`. It is FNV-style over only the low 16
 bits of each physical index: useful for current artifact drift, not a
@@ -182,7 +185,9 @@ transforms/UVs, chains, GPIOs, pixel order, and installed rotation/mirroring
 checks. It is not address or hardware readiness: every controller-ready export
 remains blocked until `MAP-021`, `MAP-030`, and `PWR-010` complete. Draft,
 authored, requires-review, and inactive hardware-verified routes report a
-lifecycle blocker. Current flagship data remains draft and GPIOs are unknown.
+lifecycle blocker. The flagship route and GPIOs are authored assumptions.
+Installed address transforms, pixel traversal, color order, bus configuration,
+power acceptance, and proof remain incomplete.
 
 The JSON Schema requires `panelIds` for explicit non-draft lifecycle states and
 requires the shaped proof receipt for `hardware-verified`. Exact all-output

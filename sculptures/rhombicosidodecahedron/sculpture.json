@@ -1576,11 +1576,12 @@
       "The north-pole pentagon is intentionally unpopulated: 30 square panels plus 11 pentagon-centre panels.",
       "Northern centre panels present their top edge toward the pole; southern centre panels present their bottom edge toward the pole.",
       "Logical effect indices run from global north to south; physical indices remain synthetic panel-major preview order.",
-      "Pixel-zero corner, serpentine order, controller outputs, and physical chain wiring remain unmeasured."
+      "Pixel-zero corner and serpentine order use the assumed prototype convention until a numbered panel test replaces them.",
+      "The saved output route and GPIOs are the assumed prototype assembly contract; they are authored but not measured."
     ]
   },
   "wiring": {
-    "status": "provisional",
+    "status": "authored",
     "controller": {
       "placement": "near-top",
       "status": "provisional"
@@ -1592,6 +1593,7 @@
       10,
       10
     ],
+    "routeRevision": 1,
     "connector": {
       "edgeInset": 4,
       "surfaceOffset": 2.4
@@ -1600,26 +1602,75 @@
       {
         "outputIndex": 0,
         "label": "Output 1",
-        "gpio": null,
-        "color": "#36e0d0"
+        "gpio": 16,
+        "color": "#36e0d0",
+        "panelIds": [
+          "SQ-03",
+          "SQ-04",
+          "PC-04",
+          "SQ-08",
+          "SQ-16",
+          "PC-08",
+          "SQ-28",
+          "SQ-23",
+          "SQ-24",
+          "SQ-17",
+          "SQ-18"
+        ]
       },
       {
         "outputIndex": 1,
         "label": "Output 2",
-        "gpio": null,
-        "color": "#ff9d5c"
+        "gpio": 17,
+        "color": "#ff9d5c",
+        "panelIds": [
+          "SQ-05",
+          "PC-05",
+          "SQ-09",
+          "SQ-19",
+          "PC-09",
+          "SQ-29",
+          "SQ-25",
+          "PC-10",
+          "SQ-20",
+          "SQ-10"
+        ]
       },
       {
         "outputIndex": 2,
         "label": "Output 3",
-        "gpio": null,
-        "color": "#b58cff"
+        "gpio": 18,
+        "color": "#b58cff",
+        "panelIds": [
+          "SQ-01",
+          "PC-01",
+          "SQ-06",
+          "SQ-12",
+          "PC-06",
+          "SQ-26",
+          "PC-11",
+          "SQ-30",
+          "SQ-21",
+          "SQ-11"
+        ]
       },
       {
         "outputIndex": 3,
         "label": "Output 4",
-        "gpio": null,
-        "color": "#c6ed68"
+        "gpio": 19,
+        "color": "#c6ed68",
+        "panelIds": [
+          "SQ-02",
+          "PC-02",
+          "SQ-07",
+          "PC-03",
+          "SQ-15",
+          "PC-07",
+          "SQ-27",
+          "SQ-22",
+          "SQ-13",
+          "SQ-14"
+        ]
       }
     ]
   },
@@ -1631,7 +1682,8 @@
   },
   "notes": [
     "The north-pole pentagonal opening is intentionally unpopulated.",
-    "The geographic four-output route is a preview and not a hardware fact.",
+    "Route revision 1 saves the authorized assumed prototype order from the browser draft; it is not measured evidence.",
+    "GPIOs 16, 17, 18, and 19 follow the assumed ESP32-DevKitC V4 contract in docs/PROTOTYPE_HARDWARE.md.",
     "Panel poses were migrated once from the legacy named-solid compiler and are now authoritative.",
     "Generic closure generation is intentionally disabled; use the physically tested authored SCAD parts."
   ]

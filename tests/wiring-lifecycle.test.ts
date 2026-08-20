@@ -58,6 +58,9 @@ async function authoredManual(): Promise<PanelAssemblyDefinition> {
 describe("Schema 2 wiring lifecycle", () => {
   it("derives legacy provisional routes as draft without rewriting them", async () => {
     const definition = await loadManual();
+    definition.wiring.status = "provisional";
+    delete definition.wiring.routeRevision;
+    for (const output of definition.wiring.outputs) delete output.panelIds;
     const { project, mapping } = projectFor(definition);
     const preview = createProvisionalWiringPreview(
       mapping, definition, project.panelProfile,
