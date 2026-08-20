@@ -10,10 +10,11 @@ This file is the persistent source of truth for work status. Read it before star
 
 | Agent | Task | Status | Branch | Worktree |
 | --- | --- | --- | --- | --- |
-| Grok | `CTRL-004` | In Progress | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
-| Codex | `CTRL-004` (concurrent uncommitted reconstruction) | see that worktree | `codex/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron` |
+| Grok | standing workspace; no implementation claimed | idle | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
+| Grok | `CTRL-004` reconstruction snapshot | frozen | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
+| Codex | `CTRL-004` | committed on that branch | `codex/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron` |
 
-Do not start an implementation slice until the operator approves a vertical slice. `CTRL-004` is documentation-only.
+Grok now works only in `/home/mate/Documents/led-rhombicosidodecahedron-grok` on `grok/workspace`. Do not edit the Codex worktree or the frozen reconstruction worktree. Do not start an implementation slice until the operator approves one. `CTRL-004` remains documentation-only and is not merged to `main`.
 
 ## Control rules
 
@@ -182,9 +183,12 @@ approves a vertical slice after `CTRL-004`.
   no-automatic-merge rule are explicit; Grok and Codex routing are recorded;
   Markdown links and diff hygiene pass.
 - Depends on: none.
-- Owner: Grok; branch `grok/ctrl-004-reconstruct-project`; worktree
-  `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004`.
-- Concurrent risk: Codex has uncommitted edits to the same four files on
+- Grok snapshot: branch `grok/ctrl-004-reconstruct-project` at `a3c73ea`;
+  worktree `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004`.
+  Leave that worktree frozen.
+- Grok standing workspace: branch `grok/workspace`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron-grok`.
+- Concurrent risk: Codex committed a separate reconstruction at `9e0659a` on
   `codex/ctrl-004-reconstruct-project` in
   `/home/mate/Documents/led-rhombicosidodecahedron`. Do not merge either copy
   into `main` without operator choice.
