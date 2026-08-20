@@ -82,12 +82,14 @@ uses `createPanelAssemblyMapping()`.
   page. Reuse the recorded solution; do not repeat the failed discovery process.
 - Treat delivery cleanup as part of every successfully completed task; the
   operator must not need to request it again. After a scoped change is clean and
-  verified, commit it, merge or fast-forward it into the intended base branch,
-  and push the integrated result. After the push succeeds, remove any temporary
-  task worktree, delete its merged local task branch, and delete a remote task
-  branch only when this task created it and repository policy does not require
-  it to remain. If the work ran in a separate agent, task, or thread, archive or
-  close it after its handoff is captured and its result is integrated.
+  verified, commit it on its task branch, push that branch when permitted, and
+  move the task to **Ready to Merge**. Do not merge or fast-forward into `main`
+  without an explicit operator request. After an authorized integration push
+  succeeds, remove any temporary task worktree, delete its merged local task
+  branch, and delete a remote task branch only when this task created it and
+  repository policy does not require it to remain. If the work ran in a
+  separate agent, task, or thread, archive or close it after its handoff is
+  captured and its result is integrated.
 - Before cleanup, verify that the task worktree is clean, the task branch is
   merged into the intended base, and the integrated commit is present on the
   destination remote. Never delete a dirty worktree, an unmerged branch, another
@@ -161,6 +163,27 @@ uses `createPanelAssemblyMapping()`.
 
 ## Agentic workflow
 
+### Shared repository and model routing
+
+- Assume that Codex, Grok, and other agents can work concurrently. Never
+  discard unfamiliar changes or assume exclusive ownership of a branch,
+  worktree, file, or remote ref.
+- Use `main` only as the integration baseline. Give each substantial
+  implementation slice its own branch and worktree. Record that ownership and
+  likely file conflicts in `TASKS.md` before code changes start.
+- Never force-push, reset shared history, delete another agent's branch or
+  worktree, or merge into `main` without explicit operator authorization.
+- Use GPT-5.6 Luna for bounded inspection, test execution, log review,
+  mechanical edits, and first-pass review. Use GPT-5.6 Terra for normal
+  implementation and medium-complexity debugging. Reserve GPT-5.6 Sol for
+  orchestration, architecture, hard debugging, high-risk refactors,
+  geometry, and final review where correctness needs it.
+- Parallelize only independent seams. Do not assign concurrent edits to the
+  same file or subsystem unless one orchestrator coordinates the overlap.
+- Require a separate review pass before an implementation task can become
+  **Ready to Merge**. Agent reports are inputs to that review, not proof that
+  the integrated worktree is correct.
+
 An agent assigned as orchestrator owns the result end to end. It may divide the
 work, but it remains responsible for scope, architectural consistency,
 integration, verification, and the final report. Use this operating loop:
@@ -190,11 +213,13 @@ integration, verification, and the final report. Use this operating loop:
    `FAILURES.md` during the same task. Fix the underlying workflow or canonical
    guidance as well when practical; the log is not a substitute for a fix.
 6. **Close the loop.** Review the final diff for accidental changes, verify the
-   acceptance criteria, commit, integrate, push, and safely clean up the task
+   acceptance criteria, commit and push the task branch when permitted, then
+   move the task to **Ready to Merge**. Integrate into `main` only after an
+   explicit operator request. After integration, safely clean up the task
    branch, worktree, and separate agent or thread as required by **Working
-   safely**. Then report what changed, what was tested, the integrated commit,
-   and any remaining uncertainty. Do not describe a partial or unverified
-   result as complete.
+   safely**. Report what changed, what was tested, the task commit, and any
+   remaining uncertainty. Do not describe a partial or unverified result as
+   complete.
 
 Delegated agents should return a compact handoff containing changed files,
 checks run and their results, assumptions or unresolved risks, and any proposed

@@ -201,6 +201,26 @@ not a complete installer. The operational manifest and base-toolchain setup
 remain incomplete until Node.js/npm and an approved relocatable Python supply
 are pinned for all three targets.
 
+## D12 — A folder is the native portable project; ZIP is transport
+
+**Decision.** A portable project consists of one authoritative
+`sculpture.json` and its referenced assets at safe relative paths. Folder and
+ZIP operations preserve those paths and exact bytes. Every referenced GLB and
+STL is SHA-256 verified before use or export; missing or mismatched bytes fail
+closed. Browser object URLs are runtime adapters and never become saved project
+data.
+
+**Evidence.** `web/src/PortableProject.ts`,
+`web/src/GeneratedMechanicsAssets.ts`, `src/sculpture/GeneratedMechanics.ts`,
+`scripts/editor-pipeline-handler.ts`, `tests/portable-project.test.ts`, and
+`tests/browser/portable-project.spec.ts`; commits `0df76c7`, `5fa1b60`,
+`e729e90`, and `ab9a96a`.
+
+**Consequence.** Do not add a database, `localStorage`, absolute asset paths,
+URL fetching during export, or a second archive-specific project model. ZIP
+resource limits remain required hardening under `SEC-010`; they must preserve
+this folder-first contract.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

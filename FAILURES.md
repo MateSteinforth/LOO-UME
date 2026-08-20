@@ -242,3 +242,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/browser/portable-project.spec.ts` and the browser-test
   rule in `AGENTS.md`.
 - **Status:** Resolved.
+
+### F-013 — A clean checkout can lack a Git author identity
+
+- **Date:** 2026-08-20
+- **Context:** CTRL-004 documentation-only task closeout.
+- **Symptom:** `git commit` stopped before creating a commit because Git could
+  not determine `user.name` or `user.email`.
+- **Cause:** This checkout had no local or global author configuration.
+- **Correction:** Re-run the task commit with the established repository author
+  supplied through command-local `git -c user.name=... -c user.email=...`
+  values. Do not change global Git configuration.
+- **Prevention:** Before task closeout, inspect the recent repository author and
+  either confirm configured identity or use matching command-local values. Do
+  not invent a personal identity or store one globally.
+- **Evidence:** The failed CTRL-004 commit attempt and existing commits authored
+  by `Codex <codex@openai.com>`.
+- **Status:** Resolved.

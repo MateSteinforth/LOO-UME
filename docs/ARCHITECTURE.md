@@ -233,6 +233,35 @@ guarded writes, and a zero-copy `0x00RRGGBB` buffer. It excludes networking,
 drivers, presets, multiple segments, 2D/audio effects, DDP, Art-Net, and firmware
 configuration.
 
+## Verification boundaries
+
+The repository has three verification layers, and they prove different things:
+
+- Vitest covers the active Schema 2 model, editing, placement, mapping/wiring,
+  boundary validation, CAD staging, portable-project handling, local hosting,
+  managed OpenSCAD, and the deterministic WLED host. Most CAD tests use a
+  deterministic renderer so geometry contracts can run without OpenSCAD.
+- Playwright Chromium has two real operator journeys. One covers mechanics-free
+  JSON/GLB authoring, placement, editing, simulation, mapping, wiring, and save.
+  The other covers folder/ZIP controls, exact GLB/STL transport, staleness,
+  invalid assets, reopen, and object-URL cleanup.
+- CI rebuilds and tests the pinned WLED runtime, runs TypeScript and Vite checks,
+  validates managed OpenSCAD on the declared platforms, and renders canonical
+  manual parts. It also uses real managed OpenSCAD for a generic boundary-parts
+  smoke render. The dedicated `CI-010` journey remains open because CI does not
+  yet combine automatic-topology coverage, invalid-input rejection before
+  OpenSCAD, every exact part, and retained failure evidence in one contract.
+
+The two browser journeys do not yet prove the complete arbitrary-project flow
+through the **Generate 3D Parts** control. `UI-010` remains the vertical slice
+that must join real placement/editing, automatic topology, local OpenSCAD,
+exact-part display, ZIP export, and reopen without injected topology or assets.
+
+Automatic installation is also incomplete. The committed stage-zero binaries
+are the present trust root, but base-toolchain acquisition waits for the Python
+provider decision in `HR-013`. `INSTALL-011B`, `INSTALL-011C`, and
+`INSTALL-012` are therefore blocked rather than available implementation work.
+
 ## Current architectural seams
 
 - Schema 1 remains in `Definition.ts`, its JSON Schema/migration fixture,
@@ -264,6 +293,11 @@ configuration.
   export, verifies exact GLB/STL bytes and hashes, checks current and stale
   mechanics, rejects missing or tampered assets, reopens the exported ZIP, and
   verifies object-URL release when a project is replaced.
+- ZIP import validates paths and hashes but does not yet enforce entry-count,
+  per-entry size, aggregate uncompressed-size, or compression-ratio limits
+  before buffering the archive (`SEC-010`).
+- Automatic surface placement distributes panel centers but does not preflight
+  complete panel footprints for overlap (`PLACE-010`).
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

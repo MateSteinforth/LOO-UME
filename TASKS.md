@@ -1,7 +1,7 @@
 # Project task board
 
-Last reconciled: 2026-08-14
-Backlog reconstructed from: `main` at `5fa1b60`
+Last reconciled: 2026-08-20
+Backlog reconstructed from: `main` at `ab9a96a`
 Current milestone: make the arbitrary-project workflow complete: GLB -> panel placement/editing -> automatically close the flat gaps between panels -> watertight boundary -> printable parts -> exact referenced assets -> folder/ZIP reopen. The installed desktop system serves its interface locally and runs OpenSCAD on that same computer.
 
 This file is the persistent source of truth for work status. Read it before starting work and update it whenever a task changes state.
@@ -10,13 +10,24 @@ This file is the persistent source of truth for work status. Read it before star
 
 1. Use the stable task IDs below in commits, reviews, and handoffs.
 2. Prefer independently testable end-to-end slices. Do not introduce a second pose, mapping, boundary, fabrication, or project-file architecture.
-3. Pick the first unblocked task in **Ready** unless the user changes priorities. Keep at most one implementation slice in **In Progress**; bounded audits may run in parallel.
+3. Use this lifecycle in order: **Backlog** -> **Ready** -> **In Progress** ->
+   **Blocked** or **Human Review** when needed -> **Ready to Merge** ->
+   **Done**. Pick the first unblocked task in **Ready** unless the user changes
+   priorities. Keep at most one implementation slice in **In Progress**;
+   bounded audits may run in parallel.
 4. Record dependencies and acceptance checks before moving a task to **In Progress**.
 5. After implementation, assign a separate subagent to test/review it. A failed review returns the task to **In Progress** or **Ready** with the failure recorded.
 6. Move tasks requiring a product decision, visual check, or physical check to **Human Review**. Do not mark them **Done** without explicit approval.
 7. Update the relevant architecture and knowledge pages in the same slice whenever behavior or an invariant changes.
 8. Subagents report to the primary agent. The user is never used as a message relay.
 9. Generated artifacts are not authored truth, except for the deliberately tracked WLED WASM runtime documented in `AGENTS.md`.
+10. Every active task records scope/outcome, acceptance criteria, dependencies,
+    and verification. An **In Progress** or **Ready to Merge** task also records
+    its owning branch and worktree plus likely file conflicts.
+11. A completed task stops at **Ready to Merge**. Merge into `main` only after
+    explicit operator authorization. After authorized integration and remote
+    verification, move it to **Done** and apply the safe cleanup rules in
+    `AGENTS.md`.
 
 ## Backlog
 
@@ -90,44 +101,22 @@ This file is the persistent source of truth for work status. Read it before star
 - Depends on: `INSTALL-014` and provisioned ephemeral Windows client runner images.
 - Deferred by: the operator selected Linux and macOS as the current required targets. Windows candidate code and CI checks stay implemented, but Windows client qualification does not block `INSTALL-011` or `INSTALL-012`.
 
-### `INSTALL-011` Complete the one-command clean-checkout bootstrap — umbrella
-
-- Outcome: one Linux/macOS command installs and connects every dependency needed to build, test, start, and generate parts after a clean clone.
-- Delivery: complete `INSTALL-011A`, `INSTALL-011B`, and `INSTALL-011C` in order. Keep this umbrella open until all three slices pass.
-- Constraint: Windows remains a retained candidate and is not a completion gate.
-
 ## Ready
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
+### `UI-010` Complete the arbitrary-project acceptance journey — P0
 
-### `INSTALL-011B` Acquire the repository-local base toolchain — P0
-
-- Outcome: the documented POSIX entry point starts from the chosen stage-zero supply and acquires pinned repository-local Node.js/npm and Python for the selected Linux/macOS target.
-- Acceptance: no administrator, system package-manager, profile, or global `PATH` change; exact size/hash verification; target-bound receipts; atomic promotion; safe warm reuse, interruption recovery, and paths with spaces; no undeclared system executable.
-- Depends on: `INSTALL-011A` and the Python distribution choice in `HR-013`.
-- Verify: injected download/extraction failures, tampered cache, unsupported tuple, empty/warm retry, and native executable/version checks.
-
-### `INSTALL-011C` Orchestrate the complete clean-checkout setup — P0
-
-- Outcome: one command uses the managed base toolchain to initialize WLED, install exact npm dependencies, acquire OpenSCAD, install pinned Emscripten, verify generator availability, and print the managed desktop start command.
-- Acceptance: all subprocesses use explicit managed paths; repeated and interrupted runs are safe; failures name the dependency and recovery action; Windows candidate behavior may remain but is not a completion gate.
-- Depends on: `INSTALL-011B`, `INSTALL-010`, and `INSTALL-013`.
-- Verify: empty-cache and warm-cache integration tests, interruption recovery, `npm run verify`, real OpenSCAD generation, and a local production-server smoke test.
-- Docs: make this the primary Linux/macOS installation path and list only the chosen stage-zero supply as the prerequisite.
-
-### `INSTALL-012` Prove automatic installation on clean supported systems — P0
-
-- Outcome: every current required platform proves that a fresh clone becomes a working local production editor without a manual Node, npm, Python, OpenSCAD, SDK, utility, PATH, or dependency-wiring step.
-- Acceptance:
-  - CI starts from clean Linux and macOS environments for every OS/architecture pair declared required by the bootstrap.
-  - Each job runs only the documented bootstrap and start commands, sees generator status `available: true`, generates exact STL files with real OpenSCAD, and shuts down cleanly.
-  - Cached tools are verified before reuse; tampered downloads, unsupported systems, offline failures, and partial installs fail safely and actionably.
-- Windows candidate CI may remain as non-gating compatibility evidence; it does not define a current supported target.
-- Depends on: `INSTALL-010`, `INSTALL-011C`, `INSTALL-013`, and reuse of the real-render journey from `CI-010`.
-- Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
-- Docs: publish the tested Linux and macOS matrix and state clearly which repository installation command applies to each required platform.
-
+- Outcome: GLB -> auto-place -> manual edit -> automatic topology -> boundary ->
+  exact STL parts -> display -> ZIP -> reopen works through the real UI.
+- Acceptance: the browser test starts without `boundaryTopology`, drives the
+  real local generator and OpenSCAD, injects no topology or asset bytes, and
+  verifies the saved/reopened project and exact referenced parts.
+- Depends on: completed `MECH-010`, `MECH-011`, `ASSET-010`, `TEST-010`, and
+  `TEST-011`. Reuse `CI-010` real-render setup where practical, but do not
+  duplicate its helper-level assertions.
+- Verify: focused Playwright Chromium journey, existing browser journeys,
+  focused pipeline tests, and real OpenSCAD output inspection.
 
 ### `CI-010` Exercise the panel-outline boundary-to-parts route with real OpenSCAD — P1
 
@@ -163,19 +152,42 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-### `TEST-011` Cover folder/ZIP controls in the browser — P1
-
-- Outcome: exercise the shipped portable-project controls end to end.
-- Acceptance: ZIP import restores referenced GLB and exact STL URLs; edit marks parts stale; export downloads a valid ZIP; reopen preserves bytes/hashes; missing/tampered assets show an actionable error; old object URLs are released.
-- Depends on: `TEST-010`.
+No implementation task is active. `CTRL-004` is awaiting merge review below.
 
 ## Blocked
 
-### `UI-010` Complete the arbitrary-project acceptance journey
+### `INSTALL-011` Complete the one-command clean-checkout bootstrap — umbrella
 
-- Outcome: GLB -> auto-place -> manual edit -> topology -> boundary -> exact STL parts -> display -> ZIP -> reopen works through the real UI.
-- Remaining blocker: `TEST-011`; automatic topology detection shipped in `MECH-010`, local production generation shipped in `MECH-011`, and real browser mechanics-free authoring coverage shipped in `TEST-010`.
-- Acceptance: no hand-authored topology, fake renderer, or manual asset injection is required by the test.
+- Outcome: one Linux/macOS command installs and connects every dependency needed to build, test, start, and generate parts after a clean clone.
+- Acceptance: `INSTALL-011A`, `INSTALL-011B`, and `INSTALL-011C` all pass in order; Windows remains a retained candidate and is not a completion gate.
+- Blocked by: `HR-013`, then `INSTALL-011B` and `INSTALL-011C`.
+
+### `INSTALL-011B` Acquire the repository-local base toolchain — P0
+
+- Outcome: the documented POSIX entry point starts from the chosen stage-zero supply and acquires pinned repository-local Node.js/npm and Python for the selected Linux/macOS target.
+- Acceptance: no administrator, system package-manager, profile, or global `PATH` change; exact size/hash verification; target-bound receipts; atomic promotion; safe warm reuse, interruption recovery, and paths with spaces; no undeclared system executable.
+- Blocked by: the Python distribution choice in `HR-013`. `INSTALL-011A` is complete.
+- Verify: injected download/extraction failures, tampered cache, unsupported tuple, empty/warm retry, and native executable/version checks.
+
+### `INSTALL-011C` Orchestrate the complete clean-checkout setup — P0
+
+- Outcome: one command uses the managed base toolchain to initialize WLED, install exact npm dependencies, acquire OpenSCAD, install pinned Emscripten, verify generator availability, and print the managed desktop start command.
+- Acceptance: all subprocesses use explicit managed paths; repeated and interrupted runs are safe; failures name the dependency and recovery action; Windows candidate behavior may remain but is not a completion gate.
+- Blocked by: `INSTALL-011B`; `INSTALL-010` and `INSTALL-013` are complete.
+- Verify: empty-cache and warm-cache integration tests, interruption recovery, `npm run verify`, real OpenSCAD generation, and a local production-server smoke test.
+- Docs: make this the primary Linux/macOS installation path and list only the chosen stage-zero supply as the prerequisite.
+
+### `INSTALL-012` Prove automatic installation on clean supported systems — P0
+
+- Outcome: every current required platform proves that a fresh clone becomes a working local production editor without a manual Node, npm, Python, OpenSCAD, SDK, utility, PATH, or dependency-wiring step.
+- Acceptance:
+  - CI starts from clean Linux and macOS environments for every OS/architecture pair declared required by the bootstrap.
+  - Each job runs only the documented bootstrap and start commands, sees generator status `available: true`, generates exact STL files with real OpenSCAD, and shuts down cleanly.
+  - Cached tools are verified before reuse; tampered downloads, unsupported systems, offline failures, and partial installs fail safely and actionably.
+- Windows candidate CI may remain as non-gating compatibility evidence; it does not define a current supported target.
+- Blocked by: `INSTALL-011C`. `INSTALL-010` and `INSTALL-013` are complete; reuse the real-render journey from `CI-010`.
+- Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
+- Docs: publish the tested Linux and macOS matrix and state clearly which repository installation command applies to each required platform.
 
 ### `WIRE-011` Edit and confirm routes in the browser
 
@@ -237,7 +249,38 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
+## Ready to Merge
+
+### `CTRL-004` Reconstruct current project control and architecture documents
+
+- Scope: reconcile repository state, architecture, decisions, work status,
+  collaboration rules, dependencies, and conflict risks without production-code
+  changes; record reusable workflow failures found during closeout.
+- Acceptance: `AGENTS.md`, this board, `docs/ARCHITECTURE.md`, and
+  `docs/DECISIONS.md` agree with `main` at `ab9a96a`; `docs/ROADMAP.md` contains
+  no conflicting browser-test claim; `TEST-011` is closed; blocked installation
+  work is not listed as Ready; the full task lifecycle and no-automatic-merge
+  rule are explicit; Markdown links and diff hygiene pass.
+- Depends on: none.
+- Owner: branch `codex/ctrl-004-reconstruct-project`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: the four required shared control/architecture documents and
+  `docs/ROADMAP.md` and `FAILURES.md`.
+- Merge rule: operator approval is required before integration into `main`.
+
 ## Done
+
+### `TEST-011` Cover folder/ZIP controls in the browser (`ab9a96a`)
+
+- Playwright Chromium now imports a portable ZIP, restores referenced GLB and
+  exact STL object URLs, exports folder and ZIP forms, reopens the exported ZIP,
+  and verifies exact bytes and hashes.
+- The journey marks generated mechanics stale after a valid additive panel
+  edit, rejects missing and tampered assets with domain-specific status, and
+  verifies object-URL release when the project is replaced.
+- `main` and `origin/main` contain the implementation at `ab9a96a`. This
+  2026-08-20 control audit inspected the test and commit; it did not repeat the
+  browser run because npm dependencies are absent from this worktree.
 
 ### `TEST-010` Add a real browser smoke test for mechanics-free authoring
 

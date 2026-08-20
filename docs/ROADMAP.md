@@ -57,7 +57,9 @@ Other known gaps:
   and flat grouped parts. It does not reproduce the U-frame system.
 - No production firmware, DDP/Art-Net transport, Ethernet/microphone setup, or
   audio-reactive simulation exists.
-- Browser interaction coverage is mostly helper-level.
+- Browser interaction coverage now proves mechanics-free authoring and portable
+  folder/ZIP controls, but it does not yet drive the complete real generation
+  journey through **Generate 3D Parts**.
 - Ambiguous touching gap cycles have no accept/reject/reorder/redraw correction
   tools; automatic detection rejects them with welded-vertex context.
 - Unambiguous detected cycles are saved without a browser confirmation step.
