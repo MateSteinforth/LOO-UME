@@ -115,19 +115,6 @@ This file is the persistent source of truth for work status. Read it before star
 - Verify: focused mapping tests, all 2,624 canonical LED records, save/reopen,
   and negative incomplete/contradictory fixtures.
 
-### `WIRE-013` Add production-capable wiring lifecycle states
-
-- Outcome: replace the provisional-only parser constraint with explicit draft,
-  authored, requires-review, measured, and hardware-verified states.
-- Acceptance: a complete measured fixture can reach readiness; missing evidence
-  gives specific blockers; pose, panel-set, route, or profile edits invalidate
-  the affected approval without silently replacing the authored route. This
-  task defines the states and transitions; only evidence accepted by
-  `PROOF-010` can trigger the hardware-verified transition.
-- Depends on: `WIRE-010`.
-- Verify: parser and mutation tests for every state transition plus browser and
-  CLI readiness parity.
-
 ### `MAP-030` Define the WLED controller bus contract
 
 - Outcome: generate one non-secret controller contract for the selected board,
@@ -235,7 +222,23 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-- None.
+### `WIRE-013` Add production-capable wiring lifecycle states — P0
+
+- Outcome: replace the provisional-only parser constraint with explicit draft,
+  authored, requires-review, measured, and hardware-verified states.
+- Acceptance: a complete measured fixture can reach readiness; missing evidence
+  gives specific blockers; pose, panel-set, route, or profile edits invalidate
+  the affected approval without silently replacing the authored route. This
+  task defines the states and transitions; only evidence accepted by
+  `PROOF-010` can trigger the hardware-verified transition.
+- Depends on: `WIRE-010` at `c0c58b8`.
+- Verify: parser and mutation tests for every state transition plus browser and
+  CLI readiness parity.
+- Owner: branch `codex/wire-013-lifecycle`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: Schema 2 wiring types/schema/parser, editor invalidation,
+  wiring preview, hardware readiness, browser status text, and related tests
+  and mapping docs.
 
 ## Blocked
 
