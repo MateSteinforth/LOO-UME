@@ -5,6 +5,7 @@ import type {
 } from "./LedMapping.ts";
 import {
   CANONICAL_SCULPTURE_PROJECT,
+  hasAuthoredWiringRoutes,
   type PanelCorner,
   type PanelHardwareProfile,
   type WiringDefinition,
@@ -34,7 +35,11 @@ export interface WiringOutputRoute {
 }
 
 export interface WiringPreview {
-  status: "generated-provisional" | "measured" | "unavailable";
+  status:
+    | "generated-provisional"
+    | "authored-provisional"
+    | "measured"
+    | "unavailable";
   controller: WiringDefinition["controller"] | null;
   outputs: WiringOutputRoute[];
   nodes: WiringPanelNode[];
@@ -136,10 +141,9 @@ function cornerDirections(corner: PanelCorner): [-1 | 1, -1 | 1] {
 
 /**
  * Produces complete view-only output routes using measured panel connector
- * corners without claiming exact pad centres, GPIO assignments, or chain
- * order. Longitude recipes
- * divide the globe into sectors; polyhedron recipes prefer
- * face-adjacent panels. Both use deterministic nearest-neighbor ordering.
+ * corners without claiming exact pad centres or GPIO assignments. Persisted
+ * authored routes retain their exact controller-to-DIN order. Legacy draft
+ * projects use deterministic nearest-neighbor suggestions only.
  */
 export function createProvisionalWiringPreview(
   mapping: LedMapping,
@@ -172,6 +176,47 @@ export function createProvisionalWiringPreview(
 
   const outputs: WiringOutputRoute[] = [];
   const nodes: WiringPanelNode[] = [];
+  const usesAuthoredRoutes = hasAuthoredWiringRoutes(definition.wiring);
+  const routeFieldCount = definition.wiring.outputs.filter((output) =>
+    output.panelIds !== undefined
+  ).length;
+  if (
+    routeFieldCount > 0 &&
+    (routeFieldCount !== definition.wiring.outputs.length ||
+      !usesAuthoredRoutes)
+  ) {
+    throw new Error(
+      "Authored wiring routes must provide ordered panelIds for every output.",
+    );
+  }
+  const panelById = new Map(mapping.panels.map((panel) => [panel.id, panel]));
+  for (let index = 0; index < definition.wiring.outputs.length; index += 1) {
+    if (definition.wiring.outputs[index]!.outputIndex !== index) {
+      throw new Error("Wiring output indices must match their array order.");
+    }
+  }
+  if (usesAuthoredRoutes) {
+    const routedPanelIds = new Set<string>();
+    for (let index = 0; index < definition.wiring.outputs.length; index += 1) {
+      const route = definition.wiring.outputs[index]!.panelIds!;
+      if (
+        route.length !== definition.wiring.chainLengths[index] ||
+        route.some((panelId) =>
+          !panelById.has(panelId) || routedPanelIds.has(panelId)
+        )
+      ) {
+        throw new Error(
+          "Authored wiring routes must match chain lengths and cover each panel exactly once.",
+        );
+      }
+      for (const panelId of route) routedPanelIds.add(panelId);
+    }
+    if (routedPanelIds.size !== mapping.panels.length) {
+      throw new Error(
+        "Authored wiring routes must match chain lengths and cover each panel exactly once.",
+      );
+    }
+  }
   const [dinXDirection, dinYDirection] = cornerDirections(
     panelProfile.dataConnectors.dinCorner,
   );
@@ -188,11 +233,21 @@ export function createProvisionalWiringPreview(
     const outputDefinition = definition.wiring.outputs[routeIndex]!;
     const outputIndex = outputDefinition.outputIndex;
     const length = definition.wiring.chainLengths[routeIndex]!;
-    const panels = routeNearestNeighbor(
-      byLongitude.slice(offset, offset + length),
-      definition.wiring.controller.placement,
-      definition.wiring.routeStrategy === "face-adjacency-nearest-neighbor",
-    );
+    const panels = usesAuthoredRoutes
+      ? definition.wiring.outputs[routeIndex]!.panelIds!.map((panelId) => {
+          const panel = panelById.get(panelId);
+          if (!panel) {
+            throw new Error(
+              `Authored output ${outputIndex + 1} references unknown ${panelId}.`,
+            );
+          }
+          return panel;
+        })
+      : routeNearestNeighbor(
+          byLongitude.slice(offset, offset + length),
+          definition.wiring.controller.placement,
+          definition.wiring.routeStrategy === "face-adjacency-nearest-neighbor",
+        );
     offset += length;
     outputs.push({
       outputIndex,
@@ -242,15 +297,21 @@ export function createProvisionalWiringPreview(
     status:
       definition.wiring.status === "measured"
         ? "measured"
-        : "generated-provisional",
+        : usesAuthoredRoutes
+          ? "authored-provisional"
+          : "generated-provisional",
     controller: definition.wiring.controller,
     outputs,
     nodes,
     notes: [
-      "Data routes begin near the sculpture top according to the provisional controller placement.",
+      usesAuthoredRoutes
+        ? "Panel route order is authored and persists exactly as saved; it remains provisional until hardware evidence is recorded."
+        : "Draft route suggestion begins near the sculpture top according to the provisional controller placement.",
       "DIN is bottom-left and DOUT is top-right in the measured back-view panel convention.",
       "The connector marker inset remains schematic until exact pad centres are measured.",
-      "GPIO numbers and the final per-output chain order remain TBD.",
+      usesAuthoredRoutes
+        ? "GPIO numbers, installed panel orientation, and within-panel pixel order remain TBD."
+        : "GPIO numbers and the final per-output chain order remain TBD.",
     ],
   };
 }

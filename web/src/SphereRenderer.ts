@@ -296,7 +296,7 @@ export class SphereRenderer {
 
   setWiringPreview(preview: WiringPreview): void {
     this.clearWiringPreview();
-    if (preview.status !== "generated-provisional") return;
+    if (preview.status === "unavailable") return;
     this.buildWiringPreview(preview);
     this.applySelectionFocus();
   }

@@ -28,7 +28,8 @@ middle-panel connectors remain manually authored, physically tested SCAD parts.
 
 The editor now exposes separate actions:
 
-- **Generate WLED mapping + optimized wiring** downloads ledmap and wiring JSON;
+- **Generate WLED mapping + wiring review** downloads ledmap and a clearly
+  labelled draft or authored-route wiring JSON;
 - **Generate 3D print elements** runs mechanical regeneration and CAD only for
   compatible generated-mechanics projects.
 

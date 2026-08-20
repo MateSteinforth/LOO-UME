@@ -2,8 +2,8 @@
 
 > **Assembly stop:** the current 11/10/10/10 route and provisional ledmap are
 > review data, not build instructions. Do not commit the full DIN-to-DOUT chains
-> until `WIRE-010`, `CAL-010`, `HR-014`, and `PWR-010` establish the saved
-> route, panel facts, controller buses, and safe power plan.
+> until measured panel facts, controller buses, and the safe power plan are
+> established by `CAL-010`, `HR-014`, and `PWR-010`.
 
 ## Three orders, one contract
 
@@ -51,18 +51,28 @@ panel test. DIN/DOUT corner assignment itself is measured, but exact pad centres
 are unknown. Changing this convention changes every physical index and the
 ledmap fingerprint.
 
-## Provisional wiring model
+## Draft and authored wiring routes
 
-Schema 2 stores output metadata and `chainLengths`, not explicit ordered panel
-IDs. `createProvisionalWiringPreview()` regenerates a deterministic suggestion:
+Schema 2 output metadata can include an ordered `panelIds` list. A route is
+**authored** only when every output has that list. Each output list must match
+its `chainLengths` entry, each panel ID must exist, and all lists together must
+cover every panel exactly once. The list order is controller to DIN to DOUT and
+the browser mapping, wiring preview, and WLED ledmap use it without sorting or
+optimization.
+
+Older projects without `panelIds` remain **draft** projects.
+`createProvisionalWiringPreview()` regenerates their deterministic suggestion:
 
 - longitude strategy: sort into longitude sectors, then greedy nearest neighbor;
 - face-adjacency strategy: prefer declared neighbors, then greedy distance;
 - each route starts near the top under the provisional controller rule.
 
-This is not global optimization; the UI's “optimized wiring” filename is
-overstated. Automatic placement assigns new panels to the shortest chain, but
-exact route sequences are still regenerated.
+This is not global optimization. A draft suggestion is review data, not an
+assembly instruction. A panel-set edit clears every authored `panelIds` list,
+adds a saved review note, and returns the project to a draft suggestion. Pose
+edits preserve the authored list. `WIRE-013` will add lifecycle states and
+evidence-based stale handling; this first route contract does not claim that an
+authored provisional route is measured or hardware-ready.
 
 The manual 41-panel snapshot currently resolves to:
 

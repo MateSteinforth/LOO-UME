@@ -247,7 +247,26 @@ export interface WiringDefinition {
     label: string;
     gpio: number | null;
     color: string;
+    /**
+     * Optional only for legacy draft projects. When present on every output,
+     * this is the authoritative controller-to-DIN panel order.
+     */
+    panelIds?: string[];
   }>;
+}
+
+/**
+ * Schema 2 treats routes as authored only when every output carries an exact
+ * ordered panel list. Older chain-length-only projects remain draft inputs for
+ * the deterministic preview heuristic.
+ */
+export function hasAuthoredWiringRoutes(
+  wiring: WiringDefinition,
+): boolean {
+  return (
+    wiring.outputs.length > 0 &&
+    wiring.outputs.every((output) => Array.isArray(output.panelIds))
+  );
 }
 
 export interface SculptureDefinition {

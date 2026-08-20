@@ -7,6 +7,7 @@ import {
   createProvisionalWiringPreview,
   validateWiringPreview,
 } from "../web/src/WiringPreview.ts";
+import { CANONICAL_SCULPTURE_PROJECT } from "../src/sculpture/Definition.ts";
 
 describe("provisional wiring preview", () => {
   it("creates four complete and continuous output routes", () => {
@@ -88,5 +89,26 @@ describe("provisional wiring preview", () => {
     expect(preview.controller).toBeNull();
     expect(preview.outputs).toEqual([]);
     expect(preview.nodes).toEqual([]);
+  });
+
+  it("rejects a mixed authored and draft route instead of applying the heuristic", () => {
+    const mapping = createPanelizedSculptureMapping();
+    const draft = createProvisionalWiringPreview(mapping);
+    const definition = structuredClone(CANONICAL_SCULPTURE_PROJECT.sculpture);
+    definition.wiring.outputs[0]!.panelIds = [
+      ...draft.outputs[0]!.panelIds,
+    ];
+
+    expect(() => createProvisionalWiringPreview(mapping, definition)).toThrow(
+      /every output/,
+    );
+
+    const malformed = structuredClone(CANONICAL_SCULPTURE_PROJECT.sculpture);
+    for (const output of malformed.wiring.outputs) {
+      (output as unknown as { panelIds: unknown }).panelIds = null;
+    }
+    expect(() => createProvisionalWiringPreview(mapping, malformed)).toThrow(
+      /every output/,
+    );
   });
 });

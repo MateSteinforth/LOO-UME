@@ -1,4 +1,7 @@
 import {
+  hasAuthoredWiringRoutes,
+} from "./Definition.ts";
+import {
   parsePanelAssemblyDefinition,
   type PanelAssemblyDefinition,
 } from "./PanelAssembly.ts";
@@ -113,6 +116,18 @@ function nextPanelId(definition: PanelAssemblyDefinition): string {
   }
 }
 
+function invalidateAuthoredRoutesForPanelSetEdit(
+  definition: PanelAssemblyDefinition,
+): void {
+  if (!hasAuthoredWiringRoutes(definition.wiring)) return;
+  for (const output of definition.wiring.outputs) {
+    delete output.panelIds;
+  }
+  definition.notes.push(
+    "The panel set changed, so the authored wiring route was cleared. The displayed route is now a draft suggestion and must be authored again before assembly.",
+  );
+}
+
 function containsConvexPolygon(
   polygon: Vector2Tuple[],
   points: Vector2Tuple[],
@@ -199,6 +214,7 @@ export function addPanelToClosureFace(
   panelDimensions: AddPanelDimensions,
 ): PanelAssemblyDefinition {
   const definition = structuredClone(source);
+  invalidateAuthoredRoutesForPanelSetEdit(definition);
   const mechanicalShell = definition.mechanicalShell;
   const closures = definition.closures;
   if (!mechanicalShell || !closures) {
@@ -485,6 +501,7 @@ export function addPanelOnDesignSurface(
     throw new Error("Adding a panel to manual mechanics requires an explicit faceType.");
   }
   const definition = structuredClone(source);
+  invalidateAuthoredRoutesForPanelSetEdit(definition);
   if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
   const panelId = nextPanelId(definition);
   definition.panels.push({
@@ -689,6 +706,7 @@ export function automaticallySeedPanelsOnSurface(
   if (newCount === 0) {
     return { definition, placedPanelIds: [], triangleIndices: [] };
   }
+  invalidateAuthoredRoutesForPanelSetEdit(definition);
   preserveAuthoringBoundary(definition);
   const candidates = surfaceCandidates(mesh, newCount);
   if (candidates.length < newCount) {
@@ -765,6 +783,7 @@ export function deletePanel(
   panelId: string,
 ): PanelAssemblyDefinition {
   const definition = structuredClone(source);
+  invalidateAuthoredRoutesForPanelSetEdit(definition);
   if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
   const panelIndex = definition.panels.findIndex(
     (candidate) => candidate.id === panelId,

@@ -40,6 +40,80 @@ function mappingFor(definition: Awaited<ReturnType<typeof loadManual>>) {
 }
 
 describe("mechanics-independent panel JSON editing", () => {
+  it("persists an authored DIN-to-DOUT route and uses it for physical mapping", async () => {
+    const source = await loadManual();
+    const { project, mapping } = mappingFor(source);
+    const draft = createProvisionalWiringPreview(
+      mapping, source, project.panelProfile,
+    );
+    const authored = structuredClone(source);
+    for (let index = 0; index < authored.wiring.outputs.length; index += 1) {
+      authored.wiring.outputs[index]!.panelIds = [
+        ...draft.outputs[index]!.panelIds,
+      ];
+    }
+    authored.wiring.outputs[0]!.panelIds!.reverse();
+
+    const reparsed = roundTrip(authored);
+    const restored = mappingFor(reparsed);
+    const preview = createProvisionalWiringPreview(
+      restored.mapping, reparsed, restored.project.panelProfile,
+    );
+    const contract = createHardwareMappingContract(
+      restored.mapping, preview, restored.project.panelProfile,
+    );
+
+    expect(preview.status).toBe("authored-provisional");
+    expect(preview.outputs.map((output) => output.panelIds)).toEqual(
+      reparsed.wiring.outputs.map((output) => output.panelIds),
+    );
+    expect(contract.outputs.map((output) => output.panelIds)).toEqual(
+      reparsed.wiring.outputs.map((output) => output.panelIds),
+    );
+    expect(contract.fingerprint).not.toBe("31291c59");
+    expect(roundTrip(reparsed).wiring.outputs).toEqual(reparsed.wiring.outputs);
+
+    const poseEdited = rotatePanelAroundLocalZ(reparsed, "SQ-01", 1);
+    expect(poseEdited.wiring.outputs).toEqual(reparsed.wiring.outputs);
+    const moved = movePanelInLocalPlane(reparsed, "SQ-01", 1, -1);
+    expect(moved.wiring.outputs).toEqual(reparsed.wiring.outputs);
+  });
+
+  it("rejects partial, duplicate, and length-mismatched authored routes", async () => {
+    const source = await loadManual();
+    const { project, mapping } = mappingFor(source);
+    const draft = createProvisionalWiringPreview(
+      mapping, source, project.panelProfile,
+    );
+    const authored = structuredClone(source);
+    for (let index = 0; index < authored.wiring.outputs.length; index += 1) {
+      authored.wiring.outputs[index]!.panelIds = [
+        ...draft.outputs[index]!.panelIds,
+      ];
+    }
+
+    const partial = structuredClone(authored);
+    delete partial.wiring.outputs[3]!.panelIds;
+    expect(() => roundTrip(partial)).toThrow(/every output/);
+
+    const duplicate = structuredClone(authored);
+    duplicate.wiring.outputs[1]!.panelIds![0] =
+      duplicate.wiring.outputs[0]!.panelIds![0]!;
+    expect(() => roundTrip(duplicate)).toThrow(/exactly once/);
+
+    const mismatchedLength = structuredClone(authored);
+    mismatchedLength.wiring.outputs[0]!.panelIds!.pop();
+    expect(() => roundTrip(mismatchedLength)).toThrow(/match chain lengths/);
+
+    const unknown = structuredClone(authored);
+    unknown.wiring.outputs[0]!.panelIds![0] = "NOT-A-PANEL";
+    expect(() => roundTrip(unknown)).toThrow(/exactly once/);
+
+    const outputIndexMismatch = structuredClone(authored);
+    outputIndexMismatch.wiring.outputs[1]!.outputIndex = 9;
+    expect(() => roundTrip(outputIndexMismatch)).toThrow(/array-ordered/);
+  });
+
   it("rotates a manual panel without changing population, metadata, or other panels", async () => {
     const source = await loadManual();
     const before = structuredClone(source.panels[0]!);
@@ -117,6 +191,32 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(JSON.stringify(reparsed.wiring.outputs)).toBe(outputBytes);
     expect(mappingFor(reparsed).mapping.entries).toHaveLength(2_560);
     expect(reparsed.manualMechanics?.compatibilityStatus).toBe("requires-review");
+  });
+
+  it("invalidates authored routes when the panel set changes without reordering them", async () => {
+    const source = await loadManual();
+    const { project, mapping } = mappingFor(source);
+    const draft = createProvisionalWiringPreview(
+      mapping, source, project.panelProfile,
+    );
+    for (let index = 0; index < source.wiring.outputs.length; index += 1) {
+      source.wiring.outputs[index]!.panelIds = [
+        ...draft.outputs[index]!.panelIds,
+      ];
+    }
+
+    const edited = deletePanel(source, source.panels[0]!.id);
+    expect(source.wiring.outputs.map((output) => output.panelIds)).toEqual(
+      draft.outputs.map((output) => output.panelIds),
+    );
+    expect(edited.wiring.outputs.every((output) => output.panelIds === undefined))
+      .toBe(true);
+    expect(edited.notes.some((note) =>
+      note.includes("authored wiring route was cleared")
+    )).toBe(true);
+    expect(createProvisionalWiringPreview(
+      mappingFor(edited).mapping, edited, mappingFor(edited).project.panelProfile,
+    ).status).toBe("generated-provisional");
   });
 
   it("allows a manual pose-first project to reach zero panels", async () => {

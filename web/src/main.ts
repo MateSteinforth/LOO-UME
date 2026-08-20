@@ -405,7 +405,7 @@ app.innerHTML = `
           </p>
           <div class="pipeline-actions">
             <button id="generate-mapping" class="pipeline-button" type="button">
-              Generate WLED mapping + optimized wiring
+              Generate WLED mapping + wiring review
             </button>
             <button id="generate-print-parts" class="pipeline-button" type="button">
               Generate boundary / 3D parts
@@ -747,7 +747,7 @@ async function start(): Promise<void> {
         : !editorDefinition.mechanicalShell
           ? "Mapping and wiring use authoritative poses. No printable mechanics exist yet; the complete pose-first interface remains available."
         : isPanelized
-          ? `Simulator and ledmap share route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} calibration requirements are resolved.`
+          ? `Simulator and ledmap share ${wiringPreview.status === "authored-provisional" ? "an authored but provisional" : "a draft suggested"} route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} calibration requirements are resolved.`
           : "Custom LED counts use the panel-free Fibonacci fallback.";
       panelLabelsToggle.disabled = !isPanelized;
       const hasPrintableClosures =
@@ -1586,13 +1586,19 @@ async function start(): Promise<void> {
           hardwareContract.ledmap,
         );
         downloadJson(
-          `${baseName}.optimized-wiring.json`,
+          `${baseName}.${
+            wiringPreview.status === "generated-provisional"
+              ? "draft-wiring"
+              : "authored-route-wiring"
+          }.json`,
           {
             schemaVersion: "1.0.0",
             sculptureId: editorDefinition.id,
             status: wiringPreview.status,
-            optimization:
-              "configured sectors followed by deterministic nearest-neighbor routing",
+            routeSource:
+              wiringPreview.status === "generated-provisional"
+                ? "draft deterministic nearest-neighbor suggestion"
+                : "authored ordered panel route",
             fingerprint: hardwareContract.fingerprint,
             outputs: hardwareContract.outputs,
             wiring: wiringPreview,
@@ -1601,7 +1607,7 @@ async function start(): Promise<void> {
         );
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent =
-          `Exported WLED ledmap and optimized wiring for ${mapping.entries.length.toLocaleString()} LEDs; fingerprint ${hardwareContract.fingerprint}.`;
+          `Exported WLED ledmap and ${wiringPreview.status === "generated-provisional" ? "draft wiring review" : "authored route review"} for ${mapping.entries.length.toLocaleString()} LEDs; fingerprint ${hardwareContract.fingerprint}.`;
         viewerError.hidden = true;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

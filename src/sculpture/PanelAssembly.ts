@@ -381,6 +381,7 @@ function validateUniqueProjectAssetSources(input: Record<string, unknown>): void
 function validateWiring(
   wiring: Record<string, unknown>,
   panelCount: number,
+  knownPanelIds: ReadonlySet<string>,
 ): void {
   const controller = record(wiring, "controller");
   if (
@@ -414,6 +415,65 @@ function validateWiring(
   const connector = record(wiring, "connector");
   nonNegative(connector, "edgeInset");
   positive(connector, "surfaceOffset");
+
+  const outputs = wiring.outputs.map((output) => {
+    if (!isRecord(output)) throw new Error("Each wiring output must be an object.");
+    return output;
+  });
+  const outputIndices = new Set<number>();
+  for (let index = 0; index < outputs.length; index += 1) {
+    const output = outputs[index]!;
+    if (
+      !Number.isInteger(output.outputIndex) ||
+      (output.outputIndex as number) < 0 ||
+      output.outputIndex !== index ||
+      outputIndices.has(output.outputIndex as number) ||
+      typeof output.label !== "string" ||
+      output.label.length === 0 ||
+      (output.gpio !== null &&
+        (!Number.isInteger(output.gpio) || (output.gpio as number) < 0)) ||
+      typeof output.color !== "string" ||
+      !/^#[0-9a-fA-F]{6}$/.test(output.color)
+    ) {
+      throw new Error(
+        "Wiring outputs require array-ordered non-negative indices, labels, optional GPIOs, and #RRGGBB colors.",
+      );
+    }
+    outputIndices.add(output.outputIndex as number);
+  }
+
+  const hasRoute = outputs.some((output) => output.panelIds !== undefined);
+  if (!hasRoute) return;
+  if (outputs.some((output) => !Array.isArray(output.panelIds))) {
+    throw new Error(
+      "Authored wiring routes must provide ordered panelIds for every output.",
+    );
+  }
+
+  const routedPanelIds = new Set<string>();
+  for (let index = 0; index < outputs.length; index += 1) {
+    const output = outputs[index]!;
+    const route = output.panelIds as unknown[];
+    if (
+      route.length !== wiring.chainLengths[index] ||
+      route.some(
+        (panelId) =>
+          typeof panelId !== "string" ||
+          !knownPanelIds.has(panelId) ||
+          routedPanelIds.has(panelId),
+      )
+    ) {
+      throw new Error(
+        "Authored wiring routes must match chain lengths and cover each known panel exactly once.",
+      );
+    }
+    for (const panelId of route) routedPanelIds.add(panelId as string);
+  }
+  if (routedPanelIds.size !== panelCount) {
+    throw new Error(
+      "Authored wiring routes must match chain lengths and cover each known panel exactly once.",
+    );
+  }
 }
 
 export function parsePanelAssemblyDefinition(
@@ -723,12 +783,12 @@ export function parsePanelAssemblyDefinition(
         );
       }
     }
-    validateWiring(record(input, "wiring"), input.panels.length);
+    validateWiring(record(input, "wiring"), input.panels.length, panelIds);
     if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
     return input as unknown as PanelAssemblyDefinition;
   }
   if (!usesGeneratedMechanics) {
-    validateWiring(record(input, "wiring"), input.panels.length);
+    validateWiring(record(input, "wiring"), input.panels.length, panelIds);
     if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
     return input as unknown as PanelAssemblyDefinition;
   }
@@ -807,7 +867,7 @@ export function parsePanelAssemblyDefinition(
   ]) {
     nonNegative(closures, key);
   }
-  validateWiring(record(input, "wiring"), input.panels.length);
+  validateWiring(record(input, "wiring"), input.panels.length, panelIds);
   if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
   return input as unknown as PanelAssemblyDefinition;
 }

@@ -7,8 +7,32 @@ import {
   validateLedmapEquivalence,
 } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
+import { CANONICAL_SCULPTURE_PROJECT } from "../src/sculpture/Definition.ts";
 
 describe("hardware mapping contract", () => {
+  it("uses a persisted authored panel order for physical output addresses", () => {
+    const geometry = createPanelizedSculptureMapping();
+    const draft = createProvisionalWiringPreview(geometry);
+    const definition = structuredClone(CANONICAL_SCULPTURE_PROJECT.sculpture);
+    for (let index = 0; index < definition.wiring.outputs.length; index += 1) {
+      definition.wiring.outputs[index]!.panelIds = [
+        ...draft.outputs[index]!.panelIds,
+      ];
+    }
+    definition.wiring.outputs[0]!.panelIds!.reverse();
+
+    const wiring = createProvisionalWiringPreview(geometry, definition);
+    const contract = createHardwareMappingContract(geometry, wiring);
+
+    expect(wiring.status).toBe("authored-provisional");
+    expect(contract.outputs[0]!.panelIds).toEqual(
+      definition.wiring.outputs[0]!.panelIds,
+    );
+    expect(contract.mapping.panels.find(
+      (panel) => panel.id === definition.wiring.outputs[0]!.panelIds![0],
+    )?.wiring).toMatchObject({ output: 0, chainPosition: 0 });
+  });
+
   it("uses the displayed route as the physical WLED address order", () => {
     const geometry = createPanelizedSculptureMapping();
     const wiring = createProvisionalWiringPreview(geometry);

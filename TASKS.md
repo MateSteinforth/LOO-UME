@@ -235,23 +235,7 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## In Progress
 
-### `WIRE-010` Store an explicit ordered panel route per output — P0
-
-- Outcome: Schema 2 preserves the exact ordered DIN-to-DOUT panel route for
-  every output instead of recomputing a nearest-neighbor suggestion on load.
-- Acceptance: ordered panel IDs and optional GPIO data parse, validate,
-  round-trip, and drive mapping/wiring; every panel occurs exactly once; output
-  lengths match route lengths; old projects retain only a clearly labelled
-  draft suggestion; edits never silently replace an authored route.
-- Depends on: none. Do not insert measured values before `CAL-010`, `HR-014`,
-  and installation evidence exist.
-- Verify: parser/schema negatives, deterministic route and mapping tests,
-  save/reopen, panel-set edit invalidation, and existing regression suites.
-- Owner: branch `codex/wire-010-authored-routes`; worktree
-  `/home/mate/Documents/led-rhombicosidodecahedron`.
-- Likely conflicts: `schemas/panel-assembly.schema.json`,
-  `src/sculpture/PanelAssembly.ts`, `src/sculpture/SculptureEditor.ts`,
-  `web/src/WiringPreview.ts`, mapping/wiring tests, and format/mapping docs.
+- None.
 
 ## Blocked
 
@@ -436,6 +420,29 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `WIRE-010` Store an explicit ordered panel route per output — P0
+
+- Outcome: Schema 2 now preserves an exact ordered DIN-to-DOUT `panelIds`
+  route for each output. The browser preview, physical mapping, review export,
+  save, and reopen paths use that order without route optimization.
+- Acceptance: route fields are all-or-nothing; output array order, optional
+  GPIOs, route lengths, known IDs, and exact once-only panel coverage validate;
+  old projects remain clearly labelled draft suggestions; pose edits preserve
+  routes; panel-set edits clear them with a saved review note.
+- Evidence: focused route tests pass 21/21; the full Vitest suite passes 235/235
+  with loopback access; `npx tsc -b --pretty false` and `git diff --check` pass;
+  an independent review approved the corrected direct-preview validation.
+- Depends on: none. The canonical 41-panel project still contains no measured
+  route or GPIO values. Those require `CAL-010`, `HR-014`, and installation
+  evidence.
+- Owner: branch `codex/wire-010-authored-routes`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: `schemas/panel-assembly.schema.json`,
+  `src/sculpture/PanelAssembly.ts`, `src/sculpture/SculptureEditor.ts`,
+  `web/src/WiringPreview.ts`, `web/src/main.ts`, mapping/wiring tests, and
+  mapping docs.
+- Merge rule: operator approval is required before integration into `main`.
 
 ### `CTRL-005` Prioritize exact 41-panel wiring and ESP32 mapping parity
 
