@@ -343,27 +343,6 @@ None.
   first test uses different hardware.
 - Unblocks: `MAP-021`, `PWR-010`, and later hardware readiness.
 
-### `HR-014` Select the production ESP32/WLED execution contract — Decision needed
-
-- Decide: exact ESP32 board/variant, pinned WLED revision/build target, four
-  legal data GPIOs, LED driver/bus type, level shifter, configuration/deployment
-  method, and whether PSRAM or other board limits affect 2,624 pixels.
-- Recommended scope: prove native WLED 1D ledmap plus four buses first. Defer
-  Ethernet, DDP, Art-Net, microphone, audio, presets, and custom effects.
-- Unblocks: `MAP-030` and `FIRM-011`.
-
-### `HR-015` Select the operating power envelope — Decision needed
-
-- Decide: whether full-white at full brightness is a required operating mode,
-  the available 5 V supplies, number of independent positive-rail domains, and
-  the approved maximum continuous current.
-- Evidence: the conservative profile limit is 157.44 A for 2,624 pixels and
-  42.24/38.40/38.40/38.40 A for the current draft output lengths. The existing
-  two 40 A proposal cannot supply conservative unrestricted full white.
-- Constraint: grounds are common; positive rails remain isolated; software
-  brightness/current limiting is secondary protection.
-- Unblocks: `PWR-010`.
-
 ### `HR-013` Choose the managed Python distribution — Decision needed
 
 - Constraint: python.org does not publish a relocatable Linux CPython distribution, and the pinned Emscripten SDK needs Python before it can run.
@@ -394,6 +373,46 @@ None.
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `HW-016` Establish the assumed prototype hardware baseline — P0
+
+- Outcome: the prototype contract selects an ESP32-DevKitC V4 with an
+  ESP32-WROOM-32E-N4, pinned WLED commit `d9b9a846`, `esp32dev`, GPIOs
+  16/17/18/19, an SN74AHCT125, and four limited WS281x buses.
+- Power decision (`HR-015`): two isolated 5 V / 40 A positive domains share a
+  star ground. Two 14 A buses per domain cap it at 28 A; global WLED ABL is zero
+  so per-bus limits apply. Each output uses a 15 A fused 12 AWG trunk; each
+  panel has a separate 18 AWG pair and 5 A positive fuse. Unrestricted full
+  white is not approved.
+- Controller decision (`HR-014`): local WLED web/JSON control only; GRB, the
+  existing row snake, and zero-turn/non-mirrored installed transforms are
+  explicit assumptions. Ethernet, transport, audio, and custom effects remain
+  deferred.
+- Safety: the baseline does not mark any assumed value measured or
+  hardware-verified. Physical voltage, temperature, current, connector, fuse,
+  fault, pixel, color, and read-back checks remain required.
+- Evidence: board pins agree with Espressif documentation; bus fields and ABL
+  behavior agree with the exact pinned WLED source; output arithmetic and power
+  domains cross-check; `git diff --check` passes; independent review resolved
+  all findings.
+- Owner: branch `codex/hw-016-prototype-contract`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: hardware decisions, LED mapping, software/power guidance,
+  and task dependencies.
+- Merge rule: stop at Ready to Merge; do not merge into `main` without explicit
+  operator authorization.
+
+### `HR-014` Select the production ESP32/WLED execution contract
+
+- Decision: resolved by the assumed controller selection in `HW-016` and D15.
+- Remaining proof: compile, install, and read back the exact pinned target under
+  `FIRM-011`; a different physical board invalidates this decision.
+
+### `HR-015` Select the operating power envelope
+
+- Decision: resolved by the limited two-domain plan in `HW-016` and D15.
+- Remaining proof: `PWR-010` must validate the plan under physical load before
+  all panels are energized.
 
 ### `WIRE-011` Edit and confirm routes in the browser — P0
 

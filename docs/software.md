@@ -1,9 +1,10 @@
 # Software architecture
 
-This document records a hardware and firmware proposal. The repository does not
-contain production controller firmware, network transport, or audio-reactive
-behavior. Implementation can start after the exact controller board and pins
-are selected and one panel establishes the three mapping facts listed below.
+This document records the selected assumed prototype hardware contract and the
+remaining firmware plan. The repository does not contain deployed controller
+firmware, network transport, or audio-reactive behavior. Implementation can
+start against the selected controller; one panel test still establishes the
+three mapping facts listed below.
 The active milestone is static simulator-to-device address and RGB parity;
 networking, audio, and custom effects remain later work.
 
@@ -12,37 +13,37 @@ networking, audio, and custom effects remain later work.
 - 41 rigid `WS2812B-64` panels: 8 x 8 RGB pixels, 5 V, 64 pixels each.
 - 2,624 pixels total: 30 square-face panels and 11 pentagon-centre panels.
 - The north-pole pentagonal opening is intentionally unpopulated.
-- The proposed controller is one ESP32-class device with WLED, Ethernet, an I2S
-  microphone, and four level-shifted data outputs. The exact board and GPIO
-  assignments are not yet selected.
-- Four data outputs remain planned. Their revised panel counts and lengths
-  must be assigned with the physical chain; the obsolete 42-panel split must
-  not be reused.
+- The assumed prototype controller is an ESP32-DevKitC V4 with an
+  ESP32-WROOM-32E-N4 module. It uses the pinned WLED `esp32dev` build and four
+  SN74AHCT125-shifted outputs on GPIOs 16, 17, 18, and 19. Ethernet, audio, and
+  custom effects remain deferred.
+- Four data outputs use the assumed 11/10/10/10 panel split. The route must be
+  explicitly saved before it becomes an assembly route. The obsolete 42-panel
+  split must not be reused.
 - Two independent 5 V / 40 A power domains each feed two outputs. Grounds are
   common; positive rails remain separate.
 
-The two-domain statement is a proposal, not an approved full-brightness design.
+The two-domain statement is an assumed limited-current prototype design, not an
+approved full-brightness design.
 At the conservative 60 mA profile value, 2,624 pixels can require 157.44 A and
 the draft 11-panel output alone can require 42.24 A. Two 40 A supplies cannot
-support conservative unrestricted full white. `HR-015` and `PWR-010` must define
-and verify the actual operating envelope before the complete sculpture is
-energized.
+support conservative unrestricted full white. Global `hw.led.maxpwr` is zero so
+four 14 A per-bus WLED limits apply, which limits each two-output domain to
+28 A. `PWR-010` still requires
+physical voltage, temperature, current, fuse, and fault checks before the
+complete sculpture is energized.
 
-The proposed power system would use fused parallel branches. Panel `V+` and
+The selected prototype power system uses fused parallel branches. Panel `V+` and
 `V-` pass-through pads must not carry the accumulated current of a long chain.
-Any future WLED per-output brightness limit would be a secondary safeguard, not
+The WLED per-output brightness limit is a secondary safeguard, not
 a substitute for correct wiring and fusing.
 
 ## Operating modes
 
-In the proposal, WLED would load a saved custom audio-reactive preset at startup.
-An incoming DDP or Art-Net stream would take realtime control. WLED would return
-to the standalone preset when that stream stops. Controls would expose power,
-brightness, preset, and realtime override through WLED's normal web UI and JSON
-API. The proposed realtime input would use wired Ethernet.
-
-Future custom effects would belong in a WLED usermod, not in patched WLED core
-files. A production build would pin its WLED release.
+The prototype uses local WLED effects and its normal web UI. Static address and
+color tests are the first target. DDP, Art-Net, Ethernet, microphones,
+audio-reactive presets, and custom effects are deferred. A future custom effect
+belongs in a WLED usermod, not in patched WLED core files.
 
 ## Mapping
 

@@ -1,9 +1,15 @@
 # LED mapping and wiring
 
-> **Assembly stop:** the current 11/10/10/10 route and provisional ledmap are
-> review data, not build instructions. Do not commit the full DIN-to-DOUT chains
-> until measured panel facts, controller buses, and the safe power plan are
-> established by `CAL-010`, `HR-014`, and `PWR-010`.
+> **Assembly gate:** the current 11/10/10/10 route and provisional ledmap are
+> review data, not build instructions. The assumed prototype contract permits
+> staged assembly only after that route is explicitly saved and the matching
+> bus/power files exist. Start with one fused panel, then one output. Do not
+> describe the build as measured or hardware-verified before its tests pass.
+
+The operator authorized a concrete assumed prototype baseline on 2026-08-20.
+See [`PROTOTYPE_HARDWARE.md`](PROTOTYPE_HARDWARE.md). It selects the controller,
+GPIOs, and a limited power topology, but it does not convert the draft route or
+unmeasured panel facts into measured evidence.
 
 ## Three orders, one contract
 

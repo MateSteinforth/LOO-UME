@@ -271,6 +271,41 @@ changes mapping. Existing geometry/mechanical rotation stays unchanged. Color
 order and WLED bus reversal are not part of this transform; `MAP-030` records
 color order and fixes bus reversal to false so direction has one authority.
 
+## D15 — Use one conservative assumed prototype contract
+
+**Decision.** The first physical build uses an Espressif ESP32-DevKitC V4 with
+an ESP32-WROOM-32E-N4 module, the repository-pinned WLED commit
+`d9b9a846561227351ad929e3109781daadb7bed2`, and its `esp32dev` build. GPIOs
+16, 17, 18, and 19 drive four WS281x RGB buses through one 5 V SN74AHCT125.
+The assumed color order is GRB. Bus reversal is false. The assumed back-view
+panel order is the current row snake, and each installed address transform is
+zero quarter-turns without mirroring.
+
+The power baseline uses two independent 5 V / 40 A positive-rail domains.
+Outputs 0 and 1 use domain A; outputs 2 and 3 use domain B. Grounds join at one
+star point. Each output has a 14 A WLED limit and a 15 A fused 12 AWG trunk.
+Each panel receives a separate 18 AWG power pair through a 5 A positive fuse.
+Panel pads do not carry accumulated chain current. Unrestricted full white is
+not an approved mode.
+
+**Evidence.** Espressif documents GPIOs 16–19 as input/output pins on the
+DevKitC V4 when it has a WROOM module; GPIOs 16 and 17 are not available on a
+WROVER module. The pinned WLED WROOM build supports up to eight RMT channels;
+this contract uses four. The same source defines WS281x RGB type 22, GRB order
+0, per-bus `maxpwr`, and explicit `rev`. It requires global
+`hw.led.maxpwr: 0` to activate the per-bus limits. WLED documentation
+recommends an SN74AHCT125 level shifter and rates
+four ESP32 outputs of up to 800 pixels each as very good performance. The
+longest planned output is 704 pixels.
+
+**Consequence.** These choices are authorized build assumptions, not measured
+facts. They can drive prototype configuration and assembly labels, but they do
+not set measured or hardware-verified lifecycle states. A numbered panel test
+can replace GRB, pixel order, or an address transform. Device read-back can
+replace the controller assumptions. A current or voltage failure must reduce
+the operating limit or change the physical power plan before more panels are
+energized.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

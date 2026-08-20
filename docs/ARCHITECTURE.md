@@ -107,6 +107,13 @@ operation waits for a measured and approved injection, wire, fuse, supply,
 voltage-drop, and current-limit plan. Software brightness limiting is not the
 primary over-current protection.
 
+The selected prototype baseline is in
+[`PROTOTYPE_HARDWARE.md`](PROTOTYPE_HARDWARE.md). It fixes one board, four
+GPIOs, bus limits, level shifting, and a two-domain fused power topology. Its
+panel order, color order, and installed transforms remain assumed until direct
+tests replace them. These assumptions do not bypass the measured-data or proof
+gates.
+
 ## Subsystems
 
 
