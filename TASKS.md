@@ -346,6 +346,18 @@ does not execute OpenSCAD. Codex keeps OpenSCAD for manual `parts/*.scad`.
 - Verify: `tests/panel-outline-boundary.test.ts` cuboctahedron case;
   `tests/automatic-panel-placement.test.ts` six-square placement.
 
+### Interior panel IDs and even unique-hole tabs
+
+- Each printable cap recesses the adjacent panel IDs on the inside face. The
+  string is the same as the simulator hover label. Every eligible PCB hole
+  still gets one unique tab. Assignment prefers the hole nearest each cap-edge
+  middle so a 66 x 65 mm square uses bottom-right, middle-right, top-left, and
+  middle-left on its four sides.
+- Owner: Grok; `grok/workspace`.
+- Verify: cuboctahedron even-assignment assertions in
+  `tests/panel-outline-boundary.test.ts`; recessed labels in
+  `tests/panel-closure-solids.test.ts`.
+
 ### `PLACE-011` Sit automatic panels on mesh faces — P0
 
 - Outcome: **Automatically place panels** puts each panel on a connected planar

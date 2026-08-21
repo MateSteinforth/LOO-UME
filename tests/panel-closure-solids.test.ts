@@ -35,9 +35,14 @@ describe("Manifold panel closure solids", () => {
     expect(part.holeEdgeCorrection).toBeCloseTo(0.2, 6);
     expect(part.surfaceFlushCorrection).toBeCloseTo(0.5, 6);
     expect(part.connectorHoleIds.length).toBeGreaterThan(0);
+    expect(part.labelCenters.length).toBe(part.connectorHoleIds.length);
     expect(
       part.connectorHoleIds.some((id) => part.blockedHoleIds.includes(id)),
     ).toBe(false);
+    for (const label of part.labelCenters) {
+      expect(label.panelId).toMatch(/^P-/);
+      expect(await meshContainsPoint(part, label)).toBe(false);
+    }
 
     for (const hole of part.holeCenters) {
       expect(await meshContainsPoint(part, hole)).toBe(false);

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
+  compilePanelAssembly,
   createPanelAssemblyProject,
   parsePanelAssemblyDefinition,
   type PanelAssemblyDefinition,
@@ -270,6 +271,37 @@ describe("automatic panel-boundary topology detection", () => {
       "mechanics/parts/part-007.stl",
       "mechanics/parts/part-008.stl",
     ]);
+    const assembly = compilePanelAssembly(bundle.printableProject);
+    for (const panel of assembly.panels) {
+      const holesByEdge = new Map<number, string[]>();
+      for (const face of assembly.faces) {
+        for (const connector of face.connectors) {
+          if (connector.panelId !== panel.id) continue;
+          holesByEdge.set(connector.panelEdgeIndex, [
+            ...(holesByEdge.get(connector.panelEdgeIndex) ?? []),
+            connector.panelHoleId,
+          ]);
+        }
+      }
+      expect(Object.fromEntries([...holesByEdge.entries()].sort(
+        (left, right) => left[0] - right[0],
+      ))).toEqual({
+        0: ["bottom-right"],
+        1: ["middle-right"],
+        2: ["top-left"],
+        3: ["middle-left"],
+      });
+    }
+    for (const face of assembly.faces.filter((candidate) => candidate.role === "closure")) {
+      expect(new Set(face.connectors.map((connector) => connector.panelId)).size)
+        .toBe(3);
+      expect(
+        face.connectors.every((connector) =>
+          ["top-left", "middle-left", "middle-right", "bottom-right"]
+            .includes(connector.panelHoleId)
+        ),
+      ).toBe(true);
+    }
   });
 });
 describe("panel-outline closed-boundary generation", () => {

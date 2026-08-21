@@ -30,7 +30,9 @@ The implemented generation and portable-project data flow is:
 6. Detect and persist the ordered corner cycle around every unambiguous gap,
    then generate a closed boundary by filling those cycles.
 7. Validate the boundary, split it into printable parts, and add the proven PCB
-   clearances and mounting details.
+   clearances, mounting details, and interior panel-ID labels. Each eligible
+   hole still gets one unique tab; assignment prefers the hole nearest each
+   edge middle. Recessed text matches the simulator hover label (`P-01`).
 8. Export the exact STL files and load those same STL files into Three.js.
 9. Save relative asset references and hashes in the sculpture JSON.
 10. Reopen the project folder or ZIP and restore the GLB, panels, generated

@@ -11,9 +11,13 @@ import {
 } from "../sculpture/PanelAssembly.ts";
 import { triangulatePolygon } from "./TriangulatePolygon.ts";
 import { loadManifoldRuntime } from "./ManifoldRuntime.ts";
+import { panelIdLabelSection, panelIdLabelSize } from "./PanelIdGlyphs.ts";
 
 const EPS = 0.03;
 const CIRCULAR_SEGMENTS = 40;
+const LABEL_PIXEL = 0.62;
+const LABEL_INSET = 8;
+const LABEL_DEPTH = 0.55;
 
 interface ClosureFrame {
   origin: Vector3Data;
@@ -45,6 +49,7 @@ export interface ClosureSolidMesh {
   blockedHoleIds: string[];
   holeCenters: ClosureSolidProbe[];
   panelEnvelopeCenters: ClosureSolidProbe[];
+  labelCenters: Array<ClosureSolidProbe & { panelId: string }>;
 }
 
 function vector(x: number, y: number, z: number): Vector3Data {
@@ -399,6 +404,53 @@ function panelCutter(
   return { cutter: placed, envelopeCenter };
 }
 
+function panelIdLabelCutter(
+  wasm: ManifoldToplevel,
+  values: ReturnType<typeof connectorParameters>,
+  panelId: string,
+  coverThickness: number,
+): { cutter: Manifold; center: ClosureSolidProbe } | undefined {
+  const size = panelIdLabelSize(panelId, LABEL_PIXEL);
+  if (size.width <= 0) return undefined;
+  const maxWidth = Math.max(8, values.edgeLength * 0.42);
+  const fit = Math.min(1, maxWidth / size.width);
+  const section = panelIdLabelSection(wasm, panelId, LABEL_PIXEL);
+  if (!section) return undefined;
+  const inset = LABEL_INSET + size.height * fit / 2;
+  const along = normalize({ x: values.edgeAxis.x, y: values.edgeAxis.y, z: 0 });
+  const inward = normalize({
+    x: values.gapInwardAxis.x,
+    y: values.gapInwardAxis.y,
+    z: 0,
+  });
+  const origin2 = add(
+    add(values.edgeOrigin, scale(along, values.edgeLength / 2)),
+    scale(inward, inset),
+  );
+  const angle = Math.atan2(along.y, along.x);
+  const placed = section
+    .scale([-fit, fit])
+    .rotate(angle * 180 / Math.PI)
+    .translate(origin2.x, origin2.y);
+  section.delete();
+  const cutter = placed.extrude(LABEL_DEPTH + 2 * EPS)
+    .translate(0, 0, coverThickness - LABEL_DEPTH);
+  placed.delete();
+  const stem = {
+    x: -size.width / 2 + 1.5 * LABEL_PIXEL,
+    y: 0,
+  };
+  const scaled = { x: -fit * stem.x, y: fit * stem.y };
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const center = {
+    x: origin2.x + scaled.x * cos - scaled.y * sin,
+    y: origin2.y + scaled.x * sin + scaled.y * cos,
+    z: coverThickness - LABEL_DEPTH / 2,
+  };
+  return { cutter, center };
+}
+
 function exteriorClip(
   wasm: ManifoldToplevel,
   project: PanelAssemblyProject,
@@ -506,19 +558,37 @@ function buildOneClosure(
   const clipped = hollow.intersect(clip);
   hollow.delete();
   clip.delete();
-  const status = clipped.status();
-  if (status !== "NoError") {
+  const labelEntries = connectorEntries.flatMap(({ connector }) => {
+    const values = connectorParameters(face, connector, regions[0]!.center);
+    const label = panelIdLabelCutter(
+      wasm,
+      values,
+      connector.panelId,
+      policy.coverThickness,
+    );
+    return label ? [{ ...label, panelId: connector.panelId }] : [];
+  });
+  const labelUnion = labelEntries.length === 0
+    ? undefined
+    : unionAll(wasm, labelEntries.map((entry) => entry.cutter));
+  const labeled = labelUnion ? clipped.subtract(labelUnion) : clipped;
+  if (labelUnion) {
     clipped.delete();
+    labelUnion.delete();
+  }
+  const status = labeled.status();
+  if (status !== "NoError") {
+    labeled.delete();
     throw new Error(`Manifold closure ${face.partId} is not valid: ${status}.`);
   }
-  const mesh = clipped.getMesh();
-  const box = clipped.boundingBox();
+  const mesh = labeled.getMesh();
+  const box = labeled.boundingBox();
   const result: ClosureSolidMesh = {
     partId: face.partId,
     status,
-    volume: clipped.volume(),
-    numTri: clipped.numTri(),
-    genus: clipped.genus(),
+    volume: labeled.volume(),
+    numTri: labeled.numTri(),
+    genus: labeled.genus(),
     boundingBox: {
       min: [box.min[0], box.min[1], box.min[2]],
       max: [box.max[0], box.max[1], box.max[2]],
@@ -535,8 +605,12 @@ function buildOneClosure(
       .map((hole) => hole.id),
     holeCenters,
     panelEnvelopeCenters,
+    labelCenters: labelEntries.map((entry) => ({
+      ...entry.center,
+      panelId: entry.panelId,
+    })),
   };
-  clipped.delete();
+  labeled.delete();
   return result;
 }
 

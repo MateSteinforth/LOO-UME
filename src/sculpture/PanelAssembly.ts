@@ -928,21 +928,26 @@ function panelHoles(
   );
 }
 
-function pointToSegmentDistanceSquared(
+/**
+ * Prefers the hole nearest the middle of a cap edge so each panel side gets
+ * one screw instead of a corner hole tying two adjacent edges.
+ */
+function holeToCapEdgeEvennessCost(
   point: Vector3Data,
   start: Vector3Data,
   end: Vector3Data,
 ): number {
   const segment = subtract(end, start);
   const lengthSquared = dot(segment, segment);
-  const projection =
-    lengthSquared === 0
-      ? 0
-      : Math.max(
-          0,
-          Math.min(1, dot(subtract(point, start), segment) / lengthSquared),
-        );
-  return distanceSquared(point, add(start, scale(segment, projection)));
+  const midpoint = add(start, scale(segment, 0.5));
+  const t = lengthSquared === 0
+    ? 0.5
+    : Math.max(
+      0,
+      Math.min(1, dot(subtract(point, start), segment) / lengthSquared),
+    );
+  return distanceSquared(point, midpoint) +
+    0.25 * (t - 0.5) * (t - 0.5) * lengthSquared;
 }
 
 export function compilePanelAssembly(
@@ -1192,7 +1197,7 @@ export function compilePanelAssembly(
         const candidateScore =
           score +
           preferencePenalty +
-          pointToSegmentDistanceSquared(
+          holeToCapEdgeEvennessCost(
             hole.position,
             panelInterface.edgeStart,
             panelInterface.edgeEnd,
