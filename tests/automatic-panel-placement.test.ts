@@ -4,6 +4,10 @@ import {
   createMechanicalShellTriangleMesh,
 } from "../src/sculpture/DesignSurface.ts";
 import {
+  loadGlbDesignSurface,
+  placementMeshFromSurface,
+} from "../web/src/DesignSurfaceLoader.ts";
+import {
   createPanelAssemblyMapping,
   createPanelAssemblyProject,
   parsePanelAssemblyDefinition,
@@ -127,6 +131,45 @@ describe("automatic panel placement", () => {
     expect(filled.definition.panels.slice(0, 2)).toEqual(preserved);
     expect(filled.placedPanelIds).toEqual(["P-03", "P-04", "P-05"]);
     expect(filled.definition.wiring.chainLengths).toEqual([5]);
+  });
+
+  it("places six panels on the 66 mm cuboctahedron squares", async () => {
+    const source = parsePanelAssemblyDefinition(
+      JSON.parse(
+        await readFile("sculptures/pose-only-empty/sculpture.json", "utf8"),
+      ),
+    );
+    const glb = await readFile(
+      "sculptures/pose-only-empty/design/placement-surface.glb",
+    );
+    const surface = await loadGlbDesignSurface(
+      glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength),
+      1,
+    );
+    const result = automaticallySeedPanelsOnSurface(
+      source,
+      placementMeshFromSurface(surface, false),
+      { width: 66, height: 65 },
+      {
+        targetPanelCount: 6,
+        surface: "design-surface",
+        normalOffset: 0.4,
+      },
+    );
+    expect(result.placedPanelIds).toHaveLength(6);
+    const axes = new Set(
+      result.definition.panels.map((panel) =>
+        panel.pose.orientation.normal.map((value) => Math.round(value)).join(","),
+      ),
+    );
+    expect(axes).toEqual(new Set([
+      "1,0,0",
+      "-1,0,0",
+      "0,1,0",
+      "0,-1,0",
+      "0,0,1",
+      "0,0,-1",
+    ]));
   });
 
   it("sits each panel on a planar mesh face instead of tilting off the surface", async () => {

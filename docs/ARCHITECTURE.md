@@ -211,8 +211,8 @@ configuration.
 
 `main` at `ab9a96a` has the pose-first editor, portable folder/ZIP contract,
 automatic unambiguous gap detection, and two Playwright journeys.
-`grok/workspace` defaults to the empty pose-only project with a cube GLB
-placement surface, generates generic panel-outline parts with Manifold, and
+`grok/workspace` defaults to the empty pose-only project with a 66 mm-square
+cuboctahedron GLB as the placement surface, generates generic panel-outline parts with Manifold, and
 includes the prism **Generate 3D Parts**
 browser journey (`UI-010`). Automatic placement seeds poses; the operator must
 weld neighbouring outline corners before generation. Codex keeps OpenSCAD for

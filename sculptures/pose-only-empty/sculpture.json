@@ -14,7 +14,7 @@
     "kind": "triangle-mesh",
     "format": "glb",
     "source": "design/placement-surface.glb",
-    "sha256": "e10aa1591b18e0642a13f8a11f277aab110a013c77d98a943f7afb280d8bb72b",
+    "sha256": "22464bf81e94d4c523255ff41a375c8aef99b96cfb493113eca04fc150158bbf",
     "scaleToMillimeters": 1,
     "status": "watertight"
   },
@@ -50,6 +50,6 @@
     "physicalChains": "provisional"
   },
   "notes": [
-    "Mechanics-free start: a 120 mm cube GLB is the placement surface. Automatically place panels, then weld neighbouring outline corners before generating printable caps."
+    "Mechanics-free start: a 66 mm-square cuboctahedron GLB is the placement surface. Place six panels on the squares; the eight triangles are the holes to cap."
   ]
 }
