@@ -647,6 +647,23 @@ function findRoot(parent: number[], index: number): number {
   return index;
 }
 
+function uniquePatchVertexCount(patch: PlanarPatch): number {
+  return new Set(
+    patch.triangles.flatMap((triangle) =>
+      triangle.vertices.map((vertex) => vertex.map((value) => value.toFixed(6)).join(","))
+    ),
+  ).size;
+}
+
+/** Prefer 4-sided faces when they can hold the requested rectangular panels. */
+function patchesForRectangularPanels(
+  patches: PlanarPatch[],
+  requestedCount: number,
+): PlanarPatch[] {
+  const quads = patches.filter((patch) => uniquePatchVertexCount(patch) === 4);
+  return quads.length >= requestedCount ? quads : patches;
+}
+
 function connectedPlanarPatches(
   triangles: PreparedTriangle[],
 ): PlanarPatch[] {
@@ -801,7 +818,10 @@ function surfaceCandidates(
       };
     },
   );
-  const patches = connectedPlanarPatches(triangles);
+  const patches = patchesForRectangularPanels(
+    connectedPlanarPatches(triangles),
+    requestedCount,
+  );
   const totalArea = patches.reduce((sum, patch) => sum + patch.area, 0);
   const sampleCount = Math.min(8192, Math.max(requestedCount, patches.length));
   const allocations = patches.map((patch) => {

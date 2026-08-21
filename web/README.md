@@ -95,7 +95,7 @@ shuts the server down cleanly.
 
 The simulator includes a small pose-first editor in the existing control panel.
 
-The default startup source is the empty 66 mm cuboctahedron authoring project.
+The default startup source is the empty 66 mm rhombicosidodecahedron authoring project.
 It has no initial panels or LEDs; the JSON face graph is immediately available
 as a watertight placement canvas. The WLED wrapper keeps a one-pixel backing
 buffer while reporting the correct logical count of zero until the first panel

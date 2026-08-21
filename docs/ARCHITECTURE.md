@@ -83,7 +83,7 @@ topology.
 
 ## Browser lifecycle and data flow
 
-1. `web/src/main.ts` starts with the empty 66 mm cuboctahedron project, or loads
+1. `web/src/main.ts` starts with the empty 66 mm rhombicosidodecahedron project, or loads
    a registered, URL, or local Schema 2 sculpture. Mechanics fields may be
    omitted; a missing or invalid optional GLB only disables surface placement.
 2. `LoadPanelAssemblyProject.ts` resolves the panel profile and the handwritten
@@ -211,8 +211,8 @@ configuration.
 
 `main` at `ab9a96a` has the pose-first editor, portable folder/ZIP contract,
 automatic unambiguous gap detection, and two Playwright journeys.
-`grok/workspace` defaults to the empty pose-only project with a 66 mm-square
-cuboctahedron GLB as the placement surface, generates generic panel-outline parts with Manifold, and
+`grok/workspace` defaults to the empty pose-only project with a 66 mm-edge
+rhombicosidodecahedron GLB as the placement surface, generates generic panel-outline parts with Manifold, and
 includes the prism **Generate 3D Parts**
 browser journey (`UI-010`). Automatic placement seeds poses; the operator must
 weld neighbouring outline corners before generation. Codex keeps OpenSCAD for

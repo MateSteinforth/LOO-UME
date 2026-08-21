@@ -303,6 +303,48 @@ describe("automatic panel-boundary topology detection", () => {
       ).toBe(true);
     }
   });
+
+  it("closes 20 triangles and 12 pentagons after 30 rhombicosidodecahedron square panels", async () => {
+    const source = parsePanelAssemblyDefinition(
+      JSON.parse(
+        await readFile(
+          "sculptures/pose-only-rhombicosidodecahedron/sculpture.json",
+          "utf8",
+        ),
+      ),
+    );
+    const glb = await readFile(
+      "sculptures/pose-only-rhombicosidodecahedron/design/placement-surface.glb",
+    );
+    const surface = await loadGlbDesignSurface(
+      glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength),
+      1,
+    );
+    const placed = automaticallySeedPanelsOnSurface(
+      source,
+      placementMeshFromSurface(surface, false),
+      { width: 66, height: 65 },
+      {
+        targetPanelCount: 30,
+        surface: "design-surface",
+        normalOffset: 0.4,
+      },
+    );
+    const project = createPanelAssemblyProject(
+      placed.definition,
+      "pose-only-rhombicosidodecahedron.json",
+    );
+    const topology = detectPanelBoundaryTopology(
+      placed.definition,
+      project.panelProfile,
+    );
+    const sizes = topology.gaps.map((gap) => gap.vertices.length).sort(
+      (left, right) => left - right,
+    );
+    expect(sizes.filter((size) => size === 3)).toHaveLength(20);
+    expect(sizes.filter((size) => size === 5)).toHaveLength(12);
+    expect(topology.gaps).toHaveLength(32);
+  });
 });
 describe("panel-outline closed-boundary generation", () => {
   it("builds the complete deterministic prism fixture from poses and profile dimensions", async () => {

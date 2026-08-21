@@ -97,8 +97,10 @@ effect parity.
 
 ## D8 — The default is an empty authoring surface
 
-**Decision.** The editor starts with the empty 66 mm cuboctahedron rather than
-the flagship 41-panel sculpture.
+**Decision.** The editor starts with an empty 66 mm-edge Archimedean placement
+surface rather than the flagship 41-panel sculpture. The current default is the
+pose-only rhombicosidodecahedron; the cuboctahedron remains a registered
+authoring project.
 
 **Evidence.** `web/src/main.ts` and commit `9572779`.
 

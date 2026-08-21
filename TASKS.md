@@ -334,6 +334,17 @@ does not execute OpenSCAD. Codex keeps OpenSCAD for manual `parts/*.scad`.
   `vertexWeldMm` (1.5 mm) cluster; leftover JSON shells are ignored.
 - Owner: Grok; `grok/workspace`.
 
+### Pose-only 66 mm rhombicosidodecahedron placement GLB
+
+- Default editor project is
+  `sculptures/pose-only-rhombicosidodecahedron/sculpture.json`. The GLB has
+  66 mm edges. Auto-place 30 sits on the squares; Generate should close 20
+  triangles and 12 pentagons. Rectangular auto-place prefers 4-sided faces when
+  enough exist.
+- Owner: Grok; `grok/workspace`.
+- Verify: `tests/automatic-panel-placement.test.ts`;
+  `tests/panel-outline-boundary.test.ts` 20-triangle / 12-pentagon case.
+
 ### Cuboctahedron 66 mm squares and triangular caps
 
 - Default placement GLB is a cuboctahedron whose squares are 66 mm so a

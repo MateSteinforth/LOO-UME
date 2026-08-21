@@ -60,7 +60,7 @@ import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
 import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
 
-const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-empty/sculpture.json";
+const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
 const initialSculptureSource =
   new URLSearchParams(window.location.search).get("sculptureJson") ??

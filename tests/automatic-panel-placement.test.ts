@@ -172,6 +172,39 @@ describe("automatic panel placement", () => {
     ]));
   });
 
+  it("places 30 panels on the 66 mm rhombicosidodecahedron squares", async () => {
+    const source = parsePanelAssemblyDefinition(
+      JSON.parse(
+        await readFile(
+          "sculptures/pose-only-rhombicosidodecahedron/sculpture.json",
+          "utf8",
+        ),
+      ),
+    );
+    const glb = await readFile(
+      "sculptures/pose-only-rhombicosidodecahedron/design/placement-surface.glb",
+    );
+    const surface = await loadGlbDesignSurface(
+      glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength),
+      1,
+    );
+    const result = automaticallySeedPanelsOnSurface(
+      source,
+      placementMeshFromSurface(surface, false),
+      { width: 66, height: 65 },
+      {
+        targetPanelCount: 30,
+        surface: "design-surface",
+        normalOffset: 0.4,
+      },
+    );
+    expect(result.placedPanelIds).toHaveLength(30);
+    const normals = result.definition.panels.map((panel) =>
+      panel.pose.orientation.normal.map((value) => value.toFixed(6)).join(",")
+    );
+    expect(new Set(normals).size).toBe(30);
+  });
+
   it("sits each panel on a planar mesh face instead of tilting off the surface", async () => {
     const size = 50;
     const positions = [

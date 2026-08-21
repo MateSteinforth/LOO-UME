@@ -18,7 +18,7 @@ state. The existing manual 41-panel parts and planar-shell generator remain supp
 The implemented generation and portable-project data flow is:
 
 1. Start from the empty pose-only project (the editor default). It already
-   references a watertight cuboctahedron GLB whose squares are 66 mm.
+   references a watertight rhombicosidodecahedron GLB whose squares are 66 mm.
 2. Automatically place a requested number of LED panels on that surface, or
    load another GLB.
 3. Manually add, move, rotate, or delete panels until neighbouring outline
