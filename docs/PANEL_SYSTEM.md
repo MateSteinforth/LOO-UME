@@ -124,12 +124,15 @@ connectivity only: it cannot store coordinates, dimensions, or transforms, so
 it cannot become a second pose authority.
 
 The generator derives exact 66 × 65 mm rectangles and 0.8 mm PCB envelopes
-from the resolved profile and authoritative poses. It welds coincident corners
-within named `vertexWeldMm`. Detection removes oppositely wound shared panel
-edges and traces the remaining reversed exposed edges only when every welded
-vertex has one incoming and one outgoing cap edge. It canonicalizes every cycle,
-derives a stable content-based gap ID, sorts the result, and persists it in the
-generated Schema 2 JSON. The result is independent of panel array order.
+from the resolved profile and authoritative poses. It clusters neighbouring
+corners within named `vertexWeldMm` (1.5 mm) and snaps each cluster to the
+intersection of the incident panel planes. Detection removes oppositely wound
+shared panel edges. Isolated loops still require one incoming and one outgoing
+cap edge. When panels meet only at a vertex, a radial face walk finds the
+holes, including eight cuboctahedron triangles after six square panels, and
+discards cycles that retrace a panel outline. It canonicalizes every remaining
+cycle, derives a stable content-based gap ID, sorts the result, and persists it
+in the generated Schema 2 JSON. The result is independent of panel array order.
 
 The existing boundary validator then checks each cap against named planarity,
 edge, area, and intersection tolerances and proves consistent winding,

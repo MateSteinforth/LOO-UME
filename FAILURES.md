@@ -277,3 +277,25 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   path mistake.
 - **Evidence:** CAD-030 worktree path and the restored Codex `git status`.
 - **Status:** Resolved.
+
+### F-015 — 66 x 65 mm panels on 66 mm cuboctahedron squares do not share exact corners
+
+- **Date:** 2026-08-21
+- **Context:** Pose-only Generate after automatic placement on the 66 mm
+  cuboctahedron GLB.
+- **Symptom:** Detection either capped the six panel outlines themselves or,
+  after a larger weld, rejected the 4-regular cuboctahedron vertices as
+  ambiguous. First-wins welding then made some panel quads non-planar for
+  `compilePanelAssembly`.
+- **Cause:** A 66 x 65 mm panel on a 66 mm square leaves about 1.07–1.28 mm
+  between neighbouring corners. Cuboctahedron squares share vertices, not
+  edges, so the exposed graph is 4-regular. Snapping a corner onto a neighbour
+  that lies in a different plane breaks rectangle planarity.
+- **Correction:** Cluster corners within `vertexWeldMm` 1.5 mm, walk faces
+  radially at non-coplanar multi-edge vertices, discard panel-outline cycles,
+  and snap each cluster onto the intersection of the incident panel planes.
+- **Prevention:** For rectangular panels on square faces, do not require unique
+  2-regular cap walks, and do not first-wins weld across 90-degree planes.
+  Cover the arrangement with a six-panel, eight-triangle compile test.
+- **Evidence:** `tests/panel-outline-boundary.test.ts` cuboctahedron case.
+- **Status:** Resolved.

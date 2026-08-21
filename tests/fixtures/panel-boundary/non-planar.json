@@ -3,7 +3,7 @@
   "mutation": {
     "kind": "translate-panel",
     "panelId": "P-BACK",
-    "offset": [0, 0, 0.2]
+    "offset": [0, 0, 3]
   },
   "expectedErrorCode": "non-planar"
 }

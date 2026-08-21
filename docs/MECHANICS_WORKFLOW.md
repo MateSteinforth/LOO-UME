@@ -53,24 +53,30 @@ are derived from the resolved panel width/height and the saved right-handed pose
 Topology therefore selects adjacency and winding without locating a panel or
 boundary vertex.
 
-When `boundaryTopology` is absent, detection sorts panels by ID, welds exact
-outline corners within `vertexWeldMm`, removes shared edges only when the two
-panels traverse them in opposite directions, and reverses each remaining panel
-edge to obtain the cap winding. Every exposed vertex must have exactly one
-incoming and one outgoing cap edge. Each resulting cycle is rotated to a
-canonical panel/corner sequence, assigned a content-derived `gap-<12 hex>` ID,
-and sorted by that ID. The generated Schema 2 JSON persists those cycles, so
-save/reopen and later regeneration reuse the same connectivity. Detection is
-independent of panel array order.
+When `boundaryTopology` is absent, detection sorts panels by ID, clusters
+outline corners within `vertexWeldMm` (1.5 mm), and places each cluster on the
+intersection of the incident panel planes so a rectangular 66 x 65 mm panel on
+a 66 mm square stays planar. Shared edges are removed only when the two panels
+traverse them in opposite directions. Isolated 2-regular loops keep the unique
+reverse-edge walk. When neighbouring panels meet only at a vertex, a radial
+face walk around that vertex finds the holes and discards cycles that retrace a
+panel outline. That is how six cuboctahedron squares produce eight triangular
+caps. Each remaining cycle is rotated to a canonical panel/corner sequence,
+assigned a content-derived `gap-<12 hex>` ID, and sorted by that ID. The
+generated Schema 2 JSON persists those cycles, so save/reopen and later
+regeneration reuse the same connectivity. Detection is independent of panel
+array order.
 
 Detection fails actionably when no exposed edges exist, an exposed graph is
 open, more than two panels use one welded edge, a shared edge has matching
-winding, or touching gaps make a welded vertex ambiguous. It does not guess or
-silently choose between multiple cycles. The interface has no topology
-confirmation or correction control. It cannot accept, reject, reorder, or
-redraw detected cycles. The user must move the panels until detection is
-unambiguous or edit `boundaryTopology` outside the interface. The prism fixture is
-`sculptures/panel-outline-prism/sculpture.json`. Invalid fixtures cover
+winding, coplanar touching gaps make a welded vertex ambiguous, or only panel
+outlines remain because neighbouring corners did not cluster. It does not guess
+or silently choose between multiple coplanar cycles. The interface has no
+topology confirmation or correction control. It cannot accept, reject, reorder,
+or redraw detected cycles. The user must move the panels until detection is
+unambiguous or edit `boundaryTopology` outside the interface. The prism fixture
+is `sculptures/panel-outline-prism/sculpture.json`. The default empty project
+places six panels on the 66 mm cuboctahedron squares. Invalid fixtures cover
 non-planar, open, intersecting, and non-manifold layouts.
 
 For each proposed cap, generation must reject:

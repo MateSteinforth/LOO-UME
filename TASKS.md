@@ -330,10 +330,21 @@ does not execute OpenSCAD. Codex keeps OpenSCAD for manual `parts/*.scad`.
 ### Empty pose-only default and honest Generate copy
 
 - Default project is `sculptures/pose-only-empty/sculpture.json` (no JSON shell).
-- Generate keeps the panel-outline contract: the operator welds neighbouring
-  corners. Topology errors surface; leftover JSON shells are refused with a
-  start-from-empty message.
+- Generate keeps the panel-outline contract: neighbouring corners within
+  `vertexWeldMm` (1.5 mm) cluster; leftover JSON shells are ignored.
 - Owner: Grok; `grok/workspace`.
+
+### Cuboctahedron 66 mm squares and triangular caps
+
+- Default placement GLB is a cuboctahedron whose squares are 66 mm so a
+  66 x 65 mm panel fits. After six square panels, Generate closes the eight
+  triangular holes with Manifold parts. Detection uses a radial face walk at
+  vertices where panels meet without sharing an edge, and snaps clustered
+  corners onto the incident panel-plane intersection so the rectangles stay
+  planar.
+- Owner: Grok; `grok/workspace`.
+- Verify: `tests/panel-outline-boundary.test.ts` cuboctahedron case;
+  `tests/automatic-panel-placement.test.ts` six-square placement.
 
 ### `PLACE-011` Sit automatic panels on mesh faces — P0
 
