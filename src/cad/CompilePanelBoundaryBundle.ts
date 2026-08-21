@@ -136,6 +136,8 @@ export async function compilePanelBoundaryBundle(
     throw new Error("Manually authored mechanics cannot enter generic part generation.");
   }
   const workingDefinition = structuredClone(project.sculpture);
+  delete workingDefinition.mechanicalShell;
+  delete workingDefinition.closures;
   if (!workingDefinition.boundaryTopology) {
     workingDefinition.boundaryTopology = detectPanelBoundaryTopology(
       workingDefinition,

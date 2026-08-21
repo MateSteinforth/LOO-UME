@@ -21,7 +21,8 @@ The implemented generation and portable-project data flow is:
 2. Load a GLB design surface.
 3. Automatically place a requested number of LED panels on that surface.
 4. Manually add, move, rotate, or delete panels until neighbouring outline
-   corners meet. Generate closes those flat gaps; it does not fill the GLB.
+   corners meet. Generate puts flat caps on the holes between those outlines.
+   It does not use the GLB or a JSON shell as geometry.
 5. Use simulation, mapping, wiring preview, save, and reload without generating
    any mechanics.
 6. Press **Generate 3D Parts**.

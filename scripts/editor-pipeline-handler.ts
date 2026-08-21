@@ -269,16 +269,13 @@ export async function createEditorPipelineHandler(
             "Manually authored mechanics cannot enter generic part generation.",
           );
         }
-        const canDetectPanelBoundary =
+        if (
           definition.boundaryTopology === undefined &&
-          definition.mechanicalShell === undefined &&
-          Array.isArray(definition.panels) && definition.panels.length > 0;
-        if (definition.boundaryTopology === undefined && !canDetectPanelBoundary) {
+          (!Array.isArray(definition.panels) || definition.panels.length === 0)
+        ) {
           throw new HttpError(
             400,
-            definition.mechanicalShell
-              ? "This project still has a JSON mechanical shell. Start from the empty pose-only project, load a GLB, place panels so neighbouring outline corners meet, then generate."
-              : "Place panels and weld neighbouring outline corners before generating printable parts.",
+            "Place panels, then generate caps for the flat holes between their outlines.",
           );
         }
         const project = createPanelAssemblyProject(

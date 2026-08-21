@@ -126,13 +126,10 @@ export async function generatePanelBoundaryParts(
         `Design surface source ${designSurface.source} conflicts with a reserved generated-project path.`,
       );
     }
-    if (!options.designSurfaceBytes) {
-      throw new Error(
-        `Generation requires verified bytes for design surface ${designSurface.source}.`,
-      );
+    if (options.designSurfaceBytes) {
+      designSurfaceBytes = Uint8Array.from(options.designSurfaceBytes);
+      verifyProjectAssetBytes(designSurface, designSurfaceBytes, "Design surface");
     }
-    designSurfaceBytes = Uint8Array.from(options.designSurfaceBytes);
-    verifyProjectAssetBytes(designSurface, designSurfaceBytes, "Design surface");
   } else if (options.designSurfaceBytes) {
     throw new Error(
       "Generation received design-surface bytes, but the project has no designSurface reference.",

@@ -16,7 +16,7 @@ This file is the persistent source of truth for work status. Read it before star
 
 | Agent | Task | Status | Branch | Worktree |
 | --- | --- | --- | --- | --- |
-| Grok | empty pose-only default + honest Generate | Ready to Merge | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
+| Grok | pose-only flat caps independent of GLB/JSON shell | Ready to Merge | `grok/workspace` | `/home/mate/Documents/led-rhombicosidodecahedron-grok` |
 | Grok | `CAD-030` task snapshot | same commit as `grok/workspace` | `grok/cad-030-manifold-pin` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-cad-030` |
 | Grok | `CTRL-004` reconstruction snapshot | frozen | `grok/ctrl-004-reconstruct-project` | `/home/mate/Documents/led-rhombicosidodecahedron-grok-ctrl-004` |
 | Codex | `WIRE-013` lifecycle | parallel, do not edit | `codex/wire-013-lifecycle` | `/home/mate/Documents/led-rhombicosidodecahedron` |

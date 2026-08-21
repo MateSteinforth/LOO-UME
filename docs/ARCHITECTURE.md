@@ -48,12 +48,14 @@ referenced GLB -> automatic placement -> manual pose edits
                  referenced exact STL files -> Three.js
 ```
 
-The GLB is still only a placement surface. The generated boundary comes from
-panel outlines and planar gap caps. Detection welds exact panel corners, removes
-oppositely wound shared edges, and traces each unambiguous exposed-edge cycle.
-The generator may assume users arrange panels so each gap is a flat simple
-N-gon, but it validates that assumption and refuses ambiguous, invalid, or
-non-manifold results. The GLB does not supply or suggest gap topology.
+The GLB is only a placement surface. Printable generation uses panel poses and
+the hardware profile only. It puts flat caps on the holes between panel
+outlines. A leftover JSON mechanical shell is not generate input. Detection
+welds exact panel corners, removes oppositely wound shared edges, and traces
+each unambiguous exposed-edge cycle. The generator may assume each hole is a
+flat simple N-gon, but it validates that assumption and refuses ambiguous,
+invalid, or non-manifold results. The GLB does not supply or suggest gap
+topology.
 
 ## Subsystems
 

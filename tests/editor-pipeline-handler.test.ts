@@ -273,15 +273,6 @@ describe("shared editor pipeline handler", () => {
     );
     await expect(readFile(publishedGlb)).resolves.toEqual(Buffer.from(glbBytes));
 
-    const missing = await fetch(`${origin}/api/editor-pipeline`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Origin: origin },
-      body: JSON.stringify(definition),
-    });
-    expect(missing.status).toBe(400);
-    expect((await missing.json() as { error: string }).error)
-      .toMatch(/verified bytes.*design surface.*source\.glb/i);
-
     const tampered = Uint8Array.from(glbBytes);
     tampered[0] ^= 0xff;
     const mismatch = await fetch(`${origin}/api/editor-pipeline`, {
@@ -293,6 +284,14 @@ describe("shared editor pipeline handler", () => {
     expect((await mismatch.json() as { error: string }).error)
       .toMatch(/failed SHA-256 verification/);
     await expect(readFile(publishedGlb)).resolves.toEqual(Buffer.from(glbBytes));
+
+    const withoutGlb = await fetch(`${origin}/api/editor-pipeline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: origin },
+      body: JSON.stringify(definition),
+    });
+    expect(withoutGlb.status).toBe(200);
+    expect(await withoutGlb.json()).toMatchObject({ ok: true });
   });
 
   it("rejects leftover OpenSCAD sculpture generation", async () => {
@@ -313,22 +312,20 @@ describe("shared editor pipeline handler", () => {
     );
   });
 
-  it("tells the operator to start pose-only when a JSON shell is still present", async () => {
+  it("asks for panels before generating caps", async () => {
     const handler = await createEditorPipelineHandler({});
     const origin = await listen(handler);
     const response = await fetch(`${origin}/api/editor-pipeline`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: origin },
       body: JSON.stringify({
-        id: "leftover-json-shell",
+        id: "empty-pose-only",
         panelProfile: { id: "ws2812b-8x8-66x65" },
-        mechanicalShell: { kind: "explicit-planar-face-graph" },
-        panels: [{ id: "P-01" }],
       }),
     });
     expect(response.status).toBe(400);
     expect((await response.json() as { error: string }).error).toContain(
-      "JSON mechanical shell",
+      "holes between their outlines",
     );
   });
 });

@@ -390,7 +390,7 @@ app.innerHTML = `
               Automatically place panels
             </button>
             <p class="mapping-note">
-              Seeds panels on the active GLB. Move them until neighbouring outline corners meet. Generate then closes those flat gaps; it does not fill the mesh.
+              The GLB is only a placement aid. Printable caps come from the holes between panel outlines, not from the mesh.
             </p>
           </div>
           <label class="field">
@@ -419,7 +419,7 @@ app.innerHTML = `
             Local Vite pipeline is ready.
           </div>
           <p class="mapping-note">
-            Generate closes flat gaps between panel outlines whose corners already meet. It does not invent topology from the GLB. A failed run preserves the last successful STL set.
+            Generate puts flat caps on the holes between panel outlines. It does not use the GLB or a JSON shell as geometry. Neighbouring outline corners must meet. A failed run keeps the last successful STL set.
           </p>
         </section>
 
@@ -654,11 +654,7 @@ async function start(): Promise<void> {
         ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
         : !pipelineAvailable
           ? pipelineAvailabilityMessage
-          : editorDefinition.boundaryTopology
-          ? "Validate the stored gap cycles, generate printable parts, and load the exact emitted STL files."
-          : !editorDefinition.mechanicalShell || !editorDefinition.closures
-            ? "Detect unambiguous flat gaps where neighbouring panel outline corners already meet. The GLB is not used as topology."
-          : "This JSON mechanical shell is not the GLB panel-outline generate path. Load the empty pose-only project first.";
+          : "Put flat caps on the holes between panel outlines. Neighbouring corners must meet. The GLB is placement-only.";
       automaticPanelPlacementControls.hidden =
         editorDefinition.manualMechanics !== undefined;
       automaticallyPlacePanelsButton.disabled =

@@ -321,13 +321,6 @@ describe("validated panel boundary printable asset pipeline", () => {
 
     const cases = [
       {
-        label: "missing",
-        source: "design/source.glb",
-        sha256: sha256Bytes(glbBytes),
-        bytes: undefined,
-        error: /requires verified bytes/,
-      },
-      {
         label: "tampered",
         source: "design/source.glb",
         sha256: sha256Bytes(glbBytes),
