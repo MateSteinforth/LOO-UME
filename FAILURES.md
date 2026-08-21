@@ -310,3 +310,24 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   before starting full verification.
 - **Evidence:** The `HW-017`/`MAP-022` verification log and `AGENTS.md`.
 - **Status:** Resolved.
+
+### F-017 — `crypto.randomUUID()` is unavailable on an HTTP LAN origin
+
+- **Date:** 2026-08-21
+- **Context:** WIRE-015 wiring-manual export from a second computer on the local
+  network.
+- **Symptom:** Clicking **Export wiring assembly manual** threw
+  `TypeError: crypto.randomUUID is not a function` before the print page opened.
+- **Cause:** Browsers expose `crypto.randomUUID()` only in a secure context.
+  The LAN review URL uses plain HTTP and is not treated like the secure
+  `localhost` exception.
+- **Correction:** Generate the same-origin handshake token with
+  `randomUUID()` when available and `crypto.getRandomValues()` otherwise.
+- **Prevention:** Do not use secure-context-only browser APIs in a feature that
+  is explicitly supported through `npm run preview:phone` or an HTTP LAN URL
+  without a tested non-secure-context path.
+- **Evidence:** The fallback unit test and a real Chrome journey through
+  `http://192.168.68.61:5174` with `isSecureContext: false`, unavailable
+  `randomUUID`, and available `getRandomValues`; the export opened all six
+  sheets and 41 rows.
+- **Status:** Resolved.

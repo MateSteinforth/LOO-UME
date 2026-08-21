@@ -371,8 +371,10 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   parity, refusal, orientation, rendering, and print-CSS tests pass. A real
   browser journey reports the generic export action, six current-project sheets,
   41 rows, the four authored output colors, and **Print / Save PDF**. Full
-  Vitest passes 262/262; TypeScript, Vite multi-page build, and
-  `git diff --check` pass. Independent review has no findings.
+  Vitest passes 264/264; TypeScript, Vite multi-page build, and
+  `git diff --check` pass. A second real Chrome journey through the HTTP LAN
+  address proves the `getRandomValues()` handshake fallback when
+  `randomUUID()` is unavailable. Independent review has no findings.
 - Depends on: first WIRE-015 milestone `aa2f59d`.
 - Owner: branch `codex/wire-015-printable-manual`; worktree
   `/home/mate/Documents/led-rhombicosidodecahedron`.

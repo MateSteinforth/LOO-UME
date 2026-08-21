@@ -68,6 +68,7 @@ import {
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
 import { createWiringAssemblyManualModel } from "./WiringAssemblyManual.ts";
+import { createManualHandshakeToken } from "./ManualHandshake.ts";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -1815,7 +1816,7 @@ async function start(): Promise<void> {
         editorProject.panelProfile,
         editorProject.source,
       );
-      const token = crypto.randomUUID();
+      const token = createManualHandshakeToken();
       const manualUrl = new URL("./wiring-manual.html", window.location.href);
       manualUrl.searchParams.set("fromEditor", token);
       let manualWindow: Window | null = null;
