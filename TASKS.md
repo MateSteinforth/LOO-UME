@@ -320,6 +320,13 @@ does not execute OpenSCAD. Codex keeps OpenSCAD for manual `parts/*.scad`.
 
 ## Ready to Merge
 
+### Pose-only flat caps independent of GLB and JSON shell
+
+- Generate caps the holes between panel outlines from poses and the panel
+  profile. A leftover JSON mechanical shell is ignored. A GLB is optional
+  packaging, not generate input. Gaps are assumed flat and still validated.
+- Owner: Grok; `grok/workspace`.
+
 ### Empty pose-only default and honest Generate copy
 
 - Default project is `sculptures/pose-only-empty/sculpture.json` (no JSON shell).
