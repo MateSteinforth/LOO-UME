@@ -60,15 +60,15 @@ non-manifold results. The GLB does not supply or suggest gap topology.
 The browser currently proves a logical-to-physical permutation in memory. It
 does not yet prove an ESP32 installation. The 41-panel project stores an
 authored assumed route with chain lengths `11/10/10/10` and assumed GPIOs
-16–19. Each panel stores an assumed identity installed-address transform in a
-back-view frame. Panel pixel order is provisional, and RGB/GRB color order is
-not part of the project contract.
+16–19. Each panel stores a route-optimized assumed quarter turn in a back-view
+frame; mirroring is false. Panel pixel order is the assumed snake and WLED color
+order is the assumed RGB contract.
 Schema 2 can now represent draft, authored, requires-review, measured, and
 hardware-verified wiring. The last state defines a structured `PROOF-010`
 receipt but cannot activate until that task provides an acceptance validator.
 No current project contains measured route facts or a receipt. The current
-measured-fact checks are intentionally not hardware readiness; physical
-calibration, device read-back, and PWR-010 also remain required.
+Mapping readiness is separate from electrical approval. Voltage, temperature,
+and device read-back do not change the simulator-to-controller permutation.
 
 The WLED review deployment is generated from the same hardware mapping. It
 contains an exact four-bus configuration fragment and the ledmap. A canonical
@@ -80,7 +80,7 @@ The target hardware-parity flow keeps sculpture JSON as the authority and makes
 the simulator a faithful view of it:
 
 ```text
-authoritative panel poses + measured panel profile
+authoritative panel poses + selected panel profile assumptions
                          |
 confirmed ordered route + installed orientation
                          |
@@ -88,11 +88,11 @@ logical LED index -> ledmap -> global WLED physical index
                          |
 four bus ranges -> GPIO -> panel DIN-to-DOUT chain
                          |
-pinned firmware/config read-back -> 2,624-pixel bench proof
+pinned firmware/config identity -> optional address diagnostic
 ```
 
 Installed addressing does not introduce another pose. The pose basis still
-defines display-local coordinates and world positions. A separate measured
+defines display-local coordinates and world positions. A separate assumed
 back-view address transform maps those local coordinates to PCB wire
 coordinates with discrete quarter turns and optional mirroring. The existing
 geometry/mechanical rotation is not reused for this purpose.

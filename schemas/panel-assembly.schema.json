@@ -418,6 +418,16 @@
               },
               "mirrored": {
                 "type": "boolean"
+              },
+              "selectionMethod": {
+                "enum": [
+                  "manual",
+                  "route-optimized"
+                ]
+              },
+              "optimizationFingerprint": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{16}$"
               }
             }
           }

@@ -39,7 +39,7 @@ console.log(
 );
 if (!contract.readiness.ready) {
   console.log(
-    `Hardware export remains blocked by ${contract.readiness.blockers.length} ` +
-      "measured-data requirements.",
+    `Full electrical readiness remains blocked by ${contract.readiness.blockers.length} ` +
+      "separate requirement(s); mapping export is available.",
   );
 }

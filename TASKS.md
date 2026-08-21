@@ -104,10 +104,9 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: produce a reproducible firmware artifact and non-secret device
   configuration for mapping proof only, without adding network/audio feature
   claims.
-- Acceptance: device read-back confirms board/build identity, WLED revision,
-  four GPIOs, bus starts/lengths, color order, current limit, and installed
-  `ledmap.json` SHA-256; every bus reports reversal disabled; credentials remain
-  outside Git.
+- Acceptance: install the pinned build, exact RGB/order-1 four-bus fragment, and
+  matching `ledmap.json`; credentials remain outside Git. Device read-back is
+  optional diagnostics, not a mapping gate.
 - Depends on: `MAP-030` and `WIRE-012`.
 - Verify: clean firmware build, artifact receipt, flash/install procedure, and
   one-panel hardware smoke test.
@@ -229,11 +228,12 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Acceptance: draft data can produce only clearly named diagnostic artifacts;
   an installation-ready bundle contains `ledmap.json`, non-secret bus
   configuration, route/mapping manifest, source and artifact SHA-256 values,
-  pinned WLED/build identity, current-limit data, and an install/read-back
-  checklist; any missing, stale, or tampered prerequisite blocks that bundle;
+  pinned WLED/build identity and current-limit data; any missing, stale, or
+  tampered mapping prerequisite blocks that bundle;
   `WIRE-013` defines the lifecycle and only accepted `PROOF-010` evidence can
   authorize the hardware-verified transition.
-- Blocked by: `WIRE-011`, `MAP-030`, `CAL-010`, and `PWR-010`.
+- Blocked by: `MAP-022` and browser/CLI bundle integration. Electrical approval
+  is separate from mapping export.
 - Verify: shared readiness tests, browser/CLI bundle equivalence, tamper and
   staleness negatives, and portable save/reopen.
 
@@ -338,21 +338,64 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `HW-017` Correct mapping assumptions and readiness scope — P0
+
+- Outcome: the selected snake/RGB contract is mapping-ready, while full
+  electrical readiness remains a separate state.
+- Acceptance: WLED uses RGB/order 1; snake traversal remains assumed; voltage,
+  temperature, and device read-back do not block mapping export; the deployment
+  builder rejects any contract with `mappingReady: false`.
+- Evidence: the guarded export emits 2,624 addresses on GPIOs 16–19 with
+  ledmap fingerprint `bc5054d1`; the exact manifest identity is
+  `1673767d17864a522c8994b0707915e47f5a0de474f75cd0d797b2d79272a6eb`.
+  Full Vitest passes 257/257; TypeScript, Vite build, sculpture validation,
+  schema parsing, artifact parity, and `git diff --check` pass. Independent
+  final review has no findings. Full `npm run verify` reached `build:wasm` and
+  stopped because the pinned Emscripten 4.0.14 SDK is not installed; the tracked
+  WASM runtime passed its tests.
+- Depends on: `MAP-030` at `638540e`.
+- Owner: branch `codex/hw-017-corrected-assumptions`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: mapping readiness, WLED deployment generator/artifacts,
+  hardware documentation, and `TASKS.md`.
+- Merge rule: stop at Ready to Merge; do not merge into `main` without explicit
+  operator authorization.
+
+### `MAP-022` Optimize installed panel quarter turns — P0
+
+- Outcome: all 41 installed quarter turns are selected from the saved route and
+  geometry to minimize total DOUT-to-next-DIN data-wire length.
+- Acceptance: deterministic per-output dynamic programming evaluates all four
+  non-mirrored turns, preserves poses/routes, and binds provenance to the exact
+  route, poses, and resolved optimization-relevant panel-profile facts.
+- Evidence: the estimate is 1,245.8 mm versus 3,429.5 mm for identity; turn
+  counts are 0:10, 1:8, 2:14, 3:9; optimization fingerprint is
+  `2771611b3264c1da`. Exhaustive small-chain comparison, deterministic replay,
+  stale route/pose/profile negatives, all 41 assignments, and ledmap parity
+  pass. Full Vitest passes 257/257; TypeScript, Vite build, sculpture validation,
+  and `git diff --check` pass. Independent final review has no findings.
+- Depends on: `MAP-021` at `05ae747` and `WIRE-014` at `359cb0f`.
+- Owner: branch `codex/hw-017-corrected-assumptions`; same worktree.
+- Likely conflicts: Schema 2 parser/project loading, editor invalidation,
+  mapping compiler/artifacts, flagship sculpture JSON, and wiring docs.
+- Merge rule: stop at Ready to Merge; do not merge into `main` without explicit
+  operator authorization.
+
 ### `MAP-030` Define the WLED controller bus contract — P0
 
 - Outcome: generation now emits one non-secret assumed-review WLED fragment for
   the pinned target and exact four mapping outputs.
 - Contract: total 2,624, global `maxpwr: 0`, GPIOs 16/17/18/19, starts
-  0/704/1344/1984, lengths 704/640/640/640, type 22, GRB order 0, no reversal,
+  0/704/1344/1984, lengths 704/640/640/640, type 22, RGB order 1, no reversal,
   60 mA/LED, 14 A/bus, RMT driver 0, and domains A/A/B/B.
 - Identity: a canonical manifest records exact path, byte length, and SHA-256
   for config and ledmap plus source-project and pinned-target identities. Its
   exact-byte SHA-256 is the external review deployment identity; it does not
   list itself.
-- Safety: filenames are provisional and status is `assumed-review-only`;
-  physical calibration, device read-back, and PWR-010 remain gates.
+- Correction: `HW-017` changes manifest status to `assumed-mapping-ready` and
+  separates electrical approval from mapping.
 - Evidence: pinned source commit and all WLED field semantics were audited;
-  generator identity is `d798327877bedf46dee3d63216b1ecb0e5bf31c917276664eb6bbdfd91087c57`;
+  original generator identity was `d798327877bedf46dee3d63216b1ecb0e5bf31c917276664eb6bbdfd91087c57`;
   golden and tamper tests pass; full Vitest passes 250/250; TypeScript and
   `git diff --check` pass. Independent re-review has no findings.
 - Depends on: `MAP-021` at `05ae747`, `WIRE-014` at `359cb0f`, and `HW-016` at
@@ -422,13 +465,12 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   so per-bus limits apply. Each output uses a 15 A fused 12 AWG trunk; each
   panel has a separate 18 AWG pair and 5 A positive fuse. Unrestricted full
   white is not approved.
-- Controller decision (`HR-014`): local WLED web/JSON control only; GRB, the
-  existing row snake, and zero-turn/non-mirrored installed transforms are
-  explicit assumptions. Ethernet, transport, audio, and custom effects remain
-  deferred.
-- Safety: the baseline does not mark any assumed value measured or
-  hardware-verified. Physical voltage, temperature, current, connector, fuse,
-  fault, pixel, color, and read-back checks remain required.
+- Controller decision (`HR-014`): local WLED web/JSON control only. `HW-017`
+  corrects color order to RGB; the snake remains assumed; `MAP-022` selects
+  non-mirrored installed quarter turns. Ethernet, transport, audio, and custom
+  effects remain deferred.
+- Safety: mapping assumptions do not claim electrical approval. Current,
+  connector, fuse, and fault protection remain separate.
 - Evidence: board pins agree with Espressif documentation; bus fields and ABL
   behavior agree with the exact pinned WLED source; output arithmetic and power
   domains cross-check; `git diff --check` passes; independent review resolved

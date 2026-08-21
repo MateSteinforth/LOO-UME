@@ -279,9 +279,9 @@ direction has one authority.
 an ESP32-WROOM-32E-N4 module, the repository-pinned WLED commit
 `d9b9a846561227351ad929e3109781daadb7bed2`, and its `esp32dev` build. GPIOs
 16, 17, 18, and 19 drive four WS281x RGB buses through one 5 V SN74AHCT125.
-The assumed color order is GRB. Bus reversal is false. The assumed back-view
-panel order is the current row snake, and each installed address transform is
-zero quarter-turns without mirroring.
+The assumed color order is RGB. Bus reversal is false. The assumed back-view
+panel order is the current row snake. `MAP-022` selects each installed quarter
+turn from route geometry without mirroring.
 
 The power baseline uses two independent 5 V / 40 A positive-rail domains.
 Outputs 0 and 1 use domain A; outputs 2 and 3 use domain B. Grounds join at one
@@ -293,20 +293,18 @@ not an approved mode.
 **Evidence.** Espressif documents GPIOs 16–19 as input/output pins on the
 DevKitC V4 when it has a WROOM module; GPIOs 16 and 17 are not available on a
 WROVER module. The pinned WLED WROOM build supports up to eight RMT channels;
-this contract uses four. The same source defines WS281x RGB type 22, GRB order
-0, per-bus `maxpwr`, and explicit `rev`. It requires global
+this contract uses four. The same source defines WS281x RGB type 22, RGB order
+1, per-bus `maxpwr`, and explicit `rev`. It requires global
 `hw.led.maxpwr: 0` to activate the per-bus limits. WLED documentation
 recommends an SN74AHCT125 level shifter and rates
 four ESP32 outputs of up to 800 pixels each as very good performance. The
 longest planned output is 704 pixels.
 
 **Consequence.** These choices are authorized build assumptions, not measured
-facts. They can drive prototype configuration and assembly labels, but they do
-not set measured or hardware-verified lifecycle states. A numbered panel test
-can replace GRB, pixel order, or an address transform. Device read-back can
-replace the controller assumptions. A current or voltage failure must reduce
-the operating limit or change the physical power plan before more panels are
-energized.
+facts. They drive the mapping configuration and assembly labels. Mapping
+readiness does not depend on voltage, temperature, or device read-back. A user
+correction can replace RGB, snake order, or an address transform. Electrical
+protection remains separate from the address and color contract.
 
 ## D16 — Hash exact provisional WLED deployment bytes
 
@@ -323,8 +321,8 @@ Golden and tamper tests cover all bus fields, changed routes, stale ledmaps,
 modified files, and a contradictory re-hashed bus configuration.
 
 **Consequence.** The generated files are non-secret and reproducible, but their
-status remains `assumed-review-only`. A later installation receipt records the
-manifest SHA-256 after device read-back. Credentials never enter this bundle.
+status is `assumed-mapping-ready`. The external identity is the manifest
+SHA-256. Credentials never enter this bundle.
 
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in

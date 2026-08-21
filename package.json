@@ -11,6 +11,7 @@
     "validate:sculpture": "tsx scripts/validate-sculpture.ts",
     "stage:sculptures": "node scripts/stage-sculpture-json.mjs",
     "generate:mapping": "tsx scripts/generate-mapping.ts",
+    "optimize:wiring-orientation": "tsx scripts/optimize-installed-orientations.ts",
     "generate:mapping:hardware": "tsx scripts/generate-mapping.ts --hardware",
     "generate:cad": "tsx scripts/generate-cad.ts",
     "generate:sculpture": "tsx scripts/generate-sculpture.ts",

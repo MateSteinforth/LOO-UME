@@ -69,6 +69,10 @@ export interface InstalledAddressTransform {
   referenceView: "back";
   quarterTurnsClockwise: 0 | 1 | 2 | 3;
   mirrored: boolean;
+  /** Missing in legacy projects means the orientation was selected manually. */
+  selectionMethod?: "manual" | "route-optimized";
+  /** Binds route-optimized values to the current profile, route, and poses. */
+  optimizationFingerprint?: string;
 }
 
 /** Connectivity only: all referenced corner positions are derived from poses. */
@@ -201,6 +205,55 @@ export interface PanelAssemblyProject {
   sculpture: PanelAssemblyDefinition;
   panelProfile: PanelHardwareProfile;
   source: string;
+}
+
+const FNV64_OFFSET_BASIS = 0xcbf29ce484222325n;
+const FNV64_PRIME = 0x100000001b3n;
+const FNV64_MASK = 0xffffffffffffffffn;
+
+/**
+ * Fingerprint the exact route inputs used by the installed-address optimizer.
+ * Panel storage order does not matter; each panel ID remains bound to its pose.
+ */
+export function createInstalledAddressOptimizationFingerprint(
+  definition: Pick<PanelAssemblyDefinition, "panelProfile" | "wiring" | "panels">,
+  panelProfile: Pick<
+    PanelHardwareProfile,
+    "id" | "dimensions" | "pixelGrid" | "dataConnectors"
+  >,
+): string {
+  const source = JSON.stringify({
+    panelProfileReference: definition.panelProfile,
+    panelProfile: {
+      id: panelProfile.id,
+      dimensions: {
+        width: panelProfile.dimensions.width,
+        height: panelProfile.dimensions.height,
+      },
+      pixelGrid: {
+        columns: panelProfile.pixelGrid.columns,
+        rows: panelProfile.pixelGrid.rows,
+      },
+      dataConnectors: {
+        referenceView: panelProfile.dataConnectors.referenceView,
+        dinCorner: panelProfile.dataConnectors.dinCorner,
+        doutCorner: panelProfile.dataConnectors.doutCorner,
+      },
+    },
+    outputs: definition.wiring.outputs.map((output, index) => ({
+      index,
+      outputIndex: output.outputIndex,
+      panelIds: output.panelIds ?? null,
+    })),
+    panels: [...definition.panels]
+      .sort((first, second) => first.id.localeCompare(second.id))
+      .map((panel) => ({ id: panel.id, pose: panel.pose })),
+  });
+  let hash = FNV64_OFFSET_BASIS;
+  for (const byte of new TextEncoder().encode(source)) {
+    hash = ((hash ^ BigInt(byte)) * FNV64_PRIME) & FNV64_MASK;
+  }
+  return hash.toString(16).padStart(16, "0");
 }
 
 export interface CompiledMountingHole {
@@ -553,6 +606,60 @@ function validateWiring(
   }
 }
 
+function validateInstalledAddressOptimizationFingerprintShape(
+  definition: PanelAssemblyDefinition,
+): void {
+  const routeOptimized = definition.panels.filter(
+    (panel) => panel.installedAddressTransform?.selectionMethod === "route-optimized",
+  );
+  const transformsWithFingerprint = definition.panels.filter(
+    (panel) => panel.installedAddressTransform?.optimizationFingerprint !== undefined,
+  );
+  if (routeOptimized.length === 0 && transformsWithFingerprint.length === 0) return;
+
+  for (const panel of definition.panels) {
+    const transform = panel.installedAddressTransform;
+    if (!transform) continue;
+    if (
+      transform.selectionMethod === "route-optimized" &&
+      transform.optimizationFingerprint === undefined
+    ) {
+      throw new Error(
+        "Route-optimized installed transforms require an optimization fingerprint.",
+      );
+    }
+    if (
+      transform.selectionMethod !== "route-optimized" &&
+      transform.optimizationFingerprint !== undefined
+    ) {
+      throw new Error(
+        "Only route-optimized installed transforms can contain an optimization fingerprint.",
+      );
+    }
+  }
+}
+
+function validateInstalledAddressOptimizationFingerprint(
+  definition: PanelAssemblyDefinition,
+  panelProfile: PanelHardwareProfile,
+): void {
+  const routeOptimized = definition.panels.filter(
+    (panel) => panel.installedAddressTransform?.selectionMethod === "route-optimized",
+  );
+  if (routeOptimized.length === 0) return;
+  const expected = createInstalledAddressOptimizationFingerprint(
+    definition,
+    panelProfile,
+  );
+  if (routeOptimized.some(
+    (panel) => panel.installedAddressTransform!.optimizationFingerprint !== expected,
+  )) {
+    throw new Error(
+      "Route-optimized installed transforms require the current optimization fingerprint.",
+    );
+  }
+}
+
 export function parsePanelAssemblyDefinition(
   input: unknown,
 ): PanelAssemblyDefinition {
@@ -733,7 +840,13 @@ export function parsePanelAssemblyDefinition(
         Number.isInteger(installedAddressTransform.quarterTurnsClockwise) &&
         (installedAddressTransform.quarterTurnsClockwise as number) >= 0 &&
         (installedAddressTransform.quarterTurnsClockwise as number) <= 3 &&
-        typeof installedAddressTransform.mirrored === "boolean");
+        typeof installedAddressTransform.mirrored === "boolean" &&
+        (installedAddressTransform.selectionMethod === undefined ||
+          installedAddressTransform.selectionMethod === "manual" ||
+          installedAddressTransform.selectionMethod === "route-optimized") &&
+        (installedAddressTransform.optimizationFingerprint === undefined ||
+          (typeof installedAddressTransform.optimizationFingerprint === "string" &&
+            /^[0-9a-f]{16}$/.test(installedAddressTransform.optimizationFingerprint))));
     const pose = isRecord(panel) && isRecord(panel.pose) ? panel.pose : null;
     const position = pose?.position;
     const orientation =
@@ -897,11 +1010,17 @@ export function parsePanelAssemblyDefinition(
       }
     }
     validateWiring(record(input, "wiring"), input.panels.length, panelIds);
+    validateInstalledAddressOptimizationFingerprintShape(
+      input as unknown as PanelAssemblyDefinition,
+    );
     if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
     return input as unknown as PanelAssemblyDefinition;
   }
   if (!usesGeneratedMechanics) {
     validateWiring(record(input, "wiring"), input.panels.length, panelIds);
+    validateInstalledAddressOptimizationFingerprintShape(
+      input as unknown as PanelAssemblyDefinition,
+    );
     if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
     return input as unknown as PanelAssemblyDefinition;
   }
@@ -981,6 +1100,9 @@ export function parsePanelAssemblyDefinition(
     nonNegative(closures, key);
   }
   validateWiring(record(input, "wiring"), input.panels.length, panelIds);
+  validateInstalledAddressOptimizationFingerprintShape(
+    input as unknown as PanelAssemblyDefinition,
+  );
   if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
   return input as unknown as PanelAssemblyDefinition;
 }
@@ -1017,6 +1139,7 @@ export function createPanelAssemblyProject(
       `Assembly requests ${sculpture.panelProfile.id}; loaded ${panelProfile.id}.`,
     );
   }
+  validateInstalledAddressOptimizationFingerprint(sculpture, panelProfile);
   return { sculpture, panelProfile, source };
 }
 

@@ -147,9 +147,21 @@ export function confirmWiringRouteEditorModel(
   const { hardwareProof: _staleProof, ...wiring } = definition.wiring;
   return {
     ...definition,
+    panels: definition.panels.map((panel) => ({
+      ...panel,
+      installedAddressTransform: panel.installedAddressTransform
+        ? {
+            ...panel.installedAddressTransform,
+            status: "assumed" as const,
+            selectionMethod: "manual" as const,
+            optimizationFingerprint: undefined,
+          }
+        : undefined,
+    })),
     calibration: {
       ...definition.calibration,
       physicalChains: "provisional",
+      installedPanelOrientation: "provisional",
     },
     wiring: {
       ...wiring,

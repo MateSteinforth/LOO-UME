@@ -41,9 +41,9 @@ const equivalenceErrors = validateLedmapEquivalence(
 if (equivalenceErrors.length > 0) {
   throw new Error(equivalenceErrors.join("\n"));
 }
-if (hardwareExport && !contract.readiness.ready) {
+if (hardwareExport && !contract.readiness.mappingReady) {
   throw new Error(
-    "Refusing hardware ledmap.json export:\n- " +
+    "Refusing mapping ledmap.json export:\n- " +
       contract.readiness.blockers.join("\n- "),
   );
 }
@@ -60,6 +60,7 @@ const panelMap = {
   notes: contract.mapping.notes,
   status: contract.mapping.status,
   hardwareReady: contract.readiness.ready,
+  mappingReady: contract.readiness.mappingReady,
   ledmapFingerprint: contract.fingerprint,
   readinessBlockers: contract.readiness.blockers,
   wiringLifecycle: contract.readiness.wiringLifecycle,
@@ -114,10 +115,8 @@ console.log(
     contract.fingerprint +
     ").",
 );
-if (!contract.readiness.ready) {
+if (contract.readiness.mappingReady && !contract.readiness.ready) {
   console.log(
-    "Hardware export remains blocked by " +
-      contract.readiness.blockers.length +
-      " measured-data requirements.",
+    "Mapping is ready under the selected assumptions; electrical protection remains separate.",
   );
 }

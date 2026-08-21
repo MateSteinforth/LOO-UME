@@ -26,7 +26,9 @@ export interface OutputAddressRange {
 
 export interface HardwareReadiness {
   ready: boolean;
-  /** Current measured-fact checks only; this is not hardware readiness. */
+  /** Simulator-to-controller mapping is complete under selected assumptions. */
+  mappingReady: boolean;
+  /** Structural mapping checks; this is not electrical approval. */
   currentChecksPass: boolean;
   blockers: string[];
   wiringLifecycle: WiringPreview["status"];
@@ -390,6 +392,7 @@ interface GeneratedPanelMap {
   topology: LedMapping["topology"];
   notes: string[];
   hardwareReady: boolean;
+  mappingReady?: boolean;
   ledmapFingerprint: string;
   readinessBlockers: string[];
   wiringLifecycle?: string;
@@ -421,7 +424,15 @@ function normalizeGeneratedPanelTransform(panel: PanelDefinition): PanelDefiniti
     !Number.isInteger(transform.quarterTurnsClockwise) ||
     transform.quarterTurnsClockwise < 0 ||
     transform.quarterTurnsClockwise > 3 ||
-    typeof transform.mirrored !== "boolean"
+    typeof transform.mirrored !== "boolean" ||
+    (transform.selectionMethod !== undefined &&
+      transform.selectionMethod !== "manual" &&
+      transform.selectionMethod !== "route-optimized") ||
+    (transform.optimizationFingerprint !== undefined &&
+      (typeof transform.optimizationFingerprint !== "string" ||
+        !/^[0-9a-f]{16}$/.test(transform.optimizationFingerprint))) ||
+    (transform.selectionMethod === "route-optimized") !==
+      (transform.optimizationFingerprint !== undefined)
   ) {
     throw new Error("Generated panel map has an invalid installed address transform.");
   }
@@ -478,9 +489,6 @@ export function loadGeneratedHardwareMappingContract(
   ) {
     throw new Error("Panel map wiring lifecycle disagrees with the wiring preview.");
   }
-  if (panelMap.hardwareReady) {
-    throw new Error("Generated mapping artifacts cannot claim hardware-ready status before MAP-030 and PWR-010.");
-  }
   const wiring = {
     ...panelMap.wiring,
     status: normalizedStatus,
@@ -515,6 +523,15 @@ export function loadGeneratedHardwareMappingContract(
   }
 
   const readiness = assessHardwareReadiness(mapping, wiring);
+  if (panelMap.hardwareReady !== readiness.ready) {
+    throw new Error("Panel map hardware-ready status disagrees with the current mapping contract.");
+  }
+  if (
+    panelMap.mappingReady !== undefined &&
+    panelMap.mappingReady !== readiness.mappingReady
+  ) {
+    throw new Error("Panel map mapping-ready status disagrees with the current mapping contract.");
+  }
   return {
     mapping,
     wiring,
@@ -591,16 +608,14 @@ export function assessHardwareReadiness(
   wiring: WiringPreview,
 ): HardwareReadiness {
   const currentCheckBlockers = new Set<string>();
-  if (mapping.status !== "measured") {
-    currentCheckBlockers.add("Sculpture transforms and UV placement are provisional.");
-  }
-  if (wiring.status !== "measured") {
+  if (
+    wiring.status !== "authored" &&
+    wiring.status !== "measured"
+  ) {
     currentCheckBlockers.add(
       wiring.status === "requires-review"
         ? "The stored panel data chains require review."
-        : wiring.status === "authored"
-          ? "The panel data chains are authored but not measured."
-          : wiring.status === "hardware-verified"
+        : wiring.status === "hardware-verified"
             ? "Hardware-verified wiring cannot activate before accepted PROOF-010 validation exists."
           : "The panel data chains are still a draft suggestion.",
     );
@@ -609,35 +624,28 @@ export function assessHardwareReadiness(
     currentCheckBlockers.add("Controller GPIO assignments are unknown.");
   }
   if (
-    wiring.nodes.some(
-      (node) => node.dinDoutAssignmentStatus !== "measured",
-    )
-  ) {
-    currentCheckBlockers.add("DIN/DOUT endpoint assignment is not bench-verified.");
-  }
-  if (
     mapping.panels.some(
-      (panel) => panel.pixelOrder.status !== "measured",
+      (panel) =>
+        panel.pixelOrder.pixelZeroCorner === null ||
+        panel.pixelOrder.traversalAxis === null ||
+        panel.pixelOrder.lineProgression === null ||
+        panel.pixelOrder.serpentine === null ||
+        panel.pixelOrder.firstLineDirection === null,
     )
   ) {
-    currentCheckBlockers.add("Panel pixel-zero and within-panel order are not bench-verified.");
-  }
-  if (
-    mapping.panels.some((panel) => panel.wiring.status !== "assigned")
-  ) {
-    currentCheckBlockers.add("The panel data chains are still provisional.");
+    currentCheckBlockers.add("Panel pixel-zero or within-panel order is incomplete.");
   }
   if (mapping.panels.some(
-    (panel) => panel.installedAddressTransform.status !== "measured",
+    (panel) => panel.installedAddressTransform.selectionMethod !== "route-optimized",
   )) {
-    currentCheckBlockers.add("Installed address transforms are assumed, not measured.");
+    currentCheckBlockers.add("Installed panel orientations are not route-optimized.");
   }
   const currentChecksPass = currentCheckBlockers.size === 0;
   const blockers = new Set(currentCheckBlockers);
-  blockers.add("MAP-030 WLED bus, color-order, and deployment contract is not implemented.");
-  blockers.add("PWR-010 power-plan approval is required before hardware export.");
+  blockers.add("Electrical protection approval is separate from mapping readiness.");
   return {
     ready: false,
+    mappingReady: currentChecksPass,
     currentChecksPass,
     blockers: [...blockers],
     wiringLifecycle: wiring.status,

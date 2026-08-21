@@ -9,6 +9,8 @@ import {
 } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 import { CANONICAL_SCULPTURE_PROJECT } from "../src/sculpture/Definition.ts";
+import { createPanelAssemblyMapping } from "../src/sculpture/PanelAssembly.ts";
+import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 
 describe("hardware mapping contract", () => {
   it("rotates fixed back-view corner vectors clockwise after mirroring", () => {
@@ -276,10 +278,22 @@ describe("hardware mapping contract", () => {
     }
   });
 
-  it("keeps generated JSON artifacts fingerprint-identical", () => {
-    const geometry = createPanelizedSculptureMapping();
-    const wiring = createProvisionalWiringPreview(geometry);
-    const contract = createHardwareMappingContract(geometry, wiring);
+  it("keeps generated JSON artifacts fingerprint-identical", async () => {
+    const project = await loadPanelAssemblyProjectFromFile(
+      "sculptures/rhombicosidodecahedron/sculpture.json",
+      process.cwd(),
+    );
+    const geometry = createPanelAssemblyMapping(project);
+    const wiring = createProvisionalWiringPreview(
+      geometry,
+      project.sculpture,
+      project.panelProfile,
+    );
+    const contract = createHardwareMappingContract(
+      geometry,
+      wiring,
+      project.panelProfile,
+    );
     const generatedLayout = JSON.parse(
       readFileSync("layout/panel-map.json", "utf8"),
     ) as {
@@ -306,18 +320,21 @@ describe("hardware mapping contract", () => {
     ) as { map: number[] };
     const loaded = loadGeneratedHardwareMappingContract(panelMap, ledmap);
 
-    expect(loaded.fingerprint).toBe("31291c59");
+    expect(loaded.fingerprint).toBe("bc5054d1");
     expect(loaded.wiring.status).toBe("authored");
     expect(loaded.wiring.outputs.map((output) => output.gpio)).toEqual([
       16, 17, 18, 19,
     ]);
     expect(loaded.mapping.entries).toHaveLength(2624);
     expect(loaded.wiring.outputs).toHaveLength(4);
+    expect(loaded.readiness.mappingReady).toBe(true);
 
     const legacyTransformMap = structuredClone(panelMap) as {
       panels: Array<{ installedAddressTransform?: unknown }>;
+      mappingReady?: boolean;
     };
     delete legacyTransformMap.panels[0]!.installedAddressTransform;
+    delete legacyTransformMap.mappingReady;
     expect(loadGeneratedHardwareMappingContract(
       legacyTransformMap,
       ledmap,
@@ -359,7 +376,7 @@ describe("hardware mapping contract", () => {
     hardwareReadyTamper.hardwareReady = true;
     expect(() =>
       loadGeneratedHardwareMappingContract(hardwareReadyTamper, ledmap),
-    ).toThrow(/cannot claim hardware-ready/);
+    ).toThrow(/hardware-ready status disagrees/);
 
     const hardwareVerifiedTamper = structuredClone(panelMap) as {
       wiring: { status: string };
@@ -370,15 +387,13 @@ describe("hardware mapping contract", () => {
     ).toThrow(/accepted PROOF-010/);
   });
 
-  it("refuses to describe provisional routing as hardware-ready", () => {
+  it("refuses to describe a draft route with unknown GPIOs as hardware-ready", () => {
     const geometry = createPanelizedSculptureMapping();
     const wiring = createProvisionalWiringPreview(geometry);
     const contract = createHardwareMappingContract(geometry, wiring);
 
     expect(contract.readiness.ready).toBe(false);
     expect(contract.readiness.blockers.join(" ")).toContain("GPIO");
-    expect(contract.readiness.blockers.join(" ")).not.toContain("DIN/DOUT");
-    expect(contract.readiness.blockers.join(" ")).toContain("pixel-zero");
-    expect(contract.readiness.blockers.join(" ")).toContain("chains");
+    expect(contract.readiness.blockers.join(" ")).toContain("draft");
   });
 });

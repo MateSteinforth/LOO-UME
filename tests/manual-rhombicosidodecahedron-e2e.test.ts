@@ -73,6 +73,10 @@ describe("manual 41-panel pose-first sculpture", () => {
     expect(contract.outputs.map((output) => output.startIndex)).toEqual([
       0, 704, 1_344, 1_984,
     ]);
-    expect(contract.fingerprint).toBe("31291c59");
+    expect(contract.fingerprint).toBe("bc5054d1");
+    expect(contract.readiness).toMatchObject({
+      mappingReady: true,
+      ready: false,
+    });
   });
 });

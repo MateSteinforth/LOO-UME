@@ -37,6 +37,12 @@ describe("assumed WLED deployment contract", () => {
       ledmapBytes,
       sculptureBytes,
     );
+    expect(readFileSync("wled/ledmap.provisional.json", "utf8")).toBe(ledmapBytes);
+    expect(readFileSync("wled/cfg.provisional.json", "utf8")).toBe(bundle.configBytes);
+    expect(readFileSync(
+      "wled/deployment-manifest.provisional.json",
+      "utf8",
+    )).toBe(bundle.manifestBytes);
     const config = JSON.parse(bundle.configBytes) as {
       hw: { led: { total: number; maxpwr: number; ins: Array<Record<string, unknown>> } };
     };
@@ -52,15 +58,15 @@ describe("assumed WLED deployment contract", () => {
       ledma: bus.ledma,
       drv: bus.drv,
     }))).toEqual([
-      { start: 0, len: 704, pin: [16], order: 0, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
-      { start: 704, len: 640, pin: [17], order: 0, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
-      { start: 1344, len: 640, pin: [18], order: 0, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
-      { start: 1984, len: 640, pin: [19], order: 0, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
+      { start: 0, len: 704, pin: [16], order: 1, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
+      { start: 704, len: 640, pin: [17], order: 1, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
+      { start: 1344, len: 640, pin: [18], order: 1, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
+      { start: 1984, len: 640, pin: [19], order: 1, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
     ]);
     expect(bundle.deploymentIdentity).toBe(sha256ExactBytes(bundle.manifestBytes));
     expect(JSON.parse(bundle.manifestBytes)).toMatchObject({
-      status: "assumed-review-only",
-      mappingFingerprint: "31291c59",
+      status: "assumed-mapping-ready",
+      mappingFingerprint: "bc5054d1",
       target: {
         platformioEnvironment: "esp32dev",
         wledCommit: "d9b9a846561227351ad929e3109781daadb7bed2",
@@ -87,6 +93,14 @@ describe("assumed WLED deployment contract", () => {
       ledmapBytes,
       sculptureBytes,
     )).toThrow(/exactly four outputs/);
+    expect(() => createWledDeploymentBundle(
+      {
+        ...contract,
+        readiness: { ...contract.readiness, mappingReady: false },
+      },
+      ledmapBytes,
+      sculptureBytes,
+    )).toThrow(/mapping-ready address contract/);
     expect(() => createWledDeploymentBundle(
       contract,
       ledmapBytes.replace("[", "[1,"),

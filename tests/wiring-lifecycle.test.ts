@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { CANONICAL_SCULPTURE_PROJECT } from "../src/sculpture/Definition.ts";
 import {
+  createInstalledAddressOptimizationFingerprint,
   createPanelAssemblyMapping,
   createPanelAssemblyProject,
   parsePanelAssemblyDefinition,
@@ -40,6 +42,17 @@ function proof() {
   };
 }
 
+function downgradeRouteOptimizedTransforms(
+  definition: PanelAssemblyDefinition,
+): void {
+  for (const panel of definition.panels) {
+    if (panel.installedAddressTransform?.selectionMethod === "route-optimized") {
+      panel.installedAddressTransform.selectionMethod = "manual";
+      delete panel.installedAddressTransform.optimizationFingerprint;
+    }
+  }
+}
+
 async function authoredManual(): Promise<PanelAssemblyDefinition> {
   const definition = await loadManual();
   const { project, mapping } = projectFor(definition);
@@ -61,6 +74,7 @@ describe("Schema 2 wiring lifecycle", () => {
     definition.wiring.status = "provisional";
     delete definition.wiring.routeRevision;
     for (const output of definition.wiring.outputs) delete output.panelIds;
+    downgradeRouteOptimizedTransforms(definition);
     const { project, mapping } = projectFor(definition);
     const preview = createProvisionalWiringPreview(
       mapping, definition, project.panelProfile,
@@ -154,7 +168,15 @@ describe("Schema 2 wiring lifecycle", () => {
         referenceView: "back",
         quarterTurnsClockwise: 0,
         mirrored: false,
+        selectionMethod: "route-optimized",
       };
+    });
+    const optimizationFingerprint = createInstalledAddressOptimizationFingerprint(
+      definition,
+      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+    );
+    definition.panels.forEach((panel) => {
+      panel.installedAddressTransform!.optimizationFingerprint = optimizationFingerprint;
     });
 
     const { project: draftProfileProject } = projectFor(definition);
@@ -170,6 +192,7 @@ describe("Schema 2 wiring lifecycle", () => {
 
     expect(contract.readiness).toMatchObject({
       ready: false,
+      mappingReady: true,
       currentChecksPass: true,
       wiringLifecycle: "measured",
     });

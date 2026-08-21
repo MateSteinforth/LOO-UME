@@ -276,3 +276,37 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   IDs and duplicate entries.
 - **Evidence:** `TASKS.md` status correction in `CTRL-005`.
 - **Status:** Resolved.
+
+### F-015 — Mapping assumptions were treated as measurement gates
+
+- **Date:** 2026-08-21
+- **Context:** Simulator-to-ESP32 wiring contract.
+- **Symptom:** The first contract assumed GRB and identity panel orientation,
+  then blocked mapping export on voltage, temperature, and device read-back.
+- **Cause:** Electrical commissioning evidence and mapping completeness were
+  combined in one hardware-readiness concept. The tool also failed to use the
+  known geometry to select shorter installed panel orientations.
+- **Correction:** Use the operator-selected RGB assumption, keep the snake pixel
+  traversal, calculate panel quarter turns from route geometry, and report a
+  separate mapping-ready state. Electrical protection stays outside mapping.
+- **Prevention:** Ask whether a fact changes address/color output, cable-route
+  geometry, or only electrical commissioning. Only the first two categories
+  belong in simulator-to-controller mapping readiness.
+- **Evidence:** `HW-017`, `MAP-022`, and the corrected generated WLED contract.
+- **Status:** Resolved.
+
+### F-016 — Full verification requires the pinned Emscripten SDK
+
+- **Date:** 2026-08-21
+- **Context:** `HW-017` and `MAP-022` closeout.
+- **Symptom:** `npm run verify` completed asset generation, then stopped at
+  `build:wasm` because Emscripten 4.0.14 was not installed.
+- **Cause:** The checkout has the tracked WASM runtime for ordinary tests, but
+  full verification also rebuilds it and therefore needs the pinned SDK.
+- **Correction:** Use `npm run setup:emsdk` before `npm run verify`, or use
+  `npm run verify:clean` for the complete clean-checkout path. Run the remaining
+  focused checks against the tracked WASM when SDK installation is out of scope.
+- **Prevention:** Check both the WLED submodule and Emscripten prerequisite
+  before starting full verification.
+- **Evidence:** The `HW-017`/`MAP-022` verification log and `AGENTS.md`.
+- **Status:** Resolved.

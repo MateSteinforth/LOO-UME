@@ -62,15 +62,16 @@ uses `createPanelAssemblyMapping()`.
 - Printable material must not intersect PCB envelopes or obstruct DIN, DOUT,
   V+, or V-. Keep centre structures within the pentagon boundary and outside
   filler surfaces flat-printable.
-- Current wiring, GPIOs, installed rotations/mirroring, and within-panel pixel
-  order are provisional. Do not describe an export as hardware-ready.
-- Do not use the current simulator route, `layout/panel-map.json`, or
-  `wled/ledmap.provisional.json` as physical build instructions. The simulator
-  must display a persisted, explicitly confirmed route before the route can
-  guide assembly.
-- Hardware parity requires the same authored route, measured panel addressing,
-  WLED bus configuration, color order, GPIOs, deployment identity, and bench
-  result. A ledmap permutation or WASM effect test alone is not device proof.
+- The saved route, GPIOs, snake pixel order, RGB color order, and optimized
+  installed quarter turns are authorized assumptions. They make the current
+  simulator-to-controller mapping ready, but they are not measured facts and
+  do not make the complete sculpture electrically ready.
+- Use the saved route and generated mapping artifacts for staged physical
+  assembly only when their fingerprints match the current project. A pose,
+  route, panel-set, profile, or bus edit requires regeneration.
+- Address parity requires the same authored route, panel addressing, WLED bus
+  configuration, RGB order, GPIOs, and deployment identity. Optional device
+  evidence is separate from mapping readiness.
 - Keep installed address calibration separate from the pose. The pose owns LED
   world positions; a measured back-view quarter-turn/mirror transform may change
   local wire indexing only. Do not reuse an ambiguous mechanical rotation or
@@ -113,8 +114,8 @@ uses `createPanelAssemblyMapping()`.
 - If a push is blocked because the destination is not verified, report the
   exact commit, ref, and remote URL. Get explicit operator approval, then repeat
   the same push. Do not use an indirect push method.
-- `npm run verify` requires the pinned WLED submodule. If it reports that the
-  submodule is not initialized, run `npm run setup:wled` or use
+- `npm run verify` requires the pinned WLED submodule and Emscripten SDK. If it
+  reports that either is unavailable, run the applicable setup command or use
   `npm run verify:clean` for the complete clean-checkout path.
 - Use the normal repository `apply_patch` helper for file edits first. In this
   Codex environment it can fail with `fs sandbox helper failed` / `bwrap: No

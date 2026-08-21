@@ -45,8 +45,10 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(source.panels.every((panel) =>
       panel.installedAddressTransform?.status === "assumed" &&
       panel.installedAddressTransform.referenceView === "back" &&
-      panel.installedAddressTransform.quarterTurnsClockwise === 0 &&
-      panel.installedAddressTransform.mirrored === false
+      panel.installedAddressTransform.quarterTurnsClockwise >= 0 &&
+      panel.installedAddressTransform.quarterTurnsClockwise <= 3 &&
+      panel.installedAddressTransform.mirrored === false &&
+      panel.installedAddressTransform.selectionMethod === "route-optimized"
     )).toBe(true);
 
     const legacy = structuredClone(source);
@@ -81,11 +83,14 @@ describe("mechanics-independent panel JSON editing", () => {
       referenceView: "back",
       quarterTurnsClockwise: 2,
       mirrored: true,
+      selectionMethod: "route-optimized",
     };
     const edited = rotatePanelAroundLocalZ(incompleteMeasured, "SQ-01", 1);
     expect(edited.calibration.installedPanelOrientation).toBe("provisional");
     expect(edited.panels.every((panel) =>
-      panel.installedAddressTransform?.status === "assumed"
+      panel.installedAddressTransform?.status === "assumed" &&
+      panel.installedAddressTransform.selectionMethod === "manual" &&
+      panel.installedAddressTransform.optimizationFingerprint === undefined
     )).toBe(true);
     expect(edited.panels[0]!.installedAddressTransform).toMatchObject({
       quarterTurnsClockwise: 2,
@@ -114,6 +119,12 @@ describe("mechanics-independent panel JSON editing", () => {
     }
     authored.wiring.status = "authored";
     authored.wiring.outputs[0]!.panelIds!.reverse();
+    for (const panel of authored.panels) {
+      if (panel.installedAddressTransform?.selectionMethod === "route-optimized") {
+        panel.installedAddressTransform.selectionMethod = "manual";
+        delete panel.installedAddressTransform.optimizationFingerprint;
+      }
+    }
 
     const reparsed = roundTrip(authored);
     const restored = mappingFor(reparsed);
@@ -181,7 +192,7 @@ describe("mechanics-independent panel JSON editing", () => {
   it("rotates a manual panel without changing population, metadata, or other panels", async () => {
     const source = await loadManual();
     const before = structuredClone(source.panels[0]!);
-    const unaffected = JSON.stringify(source.panels[1]);
+    const unaffected = structuredClone(source.panels[1]!);
     const beforeMapping = mappingFor(source).mapping;
     const edited = rotatePanelAroundLocalZ(source, before.id, 23);
     const after = edited.panels[0]!;
@@ -195,7 +206,14 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(after.pose.orientation.normal).toEqual(before.pose.orientation.normal);
     expect(after.faceType).toBe(before.faceType);
     expect(after.neighborPanelIds).toEqual(before.neighborPanelIds);
-    expect(JSON.stringify(edited.panels[1])).toBe(unaffected);
+    expect({ ...edited.panels[1]!, installedAddressTransform: undefined }).toEqual({
+      ...unaffected,
+      installedAddressTransform: undefined,
+    });
+    expect(edited.panels[1]!.installedAddressTransform).toMatchObject({
+      status: "assumed",
+      selectionMethod: "manual",
+    });
 
     const { xAxis, yAxis, normal } = after.pose.orientation;
     const cross = new THREE.Vector3(...xAxis).cross(new THREE.Vector3(...yAxis));
@@ -236,7 +254,7 @@ describe("mechanics-independent panel JSON editing", () => {
     const unrelated = source.panels.find(
       (panel) => !panel.neighborPanelIds?.includes(deletedId) && panel.id !== deletedId,
     )!;
-    const unrelatedBytes = JSON.stringify(unrelated);
+    const unrelatedBefore = structuredClone(unrelated);
     const outputBytes = JSON.stringify(source.wiring.outputs);
     const edited = deletePanel(source, deletedId);
     const reparsed = roundTrip(edited);
@@ -248,8 +266,15 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(reparsed.panels.every(
       (panel) => !panel.neighborPanelIds?.includes(deletedId),
     )).toBe(true);
-    expect(JSON.stringify(reparsed.panels.find((panel) => panel.id === unrelated.id)))
-      .toBe(unrelatedBytes);
+    expect({
+      ...reparsed.panels.find((panel) => panel.id === unrelated.id)!,
+      installedAddressTransform: undefined,
+    }).toEqual({ ...unrelatedBefore, installedAddressTransform: undefined });
+    expect(reparsed.panels.find((panel) => panel.id === unrelated.id)!
+      .installedAddressTransform).toMatchObject({
+        status: "assumed",
+        selectionMethod: "manual",
+      });
     expect(reparsed.wiring.chainLengths.reduce((sum, value) => sum + value, 0)).toBe(40);
     expect(reparsed.wiring.chainLengths).toEqual([10, 10, 10, 10]);
     expect(JSON.stringify(reparsed.wiring.outputs)).toBe(outputBytes);
@@ -349,7 +374,7 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(mapping.entries).toHaveLength(2_624);
     expect(source.wiring.chainLengths).toEqual([11, 10, 10, 10]);
     expect(createHardwareMappingContract(mapping, wiring, project.panelProfile).fingerprint)
-      .toBe("31291c59");
+      .toBe("bc5054d1");
     expect(() => createManualCadProject(project)).not.toThrow();
     const editedProject = mappingFor(rotatePanelAroundLocalZ(source, "SQ-01", 1)).project;
     expect(() => createManualCadProject(editedProject)).toThrow(/require review/);

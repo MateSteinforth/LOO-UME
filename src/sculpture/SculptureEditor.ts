@@ -85,6 +85,10 @@ export function markPanelEditConsequences(
   for (const panel of definition.panels) {
     if (panel.installedAddressTransform) {
       panel.installedAddressTransform.status = "assumed";
+      if (panel.installedAddressTransform.selectionMethod === "route-optimized") {
+        panel.installedAddressTransform.selectionMethod = "manual";
+        delete panel.installedAddressTransform.optimizationFingerprint;
+      }
     }
   }
   definition.calibration.physicalChains = "provisional";
@@ -361,6 +365,10 @@ export function addPanelToClosureFace(
   for (const panel of definition.panels) {
     if (panel.installedAddressTransform) {
       panel.installedAddressTransform.status = "assumed";
+      if (panel.installedAddressTransform.selectionMethod === "route-optimized") {
+        panel.installedAddressTransform.selectionMethod = "manual";
+        delete panel.installedAddressTransform.optimizationFingerprint;
+      }
     }
   }
   definition.calibration.physicalChains = "provisional";

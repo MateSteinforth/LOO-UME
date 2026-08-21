@@ -21,6 +21,11 @@ export function createWledDeploymentBundle(
   ledmapBytes: string,
   sculptureBytes: string,
 ): WledDeploymentBundle {
+  if (!contract.readiness.mappingReady) {
+    throw new Error(
+      "The assumed WLED contract requires a current mapping-ready address contract.",
+    );
+  }
   if (contract.wiring.status !== "authored") {
     throw new Error("The assumed WLED contract requires the current authored route.");
   }
@@ -53,7 +58,7 @@ export function createWledDeploymentBundle(
     start: output.startIndex,
     len: output.pixelCount,
     pin: [output.gpio],
-    order: 0,
+    order: 1,
     rev: false,
     skip: 0,
     type: 22,
@@ -82,7 +87,7 @@ export function createWledDeploymentBundle(
   ];
   const manifestBytes = JSON.stringify({
     schemaVersion: "1.0.0",
-    status: "assumed-review-only",
+    status: "assumed-mapping-ready",
     target: {
       board: "ESP32-DevKitC V4",
       module: "ESP32-WROOM-32E-N4",
@@ -116,7 +121,7 @@ export function validateWledDeploymentBundle(
   if (
     sha256ExactBytes(manifestBytes) !== expectedDeploymentIdentity ||
     manifest.schemaVersion !== "1.0.0" ||
-    manifest.status !== "assumed-review-only" ||
+    manifest.status !== "assumed-mapping-ready" ||
     manifest.target?.board !== "ESP32-DevKitC V4" ||
     manifest.target?.module !== "ESP32-WROOM-32E-N4" ||
     manifest.target?.platformioEnvironment !== "esp32dev" ||
@@ -157,7 +162,7 @@ export function validateWledDeploymentBundle(
       bus.start !== EXPECTED_STARTS[index] ||
       bus.len !== EXPECTED_LENGTHS[index] ||
       !Array.isArray(bus.pin) || bus.pin.length !== 1 || bus.pin[0] !== EXPECTED_GPIOS[index] ||
-      bus.order !== 0 || bus.rev !== false || bus.skip !== 0 || bus.type !== 22 ||
+      bus.order !== 1 || bus.rev !== false || bus.skip !== 0 || bus.type !== 22 ||
       bus.ref !== false || bus.rgbwm !== 0 || bus.freq !== 0 ||
       bus.maxpwr !== 14000 || bus.ledma !== 60 || bus.drv !== 0 ||
       bus.text !== `Output ${index} / domain ${index < 2 ? "A" : "B"}`

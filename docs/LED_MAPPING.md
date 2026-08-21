@@ -1,10 +1,10 @@
 # LED mapping and wiring
 
-> **Assembly gate:** the current authored 11/10/10/10 route and review ledmap are
-> review data, not build instructions. The assumed prototype contract permits
-> staged assembly only after that route is explicitly saved and the matching
-> bus/power files exist. Start with one fused panel, then one output. Do not
-> describe the build as measured or hardware-verified before its tests pass.
+> **Assembly baseline:** the current authored 11/10/10/10 route and generated
+> ledmap are mapping-ready under the saved snake, RGB, GPIO, and optimized-turn
+> assumptions. They can guide staged assembly while their fingerprints match
+> the project. Start with one fused panel, then one output. Do not describe the
+> build as measured, electrically approved, or hardware-verified.
 
 The operator authorized a concrete assumed prototype baseline on 2026-08-20.
 See [`PROTOTYPE_HARDWARE.md`](PROTOTYPE_HARDWARE.md). It selects the controller,
@@ -81,10 +81,9 @@ preserves the saved `panelIds` as historical route evidence and sets
 preview uses a clearly labelled temporary draft route so mapping and simulation
 continue. Pose edits also set `requires-review` without changing `panelIds`.
 
-`measured` requires a measured controller and a current exact route. It can
-pass the current measured-fact checks, but that substate is not hardware
-readiness. `hardware-verified` additionally defines a
-passed `PROOF-010` receipt with the deployment identity plus SHA-256 values for
+The legacy `measured` and `hardware-verified` lifecycle states remain available
+for optional evidence. They do not gate `mappingReady`. `hardware-verified`
+defines a passed `PROOF-010` receipt with the deployment identity plus SHA-256 values for
 device read-back, the as-built record, and the parity proof. Runtime activation
 of that state is rejected until `PROOF-010` supplies its acceptance validator.
 A later relevant edit retains a receipt only as stale evidence under
@@ -120,7 +119,7 @@ The manual 41-panel snapshot currently resolves to:
 This is the saved route revision 1. The route and GPIO assignments are
 prototype assumptions. They are authored, but they are not measured.
 
-The committed fingerprint is `31291c59`. It is FNV-style over only the low 16
+The route-optimized fingerprint is `bc5054d1`. It is FNV-style over only the low 16
 bits of each physical index: useful for current artifact drift, not a
 cryptographic identity.
 
@@ -130,14 +129,13 @@ The production mapping must join these facts without an implicit transform:
 
 1. authoritative world pose and logical LED index;
 2. confirmed output and ordered panel IDs from controller to DIN to DOUT;
-3. installed panel orientation/mirroring and measured local 8 × 8 traversal;
-4. global WLED bus start and length, GPIO, LED type, and RGB/GRB color order;
+3. tool-selected panel orientation and the assumed local 8 × 8 snake;
+4. global WLED bus start and length, GPIO, LED type, and RGB color order;
 5. source-project, route, ledmap, bus-configuration, and firmware identities;
-6. device read-back and a physical diagnostic result.
+6. exact source and generated-artifact identities.
 
-The current code does not meet the complete deployment contract. The installed
-address transform now compiles before `panelWireIndex()`. Color order is absent
-from the panel/deployment contract. The Schema and types define measured and
+The installed address transform compiles before `panelWireIndex()`. The WLED
+deployment contract fixes RGB order 1. The Schema and types define measured and
 hardware-verified wiring lifecycle states. The parser accepts measured wiring, but rejects
 hardware-verified activation until `PROOF-010` supplies an acceptance validator.
 No authored sculpture contains measured route, controller, or proof facts yet.
@@ -151,13 +149,20 @@ identity transform; legacy `rotationDegrees` and `mirrored` values are never
 inferred. A measured calibration requires an explicit measured transform on
 every panel. Color order is a WLED bus fact. Bus reversal stays false because
 the authored route and ledmap already own direction. The assumed WLED fragment
-records type 22, GRB order 0, RMT driver 0, GPIO, global start, length, current
+records type 22, RGB order 1, RMT driver 0, GPIO, global start, length, current
 limits, and power-domain labels for all four outputs.
 
 A panel pose or panel-set edit keeps the quarter-turn and mirror values, but
 changes their status to assumed and changes the global installed-orientation
 calibration to provisional. This makes invalidation explicit and prevents stale
 measurement status from silently passing readiness.
+
+`npm run optimize:wiring-orientation` evaluates four non-mirrored quarter turns
+per panel and uses dynamic programming to minimize the complete set of
+DOUT-to-next-DIN distances on each saved output. Equal-distance solutions use
+the lexicographically lowest turn sequence. The current route estimate changes
+from 3,429.5 mm at identity to 1,245.8 mm after optimization. The estimate uses
+profile connector corners, not unknown pad-centre offsets.
 
 The implementation sequence is:
 
@@ -191,13 +196,13 @@ artifact.
 
 `assessHardwareReadiness()` exposes `currentChecksPass` for the existing
 transforms/UVs, chains, GPIOs, pixel order, and installed-address checks. It is
-not hardware readiness: every controller-ready export remains blocked until
-physical calibration, device read-back, and `PWR-010` complete. Draft,
-authored, requires-review, and inactive hardware-verified routes report a
-lifecycle blocker. The flagship route, GPIOs, and identity address transforms
-are authored assumptions. Pixel traversal, color order, bus read-back,
-power acceptance, and proof remain incomplete. Each address transform must be
-physically measured before the installed-orientation check can pass.
+not electrical approval. `mappingReady` depends only on a complete authored
+route, assigned GPIOs, complete snake order, and route-optimized transforms.
+Draft, requires-review, and inactive hardware-verified routes report a
+lifecycle blocker. The flagship route, GPIOs, and optimized address transforms
+are authored assumptions. Pixel traversal is snake, color order is RGB, and the
+tool selects installed quarter turns. Voltage, temperature, and device
+read-back do not participate in mapping readiness.
 
 The JSON Schema requires `panelIds` for explicit non-draft lifecycle states and
 requires the shaped proof receipt for `hardware-verified`. Exact all-output
@@ -205,15 +210,13 @@ coverage, unique cross-output panel membership, current-panel correspondence,
 chain-length agreement, stale-route fallback, and accepted-proof activation are
 cross-record runtime invariants enforced by the parser and preview.
 
-The CLI hardware export enforces readiness. The browser currently allows ledmap
-and wiring downloads while presenting readiness blockers; treat those files as
-review/test artifacts, not controller configuration.
+The CLI distinguishes mapping readiness from electrical approval. The browser
+downloads the same address and wiring data under the selected assumptions.
 
-The selected policy for `WIRE-012` is to keep diagnostic artifacts available
-with unmistakable names. An installation-ready bundle is blocked until every
-mapping, controller, and power prerequisite is current. It remains distinct
-from hardware-verified output until deployment read-back, the as-built record,
-and `PROOF-010` pass.
+The selected policy for `WIRE-012` is to keep assumption-labelled artifacts
+available with unmistakable names. Mapping-ready output requires current route,
+orientation, snake, RGB, GPIO, and target identities. Electrical protection and
+the optional hardware-verified evidence lifecycle are separate.
 
 `layout/panel-map.json` and `wled/ledmap.provisional.json` are generated
 snapshots. The normal browser path rebuilds from sculpture JSON.
@@ -234,8 +237,8 @@ configuration are absent. A C++ audio setter exists, but JS does not expose it
 and selected effects do not use it. `firmware/` contains guidance only; board,
 GPIO, network, microphone, usermod, and binary build decisions are open.
 
-The first hardware claim is narrower: static address and RGB parity on one
-selected pinned WLED target. Matching effect names or WASM frames does not prove
+The mapping claim is static address and RGB parity for the selected pinned WLED
+target. Matching effect names or WASM frames does not prove
 ESP32 driver timing, frame pacing, power behavior, networking, audio, or every
 native WLED effect.
 
@@ -247,8 +250,8 @@ native WLED effect.
 - Regenerate/compare fingerprints after pose, route, pixel-order, rotation, or
   mirroring changes.
 - Never upgrade provisional facts to measured without hardware evidence.
-- Verify bus start/length, GPIO, LED type, color order, and reversal by device
-  read-back after deployment.
+- Regenerate the exact-byte manifest after a route, orientation, snake, RGB, or
+  bus change.
 - Test one fused, current-limited panel before mass wiring. Record all 64
   addresses and red/green/blue output. Test one representative from every known
   panel batch; divergent or unidentifiable batches need per-panel evidence or

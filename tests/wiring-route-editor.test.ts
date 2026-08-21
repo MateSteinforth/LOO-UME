@@ -61,6 +61,12 @@ describe("browser wiring route editor model", () => {
       outputs: [{ panelIds: reordered.outputs[0]!.panelIds }],
     });
     expect(confirmed.calibration.physicalChains).toBe("provisional");
+    expect(confirmed.calibration.installedPanelOrientation).toBe("provisional");
+    expect(confirmed.panels.every((panel) =>
+      panel.installedAddressTransform === undefined ||
+      (panel.installedAddressTransform.selectionMethod === "manual" &&
+        panel.installedAddressTransform.optimizationFingerprint === undefined)
+    )).toBe(true);
     expect(confirmed.wiring.outputs[0]).toMatchObject({
       outputIndex: definition.wiring.outputs[0]!.outputIndex,
       gpio: definition.wiring.outputs[0]!.gpio,

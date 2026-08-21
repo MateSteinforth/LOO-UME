@@ -57,21 +57,20 @@ OpenSCAD plus Xvfb and run:
 npm run verify:cad
 ```
 
-Production hardware export remains guarded:
+The mapping export remains guarded:
 
 ```bash
 npm run generate:mapping:hardware
 ```
 
 That command refuses to emit `wled/ledmap.json` until the controller GPIOs,
-physical chains, panel pixel order, transforms, and installed orientations are
-resolved. DIN/DOUT corner assignment is already measured in the panel profile.
+authored chains, complete snake order, and current route-optimized installed
+orientations are available. It does not claim separate electrical approval.
 
 ## Source versus generated data
 
 The pose-first source preserves the once-compiled vertex-up panel poses, populated
-faces, UV/effect ordering, and provisional
-four-output data-routing policy with a controller near the sculpture top. The
+faces, UV/effect ordering, and authored assumed four-output data route. The
 reusable panel profile separately records photo-derived power-feed availability
 and conservative current, wire, voltage-drop, and fuse-design inputs. The
 TypeScript compiler expands that compact recipe

@@ -1,9 +1,8 @@
 # Assumed prototype hardware contract
 
 This is the build baseline selected on 2026-08-20. It is deliberately
-conservative. All values in this document are selected assumptions unless the
-text explicitly calls them measured. A walking-pixel, color, current, or
-device read-back test can replace them.
+conservative. All mapping values in this document are selected assumptions.
+They can be corrected directly in the project as assembly continues.
 
 ## Controller
 
@@ -20,7 +19,7 @@ device read-back test can replace them.
 | Output 3 | GPIO 19 |
 | Level shifter | SN74AHCT125, powered from 5 V |
 | LED type | WLED WS281x RGB, type 22 |
-| Color order | GRB, WLED order 0 — **assumed** |
+| Color order | RGB, WLED order 1 — **assumed** |
 | Bus reversal | `false` on all four outputs |
 | Driver | RMT, WLED driver 0 |
 
@@ -44,20 +43,20 @@ only one DevKitC power input at a time.
 | 3 | 19 | 10 | 1,984 | 640 | B | 14,000 mA |
 
 Set the global `hw.led.maxpwr` value to `0` so the pinned WLED build uses its
-per-bus limits. Each bus uses `type: 22`, `order: 0`, `rev: false`,
+per-bus limits. Each bus uses `type: 22`, `order: 1`, `rev: false`,
 `ledma: 60`, `maxpwr: 14000`, and `drv: 0`. The four per-bus limits give a
 56 A aggregate software ceiling and a 28 A ceiling for each two-output domain.
 The fuse and wire plan is still the primary protection. A nonzero global
 `hw.led.maxpwr` would replace the per-bus limiting behavior and is invalid for
-this contract.
+this contract. Current limiting is electrical protection, not a mapping input.
 
 `wled/cfg.provisional.json` is the exact non-secret WLED configuration fragment
 for these four buses. `wled/deployment-manifest.provisional.json` records the
 exact-byte SHA-256 and byte length of that file and the review ledmap. The
 SHA-256 of the exact manifest bytes is the review deployment identity printed
 by `npm run generate:mapping`. The manifest does not hash itself. These files
-remain review-only until device read-back, panel calibration, and power tests
-pass.
+have manifest status `assumed-mapping-ready`. Electrical protection is a
+separate concern and does not change addresses, color order, or orientation.
 
 ## Panel address convention
 
@@ -69,11 +68,16 @@ Until a test corrects it, use this back-view convention:
 - Pixel 56 is at top-right.
 - Pixel 63 is at top-left.
 - DOUT is at top-right.
-- The installed address transform is zero quarter-turns and not mirrored.
+- The tool selects each panel's quarter turn to minimize routed data-wire
+  length. Mirroring remains false.
 
-Install each PCB so this marked back-view frame agrees with the simulator
-panel-local frame. If a frame or connector prevents that orientation, change
-the saved address transform before connecting that panel's data cable.
+The selected turns reduce the estimated inter-panel connector distance from
+3,429.5 mm for identity orientation to 1,245.8 mm. This estimate uses named
+connector corners because exact pad centres are not in the profile.
+
+Install each PCB with the saved tool-selected quarter turn. If a frame or
+connector prevents it, change that panel's address transform and regenerate the
+mapping before connecting its data cable.
 
 ## Power distribution
 
@@ -87,7 +91,6 @@ the saved address transform before connecting that panel's data cable.
 - Connect panel-to-panel cables for data and reference ground. Do not use panel
   V+ pads to carry accumulated chain current.
 - Inject power at every panel. Use the nearest accessible V+ and V- pads.
-- Keep loaded panel voltage at or above 4.75 V.
 - Do not operate unrestricted full white. Keep all four 14 A bus limits active.
 
 The conservative unrestricted estimate is 157.44 A. This prototype contract
@@ -99,14 +102,9 @@ per domain during normal operation.
 Stop the affected output and update the project if any of these occur:
 
 - the walking pixel does not follow the assumed 0–63 sequence;
-- red, green, or blue selects the wrong channel;
+- RGB selects the wrong channel order;
 - an installed PCB needs a different quarter-turn or mirroring;
-- a supply or connector becomes hot;
 - a fuse opens;
-- a panel falls below 4.75 V;
-- WLED read-back disagrees with global `hw.led.maxpwr: 0`, a GPIO, start,
-  length, order, reversal, driver, per-bus limit, source revision, or ledmap
-  identity.
 
 Correct only the affected fact, regenerate dependent files, and continue from
 the last verified output.

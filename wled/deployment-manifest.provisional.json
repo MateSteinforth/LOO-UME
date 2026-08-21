@@ -1,24 +1,24 @@
 {
   "schemaVersion": "1.0.0",
-  "status": "assumed-review-only",
+  "status": "assumed-mapping-ready",
   "target": {
     "board": "ESP32-DevKitC V4",
     "module": "ESP32-WROOM-32E-N4",
     "platformioEnvironment": "esp32dev",
     "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2"
   },
-  "sourceProjectSha256": "fff3b7b571d2bbdd3ef09510f2b74b9c1caa787b2ce3327d794fdd5871b82728",
-  "mappingFingerprint": "31291c59",
+  "sourceProjectSha256": "9ee742c9b3251b65d5d3e4b82bf8acc488b222b690d72716db48669f261f357a",
+  "mappingFingerprint": "bc5054d1",
   "files": [
     {
       "path": "wled/cfg.provisional.json",
       "byteLength": 1619,
-      "sha256": "040007535577a59d29c2de5a2859227c1ccb2a709e98247a95fd89d62a325ef2"
+      "sha256": "5ef282f15058b5fdfb4684bf6f17b10165d4ae7a543948e352f7caad28e962d9"
     },
     {
       "path": "wled/ledmap.provisional.json",
       "byteLength": 12020,
-      "sha256": "991e5b462b0cfdacfd40aec1bf1ab453113a57e2447d4c5337a5c11dd9009a40"
+      "sha256": "6fb7ff93ba9ec263f4dd1433a99b812c51bd3668a13bfbb34a693803a22a2bd5"
     }
   ]
 }
