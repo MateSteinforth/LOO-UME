@@ -67,6 +67,7 @@ import {
 } from "./PortableProject.ts";
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
+import { createWiringAssemblyManualModel } from "./WiringAssemblyManual.ts";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -424,6 +425,9 @@ app.innerHTML = `
             and keeps every panel edge connected to printable closure parts.
           </p>
           <div class="pipeline-actions">
+            <button id="open-wiring-manual" class="pipeline-button" type="button">
+              Open printable wiring manual
+            </button>
             <button id="generate-mapping" class="pipeline-button" type="button">
               Generate WLED mapping + wiring review
             </button>
@@ -542,6 +546,8 @@ const addPanelFaceSelect = query<HTMLSelectElement>("#add-panel-face");
 const addPanelButton = query<HTMLButtonElement>("#add-panel");
 const generateMappingButton =
   query<HTMLButtonElement>("#generate-mapping");
+const openWiringManualButton =
+  query<HTMLButtonElement>("#open-wiring-manual");
 const generatePrintPartsButton =
   query<HTMLButtonElement>("#generate-print-parts");
 const downloadPrintPartsButton =
@@ -674,6 +680,12 @@ async function start(): Promise<void> {
       generateMappingButton.disabled =
         mapping.topology !== "panelized-sculpture" ||
         !capabilities.canExportMappingAndWiring;
+      openWiringManualButton.disabled =
+        mapping.topology !== "panelized-sculpture" ||
+        !hardwareContract.readiness.mappingReady;
+      openWiringManualButton.title = !hardwareContract.readiness.mappingReady
+        ? "The printable manual requires a current mapping-ready route."
+        : "Open the current in-memory project as an A4 landscape wiring manual.";
       generatePrintPartsButton.disabled =
         !capabilities.canGenerateGenericMechanics;
       generatePrintPartsButton.title = editorDefinition.manualMechanics
@@ -921,6 +933,8 @@ async function start(): Promise<void> {
         : "Custom LED counts use the panel-free Fibonacci fallback.";
       const routeLifecycleNote = !isPanelized
         ? ""
+        : hardwareContract.readiness.mappingReady
+          ? `Simulator and ledmap share mapping-ready ${wiringPreview.status.replace("-", " ")} route ${hardwareContract.fingerprint}. Electrical approval remains separate.`
         : hardwareContract.readiness.ready
           ? wiringPreview.status === "hardware-verified"
             ? `Simulator and ledmap share hardware-verified route ${hardwareContract.fingerprint}.`
@@ -1793,6 +1807,47 @@ async function start(): Promise<void> {
       link.click();
       URL.revokeObjectURL(objectUrl);
     };
+
+    openWiringManualButton.addEventListener("click", () => {
+      const model = createWiringAssemblyManualModel(
+        editorDefinition,
+        hardwareContract,
+        editorProject.panelProfile,
+        editorProject.source,
+      );
+      const token = crypto.randomUUID();
+      const manualUrl = new URL("./wiring-manual.html", window.location.href);
+      manualUrl.searchParams.set("fromEditor", token);
+      let manualWindow: Window | null = null;
+      const receiveReady = (event: MessageEvent<unknown>): void => {
+        if (
+          event.origin !== window.location.origin ||
+          event.source !== manualWindow ||
+          typeof event.data !== "object" ||
+          event.data === null ||
+          !("type" in event.data) ||
+          event.data.type !== "wiring-manual-ready" ||
+          !("token" in event.data) ||
+          event.data.token !== token
+        ) return;
+        window.removeEventListener("message", receiveReady);
+        window.clearTimeout(handshakeTimeout);
+        manualWindow?.postMessage(
+          { type: "wiring-manual-model", token, model },
+          window.location.origin,
+        );
+      };
+      window.addEventListener("message", receiveReady);
+      const handshakeTimeout = window.setTimeout(() => {
+        window.removeEventListener("message", receiveReady);
+      }, 15_000);
+      manualWindow = window.open(manualUrl.href, "_blank");
+      if (!manualWindow) {
+        window.removeEventListener("message", receiveReady);
+        window.clearTimeout(handshakeTimeout);
+        throw new Error("The browser blocked the wiring manual window.");
+      }
+    });
 
     generateMappingButton.addEventListener("click", () => {
       try {

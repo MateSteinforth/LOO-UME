@@ -164,19 +164,23 @@ gates.
    it does not create measured, GPIO, or hardware-ready facts.
    `createHardwareMappingContract()` assigns physical indices and builds the
    WLED ledmap.
-5. Three.js renders panels, LEDs, surfaces, connectors, wiring, and available
+5. The standalone wiring-manual entry joins the same mapping-ready contract to
+   authoritative poses and the resolved panel profile. It renders print-only
+   placement projections and per-output assembly tables; it rejects draft,
+   temporary, stale, or non-mapping-ready data.
+6. Three.js renders panels, LEDs, surfaces, connectors, wiring, and available
    printable layers. One selected panel ID drives all selection-focused UI.
-6. Every edit rebuilds mapping and wiring. Existing generated mechanics become
+7. Every edit rebuilds mapping and wiring. Existing generated mechanics become
    `requires-regeneration`; manual mechanics become `requires-review`; a project
    that has never had mechanics remains mechanics-free without a stale status.
-7. When the browser discovers an available local generator, **Generate 3D
+8. When the browser discovers an available local generator, **Generate 3D
    Parts** detects `boundaryTopology` when it is absent, persists the detected
    cycles in the generated Schema 2 JSON, validates the complete boundary, and
    only then invokes printable-part CAD. Ambiguous exposed-edge junctions and
    invalid boundaries fail without replacing the last successful bundle.
    Detection saves unambiguous cycles without a confirmation step. The browser
    has no control to accept, reject, reorder, or redraw those cycles.
-8. Folder and ZIP project import validate the same relative assets and hashes,
+9. Folder and ZIP project import validate the same relative assets and hashes,
    then expose GLB/STL bytes through browser object URLs. Folder/ZIP export uses
    only verified in-memory bytes. JSON, ledmap, and wiring remain client-side
    downloads. Local CAD writes an isolated preview under `build/`.

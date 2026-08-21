@@ -1,0 +1,147 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { createPanelAssemblyMapping } from "../src/sculpture/PanelAssembly.ts";
+import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
+import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
+import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
+import {
+  createWiringAssemblyManualModel,
+  renderWiringAssemblyManualHtml,
+} from "../web/src/WiringAssemblyManual.ts";
+
+async function fixture() {
+  const source = "sculptures/rhombicosidodecahedron/sculpture.json";
+  const project = await loadPanelAssemblyProjectFromFile(source, process.cwd());
+  const mapping = createPanelAssemblyMapping(project);
+  const wiring = createProvisionalWiringPreview(
+    mapping,
+    project.sculpture,
+    project.panelProfile,
+  );
+  const contract = createHardwareMappingContract(
+    mapping,
+    wiring,
+    project.panelProfile,
+  );
+  return { source, project, contract };
+}
+
+describe("printable wiring assembly manual", () => {
+  it("joins the exact flagship poses, routes, orientations, and address ranges", async () => {
+    const { source, project, contract } = await fixture();
+    const model = createWiringAssemblyManualModel(
+      project.sculpture,
+      contract,
+      project.panelProfile,
+      source,
+    );
+
+    expect(model).toMatchObject({
+      routeRevision: 1,
+      wiringStatus: "authored",
+      mappingFingerprint: "bc5054d1",
+      optimizationFingerprint: "2771611b3264c1da",
+      totalPixels: 2_624,
+      colorOrder: "RGB",
+      pixelOrder: "8 × 8 snake",
+    });
+    expect(model.outputs.map((output) => output.gpio)).toEqual([16, 17, 18, 19]);
+    expect(model.outputs.map((output) => output.panels.length)).toEqual([11, 10, 10, 10]);
+    expect(model.outputs.map((output) => [output.physicalStart, output.physicalEnd]))
+      .toEqual([[0, 703], [704, 1_343], [1_344, 1_983], [1_984, 2_623]]);
+    expect(model.outputs[0]!.panels.map((panel) => panel.id)).toEqual([
+      "SQ-03", "SQ-04", "PC-04", "SQ-08", "SQ-16", "PC-08",
+      "SQ-28", "SQ-23", "SQ-24", "SQ-17", "SQ-18",
+    ]);
+    expect(model.outputs[0]!.panels[0]).toMatchObject({
+      physicalStart: 0,
+      physicalEnd: 63,
+      dataIn: "Controller GPIO 16",
+      dataOut: "SQ-04 DIN",
+      turnDegrees: 90,
+      mirrored: false,
+      dinCorner: "top-left",
+      doutCorner: "bottom-right",
+    });
+    const physicalQuarterTurns = model.outputs[0]!.panels[0]!.turnDegrees / 90;
+    let dinCoordinate = { x: 0, y: 7 };
+    for (let turn = 0; turn < physicalQuarterTurns; turn += 1) {
+      dinCoordinate = { x: 7 - dinCoordinate.y, y: dinCoordinate.x };
+    }
+    expect(dinCoordinate).toEqual({ x: 0, y: 0 });
+    for (const panel of model.outputs.flatMap((output) => output.panels)) {
+      const sourcePanel = project.sculpture.panels.find(
+        (candidate) => candidate.id === panel.id,
+      )!;
+      expect(panel.turnDegrees).toBe(
+        ((4 - sourcePanel.installedAddressTransform!.quarterTurnsClockwise) % 4) * 90,
+      );
+    }
+    const panelIds = model.outputs.flatMap((output) =>
+      output.panels.map((panel) => panel.id),
+    );
+    expect(panelIds).toHaveLength(41);
+    expect(new Set(panelIds).size).toBe(41);
+  });
+
+  it("refuses non-ready and non-authored assembly instructions", async () => {
+    const { source, project, contract } = await fixture();
+    expect(() => createWiringAssemblyManualModel(
+      project.sculpture,
+      {
+        ...contract,
+        readiness: { ...contract.readiness, mappingReady: false },
+      },
+      project.panelProfile,
+      source,
+    )).toThrow(/mapping-ready project/);
+    expect(() => createWiringAssemblyManualModel(
+      project.sculpture,
+      {
+        ...contract,
+        wiring: { ...contract.wiring, routeSource: "temporary-draft-suggestion" },
+      },
+      project.panelProfile,
+      source,
+    )).toThrow(/saved authored route/);
+    const mirroredContract = structuredClone(contract);
+    mirroredContract.mapping.panels[0]!.installedAddressTransform.mirrored = true;
+    expect(() => createWiringAssemblyManualModel(
+      project.sculpture,
+      mirroredContract,
+      project.panelProfile,
+      source,
+    )).toThrow(/does not support mirrored/);
+  });
+
+  it("renders six printable sheets with every panel and three placement views", async () => {
+    const { source, project, contract } = await fixture();
+    const model = createWiringAssemblyManualModel(
+      project.sculpture,
+      contract,
+      project.panelProfile,
+      `${source}<unsafe>`,
+    );
+    const html = renderWiringAssemblyManualHtml(model);
+
+    expect(html.match(/<section class="sheet/g)).toHaveLength(6);
+    expect(html.match(/class="projection-card"/g)).toHaveLength(3);
+    expect(html.match(/class="orientation-diagram"/g)).toHaveLength(41);
+    expect(html).toContain('class="route-arrows"');
+    expect(html).toContain('marker-end="url(#arrow-right-');
+    expect(html).toContain("GPIO 16");
+    expect(html).toContain("SQ-03 → SQ-18");
+    expect(html).toContain("sculpture.json&lt;unsafe&gt;");
+    expect(html).not.toContain("sculpture.json<unsafe>");
+    for (const output of model.outputs) {
+      for (const panel of output.panels) expect(html).toContain(panel.id);
+    }
+  });
+
+  it("defines A4 landscape print rules and keeps chain rows intact", () => {
+    const css = readFileSync("web/src/wiring-manual.css", "utf8");
+    expect(css).toContain("@page { size: A4 landscape");
+    expect(css).toContain("break-inside: avoid");
+    expect(css).toContain(".no-print { display: none");
+  });
+});

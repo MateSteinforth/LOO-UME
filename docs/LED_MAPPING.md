@@ -107,6 +107,29 @@ When a panel-set edit makes a stored route stale, the editor shows the saved
 route evidence separately and starts with the temporary current-panel draft.
 The operator can use it only after explicit copy and confirmation.
 
+## Printable assembly manual
+
+The editor enables **Open printable wiring manual** only for a current
+mapping-ready Schema 2 project. It sends the current in-memory mapping model to
+the same-origin print page, so the manual agrees with visible saved or imported
+editor state. A directly opened standalone page loads and revalidates its
+Schema 2 source. Both paths refuse draft, temporary, stale, or otherwise
+non-mapping-ready wiring.
+
+The six A4 landscape sheets contain a control cover, front/right/top placement
+projections from the authoritative panel poses, and one detailed sheet for each
+GPIO output. Each output sheet gives the exact controller-to-DIN-to-DOUT order,
+back-view installed turn, visible connector corners, predecessor and successor,
+physical LED range, and a check box for every panel. Use at least two placement
+views because an orthographic view can contain normal overlaps.
+
+In the manual, green marks DIN and orange marks DOUT. Connector corners are
+profile facts; exact pad centres in the small PCB diagrams are schematic. Print
+with A4 landscape, background graphics enabled, and browser headers and footers
+disabled. The page labels the saved snake, RGB, GPIO, route, mapping fingerprint,
+and orientation fingerprint. It is a mapping assembly aid. It is not an
+electrical approval or a power-distribution plan.
+
 The manual 41-panel snapshot currently resolves to:
 
 | Output | Panels | Physical range | GPIO |

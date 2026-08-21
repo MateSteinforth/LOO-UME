@@ -22,6 +22,7 @@
     "web/src/WiringPreview.ts",
     "web/src/WiringRouteEditor.ts",
     "web/src/HardwareMapping.ts",
+    "web/src/WiringAssemblyManual.ts",
     "web/src/EditorCapabilities.ts",
     "web/src/DesignSurfaceLoader.ts",
     "web/src/EditorPipelineRequest.ts",
