@@ -134,7 +134,12 @@ export class SphereRenderer {
     );
 
     this.points.renderOrder = 4;
+    const pcbKeyLight = new THREE.DirectionalLight(0xd8efff, 2.1);
+    pcbKeyLight.position.set(180, 220, 260);
+    const pcbFillLight = new THREE.HemisphereLight(0x8aa7bd, 0x06080b, 1.2);
     this.scene.add(
+      pcbKeyLight,
+      pcbFillLight,
       this.occlusionCore,
       this.panelLayer,
       this.boundaryPreviewLayer,
@@ -527,6 +532,9 @@ export class SphereRenderer {
     const surfacePositions: number[] = [];
     const surfaceColors: number[] = [];
     const surfacePanelIds: Array<string | null> = [];
+    const panelSurfacePositions: number[] = [];
+    const panelSurfaceColors: number[] = [];
+    const panelSurfaceIds: Array<string | null> = [];
     const mountPositions: number[] = [];
     const printableClosureIds = new Set(
       printableClosures.map((closure) => closure.id),
@@ -575,18 +583,16 @@ export class SphereRenderer {
       const outlineColor = new THREE.Color(
         panel.faceType === "square-face" ? 0x39d9d0 : 0xff9d5c,
       );
-      const surfaceColor = new THREE.Color(
-        panel.faceType === "square-face" ? 0x071720 : 0x21120d,
-      );
+      const surfaceColor = new THREE.Color(0x080a0c);
       for (const cornerIndex of [0, 1, 2, 0, 2, 3]) {
         const corner = surfaceCorners[cornerIndex]!;
-        surfacePositions.push(corner.x, corner.y, corner.z);
-        surfaceColors.push(
+        panelSurfacePositions.push(corner.x, corner.y, corner.z);
+        panelSurfaceColors.push(
           surfaceColor.r,
           surfaceColor.g,
           surfaceColor.b,
         );
-        surfacePanelIds.push(panel.id);
+        panelSurfaceIds.push(panel.id);
       }
       for (const [start, end] of edgePairs) {
         const first = corners[start]!;
@@ -666,6 +672,38 @@ export class SphereRenderer {
     surfaces.userData.selectionFocusPanelIds = surfacePanelIds;
     surfaces.renderOrder = 0;
     this.panelLayer.add(surfaces);
+
+    const panelSurfaceGeometry = new THREE.BufferGeometry();
+    panelSurfaceGeometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(panelSurfacePositions, 3),
+    );
+    panelSurfaceGeometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(panelSurfaceColors, 3),
+    );
+    panelSurfaceGeometry.computeVertexNormals();
+    const panelSurfaceMaterial = new THREE.MeshPhongMaterial({
+      vertexColors: true,
+      side: THREE.DoubleSide,
+      specular: 0x9ab3c4,
+      shininess: 92,
+      transparent: false,
+      opacity: 1,
+      depthWrite: true,
+      depthTest: true,
+    });
+    const panelSurfaces = new THREE.Mesh(
+      panelSurfaceGeometry,
+      panelSurfaceMaterial,
+    );
+    panelSurfaces.name = "opaque-glossy-pcb-surfaces";
+    panelSurfaces.userData.selectionFocusVertexColors = true;
+    panelSurfaces.userData.selectionFocusBaseColors =
+      Float32Array.from(panelSurfaceColors);
+    panelSurfaces.userData.selectionFocusPanelIds = panelSurfaceIds;
+    panelSurfaces.renderOrder = 0;
+    this.panelLayer.add(panelSurfaces);
     this.buildPrintableClosures(printableClosures, surfaceFaces);
 
     if (mechanicalMounts.length > 0) {

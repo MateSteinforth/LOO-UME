@@ -287,6 +287,24 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Human Review
 
+### `UI-011` Render LED PCBs as opaque glossy black — P1
+
+- Outcome: panel boards now render as physical opaque near-black PCBs with a
+  restrained specular highlight.
+- Acceptance: shell/closure transparency remains independent; LEDs, connector
+  markers, wiring, outlines, labels, mapping modes, and selection focus remain
+  visible and functional.
+- Evidence: TypeScript and Vite production build pass; 17 focused mapping,
+  selection, and flagship tests pass; `git diff --check` passes. Independent
+  review found no z-fighting, disposal, layering, or focus defect.
+- Required review: inspect the live LAN preview and approve or request a change
+  to black level and gloss strength.
+- Depends on: the current mapping branch at `35fed8c`.
+- Owner: branch `codex/ui-011-opaque-pcbs`; worktree
+  `/home/mate/Documents/led-rhombicosidodecahedron`.
+- Likely conflicts: `web/src/SphereRenderer.ts`, visual documentation, and
+  `TASKS.md`.
+
 ### `CAL-010` Measure one panel before mass wiring — Physical check
 
 - Outcome: establish the real addressing and electrical facts of the installed
