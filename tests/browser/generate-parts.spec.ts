@@ -38,9 +38,8 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
 
   await page.goto("/");
   await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
-  await expect(page.locator("#surface-status")).toContainText(
-    "No authoring surface is referenced",
-  );
+  await expect(page.locator("#surface-status")).toContainText("watertight");
+  await expect(page.locator("#automatically-place-panels")).toBeEnabled();
 
   await chooseFile(page, "#load-sculpture-file", {
     name: "panel-outline-prism.json",

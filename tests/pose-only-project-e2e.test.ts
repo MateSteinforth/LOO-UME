@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   assertMechanicalShellReady,
@@ -56,6 +58,18 @@ describe("pose-only Schema 2 project", () => {
     expect(loaded.sculpture).not.toHaveProperty("mechanicalShell");
     expect(loaded.sculpture).not.toHaveProperty("closures");
     expect(loaded.sculpture).not.toHaveProperty("manualMechanics");
+    expect(loaded.sculpture.designSurface).toMatchObject({
+      format: "glb",
+      source: "design/placement-surface.glb",
+      scaleToMillimeters: 1,
+      status: "watertight",
+    });
+    const glb = await readFile(
+      "sculptures/pose-only-empty/design/placement-surface.glb",
+    );
+    expect(createHash("sha256").update(glb).digest("hex")).toBe(
+      loaded.sculpture.designSurface!.sha256,
+    );
     expect(createPanelAssemblyMapping(loaded).entries).toEqual([]);
     expect(deriveEditorCapabilities(loaded.sculpture, false)).toMatchObject({
       canAutomaticallySeed: false,

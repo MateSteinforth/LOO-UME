@@ -10,6 +10,14 @@
     "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
   },
   "panels": [],
+  "designSurface": {
+    "kind": "triangle-mesh",
+    "format": "glb",
+    "source": "design/placement-surface.glb",
+    "sha256": "e10aa1591b18e0642a13f8a11f277aab110a013c77d98a943f7afb280d8bb72b",
+    "scaleToMillimeters": 1,
+    "status": "watertight"
+  },
   "mapping": {
     "projection": "equirectangular",
     "logicalOrder": "north-to-south-then-longitude"
@@ -42,6 +50,6 @@
     "physicalChains": "provisional"
   },
   "notes": [
-    "Mechanics-free start: load a GLB, place panels, then weld neighbouring outline corners before generating printable parts."
+    "Mechanics-free start: a 120 mm cube GLB is the placement surface. Automatically place panels, then weld neighbouring outline corners before generating printable caps."
   ]
 }

@@ -17,22 +17,23 @@ state. The existing manual 41-panel parts and planar-shell generator remain supp
 
 The implemented generation and portable-project data flow is:
 
-1. Start from the empty pose-only project (the editor default).
-2. Load a GLB design surface.
-3. Automatically place a requested number of LED panels on that surface.
-4. Manually add, move, rotate, or delete panels until neighbouring outline
+1. Start from the empty pose-only project (the editor default). It already
+   references a small watertight cube GLB as the placement surface.
+2. Automatically place a requested number of LED panels on that surface, or
+   load another GLB.
+3. Manually add, move, rotate, or delete panels until neighbouring outline
    corners meet. Generate puts flat caps on the holes between those outlines.
    It does not use the GLB or a JSON shell as geometry.
-5. Use simulation, mapping, wiring preview, save, and reload without generating
+4. Use simulation, mapping, wiring preview, save, and reload without generating
    any mechanics.
-6. Press **Generate 3D Parts**.
-7. Detect and persist the ordered corner cycle around every unambiguous gap,
+5. Press **Generate 3D Parts**.
+6. Detect and persist the ordered corner cycle around every unambiguous gap,
    then generate a closed boundary by filling those cycles.
-8. Validate the boundary, split it into printable parts, and add the proven PCB
+7. Validate the boundary, split it into printable parts, and add the proven PCB
    clearances and mounting details.
-9. Export the exact STL files and load those same STL files into Three.js.
-10. Save relative asset references and hashes in the sculpture JSON.
-11. Reopen the project folder or ZIP and restore the GLB, panels, generated
+8. Export the exact STL files and load those same STL files into Three.js.
+9. Save relative asset references and hashes in the sculpture JSON.
+10. Reopen the project folder or ZIP and restore the GLB, panels, generated
     boundary, and exact printable parts.
 
 Mechanics generation is optional. Failure or absence of mechanics must never
