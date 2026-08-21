@@ -97,8 +97,10 @@ effect parity.
 
 ## D8 — The default is an empty authoring surface
 
-**Decision.** The editor starts with the empty 66 mm cuboctahedron rather than
-the flagship 41-panel sculpture.
+**Decision.** The editor starts with an empty 66 mm-edge Archimedean placement
+surface rather than the flagship 41-panel sculpture. The current default is the
+pose-only rhombicosidodecahedron; the cuboctahedron remains a registered
+authoring project.
 
 **Evidence.** `web/src/main.ts` and commit `9572779`.
 
@@ -121,6 +123,10 @@ both runtime files with that change. Do not commit the Emscripten SDK, caches,
 or other generated build directories.
 
 ## D10 — Production mechanics generation is a local loopback service
+
+**Status.** Superseded for generic panel-outline generation by D19 and D20.
+The managed OpenSCAD path remains applicable only to the physically tested
+manual `parts/*.scad` route.
 
 **Decision.** The production editor is built and served on the user's computer,
 and it runs the same bounded generation handler as Vite development. OpenSCAD
@@ -199,7 +205,70 @@ handling, and atomic publication without a preinstalled download, hash, or
 archive utility. They are a deliberate tracked-binary exception, but they are
 not a complete installer. The operational manifest and base-toolchain setup
 remain incomplete until Node.js/npm and an approved relocatable Python supply
-are pinned for all three targets.
+are pinned for all three targets. That Python supply is an open product
+decision (`HR-013`); it is not implied by this bootstrap-binary decision.
+
+## D17 — `main` is the integration baseline
+
+**Decision.** Substantial implementation work uses a dedicated branch and
+worktree. Finished work stops at **Ready to Merge**. Merge or fast-forward
+into `main` only after explicit operator authorization. Concurrent agents
+must not force-push, reset shared history, or delete another agent's branch
+or worktree.
+
+**Evidence.** Operator instruction on 2026-08-20; `TASKS.md` lifecycle;
+`AGENTS.md` working-safely and agentic-workflow rules.
+
+**Consequence.** Successful closeout commits and, when permitted, pushes the
+task branch, then waits. Automatic integration into `main` is not allowed.
+`TASKS.md` records owning branch, worktree, and likely file conflicts for
+every **In Progress** or **Ready to Merge** task.
+
+## D18 — Browser, helper, and mesh-kernel proofs are different contracts
+
+**Decision.** A Playwright journey through real controls proves operator UI
+behavior. A Vitest or generator helper with a deterministic fake renderer
+proves JSON, topology, hashing, and staging contracts. Generic printable-part
+geometry is proved by Manifold STLs. OpenSCAD proofs apply only to changes in
+the manual `parts/*.scad` route.
+
+**Evidence.** `tests/browser/mechanics-free-authoring.spec.ts`,
+`tests/browser/portable-project.spec.ts` (fake STL renderer for fixtures),
+`tests/browser/generate-parts.spec.ts`, and Manifold CI in
+`.github/workflows/render.yml`.
+
+**Consequence.** Do not treat TEST-010 or TEST-011 as the complete
+arbitrary-project acceptance path. `UI-010` uses the real **Generate 3D Parts**
+control with Manifold. Do not treat helper CAD tests as physical-fit evidence.
+
+## D19 — Generic CAD kernel is pinned `manifold-3d` 3.5.1
+
+**Decision.** The generic panel-outline solids kernel is pinned to npm
+package `manifold-3d` version `3.5.1` (Apache-2.0) from
+https://github.com/elalish/manifold. CAD-030 only loads the WASM and proves a
+boolean in tests. Generic panel generation now writes Manifold STLs
+(`CAD-032` / `CAD-033`). Generic generation does not execute OpenSCAD; the
+manual `parts/*.scad` route remains separate.
+
+**Evidence.** `package.json`, `src/cad/ManifoldRuntime.ts`,
+`tests/manifold-runtime.test.ts`, and operator approval of `CAD-030` on
+2026-08-20.
+
+**Consequence.** Do not float the Manifold version. WASM objects must be
+`delete()`d. Do not feed Manifold the manual `parts/*.scad` route in this
+epic. Do not describe an export as hardware-ready because the kernel changed.
+
+## D20 — Generic generation does not execute OpenSCAD
+
+**Decision.** Generic panel-outline parts use Manifold only. The desktop
+generator and generic CI job do not install, probe, or render OpenSCAD.
+
+**Evidence.** Operator instruction on 2026-08-20; generic pipeline tests reject
+leftover `generate:sculpture` OpenSCAD rendering. Separate OpenSCAD tests cover
+only the retained manual-part toolchain.
+
+**Consequence.** Do not restore OpenSCAD as a dependency of generic generation.
+Manual `parts/*.scad` remain authored sources and use a separate render path.
 
 ## D12 — A folder is the native portable project; ZIP is transport
 

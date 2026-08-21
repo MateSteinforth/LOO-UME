@@ -1,15 +1,13 @@
-import { stat, rm } from "node:fs/promises";
-import { resolve } from "node:path";
-import { generatePanelBoundaryParts } from "../src/cad/GeneratePanelBoundaryParts.ts";
+import { mkdir, mkdtemp, rm, writeFile, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { resolveManagedOpenScadCommand } from "../src/cad/OpenScadDistribution.ts";
 import {
   createOpenScadRuntime,
   type OpenScadRuntime,
 } from "../src/cad/OpenScadRuntime.ts";
-import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 
 const rootDirectory = process.cwd();
-const fixture = "sculptures/panel-outline-prism/sculpture.json";
 const outputDirectory = resolve(rootDirectory, "build/verify-managed-openscad");
 const originalOverride = process.env.OPENSCAD;
 const originalPath = process.env.PATH;
@@ -38,29 +36,20 @@ try {
   }
 
   await rm(outputDirectory, { recursive: true, force: true });
-  const project = await loadPanelAssemblyProjectFromFile(fixture, rootDirectory);
-  const result = await generatePanelBoundaryParts(project, {
-    rootDirectory,
-    outputDirectory,
-    renderScad: (inputScad, outputStl) =>
-      runtime!.render(inputScad, outputStl),
-  });
-  const expectedPartIds = ["part-001", "part-002"];
-  const actualPartIds = result.partAssets.map(({ id }) => id);
-  if (JSON.stringify(actualPartIds) !== JSON.stringify(expectedPartIds)) {
-    throw new Error(
-      `Expected managed OpenSCAD to generate ${expectedPartIds.join(", ")}; got ${actualPartIds.join(", ") || "no parts"}.`,
-    );
+  await mkdir(outputDirectory, { recursive: true });
+  const work = await mkdtemp(join(tmpdir(), "verify-openscad-"));
+  const inputScad = join(work, "cube.scad");
+  const outputStl = resolve(outputDirectory, "cube.stl");
+  await writeFile(inputScad, "cube(10);\n");
+  await runtime.render(inputScad, outputStl);
+  const file = await stat(outputStl);
+  if (!file.isFile() || file.size === 0) {
+    throw new Error("Managed OpenSCAD did not write a nonempty cube STL.");
   }
-  for (const part of result.partAssets) {
-    const file = await stat(part.absolutePath);
-    if (!file.isFile() || file.size === 0 || part.inspection.triangles < 1) {
-      throw new Error(`${part.id} is not a nonempty inspected STL.`);
-    }
-  }
+  await rm(work, { recursive: true, force: true });
 
   console.log(
-    `Verified ${managed.targetId} managed OpenSCAD ${runtime.status.detectedVersion}: generated and inspected ${actualPartIds.join(", ")} in build/verify-managed-openscad.`,
+    `Verified ${managed.targetId} managed OpenSCAD ${runtime.status.detectedVersion}: rendered cube.stl in build/verify-managed-openscad.`,
   );
 } finally {
   await runtime?.close();

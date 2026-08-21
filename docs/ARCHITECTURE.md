@@ -48,12 +48,14 @@ referenced GLB -> automatic placement -> manual pose edits
                  referenced exact STL files -> Three.js
 ```
 
-The GLB is still only a placement surface. The generated boundary comes from
-panel outlines and planar gap caps. Detection welds exact panel corners, removes
-oppositely wound shared edges, and traces each unambiguous exposed-edge cycle.
-The generator may assume users arrange panels so each gap is a flat simple
-N-gon, but it validates that assumption and refuses ambiguous, invalid, or
-non-manifold results. The GLB does not supply or suggest gap topology.
+The GLB is only a placement surface. Printable generation uses panel poses and
+the hardware profile only. It puts flat caps on the holes between panel
+outlines. A leftover JSON mechanical shell is not generate input. Detection
+welds exact panel corners, removes oppositely wound shared edges, and traces
+each unambiguous exposed-edge cycle. The generator may assume each hole is a
+flat simple N-gon, but it validates that assumption and refuses ambiguous,
+invalid, or non-manifold results. The GLB does not supply or suggest gap
+topology.
 
 ## Simulator-to-hardware boundary
 
@@ -147,7 +149,7 @@ gates.
 
 ## Browser lifecycle and data flow
 
-1. `web/src/main.ts` starts with the empty 66 mm cuboctahedron project, or loads
+1. `web/src/main.ts` starts with the empty 66 mm rhombicosidodecahedron project, or loads
    a registered, URL, or local Schema 2 sculpture. Mechanics fields may be
    omitted; a missing or invalid optional GLB only disables surface placement.
 2. `LoadPanelAssemblyProject.ts` resolves the panel profile and the handwritten
@@ -252,49 +254,21 @@ relocatable Python artifacts before the base-toolchain installer can ship.
 generated assets, `/api/generator-status`, and `/api/editor-pipeline`; the Vite
 plugin adapts the same `createEditorPipelineHandler()` during development.
 
-OpenSCAD is required but is not stored as an application binary in the
-repository. `npm run setup:openscad` provides automatic repository-local setup
-for the declared Linux and macOS targets and a Windows x86-64 candidate. Linux
-uses OpenSCAD 2021.01 from the official AppImage and a
-pinned `libgpg-error0` companion. macOS uses the official universal OpenSCAD
-2026.06.12 snapshot. `toolchains/openscad-distributions.json` pins the declared
-targets, URLs, exact sizes, SHA-256 checksums, source metadata, and license
-references. The upstream macOS snapshot does not publish a verified exact
-source revision, so the manifest does not claim one.
-The Windows candidate uses
-`https://files.openscad.org/OpenSCAD-2021.01-x86-64.zip`, size 21,884,613
-bytes, SHA-256
-`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`,
-and executable `openscad.com`. Its source maps to tag `openscad-2021.01`,
-commit `41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`, and the
-GPL-2.0-or-later-with-CGAL-exception license.
+Generic printable-part generation uses pinned `manifold-3d` 3.5.1 in Node and
+in the browser; it does not install, probe, or execute OpenSCAD.
+The local status endpoint reports `generator: "manifold"` and version `3.5.1`.
+The browser disables only printable generation when that status is absent,
+malformed, or unavailable; pose editing, simulation, mapping, wiring, and
+persistence remain usable.
 
-Setup does not need administrator access or a `PATH` change. Windows extracts
-and validates the portable payload in repository-local staging. It does not use
-an installer, system application directory, profile, or registry. The macOS
-path rejects Rosetta, mounts the DMG read-only, and copies only
-`OpenSCAD.app`. Setup records the selected target, version, artifacts, and
-executable in its receipt. It verifies the staged tool before atomic
-publication, reuses a valid target-specific install, and is safe to retry.
-
-Startup probes an explicit `OPENSCAD` executable first. Without that override,
-it prefers the valid receipt-backed managed tool for the current target and
-then falls back to the system OpenSCAD command on `PATH`: `openscad` on Linux
-and macOS, or `openscad.com` on Windows. Runtime version policy is 2021.01 for
-Linux and the Windows candidate, and 2026.06.12 for macOS. The selected
-result is published through the status endpoint. The browser disables only
-printable generation when status is absent, malformed, unavailable, or
-version-mismatched; pose editing, simulation, mapping, wiring, and persistence
-remain usable. After setup or repair, restart the server because status and the
-resolved executable belong to the startup runtime. Windows Server 2022 and
-2025 x64 CI is surrogate proof only. Windows client qualification is deferred.
-The Windows candidate code and checks remain, but Windows does not block the
-INSTALL-011 bootstrap or INSTALL-012 required-target proof.
+The leftover generic OpenSCAD sculpture path is rejected. Manual
+`parts/*.scad` sources remain authored truth and keep their separate OpenSCAD
+render route.
 
 The server accepts loopback hosts only, and generation additionally requires a
-same-origin request. Project data, assets, generated output, and OpenSCAD remain
-on the local computer. Ctrl-C/SIGINT and SIGTERM close the HTTP listener and
-active generator processes, with a bounded forced-stop fallback.
+same-origin request. Project data, assets, generated output, and Manifold
+compilation remain on the local computer. Ctrl-C/SIGINT and SIGTERM close the
+HTTP listener, with a bounded forced-stop fallback.
 
 ## Rendering and simulation
 
@@ -309,37 +283,48 @@ guarded writes, and a zero-copy `0x00RRGGBB` buffer. It excludes networking,
 drivers, presets, multiple segments, 2D/audio effects, DDP, Art-Net, and firmware
 configuration.
 
+## Current milestone status
+
+The integrated baseline combines the pose-first editor and portable folder/ZIP
+contract with generic Manifold generation and the exact authored wiring route.
+The default pose-only rhombicosidodecahedron GLB is a placement surface;
+printable generic parts derive from authoritative panel outlines and are built
+with pinned `manifold-3d` 3.5.1. The manual `parts/*.scad` route remains
+separate because it contains the physically tested U-frame structure.
+
+Schema 2 stores the exact ordered route, GPIOs, RGB/snake assumptions, and
+route-optimized installed quarter turns. The simulator, wiring-manual export,
+WLED bus contract, and generated ledmap share that mapping authority.
+
+Automatic installation is incomplete. The committed stage-zero binaries are
+the present trust root. Node.js/npm and relocatable Python acquisition wait
+for the Python provider decision in `HR-013`, so `INSTALL-011B`,
+`INSTALL-011C`, and `INSTALL-012` are blocked rather than Ready work.
+
 ## Verification boundaries
 
 The repository has three verification layers, and they prove different things:
 
 - Vitest covers the active Schema 2 model, editing, placement, mapping/wiring,
   boundary validation, CAD staging, portable-project handling, local hosting,
-  managed OpenSCAD, and the deterministic WLED host. Most CAD tests use a
-  deterministic renderer so geometry contracts can run without OpenSCAD.
-- Playwright Chromium has two real operator journeys. One covers mechanics-free
-  JSON/GLB authoring, placement, editing, simulation, mapping, wiring, and save.
-  The other covers folder/ZIP controls, exact GLB/STL transport, staleness,
-  invalid assets, reopen, and object-URL cleanup.
-- CI rebuilds and tests the pinned WLED runtime, runs TypeScript and Vite checks,
-  validates managed OpenSCAD on the declared platforms, and renders canonical
-  manual parts. It also uses real managed OpenSCAD for a generic boundary-parts
-  smoke render. The dedicated `CI-010` journey remains open because CI does not
-  yet combine automatic-topology coverage, invalid-input rejection before
-  OpenSCAD, every exact part, and retained failure evidence in one contract.
+  Manifold solids, mapping/wiring, portable assets, and the deterministic WLED
+  host. Manual SCAD remains outside generic generation.
+- Playwright Chromium has four operator journeys: mechanics-free authoring,
+  portable folder/ZIP round-trip, authored wiring-route confirmation, and real
+  **Generate 3D Parts** Manifold STL export.
+- CI rebuilds the pinned WLED runtime, runs TypeScript and Vite checks, and
+  generates the prism fixture with Manifold. Canonical manual SCAD rendering
+  remains a separate verification route.
 
-The two browser journeys do not yet prove the complete arbitrary-project flow
-through the **Generate 3D Parts** control. `UI-010` remains the vertical slice
-that must join real placement/editing, automatic topology, local OpenSCAD,
-exact-part display, ZIP export, and reopen without injected topology or assets.
-
-Automatic installation is also incomplete. The committed stage-zero binaries
-are the present trust root, but base-toolchain acquisition waits for the Python
-provider decision in `HR-013`. `INSTALL-011B`, `INSTALL-011C`, and
-`INSTALL-012` are therefore blocked rather than available implementation work.
+Automatic installation is incomplete. The committed stage-zero binaries are
+the present trust root, but base-toolchain acquisition waits for the Python
+provider decision in `HR-013`.
 
 ## Current architectural seams
 
+- Generic printable-part generation uses pinned `manifold-3d` 3.5.1 in the
+  local pipeline and in the browser. OpenSCAD is reserved for the separate
+  manual `parts/*.scad` route.
 - Schema 1 remains in `Definition.ts`, its JSON Schema/migration fixture,
   procedural mapping, manual CAD types, generated-artifact loader, and tests.
   The browser normal path is Schema 2; legacy code is not the extension point.
@@ -347,18 +332,22 @@ provider decision in `HR-013`. `INSTALL-011B`, `INSTALL-011C`, and
   depends on Schema 1 types.
 - Runtime Schema 2 validation is handwritten and shallow for nested manual
   mechanics; authored JSON can avoid some editor-regeneration fit checks.
-- Large browser files combine UI state, rendering, and interaction concerns.
-  Split them only as a behavior-preserving refactor with appropriate tests.
+- Large browser files combine UI state, rendering, and interaction concerns
+  (`web/src/main.ts` is about 1,800 lines, `SphereRenderer.ts` about 1,200,
+  `SurfacePlacementController.ts` about 800). Split them only as a
+  behavior-preserving refactor with appropriate tests (`ARCH-010`), and not
+  while `UI-010` is in progress.
 - Mapping and wiring operate while hardware-readiness data is provisional. See
-  [`LED_MAPPING.md`](LED_MAPPING.md) before changing exports.
+  [`LED_MAPPING.md`](LED_MAPPING.md) before changing exports. Runtime wiring
+  validation currently requires controller status to remain provisional, so a
+  measured production-ready state is not reachable end to end.
 - Automatic gap detection deliberately rejects touching cycles whose welded
   junction has more than one incoming or outgoing cap edge. Correction tools
   for those ambiguous arrangements are not implemented. The browser also has
   no confirmation or correction control for an unambiguous detected cycle.
-- The desktop package does not bundle OpenSCAD. Managed setup covers the
-  current required Linux and native macOS targets. Windows x86-64 remains a
-  candidate, and its client qualification is deferred. It does not block the
-  INSTALL-011 bootstrap or INSTALL-012 proof for required targets.
+- The desktop package does not install or bundle OpenSCAD for generic
+  generation. Generic generation uses Manifold 3.5.1; manual SCAD authoring is
+  a separate workflow.
 - macOS proof uses native `macos-15` and `macos-15-intel` CI runners. The Intel
   runner label is scheduled to retire in August 2027, so CI must move to a
   supported native Intel label before that date.
@@ -372,8 +361,9 @@ provider decision in `HR-013`. `INSTALL-011B`, `INSTALL-011C`, and
 - ZIP import validates paths and hashes but does not yet enforce entry-count,
   per-entry size, aggregate uncompressed-size, or compression-ratio limits
   before buffering the archive (`SEC-010`).
-- Automatic surface placement distributes panel centers but does not preflight
-  complete panel footprints for overlap (`PLACE-010`).
+- Automatic surface placement sits panels on connected planar mesh faces with
+  those face normals. It does not yet preflight complete panel footprints for
+  overlap (`PLACE-010`).
 
 See [`ROADMAP.md`](ROADMAP.md) for gaps and proposed sequencing, and
 [`DECISIONS.md`](DECISIONS.md) for choices supported by code and history.

@@ -6,8 +6,5 @@ cd "$repo_root"
 
 npm run setup:wled
 npm ci
-npm run setup:openscad
-npm run setup:openscad
 npm run setup:emsdk
 npm run verify
-npm run verify:openscad

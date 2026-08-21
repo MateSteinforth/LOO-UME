@@ -1,14 +1,11 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { dirname, resolve } from "node:path";
-import {
-  createOpenScadRuntime,
-  type OpenScadRuntime,
-} from "../src/cad/OpenScadRuntime.ts";
+import { resolve } from "node:path";
 import { generatePanelBoundaryParts } from "../src/cad/GeneratePanelBoundaryParts.ts";
+import {
+  probeManifoldGeneratorStatus,
+  type ManifoldGeneratorStatus,
+} from "../src/cad/ManifoldRuntime.ts";
 import { createPanelAssemblyProject } from "../src/sculpture/PanelAssembly.ts";
-import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegenerator.ts";
 
 const MAX_SCULPTURE_JSON_BYTES = 5 * 1024 * 1024;
 const MAX_MULTIPART_REQUEST_BYTES = 64 * 1024 * 1024;
@@ -27,11 +24,10 @@ class HttpError extends Error {
 export interface EditorPipelineHandlerOptions {
   rootDirectory?: string;
   generatedPublicDirectory?: string;
-  openScadRuntime?: OpenScadRuntime;
 }
 
 export interface EditorPipelineHandler {
-  readonly openScadRuntime: OpenScadRuntime;
+  readonly generatorStatus: ManifoldGeneratorStatus;
   handle(request: IncomingMessage, response: ServerResponse): Promise<boolean>;
   close(gracePeriodMs?: number): Promise<void>;
 }
@@ -205,52 +201,6 @@ function validateInput(input: unknown): Record<string, unknown> {
   return definition;
 }
 
-function runChild(
-  command: string,
-  args: string[],
-  rootDirectory: string,
-  children: Set<ChildProcess>,
-): Promise<string> {
-  return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, {
-      cwd: rootDirectory,
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    children.add(child);
-    let output = "";
-    child.stdout?.on("data", (chunk) => { output += String(chunk); });
-    child.stderr?.on("data", (chunk) => { output += String(chunk); });
-    child.on("error", reject);
-    child.on("close", (code, signal) => {
-      children.delete(child);
-      if (code === 0) resolvePromise(output);
-      else reject(new Error(
-        output || `${command} exited with ${code ?? `signal ${signal ?? "unknown"}`}.`,
-      ));
-    });
-  });
-}
-
-async function stopChildren(
-  children: Set<ChildProcess>,
-  gracePeriodMs: number,
-): Promise<void> {
-  const active = [...children].filter((child) => child.exitCode === null);
-  for (const child of active) child.kill("SIGTERM");
-  if (active.length === 0) return;
-  await Promise.race([
-    Promise.all(active.map((child) => new Promise<void>((resolvePromise) => {
-      if (child.exitCode !== null) resolvePromise();
-      else child.once("close", () => resolvePromise());
-    }))),
-    new Promise<void>((resolvePromise) => setTimeout(resolvePromise, gracePeriodMs)),
-  ]);
-  for (const child of active) {
-    if (child.exitCode === null) child.kill("SIGKILL");
-  }
-}
-
 export async function createEditorPipelineHandler(
   options: EditorPipelineHandlerOptions = {},
 ): Promise<EditorPipelineHandler> {
@@ -258,14 +208,13 @@ export async function createEditorPipelineHandler(
   const generatedPublicDirectory = resolve(
     options.generatedPublicDirectory ?? resolve(rootDirectory, "web/public"),
   );
-  const openScadRuntime = options.openScadRuntime ??
-    await createOpenScadRuntime(rootDirectory);
-  const children = new Set<ChildProcess>();
+  const generatorStatus: ManifoldGeneratorStatus =
+    await probeManifoldGeneratorStatus();
   let pipelineRunning = false;
   let closing = false;
 
   return {
-    openScadRuntime,
+    generatorStatus,
     async handle(request, response) {
       const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
       if (pathname !== "/api/generator-status" &&
@@ -279,7 +228,7 @@ export async function createEditorPipelineHandler(
           response.setHeader("Allow", "GET");
           jsonResponse(response, 405, { error: "Use GET." });
         } else {
-          jsonResponse(response, 200, openScadRuntime.status);
+          jsonResponse(response, 200, generatorStatus);
         }
         return true;
       }
@@ -296,8 +245,8 @@ export async function createEditorPipelineHandler(
         jsonResponse(response, 503, { error: "The local generation service is shutting down." });
         return true;
       }
-      if (!openScadRuntime.status.available) {
-        jsonResponse(response, 503, { error: openScadRuntime.status.message });
+      if (!generatorStatus.available) {
+        jsonResponse(response, 503, { error: generatorStatus.message });
         return true;
       }
       if (pipelineRunning) {
@@ -307,87 +256,49 @@ export async function createEditorPipelineHandler(
       pipelineRunning = true;
       try {
         const requestInput = await readEditorPipelineRequest(request);
-        let definition = validateInput(requestInput.input);
+        const definition = validateInput(requestInput.input);
         if (requestInput.designSurfaceBytes && definition.designSurface === undefined) {
           throw new HttpError(400, "designSurface bytes require a designSurface reference.");
         }
         const sourceId = definition.id as string;
         const profile = definition.panelProfile as Record<string, unknown>;
         const runId = `${sourceId.slice(0, 60)}-editor-preview`;
-        const canDetectPanelBoundary =
-          definition.boundaryTopology === undefined &&
-          definition.manualMechanics === undefined &&
-          definition.mechanicalShell === undefined &&
-          Array.isArray(definition.panels) && definition.panels.length > 0;
-        if (definition.boundaryTopology !== undefined || canDetectPanelBoundary) {
-          const project = createPanelAssemblyProject(
-            definition,
-            "editor-request.json",
+        if (definition.manualMechanics) {
+          throw new HttpError(
+            400,
+            "Manually authored mechanics cannot enter generic part generation.",
           );
-          const result = await generatePanelBoundaryParts(project, {
-            rootDirectory,
-            outputDirectory: resolve(
-              generatedPublicDirectory,
-              "generated-projects",
-              runId,
-            ),
-            designSurfaceBytes: requestInput.designSurfaceBytes,
-            panelProfileSource: `../../catalog/panels/${profile.id}.json`,
-            renderScad: openScadRuntime.render.bind(openScadRuntime),
-          });
-          jsonResponse(response, 200, {
-            ok: true,
-            assetSculptureId: runId,
-            definition: result.definition,
-            projectSource: `./generated-projects/${runId}/sculpture.json`,
-            log:
-              `Generated and SHA-256 verified ${result.partAssets.length} exact printable STL files; boundary ${result.boundaryAsset.sha256.slice(0, 12)}… and manifest published atomically.`,
-          });
-          return true;
         }
-        const shell = definition.mechanicalShell;
         if (
-          typeof shell === "object" && shell !== null && !Array.isArray(shell) &&
-          (shell as Record<string, unknown>).derivationStatus === "requires-regeneration"
+          definition.boundaryTopology === undefined &&
+          (!Array.isArray(definition.panels) || definition.panels.length === 0)
         ) {
-          definition = regenerateMechanicalShell(
-            createPanelAssemblyProject(definition, "editor-request.json"),
-          ) as unknown as Record<string, unknown>;
+          throw new HttpError(
+            400,
+            "Place panels, then generate caps for the flat holes between their outlines.",
+          );
         }
-        const regeneratedDefinition = structuredClone(definition);
-        definition.id = runId;
-        (definition.panelProfile as Record<string, unknown>).source =
-          `../../../catalog/panels/${profile.id}.json`;
-        const relativeSource = `build/editor-projects/${runId}/sculpture.json`;
-        const absoluteSource = resolve(rootDirectory, relativeSource);
-        await mkdir(dirname(absoluteSource), { recursive: true });
-        await writeFile(
-          absoluteSource,
-          `${JSON.stringify(definition, null, 2)}\n`,
-          "utf8",
+        const project = createPanelAssemblyProject(
+          definition,
+          "editor-request.json",
         );
-        const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-        const generationLog = await runChild(
-          npm,
-          ["run", "generate:sculpture", "--", "--sculpture", relativeSource],
+        const result = await generatePanelBoundaryParts(project, {
           rootDirectory,
-          children,
-        );
-        const renderLog = await runChild(
-          npm,
-          [
-            "run", "verify:sculpture", "--", "--sculpture", relativeSource,
-            "--ephemeral",
-          ],
-          rootDirectory,
-          children,
-        );
+          outputDirectory: resolve(
+            generatedPublicDirectory,
+            "generated-projects",
+            runId,
+          ),
+          designSurfaceBytes: requestInput.designSurfaceBytes,
+          panelProfileSource: `../../catalog/panels/${profile.id}.json`,
+        });
         jsonResponse(response, 200, {
           ok: true,
           assetSculptureId: runId,
-          definition: regeneratedDefinition,
-          source: relativeSource,
-          log: `${generationLog}${renderLog}`.trim(),
+          definition: result.definition,
+          projectSource: `./generated-projects/${runId}/sculpture.json`,
+          log:
+            `Generated and SHA-256 verified ${result.partAssets.length} exact printable STL files; boundary ${result.boundaryAsset.sha256.slice(0, 12)}… and manifest published atomically.`,
         });
       } catch (error) {
         const statusCode = error instanceof HttpError ? error.statusCode : 400;
@@ -399,12 +310,8 @@ export async function createEditorPipelineHandler(
       }
       return true;
     },
-    async close(gracePeriodMs = 2_000) {
+    async close() {
       closing = true;
-      await Promise.all([
-        stopChildren(children, gracePeriodMs),
-        openScadRuntime.close(gracePeriodMs),
-      ]);
     },
   };
 }

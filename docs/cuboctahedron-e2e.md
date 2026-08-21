@@ -1,7 +1,8 @@
 # Panel-driven cuboctahedron fixture
 
-`sculptures/cuboctahedron-empty-66/sculpture.json` is the editor's default
-authoring-only fixture. It starts with zero panels on a watertight cuboctahedron
+`sculptures/cuboctahedron-empty-66/sculpture.json` is the JSON-shell cuboctahedron
+authoring fixture. The editor default is the mechanics-free empty pose-only
+project. This fixture starts with zero panels on a watertight cuboctahedron
 whose six square faces are exactly 66 mm per side. Those faces are explicit
 whole-face panel regions; after all six panels are manually placed, the eight
 triangular gaps regenerate into printable closures with 24 real-hole tabs and
@@ -24,8 +25,10 @@ The JSON supplies:
 - six explicit world-space panel positions and orientation bases;
 - the supporting mechanical shell and each panel's mount-face association;
 - the eight faces that must become printable closures;
-- the rule that cap interfaces are globally matched to usable panel holes
-  with minimum total tab reach and one different cap per screw;
+- the rule that cap interfaces are matched to usable panel holes with one
+  different cap per screw, preferring the hole nearest each edge middle so
+  each square side gets one tab; unique IDs matching simulator panel labels
+  are recessed on the inside of each triangle;
 - cover, flange, tab, clearance, mapping, and data-only wiring policy with a
   near-top controller.
 

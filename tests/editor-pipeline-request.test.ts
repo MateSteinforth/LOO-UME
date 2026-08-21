@@ -62,10 +62,11 @@ describe("editor pipeline multipart request", () => {
     expect(formData.get("unrelated/old-part.stl")).toBeNull();
   });
 
-  it("rejects missing referenced GLB bytes", async () => {
+  it("generates from panel poses when the referenced GLB is absent", async () => {
     const definition = await fixture();
-    expect(() => createEditorPipelineFormData(definition, new Map()))
-      .toThrow(/design\/source\.glb.*not available as verified local bytes/);
+    const formData = createEditorPipelineFormData(definition, new Map());
+    expect([...formData.keys()]).toEqual(["sculpture"]);
+    expect(formData.get("designSurface")).toBeNull();
   });
 
   it("rejects tampered referenced GLB bytes", async () => {

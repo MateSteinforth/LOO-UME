@@ -17,16 +17,22 @@ state. The existing manual 41-panel parts and planar-shell generator remain supp
 
 The implemented generation and portable-project data flow is:
 
-1. Load a GLB design surface.
-2. Automatically place a requested number of LED panels on that surface.
-3. Manually add, move, rotate, or delete panels until the layout is correct.
+1. Start from the empty pose-only project (the editor default). It already
+   references a watertight rhombicosidodecahedron GLB whose squares are 66 mm.
+2. Automatically place a requested number of LED panels on that surface, or
+   load another GLB.
+3. Manually add, move, rotate, or delete panels until neighbouring outline
+   corners meet. Generate puts flat caps on the holes between those outlines.
+   It does not use the GLB or a JSON shell as geometry.
 4. Use simulation, mapping, wiring preview, save, and reload without generating
    any mechanics.
 5. Press **Generate 3D Parts**.
 6. Detect and persist the ordered corner cycle around every unambiguous gap,
    then generate a closed boundary by filling those cycles.
 7. Validate the boundary, split it into printable parts, and add the proven PCB
-   clearances and mounting details.
+   clearances, mounting details, and interior panel-ID labels. Each eligible
+   hole still gets one unique tab; assignment prefers the hole nearest each
+   edge middle. Recessed text matches the simulator hover label (`P-01`).
 8. Export the exact STL files and load those same STL files into Three.js.
 9. Save relative asset references and hashes in the sculpture JSON.
 10. Reopen the project folder or ZIP and restore the GLB, panels, generated
@@ -49,24 +55,30 @@ are derived from the resolved panel width/height and the saved right-handed pose
 Topology therefore selects adjacency and winding without locating a panel or
 boundary vertex.
 
-When `boundaryTopology` is absent, detection sorts panels by ID, welds exact
-outline corners within `vertexWeldMm`, removes shared edges only when the two
-panels traverse them in opposite directions, and reverses each remaining panel
-edge to obtain the cap winding. Every exposed vertex must have exactly one
-incoming and one outgoing cap edge. Each resulting cycle is rotated to a
-canonical panel/corner sequence, assigned a content-derived `gap-<12 hex>` ID,
-and sorted by that ID. The generated Schema 2 JSON persists those cycles, so
-save/reopen and later regeneration reuse the same connectivity. Detection is
-independent of panel array order.
+When `boundaryTopology` is absent, detection sorts panels by ID, clusters
+outline corners within `vertexWeldMm` (1.5 mm), and places each cluster on the
+intersection of the incident panel planes so a rectangular 66 x 65 mm panel on
+a 66 mm square stays planar. Shared edges are removed only when the two panels
+traverse them in opposite directions. Isolated 2-regular loops keep the unique
+reverse-edge walk. When neighbouring panels meet only at a vertex, a radial
+face walk around that vertex finds the holes and discards cycles that retrace a
+panel outline. That is how six cuboctahedron squares produce eight triangular
+caps. Each remaining cycle is rotated to a canonical panel/corner sequence,
+assigned a content-derived `gap-<12 hex>` ID, and sorted by that ID. The
+generated Schema 2 JSON persists those cycles, so save/reopen and later
+regeneration reuse the same connectivity. Detection is independent of panel
+array order.
 
 Detection fails actionably when no exposed edges exist, an exposed graph is
 open, more than two panels use one welded edge, a shared edge has matching
-winding, or touching gaps make a welded vertex ambiguous. It does not guess or
-silently choose between multiple cycles. The interface has no topology
-confirmation or correction control. It cannot accept, reject, reorder, or
-redraw detected cycles. The user must move the panels until detection is
-unambiguous or edit `boundaryTopology` outside the interface. The prism fixture is
-`sculptures/panel-outline-prism/sculpture.json`. Invalid fixtures cover
+winding, coplanar touching gaps make a welded vertex ambiguous, or only panel
+outlines remain because neighbouring corners did not cluster. It does not guess
+or silently choose between multiple coplanar cycles. The interface has no
+topology confirmation or correction control. It cannot accept, reject, reorder,
+or redraw detected cycles. The user must move the panels until detection is
+unambiguous or edit `boundaryTopology` outside the interface. The prism fixture
+is `sculptures/panel-outline-prism/sculpture.json`. The default empty project
+places six panels on the 66 mm cuboctahedron squares. Invalid fixtures cover
 non-planar, open, intersecting, and non-manifold layouts.
 
 For each proposed cap, generation must reject:
@@ -127,81 +139,42 @@ validated faces to the existing planar-closure compiler. That preserves the
 profile's real holes, blocked DIN/DOUT corners, PCB envelope, 0.20 mm hole-edge
 correction, 0.50 mm flush correction, pilots, and lead-ins.
 
-Generation stages every SCAD, STL, hash, and final JSON in a sibling temporary
+Generation stages every STL, hash, and final JSON in a sibling temporary
 directory. Only a fully inspected set is published by directory rename; failure
 removes the staging directory and retains the prior bundle.
 
 ## Local desktop generation host
 
-OpenSCAD is required but is not stored in the WLED Orbital Lab repository.
-Automatic repository-local setup supports the declared Debian 13 x86-64,
-Ubuntu 24.04 x86-64, and macOS 15 native arm64 and x86-64 targets. It also
-provides the Windows x86-64 candidate. On Linux and macOS, run:
+Generic panel-outline parts compile with pinned `manifold-3d` 3.5.1 and do not
+install or execute OpenSCAD. On Linux and macOS, run:
 
 ```bash
 npm ci
-npm run setup:openscad
 npm run desktop
 ```
 
-Setup selects the host target and installs it in `.tools`. Linux uses OpenSCAD
-2021.01 from the official AppImage and a pinned `libgpg-error0` companion.
-macOS uses the official universal OpenSCAD 2026.06.12 DMG. Its URL is
-`https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg`, its exact size
-is 64,447,344 bytes, and its SHA-256 is
-`555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
-The toolchain manifest records source and license metadata but does not claim
-an exact macOS source revision because upstream does not publish one.
-
-Setup does not need administrator access or change `PATH`. macOS needs no
-manual OpenSCAD install or Rosetta. Setup uses a read-only DMG mount, copies
-only `OpenSCAD.app` into the local staging tree, validates the app tree and
-native Mach-O slice, and cleans up the mount. It publishes the verified tree
-atomically, records the target and version in a receipt, reuses a valid managed
-install, and is safe to retry after failure.
-
 `npm run desktop` performs a fresh production build and starts the local
 server. It prints a loopback URL at `127.0.0.1`, using port 4173 unless
-`ORBITAL_LAB_PORT` selects another valid port. At startup, an explicit
-`OPENSCAD` value has first priority. Without an override, the server prefers the
-valid receipt-backed managed tool and then uses `openscad` on Linux and macOS or
-`openscad.com` on Windows as the system command on `PATH`.
+`ORBITAL_LAB_PORT` selects another valid port.
 
-At startup the server probes the exact target version: 2021.01 on Linux and the
-Windows candidate, and 2026.06.12 on macOS. Both local hosts use the same
-bounded handler for
+Both local hosts use the same bounded handler for
 `/api/generator-status` and `/api/editor-pipeline`. The browser fetches status
-instead of inferring availability from its build mode. Missing, unreadable, or
-wrong-version OpenSCAD disables **Generate 3D Parts** with direct repair
-guidance; editing, simulation, mapping, wiring, save, and reopen continue. After
-setup or repair, restart the server to repeat discovery.
+instead of inferring availability from its build mode. Unavailable Manifold
+disables **Generate 3D Parts**; editing, simulation, mapping, wiring, save, and
+reopen continue.
 
-On the Windows x86-64 candidate, PowerShell must use
-`npm.cmd run setup:openscad`. Runtime selection falls back to `openscad.com` on
-`PATH`, and the required version is 2021.01. The candidate pins the official
-portable OpenSCAD 2021.01 ZIP at 21,884,613 bytes with
-SHA-256
-`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`
-and uses `openscad.com`. Setup is repository-local and atomic, with no
-administrator, installer, registry, profile, or `PATH` change. Source is tag
-`openscad-2021.01`, commit `41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`,
-under GPL-2.0-or-later with the OpenSCAD CGAL exception.
+OpenSCAD remains separate and is needed only when the manual `parts/*.scad`
+route changes.
 
-Windows Server CI is surrogate proof only. Windows client qualification is
-deferred. The candidate code and checks remain, but Windows does not block
-INSTALL-011 or INSTALL-012. Node.js and npm remain prerequisites; Linux also
-needs `dpkg-deb`. INSTALL-011/012 track the complete bootstrap and proof on the
-required Linux and macOS targets.
-
-The HTTP server, project data, generated assets, and OpenSCAD process all remain
-on the local computer. Generation is same-origin and loopback-only. Ctrl-C
-(SIGINT) or SIGTERM stops the server and active generation children cleanly. No
-public hosted generation service is required.
+The HTTP server, project data, generated assets, and Manifold compilation all
+remain on the local computer. Generation is same-origin and loopback-only.
+Ctrl-C (SIGINT) or SIGTERM stops the server cleanly. No public hosted
+generation service is required.
 
 The browser sends one multipart generation request with the sculpture JSON and
 only the referenced, SHA-256-verified GLB. The JSON field is limited to 5 MB and
 the complete request is limited to 64 MB. Missing, tampered, or reserved asset
-paths fail before OpenSCAD runs or the output staging directory is created.
+paths fail before Manifold runs or the output staging directory is created.
 
 ## Project bundle
 
@@ -363,6 +336,7 @@ checks current and stale presentation, rejects missing or tampered assets, and
 proves that project replacement releases the prior object URLs.
 
 
-OpenSCAD or the chosen mesh backend must render every changed printable part,
-and the assembly inspection must confirm panel poses, holes, PCB envelopes,
-connector access, cap planarity, closed topology, and flat print surfaces.
+Manifold must compile every changed generic printable part. Inspect the
+resulting STLs for panel poses, holes, PCB envelopes, connector access, cap
+planarity, closed topology, and flat print surfaces. Use OpenSCAD only to
+verify changes to manual `parts/*.scad`.

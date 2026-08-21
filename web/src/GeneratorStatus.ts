@@ -1,8 +1,8 @@
 export interface GeneratorStatus {
   schemaVersion: "1.0.0";
   available: boolean;
-  generator: "openscad";
-  supportedVersion: "2021.01";
+  generator: "manifold";
+  supportedVersion: string;
   detectedVersion?: string;
   message: string;
 }
@@ -19,8 +19,8 @@ function unavailable(message: string): GeneratorStatus {
   return {
     schemaVersion: "1.0.0",
     available: false,
-    generator: "openscad",
-    supportedVersion: "2021.01",
+    generator: "manifold",
+    supportedVersion: "3.5.1",
     message: `${UNAVAILABLE_PREFIX} ${message}`,
   };
 }
@@ -36,11 +36,14 @@ function parseGeneratorStatus(input: unknown): GeneratorStatus {
   if (typeof value.available !== "boolean") {
     throw new Error("available must be a boolean.");
   }
-  if (value.generator !== "openscad") {
-    throw new Error("generator must be openscad.");
+  if (value.generator !== "manifold") {
+    throw new Error("generator must be manifold.");
   }
-  if (value.supportedVersion !== "2021.01") {
-    throw new Error("supportedVersion must be 2021.01.");
+  if (typeof value.supportedVersion !== "string" || value.supportedVersion.trim() === "") {
+    throw new Error("supportedVersion must be a non-empty string.");
+  }
+  if (value.generator === "manifold" && value.supportedVersion !== "3.5.1") {
+    throw new Error("supportedVersion must be 3.5.1 for manifold.");
   }
   if (typeof value.message !== "string" || value.message.trim() === "") {
     throw new Error("message must be a non-empty string.");
@@ -55,8 +58,8 @@ function parseGeneratorStatus(input: unknown): GeneratorStatus {
   return {
     schemaVersion: "1.0.0",
     available: value.available,
-    generator: "openscad",
-    supportedVersion: "2021.01",
+    generator: value.generator,
+    supportedVersion: value.supportedVersion,
     ...(value.detectedVersion === undefined
       ? {}
       : { detectedVersion: value.detectedVersion as string }),

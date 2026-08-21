@@ -13,8 +13,12 @@ import { triangulatePolygon, type Point2 } from "../cad/TriangulatePolygon.ts";
 export type Vector3Tuple = [number, number, number];
 
 export const PANEL_BOUNDARY_TOLERANCES = Object.freeze({
-  /** Maximum distance between panel corners treated as one boundary vertex. */
-  vertexWeldMm: 0.00001,
+  /**
+   * Maximum distance between panel corners treated as one boundary vertex.
+   * 1.5 mm covers a 66 x 65 mm panel sitting on a 66 mm cuboctahedron square
+   * (about 1.28 mm of 65 mm-axis slack plus placement offset).
+   */
+  vertexWeldMm: 1.5,
   /** Maximum signed distance of a cap vertex from its best-fit plane. */
   capCoplanarityMm: 0.05,
   /** Minimum permitted boundary edge length. */
@@ -591,13 +595,155 @@ function validateCombinedBoundary(
   return { edgeCount: edgeUses.size, connectedComponents: 1 };
 }
 
-function addWeldedVertex(vertices: Vector3Tuple[], point: Vector3Tuple): number {
-  const existing = vertices.findIndex((candidate) =>
-    distance(candidate, point) <= PANEL_BOUNDARY_TOLERANCES.vertexWeldMm
+interface ClusteredPanelCorner {
+  panelId: string;
+  corner: PanelOutlineCornerId;
+  point: Vector3Tuple;
+  planePoint: Vector3Tuple;
+  planeNormal: Vector3Tuple;
+}
+
+interface WeldedPanelCorners {
+  vertices: Vector3Tuple[];
+  cornerIndex: Map<string, number>;
+}
+
+function intersectPlanes(
+  pointA: Vector3Tuple,
+  normalA: Vector3Tuple,
+  pointB: Vector3Tuple,
+  normalB: Vector3Tuple,
+): { point: Vector3Tuple; direction: Vector3Tuple } | null {
+  const direction = cross(normalA, normalB);
+  const directionLength = length(direction);
+  if (directionLength < 1e-9) return null;
+  const dir2 = directionLength * directionLength;
+  const dA = dot(normalA, pointA);
+  const dB = dot(normalB, pointB);
+  return {
+    point: scale(
+      add(scale(cross(normalB, direction), dA), scale(cross(direction, normalA), dB)),
+      1 / dir2,
+    ),
+    direction: scale(direction, 1 / directionLength),
+  };
+}
+
+function closestPointOnLine(
+  origin: Vector3Tuple,
+  direction: Vector3Tuple,
+  point: Vector3Tuple,
+): Vector3Tuple {
+  return add(origin, scale(direction, dot(subtract(point, origin), direction)));
+}
+
+function weldPointForCluster(members: ClusteredPanelCorner[]): Vector3Tuple {
+  const spread = Math.max(
+    ...members.map((member) => distance(member.point, members[0]!.point)),
   );
-  if (existing >= 0) return existing;
-  vertices.push(point);
-  return vertices.length - 1;
+  if (spread <= 1e-9) return [...members[0]!.point] as Vector3Tuple;
+  const planes = [...new Map(members.map((member) => [member.panelId, member]))
+    .values()].map((member) => ({
+      point: member.planePoint,
+      normal: normalize(member.planeNormal),
+    }));
+  const centroid = vertexCentroid(members.map((member) => member.point));
+  if (
+    planes.length >= 2 &&
+    length(cross(planes[0]!.normal, planes[1]!.normal)) > 1e-9
+  ) {
+    const intersection = intersectPlanes(
+      planes[0]!.point,
+      planes[0]!.normal,
+      planes[1]!.point,
+      planes[1]!.normal,
+    );
+    if (intersection) {
+      let point = closestPointOnLine(
+        intersection.point,
+        intersection.direction,
+        centroid,
+      );
+      if (planes.length >= 3) {
+        const normal = planes[2]!.normal;
+        const denom = dot(normal, intersection.direction);
+        if (Math.abs(denom) > 1e-9) {
+          point = add(
+            point,
+            scale(
+              intersection.direction,
+              dot(subtract(planes[2]!.point, point), normal) / denom,
+            ),
+          );
+        }
+      }
+      return point;
+    }
+  }
+  return centroid;
+}
+
+function collectPanelCorners(
+  panels: PanelAssemblyDefinition["panels"],
+  profile: PanelHardwareProfile,
+): ClusteredPanelCorner[] {
+  return panels.flatMap((panel) =>
+    PANEL_CORNER_ORDER.map((corner) => ({
+      panelId: panel.id,
+      corner,
+      point: panelCorner(panel, corner, profile),
+      planePoint: panel.pose.position as Vector3Tuple,
+      planeNormal: panel.pose.orientation.normal as Vector3Tuple,
+    }))
+  );
+}
+
+function weldPanelCorners(
+  corners: ClusteredPanelCorner[],
+  weldMm: number,
+): WeldedPanelCorners {
+  const parent = corners.map((_, index) => index);
+  const find = (index: number): number => {
+    let current = index;
+    while (parent[current] !== current) current = parent[current]!;
+    let walk = index;
+    while (walk !== current) {
+      const next = parent[walk]!;
+      parent[walk] = current;
+      walk = next;
+    }
+    return current;
+  };
+  for (let first = 0; first < corners.length; first += 1) {
+    for (let second = first + 1; second < corners.length; second += 1) {
+      if (distance(corners[first]!.point, corners[second]!.point) <= weldMm) {
+        const left = find(first);
+        const right = find(second);
+        if (left !== right) parent[right] = left;
+      }
+    }
+  }
+  const groups = new Map<number, number[]>();
+  corners.forEach((_, index) => {
+    const root = find(index);
+    groups.set(root, [...(groups.get(root) ?? []), index]);
+  });
+  const vertices: Vector3Tuple[] = [];
+  const rootToVertex = new Map<number, number>();
+  const cornerIndex = new Map<string, number>();
+  corners.forEach((corner, index) => {
+    const root = find(index);
+    let vertexIndex = rootToVertex.get(root);
+    if (vertexIndex === undefined) {
+      vertexIndex = vertices.length;
+      vertices.push(weldPointForCluster(
+        (groups.get(root) ?? [index]).map((member) => corners[member]!),
+      ));
+      rootToVertex.set(root, vertexIndex);
+    }
+    cornerIndex.set(pointKey(corner.panelId, corner.corner), vertexIndex);
+  });
+  return { vertices, cornerIndex };
 }
 
 function panelCorner(
@@ -652,6 +798,189 @@ function describeDetectedPanelEdge(use: DetectedPanelEdgeUse): string {
   return `${use.panelId}.${use.startCorner}->${use.panelId}.${use.endCorner}`;
 }
 
+function halfEdgeKey(edge: DetectedCapEdge): string {
+  return `${edge.start}>${edge.end}`;
+}
+
+function compareHalfEdges(left: DetectedCapEdge, right: DetectedCapEdge): number {
+  return left.start - right.start || left.end - right.end;
+}
+
+function vertexCentroid(points: Vector3Tuple[]): Vector3Tuple {
+  const sum: Vector3Tuple = [0, 0, 0];
+  for (const point of points) {
+    sum[0] += point[0];
+    sum[1] += point[1];
+    sum[2] += point[2];
+  }
+  return scale(sum, 1 / points.length);
+}
+
+function incidentPanelIds(
+  vertex: number,
+  cornerReferences: Map<number, DetectedCornerReference[]>,
+): string[] {
+  return [...new Set((cornerReferences.get(vertex) ?? []).map((item) => item.panelId))]
+    .sort(compareText);
+}
+
+function panelsAreCoplanar(
+  panelIds: string[],
+  panelsById: Map<string, PanelAssemblyDefinition["panels"][number]>,
+): boolean {
+  if (panelIds.length < 2) return true;
+  const first = normalize(
+    panelsById.get(panelIds[0]!)!.pose.orientation.normal as Vector3Tuple,
+  );
+  return panelIds.every((id) =>
+    Math.abs(
+      Math.abs(dot(
+        first,
+        normalize(panelsById.get(id)!.pose.orientation.normal as Vector3Tuple),
+      )) - 1,
+    ) <= 1e-6
+  );
+}
+
+function vertexCycleIsPanelOutline(
+  vertexIndices: number[],
+  panelOutlines: number[][],
+): boolean {
+  if (vertexIndices.length !== 4) return false;
+  const key = [...vertexIndices].sort((left, right) => left - right).join(",");
+  return panelOutlines.some((outline) =>
+    [...outline].sort((left, right) => left - right).join(",") === key
+  );
+}
+
+function orientVertexCycleOutward(
+  vertexIndices: number[],
+  vertices: Vector3Tuple[],
+  centroid: Vector3Tuple,
+): number[] {
+  const points = vertexIndices.map((index) => vertices[index]!);
+  const normal = normalize(polygonNormal(points));
+  if (dot(normal, subtract(vertexCentroid(points), centroid)) < 0) {
+    return [vertexIndices[0]!, ...vertexIndices.slice(1).reverse()];
+  }
+  return vertexIndices;
+}
+
+function radialOutgoingSort(
+  vertex: number,
+  outgoing: DetectedCapEdge[],
+  vertices: Vector3Tuple[],
+  cornerReferences: Map<number, DetectedCornerReference[]>,
+  panelsById: Map<string, PanelAssemblyDefinition["panels"][number]>,
+  centroid: Vector3Tuple,
+): DetectedCapEdge[] {
+  const incident = incidentPanelIds(vertex, cornerReferences);
+  const axisFromPanels = normalize(
+    incident.reduce((sum, id) => add(
+      sum,
+      normalize(panelsById.get(id)!.pose.orientation.normal as Vector3Tuple),
+    ), [0, 0, 0] as Vector3Tuple),
+  );
+  const axis = length(axisFromPanels) > 1e-9
+    ? axisFromPanels
+    : normalize(subtract(vertices[vertex]!, centroid));
+  let reference: Vector3Tuple | null = null;
+  for (const edge of outgoing) {
+    const direction = subtract(vertices[edge.end]!, vertices[vertex]!);
+    const projected = subtract(direction, scale(axis, dot(direction, axis)));
+    if (length(projected) > 1e-9) {
+      reference = normalize(projected);
+      break;
+    }
+  }
+  if (!reference) return [...outgoing].sort(compareHalfEdges);
+  const yAxis = cross(axis, reference);
+  return [...outgoing].map((edge) => {
+    const direction = subtract(vertices[edge.end]!, vertices[vertex]!);
+    const projected = normalize(
+      subtract(direction, scale(axis, dot(direction, axis))),
+    );
+    return {
+      edge,
+      angle: Math.atan2(dot(projected, yAxis), dot(projected, reference!)),
+    };
+  }).sort((left, right) =>
+    left.angle - right.angle || compareHalfEdges(left.edge, right.edge)
+  ).map((item) => item.edge);
+}
+
+function traceExposedFaces(
+  exposedEdges: DetectedCapEdge[],
+  vertices: Vector3Tuple[],
+  cornerReferences: Map<number, DetectedCornerReference[]>,
+  panelsById: Map<string, PanelAssemblyDefinition["panels"][number]>,
+): number[][] {
+  const halfEdges: DetectedCapEdge[] = [];
+  for (const edge of exposedEdges) {
+    halfEdges.push({ start: edge.start, end: edge.end });
+    halfEdges.push({ start: edge.end, end: edge.start });
+  }
+  const outgoing = new Map<number, DetectedCapEdge[]>();
+  for (const edge of halfEdges) {
+    outgoing.set(edge.start, [...(outgoing.get(edge.start) ?? []), edge]);
+  }
+  const centroid = vertexCentroid(vertices);
+  const nextByKey = new Map<string, DetectedCapEdge>();
+  for (const [vertex, outs] of outgoing) {
+    const sorted = radialOutgoingSort(
+      vertex,
+      outs,
+      vertices,
+      cornerReferences,
+      panelsById,
+      centroid,
+    );
+    sorted.forEach((twinOutgoing, index) => {
+      const next = sorted[(index + 1) % sorted.length]!;
+      nextByKey.set(
+        halfEdgeKey({ start: twinOutgoing.end, end: twinOutgoing.start }),
+        next,
+      );
+    });
+  }
+  const remaining = new Set(halfEdges.map(halfEdgeKey));
+  const cycles: number[][] = [];
+  while (remaining.size > 0) {
+    const startKey = [...remaining].sort(compareText)[0]!;
+    remaining.delete(startKey);
+    const [start, firstEnd] = startKey.split(">").map(Number);
+    const vertexIndices = [start!];
+    let current: DetectedCapEdge = { start: start!, end: firstEnd! };
+    while (true) {
+      const next = nextByKey.get(halfEdgeKey(current));
+      if (!next) {
+        throw new PanelBoundaryGenerationError(
+          "open-boundary",
+          `Exposed panel-edge traversal starting at welded vertex ${start} did not close; it stopped at vertex ${current.end}.`,
+        );
+      }
+      remaining.delete(halfEdgeKey(next));
+      current = next;
+      if (current.start === start && current.end === firstEnd) break;
+      vertexIndices.push(current.start);
+      if (vertexIndices.length > halfEdges.length) {
+        throw new PanelBoundaryGenerationError(
+          "open-boundary",
+          `Exposed panel-edge traversal starting at welded vertex ${start} exceeded the available edge count without closing.`,
+        );
+      }
+    }
+    if (vertexIndices.length < 3) {
+      throw new PanelBoundaryGenerationError(
+        "degenerate",
+        `Detected gap at welded vertex ${start} has only ${vertexIndices.length} boundary edges; at least three are required.`,
+      );
+    }
+    cycles.push(vertexIndices);
+  }
+  return cycles;
+}
+
 function canonicalizeDetectedGap(
   vertexIndices: number[],
   cornerReferences: Map<number, DetectedCornerReference[]>,
@@ -681,23 +1010,38 @@ function canonicalizeDetectedGap(
 
 /**
  * Detects cap connectivity from welded panel-outline edges. Shared, oppositely
- * wound panel edges are removed; each remaining panel edge is reversed so the
- * resulting cap winding opposes its panel-outline winding.
+ * wound panel edges are removed. Isolated 2-regular loops keep the unique
+ * reverse-edge walk. When neighbouring panels meet only at a vertex, a radial
+ * face walk around the welded vertex finds the holes, including the eight
+ * cuboctahedron triangles after six square panels. Cycles that retrace a panel
+ * outline are not caps.
  */
 export function detectPanelBoundaryTopology(
   definition: PanelAssemblyDefinition,
   profile: PanelHardwareProfile,
 ): PanelBoundaryTopology {
-  const vertices: Vector3Tuple[] = [];
-  const cornerReferences = new Map<number, DetectedCornerReference[]>();
-  const edgeUses = new Map<string, DetectedPanelEdgeUse[]>();
   const sortedPanels = [...definition.panels].sort((left, right) =>
     compareText(left.id, right.id)
   );
+  const panelsById = new Map(sortedPanels.map((panel) => [panel.id, panel]));
+  const welded = weldPanelCorners(
+    collectPanelCorners(sortedPanels, profile),
+    PANEL_BOUNDARY_TOLERANCES.vertexWeldMm,
+  );
+  const vertices = welded.vertices;
+  const cornerReferences = new Map<number, DetectedCornerReference[]>();
+  const edgeUses = new Map<string, DetectedPanelEdgeUse[]>();
+  const panelOutlines: number[][] = [];
 
   for (const panel of sortedPanels) {
     const indices = PANEL_CORNER_ORDER.map((corner) => {
-      const index = addWeldedVertex(vertices, panelCorner(panel, corner, profile));
+      const index = welded.cornerIndex.get(pointKey(panel.id, corner));
+      if (index === undefined) {
+        throw new PanelBoundaryGenerationError(
+          "open-boundary",
+          `Panel ${panel.id} corner ${corner} was not welded into the boundary graph.`,
+        );
+      }
       cornerReferences.set(index, [
         ...(cornerReferences.get(index) ?? []),
         { panelId: panel.id, corner },
@@ -710,6 +1054,7 @@ export function detectPanelBoundaryTopology(
         `Panel ${panel.id} outline collapses within named tolerance vertexWeldMm (${PANEL_BOUNDARY_TOLERANCES.vertexWeldMm} mm).`,
       );
     }
+    panelOutlines.push(indices);
     indices.forEach((start, index) => {
       const end = indices[(index + 1) % indices.length]!;
       const use: DetectedPanelEdgeUse = {
@@ -771,6 +1116,7 @@ export function detectPanelBoundaryTopology(
   const exposedVertices = [...new Set(
     exposedEdges.flatMap(({ start, end }) => [start, end]),
   )].sort((left, right) => left - right);
+  let needsFaceWalk = false;
   for (const vertex of exposedVertices) {
     const next = outgoing.get(vertex) ?? [];
     const previous = incoming.get(vertex) ?? [];
@@ -783,49 +1129,77 @@ export function detectPanelBoundaryTopology(
         `Exposed panel-edge graph is open at welded vertex ${vertex} (${references}): ${previous.length} incoming and ${next.length} outgoing cap edges were found.`,
       );
     }
-    if (next.length !== 1 || previous.length !== 1) {
+    if (next.length === 1 && previous.length === 1) continue;
+    const incident = incidentPanelIds(vertex, cornerReferences);
+    if (panelsAreCoplanar(incident, panelsById)) {
       throw new PanelBoundaryGenerationError(
         "ambiguous-topology",
         `Automatic gap detection is ambiguous at welded vertex ${vertex} (${references}): ${previous.length} incoming and ${next.length} outgoing cap edges meet there. Separate the touching gaps or author a correction.`,
       );
     }
+    needsFaceWalk = true;
   }
 
-  const remaining = new Set(exposedEdges);
-  const cycles: Array<{ key: string; vertices: DetectedCornerReference[] }> = [];
-  while (remaining.size > 0) {
-    const startEdge = [...remaining].sort((left, right) =>
-      left.start - right.start || left.end - right.end
-    )[0]!;
-    const startVertex = startEdge.start;
-    const vertexIndices: number[] = [];
-    let current = startVertex;
-    while (true) {
-      vertexIndices.push(current);
-      const edge = outgoing.get(current)?.[0];
-      if (!edge || !remaining.delete(edge)) {
+  const vertexCycles: number[][] = [];
+  if (needsFaceWalk) {
+    const centroid = vertexCentroid(vertices);
+    for (const cycle of traceExposedFaces(
+      exposedEdges,
+      vertices,
+      cornerReferences,
+      panelsById,
+    )) {
+      if (vertexCycleIsPanelOutline(cycle, panelOutlines)) continue;
+      vertexCycles.push(orientVertexCycleOutward(cycle, vertices, centroid));
+    }
+  } else {
+    const remaining = new Set(exposedEdges);
+    while (remaining.size > 0) {
+      const startEdge = [...remaining].sort((left, right) =>
+        left.start - right.start || left.end - right.end
+      )[0]!;
+      const startVertex = startEdge.start;
+      const vertexIndices: number[] = [];
+      let current = startVertex;
+      while (true) {
+        vertexIndices.push(current);
+        const edge = outgoing.get(current)?.[0];
+        if (!edge || !remaining.delete(edge)) {
+          throw new PanelBoundaryGenerationError(
+            "open-boundary",
+            `Exposed panel-edge traversal starting at welded vertex ${startVertex} did not close; it stopped at vertex ${current}.`,
+          );
+        }
+        current = edge.end;
+        if (current === startVertex) break;
+        if (vertexIndices.length > exposedEdges.length) {
+          throw new PanelBoundaryGenerationError(
+            "open-boundary",
+            `Exposed panel-edge traversal starting at welded vertex ${startVertex} exceeded the available edge count without closing.`,
+          );
+        }
+      }
+      if (vertexIndices.length < 3) {
         throw new PanelBoundaryGenerationError(
-          "open-boundary",
-          `Exposed panel-edge traversal starting at welded vertex ${startVertex} did not close; it stopped at vertex ${current}.`,
+          "degenerate",
+          `Detected gap at welded vertex ${startVertex} has only ${vertexIndices.length} boundary edges; at least three are required.`,
         );
       }
-      current = edge.end;
-      if (current === startVertex) break;
-      if (vertexIndices.length > exposedEdges.length) {
-        throw new PanelBoundaryGenerationError(
-          "open-boundary",
-          `Exposed panel-edge traversal starting at welded vertex ${startVertex} exceeded the available edge count without closing.`,
-        );
-      }
+      if (vertexCycleIsPanelOutline(vertexIndices, panelOutlines)) continue;
+      vertexCycles.push(vertexIndices);
     }
-    if (vertexIndices.length < 3) {
-      throw new PanelBoundaryGenerationError(
-        "degenerate",
-        `Detected gap at welded vertex ${startVertex} has only ${vertexIndices.length} boundary edges; at least three are required.`,
-      );
-    }
-    cycles.push(canonicalizeDetectedGap(vertexIndices, cornerReferences));
   }
+
+  if (vertexCycles.length === 0) {
+    throw new PanelBoundaryGenerationError(
+      "missing-topology",
+      "Automatic gap detection found only panel outlines. Move neighbouring outline corners within vertexWeldMm so the holes between panels can close.",
+    );
+  }
+
+  const cycles = vertexCycles.map((vertexIndices) =>
+    canonicalizeDetectedGap(vertexIndices, cornerReferences)
+  );
 
   const gaps = cycles.map(({ key, vertices: cycleVertices }) => ({
     id: `gap-${sha256Text(key).slice(0, 12)}`,
@@ -865,16 +1239,25 @@ export function generateClosedPanelBoundary(
   topology: PanelBoundaryTopology | undefined = definition.boundaryTopology,
 ): ClosedPanelBoundary {
   validateTopologyPresence(topology);
-  const vertices: Vector3Tuple[] = [];
-  const cornerIndices = new Map<string, number>();
-  const faces: WorkingFace[] = [];
   const sortedPanels = [...definition.panels].sort((left, right) =>
     compareText(left.id, right.id)
   );
+  const welded = weldPanelCorners(
+    collectPanelCorners(sortedPanels, profile),
+    PANEL_BOUNDARY_TOLERANCES.vertexWeldMm,
+  );
+  const vertices = welded.vertices;
+  const cornerIndices = welded.cornerIndex;
+  const faces: WorkingFace[] = [];
   for (const panel of sortedPanels) {
     const indices = PANEL_CORNER_ORDER.map((corner) => {
-      const index = addWeldedVertex(vertices, panelCorner(panel, corner, profile));
-      cornerIndices.set(pointKey(panel.id, corner), index);
+      const index = cornerIndices.get(pointKey(panel.id, corner));
+      if (index === undefined) {
+        throw new PanelBoundaryGenerationError(
+          "open-boundary",
+          `Panel ${panel.id} corner ${corner} was not welded into the boundary graph.`,
+        );
+      }
       return index;
     });
     if (new Set(indices).size !== 4) {

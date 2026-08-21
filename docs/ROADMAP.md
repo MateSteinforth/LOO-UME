@@ -30,19 +30,16 @@ an implemented contract; settle open product/schema choices before coding.
   closed-boundary generation with cap-local and global two-manifold validation,
   manifest-ready metadata, complete/invalid fixtures, and an in-browser Three.js
   boundary preview.
-- Managed OpenSCAD setup for the required Linux and macOS targets and a retained
-  Windows x86-64 candidate. Windows client qualification is deferred and does
-  not block the current installation milestone.
+- Generic panel-outline parts compile with pinned Manifold 3.5.1. The manual
+  `parts/*.scad` route remains separate and uses OpenSCAD when it changes.
 
 ## Incomplete or blocked in the current model
 
 Highest-priority architecture gaps:
 
-1. JSON stores chain lengths but not ordered panel sequences per output.
-2. Validation/readiness states cannot consistently represent fully measured
-   production wiring.
-3. The live manual CAD wrapper still depends on Schema 1 types.
-4. Static `authored` JSON can bypass editor regeneration fit checks.
+1. Validation/readiness states cannot yet activate hardware-verified evidence.
+2. The live manual CAD wrapper still depends on Schema 1 types.
+3. Static `authored` JSON can bypass editor regeneration fit checks.
 
 Other known gaps:
 
@@ -186,6 +183,10 @@ same reference and hash rules and browser-owned object URLs.
   or be gated like CLI hardware exports?
 - What confirmation promotes an automatically suggested route to authored
   wiring?
+- Should generic Manifold generation stay on the local Node pipeline first, or
+  move into the browser in the first shipping slice (`HR-014`)?
+- When, if ever, should the manual 41-panel `parts/*.scad` route leave
+  OpenSCAD?
 
 ## Resolved product direction
 

@@ -21,7 +21,7 @@ Refresh all snapshots with:
 npm run verify:processed-sculptures
 ~~~
 
-The verifier regenerates OpenSCAD under the ignored build directory, renders
-every STL with hard warnings enabled, renders the detail and full assembly
-previews, and only then replaces the versioned snapshot. The simulator stages
-copies into the ignored web/public generated asset folders.
+On Codex, the verifier regenerates OpenSCAD under the ignored build directory
+and renders every STL. This Grok line does not run that OpenSCAD verifier.
+Generic panel-outline parts compile with Manifold. The simulator stages copies
+into the ignored web/public generated asset folders.

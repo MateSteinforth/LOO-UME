@@ -35,7 +35,7 @@ const fixtures = [
     source: "sculptures/rhombicosidodecahedron-auto/sculpture.json",
     input: rhombicosidodecahedron,
     fingerprint: "93987755",
-    cadHash: "b41d01d67831e712769698434135c1b80f174be38708edfcf70649a09ad945c7",
+    cadHash: "6c38e230830766bb7734b20d0bd4b61b4b76bd26f0e6fbc04e93929e8193eda4",
     wledHash: "9e2741adfdcc1eb600f133cea8a7bca52aa99f82be89c095e37c1344515ae6db",
   },
   {

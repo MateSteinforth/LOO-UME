@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   assertMechanicalShellReady,
@@ -48,6 +50,37 @@ const placement = {
 };
 
 describe("pose-only Schema 2 project", () => {
+  it("loads the empty editor default without a mechanical shell", async () => {
+    const loaded = await loadPanelAssemblyProjectFromFile(
+      "sculptures/pose-only-empty/sculpture.json",
+    );
+    expect(loaded.sculpture.panels).toEqual([]);
+    expect(loaded.sculpture).not.toHaveProperty("mechanicalShell");
+    expect(loaded.sculpture).not.toHaveProperty("closures");
+    expect(loaded.sculpture).not.toHaveProperty("manualMechanics");
+    expect(loaded.sculpture.designSurface).toMatchObject({
+      format: "glb",
+      source: "design/placement-surface.glb",
+      scaleToMillimeters: 1,
+      status: "watertight",
+    });
+    const glb = await readFile(
+      "sculptures/pose-only-empty/design/placement-surface.glb",
+    );
+    expect(createHash("sha256").update(glb).digest("hex")).toBe(
+      loaded.sculpture.designSurface!.sha256,
+    );
+    expect(createPanelAssemblyMapping(loaded).entries).toEqual([]);
+    expect(deriveEditorCapabilities(loaded.sculpture, false)).toMatchObject({
+      canAutomaticallySeed: false,
+      canGenerateGenericMechanics: false,
+    });
+    expect(deriveEditorCapabilities(loaded.sculpture, true)).toMatchObject({
+      canAutomaticallySeed: true,
+      canGenerateGenericMechanics: false,
+    });
+  });
+
   it("loads, places, edits, maps, wires, saves, and reopens without mechanics", async () => {
     const loaded = await loadPanelAssemblyProjectFromFile(
       "sculptures/pose-only-two-panel/sculpture.json",
@@ -78,6 +111,8 @@ describe("pose-only Schema 2 project", () => {
       canExportMappingAndWiring: true,
       canGenerateGenericMechanics: true,
     });
+    expect(deriveEditorCapabilities(loaded.sculpture, false, false))
+      .toMatchObject({ canGenerateGenericMechanics: true });
     expect(() => assertMechanicalShellReady(loaded)).toThrow(
       /unavailable until generation input exists/,
     );

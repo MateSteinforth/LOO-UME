@@ -69,8 +69,9 @@ import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
 import { createWiringAssemblyManualModel } from "./WiringAssemblyManual.ts";
 import { createManualHandshakeToken } from "./ManualHandshake.ts";
+import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
 
-const DEFAULT_SCULPTURE_JSON = "./sculptures/cuboctahedron-empty-66/sculpture.json";
+const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
 const initialSculptureSource =
   new URLSearchParams(window.location.search).get("sculptureJson") ??
@@ -324,7 +325,7 @@ app.innerHTML = `
           </label>
           <label class="toggle-field">
             <input id="printable-layer" type="checkbox" checked />
-            <span>Exact OpenSCAD closures + screw tabs</span>
+            <span>Exact Manifold closures + screw tabs</span>
           </label>
           <label class="field slider-field">
             <span>Shell transparency <output id="shell-transparency-value">35%</output></span>
@@ -411,7 +412,7 @@ app.innerHTML = `
               Automatically place panels
             </button>
             <p class="mapping-note">
-              Evenly seeds new panels across the active GLB or JSON shell. Existing panels stay in place and can be edited manually.
+              The GLB is only a placement aid. Printable caps come from the holes between panel outlines, not from the mesh.
             </p>
           </div>
           <label class="field">
@@ -443,7 +444,7 @@ app.innerHTML = `
             Local Vite pipeline is ready.
           </div>
           <p class="mapping-note">
-            Accepted gap cycles are validated before the proven mounting system generates exact, hash-checked STL files. A failed run preserves the last successful set.
+            Generate puts flat caps on the holes between panel outlines. It does not use the GLB or a JSON shell as geometry. Neighbouring outline corners must meet. A failed run keeps the last successful STL set.
           </p>
         </section>
 
@@ -556,7 +557,7 @@ const downloadPrintPartsButton =
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 let pipelineAvailable = false;
 let pipelineAvailabilityMessage =
-  "Checking local OpenSCAD availability. Mapping and wiring remain available.";
+  "Checking local Manifold availability. Mapping and wiring remain available.";
 generatePrintPartsButton.disabled = true;
 pipelineStatus.textContent = pipelineAvailabilityMessage;
 let outputLayerToggles: HTMLInputElement[] = [];
@@ -639,6 +640,7 @@ async function start(): Promise<void> {
     let generatedAssetLoadRevision = 0;
     let activePortableBundle: PortableProjectBundle | undefined;
     let availableProjectAssets = new Map<string, Uint8Array>();
+    let generatedMemoryUrls = new Map<string, string>();
 
     const replacePortableBundle = (
       bundle?: PortableProjectBundle,
@@ -691,13 +693,7 @@ async function start(): Promise<void> {
         !capabilities.canGenerateGenericMechanics;
       generatePrintPartsButton.title = editorDefinition.manualMechanics
         ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
-        : !pipelineAvailable
-          ? pipelineAvailabilityMessage
-          : editorDefinition.boundaryTopology
-          ? "Validate the boundary, generate printable parts, and load the exact emitted STL files."
-          : !editorDefinition.mechanicalShell || !editorDefinition.closures
-            ? "Automatically detect unambiguous panel-corner gap cycles, validate the boundary, and generate printable parts."
-          : "";
+        : "Put flat caps on the holes between panel outlines in the browser. Neighbouring corners must meet. The GLB is placement-only.";
       automaticPanelPlacementControls.hidden =
         editorDefinition.manualMechanics !== undefined;
       automaticallyPlacePanelsButton.disabled =
@@ -1006,8 +1002,11 @@ async function start(): Promise<void> {
           selected.project.source,
           fetch,
           document.baseURI,
-          selected.project.source.startsWith("local:")
-            ? activePortableBundle?.assetUrls
+          selected.project.source.startsWith("local:") || generatedMemoryUrls.size > 0
+            ? new Map([
+              ...(activePortableBundle?.assetUrls ?? []),
+              ...generatedMemoryUrls,
+            ])
             : undefined,
         );
         if (revision !== generatedAssetLoadRevision || !assets) return;
@@ -1737,10 +1736,7 @@ async function start(): Promise<void> {
         const { attachmentSurface, surface } = activePlacementSurface;
         const result = automaticallySeedPanelsOnSurface(
           editorDefinition,
-          placementMeshFromSurface(
-            surface,
-            attachmentSurface === "design-surface",
-          ),
+          placementMeshFromSurface(surface, false),
           editorProject.panelProfile.dimensions,
           {
             targetPanelCount,
@@ -1918,10 +1914,47 @@ async function start(): Promise<void> {
         pipelineStatus.textContent = editorDefinition.boundaryTopology
           ? "Deriving exact panel outlines and validating flat gap caps…"
           : editorDefinition.mechanicalShell && editorDefinition.closures
-            ? "Regenerating mechanical topology, then generating OpenSCAD, STLs, and printable previews…"
+            ? "Regenerating mechanical topology, then generating Manifold STLs and printable previews…"
             : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…";
         try {
-          const response = await fetch("./api/editor-pipeline", {
+          try {
+            const bundle = await compilePanelBoundaryBundle(
+              editorProject,
+              editorDefinition.panelProfile.source,
+            );
+            generatedMemoryUrls.forEach((url) => URL.revokeObjectURL(url));
+            generatedMemoryUrls = new Map();
+            for (const file of bundle.files) {
+              rememberProjectAsset(file.source, file.bytes);
+              generatedMemoryUrls.set(
+                file.source,
+                URL.createObjectURL(
+                new Blob([Uint8Array.from(file.bytes)], { type: "model/stl" }),
+              ),
+              );
+            }
+            const inProcessProject = createPanelAssemblyProject(
+              bundle.definition,
+              "local:in-process-manifold",
+              editorProject.panelProfile,
+            );
+            await applyLoadedSculpture(
+              createLoadedSculpture(inProcessProject),
+            );
+            const partCount = bundle.files.filter((file) =>
+              file.source.startsWith("mechanics/parts/")
+            ).length;
+            pipelineStatus.textContent =
+              `Generated and SHA-256 verified ${partCount} exact printable STL files in the browser.`;
+            viewerError.hidden = true;
+          } catch (inProcessError) {
+            const inProcessMessage = inProcessError instanceof Error
+              ? inProcessError.message
+              : String(inProcessError);
+            if (!/manifold|wasm|WebAssembly/i.test(inProcessMessage)) {
+              throw inProcessError;
+            }
+            const response = await fetch("./api/editor-pipeline", {
             method: "POST",
             body: createEditorPipelineFormData(
               editorDefinition,
@@ -1969,6 +2002,7 @@ async function start(): Promise<void> {
           pipelineStatus.textContent =
             lastLogLine ?? "Pipeline complete; exact STL meshes are now loaded.";
           viewerError.hidden = true;
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");

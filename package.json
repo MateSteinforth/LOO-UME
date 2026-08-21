@@ -19,7 +19,7 @@
     "generate:rhombicosidodecahedron:auto": "npm run generate:sculpture -- --sculpture sculptures/rhombicosidodecahedron-auto/sculpture.json",
     "generate:truncated-octahedron": "npm run generate:sculpture -- --sculpture sculptures/truncated-octahedron/sculpture.json",
     "generate:panel-boundary": "tsx scripts/generate-panel-boundary-parts.ts",
-    "generate:assets": "npm run stage:sculptures && npm run generate:mapping && npm run generate:cad && npm run generate:cuboctahedron && npm run generate:rhombicosidodecahedron:auto && npm run generate:truncated-octahedron",
+    "generate:assets": "npm run stage:sculptures && npm run generate:mapping",
     "verify:cad": "tsx scripts/verify-cad.ts",
     "verify:openscad": "tsx scripts/verify-openscad-install.ts",
     "verify:openscad-shutdown:windows": "tsx scripts/verify-windows-openscad-shutdown.ts",
@@ -53,6 +53,7 @@
   },
   "dependencies": {
     "fflate": "^0.8.3",
+    "manifold-3d": "3.5.1",
     "three": "^0.179.1"
   },
   "devDependencies": {

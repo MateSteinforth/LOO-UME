@@ -1,13 +1,12 @@
 # Project task board
 
-Last reconciled: 2026-08-20
-Backlog reconstructed from: `main` at `ab9a96a`
-Current milestone: make the manual 41-panel sculpture reproduce the simulator's
-spatial LED output on one selected ESP32/WLED target. The path is: measured
-single-panel facts -> authored four-output route -> installed-panel address
-transforms -> guarded WLED deployment bundle -> one-panel proof -> 41-panel
-proof. Fabrication and installation-bootstrap work remain supported but are not
-the active priority.
+Last reconciled: 2026-08-21
+Integration baseline: Codex wiring/manual work at `5329044` plus Grok Manifold
+work at `9adb160`.
+Current milestone: keep the exact simulator-to-ESP32 wiring contract while the
+generic panel-outline fabrication path uses pinned `manifold-3d` 3.5.1. The
+physically tested manual `parts/*.scad` route remains separate. The Codex and
+Grok worktrees are retained as requested; `main` is the integrated baseline.
 
 This file is the persistent source of truth for work status. Read it before starting work and update it whenever a task changes state.
 
@@ -52,7 +51,9 @@ This file is the persistent source of truth for work status. Read it before star
 ### `FAB-020` Add one evidence-backed generic fabrication enhancement
 
 - Outcome: improve seams/connectors or multi-panel-per-face support for one concrete printable case.
-- Acceptance: the exact scope is chosen from a real model; geometry preserves PCB envelopes and connector access; changed parts render in OpenSCAD and receive physical review.
+- Acceptance: the exact scope is chosen from a real model; geometry preserves
+  PCB envelopes and connector access; changed generic parts compile with
+  Manifold and receive physical review.
 - Depends on: completion of the current arbitrary-project milestone and `HR-006`.
 - Note: multi-profile and mixed-hardware work must remain separate later slices.
 
@@ -147,25 +148,6 @@ This file is the persistent source of truth for work status. Read it before star
 
 Tasks are ordered. The primary agent automatically takes the first unblocked item after this board has been shown to the user.
 
-### `UI-010` Complete the arbitrary-project acceptance journey — P2
-
-- Outcome: GLB -> auto-place -> manual edit -> automatic topology -> boundary ->
-  exact STL parts -> display -> ZIP -> reopen works through the real UI.
-- Acceptance: the browser test starts without `boundaryTopology`, drives the
-  real local generator and OpenSCAD, injects no topology or asset bytes, and
-  verifies the saved/reopened project and exact referenced parts.
-- Depends on: completed `MECH-010`, `MECH-011`, `ASSET-010`, `TEST-010`, and
-  `TEST-011`. Reuse `CI-010` real-render setup where practical, but do not
-  duplicate its helper-level assertions.
-- Verify: focused Playwright Chromium journey, existing browser journeys,
-  focused pipeline tests, and real OpenSCAD output inspection.
-
-### `CI-010` Exercise the panel-outline boundary-to-parts route with real OpenSCAD — P1
-
-- Outcome: CI checks the new fabrication path with OpenSCAD instead of relying only on a deterministic fake renderer.
-- Acceptance: one canonical supported fixture generates a boundary and every exact part through OpenSCAD; invalid topology fails before OpenSCAD; useful failure artifacts are retained.
-- Depends on: none.
-
 ### `BUILD-010` Fail CI when a pinned WASM rebuild changes tracked bytes — P1
 
 - Outcome: the checked-in runtime is demonstrably reproducible.
@@ -203,22 +185,33 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ### `INSTALL-011C` Orchestrate the complete clean-checkout setup — P0
 
-- Outcome: one command uses the managed base toolchain to initialize WLED, install exact npm dependencies, acquire OpenSCAD, install pinned Emscripten, verify generator availability, and print the managed desktop start command.
+- Outcome: one command uses the managed base toolchain to initialize WLED,
+  install exact npm dependencies including Manifold, install pinned Emscripten,
+  verify generator availability, and print the managed desktop start command.
 - Acceptance: all subprocesses use explicit managed paths; repeated and interrupted runs are safe; failures name the dependency and recovery action; Windows candidate behavior may remain but is not a completion gate.
 - Blocked by: `INSTALL-011B`; `INSTALL-010` and `INSTALL-013` are complete.
-- Verify: empty-cache and warm-cache integration tests, interruption recovery, `npm run verify`, real OpenSCAD generation, and a local production-server smoke test.
+- Verify: empty-cache and warm-cache integration tests, interruption recovery,
+  `npm run verify`, real Manifold generation, and a local production-server
+  smoke test.
 - Docs: make this the primary Linux/macOS installation path and list only the chosen stage-zero supply as the prerequisite.
 
 ### `INSTALL-012` Prove automatic installation on clean supported systems — P0
 
-- Outcome: every current required platform proves that a fresh clone becomes a working local production editor without a manual Node, npm, Python, OpenSCAD, SDK, utility, PATH, or dependency-wiring step.
+- Outcome: every current required platform proves that a fresh clone becomes a
+  working local production editor without a manual Node, npm, Python, Manifold,
+  SDK, utility, PATH, or dependency-wiring step.
 - Acceptance:
   - CI starts from clean Linux and macOS environments for every OS/architecture pair declared required by the bootstrap.
-  - Each job runs only the documented bootstrap and start commands, sees generator status `available: true`, generates exact STL files with real OpenSCAD, and shuts down cleanly.
+  - Each job runs only the documented bootstrap and start commands, sees
+    generator status `available: true`, generates exact STL files with real
+    Manifold, and shuts down cleanly.
   - Cached tools are verified before reuse; tampered downloads, unsupported systems, offline failures, and partial installs fail safely and actionably.
 - Windows candidate CI may remain as non-gating compatibility evidence; it does not define a current supported target.
-- Blocked by: `INSTALL-011C`. `INSTALL-010` and `INSTALL-013` are complete; reuse the real-render journey from `CI-010`.
-- Verify: the clean-install matrix is required in CI and release checks; tests remove Node.js, npm, Python, OpenSCAD, Emscripten, and undeclared download/archive utilities from `PATH` and may use only Git plus the declared standard shell before bootstrap starts.
+- Blocked by: `INSTALL-011C`.
+- Verify: the clean-install matrix is required in CI and release checks; tests
+  remove Node.js, npm, Python, Emscripten, and undeclared download/archive
+  utilities from `PATH` and may use only Git plus the declared standard shell
+  before bootstrap starts.
 - Docs: publish the tested Linux and macOS matrix and state clearly which repository installation command applies to each required platform.
 
 ### `WIRE-012` Unify readiness and export policy
@@ -355,6 +348,36 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+No tasks. The operator authorized integration of the completed Codex and Grok
+branches on 2026-08-21.
+
+## Done
+
+### `CAD-030`–`CAD-036` Replace generic OpenSCAD generation with Manifold
+
+- Generic panel-outline solids, portable STL bundles, local-pipeline serving,
+  browser in-process generation, CI proof, and the OpenSCAD-free generic path
+  use pinned `manifold-3d` 3.5.1.
+- The manual `parts/*.scad` files remain a separate physically tested route.
+- Source branches/worktrees remain preserved: `grok/workspace` at `9adb160`
+  and `codex/wire-015-printable-manual` at `5329044`.
+
+### `UI-010` Generate Manifold parts through the browser
+
+- The real browser flow loads a mechanics-free project, generates exact
+  Manifold STL files, displays them, and exports the portable project ZIP.
+
+### `PLACE-011` Place panels on connected planar mesh faces
+
+- Automatic placement uses connected planar regions and their face normals;
+  smoothed vertex normals do not control panel poses.
+
+### Pose-only placement surfaces and flat-gap generation
+
+- Pose-only cuboctahedron and rhombicosidodecahedron GLBs are placement aids.
+  Printable caps derive from authoritative panel outlines, including radial
+  walks at non-coplanar multi-edge vertices and recessed panel IDs.
 
 ### `WIRE-015` Export a printable wiring assembly manual for any project — P0
 
@@ -649,8 +672,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Likely conflicts: the four required shared control/architecture documents and
   `docs/ROADMAP.md` and `FAILURES.md`.
 - Merge rule: operator approval is required before integration into `main`.
-
-## Done
 
 ### `HR-003` Confirm when a suggested route becomes authored
 

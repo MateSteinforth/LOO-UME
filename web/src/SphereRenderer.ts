@@ -92,10 +92,7 @@ export class SphereRenderer {
     toneMapped: false,
   });
   private readonly points = new THREE.Points(this.geometry, this.material);
-  private readonly occlusionCore = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 48, 32),
-    new THREE.MeshBasicMaterial({ color: 0x050a12 }),
-  );
+  private grid: THREE.GridHelper | undefined;
   private readonly color = new THREE.Color();
   private baseLedColors = new Float32Array();
   private readonly cameraDirection = new THREE.Vector3();
@@ -140,7 +137,6 @@ export class SphereRenderer {
     this.scene.add(
       pcbKeyLight,
       pcbFillLight,
-      this.occlusionCore,
       this.panelLayer,
       this.boundaryPreviewLayer,
       this.printableLayer,
@@ -148,6 +144,7 @@ export class SphereRenderer {
       this.connectorLayer,
       this.points,
     );
+    this.layoutGrid(new THREE.Sphere(new THREE.Vector3(0, 0, 0), 80));
     this.setMapping(mapping);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -191,7 +188,9 @@ export class SphereRenderer {
     );
     this.surfacePlacement.setPanels(mapping.panels, this.panelThickness);
     this.applySelectionFocus();
-    this.fitMapping();
+    if (mapping.entries.length > 0 || mapping.panels.length > 0) {
+      this.fitMapping();
+    }
   }
 
   updateColors(pixels: Uint32Array, mode: DisplayMode): void {
@@ -473,12 +472,7 @@ export class SphereRenderer {
     this.geometry.dispose();
     this.ledTexture.dispose();
     this.material.dispose();
-    this.occlusionCore.geometry.dispose();
-    if (Array.isArray(this.occlusionCore.material)) {
-      for (const material of this.occlusionCore.material) material.dispose();
-    } else {
-      this.occlusionCore.material.dispose();
-    }
+    this.disposeGrid();
     this.renderer.dispose();
     this.renderer.domElement.remove();
     this.labelRenderer.domElement.remove();
@@ -512,8 +506,6 @@ export class SphereRenderer {
         }
       });
     }
-    const coreMaterial = this.occlusionCore.material;
-    if (!Array.isArray(coreMaterial)) this.updateShellMaterial(coreMaterial);
   }
 
   private buildPanelDecorations(
@@ -904,7 +896,7 @@ export class SphereRenderer {
           );
           exact.matrixAutoUpdate = false;
           exact.renderOrder = 1;
-          exact.userData.source = "generated-openscad-stl";
+          exact.userData.source = "generated-stl";
           closureGroup.userData.loaded = true;
           closureGroup.add(exact);
           this.applySelectionFocus();
@@ -1088,10 +1080,6 @@ export class SphereRenderer {
         for (const material of materials) this.applyMaterialSelectionFocus(material);
       });
     }
-    const coreMaterials = Array.isArray(this.occlusionCore.material)
-      ? this.occlusionCore.material
-      : [this.occlusionCore.material];
-    for (const material of coreMaterials) this.applyMaterialSelectionFocus(material);
   }
 
   private applyLedSelectionFocus(): void {
@@ -1208,9 +1196,37 @@ export class SphereRenderer {
   }
 
   private fitMapping(): void {
+    if (this.mapping.entries.length === 0 && this.mapping.panels.length === 0) {
+      const surface = this.surfacePlacement.getSurfaceBounds();
+      this.fitSphere(surface ?? new THREE.Sphere(new THREE.Vector3(0, 0, 0), 80));
+      return;
+    }
     const bounds = this.geometry.boundingSphere;
     if (!bounds) return;
     this.fitSphere(bounds);
+  }
+
+  private disposeGrid(): void {
+    if (!this.grid) return;
+    this.scene.remove(this.grid);
+    this.grid.geometry.dispose();
+    const material = this.grid.material;
+    if (Array.isArray(material)) material.forEach((entry) => entry.dispose());
+    else material.dispose();
+    this.grid = undefined;
+  }
+
+  private layoutGrid(bounds: THREE.Sphere): void {
+    this.disposeGrid();
+    const size = Math.max(200, Math.ceil((bounds.radius * 4) / 50) * 50);
+    this.grid = new THREE.GridHelper(size, 20, 0x5aa7b4, 0x1e3a44);
+    this.grid.position.set(
+      bounds.center.x,
+      bounds.center.y - bounds.radius,
+      bounds.center.z,
+    );
+    this.grid.renderOrder = -2;
+    this.scene.add(this.grid);
   }
 
   private fitSphere(bounds: THREE.Sphere): void {
@@ -1232,20 +1248,7 @@ export class SphereRenderer {
     this.camera.near = Math.max(0.1, radius / 500);
     this.camera.far = distance + radius * 6;
     this.camera.updateProjectionMatrix();
-
-    const panelDepths = this.mapping.panels.map((panel) =>
-      Math.abs(
-        panel.position.x * panel.normal.x +
-          panel.position.y * panel.normal.y +
-          panel.position.z * panel.normal.z,
-      ),
-    );
-    const coreRadius =
-      panelDepths.length > 0
-        ? Math.min(...panelDepths) * 0.8
-        : radius * 0.82;
-    this.occlusionCore.position.set(0, 0, 0);
-    this.occlusionCore.scale.setScalar(coreRadius);
+    this.layoutGrid(new THREE.Sphere(centre.clone(), radius));
     this.controls.update();
   }
 

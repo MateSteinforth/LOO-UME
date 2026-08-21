@@ -8,7 +8,6 @@ import {
 import { preserveAuthoringBoundary } from "./MechanicalShellRegenerator.ts";
 import {
   createMechanicalSurfaceOrientation,
-  createSurfaceOrientation,
 } from "./DesignSurface.ts";
 
 type Vector3Tuple = [number, number, number];
@@ -597,6 +596,219 @@ function trianglePoint(
     scale(vertices[1], barycentric[1]),
   ), scale(vertices[2], barycentric[2]));
 }
+
+function quantizedVertexKey(point: Vector3Tuple): string {
+  return `${Math.round(point[0] * 1000)}:${Math.round(point[1] * 1000)}:${Math.round(point[2] * 1000)}`;
+}
+
+function triangleEdgeKey(
+  first: Vector3Tuple,
+  second: Vector3Tuple,
+): string {
+  const left = quantizedVertexKey(first);
+  const right = quantizedVertexKey(second);
+  return left < right ? `${left}|${right}` : `${right}|${left}`;
+}
+
+function closestPointOnTriangle(
+  point: Vector3Tuple,
+  vertices: [Vector3Tuple, Vector3Tuple, Vector3Tuple],
+): { point: Vector3Tuple; barycentric: Vector3Tuple } {
+  const [a, b, c] = vertices;
+  const ab = subtract(b, a);
+  const ac = subtract(c, a);
+  const ap = subtract(point, a);
+  const d1 = dot(ab, ap);
+  const d2 = dot(ac, ap);
+  if (d1 <= 0 && d2 <= 0) return { point: a, barycentric: [1, 0, 0] };
+  const bp = subtract(point, b);
+  const d3 = dot(ab, bp);
+  const d4 = dot(ac, bp);
+  if (d3 >= 0 && d4 <= d3) return { point: b, barycentric: [0, 1, 0] };
+  const vc = d1 * d4 - d3 * d2;
+  if (vc <= 0 && d1 >= 0 && d3 <= 0) {
+    const v = d1 / (d1 - d3);
+    return { point: add(a, scale(ab, v)), barycentric: [1 - v, v, 0] };
+  }
+  const cp = subtract(point, c);
+  const d5 = dot(ab, cp);
+  const d6 = dot(ac, cp);
+  if (d6 >= 0 && d5 <= d6) return { point: c, barycentric: [0, 0, 1] };
+  const vb = d5 * d2 - d1 * d6;
+  if (vb <= 0 && d2 >= 0 && d6 <= 0) {
+    const w = d2 / (d2 - d6);
+    return { point: add(a, scale(ac, w)), barycentric: [1 - w, 0, w] };
+  }
+  const va = d3 * d6 - d5 * d4;
+  if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) {
+    const w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+    return {
+      point: add(b, scale(subtract(c, b), w)),
+      barycentric: [0, 1 - w, w],
+    };
+  }
+  const denom = 1 / (va + vb + vc);
+  const v = vb * denom;
+  const w = vc * denom;
+  return {
+    point: add(add(a, scale(ab, v)), scale(ac, w)),
+    barycentric: [1 - v - w, v, w],
+  };
+}
+
+interface PreparedTriangle {
+  triangleIndex: number;
+  vertices: [Vector3Tuple, Vector3Tuple, Vector3Tuple];
+  area: number;
+  normal: Vector3Tuple;
+  centroid: Vector3Tuple;
+}
+
+interface PlanarPatch {
+  triangles: PreparedTriangle[];
+  normal: Vector3Tuple;
+  area: number;
+  centroid: Vector3Tuple;
+  home: PreparedTriangle;
+  barycentric: Vector3Tuple;
+}
+
+function findRoot(parent: number[], index: number): number {
+  while (parent[index] !== index) {
+    parent[index] = parent[parent[index]!]!;
+    index = parent[index]!;
+  }
+  return index;
+}
+
+function uniquePatchVertexCount(patch: PlanarPatch): number {
+  return new Set(
+    patch.triangles.flatMap((triangle) =>
+      triangle.vertices.map((vertex) => vertex.map((value) => value.toFixed(6)).join(","))
+    ),
+  ).size;
+}
+
+/** Prefer 4-sided faces when they can hold the requested rectangular panels. */
+function patchesForRectangularPanels(
+  patches: PlanarPatch[],
+  requestedCount: number,
+): PlanarPatch[] {
+  const quads = patches.filter((patch) => uniquePatchVertexCount(patch) === 4);
+  return quads.length >= requestedCount ? quads : patches;
+}
+
+function connectedPlanarPatches(
+  triangles: PreparedTriangle[],
+): PlanarPatch[] {
+  const parent = triangles.map((_, index) => index);
+  const edgeMap = new Map<string, number[]>();
+  for (const [index, triangle] of triangles.entries()) {
+    const edges = [
+      triangleEdgeKey(triangle.vertices[0], triangle.vertices[1]),
+      triangleEdgeKey(triangle.vertices[1], triangle.vertices[2]),
+      triangleEdgeKey(triangle.vertices[2], triangle.vertices[0]),
+    ];
+    for (const edge of edges) {
+      const users = edgeMap.get(edge) ?? [];
+      users.push(index);
+      edgeMap.set(edge, users);
+    }
+  }
+  for (const users of edgeMap.values()) {
+    for (let i = 0; i < users.length; i += 1) {
+      for (let j = i + 1; j < users.length; j += 1) {
+        const left = triangles[users[i]!]!;
+        const right = triangles[users[j]!]!;
+        if (dot(left.normal, right.normal) < 0.999999) continue;
+        if (Math.abs(dot(subtract(right.centroid, left.centroid), left.normal)) >
+          1e-3) continue;
+        const leftRoot = findRoot(parent, users[i]!);
+        const rightRoot = findRoot(parent, users[j]!);
+        if (leftRoot !== rightRoot) parent[rightRoot] = leftRoot;
+      }
+    }
+  }
+  const groups = new Map<number, PreparedTriangle[]>();
+  for (const [index, triangle] of triangles.entries()) {
+    const root = findRoot(parent, index);
+    const group = groups.get(root) ?? [];
+    group.push(triangle);
+    groups.set(root, group);
+  }
+  return [...groups.values()].map((group) => {
+    const area = group.reduce((sum, triangle) => sum + triangle.area, 0);
+    const normal = normalize(group.reduce(
+      (sum, triangle) => add(sum, scale(triangle.normal, triangle.area)),
+      [0, 0, 0] as Vector3Tuple,
+    ));
+    const rawCentroid = scale(group.reduce(
+      (sum, triangle) => add(sum, scale(triangle.centroid, triangle.area)),
+      [0, 0, 0] as Vector3Tuple,
+    ), 1 / area);
+    let home = group[0]!;
+    let snapped = closestPointOnTriangle(rawCentroid, home.vertices);
+    for (const triangle of group.slice(1)) {
+      const candidate = closestPointOnTriangle(rawCentroid, triangle.vertices);
+      if (
+        distanceSquared(candidate.point, rawCentroid) + 1e-12 <
+          distanceSquared(snapped.point, rawCentroid) ||
+        (
+          Math.abs(
+            distanceSquared(candidate.point, rawCentroid) -
+              distanceSquared(snapped.point, rawCentroid),
+          ) <= 1e-12 &&
+          triangle.triangleIndex < home.triangleIndex
+        )
+      ) {
+        home = triangle;
+        snapped = candidate;
+      }
+    }
+    return {
+      triangles: group,
+      normal,
+      area,
+      centroid: snapped.point,
+      home,
+      barycentric: snapped.barycentric,
+    };
+  }).sort((left, right) =>
+    right.area - left.area ||
+    left.home.triangleIndex - right.home.triangleIndex
+  );
+}
+
+function patchSample(
+  patch: PlanarPatch,
+  index: number,
+  count: number,
+): SurfaceCandidate {
+  if (count <= 1 || index === 0) {
+    return {
+      triangleIndex: patch.home.triangleIndex,
+      position: patch.centroid,
+      normal: patch.normal,
+      vertices: patch.home.vertices,
+      barycentric: patch.barycentric,
+    };
+  }
+  const root = Math.sqrt((index + 0.5) / count);
+  const across = ((index + 1) * 0.6180339887498949) % 1;
+  const barycentric: Vector3Tuple = [
+    1 - root,
+    root * (1 - across),
+    root * across,
+  ];
+  return {
+    triangleIndex: patch.home.triangleIndex,
+    position: trianglePoint(patch.home.vertices, barycentric),
+    normal: patch.normal,
+    vertices: patch.home.vertices,
+    barycentric,
+  };
+}
+
 function surfaceCandidates(
   mesh: AutomaticSurfaceMesh,
   requestedCount: number,
@@ -612,8 +824,6 @@ function surfaceCandidates(
   ) {
     throw new Error("The active placement surface needs finite indexed triangles.");
   }
-  const hasNormals = mesh.normals?.length === mesh.positions.length &&
-    mesh.normals.every((value) => Number.isFinite(value));
   const triangles = Array.from(
     { length: mesh.indices.length / 3 },
     (_, triangleIndex) => {
@@ -623,67 +833,48 @@ function surfaceCandidates(
       const vertices = indices.map((index) =>
         meshPoint(mesh.positions, index)
       ) as [Vector3Tuple, Vector3Tuple, Vector3Tuple];
-      const area = Math.hypot(...cross(
+      const areaVector = cross(
         subtract(vertices[1], vertices[0]),
         subtract(vertices[2], vertices[0]),
-      ));
+      );
+      const area = Math.hypot(...areaVector);
       if (area < 1e-10) {
         throw new Error(
           `The active placement surface has a degenerate triangle at index ${triangleIndex}.`,
         );
       }
-      return { triangleIndex, indices, vertices, area };
+      return {
+        triangleIndex,
+        vertices,
+        area,
+        normal: normalize(areaVector),
+        centroid: trianglePoint(vertices, [1 / 3, 1 / 3, 1 / 3]),
+      };
     },
   );
-  const totalArea = triangles.reduce((sum, triangle) => sum + triangle.area, 0);
-  const sampleCount = Math.min(
-    8192,
-    Math.max(triangles.length, requestedCount * 64),
+  const patches = patchesForRectangularPanels(
+    connectedPlanarPatches(triangles),
+    requestedCount,
   );
-  const allocations = triangles.map((triangle) => {
-    const exact = triangle.area / totalArea * sampleCount;
-    return { triangle, count: Math.floor(exact), remainder: exact % 1 };
+  const totalArea = patches.reduce((sum, patch) => sum + patch.area, 0);
+  const sampleCount = Math.min(8192, Math.max(requestedCount, patches.length));
+  const allocations = patches.map((patch) => {
+    const exact = patch.area / totalArea * sampleCount;
+    return { patch, count: Math.floor(exact), remainder: exact % 1 };
   });
   let remainder = sampleCount -
     allocations.reduce((sum, item) => sum + item.count, 0);
   for (
     const item of [...allocations].sort((a, b) =>
       b.remainder - a.remainder ||
-      a.triangle.triangleIndex - b.triangle.triangleIndex
+      a.patch.home.triangleIndex - b.patch.home.triangleIndex
     )
   ) {
     if (remainder-- <= 0) break;
     item.count += 1;
   }
-  return allocations.flatMap(({ triangle, count }) =>
-    Array.from({ length: count }, (_, index) => {
-      const root = Math.sqrt((index + 0.5) / count);
-      const across = ((index + 1) * 0.6180339887498949) % 1;
-      const barycentric: Vector3Tuple = [
-        1 - root,
-        root * (1 - across),
-        root * across,
-      ];
-      let normal = normalize(cross(
-        subtract(triangle.vertices[1], triangle.vertices[0]),
-        subtract(triangle.vertices[2], triangle.vertices[0]),
-      ));
-      if (hasNormals) {
-        normal = normalize(trianglePoint(
-          triangle.indices.map((vertexIndex) =>
-            meshPoint(mesh.normals!, vertexIndex)
-          ) as [Vector3Tuple, Vector3Tuple, Vector3Tuple],
-          barycentric,
-        ));
-      }
-      return {
-        triangleIndex: triangle.triangleIndex,
-        position: trianglePoint(triangle.vertices, barycentric),
-        normal,
-        vertices: triangle.vertices,
-        barycentric,
-      };
-    })
+  return allocations.flatMap(({ patch, count }) =>
+    Array.from({ length: count }, (_, index) => patchSample(patch, index, count))
   );
 }
 /** Deterministically spreads new pose-authoritative panels over an authoring mesh. */
@@ -755,9 +946,10 @@ export function automaticallySeedPanelsOnSurface(
   const placedPanelIds: string[] = [];
   for (const candidate of selected) {
     const panelId = nextPanelId(definition);
-    const orientation = options.surface === "mechanical-shell"
-      ? createMechanicalSurfaceOrientation(candidate.normal, candidate.vertices)
-      : createSurfaceOrientation(candidate.normal);
+    const orientation = createMechanicalSurfaceOrientation(
+      candidate.normal,
+      candidate.vertices,
+    );
     definition.panels.push({
       id: panelId,
       pose: {

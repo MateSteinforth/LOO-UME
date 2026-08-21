@@ -1,7 +1,19 @@
 {
   "schemaVersion": "1.0.0",
-  "defaultSource": "./sculptures/cuboctahedron-empty-66/sculpture.json",
+  "defaultSource": "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json",
   "sculptures": [
+    {
+      "id": "pose-only-rhombicosidodecahedron-authoring",
+      "name": "Empty 66 mm rhombicosidodecahedron",
+      "source": "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
+      "id": "pose-only-empty-authoring",
+      "name": "Empty pose-only project",
+      "source": "./sculptures/pose-only-empty/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
     {
       "id": "cuboctahedron-empty-66-authoring",
       "name": "Empty 66 mm Cuboctahedron",

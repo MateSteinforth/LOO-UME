@@ -22,13 +22,19 @@ test("copies, confirms, saves, and reopens an authored wiring route", async ({ p
   await page.goto("/");
   await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
   await expect(page.locator("#surface-status")).toContainText(
-    "sculpture JSON face graph",
+    "design/placement-surface.glb",
   );
 
   const project = JSON.parse(await readFile(
     "sculptures/rhombicosidodecahedron/sculpture.json",
     "utf8",
   )) as {
+    panels: Array<{
+      installedAddressTransform?: {
+        selectionMethod?: string;
+        optimizationFingerprint?: string;
+      };
+    }>;
     wiring: {
       status: string;
       routeRevision?: number;
@@ -38,6 +44,12 @@ test("copies, confirms, saves, and reopens an authored wiring route", async ({ p
   project.wiring.status = "provisional";
   delete project.wiring.routeRevision;
   for (const output of project.wiring.outputs) delete output.panelIds;
+  for (const panel of project.panels) {
+    const transform = panel.installedAddressTransform;
+    if (!transform) continue;
+    transform.selectionMethod = "manual";
+    delete transform.optimizationFingerprint;
+  }
   const projectBytes = Buffer.from(JSON.stringify(project));
   await chooseFile(page, "#load-sculpture-file", {
     name: "rhombicosidodecahedron.json",
@@ -45,13 +57,13 @@ test("copies, confirms, saves, and reopens an authored wiring route", async ({ p
     buffer: projectBytes,
   });
   await expect(page.locator("#route-editor-section")).toBeVisible();
+  await expect(page.locator(".route-panel")).toHaveCount(41);
   await expect(page.locator("#route-editor-note")).toContainText("draft suggestion");
   await expect(page.locator("#copy-draft-route")).toBeVisible();
   await expect(page.locator("#confirm-wiring-route")).toBeDisabled();
   await expect(page.locator(".route-output legend").first()).toContainText(
     "GPIO 16",
   );
-  await expect(page.locator(".route-panel")).toHaveCount(41);
   await expect(page.locator(".route-panel").first()).toContainText("Controller →");
 
   await page.locator("#copy-draft-route").click();

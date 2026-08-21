@@ -53,15 +53,12 @@ installer checkout is pinned independently in `wasm/emsdk-revision.txt`.
 ## Local production host
 
 The production interface is served from this computer rather than deployed to
-a hosted generation service. OpenSCAD is required for printable-part
-generation, but its binary is not stored in the repository. Automatic
-repository-local setup covers the current required Linux and macOS targets and
-retains a Windows x86-64 candidate. Use the Bash commands below on Linux or
-macOS:
+a hosted generation service. Generic printable parts compile with pinned
+`manifold-3d` 3.5.1 and do not require OpenSCAD. Use the Bash
+commands below on Linux or macOS:
 
 ```bash
 npm ci
-npm run setup:openscad
 npm run desktop
 ```
 
@@ -69,77 +66,37 @@ In PowerShell on Windows x86-64, run:
 
 ```powershell
 npm.cmd ci
-npm.cmd run setup:openscad
 npm.cmd run desktop
 ```
 
-The setup command selects one declared host target and installs it in `.tools`.
-Linux uses OpenSCAD 2021.01 from the official AppImage and a pinned Debian
-`libgpg-error0` companion. macOS uses the official universal 2026.06.12
-snapshot at
-`https://files.openscad.org/snapshots/OpenSCAD-2026.06.12.dmg`. The DMG is
-64,447,344 bytes and has SHA-256
-`555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
-The Windows candidate pins the official stable portable ZIP at
-`https://files.openscad.org/OpenSCAD-2021.01-x86-64.zip`: 21,884,613 bytes,
-SHA-256
-`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`.
-It uses `openscad.com`. The matching source archive has SHA-256
-`d938c297e7e5f65dbab1461cac472fc60dfeaa4999ea2c19b31a4184f2d70359`,
-tag `openscad-2021.01`, and commit
-`41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`. The license is
-GPL-2.0-or-later with the OpenSCAD CGAL exception.
-
-The committed `toolchains/openscad-distributions.json` manifest records source
-and license metadata, exact sizes, and checksums. The snapshot does not publish
-a verified exact source revision. The manifest does not claim one.
-
-The command does not need administrator access or change `PATH`. Windows setup
-does not use an installer, system application directory, profile, or registry.
-It extracts and validates the portable payload in repository-local staging.
-macOS does not copy into `/Applications` or use Rosetta. Every target records
-the selected target, version, executable, and artifacts in a receipt, publishes
-the verified install atomically, and reuses a valid install. A failed setup is
-safe to retry.
-
 The command runs a fresh `build:desktop` before `start:desktop`, then prints the
 loopback URL, normally `http://127.0.0.1:4173/`. The server binds only to
-`127.0.0.1`. Choose another port or executable at startup when needed:
+`127.0.0.1`. Choose another port at startup when needed:
 
 ```bash
-ORBITAL_LAB_PORT=4300 OPENSCAD=/absolute/path/to/openscad npm run desktop
+ORBITAL_LAB_PORT=4300 npm run desktop
 ```
 
-Startup requires OpenSCAD 2021.01 on Linux and Windows, and 2026.06.12 on
-macOS. It uses an explicit `OPENSCAD` override first, then the valid
-receipt-backed managed tool for the current target, then the system OpenSCAD
-command on `PATH`. The shared
-`/api/generator-status` response reports the selected tool, detected
-availability, and repair guidance; the browser uses that response instead of a
-build-mode flag. If the binary is absent or the version is wrong, the server
-still serves the complete editor and only printable generation is disabled.
-Run `npm run setup:openscad` or repair the selected tool, then restart the
-desktop command to refresh the startup status.
+The shared `/api/generator-status` response reports Manifold 3.5.1
+availability; the browser uses that response instead of a build-mode flag. If
+Manifold is unavailable, the server still serves the complete editor and only
+printable generation is disabled.
 
-Node.js, npm, and the other project dependencies are not installed by this
-command. Linux also needs `dpkg-deb`. Clean Windows Server 2022 and 2025 x64
-runners provide surrogate proof only; they do not prove Windows PC support.
-Windows client qualification is deferred. The candidate code and checks remain,
-but Windows does not block INSTALL-011 or INSTALL-012. Those tasks cover the
-all-dependency bootstrap and proof on the required Linux and macOS targets.
+OpenSCAD remains separate and is needed only when the manual `parts/*.scad`
+route changes.
 
 Both the Vite development adapter and production server use the same bounded
 local handler for `/api/generator-status` and `/api/editor-pipeline`. Generation
 requests must be same-origin and loopback-only. Sculpture JSON, imported assets,
-generated files, and OpenSCAD execution stay on this computer. Ctrl-C sends
-SIGINT; SIGTERM is also handled. Either signal stops accepting requests, closes
-active generator children, and shuts the server down cleanly.
+generated files, and Manifold compilation stay on this computer. Ctrl-C sends
+SIGINT; SIGTERM is also handled. Either signal stops accepting requests and
+shuts the server down cleanly.
 
 ## Sculpture JSON editor
 
 The simulator includes a small pose-first editor in the existing control panel.
 
-The default startup source is the empty 66 mm cuboctahedron authoring project.
+The default startup source is the empty 66 mm rhombicosidodecahedron authoring project.
 It has no initial panels or LEDs; the JSON face graph is immediately available
 as a watertight placement canvas. The WLED wrapper keeps a one-pixel backing
 buffer while reporting the correct logical count of zero until the first panel
@@ -177,8 +134,8 @@ is added.
   GLB bytes. The JSON field is limited to 5 MB and the complete request is
   limited to 64 MB. The server verifies the GLB before rendering, copies it to
   its unchanged safe relative path, and verifies the staged copy. The
-  panel-outline route generates the validated boundary, OpenSCAD sources, and
-  exact STL parts, atomically publishes the complete GLB/STL/JSON folder, and
+  panel-outline route generates the validated boundary and
+  exact Manifold STL parts, atomically publishes the complete GLB/STL/JSON folder, and
   reloads the exact STL meshes in Three.js. The existing explicit-shell route
   continues to generate its compiled assembly, mapping, provisional WLED
   ledmap, STL files, and PNG previews under an isolated `-editor-preview` ID.
@@ -198,15 +155,15 @@ as requiring regeneration. A pose-only project has no mechanical state to
 invalidate and keeps simulation, mapping, wiring, editing, and save enabled. The
 simulator omits stale shell, mount, and printable-closure previews. Run matches each pose to exactly one planar JSON boundary face, validates
 the complete cleared panel envelope, regenerates the panel opening and coplanar
-flat-printable filler part, and only then invokes OpenSCAD. The GLB remains a visual
+flat-printable filler part, and only then compiles Manifold solids. The GLB remains a visual
 positioning canvas and is never used as mechanical geometry. Unsupported or unsafe
 placements return a panel-specific error instead of emitting misleading parts.
 
 Use `npm run dev:web` for Vite development or `npm run desktop` for the built
-production interface and local OpenSCAD host. A generated folder includes the
+production interface and local Manifold host. A generated folder includes the
 verified GLB at its unchanged safe relative path, all exact STL files, and the
 JSON. It opens directly and can become a ZIP without external asset injection.
-Missing, tampered, or reserved asset paths fail before OpenSCAD runs or staging
+Missing, tampered, or reserved asset paths fail before Manifold runs or staging
 starts. An inset topology with only three populated neighbors still
 uses all four eligible panel holes, but explicitly records that one strip closure
 serves two adjacent holes. Existing sculptures retain the stricter one-cap-per-hole

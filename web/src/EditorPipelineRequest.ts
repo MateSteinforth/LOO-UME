@@ -13,11 +13,7 @@ export function createEditorPipelineFormData(
   if (!reference) return formData;
 
   const bytes = availableAssets.get(reference.source);
-  if (!bytes) {
-    throw new Error(
-      `Cannot generate 3D parts: referenced design surface ${reference.source} is not available as verified local bytes. Load the GLB or open the complete project folder or ZIP first.`,
-    );
-  }
+  if (!bytes) return formData;
   verifyProjectAssetBytes(reference, bytes, "Design surface");
   formData.set(
     "designSurface",

@@ -118,3 +118,43 @@ export function serializeAsciiStl(
   inspectStl(bytes);
   return bytes;
 }
+
+/** Serializes a Manifold triangle mesh (XYZ packed, 3 properties) to ASCII STL. */
+export function serializeManifoldMeshAsciiStl(
+  name: string,
+  vertProperties: ArrayLike<number>,
+  triVerts: ArrayLike<number>,
+  numProp = 3,
+): Uint8Array {
+  if (numProp < 3) throw new Error("Manifold mesh must store XYZ properties.");
+  const vertices: Vector3Tuple[] = [];
+  for (let index = 0; index + 2 < vertProperties.length; index += numProp) {
+    vertices.push([
+      Number(vertProperties[index]),
+      Number(vertProperties[index + 1]),
+      Number(vertProperties[index + 2]),
+    ]);
+  }
+  const triangles: Array<[number, number, number]> = [];
+  for (let index = 0; index + 2 < triVerts.length; index += 3) {
+    const triangle: [number, number, number] = [
+      Number(triVerts[index]),
+      Number(triVerts[index + 1]),
+      Number(triVerts[index + 2]),
+    ];
+    const points = triangle.map((vertexIndex) => vertices[vertexIndex]);
+    if (points.some((point) => point === undefined)) {
+      throw new Error("Manifold mesh triangle references an unknown vertex.");
+    }
+    const [a, b, c] = points as [Vector3Tuple, Vector3Tuple, Vector3Tuple];
+    const ab: Vector3Tuple = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const ac: Vector3Tuple = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    const length = Math.hypot(
+      ab[1] * ac[2] - ab[2] * ac[1],
+      ab[2] * ac[0] - ab[0] * ac[2],
+      ab[0] * ac[1] - ab[1] * ac[0],
+    );
+    if (length > Number.EPSILON) triangles.push(triangle);
+  }
+  return serializeAsciiStl(name, vertices, triangles);
+}

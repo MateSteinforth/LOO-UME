@@ -4,6 +4,10 @@ import {
   createMechanicalShellTriangleMesh,
 } from "../src/sculpture/DesignSurface.ts";
 import {
+  loadGlbDesignSurface,
+  placementMeshFromSurface,
+} from "../web/src/DesignSurfaceLoader.ts";
+import {
   createPanelAssemblyMapping,
   createPanelAssemblyProject,
   parsePanelAssemblyDefinition,
@@ -21,6 +25,10 @@ function cross(a: Vector3Tuple, b: Vector3Tuple): Vector3Tuple {
     a[2] * b[0] - a[0] * b[2],
     a[0] * b[1] - a[1] * b[0],
   ];
+}
+
+function dot(a: Vector3Tuple, b: Vector3Tuple): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
 function expectVectorClose(
@@ -139,6 +147,134 @@ describe("automatic panel placement", () => {
     expect(filled.definition.wiring.chainLengths).toEqual([5]);
     expect(filled.definition.wiring.status).toBe("requires-review");
     expect(filled.definition.wiring.outputs).toEqual(originalRoute);
+  });
+
+  it("places six panels on the 66 mm cuboctahedron squares", async () => {
+    const source = parsePanelAssemblyDefinition(
+      JSON.parse(
+        await readFile("sculptures/pose-only-empty/sculpture.json", "utf8"),
+      ),
+    );
+    const glb = await readFile(
+      "sculptures/pose-only-empty/design/placement-surface.glb",
+    );
+    const surface = await loadGlbDesignSurface(
+      glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength),
+      1,
+    );
+    const result = automaticallySeedPanelsOnSurface(
+      source,
+      placementMeshFromSurface(surface, false),
+      { width: 66, height: 65 },
+      {
+        targetPanelCount: 6,
+        surface: "design-surface",
+        normalOffset: 0.4,
+      },
+    );
+    expect(result.placedPanelIds).toHaveLength(6);
+    const axes = new Set(
+      result.definition.panels.map((panel) =>
+        panel.pose.orientation.normal.map((value) => Math.round(value)).join(","),
+      ),
+    );
+    expect(axes).toEqual(new Set([
+      "1,0,0",
+      "-1,0,0",
+      "0,1,0",
+      "0,-1,0",
+      "0,0,1",
+      "0,0,-1",
+    ]));
+  });
+
+  it("places 30 panels on the 66 mm rhombicosidodecahedron squares", async () => {
+    const source = parsePanelAssemblyDefinition(
+      JSON.parse(
+        await readFile(
+          "sculptures/pose-only-rhombicosidodecahedron/sculpture.json",
+          "utf8",
+        ),
+      ),
+    );
+    const glb = await readFile(
+      "sculptures/pose-only-rhombicosidodecahedron/design/placement-surface.glb",
+    );
+    const surface = await loadGlbDesignSurface(
+      glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength),
+      1,
+    );
+    const result = automaticallySeedPanelsOnSurface(
+      source,
+      placementMeshFromSurface(surface, false),
+      { width: 66, height: 65 },
+      {
+        targetPanelCount: 30,
+        surface: "design-surface",
+        normalOffset: 0.4,
+      },
+    );
+    expect(result.placedPanelIds).toHaveLength(30);
+    const normals = result.definition.panels.map((panel) =>
+      panel.pose.orientation.normal.map((value) => value.toFixed(6)).join(",")
+    );
+    expect(new Set(normals).size).toBe(30);
+  });
+
+  it("sits each panel on a planar mesh face instead of tilting off the surface", async () => {
+    const size = 50;
+    const positions = [
+      -size, -size, -size, size, -size, -size, size, size, -size, -size, size, -size,
+      -size, -size, size, size, -size, size, size, size, size, -size, size, size,
+    ];
+    const indices = [
+      0, 2, 1, 0, 3, 2,
+      4, 5, 6, 4, 6, 7,
+      0, 1, 5, 0, 5, 4,
+      3, 7, 6, 3, 6, 2,
+      0, 4, 7, 0, 7, 3,
+      1, 2, 6, 1, 6, 5,
+    ];
+    const loaded: unknown = JSON.parse(
+      await readFile("sculptures/pose-only-two-panel/sculpture.json", "utf8"),
+    );
+    const source = parsePanelAssemblyDefinition(loaded);
+    source.panels = [];
+    source.wiring.chainLengths = [0];
+    source.designSurface = {
+      kind: "triangle-mesh",
+      format: "glb",
+      source: "design/cube.glb",
+      sha256: "a".repeat(64),
+      scaleToMillimeters: 1,
+      status: "watertight",
+    };
+    const result = automaticallySeedPanelsOnSurface(
+      source,
+      { positions, indices },
+      { width: 66, height: 65 },
+      {
+        targetPanelCount: 6,
+        surface: "design-surface",
+        normalOffset: 0.4,
+      },
+    );
+    expect(result.placedPanelIds).toHaveLength(6);
+    const axes = result.definition.panels.map((panel) => {
+      const { position, orientation } = panel.pose;
+      const axis = orientation.normal.map((value) => Math.round(value)) as Vector3Tuple;
+      const offsetAxis = axis.findIndex((value) => value !== 0);
+      expect(Math.abs(axis[0]!) + Math.abs(axis[1]!) + Math.abs(axis[2]!)).toBe(1);
+      expect(position[offsetAxis]!).toBeCloseTo(axis[offsetAxis]! * (size + 0.4), 8);
+      expect(Math.abs(dot(position, orientation.normal) - (size + 0.4))).toBeLessThan(1e-8);
+      expectVectorClose(
+        cross(orientation.xAxis, orientation.yAxis),
+        orientation.normal,
+        10,
+      );
+      return axis.join(",");
+    });
+    expect(new Set(axes).size).toBe(6);
   });
 
   it("rejects automatic placement for manual mechanics", async () => {

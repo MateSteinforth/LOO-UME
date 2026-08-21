@@ -200,8 +200,12 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Cause:** The test treated transient presentation text and an invalid
   topology mutation as stable evidence for portable-project behavior.
 - **Correction:** Assert handled import errors in `#pipeline-status`, wait on
-  surface/mapping/control state for success, prove content hashes once, and use
-  automatic additive placement to make the generated mechanics stale validly.
+  the current default project's surface/mapping/control state for success,
+  prove content hashes once, and use automatic additive placement to make the
+  generated mechanics stale validly. Update that bootstrap assertion when the
+  authored default project changes. After a successful file import, wait for a
+  project-specific control or count before asserting controls that the prior
+  project also exposes; generator discovery can replace the pipeline message.
 - **Prevention:** Browser tests must select stable domain-specific signals and
   valid editor mutations. Do not repeat asynchronous proof after exact byte
   comparison and production validation already establish the same fact.
@@ -330,4 +334,84 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   `http://192.168.68.61:5174` with `isSecureContext: false`, unavailable
   `randomUUID`, and available `getRandomValues`; the export opened all six
   sheets and 41 rows.
+- **Status:** Resolved.
+
+### F-018 — npm writes follow the process working directory
+
+- **Date:** 2026-08-20
+- **Context:** CAD-030 added `manifold-3d` while multiple worktrees existed.
+- **Symptom:** `npm install` first changed the Codex worktree instead of the
+  intended Grok CAD worktree.
+- **Cause:** The command did not use the task worktree as its explicit working
+  directory.
+- **Correction:** Restore the unintended files and repeat the installation in
+  the exact task worktree.
+- **Prevention:** Set the working directory for every npm and Git write, then
+  inspect other active worktrees after any path mistake.
+- **Status:** Resolved.
+
+### F-019 — Relative deletion follows the process working directory
+
+- **Date:** 2026-08-20
+- **Context:** CAD-036 removed obsolete generic OpenSCAD tests from the Grok
+  line while the session started in another worktree.
+- **Symptom:** A relative deletion targeted Codex files and left the intended
+  Grok files unchanged.
+- **Cause:** The deletion used relative paths without an explicit task
+  worktree.
+- **Correction:** Restore the unintended deletion and repeat against validated
+  absolute targets in the correct worktree.
+- **Prevention:** Resolve and verify exact worktree paths before deletion. Check
+  every concurrently active worktree after a path error.
+- **Status:** Resolved.
+
+### F-020 — Near-fitting rectangular panels do not share exact mesh corners
+
+- **Date:** 2026-08-21
+- **Context:** Pose-only generation on 66 mm square faces with 66 × 65 mm PCBs.
+- **Symptom:** Gap detection capped panel outlines or produced non-planar quads
+  when nearby corners on different planes were welded with a first-wins rule.
+- **Cause:** Adjacent panel corners have about 1.1–1.3 mm of separation, and
+  cuboctahedron square faces meet at 4-regular vertices rather than shared
+  edges.
+- **Correction:** Cluster within the 1.5 mm weld tolerance, use a radial face
+  walk at non-coplanar junctions, discard panel-outline cycles, and place each
+  cluster on the incident panel-plane intersection.
+- **Prevention:** Do not require only 2-regular gap walks or use first-wins
+  welding across different planes. Keep cuboctahedron closure coverage.
+- **Evidence:** `tests/panel-outline-boundary.test.ts`.
+- **Status:** Resolved.
+
+### F-021 — Executables installed under a `/tmp` worktree can fail in the sandbox
+
+- **Date:** 2026-08-21
+- **Context:** Integration verification in a temporary Git worktree.
+- **Symptom:** `npm ci` installed `esbuild`, but its post-install version probe
+  failed with `spawnSync .../node_modules/esbuild/bin/esbuild EPERM`.
+- **Cause:** The restricted sandbox did not permit execution from the temporary
+  worktree, although the same pinned executable was valid outside that sandbox.
+- **Correction:** Repeat `npm ci` with approved execution outside the restricted
+  sandbox, then run the verification commands in the same environment.
+- **Prevention:** If a task worktree is under `/tmp`, treat an executable
+  `EPERM` during dependency installation as a sandbox boundary. Do not change
+  package versions or bypass install scripts before testing the approved path.
+- **Evidence:** The Manifold integration install and subsequent passing builds.
+- **Status:** Resolved.
+
+### F-022 — A draft-route browser fixture retained route-optimized provenance
+
+- **Date:** 2026-08-21
+- **Context:** Manifold and wiring integration browser verification.
+- **Symptom:** The wiring route test removed saved `panelIds`, but the imported
+  project stayed at zero panels and the prior project's controls remained.
+- **Cause:** The test left each installed address transform marked
+  `route-optimized` with a fingerprint bound to the removed route. The runtime
+  correctly rejected that inconsistent local project.
+- **Correction:** When the fixture intentionally converts authored wiring to a
+  draft, also downgrade installed transform selection to `manual` and remove
+  its optimization fingerprint.
+- **Prevention:** Test fixtures that mutate a route must apply the same
+  provenance invalidation as the editor. Wait for a project-specific state so
+  a rejected import cannot appear to succeed against prior controls.
+- **Evidence:** `tests/browser/wiring-route-editor.spec.ts`.
 - **Status:** Resolved.

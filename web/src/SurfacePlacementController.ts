@@ -155,11 +155,16 @@ export class SurfacePlacementController {
     attachmentSurface: "design-surface" | "mechanical-shell" = "design-surface",
   ): void {
     if (this.surface) {
+      this.surface.traverse((object) => {
+        if (!(object instanceof THREE.Mesh) &&
+          !(object instanceof THREE.LineSegments)) return;
+        if (object !== this.surface) object.geometry.dispose();
+        const material = object.material;
+        if (Array.isArray(material)) material.forEach((entry) => entry.dispose());
+        else material.dispose();
+      });
       this.layer.remove(this.surface);
       this.surface.geometry.dispose();
-      const material = this.surface.material;
-      if (Array.isArray(material)) material.forEach((entry) => entry.dispose());
-      else material.dispose();
     }
     this.surface = null;
     this.attachmentSurface = attachmentSurface;
@@ -168,12 +173,22 @@ export class SurfacePlacementController {
       color: 0x376478,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.34,
+      opacity: 0.22,
       depthWrite: false,
     });
     this.surface = new THREE.Mesh(geometry, material);
     this.surface.name = "design-surface";
     this.surface.renderOrder = -1;
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geometry, 15),
+      new THREE.LineBasicMaterial({
+        color: 0x9af4ff,
+        transparent: true,
+        opacity: 0.9,
+      }),
+    );
+    edges.renderOrder = 0;
+    this.surface.add(edges);
     this.layer.add(this.surface);
     this.applySelectionFocus();
   }

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { PanelAssemblyDefinition } from "../../src/sculpture/PanelAssembly.ts";
 import type { AutomaticSurfaceMesh } from "../../src/sculpture/SculptureEditor.ts";
+import { sha256Bytes } from "../../src/sculpture/GeneratedMechanics.ts";
 import {
   createMechanicalShellTriangleMesh,
   validateWatertightTriangleMesh,
@@ -31,12 +32,6 @@ export function placementMeshFromSurface(
   };
 }
 
-function hex(bytes: ArrayBuffer): string {
-  return Array.from(new Uint8Array(bytes), (value) =>
-    value.toString(16).padStart(2, "0")
-  ).join("");
-}
-
 export function loadMechanicalShellDesignSurface(
   definition: PanelAssemblyDefinition,
 ): LoadedDesignSurface {
@@ -61,14 +56,15 @@ export async function loadGlbDesignSurface(
   if (!Number.isFinite(scaleToMillimeters) || scaleToMillimeters <= 0) {
     throw new Error("GLB scale-to-millimetres must be a positive number.");
   }
+  const fileBytes = Uint8Array.from(new Uint8Array(buffer));
   if (
-    buffer.byteLength < 12 ||
-    new DataView(buffer).getUint32(0, true) !== 0x46546c67 ||
-    new DataView(buffer).getUint32(4, true) !== 2
+    fileBytes.byteLength < 12 ||
+    new DataView(fileBytes.buffer).getUint32(0, true) !== 0x46546c67 ||
+    new DataView(fileBytes.buffer).getUint32(4, true) !== 2
   ) {
     throw new Error("Design surfaces must be binary glTF 2.0 GLB files.");
   }
-  const gltf = await new GLTFLoader().parseAsync(buffer, "");
+  const gltf = await new GLTFLoader().parseAsync(fileBytes.buffer, "");
   gltf.scene.updateMatrixWorld(true);
   const positions: number[] = [];
   const indices: number[] = [];
@@ -121,6 +117,9 @@ export async function loadGlbDesignSurface(
   geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
-  const sha256 = hex(await crypto.subtle.digest("SHA-256", buffer));
-  return { geometry, sha256, validation };
+  return {
+    geometry,
+    sha256: sha256Bytes(fileBytes),
+    validation,
+  };
 }

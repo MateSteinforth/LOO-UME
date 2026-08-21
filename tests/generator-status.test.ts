@@ -4,14 +4,14 @@ import { loadGeneratorStatus } from "../web/src/GeneratorStatus.ts";
 const READY = {
   schemaVersion: "1.0.0",
   available: true,
-  generator: "openscad",
-  supportedVersion: "2021.01",
-  detectedVersion: "2021.01",
-  message: "OpenSCAD 2021.01 is ready for local generation.",
+  generator: "manifold",
+  supportedVersion: "3.5.1",
+  detectedVersion: "3.5.1",
+  message: "Manifold 3.5.1 is ready for local generation.",
 } as const;
 
 describe("local generator status discovery", () => {
-  it("accepts a ready OpenSCAD status", async () => {
+  it("accepts a ready Manifold status", async () => {
     const fetchStatus = vi.fn(async () => Response.json(READY));
 
     await expect(loadGeneratorStatus(fetchStatus)).resolves.toEqual(READY);
@@ -26,15 +26,15 @@ describe("local generator status discovery", () => {
       ...READY,
       available: false,
       detectedVersion: undefined,
-      message: "Install OpenSCAD 2021.01, and then restart WLED Orbital Lab.",
+      message: "Manifold WASM could not be loaded. Restart WLED Orbital Lab.",
     };
 
     await expect(loadGeneratorStatus(async () => Response.json(status)))
       .resolves.toEqual({
         schemaVersion: "1.0.0",
         available: false,
-        generator: "openscad",
-        supportedVersion: "2021.01",
+        generator: "manifold",
+        supportedVersion: "3.5.1",
         message: status.message,
       });
   });
@@ -42,12 +42,12 @@ describe("local generator status discovery", () => {
   it("uses a safe unavailable status for a malformed response", async () => {
     const result = await loadGeneratorStatus(async () => Response.json({
       ...READY,
-      supportedVersion: "2024.01",
+      supportedVersion: "9.9.9",
     }));
 
     expect(result.available).toBe(false);
     expect(result.message).toContain("status response is invalid");
-    expect(result.message).toContain("supportedVersion must be 2021.01");
+    expect(result.message).toContain("supportedVersion must be 3.5.1");
   });
 
   it("uses a safe unavailable status for a non-OK response", async () => {

@@ -185,7 +185,8 @@ uses `createPanelAssemblyMapping()`.
   worktree, file, or remote ref.
 - Use `main` only as the integration baseline. Give each substantial
   implementation slice its own branch and worktree. Record that ownership and
-  likely file conflicts in `TASKS.md` before code changes start.
+  likely file conflicts in `TASKS.md` before code changes start. Run npm, Git
+  writes, and tests with that worktree as the explicit working directory.
 - Never force-push, reset shared history, delete another agent's branch or
   worktree, or merge into `main` without explicit operator authorization.
 - Use GPT-5.6 Luna for bounded inspection, test execution, log review,
@@ -264,10 +265,11 @@ npm run verify                   # assets, WASM, Vitest, TypeScript, and Vite
 npm run verify:clean             # submodule, npm ci, pinned SDK, then npm run verify
 ```
 
-After geometry changes, render every changed printable part with OpenSCAD and
-inspect assembly mode where provided. Confirm holes, PCB poses, panel angles,
-envelopes, connector corners, and flat print surfaces. If OpenSCAD cannot run,
-say so explicitly; static inspection is not a successful render.
+After generic geometry changes, compile the changed printable parts with
+Manifold and inspect the STLs. Confirm holes, PCB poses, panel angles,
+envelopes, connector corners, and flat print surfaces. For changes to the
+physically tested manual `parts/*.scad` route, render every changed part with
+OpenSCAD and inspect the assembly mode where provided.
 
 For a phone review link, run `npm run preview:phone` from the repository root.
 It creates a temporary Cloudflare quick-tunnel URL and verifies the public HTML,

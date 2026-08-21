@@ -1,16 +1,23 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
+  compilePanelAssembly,
   createPanelAssemblyProject,
   parsePanelAssemblyDefinition,
   type PanelAssemblyDefinition,
 } from "../src/sculpture/PanelAssembly.ts";
+import { compilePanelBoundaryBundle } from "../src/cad/CompilePanelBoundaryBundle.ts";
 import {
   detectPanelBoundaryTopology,
   generateClosedPanelBoundary,
   PANEL_BOUNDARY_TOLERANCES,
   PanelBoundaryGenerationError,
 } from "../src/sculpture/PanelOutlineBoundary.ts";
+import { automaticallySeedPanelsOnSurface } from "../src/sculpture/SculptureEditor.ts";
+import {
+  loadGlbDesignSurface,
+  placementMeshFromSurface,
+} from "../web/src/DesignSurfaceLoader.ts";
 
 const VALID_FIXTURE = "sculptures/panel-outline-prism/sculpture.json";
 
@@ -197,6 +204,147 @@ describe("automatic panel-boundary topology detection", () => {
       );
     }
   });
+
+  it("closes eight triangular caps after six panels on the 66 mm cuboctahedron", async () => {
+    const source = parsePanelAssemblyDefinition(
+      JSON.parse(
+        await readFile("sculptures/pose-only-empty/sculpture.json", "utf8"),
+      ),
+    );
+    const glb = await readFile(
+      "sculptures/pose-only-empty/design/placement-surface.glb",
+    );
+    const surface = await loadGlbDesignSurface(
+      glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength),
+      1,
+    );
+    const placed = automaticallySeedPanelsOnSurface(
+      source,
+      placementMeshFromSurface(surface, false),
+      { width: 66, height: 65 },
+      {
+        targetPanelCount: 6,
+        surface: "design-surface",
+        normalOffset: 0.4,
+      },
+    );
+    const project = createPanelAssemblyProject(
+      placed.definition,
+      "pose-only-cuboctahedron.json",
+    );
+    delete placed.definition.boundaryTopology;
+
+    const topology = detectPanelBoundaryTopology(
+      placed.definition,
+      project.panelProfile,
+    );
+    expect(topology.gaps).toHaveLength(8);
+    expect(topology.gaps.every((gap) => gap.vertices.length === 3)).toBe(true);
+
+    const boundary = generateClosedPanelBoundary(
+      placed.definition,
+      project.panelProfile,
+      topology,
+    );
+    expect(boundary.metadata.counts).toMatchObject({
+      vertices: 12,
+      edges: 24,
+      panelOutlines: 6,
+      caps: 8,
+      connectedComponents: 1,
+    });
+    expect(
+      boundary.faces.filter((face) => face.role === "cap").every(
+        (face) => face.vertexIndices.length === 3,
+      ),
+    ).toBe(true);
+
+    const bundle = await compilePanelBoundaryBundle(project);
+    expect(bundle.files.map((file) => file.source)).toEqual([
+      "mechanics/boundary.stl",
+      "mechanics/parts/part-001.stl",
+      "mechanics/parts/part-002.stl",
+      "mechanics/parts/part-003.stl",
+      "mechanics/parts/part-004.stl",
+      "mechanics/parts/part-005.stl",
+      "mechanics/parts/part-006.stl",
+      "mechanics/parts/part-007.stl",
+      "mechanics/parts/part-008.stl",
+    ]);
+    const assembly = compilePanelAssembly(bundle.printableProject);
+    for (const panel of assembly.panels) {
+      const holesByEdge = new Map<number, string[]>();
+      for (const face of assembly.faces) {
+        for (const connector of face.connectors) {
+          if (connector.panelId !== panel.id) continue;
+          holesByEdge.set(connector.panelEdgeIndex, [
+            ...(holesByEdge.get(connector.panelEdgeIndex) ?? []),
+            connector.panelHoleId,
+          ]);
+        }
+      }
+      expect(Object.fromEntries([...holesByEdge.entries()].sort(
+        (left, right) => left[0] - right[0],
+      ))).toEqual({
+        0: ["bottom-right"],
+        1: ["middle-right"],
+        2: ["top-left"],
+        3: ["middle-left"],
+      });
+    }
+    for (const face of assembly.faces.filter((candidate) => candidate.role === "closure")) {
+      expect(new Set(face.connectors.map((connector) => connector.panelId)).size)
+        .toBe(3);
+      expect(
+        face.connectors.every((connector) =>
+          ["top-left", "middle-left", "middle-right", "bottom-right"]
+            .includes(connector.panelHoleId)
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("closes 20 triangles and 12 pentagons after 30 rhombicosidodecahedron square panels", async () => {
+    const source = parsePanelAssemblyDefinition(
+      JSON.parse(
+        await readFile(
+          "sculptures/pose-only-rhombicosidodecahedron/sculpture.json",
+          "utf8",
+        ),
+      ),
+    );
+    const glb = await readFile(
+      "sculptures/pose-only-rhombicosidodecahedron/design/placement-surface.glb",
+    );
+    const surface = await loadGlbDesignSurface(
+      glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength),
+      1,
+    );
+    const placed = automaticallySeedPanelsOnSurface(
+      source,
+      placementMeshFromSurface(surface, false),
+      { width: 66, height: 65 },
+      {
+        targetPanelCount: 30,
+        surface: "design-surface",
+        normalOffset: 0.4,
+      },
+    );
+    const project = createPanelAssemblyProject(
+      placed.definition,
+      "pose-only-rhombicosidodecahedron.json",
+    );
+    const topology = detectPanelBoundaryTopology(
+      placed.definition,
+      project.panelProfile,
+    );
+    const sizes = topology.gaps.map((gap) => gap.vertices.length).sort(
+      (left, right) => left - right,
+    );
+    expect(sizes.filter((size) => size === 3)).toHaveLength(20);
+    expect(sizes.filter((size) => size === 5)).toHaveLength(12);
+    expect(topology.gaps).toHaveLength(32);
+  });
 });
 describe("panel-outline closed-boundary generation", () => {
   it("builds the complete deterministic prism fixture from poses and profile dimensions", async () => {
@@ -350,7 +498,7 @@ describe("panel-outline closed-boundary generation", () => {
     }
   });
 
-  it("rejects a cap edge below the named non-degeneracy tolerance", async () => {
+  it("rejects a cap whose near-degenerate edge collapses inside vertexWeldMm", async () => {
     const definition = await loadDefinition();
     const project = createPanelAssemblyProject(definition, VALID_FIXTURE);
     const left = definition.panels.find(({ id }) => id === "P-LEFT")!;
@@ -364,10 +512,10 @@ describe("panel-outline closed-boundary generation", () => {
         project.panelProfile,
         { kind: "panel-outline-gap-cycles", gaps: [top] },
       );
-      throw new Error("Expected degenerate cap generation to fail.");
+      throw new Error("Expected collapsed cap generation to fail.");
     } catch (error) {
-      expect((error as PanelBoundaryGenerationError).code).toBe("degenerate");
-      expect((error as Error).message).toMatch(/minimumEdgeLengthMm/);
+      expect((error as PanelBoundaryGenerationError).code).toBe("invalid-gap");
+      expect((error as Error).message).toMatch(/repeats a welded panel corner/i);
     }
   });
 

@@ -1,15 +1,10 @@
 import { createServer, request as httpRequest, type Server } from "node:http";
-import { readFile, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { readFile, mkdtemp, rm } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { createEditorPipelineHandler } from "../scripts/editor-pipeline-handler.ts";
-import type {
-  OpenScadGeneratorStatus,
-  OpenScadRuntime,
-} from "../src/cad/OpenScadRuntime.ts";
-import { serializeAsciiStl } from "../src/cad/Stl.ts";
 import { sha256Bytes } from "../src/sculpture/GeneratedMechanics.ts";
 
 const temporaryDirectories: string[] = [];
@@ -23,37 +18,6 @@ afterEach(async () => {
     rm(directory, { recursive: true, force: true })
   ));
 });
-
-function status(available: boolean): OpenScadGeneratorStatus {
-  return {
-    schemaVersion: "1.0.0",
-    available,
-    generator: "openscad",
-    supportedVersion: "2021.01",
-    ...(available ? { detectedVersion: "2021.01" } : {}),
-    message: available
-      ? "OpenSCAD 2021.01 is ready for local generation."
-      : "OpenSCAD was not found. Install OpenSCAD 2021.01.",
-  };
-}
-
-function fakeRuntime(available: boolean, onRender?: () => void): OpenScadRuntime {
-  return {
-    status: status(available),
-    async render(_inputScad, outputStl) {
-      onRender?.();
-      await writeFile(
-        outputStl,
-        serializeAsciiStl(
-          "fake-part",
-          [[0, 0, 0], [10, 0, 0], [0, 10, 2]],
-          [[0, 1, 2]],
-        ),
-      );
-    },
-    async close() {},
-  };
-}
 
 async function listen(handler: Awaited<ReturnType<typeof createEditorPipelineHandler>>) {
   const server = createServer((request, response) => {
@@ -111,33 +75,32 @@ async function expectNoPublishedProject(
 
 describe("shared editor pipeline handler", () => {
   it("serves the exact generator status contract", async () => {
-    const handler = await createEditorPipelineHandler({
-      openScadRuntime: fakeRuntime(false),
-    });
+    const handler = await createEditorPipelineHandler({});
     const origin = await listen(handler);
     const response = await fetch(`${origin}/api/generator-status`);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual(status(false));
+    expect(await response.json()).toMatchObject({
+      schemaVersion: "1.0.0",
+      available: true,
+      generator: "manifold",
+      supportedVersion: "3.5.1",
+      detectedVersion: "3.5.1",
+    });
   });
 
-  it("returns 503 before reading a generation request when OpenSCAD is absent", async () => {
-    const handler = await createEditorPipelineHandler({
-      openScadRuntime: fakeRuntime(false),
-    });
+  it("rejects an empty generation body after Manifold is available", async () => {
+    const handler = await createEditorPipelineHandler({});
     const origin = await listen(handler);
     const response = await fetch(`${origin}/api/editor-pipeline`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: origin },
       body: "{}",
     });
-    expect(response.status).toBe(503);
-    expect((await response.json() as { error: string }).error).toContain("not found");
+    expect(response.status).toBe(400);
   });
 
   it("rejects cross-origin generation requests", async () => {
-    const handler = await createEditorPipelineHandler({
-      openScadRuntime: fakeRuntime(true),
-    });
+    const handler = await createEditorPipelineHandler({});
     const origin = await listen(handler);
     const response = await fetch(`${origin}/api/editor-pipeline`, {
       method: "POST",
@@ -159,11 +122,9 @@ describe("shared editor pipeline handler", () => {
   it("rejects oversized raw JSON, sculpture fields, and multipart requests before generation", async () => {
     const generatedPublicDirectory = await mkdtemp(join(tmpdir(), "pipeline-limits-"));
     temporaryDirectories.push(generatedPublicDirectory);
-    let renderCalls = 0;
     const handler = await createEditorPipelineHandler({
       rootDirectory: process.cwd(),
       generatedPublicDirectory,
-      openScadRuntime: fakeRuntime(true, () => { renderCalls += 1; }),
     });
     const origin = await listen(handler);
 
@@ -204,7 +165,6 @@ describe("shared editor pipeline handler", () => {
     expect((JSON.parse(totalResponse.body) as { error: string }).error)
       .toBe("Generation request exceeds 64 MB.");
 
-    expect(renderCalls).toBe(0);
     await expectNoPublishedProject(
       generatedPublicDirectory,
       "oversized-raw-json-editor-preview",
@@ -225,7 +185,6 @@ describe("shared editor pipeline handler", () => {
     const handler = await createEditorPipelineHandler({
       rootDirectory: process.cwd(),
       generatedPublicDirectory,
-      openScadRuntime: fakeRuntime(true),
     });
     const origin = await listen(handler);
     const fixture = await readFile(
@@ -265,7 +224,6 @@ describe("shared editor pipeline handler", () => {
     const handler = await createEditorPipelineHandler({
       rootDirectory: process.cwd(),
       generatedPublicDirectory,
-      openScadRuntime: fakeRuntime(true),
     });
     const origin = await listen(handler);
     const definition = JSON.parse(await readFile(
@@ -315,15 +273,6 @@ describe("shared editor pipeline handler", () => {
     );
     await expect(readFile(publishedGlb)).resolves.toEqual(Buffer.from(glbBytes));
 
-    const missing = await fetch(`${origin}/api/editor-pipeline`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Origin: origin },
-      body: JSON.stringify(definition),
-    });
-    expect(missing.status).toBe(400);
-    expect((await missing.json() as { error: string }).error)
-      .toMatch(/verified bytes.*design surface.*source\.glb/i);
-
     const tampered = Uint8Array.from(glbBytes);
     tampered[0] ^= 0xff;
     const mismatch = await fetch(`${origin}/api/editor-pipeline`, {
@@ -335,5 +284,48 @@ describe("shared editor pipeline handler", () => {
     expect((await mismatch.json() as { error: string }).error)
       .toMatch(/failed SHA-256 verification/);
     await expect(readFile(publishedGlb)).resolves.toEqual(Buffer.from(glbBytes));
+
+    const withoutGlb = await fetch(`${origin}/api/editor-pipeline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: origin },
+      body: JSON.stringify(definition),
+    });
+    expect(withoutGlb.status).toBe(200);
+    expect(await withoutGlb.json()).toMatchObject({ ok: true });
+  });
+
+  it("rejects leftover OpenSCAD sculpture generation", async () => {
+    const handler = await createEditorPipelineHandler({});
+    const origin = await listen(handler);
+    const response = await fetch(`${origin}/api/editor-pipeline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: origin },
+      body: JSON.stringify({
+        id: "manual-openscad-route",
+        panelProfile: { id: "ws2812b-8x8-66x65" },
+        manualMechanics: { source: "parts/triangle.scad" },
+      }),
+    });
+    expect(response.status).toBe(400);
+    expect((await response.json() as { error: string }).error).toContain(
+      "Manually authored mechanics",
+    );
+  });
+
+  it("asks for panels before generating caps", async () => {
+    const handler = await createEditorPipelineHandler({});
+    const origin = await listen(handler);
+    const response = await fetch(`${origin}/api/editor-pipeline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: origin },
+      body: JSON.stringify({
+        id: "empty-pose-only",
+        panelProfile: { id: "ws2812b-8x8-66x65" },
+      }),
+    });
+    expect(response.status).toBe(400);
+    expect((await response.json() as { error: string }).error).toContain(
+      "holes between their outlines",
+    );
   });
 });

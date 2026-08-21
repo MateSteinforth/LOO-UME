@@ -16,7 +16,7 @@ export interface EditorCapabilities {
 export function deriveEditorCapabilities(
   definition: PanelAssemblyDefinition,
   hasActiveSurface: boolean,
-  pipelineAvailable = true,
+  _pipelineAvailable = true,
 ): EditorCapabilities {
   const hasPanels = definition.panels.length > 0;
   const usesManualMechanics = definition.manualMechanics !== undefined;
@@ -33,7 +33,7 @@ export function deriveEditorCapabilities(
     canAutomaticallySeed: hasActiveSurface && !usesManualMechanics,
     canExportMappingAndWiring: true,
     canGenerateGenericMechanics:
-      !usesManualMechanics && pipelineAvailable &&
+      !usesManualMechanics &&
       (hasPanels || hasPanelBoundaryInput || hasGenericGenerationInput),
     manualMechanicsRequiresReview:
       definition.manualMechanics?.compatibilityStatus === "requires-review",

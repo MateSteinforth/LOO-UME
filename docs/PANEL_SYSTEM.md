@@ -124,12 +124,15 @@ connectivity only: it cannot store coordinates, dimensions, or transforms, so
 it cannot become a second pose authority.
 
 The generator derives exact 66 × 65 mm rectangles and 0.8 mm PCB envelopes
-from the resolved profile and authoritative poses. It welds coincident corners
-within named `vertexWeldMm`. Detection removes oppositely wound shared panel
-edges and traces the remaining reversed exposed edges only when every welded
-vertex has one incoming and one outgoing cap edge. It canonicalizes every cycle,
-derives a stable content-based gap ID, sorts the result, and persists it in the
-generated Schema 2 JSON. The result is independent of panel array order.
+from the resolved profile and authoritative poses. It clusters neighbouring
+corners within named `vertexWeldMm` (1.5 mm) and snaps each cluster to the
+intersection of the incident panel planes. Detection removes oppositely wound
+shared panel edges. Isolated loops still require one incoming and one outgoing
+cap edge. When panels meet only at a vertex, a radial face walk finds the
+holes, including eight cuboctahedron triangles after six square panels, and
+discards cycles that retrace a panel outline. It canonicalizes every remaining
+cycle, derives a stable content-based gap ID, sorts the result, and persists it
+in the generated Schema 2 JSON. The result is independent of panel array order.
 
 The existing boundary validator then checks each cap against named planarity,
 edge, area, and intersection tolerances and proves consistent winding,
@@ -161,38 +164,15 @@ The locally hosted browser pipeline validates the deterministic boundary before
 CAD, derives stable gap-sorted part groups, and generates printable closure STLs
 with the established planar compiler. The production desktop server and Vite
 development adapter use one bounded status/generation handler. Browser
-availability comes from the local status endpoint; absent or wrong-version
-OpenSCAD disables generation without disabling panel editing, simulation,
+availability comes from the local status endpoint; unavailable Manifold
+disables generation without disabling panel editing, simulation,
 mapping, wiring, or persistence. A multipart generation request contains the
 JSON and only the referenced, verified GLB. Its JSON field is limited to 5 MB,
 and the complete request is limited to 64 MB.
 
-OpenSCAD is required but is not stored in the repository. On the declared
-Debian 13 x86-64, Ubuntu 24.04 x86-64, and macOS 15 native arm64 and x86-64
-targets, `npm run setup:openscad` installs a verified target-specific tool in
-`.tools`. Linux uses OpenSCAD 2021.01. macOS uses the official universal
-OpenSCAD 2026.06.12 snapshot. Its pinned DMG is 64,447,344 bytes with SHA-256
-`555be2ed313e67657b3d8ba3e1de0acd6141b982fd458776c52d3eda748f57c4`.
-The manifest records source and license metadata, but no exact macOS source
-revision because upstream does not publish one.
-
-Setup needs no administrator access or `PATH` change. macOS needs no manual
-OpenSCAD install or Rosetta. The read-only DMG, app-only copy, native Mach-O
-check, mount cleanup, target receipt, and atomic publication make setup safe to
-retry. Runtime selection uses explicit `OPENSCAD` first, the valid
-receipt-backed managed tool for the current target second, and the system
-command on `PATH` last. The system command is `openscad` on Linux and macOS and
-`openscad.com` on Windows. Restart the local server after setup or repair.
-The Windows x86-64 candidate uses the official portable OpenSCAD 2021.01 ZIP,
-`openscad.com`, repository-local extraction, receipt validation, and atomic
-publication. The ZIP is 21,884,613 bytes with SHA-256
-`fb0caabf5bbc89f8f2f80c10b79ae64d697aaff6efd58b2756f5d6270edb7ba7`.
-Its source is tag `openscad-2021.01`, commit
-`41f58fe57c03457a3a8b4dc541ef5654ec3e8c78`, under GPL-2.0-or-later with
-the OpenSCAD CGAL exception. Windows Server CI is surrogate proof only. Windows
-client qualification is deferred. The candidate code and checks remain, but
-Windows does not block INSTALL-011 or INSTALL-012. Those tasks cover the
-complete bootstrap and proof on the required Linux and macOS targets.
+Generic panel-outline parts compile with pinned `manifold-3d` 3.5.1 and do not
+require OpenSCAD. OpenSCAD remains separate for changes to the manual
+`parts/*.scad` route.
 
 Before rendering or staging, the server verifies the referenced GLB SHA-256 and
 rejects missing, tampered, or reserved paths. It copies the GLB to its unchanged
