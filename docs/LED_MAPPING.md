@@ -107,28 +107,32 @@ When a panel-set edit makes a stored route stale, the editor shows the saved
 route evidence separately and starts with the temporary current-panel draft.
 The operator can use it only after explicit copy and confirmation.
 
-## Printable assembly manual
+## Printable assembly-manual export
 
-The editor enables **Open printable wiring manual** only for a current
+The editor enables **Export wiring assembly manual** for any current
 mapping-ready Schema 2 project. It sends the current in-memory mapping model to
 the same-origin print page, so the manual agrees with visible saved or imported
 editor state. A directly opened standalone page loads and revalidates its
 Schema 2 source. Both paths refuse draft, temporary, stale, or otherwise
-non-mapping-ready wiring.
+non-mapping-ready wiring. The export derives panel count, output count, output
+labels and colors, GPIOs, routes, transforms, and address ranges from that
+contract. It does not contain a hard-coded flagship route.
 
-The six A4 landscape sheets contain a control cover, front/right/top placement
-projections from the authoritative panel poses, and one detailed sheet for each
-GPIO output. Each output sheet gives the exact controller-to-DIN-to-DOUT order,
+The A4 landscape export contains a control cover, front/right/top placement
+projections from the authoritative panel poses, and one or more detailed sheets
+for each GPIO output. Long chains continue on additional sheets without
+splitting a panel row. Each output section gives the exact
+controller-to-DIN-to-DOUT order,
 back-view installed turn, visible connector corners, predecessor and successor,
 physical LED range, and a check box for every panel. Use at least two placement
 views because an orthographic view can contain normal overlaps.
 
 In the manual, green marks DIN and orange marks DOUT. Connector corners are
-profile facts; exact pad centres in the small PCB diagrams are schematic. Print
-with A4 landscape, background graphics enabled, and browser headers and footers
-disabled. The page labels the saved snake, RGB, GPIO, route, mapping fingerprint,
-and orientation fingerprint. It is a mapping assembly aid. It is not an
-electrical approval or a power-distribution plan.
+profile facts; exact pad centres in the small PCB diagrams are schematic. Use
+**Print / Save PDF**, then print with A4 landscape, background graphics enabled,
+and browser headers and footers disabled. The page labels the saved snake, RGB,
+GPIO, route, mapping fingerprint, and orientation fingerprint. It is a mapping
+assembly aid. It is not an electrical approval or a power-distribution plan.
 
 The manual 41-panel snapshot currently resolves to:
 

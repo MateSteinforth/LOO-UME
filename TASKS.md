@@ -356,28 +356,28 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
-### `WIRE-015` Generate a printable 41-panel wiring assembly manual — P0
+### `WIRE-015` Export a printable wiring assembly manual for any project — P0
 
-- Outcome: one six-sheet A4 landscape manual shows every saved panel position
-  and the exact ESP32 GPIO-to-DIN-to-DOUT data chain.
-- Acceptance: current or directly loaded Schema 2 state is revalidated against
-  mapping readiness; draft, stale, temporary, non-authored, and mirrored routes
-  are refused. Three pose-derived placement views and four output sheets list
-  all 41 panels, physical installation turns, connector corners, chain links,
-  and physical LED ranges. The editor sends its current in-memory model to the
-  same-origin print page.
-- Evidence: the flagship page reports 2,624 LEDs, chain lengths 11/10/10/10,
-  GPIOs 16–19, mapping fingerprint `bc5054d1`, and orientation fingerprint
-  `2771611b3264c1da`. A real Chromium editor-to-popup journey found six sheets
-  and 41 rows. Chromium print produced exactly six A4 landscape pages with no
-  split table row. Full Vitest passes 261/261; TypeScript, Vite multi-page
-  build, focused mapping/orientation tests, and `git diff --check` pass. The
-  independent final review has no remaining findings.
-- Depends on: `HW-017`/`MAP-022` at `35fed8c`; stacked visual branch `475c92e`.
+- Outcome: **Export wiring assembly manual** generates an A4 print/PDF manual
+  from the current mapping contract, with no flagship route or palette embedded
+  in the renderer.
+- Acceptance: panel count, output count, validated output colors, labels,
+  GPIOs, routes, address ranges, placement views, and page count are derived.
+  Long chains paginate in groups of at most 11 without changing global chain
+  positions, cross-sheet links, or physical addresses. Empty outputs render an
+  explicit sheet. Draft, stale, temporary, non-authored, and ambiguous mirrored
+  instructions remain refused.
+- Evidence: generic long-chain, variable-metadata, empty-output, flagship
+  parity, refusal, orientation, rendering, and print-CSS tests pass. A real
+  browser journey reports the generic export action, six current-project sheets,
+  41 rows, the four authored output colors, and **Print / Save PDF**. Full
+  Vitest passes 262/262; TypeScript, Vite multi-page build, and
+  `git diff --check` pass. Independent review has no findings.
+- Depends on: first WIRE-015 milestone `aa2f59d`.
 - Owner: branch `codex/wire-015-printable-manual`; worktree
   `/home/mate/Documents/led-rhombicosidodecahedron`.
-- Likely conflicts: Vite multi-page configuration, browser orchestration,
-  wiring mapping helpers, tests, wiring documentation, and `TASKS.md`.
+- Likely conflicts: printable manual renderer/tests, browser orchestration,
+  wiring documentation, and `TASKS.md`.
 - Merge rule: stop at Ready to Merge; do not merge into `main` without explicit
   operator authorization.
 

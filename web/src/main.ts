@@ -426,7 +426,7 @@ app.innerHTML = `
           </p>
           <div class="pipeline-actions">
             <button id="open-wiring-manual" class="pipeline-button" type="button">
-              Open printable wiring manual
+              Export wiring assembly manual
             </button>
             <button id="generate-mapping" class="pipeline-button" type="button">
               Generate WLED mapping + wiring review

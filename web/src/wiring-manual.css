@@ -59,7 +59,7 @@ th, td { padding: 5px 6px; border: 1px solid #aeb7bc; vertical-align: middle; }
 .route-arrows line { stroke-width: 2.2; opacity: 0.9; }
 .projection-panel polygon { stroke-width: 0.8; }
 .projection-panel text { fill: #fff; font-size: 6.5px; font-weight: 800; }
-.output-legend { display: flex; gap: 18px; justify-content: center; margin-top: 7mm; font-size: 10px; font-weight: 700; }
+.output-legend { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; margin-top: 7mm; font-size: 10px; font-weight: 700; }
 .chain-sheet > p { margin: 5px 0; }
 .chain-strip { display: flex; align-items: center; justify-content: center; gap: 2px; margin: 2mm 0; }
 .chain-node { min-width: 53px; padding: 2px 3px; text-align: center; border: 2px solid var(--output-color); border-radius: 3px; background: #fff; }
@@ -67,6 +67,7 @@ th, td { padding: 5px 6px; border: 1px solid #aeb7bc; vertical-align: middle; }
 .chain-node strong { font-size: 9px; }
 .chain-node small { font-size: 7px; color: #53616a; }
 .chain-arrow { color: var(--output-color); font-weight: 900; }
+.chain-continuation { color: var(--output-color); font-size: 12px; font-weight: 900; }
 .chain-table th, .chain-table td { padding: 1px 4px; font-size: 8px; }
 .chain-table th { border-color: #6d777c; }
 .chain-table tbody tr:nth-child(even) { background: #f1f4f5; }

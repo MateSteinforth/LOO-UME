@@ -4,7 +4,7 @@ import type { HardwareMappingContract } from "./HardwareMapping.ts";
 import { transformInstalledPanelCoordinate } from "./HardwareMapping.ts";
 import type { PanelDefinition, Vector3Data } from "./LedMapping.ts";
 
-const OUTPUT_COLORS = ["#d52d2d", "#1677b8", "#14804a", "#a45a00"];
+const PANELS_PER_CHAIN_PAGE = 11;
 const DISPLAY_CORNERS: PanelCorner[] = [
   "top-left",
   "top-right",
@@ -123,6 +123,10 @@ export function createWiringAssemblyManualModel(
     if (output.gpio === null) {
       throw new Error(`Output ${output.outputIndex + 1} has no GPIO.`);
     }
+    const outputDefinition = definition.wiring.outputs[output.outputIndex];
+    if (!outputDefinition || !/^#[0-9a-fA-F]{6}$/.test(outputDefinition.color)) {
+      throw new Error(`Output ${output.outputIndex + 1} has no valid display color.`);
+    }
     const panels = output.panelIds.map((panelId, chainPosition) => {
       const panel = panelById.get(panelId);
       if (!panel) throw new Error(`Output route references unknown panel ${panelId}.`);
@@ -135,7 +139,7 @@ export function createWiringAssemblyManualModel(
         physicalStart,
         physicalEnd: physicalStart + ledsPerPanel - 1,
         dataIn: previous ? `${previous} DOUT` : `Controller GPIO ${output.gpio}`,
-        dataOut: next ? `${next} DIN` : `End of ${definition.wiring.outputs[output.outputIndex]!.label}`,
+        dataOut: next ? `${next} DIN` : `End of ${outputDefinition.label}`,
         turnDegrees: (
           ((4 - panel.installedAddressTransform.quarterTurnsClockwise) % 4) * 90
         ) as
@@ -160,9 +164,9 @@ export function createWiringAssemblyManualModel(
     });
     return {
       outputIndex: output.outputIndex,
-      label: definition.wiring.outputs[output.outputIndex]!.label,
+      label: outputDefinition.label,
       gpio: output.gpio,
-      color: OUTPUT_COLORS[output.outputIndex] ?? "#333333",
+      color: outputDefinition.color,
       physicalStart: output.startIndex,
       physicalEnd: output.startIndex + output.pixelCount - 1,
       panels,
@@ -339,16 +343,30 @@ function renderProjection(
   </figure>`;
 }
 
-function renderChainStrip(output: WiringManualOutput): string {
-  return `<div class="chain-strip" aria-label="${escapeHtml(output.label)} route">${output.panels.map(
+function renderChainStrip(
+  output: WiringManualOutput,
+  panels: WiringManualPanel[],
+  pageIndex: number,
+  pageCount: number,
+): string {
+  const before = pageIndex > 0 ? '<span class="chain-continuation">… →</span>' : "";
+  const after = pageIndex + 1 < pageCount
+    ? '<span class="chain-continuation">→ …</span>'
+    : "";
+  return `<div class="chain-strip" aria-label="${escapeHtml(output.label)} route segment">${before}${panels.map(
     (panel, index) => `<div class="chain-node" style="--output-color:${output.color}">
       <strong>${escapeHtml(panel.id)}</strong><small>${panel.turnDegrees}° CW</small>
-    </div>${index < output.panels.length - 1 ? '<span class="chain-arrow">→</span>' : ""}`,
-  ).join("")}</div>`;
+    </div>${index < panels.length - 1 ? '<span class="chain-arrow">→</span>' : ""}`,
+  ).join("")}${after}</div>`;
 }
 
-function renderOutputPage(output: WiringManualOutput): string {
-  const rows = output.panels.map((panel) => `<tr>
+function renderOutputPage(
+  output: WiringManualOutput,
+  panels: WiringManualPanel[],
+  pageIndex: number,
+  pageCount: number,
+): string {
+  const rows = panels.map((panel) => `<tr>
     <td class="check-cell">□</td>
     <td>${panel.chainPosition + 1}</td>
     <td><strong>${escapeHtml(panel.id)}</strong></td>
@@ -357,13 +375,20 @@ function renderOutputPage(output: WiringManualOutput): string {
     <td><strong>${escapeHtml(panel.id)} DOUT</strong><br><span class="muted">to ${escapeHtml(panel.dataOut)} · ${panel.doutCorner}</span></td>
     <td>${panel.physicalStart}–${panel.physicalEnd}</td>
   </tr>`).join("");
+  const pageLabel = pageCount > 1 ? ` · Part ${pageIndex + 1} of ${pageCount}` : "";
+  const range = panels.length > 0
+    ? `LEDs ${panels[0]!.physicalStart}–${panels.at(-1)!.physicalEnd}`
+    : "No panels assigned";
+  const startInstruction = pageIndex === 0
+    ? "Start at the controller."
+    : "Continue from the previous sheet.";
   return `<section class="sheet chain-sheet" style="--output-color:${output.color}">
     <header class="sheet-header">
-      <div><p class="eyebrow">DATA OUTPUT ${output.outputIndex + 1}</p><h2>${escapeHtml(output.label)} · GPIO ${output.gpio}</h2></div>
-      <div class="range-badge">${output.panels.length} panels · LEDs ${output.physicalStart}–${output.physicalEnd}</div>
+      <div><p class="eyebrow">DATA OUTPUT ${output.outputIndex + 1}${pageLabel}</p><h2>${escapeHtml(output.label)} · GPIO ${output.gpio}</h2></div>
+      <div class="range-badge">${panels.length} panel${panels.length === 1 ? "" : "s"} on this sheet · ${range}</div>
     </header>
-    <p>Start at the controller. Follow the arrows. View every PCB from the back. Connector corners are authoritative; pad centres are schematic. Connect data and reference ground; do not carry accumulated panel power through this data chain. Mapping-ready does not mean electrically approved.</p>
-    ${renderChainStrip(output)}
+    <p>${startInstruction} Follow the arrows. View every PCB from the back. Connector corners are authoritative; pad centres are schematic. Connect data and reference ground; do not carry accumulated panel power through this data chain. Mapping-ready does not mean electrically approved.</p>
+    ${renderChainStrip(output, panels, pageIndex, pageCount)}
     <table class="chain-table">
       <thead><tr><th>Done</th><th>Pos.</th><th>Panel</th><th>Back-view PCB orientation</th><th>Data into DIN</th><th>Data out from DOUT</th><th>Physical LEDs</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -372,17 +397,33 @@ function renderOutputPage(output: WiringManualOutput): string {
   </section>`;
 }
 
+function renderOutputPages(output: WiringManualOutput): string {
+  const pageCount = Math.max(
+    1,
+    Math.ceil(output.panels.length / PANELS_PER_CHAIN_PAGE),
+  );
+  return Array.from({ length: pageCount }, (_, pageIndex) => {
+    const start = pageIndex * PANELS_PER_CHAIN_PAGE;
+    return renderOutputPage(
+      output,
+      output.panels.slice(start, start + PANELS_PER_CHAIN_PAGE),
+      pageIndex,
+      pageCount,
+    );
+  }).join("");
+}
+
 export function renderWiringAssemblyManualHtml(
   model: WiringAssemblyManualModel,
 ): string {
   const outputSummary = model.outputs.map((output) => `<tr>
     <td><span class="output-key" style="--output-color:${output.color}"></span>${escapeHtml(output.label)}</td>
-    <td>${output.gpio}</td><td>${output.panels.length}</td><td>${output.physicalStart}–${output.physicalEnd}</td>
-    <td>${escapeHtml(output.panels[0]!.id)} → ${escapeHtml(output.panels.at(-1)!.id)}</td>
+    <td>${output.gpio}</td><td>${output.panels.length}</td><td>${output.panels.length > 0 ? `${output.physicalStart}–${output.physicalEnd}` : "—"}</td>
+    <td>${output.panels.length > 0 ? `${escapeHtml(output.panels[0]!.id)} → ${escapeHtml(output.panels.at(-1)!.id)}` : "No panels"}</td>
   </tr>`).join("");
   return `<main class="manual">
     <section class="sheet cover-sheet">
-      <div class="screen-actions no-print"><button id="print-manual" type="button">Print manual</button><a id="back-to-simulator" href="./">Back to simulator</a></div>
+      <div class="screen-actions no-print"><button id="print-manual" type="button">Print / Save PDF</button><a id="back-to-simulator" href="./">Back to simulator</a></div>
       <p class="eyebrow">WLED ORBITAL LAB · ASSEMBLY CONTROL COPY</p>
       <h1>${escapeHtml(model.sculptureName)}<br>Wiring assembly manual</h1>
       <div class="status-banner">MAPPING READY · ${model.totalPixels.toLocaleString()} LEDs · ${model.outputs.length} outputs</div>
@@ -401,6 +442,6 @@ export function renderWiringAssemblyManualHtml(
       <div class="output-legend">${model.outputs.map((output) => `<span><i style="--output-color:${output.color}"></i>${escapeHtml(output.label)} · GPIO ${output.gpio}</span>`).join("")}</div>
       <footer class="sheet-footer">Panel IDs and positions come from the current Schema 2 sculpture poses · Mapping-ready assumptions; electrical approval is separate.</footer>
     </section>
-    ${model.outputs.map(renderOutputPage).join("")}
+    ${model.outputs.map(renderOutputPages).join("")}
   </main>`;
 }

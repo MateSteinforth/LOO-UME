@@ -46,6 +46,9 @@ describe("printable wiring assembly manual", () => {
       pixelOrder: "8 × 8 snake",
     });
     expect(model.outputs.map((output) => output.gpio)).toEqual([16, 17, 18, 19]);
+    expect(model.outputs.map((output) => output.color)).toEqual([
+      "#36e0d0", "#ff9d5c", "#b58cff", "#c6ed68",
+    ]);
     expect(model.outputs.map((output) => output.panels.length)).toEqual([11, 10, 10, 10]);
     expect(model.outputs.map((output) => [output.physicalStart, output.physicalEnd]))
       .toEqual([[0, 703], [704, 1_343], [1_344, 1_983], [1_984, 2_623]]);
@@ -136,6 +139,49 @@ describe("printable wiring assembly manual", () => {
     for (const output of model.outputs) {
       for (const panel of output.panels) expect(html).toContain(panel.id);
     }
+  });
+
+  it("paginates an arbitrary long output using the current output metadata", async () => {
+    const { source, project, contract } = await fixture();
+    const model = createWiringAssemblyManualModel(
+      project.sculpture,
+      contract,
+      project.panelProfile,
+      source,
+    );
+    const panels = model.outputs.flatMap((output) => output.panels).slice(0, 12);
+    const genericModel = {
+      ...model,
+      sculptureName: "Custom wiring",
+      outputs: [{
+        ...model.outputs[0]!,
+        label: "Custom chain",
+        gpio: 25,
+        color: "#123456",
+        panels,
+        physicalStart: panels[0]!.physicalStart,
+        physicalEnd: panels.at(-1)!.physicalEnd,
+      }],
+    };
+    const html = renderWiringAssemblyManualHtml(genericModel);
+
+    expect(html.match(/<section class="sheet/g)).toHaveLength(4);
+    expect(html.match(/class="sheet chain-sheet"/g)).toHaveLength(2);
+    expect(html.match(/class="orientation-diagram"/g)).toHaveLength(12);
+    expect(html).toContain("DATA OUTPUT 1 · Part 1 of 2");
+    expect(html).toContain("DATA OUTPUT 1 · Part 2 of 2");
+    expect(html).toContain("Continue from the previous sheet.");
+    expect(html).toContain("Custom chain · GPIO 25");
+    expect(html).toContain("--output-color:#123456");
+    expect(html).toContain("Print / Save PDF");
+
+    const emptyHtml = renderWiringAssemblyManualHtml({
+      ...genericModel,
+      outputs: [{ ...genericModel.outputs[0]!, panels: [] }],
+    });
+    expect(emptyHtml.match(/<section class="sheet/g)).toHaveLength(3);
+    expect(emptyHtml).toContain("No panels assigned");
+    expect(emptyHtml).toContain("No panels");
   });
 
   it("defines A4 landscape print rules and keeps chain rows intact", () => {
