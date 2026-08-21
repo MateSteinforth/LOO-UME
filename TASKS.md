@@ -349,8 +349,21 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
-No tasks. The operator authorized integration of the completed Codex and Grok
-branches on 2026-08-21.
+### `UI-012` Keep browser Manifold status local on LAN review origins
+
+- Outcome: same-network browsers use in-process Manifold without calling the
+  deliberately loopback-only helper API; loopback discovery is unchanged.
+- Acceptance: non-loopback status makes zero API requests, all loopback host
+  forms keep helper discovery, and the live populated LAN project enables
+  **Generate 3D Parts**.
+- Depends on: integrated Manifold browser generation (`CAD-030`–`CAD-036`).
+- Owner: `codex/lan-manifold-status` in
+  `/tmp/led-rhombo-main-review`.
+- Likely conflicts: `web/src/GeneratorStatus.ts`,
+  `tests/generator-status.test.ts`, `docs/ARCHITECTURE.md`, `FAILURES.md`.
+- Verification: generator-status and capability tests 12/12, pipeline/server
+  security tests 15/15, TypeScript and web builds, live Chrome LAN proof, and
+  independent review pass.
 
 ## Done
 

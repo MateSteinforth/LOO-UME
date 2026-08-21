@@ -415,3 +415,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   a rejected import cannot appear to succeed against prior controls.
 - **Evidence:** `tests/browser/wiring-route-editor.spec.ts`.
 - **Status:** Resolved.
+
+### F-023 — LAN review requested a deliberately loopback-only helper API
+
+- **Date:** 2026-08-21
+- **Context:** Reviewing merged Manifold generation from another computer on
+  the same network.
+- **Symptom:** The browser logged HTTP 403 for `/api/generator-status`.
+- **Cause:** The helper API correctly accepts only loopback Host values, but the
+  browser requested it even though Manifold generation runs in-process.
+- **Correction:** Non-loopback browser origins report in-browser Manifold ready
+  without requesting the helper API. Loopback origins keep API discovery.
+- **Prevention:** Keep optional loopback helpers separate from capabilities
+  that are bundled into the browser. Do not weaken the helper Host or
+  same-origin guards for LAN preview convenience.
+- **Evidence:** `tests/generator-status.test.ts` and HTTP LAN review.
+- **Status:** Resolved.
