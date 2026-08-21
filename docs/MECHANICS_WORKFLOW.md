@@ -34,7 +34,9 @@ The implemented generation and portable-project data flow is:
    hole still gets one unique tab; assignment prefers the hole nearest each
    edge middle. Recessed text matches the simulator hover label (`P-01`).
 8. Export one ZIP that contains the exact STL files, and load those same STL
-   bytes into Three.js.
+   bytes into Three.js. When wiring is mapping-ready, the ZIP also contains a
+   self-contained printable `assembly-manual.html`. Otherwise it contains
+   `assembly-manual-unavailable.txt` with the current readiness blockers.
 9. Save relative asset references and hashes in the sculpture JSON.
 10. Reopen the project folder or ZIP and restore the GLB, panels, generated
     boundary, and exact printable parts.
@@ -42,6 +44,11 @@ The implemented generation and portable-project data flow is:
 Mechanics generation is optional. Failure or absence of mechanics must never
 disable panel editing, WLED simulation, LED mapping, provisional wiring, or
 project save/reload.
+
+The **Download wiring assembly manual** control writes the same self-contained
+HTML directly. It does not open a popup. Open the downloaded file in a browser,
+then use **Print / Save PDF**. A non-ready project keeps the control active so
+that a click reports the exact wiring blockers in the interface.
 
 ## Geometry assumption for the first generator
 

@@ -30,11 +30,17 @@ interface GeneratedMechanicsZipAsset {
   bytes: Uint8Array;
 }
 
+export interface GeneratedMechanicsZipSupplement {
+  path: string;
+  bytes: Uint8Array;
+}
+
 export function createGeneratedMechanicsZip(
   mechanics: {
     boundary: GeneratedMechanicsZipAsset;
     parts: GeneratedMechanicsZipAsset[];
   },
+  supplements: GeneratedMechanicsZipSupplement[] = [],
 ): Uint8Array {
   const entries: Record<string, Uint8Array> = {};
   const assets = [mechanics.boundary, ...mechanics.parts]
@@ -50,6 +56,18 @@ export function createGeneratedMechanicsZip(
       throw new Error(`Generated STL ZIP contains duplicate path ${asset.source}.`);
     }
     entries[asset.source] = Uint8Array.from(asset.bytes);
+  }
+  for (const supplement of supplements) {
+    assertPortableProjectAssetSource(
+      supplement.path,
+      "Generated STL ZIP supplemental entry",
+    );
+    if (entries[supplement.path]) {
+      throw new Error(
+        `Generated STL ZIP contains duplicate path ${supplement.path}.`,
+      );
+    }
+    entries[supplement.path] = Uint8Array.from(supplement.bytes);
   }
   return zipSync(entries, {
     level: 6,

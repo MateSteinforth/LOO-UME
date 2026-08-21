@@ -415,15 +415,19 @@ function renderOutputPages(output: WiringManualOutput): string {
 
 export function renderWiringAssemblyManualHtml(
   model: WiringAssemblyManualModel,
+  options: { includeBackLink?: boolean } = {},
 ): string {
   const outputSummary = model.outputs.map((output) => `<tr>
     <td><span class="output-key" style="--output-color:${output.color}"></span>${escapeHtml(output.label)}</td>
     <td>${output.gpio}</td><td>${output.panels.length}</td><td>${output.panels.length > 0 ? `${output.physicalStart}–${output.physicalEnd}` : "—"}</td>
     <td>${output.panels.length > 0 ? `${escapeHtml(output.panels[0]!.id)} → ${escapeHtml(output.panels.at(-1)!.id)}` : "No panels"}</td>
   </tr>`).join("");
+  const backLink = options.includeBackLink === false
+    ? ""
+    : '<a id="back-to-simulator" href="./">Back to simulator</a>';
   return `<main class="manual">
     <section class="sheet cover-sheet">
-      <div class="screen-actions no-print"><button id="print-manual" type="button">Print / Save PDF</button><a id="back-to-simulator" href="./">Back to simulator</a></div>
+      <div class="screen-actions no-print"><button id="print-manual" type="button">Print / Save PDF</button>${backLink}</div>
       <p class="eyebrow">WLED ORBITAL LAB · ASSEMBLY CONTROL COPY</p>
       <h1>${escapeHtml(model.sculptureName)}<br>Wiring assembly manual</h1>
       <div class="status-banner">MAPPING READY · ${model.totalPixels.toLocaleString()} LEDs · ${model.outputs.length} outputs</div>
@@ -444,4 +448,26 @@ export function renderWiringAssemblyManualHtml(
     </section>
     ${model.outputs.map(renderOutputPages).join("")}
   </main>`;
+}
+
+export function renderStandaloneWiringAssemblyManualDocument(
+  model: WiringAssemblyManualModel,
+  stylesheet: string,
+): string {
+  const safeStylesheet = stylesheet.replace(/<\/style/gi, "<\\/style");
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Print-ready LED sculpture wiring assembly manual." />
+    <title>${escapeHtml(model.sculptureName)} wiring assembly manual</title>
+    <style>${safeStylesheet}</style>
+  </head>
+  <body>
+    ${renderWiringAssemblyManualHtml(model, { includeBackLink: false })}
+    <script>document.getElementById("print-manual")?.addEventListener("click", function () { window.print(); });</script>
+  </body>
+</html>
+`;
 }

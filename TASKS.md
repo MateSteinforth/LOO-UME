@@ -349,6 +349,23 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `UI-014` Put the printable assembly manual in generated-part ZIPs
+
+- Outcome: assembly-manual export is a direct HTML download, and the generated
+  STL ZIP contains the same self-contained printable manual when the current
+  wiring contract can produce one.
+- Acceptance: no popup or handshake is required; the HTML contains its print
+  CSS and works when opened from disk; a mapping-ready parts ZIP contains
+  `assembly-manual.html`; a non-ready ZIP contains a plain-text blocker record
+  instead of a false manual; one click still produces one ZIP download.
+- Depends on: `UI-013` and the existing generic wiring-manual model.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `web/src/main.ts`, `web/src/WiringAssemblyManual.ts`,
+  `web/src/GeneratedMechanicsAssets.ts`, and their tests.
+- Verification: manual and ZIP unit tests 8/8; real Chromium direct-manual and
+  generated-parts ZIP journeys 2/2; full unit suite 283/283 with loopback
+  permission; TypeScript and web builds; clean diff review.
+
 ### `UI-013` Download generated STL parts as one ZIP
 
 - Outcome: one click downloads one ZIP that contains the verified boundary STL

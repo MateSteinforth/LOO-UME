@@ -23,10 +23,15 @@ describe("generated mechanics STL ZIP", () => {
       ],
     };
 
-    const first = createGeneratedMechanicsZip(mechanics);
-    const second = createGeneratedMechanicsZip(mechanics);
+    const supplements = [{
+      path: "assembly-manual.html",
+      bytes: new TextEncoder().encode("<!doctype html><title>Manual</title>"),
+    }];
+    const first = createGeneratedMechanicsZip(mechanics, supplements);
+    const second = createGeneratedMechanicsZip(mechanics, supplements);
     expect(first).toEqual(second);
     expect(unzipSync(first)).toEqual({
+      "assembly-manual.html": supplements[0]!.bytes,
       "mechanics/boundary.stl": Uint8Array.of(1, 2, 3),
       "mechanics/parts/part-001.stl": Uint8Array.of(4, 5, 6),
       "mechanics/parts/part-002.stl": Uint8Array.of(7, 8, 9),
@@ -50,5 +55,9 @@ describe("generated mechanics STL ZIP", () => {
       boundary,
       parts: [{ source: "mechanics/part.obj", bytes: Uint8Array.of(2) }],
     })).toThrow(/must be an STL file/);
+    expect(() => createGeneratedMechanicsZip(
+      { boundary, parts: [] },
+      [{ path: boundary.source, bytes: Uint8Array.of(2) }],
+    )).toThrow(/duplicate path mechanics\/boundary\.stl/);
   });
 });

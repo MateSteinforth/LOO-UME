@@ -68,9 +68,12 @@ import {
 } from "./PortableProject.ts";
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
-import { createWiringAssemblyManualModel } from "./WiringAssemblyManual.ts";
-import { createManualHandshakeToken } from "./ManualHandshake.ts";
+import {
+  createWiringAssemblyManualModel,
+  renderStandaloneWiringAssemblyManualDocument,
+} from "./WiringAssemblyManual.ts";
 import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
+import wiringManualStyles from "./wiring-manual.css?raw";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -429,7 +432,7 @@ app.innerHTML = `
           </p>
           <div class="pipeline-actions">
             <button id="open-wiring-manual" class="pipeline-button" type="button">
-              Export wiring assembly manual
+              Download wiring assembly manual
             </button>
             <button id="generate-mapping" class="pipeline-button" type="button">
               Generate WLED mapping + wiring review
@@ -685,11 +688,10 @@ async function start(): Promise<void> {
         mapping.topology !== "panelized-sculpture" ||
         !capabilities.canExportMappingAndWiring;
       openWiringManualButton.disabled =
-        mapping.topology !== "panelized-sculpture" ||
-        !hardwareContract.readiness.mappingReady;
+        mapping.topology !== "panelized-sculpture";
       openWiringManualButton.title = !hardwareContract.readiness.mappingReady
-        ? "The printable manual requires a current mapping-ready route."
-        : "Open the current in-memory project as an A4 landscape wiring manual.";
+        ? "Click to see why the printable manual is not ready."
+        : "Download the current project as a self-contained A4 landscape wiring manual.";
       generatePrintPartsButton.disabled =
         !capabilities.canGenerateGenericMechanics;
       generatePrintPartsButton.title = editorDefinition.manualMechanics
@@ -1806,44 +1808,46 @@ async function start(): Promise<void> {
       URL.revokeObjectURL(objectUrl);
     };
 
-    openWiringManualButton.addEventListener("click", () => {
+    const createCurrentAssemblyManualDocument = (): string => {
+      if (!hardwareContract.readiness.mappingReady) {
+        throw new Error(
+          "Wiring assembly manual unavailable: " +
+            hardwareContract.readiness.blockers.join(" "),
+        );
+      }
       const model = createWiringAssemblyManualModel(
         editorDefinition,
         hardwareContract,
         editorProject.panelProfile,
         editorProject.source,
       );
-      const token = createManualHandshakeToken();
-      const manualUrl = new URL("./wiring-manual.html", window.location.href);
-      manualUrl.searchParams.set("fromEditor", token);
-      let manualWindow: Window | null = null;
-      const receiveReady = (event: MessageEvent<unknown>): void => {
-        if (
-          event.origin !== window.location.origin ||
-          event.source !== manualWindow ||
-          typeof event.data !== "object" ||
-          event.data === null ||
-          !("type" in event.data) ||
-          event.data.type !== "wiring-manual-ready" ||
-          !("token" in event.data) ||
-          event.data.token !== token
-        ) return;
-        window.removeEventListener("message", receiveReady);
-        window.clearTimeout(handshakeTimeout);
-        manualWindow?.postMessage(
-          { type: "wiring-manual-model", token, model },
-          window.location.origin,
-        );
-      };
-      window.addEventListener("message", receiveReady);
-      const handshakeTimeout = window.setTimeout(() => {
-        window.removeEventListener("message", receiveReady);
-      }, 15_000);
-      manualWindow = window.open(manualUrl.href, "_blank");
-      if (!manualWindow) {
-        window.removeEventListener("message", receiveReady);
-        window.clearTimeout(handshakeTimeout);
-        throw new Error("The browser blocked the wiring manual window.");
+      return renderStandaloneWiringAssemblyManualDocument(
+        model,
+        wiringManualStyles,
+      );
+    };
+
+    openWiringManualButton.addEventListener("click", () => {
+      try {
+        const html = createCurrentAssemblyManualDocument();
+        const objectUrl = URL.createObjectURL(new Blob([html], {
+          type: "text/html;charset=utf-8",
+        }));
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download =
+          `${portableProjectFolderName(editorDefinition)}-assembly-manual.html`;
+        link.click();
+        URL.revokeObjectURL(objectUrl);
+        pipelineStatus.classList.remove("pipeline-status--error");
+        pipelineStatus.textContent = `Downloaded ${link.download}.`;
+        viewerError.hidden = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = message;
+        viewerError.hidden = false;
+        viewerError.textContent = message;
       }
     });
 
@@ -1890,7 +1894,27 @@ async function start(): Promise<void> {
         verifiedGeneratedMechanics.boundary,
         ...verifiedGeneratedMechanics.parts,
       ];
-      const zipBytes = createGeneratedMechanicsZip(verifiedGeneratedMechanics);
+      let manualIncluded = false;
+      let manualSupplement: { path: string; bytes: Uint8Array };
+      try {
+        manualSupplement = {
+          path: "assembly-manual.html",
+          bytes: new TextEncoder().encode(
+            createCurrentAssemblyManualDocument(),
+          ),
+        };
+        manualIncluded = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        manualSupplement = {
+          path: "assembly-manual-unavailable.txt",
+          bytes: new TextEncoder().encode(message + "\n"),
+        };
+      }
+      const zipBytes = createGeneratedMechanicsZip(
+        verifiedGeneratedMechanics,
+        [manualSupplement],
+      );
       const objectUrl = URL.createObjectURL(new Blob(
         [Uint8Array.from(zipBytes)],
         { type: "application/zip" },
@@ -1902,7 +1926,7 @@ async function start(): Promise<void> {
       URL.revokeObjectURL(objectUrl);
       pipelineStatus.classList.remove("pipeline-status--error");
       pipelineStatus.textContent =
-        `Downloaded one ZIP with ${assets.length} SHA-256-verified STL files from the exact bytes displayed in Three.js.`;
+        `Downloaded one ZIP with ${assets.length} SHA-256-verified STL files from the exact bytes displayed in Three.js, plus ${manualIncluded ? "the printable assembly manual" : "an assembly-manual readiness report"}.`;
       viewerError.hidden = true;
     });
 

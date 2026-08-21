@@ -170,6 +170,10 @@ gates.
    authoritative poses and the resolved panel profile. It renders print-only
    placement projections and per-output assembly tables; it rejects draft,
    temporary, stale, or non-mapping-ready data.
+   The editor exports this manual as one self-contained HTML file with embedded
+   print CSS, without a popup handshake. A generated-parts ZIP includes that
+   HTML when mapping-ready, or an explicit readiness-blocker text file when it
+   is not.
 6. Three.js renders panels, LEDs, surfaces, connectors, wiring, and available
    printable layers. One selected panel ID drives all selection-focused UI.
 7. Every edit rebuilds mapping and wiring. Existing generated mechanics become

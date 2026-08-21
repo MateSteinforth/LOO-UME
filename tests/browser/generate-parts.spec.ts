@@ -54,6 +54,10 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
     "No printable mechanics exist yet",
   );
   await expect(page.locator("#generate-print-parts")).toBeEnabled();
+  await page.locator("#open-wiring-manual").click();
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Wiring assembly manual unavailable",
+  );
 
   await page.locator("#generate-print-parts").click();
   await expect(page.locator("#pipeline-status")).toContainText(
@@ -74,6 +78,7 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   if (!stlZipPath) throw new Error("The browser did not expose the STL ZIP.");
   const stlZipFiles = unzipSync(await readFile(stlZipPath));
   expect(Object.keys(stlZipFiles).sort()).toEqual([
+    "assembly-manual-unavailable.txt",
     "mechanics/boundary.stl",
     "mechanics/parts/part-001.stl",
     "mechanics/parts/part-002.stl",
@@ -81,6 +86,9 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   await expect(page.locator("#pipeline-status")).toContainText(
     "Downloaded one ZIP with 3 SHA-256-verified STL files",
   );
+  expect(new TextDecoder().decode(
+    stlZipFiles["assembly-manual-unavailable.txt"],
+  )).toContain("Wiring assembly manual unavailable");
 
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#save-sculpture-file").click();

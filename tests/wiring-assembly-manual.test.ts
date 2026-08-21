@@ -6,6 +6,7 @@ import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 import {
   createWiringAssemblyManualModel,
+  renderStandaloneWiringAssemblyManualDocument,
   renderWiringAssemblyManualHtml,
 } from "../web/src/WiringAssemblyManual.ts";
 
@@ -189,5 +190,25 @@ describe("printable wiring assembly manual", () => {
     expect(css).toContain("@page { size: A4 landscape");
     expect(css).toContain("break-inside: avoid");
     expect(css).toContain(".no-print { display: none");
+  });
+
+  it("renders a self-contained printable HTML document for direct download", async () => {
+    const { source, project, contract } = await fixture();
+    const model = createWiringAssemblyManualModel(
+      project.sculpture,
+      contract,
+      project.panelProfile,
+      source,
+    );
+    const css = readFileSync("web/src/wiring-manual.css", "utf8");
+    const document = renderStandaloneWiringAssemblyManualDocument(model, css);
+
+    expect(document).toMatch(/^<!doctype html>/);
+    expect(document).toContain("<style>:root {");
+    expect(document).toContain("@page { size: A4 landscape");
+    expect(document).toContain("Print / Save PDF");
+    expect(document).not.toContain("Back to simulator");
+    expect(document).toContain('window.print()');
+    expect(document).toContain("SQ-03");
   });
 });

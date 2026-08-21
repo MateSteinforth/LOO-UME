@@ -109,14 +109,19 @@ The operator can use it only after explicit copy and confirmation.
 
 ## Printable assembly-manual export
 
-The editor enables **Export wiring assembly manual** for any current
-mapping-ready Schema 2 project. It sends the current in-memory mapping model to
-the same-origin print page, so the manual agrees with visible saved or imported
-editor state. A directly opened standalone page loads and revalidates its
+The editor's **Download wiring assembly manual** control writes one
+self-contained HTML file for any current mapping-ready Schema 2 project. It
+uses the current in-memory mapping model, embeds the A4 print CSS, and does not
+depend on a popup. Open the downloaded file in a browser and select **Print /
+Save PDF**. A directly opened standalone page still loads and revalidates its
 Schema 2 source. Both paths refuse draft, temporary, stale, or otherwise
-non-mapping-ready wiring. The export derives panel count, output count, output
-labels and colors, GPIOs, routes, transforms, and address ranges from that
-contract. It does not contain a hard-coded flagship route.
+non-mapping-ready wiring. A click on a non-ready editor project reports the
+exact blockers instead of doing nothing. The generated-parts ZIP contains the
+same `assembly-manual.html` when mapping-ready, or an explicit
+`assembly-manual-unavailable.txt` blocker record otherwise. The export derives
+panel count, output count, output labels and colors, GPIOs, routes, transforms,
+and address ranges from that contract. It does not contain a hard-coded
+flagship route.
 
 The A4 landscape export contains a control cover, front/right/top placement
 projections from the authoritative panel poses, and one or more detailed sheets
