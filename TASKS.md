@@ -349,6 +349,26 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `CAD-037` Accept bounded centroid-referenced cap warp
+
+- Outcome: the deterministic 30-panel rhombicosidodecahedron produces its 20
+  triangular and 12 pentagonal caps without treating boundary contact as PCB
+  interior overlap.
+- Acceptance: cap distance is measured from the polygon centroid; the named
+  limit is 0.10 mm; clipped PCB overlap must span 0.01 mm in both local axes;
+  the exact browser placement closes as one 62-face manifold and compiles all
+  Manifold STL parts; invalid non-planar and intersecting fixtures still fail.
+- Depends on: `UI-012` and integrated Manifold generation.
+- Owner: `codex/cad037-cap-coplanarity` in
+  `/tmp/led-rhombo-main-review`.
+- Likely conflicts: `src/sculpture/PanelOutlineBoundary.ts`,
+  `src/sculpture/PanelAssembly.ts`, their tests,
+  `docs/MECHANICS_WORKFLOW.md`, `FAILURES.md`.
+- Verification: focused boundary and pose-equivalence tests 23/23; full unit
+  suite 280/280; TypeScript and web builds; diff check; exact 32-part browser
+  Manifold generation from the live 30-panel placement; independent geometry
+  review with no blocking findings.
+
 ### `UI-012` Keep browser Manifold status local on LAN review origins
 
 - Outcome: same-network browsers use in-process Manifold without calling the

@@ -431,3 +431,25 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   same-origin guards for LAN preview convenience.
 - **Evidence:** `tests/generator-status.test.ts` and HTTP LAN review.
 - **Status:** Resolved.
+
+### F-024 — First-vertex cap distance rejected a valid deterministic gap
+
+- **Date:** 2026-08-21
+- **Context:** Live 30-panel rhombicosidodecahedron Manifold generation.
+- **Symptom:** `gap-1efef6988a7b` failed as 0.111107 mm non-planar against a
+  0.05 mm limit, then appeared to intersect PCB P-04.
+- **Cause:** Plane distance used the first cap vertex instead of the polygon
+  centroid, and any non-empty clipped polygon counted as PCB interior overlap,
+  including boundary-only numerical slivers.
+- **Correction:** Measure from the centroid-referenced polygon plane, use a
+  documented 0.10 mm coplanarity limit for the measured 0.061419 mm warp,
+  require a named 0.01 mm clipped span in both panel-local axes for real PCB
+  interior overlap, and use the centroid/Newell flat-cover frame only for
+  closure faces outside the legacy strict plane. Panel faces remain strict and
+  already-planar closure output remains byte-for-byte unchanged.
+- **Prevention:** Exercise closed-boundary generation, not topology detection
+  alone, on each flagship automatic placement. Keep invalid warped and
+  intersecting fixtures as rejection coverage.
+- **Evidence:** `tests/panel-outline-boundary.test.ts` and exact live-project
+  Manifold generation.
+- **Status:** Resolved.

@@ -6,7 +6,10 @@ import {
   parsePanelAssemblyDefinition,
   type PanelAssemblyDefinition,
 } from "../src/sculpture/PanelAssembly.ts";
-import { compilePanelBoundaryBundle } from "../src/cad/CompilePanelBoundaryBundle.ts";
+import {
+  compilePanelBoundaryBundle,
+  createPrintableBoundaryProject,
+} from "../src/cad/CompilePanelBoundaryBundle.ts";
 import {
   detectPanelBoundaryTopology,
   generateClosedPanelBoundary,
@@ -84,6 +87,34 @@ function planarPanel(
       orientation: { xAxis, yAxis: [0, 1, 0], normal },
     },
   };
+}
+
+function displaceFourthFaceVertexAlongNormal(
+  project: ReturnType<typeof createPrintableBoundaryProject>,
+  faceId: string,
+  distanceMm: number,
+): void {
+  const shell = project.sculpture.mechanicalShell!;
+  const faceIndex = shell.faces.findIndex((face) => face.id === faceId);
+  const [face] = shell.faces.splice(faceIndex, 1);
+  shell.faces.unshift(face!);
+  const [first, second, third] = face!.vertexIndices.map(
+    (vertexIndex) => shell.vertices[vertexIndex]!,
+  );
+  const firstEdge = second!.map((value, axis) => value - first![axis]!) as
+    [number, number, number];
+  const secondEdge = third!.map((value, axis) => value - second![axis]!) as
+    [number, number, number];
+  const normal: [number, number, number] = [
+    firstEdge[1] * secondEdge[2] - firstEdge[2] * secondEdge[1],
+    firstEdge[2] * secondEdge[0] - firstEdge[0] * secondEdge[2],
+    firstEdge[0] * secondEdge[1] - firstEdge[1] * secondEdge[0],
+  ];
+  const length = Math.hypot(...normal);
+  const fourthIndex = face!.vertexIndices[3]!;
+  shell.vertices[fourthIndex] = shell.vertices[fourthIndex]!.map(
+    (value, axis) => value + normal[axis]! * distanceMm / length,
+  ) as [number, number, number];
 }
 
 describe("automatic panel-boundary topology detection", () => {
@@ -344,6 +375,46 @@ describe("automatic panel-boundary topology detection", () => {
     expect(sizes.filter((size) => size === 3)).toHaveLength(20);
     expect(sizes.filter((size) => size === 5)).toHaveLength(12);
     expect(topology.gaps).toHaveLength(32);
+    project.sculpture.boundaryTopology = topology;
+
+    const boundary = generateClosedPanelBoundary(
+      project.sculpture,
+      project.panelProfile,
+      topology,
+    );
+    expect(boundary.metadata.counts).toMatchObject({
+      vertices: 60,
+      edges: 120,
+      faces: 62,
+      panelOutlines: 30,
+      caps: 32,
+      connectedComponents: 1,
+    });
+    expect(
+      boundary.faces.filter(
+        (face) => face.role === "cap" && face.vertexIndices.length === 5,
+      ),
+    ).toHaveLength(12);
+    const printable = createPrintableBoundaryProject(project, boundary);
+    expect(() => compilePanelAssembly(printable)).not.toThrow();
+
+    const warpedClosure = structuredClone(printable);
+    const closureFaceId = warpedClosure.sculpture.closures!.faceIds.find(
+      (faceId) => warpedClosure.sculpture.mechanicalShell!.faces.find(
+        (face) => face.id === faceId,
+      )!.vertexIndices.length === 5,
+    )!;
+    displaceFourthFaceVertexAlongNormal(warpedClosure, closureFaceId, 0.4);
+    expect(() => compilePanelAssembly(warpedClosure)).toThrow(
+      `Face ${closureFaceId} is not planar.`,
+    );
+
+    const warpedPanel = structuredClone(printable);
+    const panelFaceId = warpedPanel.sculpture.panels[0]!.mountFaceId!;
+    displaceFourthFaceVertexAlongNormal(warpedPanel, panelFaceId, 0.001);
+    expect(() => compilePanelAssembly(warpedPanel)).toThrow(
+      `Face ${panelFaceId} is not planar.`,
+    );
   });
 });
 describe("panel-outline closed-boundary generation", () => {
@@ -454,7 +525,7 @@ describe("panel-outline closed-boundary generation", () => {
       VALID_FIXTURE,
     );
     expect(() => generateClosedPanelBoundary(definition, project.panelProfile))
-      .toThrow(/Gap gap-bottom.*capCoplanarityMm.*0\.05 mm/);
+      .toThrow(/Gap gap-bottom.*capCoplanarityMm.*0\.1 mm/);
   });
 
   it("rejects malformed accepted topology without introducing coordinates", async () => {

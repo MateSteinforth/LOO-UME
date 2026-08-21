@@ -92,6 +92,13 @@ For each proposed cap, generation must reject:
 - disconnected boundary components unless the project explicitly supports
   multiple bodies.
 
+Coplanarity uses a centroid-referenced polygon plane and a named 0.10 mm
+maximum vertex distance. This bounded allowance covers the deterministic
+0.061419 mm pentagon warp from 66 x 65 mm PCBs on the 66 mm
+rhombicosidodecahedron faces. PCB-envelope clipping requires at least 0.01 mm
+of span in both panel-local axes before it is an interior intersection; a
+boundary line or smaller numerical sliver remains permitted contact.
+
 The first supported class is a panel layout whose holes form valid planar
 N-gons. It is not arbitrary curved gap filling. Generation rejects other
 layouts with available error context, and the user can return to editing.

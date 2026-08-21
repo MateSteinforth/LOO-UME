@@ -9,6 +9,7 @@ import type {
   PanelOutlineCornerId,
 } from "./PanelAssembly.ts";
 import { triangulatePolygon, type Point2 } from "../cad/TriangulatePolygon.ts";
+import { GENERATED_CLOSURE_PLANARITY_MM } from "./PanelBoundaryTolerances.ts";
 
 export type Vector3Tuple = [number, number, number];
 
@@ -19,14 +20,20 @@ export const PANEL_BOUNDARY_TOLERANCES = Object.freeze({
    * (about 1.28 mm of 65 mm-axis slack plus placement offset).
    */
   vertexWeldMm: 1.5,
-  /** Maximum signed distance of a cap vertex from its best-fit plane. */
-  capCoplanarityMm: 0.05,
+  /**
+   * Maximum signed distance of a cap vertex from its centroid-referenced
+   * polygon plane. This covers the 0.061419 mm deterministic pentagon warp
+   * from 66 x 65 mm PCBs on the 66 mm rhombicosidodecahedron faces.
+   */
+  capCoplanarityMm: GENERATED_CLOSURE_PLANARITY_MM,
   /** Minimum permitted boundary edge length. */
   minimumEdgeLengthMm: 0.001,
   /** Minimum permitted polygon area. */
   minimumAreaSquareMm: 0.001,
   /** Clearance used to distinguish contact from a real intersection. */
   intersectionMm: 0.00001,
+  /** Minimum clipped span in both panel-local axes for PCB interior overlap. */
+  pcbInteriorOverlapMm: 0.01,
 });
 
 export type PanelBoundaryToleranceName =
@@ -257,7 +264,7 @@ function validateSimplePolygon(gapId: string, points: Vector3Tuple[]): {
     );
   }
   const normal = scale(rawNormal, 1 / rawNormalLength);
-  const origin = points[0]!;
+  const origin = vertexCentroid(points);
   const maximumPlaneDistance = Math.max(
     ...points.map((point) => Math.abs(dot(subtract(point, origin), normal))),
   );
@@ -349,7 +356,13 @@ function triangleIntersectsOpenPanelEnvelope(
     polygon = clipPolygonToAxis(polygon, axis, extent, true);
     polygon = clipPolygonToAxis(polygon, axis, -extent, false);
   }
-  return polygon.length > 0;
+  if (polygon.length === 0) return false;
+  const spanX = Math.max(...polygon.map((point) => point[0]!)) -
+    Math.min(...polygon.map((point) => point[0]!));
+  const spanY = Math.max(...polygon.map((point) => point[1]!)) -
+    Math.min(...polygon.map((point) => point[1]!));
+  return Math.min(spanX, spanY) >
+    PANEL_BOUNDARY_TOLERANCES.pcbInteriorOverlapMm;
 }
 
 function pointInTriangle2(point: Point2, triangle: Point2[], strict: boolean): boolean {

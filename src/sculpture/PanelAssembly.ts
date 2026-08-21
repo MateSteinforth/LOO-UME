@@ -15,6 +15,7 @@ import type {
   PanelDefinition,
   Vector3Data,
 } from "../../web/src/LedMapping.ts";
+import { GENERATED_CLOSURE_PLANARITY_MM } from "./PanelBoundaryTolerances.ts";
 
 import {
   assertProjectAssetReference,
@@ -1197,6 +1198,18 @@ function mean(values: Vector3Data[]): Vector3Data {
   return scale(values.reduce(add, vector(0, 0, 0)), 1 / values.length);
 }
 
+function polygonNormal(values: Vector3Data[]): Vector3Data {
+  const normal = vector(0, 0, 0);
+  for (let index = 0; index < values.length; index += 1) {
+    const current = values[index]!;
+    const next = values[(index + 1) % values.length]!;
+    normal.x += (current.y - next.y) * (current.z + next.z);
+    normal.y += (current.z - next.z) * (current.x + next.x);
+    normal.z += (current.x - next.x) * (current.y + next.y);
+  }
+  return normal;
+}
+
 function distanceSquared(a: Vector3Data, b: Vector3Data): number {
   return (
     (a.x - b.x) ** 2 +
@@ -1268,25 +1281,42 @@ export function compilePanelAssembly(
   const closureFaceIds = new Set(closures.faceIds);
   const faces: CompiledAssemblyFace[] = mechanicalShell.faces.map((source) => {
     const faceVertices = source.vertexIndices.map((index) => vertices[index]!);
-    const center = mean(faceVertices);
-    const firstEdge = subtract(faceVertices[1]!, faceVertices[0]!);
-    const rawNormal = cross(firstEdge, subtract(faceVertices[2]!, faceVertices[1]!));
-    const normal = normalize(rawNormal);
-    if (dot(normal, center) <= 0) {
-      throw new Error(`Face ${source.id} winding does not point away from the origin.`);
-    }
-    for (const vertex of faceVertices) {
-      if (Math.abs(dot(subtract(vertex, center), normal)) > 1e-6) {
-        throw new Error(`Face ${source.id} is not planar.`);
-      }
-    }
-    const xAxis = normalize(firstEdge);
-    const yAxis = normalize(cross(normal, xAxis));
     const panel = panelByFace.get(source.id);
     const role = panel ? "panel" : "closure";
     if (!panel && !closureFaceIds.has(source.id)) {
       throw new Error(`Face ${source.id} has no panel or closure assignment.`);
     }
+    const center = mean(faceVertices);
+    const firstEdge = subtract(faceVertices[1]!, faceVertices[0]!);
+    const strictRawNormal = cross(
+      firstEdge,
+      subtract(faceVertices[2]!, faceVertices[1]!),
+    );
+    const strictNormal = normalize(strictRawNormal);
+    const strictPlanarity = Math.max(...faceVertices.map((vertex) =>
+      Math.abs(dot(subtract(vertex, center), strictNormal))
+    ));
+    const usesBoundedClosureProjection =
+      role === "closure" && strictPlanarity > 1e-6;
+    const rawNormal = usesBoundedClosureProjection
+      ? polygonNormal(faceVertices)
+      : strictRawNormal;
+    const normal = normalize(rawNormal);
+    if (dot(normal, center) <= 0) {
+      throw new Error(`Face ${source.id} winding does not point away from the origin.`);
+    }
+    const planarityTolerance = role === "closure"
+      ? GENERATED_CLOSURE_PLANARITY_MM
+      : 1e-6;
+    for (const vertex of faceVertices) {
+      if (Math.abs(dot(subtract(vertex, center), normal)) > planarityTolerance) {
+        throw new Error(`Face ${source.id} is not planar.`);
+      }
+    }
+    const xAxis = normalize(usesBoundedClosureProjection
+      ? subtract(firstEdge, scale(normal, dot(firstEdge, normal)))
+      : firstEdge);
+    const yAxis = normalize(cross(normal, xAxis));
     return {
       id: source.id,
       partId: source.partId ?? source.id,
