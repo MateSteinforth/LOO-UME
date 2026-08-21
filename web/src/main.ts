@@ -52,6 +52,7 @@ import {
   type WiringRouteEditorModel,
 } from "./WiringRouteEditor";
 import {
+  createGeneratedMechanicsZip,
   loadVerifiedGeneratedMechanics,
   type VerifiedGeneratedMechanics,
 } from "./GeneratedMechanicsAssets.ts";
@@ -437,7 +438,7 @@ app.innerHTML = `
               Generate boundary / 3D parts
             </button>
             <button id="download-print-parts" class="pipeline-button" type="button" disabled>
-              Download verified STL files
+              Download verified STL ZIP
             </button>
           </div>
           <div id="pipeline-status" class="pipeline-status" role="status">
@@ -1889,20 +1890,19 @@ async function start(): Promise<void> {
         verifiedGeneratedMechanics.boundary,
         ...verifiedGeneratedMechanics.parts,
       ];
-      for (const asset of assets) {
-        const blob = new Blob([Uint8Array.from(asset.bytes)], {
-          type: "model/stl",
-        });
-        const objectUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = asset.source.split("/").at(-1) ?? `${asset.id}.stl`;
-        link.click();
-        URL.revokeObjectURL(objectUrl);
-      }
+      const zipBytes = createGeneratedMechanicsZip(verifiedGeneratedMechanics);
+      const objectUrl = URL.createObjectURL(new Blob(
+        [Uint8Array.from(zipBytes)],
+        { type: "application/zip" },
+      ));
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `${portableProjectFolderName(editorDefinition)}-stl-parts.zip`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
       pipelineStatus.classList.remove("pipeline-status--error");
       pipelineStatus.textContent =
-        `Downloaded ${assets.length} SHA-256-verified STL files from the exact bytes displayed in Three.js.`;
+        `Downloaded one ZIP with ${assets.length} SHA-256-verified STL files from the exact bytes displayed in Three.js.`;
       viewerError.hidden = true;
     });
 

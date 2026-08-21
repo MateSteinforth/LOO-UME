@@ -349,6 +349,22 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `UI-013` Download generated STL parts as one ZIP
+
+- Outcome: one click downloads one ZIP that contains the verified boundary STL
+  and all verified printable-part STL files.
+- Acceptance: the ZIP preserves each generated asset's canonical relative
+  source path and exact bytes; its name is project-specific; the browser emits
+  one download instead of one download per STL; the button and success message
+  state this behavior; project ZIP export remains unchanged.
+- Depends on: `UI-012`, `CAD-037`, and integrated Manifold generation.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `web/src/main.ts`, `web/src/GeneratedMechanicsAssets.ts`,
+  generated-parts tests, and `docs/MECHANICS_WORKFLOW.md`.
+- Verification: deterministic ZIP tests 2/2; generated-parts pipeline tests
+  5/5; real Chromium generation/download/reopen journey 1/1; full unit suite
+  282/282; TypeScript and web builds; clean diff review.
+
 ### `CAD-037` Accept bounded centroid-referenced cap warp
 
 - Outcome: the deterministic 30-panel rhombicosidodecahedron produces its 20

@@ -1,10 +1,14 @@
+import { zipSync } from "fflate";
 import { inspectStl, type StlInspection } from "../../src/cad/Stl.ts";
 import {
   getGeneratedMechanicsState,
   type PanelAssemblyDefinition,
   type ProjectAssetReference,
 } from "../../src/sculpture/PanelAssembly.ts";
-import { verifyProjectAssetBytes } from "../../src/sculpture/GeneratedMechanics.ts";
+import {
+  assertPortableProjectAssetSource,
+  verifyProjectAssetBytes,
+} from "../../src/sculpture/GeneratedMechanics.ts";
 import type { PanelHardwareProfile } from "../../src/sculpture/Definition.ts";
 
 export interface VerifiedGeneratedAsset {
@@ -19,6 +23,38 @@ export interface VerifiedGeneratedAsset {
 export interface VerifiedGeneratedMechanics {
   boundary: VerifiedGeneratedAsset;
   parts: VerifiedGeneratedAsset[];
+}
+
+interface GeneratedMechanicsZipAsset {
+  source: string;
+  bytes: Uint8Array;
+}
+
+export function createGeneratedMechanicsZip(
+  mechanics: {
+    boundary: GeneratedMechanicsZipAsset;
+    parts: GeneratedMechanicsZipAsset[];
+  },
+): Uint8Array {
+  const entries: Record<string, Uint8Array> = {};
+  const assets = [mechanics.boundary, ...mechanics.parts]
+    .sort((left, right) =>
+      left.source < right.source ? -1 : left.source > right.source ? 1 : 0
+    );
+  for (const asset of assets) {
+    assertPortableProjectAssetSource(asset.source, "Generated STL ZIP entry");
+    if (!asset.source.toLowerCase().endsWith(".stl")) {
+      throw new Error(`Generated STL ZIP entry ${asset.source} must be an STL file.`);
+    }
+    if (entries[asset.source]) {
+      throw new Error(`Generated STL ZIP contains duplicate path ${asset.source}.`);
+    }
+    entries[asset.source] = Uint8Array.from(asset.bytes);
+  }
+  return zipSync(entries, {
+    level: 6,
+    mtime: new Date("1980-01-01T00:00:00.000Z"),
+  });
 }
 
 type FetchAsset = (input: string | URL) => Promise<Response>;

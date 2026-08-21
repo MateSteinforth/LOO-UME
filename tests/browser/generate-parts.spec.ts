@@ -64,6 +64,24 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
     "No printable mechanics exist yet",
   );
 
+  const stlZipPromise = page.waitForEvent("download");
+  await page.locator("#download-print-parts").click();
+  const stlZipDownload = await stlZipPromise;
+  expect(stlZipDownload.suggestedFilename()).toBe(
+    "panel-outline-prism-boundary-fixture-stl-parts.zip",
+  );
+  const stlZipPath = await stlZipDownload.path();
+  if (!stlZipPath) throw new Error("The browser did not expose the STL ZIP.");
+  const stlZipFiles = unzipSync(await readFile(stlZipPath));
+  expect(Object.keys(stlZipFiles).sort()).toEqual([
+    "mechanics/boundary.stl",
+    "mechanics/parts/part-001.stl",
+    "mechanics/parts/part-002.stl",
+  ]);
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Downloaded one ZIP with 3 SHA-256-verified STL files",
+  );
+
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#save-sculpture-file").click();
   const saved = await readJsonDownload(await downloadPromise);
