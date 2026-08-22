@@ -1,10 +1,13 @@
-import { describe, expect, it } from "vitest";
+import type { ManifoldToplevel } from "manifold-3d";
+import { describe, expect, it, vi } from "vitest";
 import {
+  createManifoldRuntimeLoader,
   loadManifoldRuntime,
   MANIFOLD_LICENSE,
   MANIFOLD_PACKAGE,
   MANIFOLD_SOURCE,
   MANIFOLD_VERSION,
+  ManifoldRuntimeUnavailableError,
 } from "../src/cad/ManifoldRuntime.ts";
 
 describe("Manifold runtime", () => {
@@ -13,6 +16,35 @@ describe("Manifold runtime", () => {
     expect(MANIFOLD_VERSION).toBe("3.5.1");
     expect(MANIFOLD_LICENSE).toBe("Apache-2.0");
     expect(MANIFOLD_SOURCE).toBe("https://github.com/elalish/manifold");
+  });
+
+  it("clears a failed cached load and retries the module factory", async () => {
+    const runtime = { setup: vi.fn() } as unknown as ManifoldToplevel;
+    const factory = vi.fn()
+      .mockRejectedValueOnce(new Error("first load failed"))
+      .mockResolvedValue(runtime);
+    const load = createManifoldRuntimeLoader(factory);
+
+    await expect(load()).rejects.toBeInstanceOf(
+      ManifoldRuntimeUnavailableError,
+    );
+    await expect(load()).resolves.toBe(runtime);
+    await expect(load()).resolves.toBe(runtime);
+    expect(factory).toHaveBeenCalledTimes(2);
+    expect(runtime.setup).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks only runtime-load failures with a dedicated error type", () => {
+    const cause = new Error("test loader failure");
+    const error = new ManifoldRuntimeUnavailableError(cause);
+    expect(error).toBeInstanceOf(ManifoldRuntimeUnavailableError);
+    expect(error.cause).toBe(cause);
+    expect(error.message).toBe(
+      "Manifold WASM could not be loaded: test loader failure",
+    );
+    expect(new Error("Manifold closure is not valid")).not.toBeInstanceOf(
+      ManifoldRuntimeUnavailableError,
+    );
   });
 
   it("loads WASM and subtracts a cylinder from a cube", async () => {

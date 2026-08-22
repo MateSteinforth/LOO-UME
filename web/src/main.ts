@@ -72,6 +72,10 @@ import {
   renderStandaloneWiringAssemblyManualDocument,
 } from "./WiringAssemblyManual.ts";
 import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
+import {
+  readEditorPipelineResult,
+  shouldUseEditorPipelineFallback,
+} from "./EditorPipelineResponse.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
@@ -1871,10 +1875,7 @@ async function start(): Promise<void> {
               `Generated and SHA-256 verified ${partCount} exact printable STL files in the browser.`;
             viewerError.hidden = true;
           } catch (inProcessError) {
-            const inProcessMessage = inProcessError instanceof Error
-              ? inProcessError.message
-              : String(inProcessError);
-            if (!/manifold|wasm|WebAssembly/i.test(inProcessMessage)) {
+            if (!shouldUseEditorPipelineFallback(inProcessError)) {
               throw inProcessError;
             }
             const response = await fetch("./api/editor-pipeline", {
@@ -1884,14 +1885,7 @@ async function start(): Promise<void> {
               availableProjectAssets,
             ),
           });
-          const result = (await response.json()) as {
-            ok?: boolean;
-            assetSculptureId?: string;
-            log?: string;
-            definition?: unknown;
-            projectSource?: string;
-            error?: string;
-          };
+          const result = await readEditorPipelineResult(response);
           if (!response.ok || !result.ok || !result.assetSculptureId || !result.definition) {
             throw new Error(
               result.error ?? `Pipeline failed with HTTP ${response.status}.`,

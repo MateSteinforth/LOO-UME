@@ -493,3 +493,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/browser/mechanics-free-authoring.spec.ts` asserts the
   reduced interface and advancing engine timeline.
 - **Status:** Resolved.
+
+### F-027 — A geometry error entered the runtime fallback and parsed HTML as JSON
+
+- **Date:** 2026-08-22
+- **Context:** Browser boundary and printable-part generation on a LAN review
+  server.
+- **Symptom:** The console reported `Unexpected token '<'` because `<!doctype`
+  application HTML was passed to `Response.json()`.
+- **Cause:** A broad text match treated all errors containing `Manifold` as a
+  WASM-load failure. The optional local endpoint then returned the static app
+  fallback instead of a pipeline JSON response.
+- **Correction:** Use a dedicated `ManifoldRuntimeUnavailableError` for the
+  only condition that can enter the local fallback. Validate the response media
+  type, JSON syntax, and object shape before reading pipeline fields.
+- **Prevention:** Route fallback behavior by typed failure category, not a
+  product-name substring. Validate response contracts before parsing bodies.
+- **Evidence:** `tests/manifold-runtime.test.ts`,
+  `tests/editor-pipeline-response.test.ts`, and the real browser generation and
+  ZIP-reopen journey.
+- **Status:** Resolved.

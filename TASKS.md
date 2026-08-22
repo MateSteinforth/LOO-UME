@@ -349,6 +349,24 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `UI-017` Prevent HTML fallback responses from becoming JSON errors
+
+- Outcome: browser part generation reports the real in-process geometry error
+  and uses the optional local service only for an explicit Manifold runtime-load
+  failure.
+- Acceptance: geometry errors containing the word Manifold do not call the
+  local fallback; runtime-load failures can still use it; non-JSON, malformed,
+  or wrong-shaped fallback responses produce a clear bounded error instead of
+  `Unexpected token '<'`; existing generation works end to end.
+- Depends on: `UI-016` and the integrated in-browser Manifold path.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `src/cad/ManifoldRuntime.ts`, `web/src/main.ts`, and focused
+  runtime/response tests.
+- Verification: independent re-review found no remaining findings; focused
+  runtime, response-contract, and closure tests passed 11/11; browser generation
+  and ZIP reopen passed 1/1; full unit suite passed 291/291; TypeScript, Vite
+  build, and `git diff --check` passed.
+
 ### `UI-016` Remove redundant simulator chrome and controls
 
 - Outcome: the simulator keeps its primary authoring, wiring, generation, and

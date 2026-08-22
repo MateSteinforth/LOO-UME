@@ -266,6 +266,10 @@ plugin adapts the same `createEditorPipelineHandler()` during development.
 Generic printable-part generation uses pinned `manifold-3d` 3.5.1 in Node and
 in the browser; it does not install, probe, or execute OpenSCAD.
 The local status endpoint reports `generator: "manifold"` and version `3.5.1`.
+The browser uses the local pipeline only when Manifold WASM explicitly fails to
+load. Geometry and validation errors stay in the in-browser path. Responses
+from the optional pipeline must be JSON objects; an HTML application fallback
+is rejected with a stable operator error.
 The browser disables only printable generation when that status is absent,
 malformed, or unavailable; pose editing, simulation, mapping, wiring, and
 persistence remain usable.
