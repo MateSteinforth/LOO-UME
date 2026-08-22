@@ -40,6 +40,10 @@ uses `createPanelAssemblyMapping()`.
   may constrain editing but must not silently replace a saved pose.
 - Mapping, wiring, and simulation must continue after a panel edit even when
   printable mechanics are stale or unavailable.
+- Keep the primary operator workflow state-aware and artifact-complete. Prefer
+  one action that changes from build to download over separate sequential
+  buttons, and keep raw/debug exports under Advanced when one self-contained
+  project or assembly package is the normal handoff.
 - Schema 2 mechanics are optional. Omitting `manualMechanics`,
   `mechanicalShell`, and `closures` is the implemented mechanics-free state:
   load GLB, place/edit panels, simulate, map, wire, save, and reload before any

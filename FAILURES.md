@@ -513,3 +513,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   `tests/editor-pipeline-response.test.ts`, and the real browser generation and
   ZIP-reopen journey.
 - **Status:** Resolved.
+
+### F-028 — Separate project and fabrication controls produced a fragmented handoff
+
+- **Date:** 2026-08-22
+- **Context:** Operator preparation for physical panel and wiring assembly.
+- **Symptom:** JSON, folder, ZIP, STL, manual, ledmap, and wiring-review actions
+  appeared as separate primary buttons. The operator had to know which sequence
+  produced a complete current package.
+- **Cause:** Each subsystem added its own import or export control instead of
+  joining verified outputs at the project handoff boundary.
+- **Correction:** Use one Open project menu, ZIP-first Save, one Build/Download
+  assembly action, one Edit/Save route action, and one complete assembly ZIP.
+  Keep raw and individual files in compact secondary menus.
+- **Prevention:** When several files describe one physical build, export them
+  from one current in-memory contract and test exact package contents plus
+  reopen. Prefer stateful actions over separate prerequisite/result buttons.
+- **Evidence:** `tests/assembly-package.test.ts` and the Playwright generation,
+  portable-project, and wiring-route journeys.
+- **Status:** Resolved.

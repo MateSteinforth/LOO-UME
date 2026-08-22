@@ -6,6 +6,11 @@ async function chooseFile(
   buttonSelector: string,
   file: { name: string; mimeType: string; buffer: Buffer },
 ): Promise<void> {
+  if (buttonSelector === "#open-project-file") {
+    await page.locator(".action-menu").first().evaluate((element) => {
+      (element as HTMLDetailsElement).open = true;
+    });
+  }
   const chooserPromise = page.waitForEvent("filechooser");
   await page.locator(buttonSelector).click();
   const chooser = await chooserPromise;
@@ -18,7 +23,8 @@ async function readJsonDownload(download: Download): Promise<Record<string, unkn
   return JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
 }
 
-test("copies, confirms, saves, and reopens an authored wiring route", async ({ page }) => {
+test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
+  test.setTimeout(240_000);
   await page.goto("/");
   await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
   await expect(page.locator("#surface-status")).toContainText(
@@ -51,7 +57,8 @@ test("copies, confirms, saves, and reopens an authored wiring route", async ({ p
     delete transform.optimizationFingerprint;
   }
   const projectBytes = Buffer.from(JSON.stringify(project));
-  await chooseFile(page, "#load-sculpture-file", {
+  await page.locator(".action-menu").first().locator("summary").click();
+  await chooseFile(page, "#open-project-file", {
     name: "rhombicosidodecahedron.json",
     mimeType: "application/json",
     buffer: projectBytes,
@@ -59,24 +66,46 @@ test("copies, confirms, saves, and reopens an authored wiring route", async ({ p
   await expect(page.locator("#route-editor-section")).toBeVisible();
   await expect(page.locator(".route-panel")).toHaveCount(41);
   await expect(page.locator("#route-editor-note")).toContainText("draft suggestion");
-  await expect(page.locator("#copy-draft-route")).toBeVisible();
-  await expect(page.locator("#confirm-wiring-route")).toBeDisabled();
+  await expect(page.locator("#route-action")).toHaveText("Edit suggested route");
   await expect(page.locator(".route-output legend").first()).toContainText(
     "GPIO 16",
   );
   await expect(page.locator(".route-panel").first()).toContainText("Controller →");
 
-  await page.locator("#copy-draft-route").click();
+  const selectedPanelId = await page.locator(".route-panel").first()
+    .getAttribute("data-panel-id");
+  if (!selectedPanelId) throw new Error("The first route row has no panel ID.");
+  await page.locator(".route-panel").first().click();
+  await expect(page.locator("#selected-panel-status")).toContainText(
+    `Selected ${selectedPanelId}`,
+  );
+  await expect(page.getByRole("button", {
+    name: `Delete selected panel ${selectedPanelId}`,
+  })).toBeVisible();
+  await expect(page.locator(".route-panel button")).toHaveCount(0);
+
+  await page.locator("#route-action").click();
+  await expect(page.locator("#route-action")).toHaveText("Save route");
+  const firstOutputSelect = page.locator(".route-panel select").first();
+  const nestedSpaceWasNotCancelled = await firstOutputSelect.evaluate((element) =>
+    element.dispatchEvent(new KeyboardEvent("keydown", {
+      key: " ",
+      bubbles: true,
+      cancelable: true,
+    }))
+  );
+  expect(nestedSpaceWasNotCancelled).toBe(true);
   const firstRoutePanel = page.locator(".route-panel").first();
   const originalFirstPanel = await firstRoutePanel.getAttribute("data-panel-id");
-  await firstRoutePanel.getByRole("button", { name: /down in/i }).click();
-  await expect(page.locator("#confirm-wiring-route")).toBeEnabled();
-  await page.locator("#confirm-wiring-route").click();
+  await firstRoutePanel.dragTo(page.locator(".route-panel").nth(2));
+  await expect(page.locator("#route-action")).toBeEnabled();
+  await page.locator("#route-action").click();
   await expect(page.locator("#pipeline-status")).toContainText(
-    "Confirmed wiring route revision 1",
+    "Saved wiring route revision 1",
   );
   await expect(page.locator("#route-editor-note")).toContainText("saved authored route");
 
+  await page.locator("#advanced-tools > summary").click();
   const savedDownloadPromise = page.waitForEvent("download");
   await page.locator("#save-sculpture-file").click();
   const saved = await readJsonDownload(await savedDownloadPromise);
@@ -90,7 +119,7 @@ test("copies, confirms, saves, and reopens an authored wiring route", async ({ p
   }).outputs[0]!.panelIds;
   expect(savedPanelIds[0]).not.toBe(originalFirstPanel);
 
-  await chooseFile(page, "#load-sculpture-file", {
+  await chooseFile(page, "#open-project-file", {
     name: "reopened-authored-route.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(saved)),

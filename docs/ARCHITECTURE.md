@@ -37,7 +37,7 @@ adding another pose authority:
 ```text
 referenced GLB -> automatic placement -> manual pose edits
                                       |
-                               Generate 3D Parts
+                           Build assembly package
                                       |
  panel poses + profile -> panel outlines -> detect or reuse corner-only gap cycles
                                       |
@@ -166,7 +166,7 @@ gates.
    positions. A stale saved route remains evidence under `requires-review`; an
    incomplete stale route uses a temporary draft preview.
    `WiringRouteEditor.ts` keeps route changes in browser-only working state. An
-   explicit confirmation writes the exact panel order and a new route revision;
+   **Save route** writes the exact panel order and a new route revision;
    it does not create measured, GPIO, or hardware-ready facts.
    `createHardwareMappingContract()` assigns physical indices and builds the
    WLED ledmap.
@@ -176,25 +176,28 @@ gates.
    retain their ready status. Draft and temporary suggestions also export, but
    the manual labels them **DRAFT SUGGESTION**, shows missing GPIOs as
    unassigned, and identifies non-optimized installed turns as assumptions.
-   The editor exports this manual as one self-contained HTML file with embedded
-   print CSS, without a popup handshake. A generated-parts ZIP includes that
-   HTML for both mapping-ready and draft routes.
+   The editor can export this manual as one self-contained HTML file from the
+   individual-files menu. The assembly package includes the same HTML for both
+   mapping-ready and draft routes.
 6. Three.js renders panels, LEDs, surfaces, connectors, wiring, and available
    printable layers. One selected panel ID drives all selection-focused UI.
 7. Every edit rebuilds mapping and wiring. Existing generated mechanics become
    `requires-regeneration`; manual mechanics become `requires-review`; a project
    that has never had mechanics remains mechanics-free without a stale status.
-8. When the browser discovers an available local generator, **Generate 3D
-   Parts** detects `boundaryTopology` when it is absent, persists the detected
+8. When generation is required, **Build assembly package** detects
+   `boundaryTopology` when it is absent, persists the detected
    cycles in the generated Schema 2 JSON, validates the complete boundary, and
    only then invokes printable-part CAD. Ambiguous exposed-edge junctions and
    invalid boundaries fail without replacing the last successful bundle.
    Detection saves unambiguous cycles without a confirmation step. The browser
    has no control to accept, reject, reorder, or redraw those cycles.
-9. Folder and ZIP project import validate the same relative assets and hashes,
-   then expose GLB/STL bytes through browser object URLs. Folder/ZIP export uses
-   only verified in-memory bytes. JSON, ledmap, and wiring remain client-side
-   downloads. Local CAD writes an isolated preview under `build/`.
+9. One Open project menu routes JSON, folder, and ZIP input through the existing
+   loaders. **Save project ZIP** is the primary project save. Raw JSON and folder
+   export remain under Advanced tools.
+10. When mechanics are current, the same assembly button downloads one ZIP with
+   `sculpture.json`, the referenced GLB when present, boundary and part STLs,
+   `assembly-manual.html`, `ledmap.json`, and `wiring-review.json`. It uses only
+   verified in-memory project assets.
 
 There is no database or browser `localStorage`. Persistence is loaded or
 downloaded JSON, optional GLB references, generated downloads, and development
@@ -323,8 +326,8 @@ The repository has three verification layers, and they prove different things:
   Manifold solids, mapping/wiring, portable assets, and the deterministic WLED
   host. Manual SCAD remains outside generic generation.
 - Playwright Chromium has four operator journeys: mechanics-free authoring,
-  portable folder/ZIP round-trip, authored wiring-route confirmation, and real
-  **Generate 3D Parts** Manifold STL export.
+  portable folder/ZIP round-trip, drag/drop wiring-route save, and real
+  assembly-package build, download, content inspection, and reopen.
 - CI rebuilds the pinned WLED runtime, runs TypeScript and Vite checks, and
   generates the prism fixture with Manifold. Canonical manual SCAD rendering
   remains a separate verification route.

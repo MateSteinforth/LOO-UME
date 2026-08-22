@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { expect, test, type Download, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { unzipSync } from "fflate";
 
 async function chooseFile(
@@ -7,16 +7,15 @@ async function chooseFile(
   buttonSelector: string,
   file: { name: string; mimeType: string; buffer: Buffer },
 ): Promise<void> {
+  if (buttonSelector === "#open-project-file") {
+    await page.locator(".action-menu").first().evaluate((element) => {
+      (element as HTMLDetailsElement).open = true;
+    });
+  }
   const chooserPromise = page.waitForEvent("filechooser");
   await page.locator(buttonSelector).click();
   const chooser = await chooserPromise;
   await chooser.setFiles(file);
-}
-
-async function readJsonDownload(download: Download): Promise<Record<string, unknown>> {
-  const path = await download.path();
-  if (!path) throw new Error("The browser did not expose the downloaded JSON file.");
-  return JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
 }
 
 test("generates exact Manifold parts through the real UI and reopens a ZIP", async ({
@@ -41,7 +40,8 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   await expect(page.locator("#surface-status")).toContainText("watertight");
   await expect(page.locator("#automatically-place-panels")).toBeEnabled();
 
-  await chooseFile(page, "#load-sculpture-file", {
+  await page.locator(".action-menu").first().locator("summary").click();
+  await chooseFile(page, "#open-project-file", {
     name: "panel-outline-prism.json",
     mimeType: "application/json",
     buffer: Buffer.from(`${JSON.stringify(source)}\n`),
@@ -53,7 +53,11 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   await expect(page.locator("#mapping-note")).toContainText(
     "No printable mechanics exist yet",
   );
-  await expect(page.locator("#generate-print-parts")).toBeEnabled();
+  await expect(page.locator("#assembly-package")).toHaveText(
+    "Build assembly package",
+  );
+  await expect(page.locator("#assembly-package")).toBeEnabled();
+  await page.locator(".export-menu > summary").click();
   const draftManualPromise = page.waitForEvent("download");
   await page.locator("#open-wiring-manual").click();
   const draftManualPath = await (await draftManualPromise).path();
@@ -70,42 +74,52 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
     "Downloaded panel-outline-prism-boundary-fixture-assembly-manual.html",
   );
 
-  await page.locator("#generate-print-parts").click();
-  await expect(page.locator("#pipeline-status")).toContainText(
-    "Generated and SHA-256 verified",
+  await page.locator("#assembly-package").click();
+  await expect(page.locator("#assembly-package")).toHaveText(
+    "Download assembly package",
     { timeout: 120_000 },
   );
   await expect(page.locator("#mapping-note")).not.toContainText(
     "No printable mechanics exist yet",
   );
 
-  const stlZipPromise = page.waitForEvent("download");
-  await page.locator("#download-print-parts").click();
-  const stlZipDownload = await stlZipPromise;
-  expect(stlZipDownload.suggestedFilename()).toBe(
-    "panel-outline-prism-boundary-fixture-stl-parts.zip",
+  const packagePromise = page.waitForEvent("download");
+  await page.locator("#assembly-package").click();
+  const packageDownload = await packagePromise;
+  expect(packageDownload.suggestedFilename()).toBe(
+    "panel-outline-prism-boundary-fixture-assembly-package.zip",
   );
-  const stlZipPath = await stlZipDownload.path();
-  if (!stlZipPath) throw new Error("The browser did not expose the STL ZIP.");
-  const stlZipFiles = unzipSync(await readFile(stlZipPath));
-  expect(Object.keys(stlZipFiles).sort()).toEqual([
-    "assembly-manual.html",
-    "mechanics/boundary.stl",
-    "mechanics/parts/part-001.stl",
-    "mechanics/parts/part-002.stl",
+  const packagePath = await packageDownload.path();
+  if (!packagePath) throw new Error("The browser did not expose the assembly package.");
+  const packageBytes = await readFile(packagePath);
+  const packageFiles = unzipSync(packageBytes);
+  const root = "panel-outline-prism-boundary-fixture/";
+  expect(Object.keys(packageFiles).sort()).toEqual([
+    `${root}assembly-manual.html`,
+    `${root}ledmap.json`,
+    `${root}mechanics/boundary.stl`,
+    `${root}mechanics/parts/part-001.stl`,
+    `${root}mechanics/parts/part-002.stl`,
+    `${root}sculpture.json`,
+    `${root}wiring-review.json`,
   ]);
   await expect(page.locator("#pipeline-status")).toContainText(
-    "Downloaded one ZIP with 3 SHA-256-verified STL files",
+    "project, verified geometry, assembly manual, ledmap, and wiring review",
   );
   const bundledManual = new TextDecoder().decode(
-    stlZipFiles["assembly-manual.html"],
+    packageFiles[`${root}assembly-manual.html`],
   );
   expect(bundledManual).toContain("DRAFT SUGGESTION");
   expect(bundledManual).toContain("GPIO unassigned");
-
-  const downloadPromise = page.waitForEvent("download");
-  await page.locator("#save-sculpture-file").click();
-  const saved = await readJsonDownload(await downloadPromise);
+  expect(JSON.parse(new TextDecoder().decode(
+    packageFiles[`${root}ledmap.json`],
+  ))).toHaveProperty("map");
+  expect(JSON.parse(new TextDecoder().decode(
+    packageFiles[`${root}wiring-review.json`],
+  ))).toMatchObject({ status: "draft", sculptureId: source.id });
+  const saved = JSON.parse(new TextDecoder().decode(
+    packageFiles[`${root}sculpture.json`],
+  )) as Record<string, unknown>;
   expect(saved.boundaryTopology).toMatchObject({
     kind: "panel-outline-gap-cycles",
   });
@@ -117,16 +131,14 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
     ],
   });
 
-  const zipPromise = page.waitForEvent("download");
-  await page.locator("#export-project-zip").click();
-  const zipPath = await (await zipPromise).path();
-  if (!zipPath) throw new Error("The browser did not expose the generated ZIP.");
-  const zipBytes = await readFile(zipPath);
-  const files = unzipSync(zipBytes);
-  const names = Object.keys(files);
-  expect(names.some((name) => name.endsWith("sculpture.json"))).toBe(true);
-  expect(names.some((name) => name.endsWith("part-001.stl"))).toBe(true);
-  expect(names.some((name) => name.endsWith("part-002.stl"))).toBe(true);
+  await chooseFile(page, "#open-project-file", {
+    name: "assembly-package.zip",
+    mimeType: "application/zip",
+    buffer: packageBytes,
+  });
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Loaded complete project assembly-package.zip",
+  );
 
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);

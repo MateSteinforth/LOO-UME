@@ -349,6 +349,35 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `UI-018` Unify project, route, and assembly-package workflow
+
+- Outcome: the primary operator path is Open project, edit panels/wiring, then
+  Build or Download one complete assembly package.
+- Acceptance:
+  - one compact Open project control handles JSON, folder, and ZIP input;
+    project ZIP is the primary Save action; raw JSON, folder export, custom URL,
+    and virtual LED count are under Advanced tools;
+  - one state-aware assembly button builds current mechanics when required and
+    otherwise downloads a ZIP containing `sculpture.json`, referenced GLB,
+    boundary/part STLs, `assembly-manual.html`, `ledmap.json`, and
+    `wiring-review.json` from the same in-memory contract;
+  - standalone manual and mapping downloads live in Export individual files;
+  - one route action changes from Edit suggested route to Save route; route rows
+    select their panel and use drag/drop ordering with no Select or Up/Down
+    buttons;
+  - Add panel appears only after an eligible closure face is selected; Delete
+    panel remains a contextual viewer action.
+- Depends on: `UI-017`, portable-project byte verification, route editor, and
+  in-browser Manifold generation.
+- Owner: `codex/ui018-unified-workflow` in `/tmp/led-rhombo-ui018`.
+- Likely conflicts: `web/src/main.ts`, `web/src/styles.css`, portable/package
+  export modules, route-editor code, browser tests, and operator docs.
+- Verification: independent re-review found no remaining findings; full unit
+  suite passed 293/293; package/route focused tests passed 6/6; combined
+  portable-project and route Playwright journeys passed 2/2, and the package
+  build/reopen, mechanics-free, and manual journeys passed 3/3; TypeScript,
+  Vite build, and `git diff --check` passed.
+
 ### `UI-017` Prevent HTML fallback responses from becoming JSON errors
 
 - Outcome: browser part generation reports the real in-process geometry error

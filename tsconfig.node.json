@@ -26,6 +26,7 @@
     "web/src/ManualHandshake.ts",
     "web/src/EditorCapabilities.ts",
     "web/src/EditorPipelineResponse.ts",
+    "web/src/AssemblyPackage.ts",
     "web/src/DesignSurfaceLoader.ts",
     "web/src/EditorPipelineRequest.ts",
     "web/src/GeneratedMechanicsAssets.ts",

@@ -12,6 +12,7 @@ test("downloads the mapping-ready assembly manual without a popup", async ({
   );
   await expect(page.locator("#panel-count-display")).toHaveText("41");
   await expect(page.locator("#open-wiring-manual")).toBeEnabled();
+  await page.locator(".export-menu > summary").click();
 
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#open-wiring-manual").click();

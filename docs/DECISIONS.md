@@ -393,6 +393,26 @@ modified files, and a contradictory re-hashed bus configuration.
 status is `assumed-mapping-ready`. The external identity is the manifest
 SHA-256. Credentials never enter this bundle.
 
+## D17 — One assembly package is the primary fabrication handoff
+
+**Decision.** The main operator path uses one Open project menu, project ZIP as
+the normal save format, and one state-aware assembly-package action. That action
+builds missing or stale generic mechanics, then changes to a download action.
+The downloaded ZIP joins the authoritative project and verified GLB/STL bytes
+with the printable manual, WLED ledmap, and wiring review. Raw JSON, folder
+export, custom URL input, virtual LED count, and separate mapping/manual files
+remain available in compact Advanced or individual-export menus.
+
+**Evidence.** The portable-project layer already verifies relative paths,
+hashes, and exact in-memory GLB/STL bytes. The mapping compiler and manual
+renderer already consume the same current project. Joining those outputs at the
+download boundary avoids another geometry, pose, route, or mapping authority.
+
+**Consequence.** A current assembly package is self-contained and reopens as a
+normal project ZIP. The editor does not publish an assembly package before
+mechanics are current. Route editing uses one Edit/Save action and drag/drop
+rows; clicking a row selects the contextual viewer panel and its Delete control.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
