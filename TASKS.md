@@ -1,8 +1,8 @@
 # Project task board
 
 Last reconciled: 2026-08-22
-Integration baseline: `main` at `33d6455`, including the unified UI through
-`UI-018`, the Manifold-only fabrication route, and the agentic workflow.
+Integration baseline: `main`, including the unified UI through `UI-018`, the
+Manifold-only fabrication route, and the agentic workflow.
 
 Current milestone: produce one guarded simulator-to-ESP32 deployment contract,
 then prove static address and RGB parity on the physical 41-panel sculpture.
