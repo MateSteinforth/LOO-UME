@@ -40,7 +40,7 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: existing Schema 2 panel JSON produces normalized anchors, a
   candidate and optimized 3D truss, printable brackets/hubs/struts, exact STL
   and 3MF assets, an exact-mesh preview, and an engineering report.
-- Acceptance: `TRUSS-011` through `TRUSS-018` pass; panel poses and panel
+- Acceptance: `TRUSS-011` through `TRUSS-029` pass; panel poses and panel
   profiles remain the only panel-geometry authorities; the report states that
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
@@ -367,6 +367,27 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `TRUSS-026` through `TRUSS-029` Generate cap-derived implicit organic connectors — P0
+
+- Outcome: each local connector side starts with broad rounded mounting shoes
+  derived from the canonical fixtures, then grows into one smooth bounded
+  implicit body around the optimized local load-path skeleton.
+- Acceptance: one watertight body is produced per panel-pair cell; all retained
+  member sections are contained; exact pilots, lead-ins, nut pockets, cable
+  voids, orientation marks, 13 mm screw shoes, and proven 0.20/0.50 mm
+  corrections remain after blending; oversize bodies fail clearly; the browser
+  and report distinguish printable organic material from the analysis skeleton.
+- Depends on: `TRUSS-025` and the physically tested files under `parts/`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, structural Manifold generation/tests, pipeline
+  report counts, browser status, and structural workflow documentation.
+- Verify: 13 focused solid/pipeline tests, 335 full Vitest tests, TypeScript,
+  production web build, real Chromium generation journey, Manifold topology and
+  material/void probes, and independent review with no P1/P2 findings.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
 
 ### `TRUSS-021` through `TRUSS-025` Generate modular local structural connectors — P0
 

@@ -17,8 +17,8 @@ use a GLB as printable material.
 - printable member diameter limits and increment, maximum unsupported
   compression length, bracket offset, and cable clearance in mm;
 - modular connector limits: automatic neighbor distance and degree, minimum
-  screw anchors per panel side, print-bed dimensions and margin, maximum strut
-  segment length, and explicit include/exclude panel-pair overrides;
+  screw anchors per panel side, print-bed dimensions and margin, the reserved
+  legacy strut-segment limit, and explicit include/exclude panel-pair overrides;
 - panel or individual-anchor supports with constrained X/Y/Z translations; and
 - panel-face, named panel-corner, or DIN/DOUT cable-pull forces in newtons.
 
@@ -32,9 +32,10 @@ It also rejects duplicate, contradictory, self-referential, or unknown panel
 pairs and any segment limit that does not fit the configured print envelope.
 Omitted connector settings use named deterministic defaults: two automatic
 neighbors, two screw anchors per side, a 250 × 250 × 250 mm print envelope with
-5 mm margin, and 220 mm maximum strut segments.
-Segment length must be at least 1 mm, and one member cannot produce more than
-256 segments. These limits bound imported JSON before large CAD allocation.
+5 mm margin, and a retained 220 mm legacy segment limit. Organic connector v1
+does not split a body at this limit. It rejects a body that does not fit the
+print envelope. The retained value stays validated for Schema 2 compatibility
+and is reserved for a later keyed organic split.
 
 ## Normalized geometry
 
@@ -170,31 +171,33 @@ Only `converged` is eligible for printable generation.
 ## Printable Manifold solids
 
 `buildStructuralSolids()` accepts only a converged optimization with the same
-source fingerprint. It emits two separate panel-side brackets for each local
-panel-pair cell, plus retained strut segments and splice sleeves. It never
-Boolean-unites brackets from unrelated cells into one sculpture-sized part.
+source fingerprint. It emits one cap-derived organic body for each local
+panel-pair cell. It never joins unrelated cells into one sculpture-sized part.
 
-A connector bracket unites exactly its reserved screw bosses, rear hubs,
-offset connector hub, and local bracket ties. The structural anchor stays at
-the exact authored hole. The printed pilot
+A connector body starts with broad 13 mm rounded screw shoes derived from the
+canonical triangle and pentagon fixture language. It unites exactly its
+reserved screw bosses, rear hubs, offset connector hubs, and retained load-path
+skeleton. The structural anchor stays at the exact authored hole. The printed pilot
 moves 0.20 mm inward from the nearest panel edge, consistent with the measured
 hole-edge correction. Printed material starts at the rear PCB surface plus the
 measured 0.50 mm flush correction. Boolean cutters create the profile's 1.60 mm
 pilots and 3.20 × 0.70 mm lead-ins, 4.20 mm
-across-flats M2 nut traps, inter-panel sockets, and configured cable-clearance
-bores at DIN/DOUT-blocked profile holes. A triangular rear mark identifies the
-first stable local tie.
+across-flats M2 pockets and configured cable-clearance bores at DIN/DOUT-blocked
+profile holes. A triangular rear mark identifies the first stable side.
 
-Each short inter-panel strut has socket tenons, full-diameter ends, a narrower
-middle, and a triangular start collar. A longer member becomes stable numbered
-segments and hollow splice sleeves with explicit radial clearance. Part IDs
-carry the panel pair, side, member, segment, and joint identity.
+The hidden printable skeleton becomes capsules whose radius is the optimized
+member radius plus minimum wall. A smooth maximum blends those capsules, and
+Manifold `levelSet()` converts the bounded 1.5 mm field into one watertight web.
+The grid is limited to 2,000,000 cells before allocation. The resulting body
+contains each retained member section, but the axial truss analysis does not
+calculate stress in the blended surface. Oversize organic bodies fail the
+print-envelope check; keyed organic splitting remains a later task.
 
 Before a mesh leaves the Manifold stage, its kernel status, connected-component
 count, volume, bounds, vertices, indices, and triangle areas are checked. Tiny
 Boolean fragments below `0.00001 mm^3` are discarded; more than one printable
 component is an error. All constructed WASM objects are explicitly released.
-The final solid volume of every bracket and strut is also checked against each
+The final solid volume of every connector body is also checked against each
 nearby oriented PCB envelope. Any intersection stops CAD generation.
 Sorted part extents must also fit the configured print-bed dimensions after the
 authored margin and an allowed print rotation.
@@ -242,7 +245,7 @@ emitted project, and publishes only after all files and hashes validate.
 
 `structure/analysis.json` contains active printable supports and load cases, units,
 input source, warnings, the complete design/material/safety policy, candidate
-and connector counts, resolved print envelope, bracket/segment/sleeve counts,
+and connector counts, resolved print envelope, organic body count and mass,
 optimization objective and trace, full load-case node/member results,
 enriched governing member results, and exact print-artifact hashes.
 

@@ -70,10 +70,13 @@ export interface StructuralAnalysisDocument {
   };
   printable: {
     parts: number;
+    organicConnectors: number;
     connectorBrackets: number;
     strutSegments: number;
     spliceSleeves: number;
     splitMembers: number;
+    materialVolumeCubicMm: number;
+    materialMassKg: number;
   };
   optimization: {
     status: TrussOptimizationResult["status"];
@@ -166,7 +169,8 @@ function assumptions(normalized: NormalizedStructuralDesign): string[] {
   return [
     "Panels are rigid load-transfer plates between their eligible mounting anchors.",
     "Panel-rigidity nodes and ties represent PCB/bracket plate stiffness for analysis only; they are not extra printable struts.",
-    "Each printable connector cell joins one neighboring panel pair through two screw anchors per side and a triangulated bracket hub.",
+    "Each printable connector cell joins one neighboring panel pair through two screw anchors per side and one cap-derived implicit organic web.",
+    "The organic web contains every retained printable truss-member section, but the axial skeleton analysis does not certify stresses in the blended solid.",
     "Members are straight, pin-jointed, linearly elastic axial truss elements with three translational node degrees of freedom.",
     "Euler compression capacity uses a pinned-pinned end condition and the optimized circular section.",
     "Face loads are distributed across panel hubs; corner and cable loads use the nearest eligible hub as a rigid-bracket approximation.",
@@ -248,11 +252,15 @@ function analysisDocument(
     },
     printable: {
       parts: solids.length,
+      organicConnectors: solids.filter(({ kind }) => kind === "organic-connector").length,
       connectorBrackets: solids.filter(({ kind }) => kind === "connector-bracket").length,
       strutSegments: solids.filter(({ kind }) => kind === "strut-segment").length,
       spliceSleeves: solids.filter(({ kind }) => kind === "splice-sleeve").length,
       splitMembers: new Set(solids.filter(({ segmentCount }) => (segmentCount ?? 1) > 1)
         .map(({ memberId }) => memberId)).size,
+      materialVolumeCubicMm: solids.reduce((sum, solid) => sum + solid.volumeCubicMm, 0),
+      materialMassKg: solids.reduce((sum, solid) => sum + solid.volumeCubicMm, 0) *
+        1e-9 * normalized.design.material.densityKgPerCubicMeter,
     },
     optimization: {
       status: optimization.status,
@@ -303,10 +311,11 @@ function report(
     `- Safety factor: ${finite(analysis.design.safetyFactor)}`,
     `- Material: ${markdown(analysis.design.material.id)}; E ${finite(analysis.design.material.youngsModulusMpa)} MPa; yield ${finite(analysis.design.material.yieldStrengthMpa)} MPa; density ${finite(analysis.design.material.densityKgPerCubicMeter)} kg/m^3`,
     `- Panel mass: ${finite(analysis.design.panelMassKg)} kg each`,
-    `- Optimized material: ${finite(analysis.optimization.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.optimization.materialMassKg, 5)} kg`,
+    `- Optimized axial-skeleton material: ${finite(analysis.optimization.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.optimization.materialMassKg, 5)} kg`,
+    `- Final printable organic material: ${finite(analysis.printable.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.printable.materialMassKg, 5)} kg`,
     `- Candidate members: ${analysis.candidate.initialMembers}; retained: ${analysis.candidate.retainedMembers}`,
     `- Local panel-pair connectors: ${analysis.candidate.connectorCells}`,
-    `- Printable parts: ${analysis.printable.parts}; two-hole brackets: ${analysis.printable.connectorBrackets}; strut segments: ${analysis.printable.strutSegments}; splice sleeves: ${analysis.printable.spliceSleeves}`,
+    `- Printable parts: ${analysis.printable.parts}; organic connector bodies: ${analysis.printable.organicConnectors}; separate brackets: ${analysis.printable.connectorBrackets}; strut segments: ${analysis.printable.strutSegments}; splice sleeves: ${analysis.printable.spliceSleeves}`,
     `- Split members: ${analysis.printable.splitMembers}`,
     `- Print envelope: ${analysis.connectorization.printBedSizeMm.join(" × ")} mm with ${finite(analysis.connectorization.printBedMarginMm)} mm margin`,
     "",

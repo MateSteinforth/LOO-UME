@@ -39,7 +39,8 @@ beforeAll(async () => {
 describe("headless structural system pipeline", () => {
   it("runs existing Schema 2 JSON through analysis, printable assets, reports, and a current manifest", () => {
     expect(result.optimization.status).toBe("converged");
-    expect(result.solids.length).toBeGreaterThan(2);
+    expect(result.solids).toHaveLength(result.candidate.connectorCells.length);
+    expect(result.solids.every(({ kind }) => kind === "organic-connector")).toBe(true);
     expect(result.bundle.files).toHaveLength(result.solids.length + 6);
     expect(() => validateStructuralArtifactBundle(result.bundle)).not.toThrow();
     expect(result.generatedStructure.artifacts).toHaveLength(result.solids.length + 4);

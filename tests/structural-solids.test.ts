@@ -25,19 +25,12 @@ async function structuralFixture(bracketOffsetMm?: number) {
 }
 
 describe("Manifold structural solids", () => {
-  it("builds separated watertight panel brackets and tapered socket struts", async () => {
+  it("builds one watertight organic body per local connector cell", async () => {
     const { normalized, optimized } = await structuralFixture();
     const parts = await buildStructuralSolids(normalized, optimized);
-    const interMembers = optimized.optimizedCandidate.members.filter(
-      ({ kind }) => kind === "inter-panel",
-    );
-
-    expect(parts).toHaveLength(
-      optimized.optimizedCandidate.connectorCells.length * 2 + interMembers.length,
-    );
+    expect(parts).toHaveLength(optimized.optimizedCandidate.connectorCells.length);
     expect(new Set(parts.map(({ partId }) => partId)).size).toBe(parts.length);
-    expect(parts.filter(({ kind }) => kind === "connector-bracket")).toHaveLength(2);
-    expect(parts.filter(({ kind }) => kind === "strut-segment")).toHaveLength(interMembers.length);
+    expect(parts.every(({ kind }) => kind === "organic-connector")).toBe(true);
     for (const part of parts) {
       expect(part.status).toBe("NoError");
       expect(part.volumeCubicMm).toBeGreaterThan(1);
@@ -47,7 +40,7 @@ describe("Manifold structural solids", () => {
       expect(part.boundingBoxMm.max.every((value, index) =>
         value > part.boundingBoxMm.min[index]!
       )).toBe(true);
-      if (part.kind === "strut-segment") expect(part.genus).toBe(0);
+      expect(part.genus).toBe(part.anchorIds.length);
     }
   });
 
@@ -56,10 +49,10 @@ describe("Manifold structural solids", () => {
     const parts = await buildStructuralSolids(normalized, optimized);
     const cell = optimized.optimizedCandidate.connectorCells[0]!;
     const bracket = parts.find(({ partId }) =>
-      partId === "connector-bracket:P-01--P-02:side:P-01"
+      partId === "organic-connector:P-01--P-02"
     )!;
     const panelAnchors = normalized.anchors.filter(({ id }) =>
-      cell.panelAnchorIds[0].includes(id)
+      cell.panelAnchorIds.flat().includes(id)
     );
 
     expect(bracket.anchorIds).toEqual(panelAnchors.map(({ id }) => id));
@@ -69,13 +62,10 @@ describe("Manifold structural solids", () => {
     expect(bracket.printedPilotDiameterMm).toBe(1.6);
     expect(bracket.holeEdgeCorrectionMm).toBe(0.2);
     expect(bracket.surfaceFlushCorrectionMm).toBe(0.5);
-    expect(bracket.screwHoleCentersMm.map(({ x }) => Math.abs(x))).toEqual([
-      24.8, 24.8,
-    ]);
-    expect(bracket.screwHoleCentersMm).toHaveLength(2);
-    expect(bracket.nutTrapCentersMm).toHaveLength(2);
-    expect(bracket.cableClearanceCentersMm).toHaveLength(2);
-    expect(bracket.socketCentersMm).toHaveLength(9);
+    expect(bracket.screwHoleCentersMm).toHaveLength(4);
+    expect(bracket.nutTrapCentersMm).toHaveLength(4);
+    expect(bracket.cableClearanceCentersMm).toHaveLength(4);
+    expect(bracket.socketCentersMm).toHaveLength(0);
     for (const point of [
       ...bracket.screwHoleCentersMm,
       ...bracket.nutTrapCentersMm,
@@ -91,15 +81,25 @@ describe("Manifold structural solids", () => {
     expect(STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm).toBe(4.2);
   });
 
-  it("splits long connector struts into print-bed-bounded segments and sleeves", async () => {
+  it("contains the retained truss skeleton inside one print-bed-bounded web", async () => {
     const { normalized, optimized } = await structuralFixture();
-    normalized.connectorization.maximumStrutSegmentLengthMm = 30;
     const parts = await buildStructuralSolids(normalized, optimized);
-    const segments = parts.filter(({ kind }) => kind === "strut-segment");
-    const sleeves = parts.filter(({ kind }) => kind === "splice-sleeve");
-
-    expect(segments.some(({ segmentCount }) => (segmentCount ?? 1) > 1)).toBe(true);
-    expect(sleeves.length).toBeGreaterThan(0);
+    const body = parts[0]!;
+    const nodeById = new Map(optimized.optimizedCandidate.nodes.map((node) => [node.id, node]));
+    const cell = optimized.optimizedCandidate.connectorCells[0]!;
+    for (const memberId of [
+      ...cell.memberIds,
+      ...cell.bracketTieMemberIds.flat(),
+    ]) {
+      const member = optimized.optimizedCandidate.members.find(({ id }) => id === memberId)!;
+      const start = nodeById.get(member.startNodeId)!.positionMm;
+      const end = nodeById.get(member.endNodeId)!.positionMm;
+      expect(await structuralMeshContainsPoint(body, {
+        x: (start[0] + end[0]) / 2,
+        y: (start[1] + end[1]) / 2,
+        z: (start[2] + end[2]) / 2,
+      })).toBe(true);
+    }
     expect(parts.every(({ boundingBoxMm }) => {
       const extents = boundingBoxMm.max.map(
         (value, axis) => value - boundingBoxMm.min[axis]!,
@@ -109,12 +109,30 @@ describe("Manifold structural solids", () => {
     expect(new Set(parts.map(({ partId }) => partId)).size).toBe(parts.length);
   });
 
-  it("bounds the number of generated strut segments", async () => {
+  it("bounds implicit grid work before level-set allocation", async () => {
     const { normalized, optimized } = await structuralFixture();
-    normalized.connectorization.maximumStrutSegmentLengthMm = 0.001;
+    for (const node of optimized.optimizedCandidate.nodes) {
+      if (node.panelId === "P-02") node.positionMm[0] += 4_000;
+    }
+    for (const anchor of optimized.optimizedCandidate.anchors) {
+      if (anchor.panelId === "P-02") anchor.positionMm[0] += 4_000;
+    }
+    for (const bracket of optimized.optimizedCandidate.brackets) {
+      if (bracket.panelId !== "P-02") continue;
+      bracket.anchorPositionMm[0] += 4_000;
+      bracket.hubPositionMm[0] += 4_000;
+    }
+    const nodeById = new Map(optimized.optimizedCandidate.nodes.map((node) => [node.id, node]));
+    for (const member of optimized.optimizedCandidate.members) {
+      const start = nodeById.get(member.startNodeId)!.positionMm;
+      const end = nodeById.get(member.endNodeId)!.positionMm;
+      member.lengthMm = Math.hypot(
+        start[0] - end[0], start[1] - end[1], start[2] - end[2],
+      );
+    }
 
     await expect(buildStructuralSolids(normalized, optimized)).rejects.toThrow(
-      /safe limit is 256/,
+      /implicit grid cells; the safe limit is 2000000/,
     );
   });
 

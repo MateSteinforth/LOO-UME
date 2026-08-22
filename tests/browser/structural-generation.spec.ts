@@ -59,16 +59,12 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   await directPair.locator("input").uncheck();
   await expect(page.locator("#pipeline-status")).toContainText("settings changed");
   await expect(page.locator("#connector-pair-list")).toContainText("P-02 ↔ P-03");
-  await page.locator("#connector-segment-length").fill("30");
-  await page.locator("#connector-segment-length").dispatchEvent("change");
-  await expect(page.locator("#pipeline-status")).toContainText("settings changed");
-
   await page.locator("#generate-structure").click();
   await expect(page.locator("#pipeline-status")).toContainText(
     "Generated and SHA-256 verified 2 local panel-pair connectors",
     { timeout: 120_000 },
   );
-  await expect(page.locator("#pipeline-status")).toContainText("splice sleeves");
+  await expect(page.locator("#pipeline-status")).toContainText("2 cap-derived organic bodies");
   await expect(page.locator("#pipeline-status")).toContainText(
     "not engineering certification",
   );
@@ -97,12 +93,13 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     inputSource: string;
     supports: unknown[];
     loadCases: unknown[];
-    printable: { parts: number; spliceSleeves: number };
+    printable: { parts: number; organicConnectors: number; spliceSleeves: number };
   };
   expect(analysis.inputSource).toBe("authored");
   expect(analysis.supports).toHaveLength(2);
   expect(analysis.loadCases).toHaveLength(10);
-  expect(analysis.printable.spliceSleeves).toBeGreaterThan(0);
+  expect(analysis.printable.organicConnectors).toBe(2);
+  expect(analysis.printable.spliceSleeves).toBe(0);
   expect(partNames).toHaveLength(analysis.printable.parts);
 
   const sculptureName = names.find((name) => name.endsWith("sculpture.json"))!;

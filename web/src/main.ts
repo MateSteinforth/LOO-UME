@@ -456,8 +456,8 @@ app.innerHTML = `
                 <label class="field"><span>Bed Z (mm)</span><input id="connector-bed-z" type="number" min="1" step="1" value="250" /></label>
               </div>
               <label class="field">
-                <span>Maximum strut segment length (mm)</span>
-                <input id="connector-segment-length" type="number" min="1" step="1" value="220" />
+                <span>Reserved keyed-split length (not active)</span>
+                <input id="connector-segment-length" type="number" min="1" step="1" value="220" disabled title="Oversize organic bodies currently fail the print-envelope check." />
               </label>
               <div class="connector-pair-add">
                 <select id="connector-pair-first" aria-label="First panel"></select>
@@ -2243,8 +2243,7 @@ async function start(): Promise<void> {
             throw error;
           }
           pipelineStatus.textContent =
-            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${result.solids.length} print-bed-checked parts ` +
-            `(${result.analysis.printable.connectorBrackets} two-hole brackets, ${result.analysis.printable.strutSegments} strut segments, ${result.analysis.printable.spliceSleeves} splice sleeves). ` +
+            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${result.analysis.printable.organicConnectors} cap-derived organic bodies. ` +
             (result.analysis.printable.splitMembers > 0
               ? `PRINT SPLIT WARNING: ${result.analysis.printable.splitMembers} member(s) require numbered segments and splice sleeves. `
               : "") +

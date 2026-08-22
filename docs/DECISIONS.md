@@ -576,6 +576,31 @@ governing forces and displacements, while filenames, 3MF object names, preview,
 analysis, and report preserve local connector identities. These results remain
 load-path guidance, not engineering certification.
 
+## D26 — Printable connector cells use cap-derived implicit organic webs
+
+**Decision.** The optimized truss remains the hidden load-path skeleton. CAD no
+longer exposes each retained member as a separate rod. Each panel-pair cell
+starts with broad 13 mm rounded screw shoes derived from the canonical triangle
+and pentagon fixtures, sweeps the required member sections into a bounded
+signed-distance field, and emits one smoothly blended Manifold body. Exact
+pilots, lead-ins, proven hole/flush corrections, hex pockets, cable voids, PCB
+keep-outs, and orientation marks are applied after blending.
+
+**Evidence.** Structural solid tests prove one body per cell, retained skeleton
+containment, exact material/void probes, bounded implicit-grid work, arbitrary
+panel orientation, PCB rejection, topology, and print-envelope checks. The
+three-panel trail produces two independent organic bodies.
+
+**Consequence.** The result uses the visual language of the flat triangle and
+pentagon fixtures without assuming a common panel plane. The axial analysis is
+still load-path guidance and does not certify local stress in the blended
+solid. A body that does not fit the print envelope fails clearly; keyed organic
+splitting requires a later validated implementation.
+
+This supersedes the printable rod/bracket form in D21 and the strut/sleeve CAD
+form in D25. Their solver, local-cell, and deterministic export decisions stay
+in force.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

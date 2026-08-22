@@ -576,3 +576,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Candidate, solver, optimizer, structural pipeline, solid, and
   independent-review checks cover active anchors and analysis-only members.
 - **Status:** Resolved.
+
+### F-032 — Apply exact hardware voids after implicit blending
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-026 through TRUSS-029 cap-derived implicit connectors.
+- **Symptom:** A pilot or nut-path probe could remain inside material after the
+  implicit envelope grew past the former bracket surface.
+- **Cause:** Cutters sized for an explicit bracket did not extend through the
+  additional signed-distance blend around the load-path skeleton.
+- **Correction:** Build and unite the complete implicit body first. Then apply
+  pilot, lead-in, nut-path, cable, and orientation operations with cutters that
+  extend beyond the implicit bounds.
+- **Prevention:** Probe every required hardware void in the final blended solid,
+  not only in an intermediate shoe. Keep the exact profile dimensions separate
+  from the extra cutter travel used to open a path.
+- **Evidence:** Structural-solid tests probe all pilots, nut paths, and cable
+  voids after Manifold level-set generation.
+- **Status:** Resolved.

@@ -201,23 +201,24 @@ The normalizer also derives a cable-clearance axis at each profile hole blocked
 by DIN or DOUT. `buildStructuralSolids()` uses those axes only as conservative
 voids; it does not claim measured connector-pad geometry.
 
-Each panel-pair connector has two separate printable bracket-side parts. Each
-side joins its two reserved screw bosses, rear hubs, offset connector hub, and
-local ties. It does not join brackets from another panel pair. The boss starts at the PCB rear surface
-plus the proven 0.50 mm flush correction. It keeps the profile's 1.60 mm pilot,
+Each panel-pair connector is one printable organic body. Each side starts with
+broad 13 mm rounded screw shoes derived from the canonical triangle and
+pentagon fixtures. The shoes join their reserved screw bosses to an implicit
+web that contains every retained truss section. A body does not join another
+panel-pair cell. The shoe starts at the PCB rear surface plus the proven 0.50 mm flush correction. It keeps the profile's 1.60 mm pilot,
 3.20 × 0.70 mm lead-in, and moves the pilot 0.20 mm inward from its nearest
 panel edge. The exact authored hole remains the structural anchor. Each hub
-has wall-backed sockets for retained inter-panel struts. A 4.20 mm across-flats
-hex pocket provides an explicit M2 nut-trap policy.
+has an open 4.20 mm across-flats M2 hex pocket.
 
-Each short inter-panel member is a separate tapered polygonal strut. Longer
-members are numbered segments held by clearance-fit splice sleeves. Reduced-radius
-tenons enter the hub sockets with 0.25 mm radial assembly clearance, and a
-three-sided start collar is the orientation mark. Every part must fit the
-configured print envelope after margin and rotation. Every returned mesh must have
+The organic surface comes from a bounded 1.5 mm signed-distance grid with a
+3 mm smooth union. The field contains the optimized member radius plus the
+minimum wall, so smoothing cannot remove a required skeleton section. The
+axial solver still guides the load path; it does not calculate stresses in the
+final blended solid. Every part must fit the configured print envelope after
+margin and rotation. Every returned mesh must have
 Manifold `NoError`, one printable component, positive volume, finite vertices,
 non-degenerate triangles, and millimetre bounds.
-The final bracket and strut volumes are intersected with every nearby oriented
+The final organic volumes are intersected with every nearby oriented
 PCB envelope. CAD stops if any printable volume enters a PCB.
 
 ### Panel-outline boundary generation
