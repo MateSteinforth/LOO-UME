@@ -2,7 +2,6 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
 import cuboctahedronJson from "../sculptures/cuboctahedron/sculpture.json" with {
   type: "json",
 };
@@ -197,32 +196,6 @@ describe("panel-driven cuboctahedron end-to-end compiler", () => {
       project.panelProfile,
     );
     expect(contract.outputs[0]?.gpio).toBe(18);
-  });
-
-  it("emits one integrated three-hole closure for every gap", async () => {
-    const outputDirectory = await mkdtemp(join(tmpdir(), "panel-closure-cad-"));
-    temporaryDirectories.push(outputDirectory);
-    const result = await emitPanelClosureCadArtifacts(
-      loadFixtureProject(),
-      { outputDirectory },
-    );
-    expect(result.manifest.parts).toHaveLength(8);
-    for (const part of result.manifest.parts) {
-      expect(part.quantity).toBe(1);
-      expect(part.connectorPanelIds).toHaveLength(3);
-      expect(part.connectorHoleIds).toHaveLength(3);
-      const source = await readFile(
-        result.entrypointPaths.closures[part.closureFaceId]!,
-        "utf8",
-      );
-      expect(source).toContain("one integrated closure using real holes");
-      expect(source).toContain("module exterior_clip()");
-      expect(source).toContain("intersection()");
-      expect(source).toContain("polyhedron(points=clip_points");
-      expect(source.match(/module connector_[0-2]\(\)/g)).toHaveLength(3);
-      expect(source).not.toContain("panel-carrier");
-      expect(source).not.toContain("edge-connector");
-    }
   });
 
   it("treats the authored pose as authoritative over the mount face", () => {

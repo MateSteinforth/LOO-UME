@@ -74,7 +74,7 @@ function requestWithHost(
 }
 
 describe("production local editor server", () => {
-  it("starts without OpenSCAD and serves the UI and Manifold status", async () => {
+  it("serves the UI and Manifold status", async () => {
     const server = await fixtureServer();
     const page = await fetch(server.url);
     expect(page.status).toBe(200);

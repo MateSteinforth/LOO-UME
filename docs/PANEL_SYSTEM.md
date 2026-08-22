@@ -61,8 +61,6 @@ After an edit:
 
 - Generated mechanics retain `mechanicalShell.authoringBoundary`, set
   `derivationStatus` to `requires-regeneration`, and hide stale previews.
-- Manual mechanics set `manualMechanics.compatibilityStatus` to
-  `requires-review`; tested parts must not be presented as matching new poses.
 
 The mechanics-free workflow is implemented: a project with no mechanics still
 supports every normal editor, simulator, mapping, wiring, save, and reload
@@ -70,23 +68,7 @@ action. Its panels need neither `mountFaceId` nor `surfaceAttachment`. Edits do
 not call nonexistent mechanics stale or awaiting regeneration. If referenced
 generated parts exist, an edit makes them stale without disabling the interface.
 
-## Mechanical routes
-
-### Manual 41-panel sculpture
-
-The canonical, printed geometry is:
-
-- `parts/triangle.scad`: 20 triangular fillers, handedness `-1`.
-- `parts/pentagon_u.scad`: 11 U-frames.
-- `parts/middle_panel_connector.scad`: 11 two-screw connectors.
-
-The sculpture has 30 square-face panels and 11 panels in pentagonal openings;
-the north-pole pentagon remains open. Established geometry includes centre-panel
-rotation 234°, offset `(9.62, -7.04)` mm, recess 0.70 mm, inside
-square/pentagon angle 148.282526°, and small fold 31.717474°. The generic
-generator does not reproduce this assembly.
-
-### Generic planar closures
+## Printable planar closures
 
 The generic path accepts a closed two-manifold explicit planar face graph. It
 uses panel poses and real hole coordinates; generates inward-growing flat covers
@@ -170,9 +152,7 @@ mapping, wiring, or persistence. A multipart generation request contains the
 JSON and only the referenced, verified GLB. Its JSON field is limited to 5 MB,
 and the complete request is limited to 64 MB.
 
-Generic panel-outline parts compile with pinned `manifold-3d` 3.5.1 and do not
-require OpenSCAD. OpenSCAD remains separate for changes to the manual
-`parts/*.scad` route.
+Panel-outline parts compile with pinned `manifold-3d` 3.5.1.
 
 Before rendering or staging, the server verifies the referenced GLB SHA-256 and
 rejects missing, tampered, or reserved paths. It copies the GLB to its unchanged

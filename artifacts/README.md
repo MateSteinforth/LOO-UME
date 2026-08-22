@@ -1,27 +1,9 @@
-# Generated sculpture artifacts
+# Generated artifacts
 
-These folders are versioned snapshots produced from the sculpture JSON files.
-They are build artifacts, not hand-authored CAD source.
+Tracked snapshots under this directory are review or regression evidence. They
+are not authored geometry or mapping truth. Current printable files compile
+from Schema 2 panel poses and the selected panel profile with pinned Manifold.
 
-Each processed sculpture has this layout:
-
-~~~text
-artifacts/sculptures/<sculpture-id>/
-|-- manifest.json
-|-- 3d/
-|   `-- closure-*.stl
-`-- previews/
-    |-- assembly.png
-    `-- closure-detail.png
-~~~
-
-Refresh all snapshots with:
-
-~~~bash
-npm run verify:processed-sculptures
-~~~
-
-On Codex, the verifier regenerates OpenSCAD under the ignored build directory
-and renders every STL. This Grok line does not run that OpenSCAD verifier.
-Generic panel-outline parts compile with Manifold. The simulator stages copies
-into the ignored web/public generated asset folders.
+Create disposable output below `build/`. Do not use ignored preview output as a
+test fixture. Browser and CI tests must build derived fixtures from tracked
+authored sources inside their test output directory.

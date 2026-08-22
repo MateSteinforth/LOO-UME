@@ -161,8 +161,7 @@ removes the staging directory and retains the prior bundle.
 
 ## Local desktop generation host
 
-Generic panel-outline parts compile with pinned `manifold-3d` 3.5.1 and do not
-install or execute OpenSCAD. On Linux and macOS, run:
+Panel-outline parts compile with pinned `manifold-3d` 3.5.1. Run:
 
 ```bash
 npm ci
@@ -178,9 +177,6 @@ Both local hosts use the same bounded handler for
 instead of inferring availability from its build mode. Unavailable Manifold
 disables **Build assembly package**; editing, simulation, mapping, wiring, save, and
 reopen continue.
-
-OpenSCAD remains separate and is needed only when the manual `parts/*.scad`
-route changes.
 
 The HTTP server, project data, generated assets, and Manifold compilation all
 remain on the local computer. Generation is same-origin and loopback-only.
@@ -352,7 +348,6 @@ checks current and stale presentation, rejects missing or tampered assets, and
 proves that project replacement releases the prior object URLs.
 
 
-Manifold must compile every changed generic printable part. Inspect the
+Manifold must compile every changed printable part. Inspect the
 resulting STLs for panel poses, holes, PCB envelopes, connector access, cap
-planarity, closed topology, and flat print surfaces. Use OpenSCAD only to
-verify changes to manual `parts/*.scad`.
+planarity, closed topology, and flat print surfaces.

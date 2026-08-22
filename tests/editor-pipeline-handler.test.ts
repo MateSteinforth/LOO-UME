@@ -294,24 +294,6 @@ describe("shared editor pipeline handler", () => {
     expect(await withoutGlb.json()).toMatchObject({ ok: true });
   });
 
-  it("rejects leftover OpenSCAD sculpture generation", async () => {
-    const handler = await createEditorPipelineHandler({});
-    const origin = await listen(handler);
-    const response = await fetch(`${origin}/api/editor-pipeline`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Origin: origin },
-      body: JSON.stringify({
-        id: "manual-openscad-route",
-        panelProfile: { id: "ws2812b-8x8-66x65" },
-        manualMechanics: { source: "parts/triangle.scad" },
-      }),
-    });
-    expect(response.status).toBe(400);
-    expect((await response.json() as { error: string }).error).toContain(
-      "Manually authored mechanics",
-    );
-  });
-
   it("asks for panels before generating caps", async () => {
     const handler = await createEditorPipelineHandler({});
     const origin = await listen(handler);

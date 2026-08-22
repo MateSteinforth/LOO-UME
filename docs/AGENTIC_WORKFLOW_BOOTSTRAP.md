@@ -68,24 +68,24 @@ checks. For work with multiple substantive steps, maintain a visible plan.
 
 After the control plane is coherent, show me a concise summary of the system,
 the highest-priority Ready work, important risks, and any decisions only I can
-make. Then select the first unblocked Ready item and continue orchestrating it
-without waiting, unless it requires destructive action, missing authority, or a
-material product choice. Keep TASKS.md current, assign an independent review
-when allowed, record reusable failures during the same task, update knowledge
-pages with behavior changes, and close each slice with an inspected diff and
-evidence from the relevant checks.
+make. Wait for my approval before the first substantial implementation. Keep
+TASKS.md current at meaningful state changes, use an independent review when
+the scope or risk justifies it, record reusable failures during the same task,
+update knowledge pages with behavior changes, and close each slice with an
+inspected diff and evidence from the relevant checks.
 
 Treat delivery cleanup as part of every successfully completed task; do not
-wait for me to request it again. Commit the scoped changes, merge or
-fast-forward them into the intended base branch, and push the integrated result.
-After the push succeeds, verify that the task worktree is clean and the task
-branch is merged, then remove the temporary worktree and delete the merged local
-task branch. Delete a remote task branch only when this task created it and
-repository policy does not require it to remain. If the work ran in a separate
-agent, task, or thread, preserve its handoff and archive or close it after its
-result is integrated. Never delete dirty, unmerged, unrelated, or uniquely
-useful work. Respect approval gates and report an exact blocker instead of
-bypassing one.
+wait for me to request it again. Commit the scoped changes, push the task branch
+when permitted, and move the task to **Ready to Merge**. Merge or fast-forward
+into the base branch and push it only with explicit repository or operator
+authorization. After an authorized integration push succeeds, verify that the
+task worktree is clean and the task branch is merged, then remove the temporary
+worktree and delete the merged local task branch. Delete a remote task branch
+only when this task created it and repository policy does not require it to
+remain. If the work ran in a separate agent, task, or thread, preserve its
+handoff and archive or close it after its result is integrated. Never delete
+dirty, unmerged, unrelated, or uniquely useful work. Respect approval gates and
+report an exact blocker instead of bypassing one.
 ```
 
 This prompt explicitly authorizes delegation. If the environment or higher-level
@@ -140,11 +140,29 @@ A useful task is an outcome, not a vague topic. Give it a stable ID and record:
 - whether completion requires human, visual, security, or physical review.
 
 Use a small state model such as **Backlog**, **Ready**, **In Progress**,
-**Human Review**, **Blocked**, and **Done**. Limit implementation work in
-progress; parallelize bounded audits and independent checks rather than several
-overlapping feature branches in one shared worktree.
+**Blocked**, **Human Review**, **Ready to Merge**, and **Done**, in that order.
+Limit implementation work in progress; parallelize bounded audits and
+independent checks rather than several overlapping feature branches in one
+shared worktree.
 
-### 4. Operate each slice
+### 4. Choose the cheapest viable execution mode
+
+- **FAST** is the default for clear, low-risk work. Execute directly, omit a
+  critic and independent review by default, run focused checks, and update
+  durable documents only when behavior changes.
+- **STANDARD** is for substantial normal features. Use a brief plan, Terra for
+  implementation by default, Luna for bounded inspection or testing, and an
+  independent review or test pass when useful.
+- **QUALITY** is for architecture, high-risk changes, complex geometry,
+  ambiguous defects, major refactors, or repeated failures. Use Sol for
+  orchestration and add bounded critics, independent work, or broader checks
+  only when they reduce a demonstrated risk.
+
+Use Luna, then Terra, then Sol as complexity increases. Escalate the mode or
+model only because of evidence. Stop when the acceptance criteria and relevant
+checks pass; record later improvements as separate tasks.
+
+### 5. Operate each slice
 
 For every selected task, the orchestrator should:
 
@@ -153,11 +171,12 @@ For every selected task, the orchestrator should:
 3. keep the critical integration path moving;
 4. inspect every returned diff and assumption;
 5. run focused checks, then broader checks in proportion to risk;
-6. obtain a separate review where required and permitted;
+6. obtain a separate review when the selected mode, scope, or risk justifies it;
 7. update task state, architecture/decision guidance, and failure lessons;
-8. commit the scoped changes, integrate them into the intended base branch, and
-   push the integrated result;
-9. after confirming a clean worktree, merged ancestry, and a successful push,
+8. commit the scoped changes, push the task branch when permitted, and move the
+   task to **Ready to Merge**;
+9. integrate and push the intended base branch only after explicit authority;
+   after confirming a clean worktree, merged ancestry, and a successful push,
    remove the temporary worktree, delete the merged task branch, and archive or
    close any separate agent, task, or thread whose handoff is preserved; and
 10. report changed files, verification evidence, the integrated commit, cleanup
@@ -167,7 +186,7 @@ The orchestrator owns shared files and the final integrated result. A subagent's
 claim that tests pass is not a substitute for reviewing its work and verifying
 the integrated tree.
 
-### 5. Record failures as prevention
+### 6. Record failures as prevention
 
 Log a failure only when it yields a reusable lesson. Capture the smallest useful
 symptom, underlying cause, correction, and a concrete prevention step. Do not
@@ -175,17 +194,17 @@ store blame, secrets, or large raw logs. If an incident recurs, update the
 existing entry and promote its prevention into `AGENTS.md`, a decision, or an
 automated check.
 
-### 6. Make reopening boring
+### 7. Make reopening boring
 
 At the end of a work slice, leave the repository so a new orchestrator can
 resume by reading `AGENTS.md`, architecture, the task board, and the failure log;
 checking the worktree; and taking the first unblocked Ready item. Chat history
 may add context, but it must not be the only place where project state lives.
 
-A successful slice also leaves no disposable execution residue: its verified
-changes are committed, integrated, and pushed; temporary worktrees and merged
-task branches are removed; and separate task agents or threads are archived or
-closed after their useful handoff is recorded. Keep anything dirty, unmerged,
+A successful slice leaves its verified changes committed and its task in
+**Ready to Merge**. After an authorized integration and push, remove temporary
+worktrees and merged task branches, and archive or close separate task agents or
+threads after their useful handoff is recorded. Keep anything dirty, unmerged,
 blocked by policy, or needed for recovery, and report it explicitly.
 
 ## Compact prompt for an already-bootstrapped repository
@@ -201,9 +220,11 @@ You may use subagents for bounded non-overlapping work and independent review,
 but personally inspect their output. Take the first unblocked Ready task unless
 I set another priority, and continue until it meets its recorded acceptance
 criteria or requires a material decision or authority from me. Do not claim
-completion without an inspected diff and relevant verification evidence. When
-the task succeeds, commit, integrate, and push it; then safely remove its clean
-temporary worktree and merged task branch, and archive or close any separate
-agent, task, or thread after preserving its handoff. Do not wait for a separate
-cleanup request.
+completion without an inspected diff and relevant verification evidence. Choose
+the cheapest viable execution mode and stop when acceptance passes. When the
+task succeeds, commit it, push the task branch when permitted, and move it to
+Ready to Merge. Integrate and push the base branch only with explicit authority;
+then safely remove its clean temporary worktree and merged task branch, and
+archive or close any separate agent, task, or thread after preserving its
+handoff. Do not wait for a separate cleanup request.
 ```

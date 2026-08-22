@@ -7,7 +7,7 @@
     "platformioEnvironment": "esp32dev",
     "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2"
   },
-  "sourceProjectSha256": "9ee742c9b3251b65d5d3e4b82bf8acc488b222b690d72716db48669f261f357a",
+  "sourceProjectSha256": "8e1189f97fbb03e42ff4374ac67fdd2c831c046ff36893577eddd96929f4ebcb",
   "mappingFingerprint": "bc5054d1",
   "files": [
     {

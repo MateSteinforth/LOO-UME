@@ -277,25 +277,4 @@ describe("automatic panel placement", () => {
     expect(new Set(axes).size).toBe(6);
   });
 
-  it("rejects automatic placement for manual mechanics", async () => {
-    const source: unknown = JSON.parse(
-      await readFile(
-        "sculptures/rhombicosidodecahedron/sculpture.json",
-        "utf8",
-      ),
-    );
-    const manual = parsePanelAssemblyDefinition(source);
-    expect(() => automaticallySeedPanelsOnSurface(
-      manual,
-      {
-        positions: [0, 0, 0, 1, 0, 0, 0, 1, 0],
-        indices: [0, 1, 2],
-      },
-      { width: 66, height: 65 },
-      {
-        targetPanelCount: manual.panels.length + 1,
-        surface: "mechanical-shell",
-      },
-    )).toThrow(/manualMechanics/);
-  });
 });

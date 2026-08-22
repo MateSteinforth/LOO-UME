@@ -2,7 +2,7 @@
   "$schema": "../../schemas/panel-assembly.schema.json",
   "schemaVersion": "2.0.0",
   "id": "generated-rhombicosidodecahedron-41-panel-preview",
-  "name": "LED Rhombicosidodecahedron (Manual 41-panel)",
+  "name": "LED Rhombicosidodecahedron (41-panel)",
   "units": "mm",
   "status": "provisional",
   "panelProfile": {
@@ -1761,142 +1761,6 @@
       }
     }
   ],
-  "manualMechanics": {
-    "kind": "manually-authored-parts",
-    "generator": "verified-scad-wrappers",
-    "centerPanelMount": {
-      "rotationDegrees": 234,
-      "offsetX": 9.62,
-      "offsetY": -7.04,
-      "recess": 0.7,
-      "polarEdgeRule": "top-edge-north-bottom-edge-south"
-    },
-    "openings": {
-      "triangleFaces": {
-        "faceType": "triangle",
-        "count": 20,
-        "population": "all",
-        "closure": {
-          "partId": "triangle-filler",
-          "canonicalSource": "parts/triangle.scad",
-          "generator": "verified-scad-wrapper",
-          "generatedFile": "triangle-filler.scad",
-          "quantity": 20,
-          "modes": {
-            "print": "print",
-            "assembly": "assembly"
-          },
-          "handedness": -1,
-          "interfaces": [
-            {
-              "edgeIndex": 0,
-              "adjacentFaceType": "square",
-              "mountingHoleEnd": "opposite-electrical-connector",
-              "connectorCornerClearance": 14,
-              "panelEnvelopeClearance": 0.3
-            },
-            {
-              "edgeIndex": 1,
-              "adjacentFaceType": "square",
-              "mountingHoleEnd": "opposite-electrical-connector",
-              "connectorCornerClearance": 14,
-              "panelEnvelopeClearance": 0.3
-            },
-            {
-              "edgeIndex": 2,
-              "adjacentFaceType": "square",
-              "mountingHoleEnd": "opposite-electrical-connector",
-              "connectorCornerClearance": 14,
-              "panelEnvelopeClearance": 0.3
-            }
-          ],
-          "print": {
-            "bedSurface": "outside-cover"
-          }
-        }
-      },
-      "pentagonFaces": {
-        "faceType": "pentagon",
-        "count": 12,
-        "population": {
-          "mode": "all-except",
-          "excluded": [
-            "north-pole"
-          ],
-          "populatedCount": 11
-        },
-        "closure": {
-          "assemblyId": "populated-pentagon-panel-mount",
-          "quantity": 11,
-          "openOuterEdge": 1,
-          "parts": [
-            {
-              "partId": "pentagon-u-frame",
-              "canonicalSource": "parts/pentagon_u.scad",
-              "generator": "verified-scad-wrapper",
-              "generatedFile": "pentagon-u-frame.scad",
-              "quantity": 11,
-              "modes": {
-                "print": "print",
-                "assembly": "assembly",
-                "center": "center"
-              },
-              "interfaces": {
-                "outerPanelEdges": [
-                  0,
-                  2,
-                  3,
-                  4
-                ],
-                "centerPanelHoles": [
-                  "bottom-left-corner",
-                  "bottom-middle-edge",
-                  "top-right-corner"
-                ],
-                "centerPanelClearance": 0.35,
-                "connectorCornerClearance": 14
-              },
-              "print": {
-                "bedSurface": "outside-cover"
-              }
-            },
-            {
-              "partId": "middle-panel-connector",
-              "canonicalSource": "parts/middle_panel_connector.scad",
-              "generator": "verified-scad-wrapper",
-              "generatedFile": "middle-panel-connector.scad",
-              "quantity": 11,
-              "modes": {
-                "print": "print",
-                "assembly": "assembly",
-                "installed": "part"
-              },
-              "interfaces": [
-                {
-                  "panel": "center",
-                  "hole": "top-middle-edge",
-                  "edgeDistance": 8
-                },
-                {
-                  "panel": "outer",
-                  "outerEdgeIndex": 1,
-                  "hole": "middle-edge",
-                  "edgeDistance": 8.2
-                }
-              ],
-              "print": {
-                "bedSurface": "center-panel-pad"
-              }
-            }
-          ],
-          "assembly": {
-            "generatedFile": "populated-pentagon-assembly.scad",
-            "preview": "center-and-five-outer-panels"
-          }
-        }
-      }
-    }
-  },
   "mapping": {
     "projection": "equirectangular",
     "logicalOrder": "north-to-south-then-longitude",
@@ -2012,7 +1876,6 @@
     "The north-pole pentagonal opening is intentionally unpopulated.",
     "Route revision 1 saves the authorized assumed prototype order from the browser draft; it is not measured evidence.",
     "GPIOs 16, 17, 18, and 19 follow the assumed ESP32-DevKitC V4 contract in docs/PROTOTYPE_HARDWARE.md.",
-    "Panel poses were migrated once from the legacy named-solid compiler and are now authoritative.",
-    "Generic closure generation is intentionally disabled; use the physically tested authored SCAD parts."
+    "Panel poses were migrated once from the legacy named-solid compiler and are now authoritative."
   ]
 }

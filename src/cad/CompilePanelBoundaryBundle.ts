@@ -132,9 +132,6 @@ export async function compilePanelBoundaryBundle(
   project: PanelAssemblyProject,
   panelProfileSource?: string,
 ): Promise<CompiledPanelBoundaryBundle> {
-  if (project.sculpture.manualMechanics) {
-    throw new Error("Manually authored mechanics cannot enter generic part generation.");
-  }
   const workingDefinition = structuredClone(project.sculpture);
   delete workingDefinition.mechanicalShell;
   delete workingDefinition.closures;

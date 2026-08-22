@@ -115,7 +115,6 @@ export class SurfacePlacementController {
     canAutomaticallySeed: true,
     canExportMappingAndWiring: true,
     canGenerateGenericMechanics: true,
-    manualMechanicsRequiresReview: false,
   };
   private attachmentSurface: "design-surface" | "mechanical-shell" =
     "design-surface";

@@ -16,8 +16,9 @@ To establish this workflow in another repository, follow
 - Editor mutations and mechanical invalidation: `src/sculpture/SculptureEditor.ts`.
 - Browser orchestration: `web/src/main.ts`; mapping and wiring are under
   `web/src/`.
-- Physically tested manual CAD: the three canonical files under `parts/`.
-  Never make numbered copies; Git is the version history.
+- Printable geometry: panel poses and the panel profile compile through pinned
+  `manifold-3d` in `src/cad/CompilePanelBoundaryBundle.ts` and
+  `src/cad/GeneratePanelClosureSolids.ts`.
 - Generated STL, PNG, ledmap, panel-map, and `build/` files are artifacts, not
   authored geometry or mapping truth. The portable project format may reference
   GLB/STL assets by safe relative path and SHA-256; those files are still
@@ -30,7 +31,7 @@ To establish this workflow in another repository, follow
   changes, and keep its checksum and build receipt synchronized.
 
 Schema 1 (`src/sculpture/Definition.ts`, `schemas/sculpture.schema.json`, the
-legacy migration fixture, and old mapping/CAD tests) is retained legacy code.
+legacy migration fixture, and old mapping tests) is retained legacy code.
 Do not build new features on it. The current browser path loads Schema 2 and
 uses `createPanelAssemblyMapping()`.
 
@@ -44,8 +45,8 @@ uses `createPanelAssemblyMapping()`.
   one action that changes from build to download over separate sequential
   buttons, and keep raw/debug exports under Advanced when one self-contained
   project or assembly package is the normal handoff.
-- Schema 2 mechanics are optional. Omitting `manualMechanics`,
-  `mechanicalShell`, and `closures` is the implemented mechanics-free state:
+- Schema 2 mechanics are optional. Omitting `mechanicalShell` and `closures`
+  is the implemented mechanics-free state:
   load GLB, place/edit panels, simulate, map, wire, save, and reload before any
   mechanics exist.
 - GLBs are authoring surfaces only. The general generator starts from
@@ -58,8 +59,6 @@ uses `createPanelAssemblyMapping()`.
 - After successful generation, the viewer loads the exact referenced STL parts.
   A panel edit makes those parts stale without disabling the rest of the
   interface. See `docs/MECHANICS_WORKFLOW.md`.
-- Preserve manual mechanics. The generic planar generator does not reproduce
-  the 41-panel U-frame structure.
 - Never change proven panel angles, triangle handedness `-1`, the 0.20 mm
   hole-edge correction, or the 0.50 mm surface-flush correction without an
   explicit new physical result.
@@ -180,16 +179,6 @@ uses `createPanelAssemblyMapping()`.
   a live Vite process can leave HTTP 200 HTML history fallbacks cached for valid
   JSON paths.
 
-- On the macOS GitHub runners, `lipo -verify_arch` returned a false failure for
-  the qualified universal OpenSCAD DMG. Do not use that command as the native
-  execution gate. Keep `lipo -archs` as evidence, then use
-  `/usr/bin/arch -<architecture>` to run the exact version check and a real STL
-  render on each native runner. GitHub Bash steps also start with `-e`; a
-  diagnostic collector that must record all failures must use `set +e` first.
-- On macOS, do not test `hdiutil` or `ditto` availability by running a help
-  command. `ditto -h` can return a nonzero usage status. Use a direct executable
-  access check such as Node `fs.access(path, X_OK)` before repository writes.
-
 ## Agentic workflow
 
 ### Shared repository and model routing
@@ -207,12 +196,34 @@ uses `createPanelAssemblyMapping()`.
   mechanical edits, and first-pass review. Use GPT-5.6 Terra for normal
   implementation and medium-complexity debugging. Reserve GPT-5.6 Sol for
   orchestration, architecture, hard debugging, high-risk refactors,
-  geometry, and final review where correctness needs it.
+  geometry, and final review where correctness needs it. Escalate from Luna to
+  Terra to Sol only when the task shows that the cheaper model is insufficient.
+  Do not use Sol for routine execution.
 - Parallelize only independent seams. Do not assign concurrent edits to the
   same file or subsystem unless one orchestrator coordinates the overlap.
-- Require a separate review pass before an implementation task can become
-  **Ready to Merge**. Agent reports are inputs to that review, not proof that
+- Use a separate review or test pass when the scope or risk justifies it.
+  A FAST task can become **Ready to Merge** after the orchestrator inspects the
+  diff and the focused checks pass. Agent reports are evidence, not proof that
   the integrated worktree is correct.
+
+### Execution modes
+
+- **FAST** is the default for clear, low-risk work. Execute directly, do not add
+  a critic or research agent by default, run only relevant checks, and update
+  documentation only when durable behavior changes.
+- **STANDARD** is for a substantial normal feature. Use a brief plan, Terra for
+  implementation by default, Luna for bounded inspection or testing, and an
+  independent review or test pass when it adds useful evidence. Update
+  `TASKS.md` at meaningful state changes.
+- **QUALITY** is for architecture, high-risk changes, complex geometry,
+  ambiguous defects, major refactors, or repeated failed approaches. Use Sol
+  for orchestration and add a bounded critic, independent work, or broader
+  verification only when each item reduces a real risk.
+
+Escalate from FAST to STANDARD to QUALITY only because of demonstrated
+complexity, uncertainty, failure, conflict, or risk. When the acceptance
+criteria and relevant checks pass, stop. Record optional polish, cleanup, or
+optimization as a separate task instead of expanding the current slice.
 
 An agent assigned as orchestrator owns the result end to end. It may divide the
 work, but it remains responsible for scope, architectural consistency,
@@ -223,16 +234,17 @@ integration, verification, and the final report. Use this operating loop:
    `git status` and the relevant code before proposing changes. Treat existing
    worktree changes as user-owned unless the task proves otherwise.
 2. **Frame the outcome.** Turn the request into explicit acceptance criteria,
-   identify the source-of-truth files and guardrails involved, and choose the
-   narrowest meaningful verification. Reconcile the work with `TASKS.md`,
-   record a short plan for work with more than one substantive step, and keep
-   both current.
+   identify the source-of-truth files and guardrails involved, choose the
+   smallest coherent vertical slice and execution mode, and choose the
+   narrowest meaningful verification. Reconcile substantial work with
+   `TASKS.md`, record a short plan for work with more than one substantive
+   step, and update the board only at meaningful state changes.
 3. **Split only clean seams.** When agent delegation is available and allowed,
-   delegate only bounded, independently checkable work. Give each agent the
-   relevant paths, constraints, expected output, and verification target.
-   Avoid concurrent edits to the same file; the orchestrator owns shared files
-   and final integration. Keep the critical path moving locally while agents
-   work.
+   delegate only bounded, independently checkable work when this improves
+   speed, cost, or specialization. Give each agent the relevant paths,
+   constraints, expected output, and verification target. Avoid concurrent
+   edits to the same file; the orchestrator owns shared files and final
+   integration. Keep the critical path moving locally while agents work.
 4. **Integrate deliberately.** Agent reports are evidence, not acceptance.
    Review their diffs and assumptions, reconcile them with the architecture,
    run the required checks in the integrated worktree, and correct any overlap
@@ -279,11 +291,9 @@ npm run verify                   # assets, WASM, Vitest, TypeScript, and Vite
 npm run verify:clean             # submodule, npm ci, pinned SDK, then npm run verify
 ```
 
-After generic geometry changes, compile the changed printable parts with
+After geometry changes, compile the changed printable parts with
 Manifold and inspect the STLs. Confirm holes, PCB poses, panel angles,
-envelopes, connector corners, and flat print surfaces. For changes to the
-physically tested manual `parts/*.scad` route, render every changed part with
-OpenSCAD and inspect the assembly mode where provided.
+envelopes, connector corners, and flat print surfaces.
 
 For a phone review link, run `npm run preview:phone` from the repository root.
 It creates a temporary Cloudflare quick-tunnel URL and verifies the public HTML,

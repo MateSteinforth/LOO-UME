@@ -96,7 +96,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 ### F-004 — Availability probes can fail even when a tool is usable
 
 - **Date:** 2026-08-14
-- **Context:** Native macOS OpenSCAD qualification and setup preflight.
+- **Context:** Native macOS tool qualification and setup preflight.
 - **Symptom:** `lipo -verify_arch` rejected the qualified universal DMG, and
   `ditto -h` returned a nonzero usage status although `ditto` was executable.
 - **Cause:** The checks used command behaviors that were not reliable
@@ -112,7 +112,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 ### F-005 — Clean Windows checks cannot rely on shell shims or PATH tools
 
 - **Date:** 2026-08-14
-- **Context:** Managed OpenSCAD setup and active-render shutdown on Windows.
+- **Context:** Managed native-tool setup and active-process shutdown on Windows.
 - **Symptom:** PowerShell policy can block `npm.ps1`, and a clean verification
   that clears `PATH` cannot find a bare `taskkill` command.
 - **Cause:** The first command paths depended on user shell policy and ambient
@@ -122,7 +122,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   shell.
 - **Prevention:** Windows setup and verification must use native command entry
   points and validated absolute system-tool paths when `PATH` is not authority.
-- **Evidence:** `AGENTS.md` and `scripts/verify-windows-openscad-shutdown.ts`.
+- **Evidence:** Historical managed-tool verification work.
 - **Status:** Resolved.
 
 ### F-006 — A repository-local GitHub CLI is not guaranteed
@@ -353,7 +353,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 ### F-019 — Relative deletion follows the process working directory
 
 - **Date:** 2026-08-20
-- **Context:** CAD-036 removed obsolete generic OpenSCAD tests from the Grok
+- **Context:** CAD-036 removed obsolete generic CAD tests from the Grok
   line while the session started in another worktree.
 - **Symptom:** A relative deletion targeted Codex files and left the intended
   Grok files unchanged.

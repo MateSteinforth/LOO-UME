@@ -35,23 +35,26 @@
     {
       "id": "cuboctahedron-six-panel-prototype",
       "name": "Six-panel Cuboctahedron",
-      "source": "./sculptures/cuboctahedron/sculpture.json"
+      "source": "./sculptures/cuboctahedron/sculpture.json",
+      "artifactStatus": "authoring-only"
     },
     {
       "id": "generated-rhombicosidodecahedron-41-panel-preview",
-      "name": "LED Rhombicosidodecahedron (Manual 41-panel)",
+      "name": "LED Rhombicosidodecahedron (41-panel)",
       "source": "./sculptures/rhombicosidodecahedron/sculpture.json",
-      "artifactStatus": "manual-parts"
+      "artifactStatus": "authoring-only"
     },
     {
       "id": "automatic-rhombicosidodecahedron-30-panel-test",
       "name": "Automatic 30-panel Rhombicosidodecahedron",
-      "source": "./sculptures/rhombicosidodecahedron-auto/sculpture.json"
+      "source": "./sculptures/rhombicosidodecahedron-auto/sculpture.json",
+      "artifactStatus": "authoring-only"
     },
     {
       "id": "truncated-octahedron-six-panel-test",
       "name": "Six-panel Truncated Octahedron",
-      "source": "./sculptures/truncated-octahedron/sculpture.json"
+      "source": "./sculptures/truncated-octahedron/sculpture.json",
+      "artifactStatus": "authoring-only"
     }
   ]
 }

@@ -1,124 +1,54 @@
-# Sculpture source format
+# Sculpture project format
 
-The canonical authored source for the current sculpture is
-`sculptures/rhombicosidodecahedron/sculpture.json`. It is a pose-first
-schema-2 assembly with 41 explicit panel poses and a `manualMechanics` contract.
-It references the reusable
-66 x 65 mm panel definition in
-`catalog/panels/ws2812b-8x8-66x65.json`.
+The active format is Schema 2. A native project folder contains
+`sculpture.json` plus optional safe relative GLB and STL assets. ZIP is the
+portable container for the same layout.
 
-These source documents contain design intent and hardware facts. The panel
-profile JSON carries all six back-view mounting-hole positions, marks the
-DIN-overlapped bottom-left and DOUT-overlapped top-right holes mechanically
-blocked, and defines the one-hole-per-cap allocation invariant. It also carries
-the configurable within-panel pixel traversal. Each sculpture JSON supplies
-explicit installed panel poses, optional cap-type hole preferences, and per-output GPIO
-assignments. Expanded panel transforms, per-LED XYZ/UV coordinates, physical indices, and the WLED
-permutation remain generated artifacts in `layout/` and `wled/`.
+## Authorities
 
-## Compilation flow
+- Panel poses in `sculpture.json` own geometry and LED world positions.
+- The referenced panel profile owns dimensions, pixel grid, mounting holes,
+  connectors, corrections, and electrical assumptions.
+- `boundaryTopology` stores panel-ID and named-corner connectivity only. It
+  contains no duplicate positions or transforms.
+- `generatedMechanics` is a derived manifest with source fingerprint, exact
+  boundary/part paths, SHA-256 values, generator identity, and validation state.
+- Wiring outputs own exact ordered panel IDs after confirmation.
 
-```text
-panel profile + sculpture.json
-             |
-     runtime/schema validation
-             +------------------------+
-             |                        |
-    panel geometry + wiring     opening/interface policy
-             |                        |
-  panel-map.json + ledmap JSON   generated SCAD + manifest
-```
+## Asset rules
 
-Run the read-only source validation with:
+Asset paths must be portable project-relative paths. Absolute paths, traversal,
+reserved names, collisions, missing bytes, and SHA-256 mismatches fail before
+rendering or publication. Import and export preserve exact bytes and saved
+paths.
+
+A panel, route, panel-set, profile, or bus edit invalidates the matching derived
+fingerprint. Stale mechanics are not another geometry authority.
+
+## Printable generation
+
+The browser derives panel outlines from poses, detects or reuses flat gap
+cycles, validates the closed boundary, and compiles exact STL bytes with pinned
+Manifold. A GLB is a placement surface only.
+
+Use:
 
 ```bash
-npm run validate:sculpture
+npx tsx scripts/generate-panel-boundary-parts.ts \
+  --sculpture sculptures/panel-outline-prism/sculpture.json \
+  --output build/panel-outline-prism
 ```
 
-Regenerate the expanded artifacts with:
+## Mapping exports
 
 ```bash
 npm run generate:mapping
-```
-
-Generate every currently supported asset with:
-
-```bash
-npm run generate:assets
-```
-
-The CAD half emits verified entrypoints for the triangle filler, pentagon
-U-frame, and middle-panel connector, plus a composed populated-pentagon preview
-and manifest under `build/generated/`. To render canonical and generated STLs,
-compare deterministic CSG trees, and render both assembly previews, install
-OpenSCAD plus Xvfb and run:
-
-```bash
-npm run verify:cad
-```
-
-The mapping export remains guarded:
-
-```bash
 npm run generate:mapping:hardware
 ```
 
-That command refuses to emit `wled/ledmap.json` until the controller GPIOs,
-authored chains, complete snake order, and current route-optimized installed
-orientations are available. It does not claim separate electrical approval.
+The hardware command requires a current mapping-ready route and emits
+assumption-labelled deployment files. It does not claim electrical approval or
+hardware verification.
 
-## Source versus generated data
-
-The pose-first source preserves the once-compiled vertex-up panel poses, populated
-faces, UV/effect ordering, and authored assumed four-output data route. The
-reusable panel profile separately records photo-derived power-feed availability
-and conservative current, wire, voltage-drop, and fuse-design inputs. The
-TypeScript compiler expands that compact recipe
-into all 41 panel frames and 2,624 LEDs.
-
-`openings.triangleFaces` declares all 20 triangular openings. Its closure names
-the printable part, print/assembly modes, tested handedness, print-bed surface,
-and each of the three square-panel interfaces. Every interface preserves the
-safe mounting-hole end, 14 mm electrical-connector corner clearance, and 0.30
-mm PCB-envelope clearance.
-
-`openings.pentagonFaces` describes all 12 pentagonal openings, excludes the
-north pole, and assigns an identical two-part closure to the remaining 11. The
-U-frame mounts outer edges 0, 2, 3, and 4 plus three named center-panel holes.
-The middle connector bridges the center panel's top-middle hole to the middle
-hole on open outer edge 1. The contract also records print surfaces, the 0.35
-mm center-panel clearance, and the 14 mm connector-corner clearance.
-
-The generated populated-pentagon assembly composes uniquely named public
-modules from both tested SCAD sources in their shared installed coordinate
-frame. It shows the orange U-frame, magenta connector, center panel, and all
-five surrounding panels in one render. The aliases add no geometry; printable
-CSG parity is checked independently for both parts.
-
-The generated triangle entrypoint deliberately includes the existing,
-physically tested `parts/triangle.scad` rather than copying its geometry. It
-adds assertions that bind the part's public constants to the panel profile and
-opening policy: PCB size/thickness, corner-hole inset, pilot and lead-in sizes,
-the measured 0.20/0.50 mm fit corrections, handedness, and clearances. This is
-the migration seam: JSON selects and verifies the proven CAD template now; a
-later template compiler can replace the implementation without changing the
-source contract.
-
-The schemas are versioned under `schemas/`. Runtime validation additionally
-checks semantic constraints that JSON Schema alone cannot express, including
-the panel-profile reference, total routed panel count, unique output indices,
-preservation of measured physical-fit corrections, opening/closure counts, and
-the ordered triangle and populated-pentagon interfaces.
-
-The panel-assembly schema 2.0 is pose-first; see `docs/pose-first-schema.md`.
-Its JSON contains explicit panel poses, a supporting mechanical shell, closure faces,
-and hole-tab policy shared by mapping, wiring, CAD, and visualization. The
-generic compiler allocates all four usable holes on every square panel to four
-different caps by minimizing total hole-to-edge distance. A sculpture may add
-soft face-type preferences; the automatic rhombicosidodecahedron uses this to
-send triangle caps to the diagonal holes and pentagon caps to the middle holes.
-See
-`docs/cuboctahedron-e2e.md`. Additional sculpture files can reuse the same
-pose-first panel-assembly compiler without adding a named solid to TypeScript.
-Generated mechanics must continue to pass printable and assembly renders and
-physical fit tests before replacing a physically tested template.
+Schema files under `schemas/` support editors and external tools. Runtime
+parsing also enforces cross-record invariants that JSON Schema cannot express.

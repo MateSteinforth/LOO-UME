@@ -2,7 +2,6 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
 import {
   createMechanicalShellTriangleMesh,
   createMechanicalSurfaceOrientation,
@@ -196,9 +195,6 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
     expect(mapping.entries).toHaveLength(384);
     expect(validateMapping(mapping, 384)).toEqual({ valid: true, errors: [] });
 
-    const outputDirectory = await mkdtemp(join(tmpdir(), "empty-cubo-cad-"));
-    const cad = await emitPanelClosureCadArtifacts(project, { outputDirectory });
-    expect(cad.manifest.parts).toHaveLength(8);
   });
 
 

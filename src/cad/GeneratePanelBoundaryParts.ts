@@ -20,8 +20,6 @@ import {
   sha256Bytes,
   verifyProjectAssetBytes,
 } from "../sculpture/GeneratedMechanics.ts";
-import { createUnprobedOpenScadRenderer } from "./OpenScadRuntime.ts";
-import { emitPanelClosureCadArtifacts } from "./GeneratePanelClosureCad.ts";
 import { inspectStl, type StlInspection } from "./Stl.ts";
 import {
   compilePanelBoundaryBundle,
@@ -30,18 +28,11 @@ import {
 
 export { createPrintableBoundaryProject };
 
-export type ScadRenderer = (
-  inputScad: string,
-  outputStl: string,
-) => Promise<void>;
-
 export interface GeneratePanelBoundaryPartsOptions {
   outputDirectory: string;
   rootDirectory?: string;
   panelProfileSource?: string;
   designSurfaceBytes?: Uint8Array;
-  /** Ignored. Generic parts are tessellated with Manifold, not OpenSCAD. */
-  renderScad?: ScadRenderer;
 }
 
 export interface GeneratedPanelBoundaryAsset {
@@ -60,7 +51,6 @@ export interface GeneratePanelBoundaryPartsResult {
   printableProject: PanelAssemblyProject;
   boundaryAsset: GeneratedPanelBoundaryAsset;
   partAssets: GeneratedPanelBoundaryAsset[];
-  assemblyPreviewSource: string;
 }
 
 function compareText(left: string, right: string): number {
@@ -109,9 +99,6 @@ export async function generatePanelBoundaryParts(
   project: PanelAssemblyProject,
   options: GeneratePanelBoundaryPartsOptions,
 ): Promise<GeneratePanelBoundaryPartsResult> {
-  if (project.sculpture.manualMechanics) {
-    throw new Error("Manually authored mechanics cannot enter generic part generation.");
-  }
   const designSurface = project.sculpture.designSurface;
   let designSurfaceBytes: Uint8Array | undefined;
   if (designSurface) {
@@ -147,8 +134,6 @@ export async function generatePanelBoundaryParts(
   const bundle = await compilePanelBoundaryBundle(project, panelProfileSource);
   const temporaryDirectory =
     `${outputDirectory}.pending-${process.pid}-${randomUUID()}`;
-  const cadDirectory = resolve(temporaryDirectory, "mechanics", "cad");
-
   try {
     if (designSurface && designSurfaceBytes) {
       const designSurfacePath = resolve(
@@ -168,10 +153,6 @@ export async function generatePanelBoundaryParts(
       await mkdir(dirname(absolutePath), { recursive: true });
       await writeFile(absolutePath, file.bytes);
     }
-    const cad = await emitPanelClosureCadArtifacts(bundle.printableProject, {
-      rootDirectory,
-      outputDirectory: cadDirectory,
-    });
     const boundaryPath = resolve(temporaryDirectory, "mechanics/boundary.stl");
     const partAssets: GeneratedPanelBoundaryAsset[] = [];
     for (const file of bundle.files) {
@@ -209,17 +190,9 @@ export async function generatePanelBoundaryParts(
         ...asset,
         absolutePath: published(asset.absolutePath),
       })),
-      assemblyPreviewSource: published(cad.entrypointPaths.assemblyPreview),
     };
   } catch (error) {
     await rm(temporaryDirectory, { recursive: true, force: true });
     throw error;
   }
-}
-
-export function createOpenScadRenderer(
-  rootDirectory: string,
-  executable = process.env.OPENSCAD,
-): ScadRenderer {
-  return createUnprobedOpenScadRenderer(rootDirectory, executable);
 }
