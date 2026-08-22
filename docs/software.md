@@ -1,10 +1,11 @@
 # Software architecture
 
 This document records the selected assumed prototype hardware contract and the
-remaining firmware plan. The repository does not contain deployed controller
-firmware, network transport, or audio-reactive behavior. Implementation can
-start against the selected controller; one panel test still establishes the
-three mapping facts listed below.
+remaining firmware plan. `main` contains the selected target's exact build
+receipt, guarded deployment contract, and one-panel smoke configuration. WLED
+build tooling stays on `generate/wled-firmware`; the binary is an ignored
+build/release artifact. No controller has been flashed or bench-tested, and
+network transport and audio remain unimplemented.
 The active milestone is static simulator-to-device address and RGB parity;
 networking, audio, and custom effects remain later work.
 
@@ -89,18 +90,20 @@ Python, or Emscripten. Source synchronization and reproducible simulator builds
 live on `generate/wled-simulator`; only reviewed runtime bytes and their receipt
 return to `main`.
 
-A future firmware CI job would validate the 41-panel/2,624-pixel map, build the
-usermod against a pinned WLED release with PlatformIO, and upload the flashable
-binary plus its build metadata as artifacts. It would not flash hardware.
-Firmware binaries and device credentials must not be committed.
+The `generate/wled-firmware` branch pins the upstream WLED commit, PlatformIO
+environment, local Python tools, and disabled optional features. It produces a
+binary outside Git and a tracked receipt with exact input and artifact hashes.
+`main` binds that receipt into each mapping-ready installation manifest. A
+future CI job can publish the verified binary as an artifact; it must not flash
+hardware. Firmware binaries and device credentials must not be committed.
 
-A future implementation would belong under `firmware/` and would contain the
-pinned WLED build configuration, sculpture usermod, canonical mapping data, map
-generator, and mapping tests. The current directory contains instructions only.
-See `firmware/AGENTS.md` before changing it.
+The current minimum target uses standard local WLED behavior and no sculpture
+usermod. See `firmware/AGENTS.md` before changing deployment metadata or adding
+controller behavior.
 
-The first firmware slice is `FIRM-011`: build and deploy only the minimum pinned
-WLED target needed for mapping proof. `DIAG-010` supplies deterministic local
-test frames, and `PROOF-010` then checks every address and RGB channel. DDP,
-Art-Net, Ethernet, microphone, audio, presets, and custom effects remain under
-later `FIRM-010` work.
+`FIRM-011` has built the minimum pinned target and prepared its guarded flash,
+one-panel smoke, and powered-off mapping installation procedure. It remains
+open until a real controller and fused panel produce a smoke-test record.
+`DIAG-010` then supplies deterministic local test frames, and `PROOF-010`
+checks every address and RGB channel. DDP, Art-Net, Ethernet, microphone,
+audio, presets, and custom effects remain under later `FIRM-010` work.

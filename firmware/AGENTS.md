@@ -13,8 +13,9 @@ These rules apply under `firmware/`.
 
 ## WLED changes
 
-- Do not add a board-specific build until the controller board, Ethernet
-  interface, microphone pins, and four LED GPIOs are confirmed.
+- The minimum target is ESP32-DevKitC V4 with ESP32-WROOM-32E-N4 and LED GPIOs
+  16, 17, 18, and 19. Keep Ethernet, microphone, and audio features disabled
+  until their hardware and pins are selected explicitly.
 - Implement sculpture effects as a self-registering WLED usermod; do not patch
   WLED core for an effect.
 - Pin the upstream WLED release or commit and make upgrades explicit.

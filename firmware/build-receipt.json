@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "built-not-flashed",
+  "target": {
+    "board": "ESP32-DevKitC V4",
+    "module": "ESP32-WROOM-32E-N4",
+    "platformioEnvironment": "orbital_esp32dev",
+    "upstreamEnvironment": "esp32dev",
+    "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2",
+    "platformioVersion": "6.1.18",
+    "platformVersion": "2026.02.30",
+    "frameworkVersion": "3.3.7+sha.b3b492ff",
+    "toolchainVersion": "15.1.0+20250607",
+    "esptoolVersion": "5.1.2"
+  },
+  "inputs": {
+    "pipZipapp": {
+      "version": "26.2.1",
+      "sha256": "91d5fd9f6f25549fd839c60536c6f1b945316ce3588d34a605635b6071c91526"
+    },
+    "uvVersion": "0.12.5",
+    "platformioOverrideSha256": "0603cea8a6896ebb1ceb2d197988b3d24a6ace84bbaf6db5fbf6720cf560000f",
+    "upstreamRequirementsSha256": "9226eadd19806ad6b644685e5182a47dfd8ff37f19f6d18429d2930270a37ce7"
+  },
+  "artifact": {
+    "name": "wled-orbital-esp32dev.bin",
+    "byteLength": 1107920,
+    "sha256": "0468ee34c8b9578504c3f4a708421eaa7b70663b691d5df430f46ea009fdabd7"
+  }
+}

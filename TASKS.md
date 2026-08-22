@@ -31,17 +31,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
-### `ARCH-010` Split browser orchestration along covered behavior boundaries
-
-- Acceptance: project, placement, mechanics, mapping, wiring, package, and
-  rendering journeys remain covered; no new manager or state authority.
-
-### `FIRM-011` Build and deploy the minimum pinned WLED target
-
-- Acceptance: reproducible pinned firmware, exact bus fragment and ledmap,
-  non-secret procedure, and one fused-panel smoke test.
-- Depends on: `WIRE-012` and the operator-approved `CAL-010` profile facts.
-
 ### `DIAG-010` Deliver deterministic hardware diagnostic frames
 
 - Acceptance: frames identify output, panel, local coordinate, logical and
@@ -60,11 +49,11 @@ No tasks.
 
 ## In Progress
 
-### `FIRM-011` Build and deploy the minimum pinned WLED target
+### `DIAG-010` Deliver deterministic hardware diagnostic frames
 
 - Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-- Integration source: reviewed software commit `ee759e2` on
-  `codex/firm-011-esp32-deployment`; physical smoke evidence remains separate.
+- Uses the pinned FIRM-011 software and deployment identity. Physical output
+  observation remains a later proof boundary.
 
 ## Blocked
 
@@ -89,6 +78,19 @@ No tasks.
   unbounded search.
 - Needed: a bounded pre-CAD path optimizer that treats keep-out and printable-
   mesh feasibility as edge costs while preserving the strict final mesh gate.
+
+### `FIRM-011` Flash and smoke-test the minimum pinned WLED target
+
+- Software ready: off-main build branch `generate/wled-firmware` at `8089c79`
+  reproducibly emits the 1,107,920-byte binary with SHA-256
+  `0468ee34c8b9578504c3f4a708421eaa7b70663b691d5df430f46ea009fdabd7`.
+  The binary remains off `main`; its receipt and guarded deployment identity
+  are included in the installation package.
+- Blocked by: access to the selected real ESP32, one fused 64-pixel panel,
+  level shifter, and current-limited 5 V supply.
+- Needed: flash the exact binary, run off/red/green/blue/moving-pixel checks at
+  the 1,000 mA limit, and record board, panel, fuse, supply limit, colors, and
+  result. Do not energize the complete sculpture.
 
 ### `PWR-010` Approve power and protection
 

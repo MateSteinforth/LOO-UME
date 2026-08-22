@@ -159,7 +159,7 @@ and current-limit plan. Software brightness limiting is secondary protection.
 | `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
 | `tests/browser/` | Real Chromium operator journeys |
 | `wasm/` | Deterministic subset of WLED 1D effects, not firmware |
-| `firmware/` | Future constraints only; no buildable firmware |
+| `firmware/` | Minimum ESP32 deployment metadata, safety procedure, and smoke configuration; WLED build tooling stays off-main and binaries stay untracked |
 
 ## Verification boundaries
 

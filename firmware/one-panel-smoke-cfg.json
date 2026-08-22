@@ -1,0 +1,28 @@
+{
+  "hw": {
+    "led": {
+      "total": 64,
+      "maxpwr": 1000,
+      "ins": [
+        {
+          "start": 0,
+          "len": 64,
+          "pin": [
+            16
+          ],
+          "order": 1,
+          "rev": false,
+          "skip": 0,
+          "type": 22,
+          "ref": false,
+          "rgbwm": 0,
+          "freq": 0,
+          "maxpwr": 1000,
+          "ledma": 60,
+          "drv": 0,
+          "text": "FIRM-011 one fused panel"
+        }
+      ]
+    }
+  }
+}
