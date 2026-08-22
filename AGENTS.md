@@ -69,6 +69,10 @@ uses `createPanelAssemblyMapping()`.
 - Use the saved route and generated mapping artifacts for staged physical
   assembly only when their fingerprints match the current project. A pose,
   route, panel-set, profile, or bus edit requires regeneration.
+- Printable assembly manuals may use the current automatic draft route when no
+  authored route exists. Such a manual must say **DRAFT SUGGESTION**, show
+  unknown GPIOs as unassigned, describe current non-optimized panel turns as
+  assumptions, and never claim mapping readiness.
 - Address parity requires the same authored route, panel addressing, WLED bus
   configuration, RGB order, GPIOs, and deployment identity. Optional device
   evidence is separate from mapping readiness.

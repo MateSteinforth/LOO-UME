@@ -166,14 +166,15 @@ gates.
    it does not create measured, GPIO, or hardware-ready facts.
    `createHardwareMappingContract()` assigns physical indices and builds the
    WLED ledmap.
-5. The standalone wiring-manual entry joins the same mapping-ready contract to
+5. The standalone wiring-manual entry joins the current wiring preview to
    authoritative poses and the resolved panel profile. It renders print-only
-   placement projections and per-output assembly tables; it rejects draft,
-   temporary, stale, or non-mapping-ready data.
+   placement projections and per-output assembly tables. Mapping-ready routes
+   retain their ready status. Draft and temporary suggestions also export, but
+   the manual labels them **DRAFT SUGGESTION**, shows missing GPIOs as
+   unassigned, and identifies non-optimized installed turns as assumptions.
    The editor exports this manual as one self-contained HTML file with embedded
    print CSS, without a popup handshake. A generated-parts ZIP includes that
-   HTML when mapping-ready, or an explicit readiness-blocker text file when it
-   is not.
+   HTML for both mapping-ready and draft routes.
 6. Three.js renders panels, LEDs, surfaces, connectors, wiring, and available
    printable layers. One selected panel ID drives all selection-focused UI.
 7. Every edit rebuilds mapping and wiring. Existing generated mechanics become

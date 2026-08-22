@@ -453,3 +453,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/panel-outline-boundary.test.ts` and exact live-project
   Manifold generation.
 - **Status:** Resolved.
+
+### F-025 — Manual export treated useful draft wiring as unavailable
+
+- **Date:** 2026-08-22
+- **Context:** Printable assembly-manual export for automatically generated
+  panel layouts.
+- **Symptom:** The manual control reported draft route, missing GPIO, and
+  non-optimized orientation blockers, and the STL ZIP contained no manual.
+- **Cause:** Mapping readiness was used as an export gate even though the
+  operator explicitly wanted the current automatic wiring suggestion as the
+  working assembly plan.
+- **Correction:** Export the current preview for all panelized projects. Label
+  non-ready output **DRAFT SUGGESTION**, show GPIO as unassigned, show current
+  turns as non-optimized assumptions, and include that HTML in the STL ZIP.
+- **Prevention:** Do not convert evidence quality into an availability gate
+  when a clearly labelled draft artifact remains useful and the operator has
+  authorized draft assumptions.
+- **Evidence:** Draft manual model tests and the browser manual-to-STL-ZIP E2E
+  journey.
+- **Status:** Resolved.

@@ -690,7 +690,7 @@ async function start(): Promise<void> {
       openWiringManualButton.disabled =
         mapping.topology !== "panelized-sculpture";
       openWiringManualButton.title = !hardwareContract.readiness.mappingReady
-        ? "Click to see why the printable manual is not ready."
+        ? "Download the current draft wiring suggestion as a labelled printable manual."
         : "Download the current project as a self-contained A4 landscape wiring manual.";
       generatePrintPartsButton.disabled =
         !capabilities.canGenerateGenericMechanics;
@@ -1809,12 +1809,6 @@ async function start(): Promise<void> {
     };
 
     const createCurrentAssemblyManualDocument = (): string => {
-      if (!hardwareContract.readiness.mappingReady) {
-        throw new Error(
-          "Wiring assembly manual unavailable: " +
-            hardwareContract.readiness.blockers.join(" "),
-        );
-      }
       const model = createWiringAssemblyManualModel(
         editorDefinition,
         hardwareContract,

@@ -349,6 +349,26 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `UI-015` Export draft-suggestion assembly manuals end to end
+
+- Outcome: every current panelized wiring preview, including the automatic
+  draft suggestion, exports as a printable manual and is included in the STL
+  ZIP.
+- Acceptance: draft manuals show a prominent **DRAFT SUGGESTION** status, use
+  the current suggested panel order and assumed installed turns, label missing
+  GPIOs as unassigned, and do not claim route optimization or mapping readiness;
+  mapping-ready manuals remain unchanged; mirrored transforms still refuse
+  instructions that rotation alone cannot realize.
+- Depends on: `UI-014` and the current wiring-preview contract.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `web/src/WiringAssemblyManual.ts`, `web/src/main.ts`, their
+  tests, and wiring/manual documentation.
+- Verification: draft and mapping-ready manual tests 7/7; full draft browser
+  journey from direct manual download through part generation, STL ZIP download,
+  unzip, and manual-content inspection plus the flagship ready journey 2/2;
+  full unit suite 284/284 with loopback permission; TypeScript and web builds;
+  clean diff review.
+
 ### `UI-014` Put the printable assembly manual in generated-part ZIPs
 
 - Outcome: assembly-manual export is a direct HTML download, and the generated
@@ -365,6 +385,8 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Verification: manual and ZIP unit tests 8/8; real Chromium direct-manual and
   generated-parts ZIP journeys 2/2; full unit suite 283/283 with loopback
   permission; TypeScript and web builds; clean diff review.
+- Follow-up: `UI-015` replaces the non-ready blocker record with the operator-
+  requested labelled draft manual.
 
 ### `UI-013` Download generated STL parts as one ZIP
 
