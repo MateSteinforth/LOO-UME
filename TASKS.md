@@ -86,15 +86,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `BUILD-010` Separate WLED simulator generation from main — P1
-
-- Outcome: normal `main` use and verification keep the checked-in simulator but
-  do not require Python, Emscripten, or the WLED source checkout.
-- Acceptance: a dedicated generation branch preserves pinned source, compiler,
-  rebuild instructions, checksums, and receipts; `main` verifies tracked WASM
-  integrity without rebuilding it; clean setup and CI require no WLED submodule
-  or Emscripten SDK.
-
 ### `LEGACY-011` Retire remaining Schema 1 mapping dependencies — P1
 
 - Acceptance: preserve the authoritative 41-panel Schema 2 project; active
@@ -119,7 +110,19 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## In Progress
 
-No tasks.
+### `BUILD-010` Separate WLED simulator generation from main — P1
+
+- Outcome: normal `main` use and verification keep the checked-in simulator but
+  do not require Python, Emscripten, or the WLED source checkout.
+- Acceptance: a dedicated generation branch preserves pinned source, compiler,
+  rebuild instructions, checksums, and receipts; `main` verifies tracked WASM
+  integrity without rebuilding it; clean setup and CI require no WLED submodule
+  or Emscripten SDK.
+- Owner: `codex/build-010-simulator-generation` in
+  `/tmp/led-rhombo-build-010`.
+- Conflict risk: `package.json`, `.gitmodules`, WLED setup/build scripts,
+  clean verification, CI, simulator integrity tests, and focused software
+  guidance. Do not edit TRUSS files or its worktree.
 
 ## Blocked
 
