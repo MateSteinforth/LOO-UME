@@ -159,18 +159,13 @@ No tasks.
 
 ## Ready to Merge
 
-### `CTRL-008` Record operator review decisions
-
-- Outcome: close resolved human-review gates and align the Ready queue with the
-  approved WLED-generation, Schema 2, stale-mechanics, boundary-format, panel
-  profile, and visual decisions.
-- Acceptance: `TASKS.md` and durable decisions agree; no implementation or
-  evidence status is overstated.
-- Owner: branch `codex/ctrl-008-review-decisions`; worktree
-  `/tmp/led-rhombo-ctrl-008`.
+No tasks.
 
 ## Done
 
+- `CTRL-008`: recorded the operator-approved visual, panel-profile, WLED
+  generation, Schema 2, stale-mechanics, and boundary-format decisions in
+  `main` at `ee8f79f`; physical Manifold print review remains open as `HR-006`.
 - `UI-011`: operator approved the opaque glossy black PCB appearance.
 - `CAL-010`: operator approved the existing panel profile for the current
   41-panel build. Existing measured values stay measured; provisional or
