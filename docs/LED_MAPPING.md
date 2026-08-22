@@ -247,15 +247,20 @@ chain-length agreement, stale-route fallback, and accepted-proof activation are
 cross-record runtime invariants enforced by the parser and preview.
 
 The CLI distinguishes mapping readiness from electrical approval. The browser
-downloads the same address and wiring data under the selected assumptions.
+and CLI use the same exact-byte export policy and produce equivalent address,
+route, target, and current-limit artifacts from the same project state.
 
 The selected policy for `WIRE-012` is to keep assumption-labelled artifacts
 available with unmistakable names. Mapping-ready output requires current route,
 orientation, snake, RGB, GPIO, and target identities. Electrical protection and
 the optional hardware-verified evidence lifecycle are separate.
 
-`layout/panel-map.json` and `wled/ledmap.provisional.json` are generated
-snapshots. The normal browser path rebuilds from sculpture JSON.
+`layout/panel-map.json` and the files under `wled/diagnostic/` are generated
+review snapshots. `npm run generate:mapping:hardware` is the explicit guarded
+CLI route for `wled/cfg.json`, `wled/ledmap.json`, the route/mapping manifest,
+and the deployment manifest. The normal browser path rebuilds from sculpture
+JSON. A mapping-ready assembly package contains the same installation bytes;
+draft or stale packages contain only `.diagnostic.json` mapping files.
 `loadGeneratedHardwareMappingContract()` remains for regression tests and
 artifact validation.
 

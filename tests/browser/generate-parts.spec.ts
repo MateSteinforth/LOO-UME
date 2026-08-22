@@ -75,15 +75,17 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   const root = "panel-outline-prism-boundary-fixture/";
   expect(Object.keys(packageFiles).sort()).toEqual([
     `${root}assembly-manual.html`,
-    `${root}ledmap.json`,
     `${root}mechanics/boundary.stl`,
     `${root}mechanics/parts/part-001.stl`,
     `${root}mechanics/parts/part-002.stl`,
     `${root}sculpture.json`,
-    `${root}wiring-review.json`,
+    `${root}wled/diagnostic/deployment-manifest.diagnostic.json`,
+    `${root}wled/diagnostic/ledmap.diagnostic.json`,
+    `${root}wled/diagnostic/route-mapping.diagnostic.json`,
+    `${root}wled/diagnostic/wiring-review.diagnostic.json`,
   ]);
   await expect(page.locator("#pipeline-status")).toContainText(
-    "project, verified geometry, assembly manual, ledmap, and wiring review",
+    "diagnostic-only mapping files",
   );
   const bundledManual = new TextDecoder().decode(
     packageFiles[`${root}assembly-manual.html`],
@@ -91,10 +93,10 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   expect(bundledManual).toContain("DRAFT SUGGESTION");
   expect(bundledManual).toContain("GPIO unassigned");
   expect(JSON.parse(new TextDecoder().decode(
-    packageFiles[`${root}ledmap.json`],
+    packageFiles[`${root}wled/diagnostic/ledmap.diagnostic.json`],
   ))).toHaveProperty("map");
   expect(JSON.parse(new TextDecoder().decode(
-    packageFiles[`${root}wiring-review.json`],
+    packageFiles[`${root}wled/diagnostic/wiring-review.diagnostic.json`],
   ))).toMatchObject({ status: "draft", sculptureId: source.id });
   const saved = JSON.parse(new TextDecoder().decode(
     packageFiles[`${root}sculpture.json`],

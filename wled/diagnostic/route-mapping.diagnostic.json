@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "authored",
+  "routeSource": "authored-route",
+  "mappingFingerprint": "bc5054d1",
+  "ledCount": 2624,
+  "outputs": [
+    {
+      "outputIndex": 0,
+      "gpio": 16,
+      "startIndex": 0,
+      "pixelCount": 704,
+      "panelIds": [
+        "SQ-03",
+        "SQ-04",
+        "PC-04",
+        "SQ-08",
+        "SQ-16",
+        "PC-08",
+        "SQ-28",
+        "SQ-23",
+        "SQ-24",
+        "SQ-17",
+        "SQ-18"
+      ]
+    },
+    {
+      "outputIndex": 1,
+      "gpio": 17,
+      "startIndex": 704,
+      "pixelCount": 640,
+      "panelIds": [
+        "SQ-05",
+        "PC-05",
+        "SQ-09",
+        "SQ-19",
+        "PC-09",
+        "SQ-29",
+        "SQ-25",
+        "PC-10",
+        "SQ-20",
+        "SQ-10"
+      ]
+    },
+    {
+      "outputIndex": 2,
+      "gpio": 18,
+      "startIndex": 1344,
+      "pixelCount": 640,
+      "panelIds": [
+        "SQ-01",
+        "PC-01",
+        "SQ-06",
+        "SQ-12",
+        "PC-06",
+        "SQ-26",
+        "PC-11",
+        "SQ-30",
+        "SQ-21",
+        "SQ-11"
+      ]
+    },
+    {
+      "outputIndex": 3,
+      "gpio": 19,
+      "startIndex": 1984,
+      "pixelCount": 640,
+      "panelIds": [
+        "SQ-02",
+        "PC-02",
+        "SQ-07",
+        "PC-03",
+        "SQ-15",
+        "PC-07",
+        "SQ-27",
+        "SQ-22",
+        "SQ-13",
+        "SQ-14"
+      ]
+    }
+  ],
+  "readiness": {
+    "ready": false,
+    "mappingReady": true,
+    "currentChecksPass": true,
+    "blockers": [
+      "Electrical protection approval is separate from mapping readiness."
+    ],
+    "wiringLifecycle": "authored"
+  }
+}

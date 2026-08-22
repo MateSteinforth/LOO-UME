@@ -35,8 +35,10 @@ The implemented generation and portable-project data flow is:
    edge middle. Recessed text matches the simulator hover label (`P-01`).
 8. Press **Download assembly package**. The ZIP contains `sculpture.json`, the
    GLB when present, the exact boundary and part STLs loaded into Three.js,
-   `assembly-manual.html`, `ledmap.json`, and `wiring-review.json`. A draft
-   preview is labelled **DRAFT SUGGESTION** and keeps unknown GPIOs explicit.
+   `assembly-manual.html`, and the shared deployment export. Mapping-ready
+   input gets guarded `wled/` installation files. Draft or stale input gets
+   only `wled/diagnostic/*.diagnostic.json` files, is labelled **DRAFT
+   SUGGESTION**, and keeps unknown GPIOs explicit.
 9. Save relative asset references and hashes in the sculpture JSON.
 10. Reopen the project folder or ZIP and restore the GLB, panels, generated
     boundary, and exact printable parts.

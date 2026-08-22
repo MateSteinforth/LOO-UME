@@ -86,17 +86,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `WIRE-012` Unify browser and CLI export policy — P0
-
-- Outcome: draft data produces explicit diagnostic artifacts; an installation
-  bundle requires current mapping-ready inputs and binds ledmap, bus config,
-  route/mapping manifest, source/artifact hashes, target/build identity, and
-  current-limit data.
-- Acceptance: shared policy, browser/CLI byte equivalence, portable reopen, and
-  draft/stale/tamper negative tests.
-- Depends on: completed route, lifecycle, transform, GPIO, and WLED deployment
-  contracts. Electrical approval remains separate.
-
 ### `BUILD-010` Separate WLED simulator generation from main — P1
 
 - Outcome: normal `main` use and verification keep the checked-in simulator but
@@ -159,7 +148,18 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `WIRE-012` Unify browser and CLI export policy — P0
+
+- Outcome: browser assembly packages and the CLI now use one exact-byte export
+  policy. Mapping-ready input gets guarded WLED installation files; draft or
+  stale input gets only explicit diagnostic files.
+- Acceptance evidence: source, ledmap, route/mapping, target, build, bus-current,
+  file-size, SHA-256, and deployment identities are bound; shared-byte,
+  portable-reopen, draft, stale, tamper, and bus-contract checks pass.
+- Owner: `codex/wire-012-deployment` in `/tmp/led-rhombo-wire-012`.
+- Verification: 225/225 Vitest tests; focused Chromium generation and portable
+  ZIP journeys 2/2; TypeScript and Vite builds; deterministic CLI regeneration;
+  `git diff --check`.
 
 ## Done
 

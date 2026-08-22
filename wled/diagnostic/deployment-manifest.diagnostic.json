@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "diagnostic-only",
+  "target": {
+    "board": "ESP32-DevKitC V4",
+    "module": "ESP32-WROOM-32E-N4",
+    "platformioEnvironment": "esp32dev",
+    "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2"
+  },
+  "sourceProject": {
+    "path": "sculpture.json",
+    "byteLength": 45330,
+    "sha256": "8e1189f97fbb03e42ff4374ac67fdd2c831c046ff36893577eddd96929f4ebcb"
+  },
+  "mappingFingerprint": "bc5054d1",
+  "files": [
+    {
+      "path": "wled/diagnostic/ledmap.diagnostic.json",
+      "byteLength": 12020,
+      "sha256": "6fb7ff93ba9ec263f4dd1433a99b812c51bd3668a13bfbb34a693803a22a2bd5"
+    },
+    {
+      "path": "wled/diagnostic/route-mapping.diagnostic.json",
+      "byteLength": 1623,
+      "sha256": "6f7326f07aa8701768bbe88cf4ee5494000b59f0028a14d6f0160ba4b3efcc6d"
+    }
+  ]
+}

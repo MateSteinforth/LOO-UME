@@ -4,10 +4,10 @@ The authored source now lives in `sculptures/rhombicosidodecahedron/sculpture.js
 and references the reusable panel hardware profile under `catalog/panels/`.
 See `docs/sculpture-format.md` for the source-versus-generated contract.
 
-panel-map.json is deterministically compiled by npm run generate:mapping.
-It and wled/ledmap.provisional.json are imported directly by the browser at
-runtime. The loader rejects a fingerprint or per-LED mismatch. Together they
-form the complete mapping contract:
+`panel-map.json` and the explicit files under `wled/diagnostic/` are
+deterministically compiled by `npm run generate:mapping`. The browser normally
+rebuilds the same contract from the current Schema 2 project. The regression
+loader rejects a fingerprint or per-LED mismatch. Together these files record:
 
 - geometry and UV logical order;
 - four output routes and global WLED address ranges;
@@ -15,10 +15,9 @@ form the complete mapping contract:
 - logical and physical indices;
 - readiness blockers and a deterministic ledmap fingerprint.
 
-The current file is explicitly provisional. It assumes top-left, non-serpentine
-row-major order inside each 8 x 8 panel only so the end-to-end mapping can be
-tested. Do not upload wled/ledmap.provisional.json to production hardware.
+The diagnostic ledmap is not an installation file. Do not upload a file below
+`wled/diagnostic/` to production hardware.
 
-npm run generate:mapping:hardware writes wled/ledmap.json only when the
-canonical data is measured and every readiness blocker is cleared. It currently
-fails deliberately.
+`npm run generate:mapping:hardware` writes the guarded WLED configuration,
+ledmap, route/mapping manifest, and deployment manifest only when the current
+project is mapping-ready. Electrical approval remains separate.
