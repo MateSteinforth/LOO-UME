@@ -1,5 +1,6 @@
 import { zipSync } from "fflate";
 import type { PanelAssemblyDefinition } from "../../src/sculpture/PanelAssembly.ts";
+import { createWledDeploymentBundle } from "../../src/wled/DeploymentContract.ts";
 import type { HardwareMappingContract } from "./HardwareMapping.ts";
 import {
   createPortableProjectFiles,
@@ -9,7 +10,7 @@ import type { WiringPreview } from "./WiringPreview.ts";
 
 export interface AssemblyPackageArtifacts {
   assemblyManualHtml: string;
-  ledmap: unknown;
+  hardwareContract: HardwareMappingContract;
   wiringReview: unknown;
 }
 
@@ -41,12 +42,24 @@ export function createAssemblyPackageFiles(
   artifacts: AssemblyPackageArtifacts,
 ): Map<string, Uint8Array> {
   const files = createPortableProjectFiles(definition, availableAssets);
+  const sculptureBytes = new TextDecoder().decode(files.get("sculpture.json")!);
+  const deployment = createWledDeploymentBundle(
+    artifacts.hardwareContract,
+    sculptureBytes,
+  );
   files.set(
     "assembly-manual.html",
     new TextEncoder().encode(artifacts.assemblyManualHtml),
   );
-  files.set("ledmap.json", jsonBytes(artifacts.ledmap));
-  files.set("wiring-review.json", jsonBytes(artifacts.wiringReview));
+  files.set(
+    deployment.mode === "installation"
+      ? "wiring-review.json"
+      : "wled/diagnostic/wiring-review.diagnostic.json",
+    jsonBytes(artifacts.wiringReview),
+  );
+  for (const [path, bytes] of deployment.files) {
+    files.set(path, new TextEncoder().encode(bytes));
+  }
   return files;
 }
 

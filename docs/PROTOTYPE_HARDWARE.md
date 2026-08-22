@@ -50,13 +50,15 @@ The fuse and wire plan is still the primary protection. A nonzero global
 `hw.led.maxpwr` would replace the per-bus limiting behavior and is invalid for
 this contract. Current limiting is electrical protection, not a mapping input.
 
-`wled/cfg.provisional.json` is the exact non-secret WLED configuration fragment
-for these four buses. `wled/deployment-manifest.provisional.json` records the
-exact-byte SHA-256 and byte length of that file and the review ledmap. The
-SHA-256 of the exact manifest bytes is the review deployment identity printed
-by `npm run generate:mapping`. The manifest does not hash itself. These files
-have manifest status `assumed-mapping-ready`. Electrical protection is a
-separate concern and does not change addresses, color order, or orientation.
+`npm run generate:mapping` writes only explicit files below `wled/diagnostic/`.
+`npm run generate:mapping:hardware` writes the guarded installation files
+`wled/cfg.json`, `wled/ledmap.json`, `wled/route-mapping-manifest.json`, and
+`wled/deployment-manifest.json`. The manifest binds the exact source project,
+configuration, ledmap, route/mapping data, target build, file sizes, and
+SHA-256 values. The SHA-256 of the exact manifest bytes is the deployment
+identity printed by the command. The manifest does not hash itself. Electrical
+approval is separate and does not change addresses, color order, or
+orientation.
 
 ## Panel address convention
 

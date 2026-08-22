@@ -2,15 +2,22 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createPanelAssemblyMapping } from "../src/sculpture/PanelAssembly.ts";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
+import { sculptureJson } from "../src/sculpture/SculptureEditor.ts";
 import {
   createWledDeploymentBundle,
   sha256ExactBytes,
   validateWledDeploymentBundle,
 } from "../src/wled/DeploymentContract.ts";
-import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
+import {
+  createHardwareMappingContract,
+  type HardwareMappingContract,
+} from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
-async function fixture() {
+async function fixture(): Promise<{
+  contract: HardwareMappingContract;
+  sculptureBytes: string;
+}> {
   const project = await loadPanelAssemblyProjectFromFile(
     "sculptures/rhombicosidodecahedron/sculpture.json",
     process.cwd(),
@@ -21,29 +28,35 @@ async function fixture() {
     project.sculpture,
     project.panelProfile,
   );
-  return createHardwareMappingContract(geometry, wiring, project.panelProfile);
+  return {
+    contract: createHardwareMappingContract(geometry, wiring, project.panelProfile),
+    sculptureBytes: sculptureJson(project.sculpture),
+  };
 }
 
-describe("assumed WLED deployment contract", () => {
-  it("emits the exact four pinned bus vectors and a canonical identity", async () => {
-    const contract = await fixture();
-    const ledmapBytes = JSON.stringify(contract.ledmap) + "\n";
-    const sculptureBytes = readFileSync(
-      "sculptures/rhombicosidodecahedron/sculpture.json",
-      "utf8",
-    );
+function fileRecord(
+  files: ReadonlyMap<string, string>,
+  sculptureBytes: string,
+): Record<string, string> {
+  return { "sculpture.json": sculptureBytes, ...Object.fromEntries(files) };
+}
+
+describe("guarded WLED deployment contract", () => {
+  it("emits the exact pinned installation files and validates their identity", async () => {
+    const { contract, sculptureBytes } = await fixture();
     const bundle = createWledDeploymentBundle(
       contract,
-      ledmapBytes,
       sculptureBytes,
+      "installation",
     );
-    expect(readFileSync("wled/ledmap.provisional.json", "utf8")).toBe(ledmapBytes);
-    expect(readFileSync("wled/cfg.provisional.json", "utf8")).toBe(bundle.configBytes);
-    expect(readFileSync(
-      "wled/deployment-manifest.provisional.json",
-      "utf8",
-    )).toBe(bundle.manifestBytes);
-    const config = JSON.parse(bundle.configBytes) as {
+    expect(bundle.mode).toBe("installation");
+    expect([...bundle.files.keys()]).toEqual([
+      "wled/cfg.json",
+      "wled/ledmap.json",
+      "wled/route-mapping-manifest.json",
+      "wled/deployment-manifest.json",
+    ]);
+    const config = JSON.parse(bundle.files.get("wled/cfg.json")!) as {
       hw: { led: { total: number; maxpwr: number; ins: Array<Record<string, unknown>> } };
     };
     expect(config.hw.led).toMatchObject({ total: 2624, maxpwr: 0 });
@@ -53,98 +66,127 @@ describe("assumed WLED deployment contract", () => {
       pin: bus.pin,
       order: bus.order,
       rev: bus.rev,
-      type: bus.type,
       maxpwr: bus.maxpwr,
       ledma: bus.ledma,
-      drv: bus.drv,
     }))).toEqual([
-      { start: 0, len: 704, pin: [16], order: 1, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
-      { start: 704, len: 640, pin: [17], order: 1, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
-      { start: 1344, len: 640, pin: [18], order: 1, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
-      { start: 1984, len: 640, pin: [19], order: 1, rev: false, type: 22, maxpwr: 14000, ledma: 60, drv: 0 },
+      { start: 0, len: 704, pin: [16], order: 1, rev: false, maxpwr: 14000, ledma: 60 },
+      { start: 704, len: 640, pin: [17], order: 1, rev: false, maxpwr: 14000, ledma: 60 },
+      { start: 1344, len: 640, pin: [18], order: 1, rev: false, maxpwr: 14000, ledma: 60 },
+      { start: 1984, len: 640, pin: [19], order: 1, rev: false, maxpwr: 14000, ledma: 60 },
     ]);
     expect(bundle.deploymentIdentity).toBe(sha256ExactBytes(bundle.manifestBytes));
     expect(JSON.parse(bundle.manifestBytes)).toMatchObject({
-      status: "assumed-mapping-ready",
+      status: "mapping-ready-installation",
       mappingFingerprint: "bc5054d1",
       target: {
         platformioEnvironment: "esp32dev",
         wledCommit: "d9b9a846561227351ad929e3109781daadb7bed2",
       },
+      sourceProject: { path: "sculpture.json" },
     });
-    expect(() => validateWledDeploymentBundle(bundle.manifestBytes, {
-      "wled/cfg.provisional.json": bundle.configBytes,
-      "wled/ledmap.provisional.json": ledmapBytes,
-    }, bundle.deploymentIdentity)).not.toThrow();
+    expect(() => validateWledDeploymentBundle(
+      bundle.manifestBytes,
+      fileRecord(bundle.files, sculptureBytes),
+      bundle.deploymentIdentity,
+    )).not.toThrow();
   });
 
-  it("rejects contradictory routes, stale ledmaps, and modified deployment bytes", async () => {
-    const contract = await fixture();
-    const ledmapBytes = JSON.stringify(contract.ledmap) + "\n";
-    const sculptureBytes = "{}\n";
-    expect(() => createWledDeploymentBundle(
-      { ...contract, outputs: contract.outputs.map((output, index) =>
-        index === 0 ? { ...output, gpio: 5 } : output) },
-      ledmapBytes,
+  it("uses diagnostic-only names for draft or explicitly diagnostic output", async () => {
+    const { contract, sculptureBytes } = await fixture();
+    const cliReview = createWledDeploymentBundle(
+      contract,
       sculptureBytes,
-    )).toThrow(/contradicts/);
+      "diagnostic",
+    );
+    for (const [path, bytes] of cliReview.files) {
+      expect(readFileSync(path, "utf8")).toBe(bytes);
+    }
+    const draft = {
+      ...contract,
+      wiring: { ...contract.wiring, status: "draft" as const },
+      readiness: {
+        ...contract.readiness,
+        mappingReady: false,
+        currentChecksPass: false,
+        wiringLifecycle: "draft" as const,
+      },
+    };
+    const bundle = createWledDeploymentBundle(draft, sculptureBytes);
+    expect(bundle.mode).toBe("diagnostic");
+    expect([...bundle.files.keys()]).toEqual([
+      "wled/diagnostic/ledmap.diagnostic.json",
+      "wled/diagnostic/route-mapping.diagnostic.json",
+      "wled/diagnostic/deployment-manifest.diagnostic.json",
+    ]);
+    expect([...bundle.files.keys()].every((path) => path.includes("diagnostic")))
+      .toBe(true);
     expect(() => createWledDeploymentBundle(
-      { ...contract, outputs: contract.outputs.slice(0, 3) },
-      ledmapBytes,
+      draft,
       sculptureBytes,
-    )).toThrow(/exactly four outputs/);
+      "installation",
+    )).toThrow(/mapping-ready/);
+    const stale = {
+      ...contract,
+      wiring: { ...contract.wiring, status: "requires-review" as const },
+    };
+    expect(() => createWledDeploymentBundle(
+      stale,
+      sculptureBytes,
+      "installation",
+    )).toThrow(/saved route/);
+    expect(() => validateWledDeploymentBundle(
+      bundle.manifestBytes,
+      fileRecord(bundle.files, sculptureBytes),
+      bundle.deploymentIdentity,
+    )).not.toThrow();
+  });
+
+  it("rejects stale routes, source bytes, artifacts, identities, and bus data", async () => {
+    const { contract, sculptureBytes } = await fixture();
     expect(() => createWledDeploymentBundle(
       {
         ...contract,
-        readiness: { ...contract.readiness, mappingReady: false },
+        outputs: contract.outputs.map((output, index) =>
+          index === 0 ? { ...output, gpio: 5 } : output
+        ),
       },
-      ledmapBytes,
       sculptureBytes,
-    )).toThrow(/mapping-ready address contract/);
-    expect(() => createWledDeploymentBundle(
-      contract,
-      ledmapBytes.replace("[", "[1,"),
-      sculptureBytes,
-    )).toThrow(/do not match/);
-    const bundle = createWledDeploymentBundle(contract, ledmapBytes, sculptureBytes);
-    expect(() => validateWledDeploymentBundle(bundle.manifestBytes, {
-      "wled/cfg.provisional.json": bundle.configBytes + " ",
-      "wled/ledmap.provisional.json": ledmapBytes,
-    }, bundle.deploymentIdentity)).toThrow(/missing or stale/);
+      "installation",
+    )).toThrow(/contradicts/);
+    const bundle = createWledDeploymentBundle(contract, sculptureBytes, "installation");
+    const files = fileRecord(bundle.files, sculptureBytes);
+    expect(() => validateWledDeploymentBundle(
+      bundle.manifestBytes,
+      { ...files, "sculpture.json": sculptureBytes + " " },
+      bundle.deploymentIdentity,
+    )).toThrow(/source sculpture.json.*stale/);
+    expect(() => validateWledDeploymentBundle(
+      bundle.manifestBytes,
+      { ...files, "wled/ledmap.json": files["wled/ledmap.json"] + " " },
+      bundle.deploymentIdentity,
+    )).toThrow(/missing or stale/);
+    expect(() => validateWledDeploymentBundle(
+      bundle.manifestBytes,
+      files,
+      "0".repeat(64),
+    )).toThrow(/manifest or identity/);
 
-    const contradictoryConfig = JSON.parse(bundle.configBytes) as {
+    const changedConfig = JSON.parse(files["wled/cfg.json"]!) as {
       hw: { led: { ins: Array<{ rev: boolean }> } };
     };
-    contradictoryConfig.hw.led.ins[0]!.rev = true;
-    const contradictoryBytes = JSON.stringify(contradictoryConfig, null, 2) + "\n";
-    const contradictoryManifest = JSON.parse(bundle.manifestBytes) as {
-      files: Array<{ byteLength: number; sha256: string }>;
+    changedConfig.hw.led.ins[0]!.rev = true;
+    const changedConfigBytes = JSON.stringify(changedConfig, null, 2) + "\n";
+    const changedManifest = JSON.parse(bundle.manifestBytes) as {
+      files: Array<{ path: string; byteLength: number; sha256: string }>;
     };
-    contradictoryManifest.files[0]!.byteLength = Buffer.byteLength(contradictoryBytes);
-    contradictoryManifest.files[0]!.sha256 = sha256ExactBytes(contradictoryBytes);
-    const contradictoryManifestBytes = JSON.stringify(contradictoryManifest, null, 2) + "\n";
+    const configEntry = changedManifest.files.find(({ path }) => path === "wled/cfg.json")!;
+    configEntry.byteLength = new TextEncoder().encode(changedConfigBytes).byteLength;
+    configEntry.sha256 = sha256ExactBytes(changedConfigBytes);
+    const changedManifestBytes = JSON.stringify(changedManifest, null, 2) + "\n";
     expect(() => validateWledDeploymentBundle(
-      contradictoryManifestBytes,
-      {
-        "wled/cfg.provisional.json": contradictoryBytes,
-        "wled/ledmap.provisional.json": ledmapBytes,
-      },
-      sha256ExactBytes(contradictoryManifestBytes),
-    )).toThrow(/bus 0 contradicts/);
-
-    contradictoryConfig.hw.led.ins[0]!.rev = false;
-    (contradictoryConfig.hw.led.ins[0] as { text?: string }).text = "wrong domain";
-    const wrongDomainBytes = JSON.stringify(contradictoryConfig, null, 2) + "\n";
-    contradictoryManifest.files[0]!.byteLength = Buffer.byteLength(wrongDomainBytes);
-    contradictoryManifest.files[0]!.sha256 = sha256ExactBytes(wrongDomainBytes);
-    const wrongDomainManifestBytes = JSON.stringify(contradictoryManifest, null, 2) + "\n";
-    expect(() => validateWledDeploymentBundle(
-      wrongDomainManifestBytes,
-      {
-        "wled/cfg.provisional.json": wrongDomainBytes,
-        "wled/ledmap.provisional.json": ledmapBytes,
-      },
-      sha256ExactBytes(wrongDomainManifestBytes),
+      changedManifestBytes,
+      { ...files, "wled/cfg.json": changedConfigBytes },
+      sha256ExactBytes(changedManifestBytes),
     )).toThrow(/bus 0 contradicts/);
   });
 });

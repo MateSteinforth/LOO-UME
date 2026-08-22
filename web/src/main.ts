@@ -578,7 +578,7 @@ async function start(): Promise<void> {
       assemblyPackageButton.disabled = mapping.topology !== "panelized-sculpture" ||
         (!packageIsCurrent && !capabilities.canGenerateGenericMechanics);
       assemblyPackageButton.title = packageIsCurrent
-        ? "Download the current project, verified geometry, manual, ledmap, and wiring review."
+        ? "Download the current project, verified geometry, manual, and guarded deployment export."
         : "Build current boundary and part STLs. The button changes to Download when they are verified.";
       automaticPanelPlacementControls.hidden = false;
       automaticallyPlacePanelsButton.disabled =
@@ -1652,7 +1652,7 @@ async function start(): Promise<void> {
         availableProjectAssets,
         {
           assemblyManualHtml: createCurrentAssemblyManualDocument(),
-          ledmap: hardwareContract.ledmap,
+          hardwareContract,
           wiringReview: createWiringReview(
             editorDefinition,
             hardwareContract,
@@ -1672,7 +1672,9 @@ async function start(): Promise<void> {
       URL.revokeObjectURL(objectUrl);
       pipelineStatus.classList.remove("pipeline-status--error");
       pipelineStatus.textContent =
-        `Downloaded ${link.download} with the project, verified geometry, assembly manual, ledmap, and wiring review.`;
+        hardwareContract.readiness.mappingReady
+          ? `Downloaded ${link.download} with the project, verified geometry, assembly manual, and guarded WLED installation bundle.`
+          : `Downloaded ${link.download} with the project, verified geometry, assembly manual, and diagnostic-only mapping files.`;
     };
 
     const buildAssemblyPackage = async (): Promise<void> => {

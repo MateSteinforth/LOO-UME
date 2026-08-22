@@ -348,12 +348,14 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   expect([...assemblyFiles.keys()].sort()).toEqual([
     "assembly-manual.html",
     "design/tetrahedron.glb",
-    "ledmap.json",
     "mechanics/boundary.stl",
     "mechanics/parts/part-001.stl",
     "mechanics/parts/part-002.stl",
     "sculpture.json",
-    "wiring-review.json",
+    "wled/diagnostic/deployment-manifest.diagnostic.json",
+    "wled/diagnostic/ledmap.diagnostic.json",
+    "wled/diagnostic/route-mapping.diagnostic.json",
+    "wled/diagnostic/wiring-review.diagnostic.json",
   ]);
   await expect.poll(async () => {
     const entries = assetEntries(await browserAudit(page));

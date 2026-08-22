@@ -301,7 +301,7 @@ describe("hardware mapping contract", () => {
       leds: Array<{ logicalIndex: number; physicalIndex: number }>;
     };
     const generatedLedmap = JSON.parse(
-      readFileSync("wled/ledmap.provisional.json", "utf8"),
+      readFileSync("wled/diagnostic/ledmap.diagnostic.json", "utf8"),
     ) as { map: number[] };
 
     expect(generatedLayout.ledmapFingerprint).toBe(contract.fingerprint);
@@ -316,7 +316,7 @@ describe("hardware mapping contract", () => {
       readFileSync("layout/panel-map.json", "utf8"),
     ) as unknown;
     const ledmap = JSON.parse(
-      readFileSync("wled/ledmap.provisional.json", "utf8"),
+      readFileSync("wled/diagnostic/ledmap.diagnostic.json", "utf8"),
     ) as { map: number[] };
     const loaded = loadGeneratedHardwareMappingContract(panelMap, ledmap);
 

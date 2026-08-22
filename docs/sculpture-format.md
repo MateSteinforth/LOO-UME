@@ -46,9 +46,9 @@ npm run generate:mapping
 npm run generate:mapping:hardware
 ```
 
-The hardware command requires a current mapping-ready route and emits
-assumption-labelled deployment files. It does not claim electrical approval or
-hardware verification.
+The normal command emits explicit diagnostic files. The hardware command
+requires a current mapping-ready route and emits guarded installation files.
+Neither command claims electrical approval or hardware verification.
 
 Schema files under `schemas/` support editors and external tools. Runtime
 parsing also enforces cross-record invariants that JSON Schema cannot express.
