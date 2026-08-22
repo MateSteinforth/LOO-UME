@@ -110,19 +110,7 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## In Progress
 
-### `BUILD-010` Separate WLED simulator generation from main — P1
-
-- Outcome: normal `main` use and verification keep the checked-in simulator but
-  do not require Python, Emscripten, or the WLED source checkout.
-- Acceptance: a dedicated generation branch preserves pinned source, compiler,
-  rebuild instructions, checksums, and receipts; `main` verifies tracked WASM
-  integrity without rebuilding it; clean setup and CI require no WLED submodule
-  or Emscripten SDK.
-- Owner: `codex/build-010-simulator-generation` in
-  `/tmp/led-rhombo-build-010`.
-- Conflict risk: `package.json`, `.gitmodules`, WLED setup/build scripts,
-  clean verification, CI, simulator integrity tests, and focused software
-  guidance. Do not edit TRUSS files or its worktree.
+No tasks.
 
 ## Blocked
 
@@ -151,7 +139,19 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready to Merge
 
-No tasks.
+### `BUILD-010` Separate WLED simulator generation from main — P1
+
+- Outcome: normal setup, development, desktop start, tests, builds, phone
+  review, clean verification, and CI use the checked-in simulator without
+  Python, Emscripten, a WLED checkout, or a rebuild.
+- Generation authority: `generate/wled-simulator` at `64b743a`; it retains the
+  pinned source, compiler, sync check, rebuild scripts, instructions, hashes,
+  and receipt. Do not merge its toolchain back into `main`.
+- Main task owner: `codex/build-010-simulator-generation` in
+  `/tmp/led-rhombo-build-010`.
+- Verification: `npm run verify:clean` passed 227/227 Vitest tests, runtime
+  integrity, TypeScript, and Vite; tamper rejection passed; workflow YAML and
+  shell syntax passed; exact generation-branch refs were verified.
 
 ## Done
 

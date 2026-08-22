@@ -100,8 +100,12 @@ if [ ! -f web/public/sculptures/manifest.json ]; then
 fi
 if [ ! -f web/public/wasm/wled-engine.js ] ||
   [ ! -f web/public/wasm/wled-engine.wasm ]; then
-  npm run build:wasm
+  printf '%s\n' \
+    "The checked-in WLED simulator is missing." \
+    "Restore web/public/wasm from main; rebuilds belong on generate/wled-simulator." >&2
+  exit 1
 fi
+npm run verify:wasm
 
 vite_log="/tmp/led-rhombo-vite-$port.log"
 tunnel_log="/tmp/led-rhombo-cloudflared-$port.log"

@@ -17,7 +17,7 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
-# The two pinned WLED browser runtime files under web/public/wasm are tracked.
+# The pinned WLED browser runtime and integrity receipt are tracked.
 web/public/sculptures/
 web/public/catalog/
 web/public/generated-cad/

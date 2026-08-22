@@ -54,9 +54,14 @@ npm run build:web
 npm run test:browser
 ```
 
-`npm run verify` also rebuilds the checked-in WLED WASM runtime and needs the
-pinned Emscripten SDK. Use `npm run verify:clean` for the complete clean-checkout
-path.
+`npm run verify` checks the exact byte lengths and SHA-256 values of the
+checked-in WLED simulator, then runs the normal tests and builds. It does not
+need Python, Emscripten, or a WLED source checkout. `npm run verify:clean`
+proves the same path after a clean `npm ci`.
+
+Simulator rebuild tools and pinned sources live only on the long-lived
+`generate/wled-simulator` branch. A reviewed rebuild moves only the two runtime
+files and `web/public/wasm/runtime-integrity.json` back to `main`.
 
 To compile a deterministic Manifold fixture directly:
 

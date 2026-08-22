@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "generationBranch": "generate/wled-simulator",
+  "source": {
+    "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2"
+  },
+  "compiler": {
+    "emscriptenVersion": "4.0.14",
+    "emsdkRevision": "eff90ca04a3785f571a8095b3a42b63799cf384a"
+  },
+  "artifacts": [
+    {
+      "path": "web/public/wasm/wled-engine.js",
+      "byteLength": 32660,
+      "sha256": "694c03a0879cf04796188392a9f82e9d62c69eab5d4ebf94bccdcf79eb2646a1"
+    },
+    {
+      "path": "web/public/wasm/wled-engine.wasm",
+      "byteLength": 39673,
+      "sha256": "ce6e57cf723c2972af8009dcbbbf1066233e0de40680520dc091d00a8243882b"
+    }
+  ]
+}
