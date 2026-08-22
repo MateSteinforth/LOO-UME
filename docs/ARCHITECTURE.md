@@ -147,6 +147,7 @@ gates.
 | `src/cad/GenerateStructuralSolids.ts` | Build one integrated bracket/hub plate per panel and one tapered socket strut per retained inter-panel member with Manifold | Only converged optimization enters CAD; exact anchor, fastener, connector-clearance, topology, component, triangle, and volume checks gate each mesh |
 | `src/cad/CompileStructuralArtifacts.ts` | Serialize the exact structural meshes as deterministic binary STL parts, one assembly-preview STL, and one Core 3MF package | Millimetre units, stable identities, triangle counts, package relationships, hashes, and positive-octant build transform are validated in memory |
 | `src/cad/PublishStructuralArtifacts.ts` | Stage and exact-byte verify a complete structural artifact bundle, then replace its output directory atomically | A failed final promotion restores the previous validated directory; the manifest is written last in staging |
+| `src/structure/StructuralPipeline.ts` | Run normalization, candidate generation, optimization, Manifold CAD, exact export, analysis JSON, report, and generated-structure manifest from one Schema 2 project | Deterministic output contains no timestamp; singular or non-converged analysis stops before publication; report states that results are not certification |
 | `src/sculpture/SculptureEditor.ts` | Add/move/rotate/delete/seed and mechanics invalidation | Editing does not require successful CAD |
 | `src/sculpture/MechanicalShellRegenerator.ts` | Rebuild supported planar topology after edits | Rejects unsafe or ambiguous mechanics |
 | `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, detect deterministic unambiguous gap cycles, validate flat caps, and emit a closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
@@ -270,6 +271,13 @@ offsets, hex nut traps, conservative DIN/DOUT clearance bores, strut sockets,
 and a stable orientation mark are Boolean-cut or joined with Manifold. Each
 retained inter-panel member becomes a separate tapered strut with two socket
 tenons and a keyed start collar.
+
+The browser-safe structural pipeline composes these stages without a second
+panel schema. `npm run generate:structure -- --sculpture <sculpture.json>` is
+the headless entry point. It includes the resolved panel profile and verified
+optional design surface at safe paths in the generated project folder,
+publishes the validated bundle atomically, and prints all normalization
+warnings.
 
 ## Local desktop host
 

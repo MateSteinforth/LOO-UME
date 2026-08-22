@@ -202,8 +202,35 @@ In-memory export has explicit limits: 5,000 parts, 500,000 triangles per part,
 and 6,000,000 total triangles or vertices. Inputs above a limit fail before STL
 or 3MF allocation with the measured count in the error.
 
+## Headless pipeline and report
+
+Run:
+
+```bash
+npm run generate:structure -- --sculpture sculptures/<project>/sculpture.json
+```
+
+The optional `--output-root <directory>` and `--directory <safe-name>` flags
+select one direct child of the output root. The command resolves the existing
+Schema 2 project and panel profile, runs every structural stage, includes the
+resolved profile and verified optional design surface at safe paths in the
+emitted project, and publishes only after all files and hashes validate.
+
+`structure/analysis.json` contains normalized supports and load cases, units,
+input source, warnings, the complete design/material/safety policy, candidate
+counts, optimization objective and trace, full load-case node/member results,
+enriched governing member results, and exact print-artifact hashes.
+
+`structure/report.md` starts and ends with the statement that its results are
+load-path guidance and not engineering certification. It makes preview-only
+supports and preview material/mass assumptions prominent. It lists unknown
+connector geometry, supports, load cases, safety factor, displacements,
+equilibrium residuals, tension/compression, stress, utilization, approximate
+pinned Euler buckling, governing cases, optimization history, modeling limits,
+and print/analysis artifact hashes. The outer `generatedStructure` manifest
+records the report's own hash without creating a circular report hash.
+
 ## Remaining ordered implementation
 
-`TRUSS-017` and `TRUSS-018` add reports and browser
-portable-project integration. Every report must state that the analysis gives
-load-path guidance and is not engineering certification.
+`TRUSS-018` adds browser portable-project integration. Structural failures or
+stale output must not disable editing, mapping, wiring, simulation, or save.

@@ -45,19 +45,6 @@ This file is the persistent source of truth for work status. Read it before star
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
 
-### `TRUSS-017` Publish the headless pipeline and engineering report
-
-- Outcome: one TypeScript command reads an existing Schema 2 project and emits
-  the complete structural asset set plus structured and readable reports.
-- Acceptance: the report contains supports, load cases, safety factor,
-  assumptions, warnings, displacements, per-member results, governing cases,
-  buckling, optimization history, and artifact hashes; preview-only supports,
-  assumed mass, and unknown connector geometry are prominent; the report says
-  that the result is not engineering certification.
-- Depends on: `TRUSS-011` through `TRUSS-016`.
-- Verify: complete JSON-to-artifacts fixture, repeated-byte equivalence,
-  singular failure, missing-input warnings, TypeScript, and Vitest.
-
 ### `TRUSS-018` Integrate structural generation with the browser and portable projects
 
 - Outcome: the editor can generate, display, save, export, and reopen the exact
@@ -550,6 +537,34 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   workstream without a merge to `main`.
 - Likely conflicts: `TASKS.md`, `FAILURES.md`, `src/cad/`, structural artifact
   documentation, and structural export tests.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
+### `TRUSS-017` Publish the headless pipeline and engineering report
+
+- Outcome: one TypeScript command reads an existing Schema 2 project and emits
+  the complete structural asset set, portable source/profile inputs, structured
+  analysis, and a readable engineering report.
+- Acceptance: the report contains supports, load cases, safety factor,
+  assumptions, warnings, displacements, per-member results, governing cases,
+  buckling, optimization history, and artifact hashes; preview-only supports,
+  assumed mass, and unknown connector geometry are prominent; the report says
+  that the result is not engineering certification.
+- Evidence: 5 pipeline tests cover complete existing-JSON generation,
+  report/manifest content, panel/support/translation/load reorder byte
+  equivalence, verified design-surface inclusion, and singular failure. The
+  real CLI generated 18 parts and 24 validated files; the emitted project
+  reloaded with its bundled profile and every manifest hash matched. All 321
+  Vitest tests, `npx tsc -b --pretty false`, `npm run build:web`, and
+  `git diff --check` pass. Independent review found portable-reference,
+  serialization-order, and connector-evidence gaps; all corrections passed
+  focused re-review with no remaining finding.
+- Depends on: `TRUSS-011` through `TRUSS-016`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Continue on the operator-authorized truss
+  workstream without a merge to `main`.
+- Likely conflicts: `TASKS.md`, package scripts, structural pipeline/report
+  source, generated-structure documentation, and end-to-end structural tests.
 - Integration gate: explicit operator authorization is required before merge
   into `main`.
 

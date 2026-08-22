@@ -6,7 +6,10 @@ import { inspectStl, serializeManifoldMeshBinaryStl } from "./Stl.ts";
 
 const TEXT = new TextEncoder();
 const THREE_MF_DATE = new Date("1980-01-01T00:00:00.000Z");
-const RESERVED_ARTIFACT_IDS = new Set(["assembly-preview", "print-package"]);
+const RESERVED_ARTIFACT_IDS = new Set([
+  "assembly-preview", "print-package", "analysis", "engineering-report", "project",
+  "panel-profile", "design-surface",
+]);
 
 export const STRUCTURAL_ARTIFACT_LIMITS = Object.freeze({
   maximumParts: 5_000,
@@ -17,8 +20,8 @@ export const STRUCTURAL_ARTIFACT_LIMITS = Object.freeze({
 
 export interface StructuralArtifactFile {
   id: string;
-  role: "part" | "preview" | "package";
-  format: "stl" | "3mf";
+  role: "part" | "preview" | "package" | "analysis" | "report" | "project" | "profile" | "source";
+  format: "stl" | "3mf" | "json" | "markdown" | "glb";
   source: string;
   bytes: Uint8Array;
   sha256: string;
@@ -342,6 +345,43 @@ function artifact(
   return { id, role, format, source, bytes, sha256: sha256Bytes(bytes) };
 }
 
+function manifestBytes(manifest: StructuralArtifactManifest): Uint8Array {
+  return TEXT.encode(`${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+export function createStructuralArtifactFile(
+  id: string,
+  role: StructuralArtifactFile["role"],
+  format: StructuralArtifactFile["format"],
+  source: string,
+  bytes: Uint8Array,
+): StructuralArtifactFile {
+  return artifact(id, role, format, source, Uint8Array.from(bytes));
+}
+
+export function extendStructuralArtifactBundle(
+  base: CompiledStructuralArtifactBundle,
+  additionalFiles: StructuralArtifactFile[],
+): CompiledStructuralArtifactBundle {
+  validateStructuralArtifactBundle(base);
+  const files = [...base.files, ...additionalFiles]
+    .sort((left, right) => compareText(left.source, right.source));
+  const manifest: StructuralArtifactManifest = {
+    ...base.manifest,
+    artifacts: files.map(({ id, role, format, source, bytes, sha256 }) => ({
+      id, role, format, source, byteLength: bytes.byteLength, sha256,
+    })),
+  };
+  const result: CompiledStructuralArtifactBundle = {
+    manifest,
+    manifestSource: base.manifestSource,
+    manifestBytes: manifestBytes(manifest),
+    files,
+  };
+  validateStructuralArtifactBundle(result);
+  return result;
+}
+
 export function compileStructuralArtifactBundle(
   sourceFingerprint: { algorithm: "sha256"; value: string },
   inputMeshes: StructuralSolidMesh[],
@@ -425,11 +465,11 @@ export function compileStructuralArtifactBundle(
       id, role, format, source, byteLength: bytes.byteLength, sha256,
     })),
   };
-  const manifestBytes = TEXT.encode(`${JSON.stringify(manifest, null, 2)}\n`);
+  const encodedManifest = manifestBytes(manifest);
   const bundle = {
     manifest,
     manifestSource: "structure/artifacts.json" as const,
-    manifestBytes,
+    manifestBytes: encodedManifest,
     files,
   };
   validateStructuralArtifactBundle(bundle);
@@ -457,6 +497,11 @@ export function validateStructuralArtifactBundle(bundle: CompiledStructuralArtif
     throw new Error("Structural artifact manifest does not reference one unique ID and path per file.");
   }
   const partReferences = references.filter(({ role, format }) => role === "part" && format === "stl");
+  const expectedFormats = new Map<StructuralArtifactFile["role"], StructuralArtifactFile["format"]>([
+    ["part", "stl"], ["preview", "stl"], ["package", "3mf"],
+    ["analysis", "json"], ["report", "markdown"], ["project", "json"],
+    ["profile", "json"], ["source", "glb"],
+  ]);
   if (partReferences.length === 0 ||
     references.filter(({ id, role, format }) =>
       id === "assembly-preview" && role === "preview" && format === "stl"
@@ -464,9 +509,14 @@ export function validateStructuralArtifactBundle(bundle: CompiledStructuralArtif
     references.filter(({ id, role, format }) =>
       id === "print-package" && role === "package" && format === "3mf"
     ).length !== 1 ||
-    references.some(({ role, format }) =>
-      (role === "package") !== (format === "3mf")
-    )) {
+    references.some(({ role, format }) => expectedFormats.get(role) !== format) ||
+    references.filter(({ role }) => role === "analysis").length > 1 ||
+    references.filter(({ role }) => role === "report").length > 1 ||
+    references.filter(({ role }) => role === "project").length > 1 ||
+    references.filter(({ role }) => role === "profile").length > 1 ||
+    references.filter(({ role }) => role === "source").length > 1 ||
+    (references.some(({ role }) => role === "analysis") !==
+      references.some(({ role }) => role === "report"))) {
     throw new Error("Structural artifact manifest requires STL parts, one STL preview, and one 3MF package.");
   }
   for (const file of bundle.files) {
@@ -477,7 +527,19 @@ export function validateStructuralArtifactBundle(bundle: CompiledStructuralArtif
       throw new Error(`Structural artifact ${file.source} failed manifest hash or identity validation.`);
     }
     if (file.format === "stl") inspectStl(file.bytes);
-    else inspectStructuralThreeMf(file.bytes);
+    else if (file.format === "3mf") inspectStructuralThreeMf(file.bytes);
+    else if (file.format === "json") JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(file.bytes));
+    else if (file.format === "glb") {
+      if (file.bytes.byteLength < 12) throw new Error(`Structural source ${file.source} is not a complete GLB.`);
+      const view = new DataView(file.bytes.buffer, file.bytes.byteOffset, file.bytes.byteLength);
+      if (view.getUint32(0, true) !== 0x46546c67 || view.getUint32(4, true) !== 2 ||
+        view.getUint32(8, true) !== file.bytes.byteLength) {
+        throw new Error(`Structural source ${file.source} is not a binary glTF 2.0 GLB.`);
+      }
+    }
+    else if (new TextDecoder("utf-8", { fatal: true }).decode(file.bytes).trim().length === 0) {
+      throw new Error(`Structural report ${file.source} is empty.`);
+    }
   }
   const partSources = new Set(bundle.manifest.parts.map(({ source }) => source));
   const filePartSources = new Set(bundle.files.filter(({ role }) => role === "part").map(({ source }) => source));

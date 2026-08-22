@@ -202,6 +202,29 @@ describe("Schema 2 structural design normalization", () => {
     ]);
   });
 
+  it("warns when connector pad positions are unknown even if keepout regions are measured", async () => {
+    const source = await definition();
+    const base = createPanelAssemblyProject(
+      source,
+      "sculptures/pose-only-two-panel/sculpture.json",
+    );
+    const profile = structuredClone(base.panelProfile);
+    profile.electricalKeepouts.status = "measured";
+
+    const normalized = normalizeStructuralDesign(createPanelAssemblyProject(
+      source,
+      "sculptures/pose-only-two-panel/sculpture.json",
+      profile,
+    ));
+
+    expect(profile.dataConnectors.padPositionStatus).toBe("unknown");
+    expect(normalized.warnings.map(({ code }) => code)).toContain(
+      "ELECTRICAL_KEEPOUTS_UNMEASURED",
+    );
+    expect(normalized.warnings.find(({ code }) => code === "ELECTRICAL_KEEPOUTS_UNMEASURED")?.message)
+      .toMatch(/connector pad and keep-out geometry is not fully measured/i);
+  });
+
   it("is independent of panel and profile-hole storage order", async () => {
     const source = await definition();
     source.structuralDesign = design();

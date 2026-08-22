@@ -512,6 +512,25 @@ the next reporting stage can reference the exact artifact manifest. Publication
 cannot replace an unrelated directory, and bounded in-memory export fails
 clearly before an uncontrolled large allocation.
 
+## D23 — One pipeline publishes analysis evidence with printable artifacts
+
+**Decision.** `runStructuralPipeline()` is the browser-safe composition root
+for normalization, truss generation, solving, optimization, Manifold CAD,
+exact export, structured analysis, engineering report, and the Schema 2
+`generatedStructure` manifest. The headless command calls this same function.
+It does not implement another project or panel contract.
+
+**Evidence.** `src/structure/StructuralPipeline.ts`,
+`scripts/generate-structural-system.ts`, and
+`tests/structural-pipeline.test.ts` cover existing Schema 2 JSON through the
+complete file set, current manifest and hashes, missing-input warnings,
+singular-support failure, and repeated-byte equivalence.
+
+**Consequence.** Reports and printable files cannot describe different solves
+or meshes. The report lists all non-circular artifact hashes; its own hash is in
+the outer manifest. Non-converged or singular results remain diagnostics and
+cannot be published as a complete generated structure.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

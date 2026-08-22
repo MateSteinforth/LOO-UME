@@ -751,10 +751,13 @@ export function normalizeStructuralDesign(
       message: `No structural support is authored. Panel ${panels[0]!.id}, the first panel in stable ID order, is fixed for preview only. Analysis requires real mounting conditions.`,
     });
   }
-  if (profile.electricalKeepouts.status !== "measured") {
+  if (
+    profile.electricalKeepouts.status !== "measured" ||
+    profile.dataConnectors.padPositionStatus !== "measured"
+  ) {
     warnings.push({
       code: "ELECTRICAL_KEEPOUTS_UNMEASURED",
-      message: "Exact DIN, DOUT, V+, and V- keep-outs are not measured. Cable loads use known connector corners and printable geometry must keep a conservative clearance.",
+      message: "Exact connector pad and keep-out geometry is not fully measured. Cable loads use known connector corners and printable geometry must keep a conservative clearance.",
     });
   }
   return {
