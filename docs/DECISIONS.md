@@ -601,6 +601,28 @@ This supersedes the printable rod/bracket form in D21 and the strut/sleeve CAD
 form in D25. Their solver, local-cell, and deterministic export decisions stay
 in force.
 
+## D27 — Connector cells loft the panel-facing cap surfaces
+
+**Decision.** The nearest-unused eligible screw holes selected by the candidate
+stage define each panel-pair connector. Their corrected 13 mm screw shoes are
+the exact end profiles of a nine-station loft. Each station follows a cubic
+path that leaves both PCBs along their rear normals before bending across the
+gap. Manifold hulls adjacent cap-shaped stations and unites them into one broad,
+thin, watertight connector.
+
+**Evidence.** Structural solid tests cover every loft station, exact hardware
+voids, arbitrary pose, deterministic output, PCB intersection rejection, and
+print-envelope rejection. The real Chromium spatial trail produces two local
+loft bodies without a PCB collision.
+
+**Consequence.** Printable geometry now reads as panel surface extended through
+the gap, including when panel planes differ. The optimized axial truss validates
+load paths and reports circular member sizes, but those sections do not set loft
+thickness. Its individual members are not exposed as rods and it does not
+certify stresses in the lofted solid. This supersedes the
+member-centered signed-distance geometry in D26 while retaining its exact
+hardware, local-cell, export, and fabrication-safety decisions.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

@@ -6,7 +6,6 @@ import type {
 import type {
   CandidateConnectorCell,
   CandidateTrussMember,
-  CandidateTrussNode,
 } from "../structure/CandidateTruss.ts";
 import { validateCandidateTruss } from "../structure/CandidateTruss.ts";
 import type { TrussOptimizationResult } from "../structure/TrussOptimizer.ts";
@@ -15,9 +14,7 @@ import { loadManifoldRuntime } from "./ManifoldRuntime.ts";
 const EPSILON_MM = 0.03;
 const CIRCULAR_SEGMENTS = 32;
 const MAXIMUM_STRUT_SEGMENTS = 256;
-const IMPLICIT_EDGE_LENGTH_MM = 1.5;
-const IMPLICIT_BLEND_MM = 3;
-const MAXIMUM_IMPLICIT_GRID_CELLS = 2_000_000;
+const LOFT_STATION_COUNT = 9;
 
 export interface StructuralGeometryPolicy {
   schemaVersion: "1.0.0";
@@ -32,8 +29,7 @@ export interface StructuralGeometryPolicy {
   orientationMarkHeightMm: number;
   capScrewTabWidthMm: number;
   capShoeThicknessMm: number;
-  implicitEdgeLengthMm: number;
-  implicitBlendMm: number;
+  loftStationCount: number;
 }
 
 export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
@@ -49,8 +45,7 @@ export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
   orientationMarkHeightMm: 1.2,
   capScrewTabWidthMm: 13,
   capShoeThicknessMm: 3,
-  implicitEdgeLengthMm: IMPLICIT_EDGE_LENGTH_MM,
-  implicitBlendMm: IMPLICIT_BLEND_MM,
+  loftStationCount: LOFT_STATION_COUNT,
 };
 
 export interface StructuralSolidProbe {
@@ -82,9 +77,11 @@ export interface StructuralSolidMesh {
   surfaceFlushCorrectionMm?: number;
   screwHoleCentersMm: StructuralSolidProbe[];
   nutTrapCentersMm: StructuralSolidProbe[];
+  nutTrapDepthMm?: number;
   cableClearanceCentersMm: StructuralSolidProbe[];
   socketCentersMm: StructuralSolidProbe[];
   orientationMarkCenterMm?: StructuralSolidProbe;
+  loftStationCentersMm?: StructuralSolidProbe[];
 }
 
 function add(left: StructuralVector, right: StructuralVector): StructuralVector {
@@ -117,30 +114,18 @@ function distance(left: StructuralVector, right: StructuralVector): number {
   return Math.hypot(...subtract(left, right));
 }
 
-function dot(left: StructuralVector, right: StructuralVector): number {
-  return left[0] * right[0] + left[1] * right[1] + left[2] * right[2];
-}
-
-function pointSegmentDistance(
-  point: StructuralVector,
+function cubicBezier(
   start: StructuralVector,
+  firstControl: StructuralVector,
+  secondControl: StructuralVector,
   end: StructuralVector,
-): number {
-  const axis = subtract(end, start);
-  const lengthSquared = dot(axis, axis);
-  const amount = lengthSquared <= 1e-12
-    ? 0
-    : Math.max(0, Math.min(1, dot(subtract(point, start), axis) / lengthSquared));
-  return distance(point, add(start, scale(axis, amount)));
-}
-
-function smoothMaximum(values: number[], blendMm: number): number {
-  const maximum = Math.max(...values);
-  if (!Number.isFinite(maximum) || blendMm <= 0) return maximum;
-  return maximum + blendMm * Math.log(values.reduce(
-    (sum, value) => sum + Math.exp((value - maximum) / blendMm),
-    0,
-  ));
+  amount: number,
+): StructuralVector {
+  const inverse = 1 - amount;
+  return add(
+    add(scale(start, inverse ** 3), scale(firstControl, 3 * inverse ** 2 * amount)),
+    add(scale(secondControl, 3 * inverse * amount ** 2), scale(end, amount ** 3)),
+  );
 }
 
 function probe(value: StructuralVector): StructuralSolidProbe {
@@ -416,20 +401,6 @@ function meshFromSolid(
   } finally {
     dispose(components);
   }
-}
-
-function buildHubRadii(
-  nodes: CandidateTrussNode[],
-  members: CandidateTrussMember[],
-): Map<string, number> {
-  const radii = new Map(nodes.map((node) => [node.id, STRUCTURAL_GEOMETRY_POLICY.hubMinimumRadiusMm]));
-  for (const member of members) {
-    if (member.analysisOnly) continue;
-    const radius = member.initialDiameterMm / 2 + STRUCTURAL_GEOMETRY_POLICY.minimumWallMm;
-    radii.set(member.startNodeId, Math.max(radii.get(member.startNodeId) ?? 0, radius));
-    radii.set(member.endNodeId, Math.max(radii.get(member.endNodeId) ?? 0, radius));
-  }
-  return radii;
 }
 
 export function buildConnectorBracket(
@@ -866,77 +837,168 @@ export function buildSegmentedStrut(
   return parts;
 }
 
+interface LoftSide {
+  frontMm: StructuralVector[];
+  backMm: StructuralVector[];
+}
+
+function loftPoint(
+  firstFront: StructuralVector,
+  firstBack: StructuralVector,
+  secondFront: StructuralVector,
+  secondBack: StructuralVector,
+  amount: number,
+  useBack: boolean,
+): StructuralVector {
+  const first = useBack ? firstBack : firstFront;
+  const second = useBack ? secondBack : secondFront;
+  const firstInward = normalize(subtract(firstBack, firstFront));
+  const secondInward = normalize(subtract(secondBack, secondFront));
+  const controlOffsetMm = Math.max(
+    STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm,
+    Math.min(distance(first, second) * 0.25, 30),
+  );
+  return cubicBezier(
+    first,
+    add(first, scale(firstInward, controlOffsetMm)),
+    add(second, scale(secondInward, controlOffsetMm)),
+    second,
+    amount,
+  );
+}
+
+function matchLoftSides(first: LoftSide, second: LoftSide): LoftSide {
+  const available = second.frontMm.map((_, index) => index);
+  const frontMm: StructuralVector[] = [];
+  const backMm: StructuralVector[] = [];
+  for (const firstPoint of first.frontMm) {
+    available.sort((left, right) =>
+      distance(firstPoint, second.frontMm[left]!) -
+        distance(firstPoint, second.frontMm[right]!) || left - right
+    );
+    const selected = available.shift();
+    if (selected === undefined) throw new Error("Loft side anchor count does not match.");
+    frontMm.push(second.frontMm[selected]!);
+    backMm.push(second.backMm[selected]!);
+  }
+  return { frontMm, backMm };
+}
+
+function buildLoftSection(
+  wasm: ManifoldToplevel,
+  first: LoftSide,
+  second: LoftSide,
+  amount: number,
+): Manifold {
+  const pads: Manifold[] = [];
+  try {
+    for (let index = 0; index < first.frontMm.length; index += 1) {
+      pads.push(cylinderAlong(
+        wasm,
+        loftPoint(
+          first.frontMm[index]!,
+          first.backMm[index]!,
+          second.frontMm[index]!,
+          second.backMm[index]!,
+          amount,
+          false,
+        ),
+        loftPoint(
+          first.frontMm[index]!,
+          first.backMm[index]!,
+          second.frontMm[index]!,
+          second.backMm[index]!,
+          amount,
+          true,
+        ),
+        STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm / 2,
+      ));
+    }
+    return hullAll(wasm, pads);
+  } catch (error) {
+    dispose(pads);
+    throw error;
+  }
+}
+
+function buildLoftBridge(
+  wasm: ManifoldToplevel,
+  first: LoftSide,
+  unmatchedSecond: LoftSide,
+): { segments: Manifold[]; stationCentersMm: StructuralSolidProbe[] } {
+  if (first.frontMm.length !== unmatchedSecond.frontMm.length || first.frontMm.length < 2) {
+    throw new Error("A structural loft needs the same two or more screw shoes on each panel side.");
+  }
+  const second = matchLoftSides(first, unmatchedSecond);
+  const segments: Manifold[] = [];
+  const stationCentersMm: StructuralSolidProbe[] = [];
+  for (let index = 0; index < STRUCTURAL_GEOMETRY_POLICY.loftStationCount; index += 1) {
+    const amount = index / (STRUCTURAL_GEOMETRY_POLICY.loftStationCount - 1);
+    const points = first.frontMm.flatMap((front, anchorIndex) => [
+      loftPoint(
+        front,
+        first.backMm[anchorIndex]!,
+        second.frontMm[anchorIndex]!,
+        second.backMm[anchorIndex]!,
+        amount,
+        false,
+      ),
+      loftPoint(
+        front,
+        first.backMm[anchorIndex]!,
+        second.frontMm[anchorIndex]!,
+        second.backMm[anchorIndex]!,
+        amount,
+        true,
+      ),
+    ]);
+    const center = scale(points.reduce((sum, point) => add(sum, point), [0, 0, 0]),
+      1 / points.length);
+    stationCentersMm.push(probe(center));
+  }
+  try {
+    for (let index = 0; index < STRUCTURAL_GEOMETRY_POLICY.loftStationCount - 1; index += 1) {
+      const startAmount = index / (STRUCTURAL_GEOMETRY_POLICY.loftStationCount - 1);
+      const endAmount = (index + 1) / (STRUCTURAL_GEOMETRY_POLICY.loftStationCount - 1);
+      const sections: Manifold[] = [];
+      try {
+        sections.push(buildLoftSection(wasm, first, second, startAmount));
+        sections.push(buildLoftSection(wasm, first, second, endAmount));
+        segments.push(hullAll(wasm, sections));
+      } catch (error) {
+        dispose(sections);
+        throw error;
+      }
+    }
+    return { segments, stationCentersMm };
+  } catch (error) {
+    dispose(segments);
+    throw error;
+  }
+}
+
 function buildOrganicConnector(
   wasm: ManifoldToplevel,
   normalized: NormalizedStructuralDesign,
   optimized: TrussOptimizationResult,
   cell: CandidateConnectorCell,
-  hubRadii: Map<string, number>,
 ): StructuralSolidMesh {
   const candidate = optimized.optimizedCandidate;
-  const nodeById = new Map(candidate.nodes.map((node) => [node.id, node]));
-  const memberById = new Map(candidate.members.map((member) => [member.id, member]));
-  const physicalMemberIds = new Set([
-    ...cell.memberIds,
-    ...cell.bracketTieMemberIds[0],
-    ...cell.bracketTieMemberIds[1],
-  ]);
-  const capsules = [...physicalMemberIds].sort().map((id) => {
-    const member = memberById.get(id);
-    if (!member || member.analysisOnly) {
-      throw new Error(`Organic connector ${cell.id} is missing printable skeleton member ${id}.`);
-    }
-    return {
-      id,
-      start: nodeById.get(member.startNodeId)!.positionMm,
-      end: nodeById.get(member.endNodeId)!.positionMm,
-      radiusMm: member.initialDiameterMm / 2 + STRUCTURAL_GEOMETRY_POLICY.minimumWallMm,
-    };
-  });
-  if (capsules.length === 0) throw new Error(`Organic connector ${cell.id} has no printable skeleton.`);
-  const maximumRadiusMm = Math.max(...capsules.map(({ radiusMm }) => radiusMm));
-  const boundPaddingMm = maximumRadiusMm + 3 * STRUCTURAL_GEOMETRY_POLICY.implicitBlendMm;
-  const skeletonPoints = capsules.flatMap(({ start, end }) => [start, end]);
-  const bounds = {
-    min: [0, 1, 2].map((axis) =>
-      Math.min(...skeletonPoints.map((point) => point[axis]!)) - boundPaddingMm
-    ) as StructuralVector,
-    max: [0, 1, 2].map((axis) =>
-      Math.max(...skeletonPoints.map((point) => point[axis]!)) + boundPaddingMm
-    ) as StructuralVector,
-  };
-  const gridCells = bounds.max.reduce((product, value, axis) =>
-    product * Math.ceil((value - bounds.min[axis]!) /
-      STRUCTURAL_GEOMETRY_POLICY.implicitEdgeLengthMm), 1);
-  if (!Number.isSafeInteger(gridCells) || gridCells > MAXIMUM_IMPLICIT_GRID_CELLS) {
-    throw new Error(
-      `Organic connector ${cell.id} requires ${gridCells} implicit grid cells; the safe limit is ` +
-      `${MAXIMUM_IMPLICIT_GRID_CELLS}. Reduce the connector span or increase the configured part split.`,
-    );
-  }
   const positives: Manifold[] = [];
   const cutters: Manifold[] = [];
+  const loftSides: LoftSide[] = [];
   const anchorCentersMm: StructuralSolidProbe[] = [];
   const screwHoleCentersMm: StructuralSolidProbe[] = [];
   const nutTrapCentersMm: StructuralSolidProbe[] = [];
   const cableClearanceCentersMm: StructuralSolidProbe[] = [];
   let orientationMarkCenterMm: StructuralSolidProbe | undefined;
   try {
-    positives.push(wasm.Manifold.levelSet((point) => {
-      const position: StructuralVector = [point[0], point[1], point[2]];
-      return smoothMaximum(capsules.map(({ start, end, radiusMm }) =>
-        radiusMm - pointSegmentDistance(position, start, end)
-      ), STRUCTURAL_GEOMETRY_POLICY.implicitBlendMm);
-    }, bounds, STRUCTURAL_GEOMETRY_POLICY.implicitEdgeLengthMm, 0, 0.2));
-
     for (const sideIndex of [0, 1] as const) {
       const panelId = cell.panelIds[sideIndex];
       const panel = normalized.panels.find(({ id }) => id === panelId)!;
       const anchorIds = cell.panelAnchorIds[sideIndex];
-      const connectorHub = cell.sideNodeIds[sideIndex]
-        .map((id) => nodeById.get(id)!)
-        .find(({ kind }) => kind === "connector-hub")!;
-      const padSolids: Manifold[] = [];
+      const frontMm: StructuralVector[] = [];
+      const backMm: StructuralVector[] = [];
       const mountPositions: StructuralVector[] = [];
       for (const anchorId of anchorIds) {
         const bracket = candidate.brackets.find(({ anchorId: id }) => id === anchorId)!;
@@ -956,27 +1018,15 @@ function buildOrganicConnector(
           scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm),
         );
         mountPositions.push(mountPosition);
-        padSolids.push(cylinderAlong(
-          wasm,
-          mountPosition,
-          shoeBack,
-          STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm / 2,
-        ));
-        positives.push(cylinderAlong(
-          wasm,
-          shoeBack,
-          bracket.hubPositionMm,
-          Math.max(STRUCTURAL_GEOMETRY_POLICY.hubMinimumRadiusMm,
-            STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm / 2 - 1),
-          hubRadii.get(bracket.hubNodeId)!,
-        ));
+        frontMm.push(mountPosition);
+        backMm.push(shoeBack);
         const screwStart = add(
           mountPosition,
-          scale(inward, -maximumRadiusMm - STRUCTURAL_GEOMETRY_POLICY.implicitBlendMm),
+          scale(inward, -STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm),
         );
         const screwEnd = add(
-          bracket.hubPositionMm,
-          scale(inward, hubRadii.get(bracket.hubNodeId)! + EPSILON_MM),
+          mountPosition,
+          scale(inward, 2 * STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm),
         );
         cutters.push(cylinderAlong(
           wasm, screwStart, screwEnd, anchor.printedPilotDiameterMm / 2,
@@ -989,15 +1039,14 @@ function buildOrganicConnector(
           anchor.screwLeadInDiameterMm / 2,
           anchor.printedPilotDiameterMm / 2,
         ));
-        const hubRadius = hubRadii.get(bracket.hubNodeId)!;
-        const nutStart = add(bracket.hubPositionMm, scale(
+        const nutStart = add(mountPosition, scale(
           inward,
-          hubRadius - STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm,
+          STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm -
+            STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm,
         ));
         const nutEnd = add(
-          bracket.hubPositionMm,
-          scale(inward, hubRadius + 2 * STRUCTURAL_GEOMETRY_POLICY.implicitBlendMm +
-            STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm),
+          mountPosition,
+          scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm + EPSILON_MM),
         );
         cutters.push(cylinderAlong(
           wasm,
@@ -1007,30 +1056,37 @@ function buildOrganicConnector(
           STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm / Math.sqrt(3),
           6,
         ));
-        anchorCentersMm.push(probe(bracket.anchorPositionMm));
-        screwHoleCentersMm.push(probe(scale(add(mountPosition, screwEnd), 0.5)));
-        nutTrapCentersMm.push(probe(add(
+        const local = anchor.localPositionMm;
+        const slotAxis = Math.abs(local[0]) >= Math.abs(local[1])
+          ? scale(panel.xAxis, Math.sign(local[0]) || 1)
+          : scale(panel.yAxis, Math.sign(local[1]) || 1);
+        const nutCenter = add(
           nutStart,
           scale(subtract(nutEnd, nutStart), STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm /
             (2 * distance(nutStart, nutEnd))),
-        )));
+        );
+        cutters.push(cylinderAlong(
+          wasm,
+          nutCenter,
+          add(nutCenter, scale(slotAxis,
+            STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm)),
+          STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm / Math.sqrt(3),
+          STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm / Math.sqrt(3),
+          6,
+        ));
+        anchorCentersMm.push(probe(bracket.anchorPositionMm));
+        screwHoleCentersMm.push(probe(scale(add(mountPosition, screwEnd), 0.5)));
+        nutTrapCentersMm.push(probe(nutCenter));
       }
+      loftSides.push({ frontMm, backMm });
       const midpoint = scale(mountPositions.reduce((sum, point) => add(sum, point), [0, 0, 0]),
         1 / mountPositions.length);
       const inward = scale(panel.outwardNormal, -1);
-      const tailCenter = add(midpoint, scale(subtract(connectorHub.positionMm, midpoint), 0.32));
-      padSolids.push(cylinderAlong(
-        wasm,
-        tailCenter,
-        add(tailCenter, scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm)),
-        STRUCTURAL_GEOMETRY_POLICY.hubMinimumRadiusMm,
-      ));
-      positives.push(hullAll(wasm, padSolids));
       for (const clearance of normalized.cableClearances.filter((item) => item.panelId === panelId)) {
         const start = add(clearance.positionMm, scale(inward, -EPSILON_MM));
         const end = add(
           clearance.positionMm,
-          scale(inward, normalized.design.fabrication.bracketOffsetMm + 2 * maximumRadiusMm),
+          scale(inward, 2 * STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm),
         );
         cutters.push(cylinderAlong(wasm, start, end, clearance.diameterMm / 2));
         cableClearanceCentersMm.push(probe(add(
@@ -1039,7 +1095,7 @@ function buildOrganicConnector(
         )));
       }
       if (sideIndex === 0) {
-        const markStart = add(tailCenter, scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm));
+        const markStart = add(midpoint, scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm));
         const markEnd = add(
           markStart,
           scale(inward, STRUCTURAL_GEOMETRY_POLICY.orientationMarkHeightMm),
@@ -1055,6 +1111,8 @@ function buildOrganicConnector(
         orientationMarkCenterMm = probe(scale(add(markStart, markEnd), 0.5));
       }
     }
+    const loft = buildLoftBridge(wasm, loftSides[0]!, loftSides[1]!);
+    positives.push(...loft.segments);
     const positive = unionAll(wasm, positives);
     const solid = subtractCutters(wasm, positive, cutters);
     const partId = `organic-connector:${cell.panelIds.join("--")}`;
@@ -1072,9 +1130,11 @@ function buildOrganicConnector(
         surfaceFlushCorrectionMm: normalized.anchors[0]?.surfaceFlushCorrectionMm,
         screwHoleCentersMm,
         nutTrapCentersMm,
+        nutTrapDepthMm: STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm,
         cableClearanceCentersMm,
         socketCentersMm: [],
         orientationMarkCenterMm,
+        loftStationCentersMm: loft.stationCentersMm,
       });
     } finally {
       solid.delete();
@@ -1122,10 +1182,9 @@ export async function buildStructuralSolids(
   const wasm = await loadManifoldRuntime();
   wasm.setCircularSegments(CIRCULAR_SEGMENTS);
   const candidate = optimized.optimizedCandidate;
-  const hubRadii = buildHubRadii(candidate.nodes, candidate.members);
   const parts: StructuralSolidMesh[] = [];
   for (const cell of candidate.connectorCells) {
-    parts.push(buildOrganicConnector(wasm, normalized, optimized, cell, hubRadii));
+    parts.push(buildOrganicConnector(wasm, normalized, optimized, cell));
   }
   for (const part of parts) assertFitsPrintBed(part, normalized);
   return parts;

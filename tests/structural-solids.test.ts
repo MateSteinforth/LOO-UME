@@ -25,7 +25,7 @@ async function structuralFixture(bracketOffsetMm?: number) {
 }
 
 describe("Manifold structural solids", () => {
-  it("builds one watertight organic body per local connector cell", async () => {
+  it("builds one watertight cap-surface loft per local connector cell", async () => {
     const { normalized, optimized } = await structuralFixture();
     const parts = await buildStructuralSolids(normalized, optimized);
     expect(parts).toHaveLength(optimized.optimizedCandidate.connectorCells.length);
@@ -64,6 +64,7 @@ describe("Manifold structural solids", () => {
     expect(bracket.surfaceFlushCorrectionMm).toBe(0.5);
     expect(bracket.screwHoleCentersMm).toHaveLength(4);
     expect(bracket.nutTrapCentersMm).toHaveLength(4);
+    expect(bracket.nutTrapDepthMm).toBe(2.2);
     expect(bracket.cableClearanceCentersMm).toHaveLength(4);
     expect(bracket.socketCentersMm).toHaveLength(0);
     for (const point of [
@@ -74,6 +75,19 @@ describe("Manifold structural solids", () => {
     ]) {
       expect(await structuralMeshContainsPoint(bracket, point)).toBe(false);
     }
+    for (let index = 0; index < panelAnchors.length; index += 1) {
+      const anchor = panelAnchors[index]!;
+      const panel = normalized.panels.find(({ id }) => id === anchor.panelId)!;
+      const acrossPocket = Math.abs(anchor.localPositionMm[0]) >=
+          Math.abs(anchor.localPositionMm[1]) ? panel.yAxis : panel.xAxis;
+      const center = bracket.nutTrapCentersMm[index]!;
+      const beyondPocket = {
+        x: center.x - panel.outwardNormal[0] * 3 + acrossPocket[0] * 2,
+        y: center.y - panel.outwardNormal[1] * 3 + acrossPocket[1] * 2,
+        z: center.z - panel.outwardNormal[2] * 3 + acrossPocket[2] * 2,
+      };
+      expect(await structuralMeshContainsPoint(bracket, beyondPocket)).toBe(true);
+    }
     expect(bracket.orientationMarkCenterMm).toBeDefined();
     expect(await structuralMeshContainsPoint(bracket, bracket.orientationMarkCenterMm!))
       .toBe(true);
@@ -81,24 +95,15 @@ describe("Manifold structural solids", () => {
     expect(STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm).toBe(4.2);
   });
 
-  it("contains the retained truss skeleton inside one print-bed-bounded web", async () => {
+  it("extends each cap shoe through a continuous print-bed-bounded loft", async () => {
     const { normalized, optimized } = await structuralFixture();
     const parts = await buildStructuralSolids(normalized, optimized);
     const body = parts[0]!;
-    const nodeById = new Map(optimized.optimizedCandidate.nodes.map((node) => [node.id, node]));
-    const cell = optimized.optimizedCandidate.connectorCells[0]!;
-    for (const memberId of [
-      ...cell.memberIds,
-      ...cell.bracketTieMemberIds.flat(),
-    ]) {
-      const member = optimized.optimizedCandidate.members.find(({ id }) => id === memberId)!;
-      const start = nodeById.get(member.startNodeId)!.positionMm;
-      const end = nodeById.get(member.endNodeId)!.positionMm;
-      expect(await structuralMeshContainsPoint(body, {
-        x: (start[0] + end[0]) / 2,
-        y: (start[1] + end[1]) / 2,
-        z: (start[2] + end[2]) / 2,
-      })).toBe(true);
+    expect(body.loftStationCentersMm).toHaveLength(
+      STRUCTURAL_GEOMETRY_POLICY.loftStationCount,
+    );
+    for (const center of body.loftStationCentersMm!) {
+      expect(await structuralMeshContainsPoint(body, center)).toBe(true);
     }
     expect(parts.every(({ boundingBoxMm }) => {
       const extents = boundingBoxMm.max.map(
@@ -109,7 +114,7 @@ describe("Manifold structural solids", () => {
     expect(new Set(parts.map(({ partId }) => partId)).size).toBe(parts.length);
   });
 
-  it("bounds implicit grid work before level-set allocation", async () => {
+  it("rejects a long loft that exceeds the configured print envelope", async () => {
     const { normalized, optimized } = await structuralFixture();
     for (const node of optimized.optimizedCandidate.nodes) {
       if (node.panelId === "P-02") node.positionMm[0] += 4_000;
@@ -132,7 +137,7 @@ describe("Manifold structural solids", () => {
     }
 
     await expect(buildStructuralSolids(normalized, optimized)).rejects.toThrow(
-      /implicit grid cells; the safe limit is 2000000/,
+      /does not fit the configured print bed after margins/,
     );
   });
 

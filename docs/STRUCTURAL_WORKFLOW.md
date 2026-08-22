@@ -171,27 +171,32 @@ Only `converged` is eligible for printable generation.
 ## Printable Manifold solids
 
 `buildStructuralSolids()` accepts only a converged optimization with the same
-source fingerprint. It emits one cap-derived organic body for each local
+source fingerprint. It emits one cap-surface loft body for each local
 panel-pair cell. It never joins unrelated cells into one sculpture-sized part.
 
 A connector body starts with broad 13 mm rounded screw shoes derived from the
-canonical triangle and pentagon fixture language. It unites exactly its
-reserved screw bosses, rear hubs, offset connector hubs, and retained load-path
-skeleton. The structural anchor stays at the exact authored hole. The printed pilot
+canonical triangle and pentagon fixture language. Candidate generation assigns
+the nearest unused eligible holes to the neighboring panel. Their corrected
+panel-facing shoes become the exact end profiles of the loft. The structural
+anchor stays at the exact authored hole. The printed pilot
 moves 0.20 mm inward from the nearest panel edge, consistent with the measured
 hole-edge correction. Printed material starts at the rear PCB surface plus the
 measured 0.50 mm flush correction. Boolean cutters create the profile's 1.60 mm
-pilots and 3.20 × 0.70 mm lead-ins, 4.20 mm
-across-flats M2 pockets and configured cable-clearance bores at DIN/DOUT-blocked
+pilots and 3.20 × 0.70 mm lead-ins, 2.20 mm-deep × 4.20 mm
+across-flats M2 pockets with lateral insertion slots, and configured
+cable-clearance bores at DIN/DOUT-blocked
 profile holes. A triangular rear mark identifies the first stable side.
 
-The hidden printable skeleton becomes capsules whose radius is the optimized
-member radius plus minimum wall. A smooth maximum blends those capsules, and
-Manifold `levelSet()` converts the bounded 1.5 mm field into one watertight web.
-The grid is limited to 2,000,000 cells before allocation. The resulting body
-contains each retained member section, but the axial truss analysis does not
-calculate stress in the blended surface. Oversize organic bodies fail the
-print-envelope check; keyed organic splitting remains a later task.
+Nine deterministic cap-shaped stations interpolate the two screw-shoe
+profiles. Their center path is cubic: it first leaves each PCB along that
+panel's rear normal, then bends across the gap. Manifold hulls each adjacent
+station pair and unites the segments into one watertight twisted surface. This
+avoids both a visible rod field and one thick straight convex wedge for
+misaligned panels. The axial truss analysis validates local load paths and
+reports circular member sizes. Those sections do not set loft thickness, and
+the solver does not calculate stress in the lofted surface.
+Oversize loft bodies fail the print-envelope check; keyed splitting remains a
+later task.
 
 Before a mesh leaves the Manifold stage, its kernel status, connected-component
 count, volume, bounds, vertices, indices, and triangle areas are checked. Tiny
@@ -245,7 +250,7 @@ emitted project, and publishes only after all files and hashes validate.
 
 `structure/analysis.json` contains active printable supports and load cases, units,
 input source, warnings, the complete design/material/safety policy, candidate
-and connector counts, resolved print envelope, organic body count and mass,
+and connector counts, resolved print envelope, loft body count and mass,
 optimization objective and trace, full load-case node/member results,
 enriched governing member results, and exact print-artifact hashes.
 

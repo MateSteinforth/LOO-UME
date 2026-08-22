@@ -585,12 +585,51 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   implicit envelope grew past the former bracket surface.
 - **Cause:** Cutters sized for an explicit bracket did not extend through the
   additional signed-distance blend around the load-path skeleton.
-- **Correction:** Build and unite the complete implicit body first. Then apply
-  pilot, lead-in, nut-path, cable, and orientation operations with cutters that
-  extend beyond the implicit bounds.
-- **Prevention:** Probe every required hardware void in the final blended solid,
-  not only in an intermediate shoe. Keep the exact profile dimensions separate
-  from the extra cutter travel used to open a path.
-- **Evidence:** Structural-solid tests probe all pilots, nut paths, and cable
-  voids after Manifold level-set generation.
+- **Correction:** Build and unite the complete body first. Then apply pilot,
+  lead-in, nut-pocket, cable, and orientation operations. Open a shallow nut
+  pocket with a separate lateral insertion slot; do not extend its depth axis.
+- **Prevention:** Probe every required hardware void in the final solid, not
+  only in an intermediate shoe. Also probe material immediately beyond a
+  depth-limited pocket. Keep exact functional depth separate from lateral
+  access travel.
+- **Evidence:** Structural-solid tests probe all pilots, nut pockets, cable
+  voids, and material beyond the configured pocket depth.
+- **Status:** Resolved.
+
+### F-033 — A surface loft must leave each PCB along its rear normal
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-030 cap-surface lofts between arbitrarily oriented panels.
+- **Symptom:** A direct linear loft passed the two-panel solid tests but entered
+  the target PCB envelope in the three-panel spatial trail.
+- **Cause:** Straight interpolation between differently oriented shoe profiles
+  can approach an end profile through the PCB plane. Valid end sections alone
+  do not make the volume between them PCB-safe.
+- **Correction:** Use a cubic center path with control points behind both
+  panels. The loft leaves and approaches each screw shoe along that panel's
+  rear normal before it bends across the gap.
+- **Prevention:** Test a sharply turned multi-panel trail and intersect the
+  complete final loft with every oriented PCB envelope. Do not validate only
+  the endpoint shoes or a near-coplanar two-panel fixture.
+- **Evidence:** The spatial-trail Chromium generation now emits two loft bodies
+  with no PCB collision; focused solid tests retain the explicit collision
+  rejection case.
+- **Status:** Resolved.
+
+### F-034 — Dispose partial Manifold lofts at the function that owns them
+
+- **Date:** 2026-08-22
+- **Context:** Independent review of TRUSS-030 multi-station loft generation.
+- **Symptom:** A failed pad, second section, or later station could leave prior
+  Manifold objects outside the outer generator cleanup lists.
+- **Cause:** Nested constructors accumulated temporary pads, sections, and loft
+  segments locally, but only the completed top-level solids had outer ownership.
+- **Correction:** Each nested construction function now disposes every local
+  object on failure. Successful hull operations consume and dispose their exact
+  input arrays before ownership moves to the caller.
+- **Prevention:** Give every WASM object one explicit owner immediately. A
+  function that accumulates objects before it can return must clean its partial
+  collection in its own failure path.
+- **Evidence:** Independent re-review confirmed pad, section, and accumulated
+  segment cleanup with no remaining P1/P2 finding.
 - **Status:** Resolved.

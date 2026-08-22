@@ -64,7 +64,7 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     "Generated and SHA-256 verified 2 local panel-pair connectors",
     { timeout: 120_000 },
   );
-  await expect(page.locator("#pipeline-status")).toContainText("2 cap-derived organic bodies");
+  await expect(page.locator("#pipeline-status")).toContainText("2 cap-surface loft bodies");
   await expect(page.locator("#pipeline-status")).toContainText(
     "not engineering certification",
   );

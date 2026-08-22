@@ -457,7 +457,7 @@ app.innerHTML = `
               </div>
               <label class="field">
                 <span>Reserved keyed-split length (not active)</span>
-                <input id="connector-segment-length" type="number" min="1" step="1" value="220" disabled title="Oversize organic bodies currently fail the print-envelope check." />
+                <input id="connector-segment-length" type="number" min="1" step="1" value="220" disabled title="Oversize loft bodies currently fail the print-envelope check." />
               </label>
               <div class="connector-pair-add">
                 <select id="connector-pair-first" aria-label="First panel"></select>
@@ -2243,7 +2243,7 @@ async function start(): Promise<void> {
             throw error;
           }
           pipelineStatus.textContent =
-            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${result.analysis.printable.organicConnectors} cap-derived organic bodies. ` +
+            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${result.analysis.printable.organicConnectors} cap-surface loft bodies. ` +
             (result.analysis.printable.splitMembers > 0
               ? `PRINT SPLIT WARNING: ${result.analysis.printable.splitMembers} member(s) require numbered segments and splice sleeves. `
               : "") +

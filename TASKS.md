@@ -40,7 +40,7 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: existing Schema 2 panel JSON produces normalized anchors, a
   candidate and optimized 3D truss, printable brackets/hubs/struts, exact STL
   and 3MF assets, an exact-mesh preview, and an engineering report.
-- Acceptance: `TRUSS-011` through `TRUSS-029` pass; panel poses and panel
+- Acceptance: `TRUSS-011` through `TRUSS-030` pass; panel poses and panel
   profiles remain the only panel-geometry authorities; the report states that
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
@@ -367,6 +367,34 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `TRUSS-030` Loft cap surfaces between neighboring panel screw shoes — P0
+
+- Outcome: each panel-pair connector extends a broad, thin cap-like surface
+  from the eligible screw holes nearest the neighboring panel and twists that
+  surface through the gap instead of exposing a member-centered branch web.
+- Acceptance: the existing nearest-unused-anchor selection stays authoritative;
+  each exact panel-facing shoe is an end profile of one deterministic
+  nine-station cubic loft; arbitrary panel orientations produce a continuous
+  watertight body; exact pilots, lead-ins, shallow nut pockets with lateral
+  access, cable clearances, proven corrections, PCB avoidance, print limits,
+  and local panel-pair separation remain unchanged; the report separates axial
+  analysis from uncertified loft behavior.
+- Evidence: 23 focused candidate/solid/pipeline tests and all 336 Vitest tests
+  pass. TypeScript, pinned WASM, asset generation, production web build,
+  deterministic STL/3MF and portable-project tests, and the real Chromium
+  generate/export/reopen journey pass. The spatial trail produces two local
+  PCB-safe loft bodies. Independent review found partial-construction WASM
+  leaks and an over-deep nut tunnel; both fixes passed re-review with no
+  remaining P1/P2 finding.
+- Depends on: `TRUSS-026` through `TRUSS-029`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, `FAILURES.md`, structural Manifold
+  generation/tests, pipeline report wording, browser status, and structural
+  architecture documentation.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
 
 ### `TRUSS-026` through `TRUSS-029` Generate cap-derived implicit organic connectors — P0
 

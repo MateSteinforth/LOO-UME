@@ -201,21 +201,25 @@ The normalizer also derives a cable-clearance axis at each profile hole blocked
 by DIN or DOUT. `buildStructuralSolids()` uses those axes only as conservative
 voids; it does not claim measured connector-pad geometry.
 
-Each panel-pair connector is one printable organic body. Each side starts with
+Each panel-pair connector is one printable loft body. Each side starts with
 broad 13 mm rounded screw shoes derived from the canonical triangle and
-pentagon fixtures. The shoes join their reserved screw bosses to an implicit
-web that contains every retained truss section. A body does not join another
-panel-pair cell. The shoe starts at the PCB rear surface plus the proven 0.50 mm flush correction. It keeps the profile's 1.60 mm pilot,
+pentagon fixtures. Candidate generation reserves the unused eligible holes
+nearest the neighboring panel. Those shoes are the exact end profiles of one
+twisted cap surface. A body does not join another panel-pair cell. The shoe
+starts at the PCB rear surface plus the proven 0.50 mm flush correction. It keeps the profile's 1.60 mm pilot,
 3.20 × 0.70 mm lead-in, and moves the pilot 0.20 mm inward from its nearest
-panel edge. The exact authored hole remains the structural anchor. Each hub
-has an open 4.20 mm across-flats M2 hex pocket.
+panel edge. The exact authored hole remains the structural anchor. Each shoe
+has a 2.20 mm-deep, 4.20 mm across-flats M2 hex pocket with a lateral
+insertion slot toward the nearest panel edge.
 
-The organic surface comes from a bounded 1.5 mm signed-distance grid with a
-3 mm smooth union. The field contains the optimized member radius plus the
-minimum wall, so smoothing cannot remove a required skeleton section. The
-axial solver still guides the load path; it does not calculate stresses in the
-final blended solid. Every part must fit the configured print envelope after
-margin and rotation. Every returned mesh must have
+The surface uses nine deterministic cap-shaped stations. A cubic path leaves
+each shoe along its panel rear normal before it bends through the gap. Manifold
+hulls adjacent stations, which keeps the 3 mm cap thickness near each panel and
+creates a continuous surface when the panel planes differ. The axial solver
+still validates panel-pair load paths and reports its own circular member
+sizes. Those sizes do not set loft thickness, and the solver does not calculate
+stresses in the final lofted solid. Every part must fit the configured print
+envelope after margin and rotation. Every returned mesh must have
 Manifold `NoError`, one printable component, positive volume, finite vertices,
 non-degenerate triangles, and millimetre bounds.
 The final organic volumes are intersected with every nearby oriented

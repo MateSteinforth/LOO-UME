@@ -95,6 +95,32 @@ describe("deterministic candidate truss", () => {
     ))).toBeLessThanOrEqual(2);
   });
 
+  it("reserves the nearest unused eligible screw holes toward each neighboring panel", async () => {
+    const input = await normalizedProject(
+      "sculptures/structural-three-panel-trail/sculpture.json",
+    );
+    const candidate = createCandidateTruss(input);
+    const used = new Set<string>();
+    for (const cell of candidate.connectorCells) {
+      for (const sideIndex of [0, 1] as const) {
+        const panelId = cell.panelIds[sideIndex];
+        const neighbor = input.panels.find(({ id }) => id === cell.panelIds[1 - sideIndex])!;
+        const count = cell.panelAnchorIds[sideIndex].length;
+        const expected = input.anchors.filter((anchor) =>
+          anchor.panelId === panelId && !used.has(anchor.id)
+        ).sort((left, right) =>
+          Math.hypot(...left.positionMm.map((value, axis) =>
+            value - neighbor.centerMm[axis]!
+          )) - Math.hypot(...right.positionMm.map((value, axis) =>
+            value - neighbor.centerMm[axis]!
+          )) || left.id.localeCompare(right.id)
+        ).slice(0, count).map(({ id }) => id).sort();
+        expect(cell.panelAnchorIds[sideIndex]).toEqual(expected);
+        for (const id of expected) used.add(id);
+      }
+    }
+  });
+
   it("is independent of panel, anchor, and hole storage order", async () => {
     const first = await normalized();
     const reordered = structuredClone(first);
