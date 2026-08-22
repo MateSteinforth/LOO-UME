@@ -1,8 +1,9 @@
 # Structural truss workflow
 
-This page defines the implemented `TRUSS-011` contract and the ordered work
-that will extend it. The structural route uses the existing Schema 2 sculpture
-JSON. It does not add a second panel format or use a GLB as printable material.
+This page defines the implemented structural input and candidate-graph
+contracts and the ordered work that will extend them. The structural route uses
+the existing Schema 2 sculpture JSON. It does not add a second panel format or
+use a GLB as printable material.
 
 ## Implemented input contract
 
@@ -67,9 +68,30 @@ dimensions, mounting holes and fastener facts, physical corrections, connector
 facts, and electrical keep-outs. Panel-array and profile-hole storage order do
 not change it. Any relevant input change makes the last artifact set stale.
 
+## Candidate truss
+
+`createCandidateTruss()` consumes only `NormalizedStructuralDesign`. It puts a
+stable bracket at every eligible anchor and offsets a structural hub behind
+that anchor by `bracketOffsetMm`. It joins all hubs on one panel with local
+ties. This local complete graph represents a rigid bracket plate for the later
+axial-truss model without adding a new panel pose.
+
+Inter-panel candidates connect hub pairs in stable ID order. The current named
+policy limits candidate length to twice
+`maximumUnsupportedCompressionLengthMm`. A member is rejected if its closed
+segment intersects any panel PCB oriented box expanded by at least 0.50 mm.
+Rejected length and collision candidates are kept as diagnostics.
+
+The generator rejects fewer than three non-collinear eligible anchors,
+coincident hubs, zero-length or duplicate edges, disconnected panel groups, and
+graphs with a bridge. A bridge means that one member is the only remaining
+path. Thus, every accepted candidate graph has at least two graph paths around
+each structural member. This is candidate redundancy only; the optimizer must
+preserve it when it removes members.
+
 ## Remaining ordered implementation
 
-`TRUSS-012` through `TRUSS-018` add candidate-graph generation, the linear 3D
-truss solver, optimization, Manifold parts, STL/3MF export, reports, and browser
-portable-project integration. Every report must state that the analysis gives
-load-path guidance and is not engineering certification.
+`TRUSS-013` through `TRUSS-018` add the linear 3D truss solver, optimization,
+Manifold parts, STL/3MF export, reports, and browser portable-project
+integration. Every report must state that the analysis gives load-path
+guidance and is not engineering certification.

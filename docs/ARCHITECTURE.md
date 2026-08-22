@@ -25,14 +25,14 @@ poses and hardware profile:
 (no mechanics fields) ----------> complete pose-first interface, no CAD
 manualMechanics ----------------> verified wrappers around parts/*.scad
 mechanicalShell + closures -----> planar validation -> Manifold STL parts
-structuralDesign ----------------> normalized eligible anchors (TRUSS-011)
+structuralDesign ----------------> normalized anchors -> candidate truss
 ```
 
-The structural branch currently implements the Schema 2 input contract,
-pose/profile normalization, preview support policy, artifact manifest, and
-stale fingerprint. Candidate generation, analysis, optimization, printable
-Manifold solids, and export remain the ordered `TRUSS-012` through `TRUSS-018`
-tasks. It does not replace the two existing fabrication routes.
+The structural branch implements the Schema 2 input contract, pose/profile
+normalization, preview support policy, deterministic candidate graph, artifact
+manifest, and stale fingerprint. Analysis, optimization, printable Manifold
+solids, and export remain the ordered `TRUSS-013` through `TRUSS-018` tasks. It
+does not replace the two existing fabrication routes.
 
 Schema 2 pose-only projects are valid JSON. They load, edit, simulate, map,
 wire, save, and reopen without a placeholder shell. When panels form an
@@ -140,6 +140,7 @@ gates.
 | `catalog/` | Reusable panel dimensions, grid, holes, connectors, corrections, electrical facts | Hardware truth shared by projects |
 | `src/sculpture/PanelAssembly.ts` | Schema 2 parsing, pose compilation, face graph, LED geometry | Active model; poses remain authoritative |
 | `src/sculpture/StructuralDesign.ts` | Validate optional structural inputs and derive sorted panels, eligible anchors, supports, load points, warnings, and structural fingerprints | No second panel schema; blocked holes and GLB triangles are excluded |
+| `src/structure/CandidateTruss.ts` | Put one bracket and rear hub at every eligible anchor, add local ties and collision-checked inter-panel candidates, then prove connectivity and redundant paths | Candidate members avoid expanded PCB envelopes and deterministic length limits; rejected candidates remain diagnostic evidence |
 | `src/sculpture/SculptureEditor.ts` | Add/move/rotate/delete/seed and mechanics invalidation | Editing does not require successful CAD |
 | `src/sculpture/MechanicalShellRegenerator.ts` | Rebuild supported planar topology after edits | Rejects unsafe or ambiguous mechanics |
 | `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, detect deterministic unambiguous gap cycles, validate flat caps, and emit a closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
@@ -234,6 +235,13 @@ points from the same pose/profile facts. A structural artifact set uses the
 separate `generatedStructure` manifest and cannot coexist with planar generated
 mechanics or manually authored mechanics. Its source fingerprint includes the
 panel poses, structural inputs, and relevant profile facts.
+
+Candidate generation puts one rear hub behind each eligible screw anchor and
+fully ties the hubs on each panel. It considers stable inter-panel hub pairs,
+rejects pairs longer than twice the configured unsupported compression length,
+and rejects segments that intersect any PCB oriented box plus the measured
+surface-flush clearance. The result is accepted only when every hub is
+connected and no structural member is a graph bridge.
 
 ## Local desktop host
 

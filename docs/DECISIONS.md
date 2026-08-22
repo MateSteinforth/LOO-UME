@@ -413,6 +413,25 @@ the first panel in stable ID order and must emit a prominent preview-only
 warning. Structural results are load-path guidance, not engineering
 certification.
 
+## D18 — Candidate structure grows from every eligible screw anchor
+
+**Decision.** Each eligible normalized hole gets one exact screw bracket and
+one rear structural hub. Hubs on a panel form a complete local tie graph.
+Inter-panel hub pairs become candidates only when they satisfy a deterministic
+length limit and do not intersect an expanded PCB oriented box. An accepted
+candidate graph must be connected and have no graph bridge.
+
+**Evidence.** `src/structure/CandidateTruss.ts` and
+`tests/candidate-truss.test.ts` cover stable IDs, shuffled inputs, every
+eligible bracket, blocked holes, PCB collision, near-coincident hubs,
+disconnection, duplicate and zero-length edges, attachment feasibility, and
+redundant paths.
+
+**Consequence.** The structure starts at the existing profile holes instead of
+caps or a second panel schema. Rejected edge diagnostics explain when length or
+PCB clearance prevents a load path. Graph redundancy guides later
+optimization; it does not certify a printed assembly.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

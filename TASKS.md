@@ -45,19 +45,6 @@ This file is the persistent source of truth for work status. Read it before star
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
 
-### `TRUSS-012` Generate a deterministic candidate truss
-
-- Outcome: put a screw connector at every eligible profile hole and grow a
-  collision-checked, redundant candidate structure between arbitrary panel
-  poses.
-- Acceptance: stable anchor, bracket, hub, and member IDs are independent of
-  panel array order; blocked holes, PCB envelopes, zero-length members,
-  duplicate edges, isolated panels, and impossible attachments fail clearly;
-  supported layouts retain the required redundant paths.
-- Depends on: `TRUSS-011`.
-- Verify: arbitrary-pose, shuffled-input, near-coincident, disconnected,
-  collision, and graph-connectivity fixtures.
-
 ### `TRUSS-013` Solve linear 3D truss load cases
 
 - Outcome: solve axial truss response with three translational degrees of
@@ -480,6 +467,31 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   `/tmp/led-rhombo-truss-011`.
 - Likely conflicts: `TASKS.md`, `src/sculpture/PanelAssembly.ts`, generated
   mechanics/fingerprint code, Schema 2 documentation, and validation tests.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
+### `TRUSS-012` Generate a deterministic candidate truss
+
+- Outcome: every eligible profile hole gets a stable screw bracket and rear
+  hub; deterministic local ties and collision-checked inter-panel candidates
+  form a connected graph with no bridge.
+- Acceptance: stable anchor, bracket, hub, and member IDs are independent of
+  panel array order; blocked holes are excluded; PCB envelopes, zero-length
+  members, duplicate edges, isolated panels, coincident hubs, and impossible
+  attachments fail clearly; accepted layouts retain redundant graph paths.
+- Evidence: 8 candidate tests cover the existing arbitrary-pose 41-panel
+  project, shuffled input, PCB collision, coincident and disconnected layouts,
+  malformed edges, and attachment feasibility. All 292 Vitest tests,
+  `npx tsc -b --pretty false`, `npm run build:web`, and `git diff --check`
+  pass. Independent review found one bracket endpoint validation gap; the
+  canonical anchor/hub position correction passed focused re-review with no
+  remaining finding.
+- Depends on: `TRUSS-011`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. The operator explicitly authorized continued
+  work on this branch and worktree without a merge to `main`.
+- Likely conflicts: `TASKS.md`, structural workflow and architecture
+  documentation, and future `src/structure/` solver work.
 - Integration gate: explicit operator authorization is required before merge
   into `main`.
 

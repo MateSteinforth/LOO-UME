@@ -149,6 +149,19 @@ material, or fabrication change makes its fingerprint stale without disabling
 editing, simulation, mapping, wiring, or save. See
 [`STRUCTURAL_WORKFLOW.md`](STRUCTURAL_WORKFLOW.md).
 
+`createCandidateTruss()` starts one bracket at every normalized eligible
+anchor. The bracket ends at a hub offset behind the PCB along the negative
+panel normal. A complete set of local ties joins the hubs for that panel. The
+candidate pass then considers inter-panel hub pairs in stable ID order. It
+rejects over-length members and members that intersect any expanded PCB
+oriented box.
+
+The candidate is valid only when all hub nodes are connected and every member
+has another graph path around it. Coincident hubs, duplicate or zero-length
+edges, isolated panels, and fewer than three non-collinear eligible holes fail
+with an error. Rejected collision and length candidates remain in the result as
+diagnostic evidence for later reports.
+
 ### Panel-outline boundary generation
 
 Milestone 3 is implemented in `src/sculpture/PanelOutlineBoundary.ts`. A
