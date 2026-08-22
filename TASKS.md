@@ -148,21 +148,13 @@ No tasks.
 
 ## Ready to Merge
 
-### `WIRE-012` Unify browser and CLI export policy — P0
-
-- Outcome: browser assembly packages and the CLI now use one exact-byte export
-  policy. Mapping-ready input gets guarded WLED installation files; draft or
-  stale input gets only explicit diagnostic files.
-- Acceptance evidence: source, ledmap, route/mapping, target, build, bus-current,
-  file-size, SHA-256, and deployment identities are bound; shared-byte,
-  portable-reopen, draft, stale, tamper, and bus-contract checks pass.
-- Owner: `codex/wire-012-deployment` in `/tmp/led-rhombo-wire-012`.
-- Verification: 225/225 Vitest tests; focused Chromium generation and portable
-  ZIP journeys 2/2; TypeScript and Vite builds; deterministic CLI regeneration;
-  `git diff --check`.
+No tasks.
 
 ## Done
 
+- `WIRE-012`: integrated the shared guarded browser/CLI deployment policy in
+  `main` at `d900cdb`; mapping-ready input gets exact WLED installation files,
+  while draft or stale input gets only explicit diagnostic artifacts.
 - `CTRL-008`: recorded the operator-approved visual, panel-profile, WLED
   generation, Schema 2, stale-mechanics, and boundary-format decisions in
   `main` at `ee8f79f`; physical Manifold print review remains open as `HR-006`.
