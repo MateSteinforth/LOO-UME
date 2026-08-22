@@ -1,8 +1,8 @@
 # Project task board
 
 Last reconciled: 2026-08-22
-Integration baseline: `main` at `e278333`, including the unified UI through
-`UI-018` and browser-first printable generation with pinned Manifold 3.5.1.
+Integration baseline: `main` at `33d6455`, including the unified UI through
+`UI-018`, the Manifold-only fabrication route, and the agentic workflow.
 
 Current milestone: produce one guarded simulator-to-ESP32 deployment contract,
 then prove static address and RGB parity on the physical 41-panel sculpture.
@@ -175,22 +175,14 @@ No tasks.
 
 ## Ready to Merge
 
-### `CTRL-007` Make integrated main Manifold-only and apply the agentic workflow
-
-- Outcome: remove the retired printable toolchain and keep Manifold as the only
-  printable-parts kernel; make execution modes and model routing durable.
-- Acceptance: no tracked runtime, setup, CI, test, part, configuration, or
-  operator document requires the retired toolchain; current projects use the
-  Manifold route; workflow docs define modes, routing, review, Git safety, and
-  stop rules; tests, TypeScript, Vite, browser journeys, YAML, links, and
-  independent review pass.
-- Owner: branch `codex/ctrl-007-manifold-workflow`; worktree
-  `/tmp/led-rhombo-ctrl-007`.
-- Depends on: operator-authorized merge and push. Do not use or modify any
-  `TRUSS-*` worktree or change.
+No tasks.
 
 ## Done
 
+- `CTRL-007`: removed the retired printable toolchain and its generated
+  artifacts, made Manifold the only printable-parts kernel, and established
+  FAST/STANDARD/QUALITY execution and Luna/Terra/Sol routing in `main` at
+  `33d6455`.
 - `UI-012`–`UI-018`: integrated browser-first Manifold status, generation,
   package/manual downloads, bounded JSON fallback, simplified controls, and
   unified project/route/package workflow in `main` at `e278333`.
