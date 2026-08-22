@@ -7,10 +7,7 @@ import type {
   SculptureSurfaceFace,
 } from "./LedMapping.ts";
 import type { WiringPreview } from "./WiringPreview.ts";
-import {
-  CANONICAL_SCULPTURE_PROJECT,
-  type PanelHardwareProfile,
-} from "../../src/sculpture/Definition.ts";
+import type { PanelHardwareProfile } from "../../src/sculpture/Definition.ts";
 
 export interface WledLedmap {
   map: number[];
@@ -247,7 +244,7 @@ function assignPanel(
 export function createHardwareMappingContract(
   geometryMapping: LedMapping,
   wiring: WiringPreview,
-  panelProfile = CANONICAL_SCULPTURE_PROJECT.panelProfile,
+  panelProfile: PanelHardwareProfile,
 ): HardwareMappingContract {
   if (
     geometryMapping.topology !== "panelized-sculpture" ||

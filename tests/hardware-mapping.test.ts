@@ -1,16 +1,46 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { createPanelizedSculptureMapping } from "../web/src/LedMapping.ts";
 import {
-  createHardwareMappingContract,
+  createHardwareMappingContract as createContract,
   loadGeneratedHardwareMappingContract,
   transformInstalledPanelCoordinate,
   validateLedmapEquivalence,
 } from "../web/src/HardwareMapping.ts";
-import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
-import { CANONICAL_SCULPTURE_PROJECT } from "../src/sculpture/Definition.ts";
-import { createPanelAssemblyMapping } from "../src/sculpture/PanelAssembly.ts";
+import {
+  createProvisionalWiringPreview as createWiringPreview,
+  type WiringSourceDefinition,
+} from "../web/src/WiringPreview.ts";
+import {
+  createPanelAssemblyMapping,
+  createPanelAssemblyProject,
+} from "../src/sculpture/PanelAssembly.ts";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
+
+const SOURCE = "sculptures/rhombicosidodecahedron/sculpture.json";
+const PROJECT = createPanelAssemblyProject(
+  JSON.parse(readFileSync(SOURCE, "utf8")),
+  SOURCE,
+);
+
+function createFixtureMapping() {
+  return createPanelAssemblyMapping(PROJECT);
+}
+
+function createProvisionalWiringPreview(
+  geometry: ReturnType<typeof createFixtureMapping>,
+  definition: WiringSourceDefinition = PROJECT.sculpture,
+  panelProfile = PROJECT.panelProfile,
+) {
+  return createWiringPreview(geometry, definition, panelProfile);
+}
+
+function createHardwareMappingContract(
+  geometry: ReturnType<typeof createFixtureMapping>,
+  wiring: ReturnType<typeof createProvisionalWiringPreview>,
+  panelProfile = PROJECT.panelProfile,
+) {
+  return createContract(geometry, wiring, panelProfile);
+}
 
 describe("hardware mapping contract", () => {
   it("rotates fixed back-view corner vectors clockwise after mirroring", () => {
@@ -43,7 +73,7 @@ describe("hardware mapping contract", () => {
       { turns: 3, mirrored: true, local: [7, 0] },
     ] as const;
     for (const vector of pixelZeroByTransform) {
-      const geometry = createPanelizedSculptureMapping();
+      const geometry = createFixtureMapping();
       const wiring = createProvisionalWiringPreview(geometry);
       const panelId = wiring.outputs[0]!.panelIds[0]!;
       geometry.panels.find((panel) => panel.id === panelId)!.installedAddressTransform = {
@@ -111,7 +141,7 @@ describe("hardware mapping contract", () => {
         for (const corner of corners) {
           for (const traversalAxis of ["rows", "columns"] as const) {
             for (const serpentine of [false, true]) {
-              const geometry = createPanelizedSculptureMapping();
+              const geometry = createFixtureMapping();
               const wiring = createProvisionalWiringPreview(geometry);
               const panelId = wiring.outputs[0]!.panelIds[0]!;
               const panel = geometry.panels.find((candidate) => candidate.id === panelId)!;
@@ -159,9 +189,9 @@ describe("hardware mapping contract", () => {
   });
 
   it("uses a persisted authored panel order for physical output addresses", () => {
-    const geometry = createPanelizedSculptureMapping();
+    const geometry = createFixtureMapping();
     const draft = createProvisionalWiringPreview(geometry);
-    const definition = structuredClone(CANONICAL_SCULPTURE_PROJECT.sculpture);
+    const definition = structuredClone(PROJECT.sculpture);
     for (let index = 0; index < definition.wiring.outputs.length; index += 1) {
       definition.wiring.outputs[index]!.panelIds = [
         ...draft.outputs[index]!.panelIds,
@@ -183,7 +213,7 @@ describe("hardware mapping contract", () => {
   });
 
   it("uses the displayed route as the physical WLED address order", () => {
-    const geometry = createPanelizedSculptureMapping();
+    const geometry = createFixtureMapping();
     const wiring = createProvisionalWiringPreview(geometry);
     const contract = createHardwareMappingContract(geometry, wiring);
 
@@ -223,12 +253,18 @@ describe("hardware mapping contract", () => {
   });
 
   it("changes physical addresses when measured panel order changes", () => {
-    const geometry = createPanelizedSculptureMapping();
+    const geometry = createFixtureMapping();
     const wiring = createProvisionalWiringPreview(geometry);
     const firstPanelId = wiring.outputs[0]!.panelIds[0]!;
     const firstPanel = geometry.panels.find(
       (panel) => panel.id === firstPanelId,
     )!;
+    firstPanel.installedAddressTransform = {
+      status: "measured",
+      referenceView: "back",
+      quarterTurnsClockwise: 0,
+      mirrored: false,
+    };
     firstPanel.pixelOrder = {
       status: "measured",
       pixelZeroCorner: "bottom-right",
@@ -253,7 +289,7 @@ describe("hardware mapping contract", () => {
   });
 
   it("replays the exported ledmap exactly like the renderer", () => {
-    const geometry = createPanelizedSculptureMapping();
+    const geometry = createFixtureMapping();
     const wiring = createProvisionalWiringPreview(geometry);
     const contract = createHardwareMappingContract(geometry, wiring);
     const logicalFrame = Uint32Array.from(
@@ -388,8 +424,24 @@ describe("hardware mapping contract", () => {
   });
 
   it("refuses to describe a draft route with unknown GPIOs as hardware-ready", () => {
-    const geometry = createPanelizedSculptureMapping();
-    const wiring = createProvisionalWiringPreview(geometry);
+    const definition = structuredClone(PROJECT.sculpture);
+    definition.wiring.status = "provisional";
+    delete definition.wiring.routeRevision;
+    for (const output of definition.wiring.outputs) {
+      delete output.panelIds;
+      output.gpio = null;
+    }
+    for (const panel of definition.panels) {
+      if (panel.installedAddressTransform?.selectionMethod === "route-optimized") {
+        panel.installedAddressTransform.selectionMethod = "manual";
+        delete panel.installedAddressTransform.optimizationFingerprint;
+      }
+    }
+    const project = createPanelAssemblyProject(definition, SOURCE);
+    const geometry = createPanelAssemblyMapping(project);
+    const wiring = createWiringPreview(
+      geometry, project.sculpture, project.panelProfile,
+    );
     const contract = createHardwareMappingContract(geometry, wiring);
 
     expect(contract.readiness.ready).toBe(false);

@@ -4,7 +4,6 @@ import type {
   Vector3Data,
 } from "./LedMapping.ts";
 import {
-  CANONICAL_SCULPTURE_PROJECT,
   getWiringLifecycleStatus,
   hasAuthoredWiringRoutes,
   type PanelCorner,
@@ -190,13 +189,13 @@ function assertStoredRoutesAreStructurallySound(
 /**
  * Produces complete view-only output routes using measured panel connector
  * corners without claiming exact pad centres or GPIO assignments. Persisted
- * authored routes retain their exact controller-to-DIN order. Legacy draft
- * projects use deterministic nearest-neighbor suggestions only.
+ * authored routes retain their exact controller-to-DIN order. Draft projects
+ * use deterministic nearest-neighbor suggestions only.
  */
 export function createProvisionalWiringPreview(
   mapping: LedMapping,
-  definition: WiringSourceDefinition = CANONICAL_SCULPTURE_PROJECT.sculpture,
-  panelProfile: PanelHardwareProfile = CANONICAL_SCULPTURE_PROJECT.panelProfile,
+  definition?: WiringSourceDefinition,
+  panelProfile?: PanelHardwareProfile,
 ): WiringPreview {
   if (mapping.topology !== "panelized-sculpture") {
     return {
@@ -208,6 +207,11 @@ export function createProvisionalWiringPreview(
       nodes: [],
       notes: ["Wiring preview is available only for the panelized sculpture."],
     };
+  }
+  if (!definition || !panelProfile) {
+    throw new Error(
+      "Panelized wiring preview requires a Schema 2 wiring definition and panel profile.",
+    );
   }
 
   const byLongitude = [...mapping.panels].sort((first, second) => {

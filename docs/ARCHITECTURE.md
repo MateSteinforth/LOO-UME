@@ -108,7 +108,7 @@ and current-limit plan. Software brightness limiting is secondary protection.
 
 | Area | Responsibility |
 | --- | --- |
-| `sculptures/` | Authored Schema 2 projects and isolated legacy mapping fixture |
+| `sculptures/` | Authored Schema 2 projects and their referenced design assets |
 | `catalog/` | Reusable panel dimensions, holes, connectors, corrections, and electrical assumptions |
 | `src/sculpture/PanelAssembly.ts` | Schema 2 parser, pose compilation, mapping geometry |
 | `src/sculpture/SculptureEditor.ts` | Panel mutations and derived-state invalidation |

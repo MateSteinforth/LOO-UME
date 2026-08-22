@@ -30,10 +30,10 @@ To establish this workflow in another repository, follow
   root. Rebuild and recommit an artifact whenever its pinned source or compiler
   changes, and keep its checksum and build receipt synchronized.
 
-Schema 1 (`src/sculpture/Definition.ts`, `schemas/sculpture.schema.json`, the
-legacy migration fixture, and old mapping tests) is retained legacy code.
-Do not build new features on it. The current browser path loads Schema 2 and
-uses `createPanelAssemblyMapping()`.
+Schema 2 is the only active sculpture format. `src/sculpture/Definition.ts`
+retains shared panel-profile and wiring types plus profile validation; sculpture
+loading and mapping use `PanelAssembly.ts` and `createPanelAssemblyMapping()`.
+Historical Schema 1 inputs are available only through Git history.
 
 ## Architectural guardrails
 

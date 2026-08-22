@@ -1,8 +1,8 @@
 # Project task board
 
 Last reconciled: 2026-08-22
-Integration baseline: `main`, including the unified UI through `UI-018`, the
-Manifold-only fabrication route, and the agentic workflow.
+Integration baseline: `main`, including the unified UI, Manifold-only
+fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
 Current milestone: produce one guarded simulator-to-ESP32 deployment contract,
 then prove static address and RGB parity on the physical 41-panel sculpture.
@@ -86,12 +86,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `LEGACY-011` Retire remaining Schema 1 mapping dependencies — P1
-
-- Acceptance: preserve the authoritative 41-panel Schema 2 project; active
-  browser, CLI, tests, and docs no longer depend on the Schema 1 migration
-  fixture or procedural mapping path.
-
 ### `VALID-010` Make LED dimensions profile-driven end to end — P1
 
 - Acceptance: one non-8x8 profile parses, maps, validates, exports, and reloads.
@@ -139,22 +133,16 @@ No tasks.
 
 ## Ready to Merge
 
-### `BUILD-010` Separate WLED simulator generation from main — P1
-
-- Outcome: normal setup, development, desktop start, tests, builds, phone
-  review, clean verification, and CI use the checked-in simulator without
-  Python, Emscripten, a WLED checkout, or a rebuild.
-- Generation authority: `generate/wled-simulator` at `64b743a`; it retains the
-  pinned source, compiler, sync check, rebuild scripts, instructions, hashes,
-  and receipt. Do not merge its toolchain back into `main`.
-- Main task owner: `codex/build-010-simulator-generation` in
-  `/tmp/led-rhombo-build-010`.
-- Verification: `npm run verify:clean` passed 227/227 Vitest tests, runtime
-  integrity, TypeScript, and Vite; tamper rejection passed; workflow YAML and
-  shell syntax passed; exact generation-branch refs were verified.
+No tasks.
 
 ## Done
 
+- `LEGACY-011`: retired the Schema 1 schema, migration fixture/script,
+  procedural mapping path, and legacy-only tests; the 41-panel Schema 2 project
+  and deployment artifacts remain byte-identical.
+- `BUILD-010`: normal development and CI now verify the checked-in WLED
+  simulator without Python, Emscripten, or a WLED checkout. Reproducible source
+  generation remains on `generate/wled-simulator` at `64b743a`.
 - `WIRE-012`: integrated the shared guarded browser/CLI deployment policy in
   `main` at `d900cdb`; mapping-ready input gets exact WLED installation files,
   while draft or stale input gets only explicit diagnostic artifacts.
@@ -169,8 +157,8 @@ No tasks.
 - `HR-013`: normal `main` will use the checked-in WLED simulator and will not
   require Python or Emscripten; reproducible generation moves to a dedicated
   branch under `BUILD-010`.
-- `HR-005`: the 41-panel authority is already Schema 2; remaining Schema 1
-  migration dependencies can be retired under `LEGACY-011`.
+- `HR-005`: confirmed the 41-panel authority is Schema 2; `LEGACY-011` retired
+  the remaining Schema 1 migration dependencies.
 - `HR-008`: stale generated parts stay hidden until regeneration; no stale-part
   inspection toggle is required.
 - `HR-009`: keep JSON poses/topology and STL output; do not add another boundary
