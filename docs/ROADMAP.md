@@ -12,7 +12,8 @@ direction and major remaining seams.
 - Browser-first assembly-package generation and exact asset reopen.
 - Authored output routes, GPIOs, installed quarter turns, ledmap generation,
   printable wiring manuals, and assumed WLED deployment identity.
-- Checked-in pinned WLED WASM for deterministic selected 1D effects.
+- Checked-in pinned WLED WASM with exact integrity verification; rebuild source
+  and tools stay on `generate/wled-simulator`.
 - Real Chromium authoring, generation, route, manual, and portability journeys.
 
 ## Current product milestone

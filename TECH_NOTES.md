@@ -3,16 +3,16 @@
 ## Pinned upstream
 
 - Repository: [wled/WLED](https://github.com/wled/WLED)
-- Git submodule: `wled/upstream`
+- Generation authority: long-lived `generate/wled-simulator` branch.
 - Investigated revision: `d9b9a846561227351ad929e3109781daadb7bed2`
 - WLED source version at that revision: `2607201`
 - License: EUPL-1.2. WLED's `fastled_slim` dependency retains its MIT
   license.
 
-The submodule is intentionally unmodified. The first milestone extracts a small
-reviewable set of 1D effect bodies into `wasm/src/wled_effects.inc`. Those
-bodies are verbatim C++ from `wled00/FX.cpp`; effect metadata declarations are
-not included.
+That branch retains the unmodified WLED submodule, selected C++ effect bodies,
+pinned Emscripten toolchain, sync check, and rebuild procedure. Normal `main`
+retains only the checked-in JavaScript/WASM runtime and its exact integrity
+receipt.
 
 ## Dependency investigation
 
@@ -71,10 +71,11 @@ virtual framebuffer. Invalid writes are rejected and counted by
   multi-segment, custom palette, and audio-reactive paths are unsupported.
 - Palette IDs are a compact simulator registry: Default plus WLED's seven
   FastLED palettes. They are not claimed to equal every firmware palette ID.
-- Selected effect bodies are a pinned snapshot. `npm run check:wled` compares
-  37 local effect/helper bodies against `wled/upstream/wled00/FX.cpp` and
-  rejects an unexpected submodule revision. Updating WLED still requires
-  reviewing compatibility changes.
+- Selected effect bodies are a pinned snapshot. On `generate/wled-simulator`,
+  `npm run check:wled` compares 37 local effect/helper bodies against the
+  pinned upstream and rejects a revision mismatch. Updating WLED still requires
+  reviewing compatibility changes and moving only reviewed runtime bytes plus
+  their receipt back to `main`.
 - The default preview contains 2,624 LEDs: 30 square-face and 11
   pentagon-centre 8 x 8 grids. The face frame is vertex-up and the north-pole
   pentagon is intentionally unpopulated. Northern centre panels present their

@@ -25,7 +25,7 @@ async function loadModule(): Promise<TestModule> {
   const wasmPath = path.join(outputDir, "wled-engine.wasm");
   if (!existsSync(jsPath) || !existsSync(wasmPath)) {
     throw new Error(
-      "WLED WASM artifacts are missing. Run npm run build:wasm or npm run test:full before npm test.",
+      "The checked-in WLED simulator is missing. Restore web/public/wasm from main; rebuilds belong on generate/wled-simulator.",
     );
   }
   const url = pathToFileURL(jsPath).href;

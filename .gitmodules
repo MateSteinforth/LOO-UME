@@ -1,3 +1,0 @@
-[submodule "wled/upstream"]
-	path = wled/upstream
-	url = https://github.com/wled/WLED.git

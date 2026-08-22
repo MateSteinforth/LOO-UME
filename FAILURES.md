@@ -299,20 +299,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `HW-017`, `MAP-022`, and the corrected generated WLED contract.
 - **Status:** Resolved.
 
-### F-016 — Full verification requires the pinned Emscripten SDK
+### F-016 — Normal verification was coupled to the simulator toolchain
 
 - **Date:** 2026-08-21
 - **Context:** `HW-017` and `MAP-022` closeout.
-- **Symptom:** `npm run verify` completed asset generation, then stopped at
-  `build:wasm` because Emscripten 4.0.14 was not installed.
-- **Cause:** The checkout has the tracked WASM runtime for ordinary tests, but
-  full verification also rebuilds it and therefore needs the pinned SDK.
-- **Correction:** Use `npm run setup:emsdk` before `npm run verify`, or use
-  `npm run verify:clean` for the complete clean-checkout path. Run the remaining
-  focused checks against the tracked WASM when SDK installation is out of scope.
-- **Prevention:** Check both the WLED submodule and Emscripten prerequisite
-  before starting full verification.
-- **Evidence:** The `HW-017`/`MAP-022` verification log and `AGENTS.md`.
+- **Symptom:** `npm run verify` completed asset generation, then stopped at a
+  simulator rebuild because the pinned Emscripten SDK was not installed.
+- **Cause:** Normal application verification rebuilt an already checked-in
+  runtime and therefore pulled the WLED source and compiler into every clean
+  setup.
+- **Correction:** `BUILD-010` moved the rebuild source and toolchain to
+  `generate/wled-simulator`. Normal verification now checks the tracked runtime
+  against its exact byte-length and SHA-256 receipt.
+- **Prevention:** Keep generated runtime integrity checks on `main`. Rebuild
+  only on the generation branch, then transfer only reviewed runtime bytes and
+  their synchronized receipt.
+- **Evidence:** `scripts/verify-wasm-runtime.mjs` and
+  `web/public/wasm/runtime-integrity.json`.
 - **Status:** Resolved.
 
 ### F-017 — `crypto.randomUUID()` is unavailable on an HTTP LAN origin

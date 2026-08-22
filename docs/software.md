@@ -83,6 +83,12 @@ rather than effect-code constants.
 
 ## Build and CI
 
+Normal `main` uses the checked-in WLED simulator runtime. `npm run verify:wasm`
+checks its exact byte lengths and SHA-256 receipt without a WLED checkout,
+Python, or Emscripten. Source synchronization and reproducible simulator builds
+live on `generate/wled-simulator`; only reviewed runtime bytes and their receipt
+return to `main`.
+
 A future firmware CI job would validate the 41-panel/2,624-pixel map, build the
 usermod against a pinned WLED release with PlatformIO, and upload the flashable
 binary plus its build metadata as artifacts. It would not flash hardware.

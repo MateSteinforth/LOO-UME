@@ -61,20 +61,16 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
-      - name: Verify pinned WLED checkout
-        run: npm run setup:wled
       - name: Install npm dependencies
         run: npm ci
-      - name: Install pinned Emscripten SDK
-        run: npm run setup:emsdk
-      - name: Generate assets and build WASM
-        run: npm run generate:assets && npm run build:wasm
+      - name: Verify checked-in WLED simulator integrity
+        run: npm run verify:wasm
+      - name: Generate assets
+        run: npm run generate:assets
       - name: Run all Vitest tests
         run: npm test
       - name: Type-check

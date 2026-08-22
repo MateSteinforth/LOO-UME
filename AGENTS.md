@@ -121,9 +121,10 @@ uses `createPanelAssemblyMapping()`.
 - If a push is blocked because the destination is not verified, report the
   exact commit, ref, and remote URL. Get explicit operator approval, then repeat
   the same push. Do not use an indirect push method.
-- `npm run verify` requires the pinned WLED submodule and Emscripten SDK. If it
-  reports that either is unavailable, run the applicable setup command or use
-  `npm run verify:clean` for the complete clean-checkout path.
+- `npm run verify` uses the checked-in WLED simulator and verifies its exact
+  integrity receipt. Do not add a WLED checkout, Python, or Emscripten to normal
+  `main` setup. Simulator rebuilds belong on `generate/wled-simulator`; move
+  only reviewed runtime bytes and their synchronized receipt back to `main`.
 - Use the normal repository `apply_patch` helper for file edits first. In this
   Codex environment it can fail with `fs sandbox helper failed` / `bwrap: No
   permissions to create a new namespace` even though approved shell commands
@@ -286,9 +287,9 @@ Use the narrowest relevant checks, then broaden when risk warrants it:
 npm test                         # all Vitest tests; uses the checked-in WASM runtime
 npm run test:editor
 npm run test:placement
-npm run test:full                # builds WASM with the installed pinned SDK, then tests
-npm run verify                   # assets, WASM, Vitest, TypeScript, and Vite
-npm run verify:clean             # submodule, npm ci, pinned SDK, then npm run verify
+npm run verify:wasm              # exact checked-in runtime size and SHA-256
+npm run verify                   # assets, runtime integrity, tests, TypeScript, and Vite
+npm run verify:clean             # npm ci, then npm run verify; no simulator toolchain
 ```
 
 After geometry changes, compile the changed printable parts with
