@@ -45,20 +45,6 @@ This file is the persistent source of truth for work status. Read it before star
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
 
-### `TRUSS-013` Solve linear 3D truss load cases
-
-- Outcome: solve axial truss response with three translational degrees of
-  freedom per node for installed gravity, transport gravity on all six world
-  axes, panel-face forces, panel-corner forces, and cable pulls.
-- Acceptance: deterministic stiffness assembly uses member length, direction,
-  area, and Young's modulus; supports are applied by node degree of freedom;
-  singular and insufficiently constrained systems report useful diagnostics;
-  results include displacement, reaction, axial force, tension/compression,
-  stress, utilization, Euler buckling utilization, and governing load case.
-- Depends on: `TRUSS-011` and the graph contract from `TRUSS-012`.
-- Verify: analytical fixtures, equilibrium, reordered input, every load type,
-  zero-length members, and rigid-body-mode negatives.
-
 ### `TRUSS-014` Optimize member sizes and load paths
 
 - Outcome: minimize material with bounded deterministic resizing and removal
@@ -492,6 +478,33 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   work on this branch and worktree without a merge to `main`.
 - Likely conflicts: `TASKS.md`, structural workflow and architecture
   documentation, and future `src/structure/` solver work.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
+### `TRUSS-013` Solve linear 3D truss load cases
+
+- Outcome: a deterministic linear 3D axial solver gives each candidate hub
+  three translational degrees of freedom and solves all normalized gravity,
+  transport, face, corner, and cable load cases from one stiffness factor.
+- Acceptance: stiffness uses member length, direction, circular area, and
+  Young's modulus in N/mm/MPa; supports constrain individual node degrees of
+  freedom; singular, residual, overflow, and non-finite results fail clearly;
+  results include displacement, reaction, axial force, force state, stress,
+  yield utilization, pinned Euler buckling utilization, and governing case.
+- Evidence: 5 focused solver tests compare an analytical bar, equilibrium,
+  reordered inputs, sub-newton relative residuals, all load types, overflow,
+  zero length, missing support, and a rigid-body mechanism. The existing
+  41-panel project solves 164 nodes, 13,366 candidates, and seven gravity cases.
+  All 297 Vitest tests, `npx tsc -b --pretty false`, `npm run build:web`, and
+  `git diff --check` pass. Independent review found non-finite-result and
+  sub-newton residual gaps; explicit finite gates and the corrected denominator
+  passed re-review with no remaining finding.
+- Depends on: `TRUSS-011` and `TRUSS-012`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Continue on the operator-authorized truss
+  workstream without a merge to `main`.
+- Likely conflicts: `TASKS.md`, `src/structure/`, structural workflow and
+  architecture documentation, and structural tests.
 - Integration gate: explicit operator authorization is required before merge
   into `main`.
 

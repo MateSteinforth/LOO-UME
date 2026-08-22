@@ -432,6 +432,26 @@ caps or a second panel schema. Rejected edge diagnostics explain when length or
 PCB clearance prevents a load path. Graph redundancy guides later
 optimization; it does not certify a printed assembly.
 
+## D19 — Structural analysis uses a deterministic axial truss model
+
+**Decision.** Every candidate hub has three translational degrees of freedom.
+Circular members use the standard linear axial stiffness matrix in N, mm, and
+MPa. Constrained degrees of freedom are removed and one Cholesky factor is
+reused for all sorted load cases. Compression uses a pinned-pinned Euler
+buckling check.
+
+**Evidence.** `src/structure/TrussSolver.ts` and
+`tests/truss-solver.test.ts` compare with an analytical bar, check equilibrium,
+storage-order independence, individual constrained translations, every
+normalized load type, governing cases, zero length, missing supports, and
+rigid-body mechanisms. The existing 41-panel project solves seven gravity
+cases with 164 nodes and 13,366 initial candidate members.
+
+**Consequence.** Singular or poorly constrained systems fail before geometry
+generation. Face loads are shared across panel hubs; corner and cable loads use
+the nearest eligible hub as a rigid bracket-plate approximation. The result is
+load-path guidance and not engineering certification.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

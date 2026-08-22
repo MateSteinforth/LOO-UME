@@ -89,9 +89,35 @@ path. Thus, every accepted candidate graph has at least two graph paths around
 each structural member. This is candidate redundancy only; the optimizer must
 preserve it when it removes members.
 
+## Linear 3D truss analysis
+
+`compileStructuralTrussModel()` maps normalized supports from anchor IDs to
+their candidate hubs. Each hub has X, Y, and Z translation. Every circular
+candidate member supplies its length, unit direction, area, second moment of
+area, Young's modulus, yield strength, and safety factor in the N-mm-MPa unit
+system.
+
+Gravity cases include panel mass and candidate-member self-weight. Panel mass
+is shared across that panel's hubs and member weight is shared across its two
+ends. A face force is shared across all hubs on its panel. A corner or DIN/DOUT
+cable force is applied to the nearest eligible hub. This is the rigid bracket-
+plate transfer approximation used by the axial model.
+
+`solveLinearTruss()` assembles the standard global axial stiffness matrix,
+removes constrained degrees of freedom, and uses one Cholesky factor for every
+sorted load case. The relative pivot tolerance is `1e-10` of the largest free
+diagonal. A failed pivot reports insufficient support or a rigid-body
+mechanism. Each solution must satisfy a relative residual of `1e-8`.
+
+Results contain nodal applied force, displacement, and reaction. Each member
+gets signed axial force, tension/compression state, stress, safety-factored
+yield utilization, pinned-pinned Euler buckling capacity and compression-only
+buckling utilization. The maximum of yield and buckling utilization selects
+the governing load case, with stable load-case ID as the tie-breaker.
+
 ## Remaining ordered implementation
 
-`TRUSS-013` through `TRUSS-018` add the linear 3D truss solver, optimization,
-Manifold parts, STL/3MF export, reports, and browser portable-project
-integration. Every report must state that the analysis gives load-path
-guidance and is not engineering certification.
+`TRUSS-014` through `TRUSS-018` add optimization, Manifold parts, STL/3MF
+export, reports, and browser portable-project integration. Every report must
+state that the analysis gives load-path guidance and is not engineering
+certification.

@@ -162,6 +162,20 @@ edges, isolated panels, and fewer than three non-collinear eligible holes fail
 with an error. Rejected collision and length candidates remain in the result as
 diagnostic evidence for later reports.
 
+`solveStructuralTruss()` maps each normalized anchor support to its rear hub
+and preserves each constrained X/Y/Z translation. It distributes panel gravity
+across that panel's hubs and member self-weight across member ends. A face force
+is shared across all panel hubs. A corner or cable force is applied to the
+nearest eligible hub because the PCB and bracket plate transfer that point
+load into the axial model.
+
+The solver reports node displacement, applied force, and reaction for every
+case. It reports member axial force, tension/compression state, stress, safety-
+factored yield utilization, pinned-pinned Euler buckling capacity and
+utilization, and the governing case. A singular stiffness matrix or residual
+failure stops analysis with an error. These results guide load paths only; they
+are not engineering certification.
+
 ### Panel-outline boundary generation
 
 Milestone 3 is implemented in `src/sculpture/PanelOutlineBoundary.ts`. A

@@ -415,3 +415,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   a rejected import cannot appear to succeed against prior controls.
 - **Evidence:** `tests/browser/wiring-route-editor.spec.ts`.
 - **Status:** Resolved.
+
+### F-023 — Restricted `/tmp` tests cannot bind loopback servers
+
+- **Date:** 2026-08-22
+- **Context:** Full TRUSS-013 verification in a temporary Git worktree.
+- **Symptom:** Local editor server tests failed with `listen EPERM` on
+  `127.0.0.1`; handler tests then timed out while waiting for the same socket.
+- **Cause:** The restricted sandbox blocked loopback listeners. The truss tests
+  and all other non-server tests passed in that run.
+- **Correction:** Repeat the unchanged `npm test` command with approved host
+  execution so the test-only loopback servers can bind.
+- **Prevention:** In a `/tmp` worktree, treat `listen EPERM` on loopback as a
+  sandbox boundary. Do not change server code or test timeouts before repeating
+  the exact suite with approved loopback access.
+- **Evidence:** The subsequent unchanged full suite passed all 296 tests.
+- **Status:** Resolved.
