@@ -244,3 +244,16 @@ profile before a staged catalog fallback and verifies every structural artifact
 before it creates preview URLs. A panel or structural-input edit makes the
 stored fingerprint stale. Stale or failed structure is hidden, but editing,
 simulation, mapping, wiring, and JSON save continue.
+
+### Quick UI trial
+
+Run `npm run dev:web`, open the shown local URL, and select **Structural
+Two-panel Spatial Trial**. The project contains two nearby non-coplanar panels
+with independent in-plane rotations, one authored bench support, and face,
+corner, and cable-pull loads. Select **Generate structural truss**. The browser
+shows the exact assembly-preview STL and enables **Download structural files**
+and portable project export after validation.
+
+The trial values are not measured mounting evidence. Replace the bench support,
+material, mass, and loads before physical use. The generated report is
+load-path guidance, not engineering certification.

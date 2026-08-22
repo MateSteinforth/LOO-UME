@@ -32,12 +32,13 @@ test("generates, previews, transports, reopens, and invalidates a structural set
 
   await page.goto("/");
   await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
-  await chooseFile(page, "#load-sculpture-file", {
-    name: "pose-only-two-panel.json",
-    mimeType: "application/json",
-    buffer: await readFile("sculptures/pose-only-two-panel/sculpture.json"),
-  });
+  await page.locator("#sculpture-select").selectOption(
+    "./sculptures/structural-two-panel-spatial/sculpture.json",
+  );
   await expect(page.locator("#panel-count-display")).toHaveText("2");
+  await expect(page.locator("#sculpture-select")).toHaveValue(
+    "./sculptures/structural-two-panel-spatial/sculpture.json",
+  );
   await expect(page.locator("#generate-structure")).toBeEnabled();
 
   await page.locator("#generate-structure").click();
@@ -68,12 +69,22 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   expect(names.some((name) => name.endsWith("structure/analysis.json"))).toBe(true);
   expect(names.some((name) => name.endsWith("structure/report.md"))).toBe(true);
   expect(names.filter((name) => name.includes("structure/parts/")).length).toBe(18);
+  const analysisName = names.find((name) => name.endsWith("structure/analysis.json"))!;
+  const analysis = JSON.parse(new TextDecoder().decode(files[analysisName]!)) as {
+    inputSource: string;
+    supports: unknown[];
+    loadCases: unknown[];
+  };
+  expect(analysis.inputSource).toBe("authored");
+  expect(analysis.supports).toHaveLength(4);
+  expect(analysis.loadCases).toHaveLength(10);
 
   const sculptureName = names.find((name) => name.endsWith("sculpture.json"))!;
   const reportName = names.find((name) => name.endsWith("structure/report.md"))!;
   const importedReport = new TextEncoder().encode("# Imported structural report\n");
   const importedDefinition = JSON.parse(new TextDecoder().decode(files[sculptureName]!)) as {
     generatedStructure: { artifacts: Array<{ role: string; sha256: string }> };
+    panels: Array<{ pose: { position: [number, number, number] } }>;
   };
   importedDefinition.generatedStructure.artifacts.find(({ role }) => role === "report")!.sha256 =
     sha256Bytes(importedReport);
@@ -97,11 +108,22 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     "one SHA-256-verified structural set",
   );
 
-  const selected = page.locator(".panel-label:visible").first();
-  await selected.click();
-  const panelId = await selected.getAttribute("data-panel-id");
-  if (!panelId) throw new Error("No visible structural panel label was selectable.");
-  await page.getByRole("button", { name: `Delete selected panel ${panelId}` }).click();
+  const staleDefinition = structuredClone(importedDefinition);
+  staleDefinition.panels[0]!.pose.position[0] += 1;
+  files[sculptureName] = new TextEncoder().encode(
+    `${JSON.stringify(staleDefinition, null, 2)}\n`,
+  );
+  await chooseFile(page, "#load-project-zip", {
+    name: "stale-structural-project.zip",
+    mimeType: "application/zip",
+    buffer: Buffer.from(zipSync(files, {
+      level: 6,
+      mtime: new Date("1980-01-01T00:00:00.000Z"),
+    })),
+  });
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Loaded complete project stale-structural-project.zip",
+  );
   await expect(page.locator("#mapping-note")).toContainText(
     "structural asset set is stale and hidden",
   );

@@ -1,0 +1,127 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "structural-two-panel-spatial-trial",
+  "name": "Structural Two-panel Spatial Trial",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "ws2812b-8x8-66x65",
+    "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
+  },
+  "panels": [
+    {
+      "id": "P-01",
+      "pose": {
+        "position": [-20, 42, 15],
+        "orientation": {
+          "xAxis": [0.939692621, 0, -0.342020143],
+          "yAxis": [-0.342020143, 0, -0.939692621],
+          "normal": [0, 1, 0]
+        }
+      }
+    },
+    {
+      "id": "P-02",
+      "pose": {
+        "position": [30, -8, 22],
+        "orientation": {
+          "xAxis": [0, 0.5, -0.866025404],
+          "yAxis": [0, 0.866025404, 0.5],
+          "normal": [1, 0, 0]
+        }
+      }
+    }
+  ],
+  "structuralDesign": {
+    "schemaVersion": "1.0.0",
+    "material": {
+      "id": "petg-trial-isotropic",
+      "youngsModulusMpa": 2100,
+      "yieldStrengthMpa": 45,
+      "densityKgPerCubicMeter": 1270
+    },
+    "panelMassKg": 0.12,
+    "safetyFactor": 2.5,
+    "maximumDisplacementMm": 1.5,
+    "gravity": {
+      "installedDirection": [0, 0, -1],
+      "accelerationMetersPerSecondSquared": 9.80665,
+      "includeWorldAxisTransportCases": true
+    },
+    "fabrication": {
+      "minimumMemberDiameterMm": 4,
+      "maximumMemberDiameterMm": 16,
+      "memberDiameterIncrementMm": 0.5,
+      "maximumUnsupportedCompressionLengthMm": 150,
+      "bracketOffsetMm": 8,
+      "cableClearanceMm": 12
+    },
+    "supports": [
+      {
+        "id": "bench-reference-panel",
+        "kind": "panel",
+        "panelId": "P-01",
+        "constrainedTranslations": ["x", "y", "z"]
+      }
+    ],
+    "loads": [
+      {
+        "id": "face-push",
+        "kind": "panel-face-force",
+        "panelId": "P-02",
+        "forceNewtons": [0, 0, -8]
+      },
+      {
+        "id": "corner-handling",
+        "kind": "panel-corner-force",
+        "panelId": "P-02",
+        "corner": "top-left",
+        "forceNewtons": [2, -1, 0]
+      },
+      {
+        "id": "din-cable-pull",
+        "kind": "cable-pull",
+        "panelId": "P-02",
+        "connector": "DIN",
+        "forceNewtons": [3, 0, 0]
+      }
+    ]
+  },
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "longitude-sectors-nearest-neighbor",
+    "chainLengths": [2],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Spatial trial output",
+        "gpio": null,
+        "color": "#36e0d0"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Structural UI trial: two nearby panels use independent non-coplanar poses.",
+    "P-01 is a bench reference support for analysis. Replace it with real mounting conditions before physical use.",
+    "Material and loads are trial inputs. The report is load-path guidance, not engineering certification."
+  ]
+}

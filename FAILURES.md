@@ -499,3 +499,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/browser/structural-generation.spec.ts` changes a
   same-path report and its manifest hash before ZIP reopen.
 - **Status:** Resolved.
+
+### F-028 — 3MF placement must use exported vertex precision
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-019 structural trial at translated arbitrary world poses.
+- **Symptom:** A valid analyzed mesh failed its 3MF positive-octant check by a
+  few micrometres after vertex serialization.
+- **Cause:** The build translation came from Manifold's bounding box, while the
+  3MF coordinates came from Float32 mesh vertices. Their rounded minima could
+  differ.
+- **Correction:** Calculate the shared 3MF translation from the exact mesh
+  vertex values that the exporter serializes.
+- **Prevention:** Derive format-level bounds and transforms from the format's
+  actual coordinate precision, not a higher-precision upstream summary.
+- **Evidence:** The translated `structural-two-panel-spatial-trial` headless and
+  browser generation checks.
+- **Status:** Resolved.

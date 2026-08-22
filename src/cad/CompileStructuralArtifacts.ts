@@ -164,8 +164,10 @@ function combinedPreview(meshes: StructuralSolidMesh[]): {
 function packageTransform(meshes: StructuralSolidMesh[]): StructuralVector {
   const minimum: StructuralVector = [Infinity, Infinity, Infinity];
   for (const mesh of meshes) {
-    for (let axis = 0; axis < 3; axis += 1) {
-      minimum[axis] = Math.min(minimum[axis]!, mesh.boundingBoxMm.min[axis]!);
+    for (const point of vertices(mesh)) {
+      for (let axis = 0; axis < 3; axis += 1) {
+        minimum[axis] = Math.min(minimum[axis]!, point[axis]!);
+      }
     }
   }
   return minimum.map((value) => Number(number(Math.max(0, -value)))) as StructuralVector;

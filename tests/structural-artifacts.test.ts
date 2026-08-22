@@ -78,6 +78,25 @@ describe("structural STL, 3MF, and preview artifacts", () => {
     expect(inspection.boundsMm.min.every((value) => value >= -1e-6)).toBe(true);
   });
 
+  it("derives the 3MF build transform from exported vertex precision", () => {
+    const roundedBounds = meshes.map((mesh) => ({
+      ...mesh,
+      boundingBoxMm: {
+        min: mesh.boundingBoxMm.min.map((value) => value + 0.00001) as [number, number, number],
+        max: [...mesh.boundingBoxMm.max] as [number, number, number],
+      },
+    }));
+    const shifted = compileStructuralArtifactBundle(
+      bundle.manifest.sourceFingerprint,
+      roundedBounds,
+    );
+    const packageFile = shifted.files.find(({ role }) => role === "package")!;
+
+    expect(inspectStructuralThreeMf(packageFile.bytes).boundsMm.min.every(
+      (value) => value >= -1e-6,
+    )).toBe(true);
+  });
+
   it("produces identical bytes and hashes for reordered equivalent meshes", () => {
     const repeated = compileStructuralArtifactBundle(
       bundle.manifest.sourceFingerprint,

@@ -583,6 +583,32 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Integration gate: explicit operator authorization is required before merge
   into `main`.
 
+### `TRUSS-019` Add a two-panel spatial UI trial project
+
+- Outcome: the sculpture selector includes a small structural trial with two
+  nearby non-coplanar panels, independent in-plane rotations, one authored
+  bench support, and representative face, corner, and cable-pull loads.
+- Acceptance: Schema 2 remains authoritative; headless and browser structural
+  generation converge; the fixture produces validated printable assets and is
+  selectable without a file upload.
+- Evidence: headless generation converges with 18 printable parts, 28 retained
+  members, 10 load cases, and 24 validated files. The real Chromium journey
+  selects the registered fixture, generates, exports, reopens, checks authored
+  supports and loads, hides stale output, and preserves controls after a
+  singular failure. `npm run verify` passes with all 324 Vitest tests,
+  TypeScript, the pinned WLED rebuild, and the production web build. A
+  translated fixture exposed a Float32 3MF placement mismatch; the exporter
+  now derives its transform from exact exported vertices, with a focused
+  regression. Independent review found no actionable issue.
+- Depends on: `TRUSS-018`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, `FAILURES.md`, structural export code,
+  `sculptures/manifest.json`, structural workflow documentation, and browser
+  fixture tests.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
 ## Done
 
 ### `CAD-030`–`CAD-036` Replace generic OpenSCAD generation with Manifold

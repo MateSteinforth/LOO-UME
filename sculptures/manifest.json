@@ -27,6 +27,12 @@
       "artifactStatus": "authoring-only"
     },
     {
+      "id": "structural-two-panel-spatial-trial",
+      "name": "Structural Two-panel Spatial Trial",
+      "source": "./sculptures/structural-two-panel-spatial/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
       "id": "panel-outline-prism-boundary-fixture",
       "name": "Panel-outline Prism Boundary Fixture",
       "source": "./sculptures/panel-outline-prism/sculpture.json",
