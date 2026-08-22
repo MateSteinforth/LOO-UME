@@ -481,3 +481,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/structural-artifacts.test.ts` covers unrelated-directory
   refusal and restoration after an injected final-promotion failure.
 - **Status:** Resolved.
+
+### F-027 — Project replacement must clear generated object URLs
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-018 browser reopen of generated structural projects.
+- **Symptom:** In-memory URLs from project A could override the same structural
+  paths imported with project B and cause false SHA-256 failures. The old URLs
+  also stayed allocated until another generation run.
+- **Cause:** Portable-bundle replacement disposed only portable URLs. The
+  structural loader merged still-live generated URLs after the new bundle URLs.
+- **Correction:** Revoke and clear every generated URL before a local, remote,
+  folder, or ZIP project replaces the active project.
+- **Prevention:** Treat object URLs as project-owned resources. Dispose all URL
+  namespaces at the same project-replacement boundary, and test two projects
+  that use the same asset path with different verified bytes.
+- **Evidence:** `tests/browser/structural-generation.spec.ts` changes a
+  same-path report and its manifest hash before ZIP reopen.
+- **Status:** Resolved.

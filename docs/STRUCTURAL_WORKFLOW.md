@@ -230,7 +230,17 @@ pinned Euler buckling, governing cases, optimization history, modeling limits,
 and print/analysis artifact hashes. The outer `generatedStructure` manifest
 records the report's own hash without creating a circular report hash.
 
-## Remaining ordered implementation
+## Browser and portable projects
 
-`TRUSS-018` adds browser portable-project integration. Structural failures or
-stale output must not disable editing, mapping, wiring, simulation, or save.
+The editor has a separate **Generate structural truss** action. It calls the
+same browser-safe pipeline as the headless command, loads the exact referenced
+assembly-preview STL, and enables downloads only after every structural
+artifact passes its hash and format check. The existing planar closure action
+remains available as a separate fabrication route.
+
+Folder and ZIP export include every referenced structural STL, the 3MF package,
+analysis JSON, report, and a bundled resolved panel profile. Import uses that
+profile before a staged catalog fallback and verifies every structural artifact
+before it creates preview URLs. A panel or structural-input edit makes the
+stored fingerprint stale. Stale or failed structure is hidden, but editing,
+simulation, mapping, wiring, and JSON save continue.

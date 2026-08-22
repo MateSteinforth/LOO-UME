@@ -18,6 +18,7 @@ import {
   runStructuralPipeline,
   type StructuralPipelineResult,
 } from "../src/structure/StructuralPipeline.ts";
+import { loadVerifiedGeneratedStructure } from "../web/src/GeneratedStructuralAssets.ts";
 
 const sourcePath = "sculptures/pose-only-two-panel/sculpture.json";
 const GLB = new Uint8Array([
@@ -87,6 +88,47 @@ describe("headless structural system pipeline", () => {
     }
     const analysisArtifact = result.generatedStructure.artifacts.find(({ role }) => role === "analysis")!;
     expect(result.reportMarkdown).toContain(analysisArtifact.sha256);
+  });
+
+  it("loads the current exact structural set for browser preview and rejects it after a pose edit", async () => {
+    const urls = new Map(result.generatedStructure.artifacts.map(({ source }) => [
+      source,
+      `memory:${source}`,
+    ]));
+    const bytesByUrl = new Map(result.generatedStructure.artifacts.map(({ source }) => [
+      `memory:${source}`,
+      result.bundle.files.find((file) => file.source === source)!.bytes,
+    ]));
+    const loaded = await loadVerifiedGeneratedStructure(
+      result.definition,
+      project.panelProfile,
+      "local:test",
+      async (input) => {
+        const bytes = bytesByUrl.get(String(input));
+        if (!bytes) throw new Error(`Missing test bytes for ${String(input)}.`);
+        return new Response(new Blob([Uint8Array.from(bytes)]));
+      },
+      "http://localhost/",
+      urls,
+    );
+
+    expect(loaded?.parts).toHaveLength(result.solids.length);
+    expect(loaded?.preview.stlInspection?.triangles).toBeGreaterThan(0);
+    expect(loaded?.analysis.bytes).toEqual(result.analysisBytes);
+    expect(loaded?.report.bytes).toEqual(result.reportBytes);
+
+    const stale = structuredClone(result.definition);
+    stale.panels[0]!.pose.position[0] += 1;
+    await expect(loadVerifiedGeneratedStructure(
+      stale,
+      project.panelProfile,
+      "local:test",
+      async () => {
+        throw new Error("Stale assets must not be fetched.");
+      },
+      "http://localhost/",
+      urls,
+    )).rejects.toThrow(/stale/i);
   });
 
   it("is byte-identical when equivalent panels, supports, and loads are reordered", async () => {

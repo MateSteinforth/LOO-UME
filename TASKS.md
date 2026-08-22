@@ -45,19 +45,6 @@ This file is the persistent source of truth for work status. Read it before star
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
 
-### `TRUSS-018` Integrate structural generation with the browser and portable projects
-
-- Outcome: the editor can generate, display, save, export, and reopen the exact
-  structural parts and report without requiring planar `boundaryTopology`.
-- Acceptance: the planar closure route remains available; structural failure
-  or staleness does not disable editing, simulation, mapping, wiring, or save;
-  pose, profile, support, load, material, or fabrication edits invalidate the
-  structural fingerprint; folder and ZIP transport preserve exact STL, 3MF,
-  preview, report, and hash bytes.
-- Depends on: `TRUSS-017`.
-- Verify: focused browser generation, exact-byte folder/ZIP round-trip, stale
-  and failure states, existing mechanics regressions, and `npm run verify`.
-
 ### `MECH-020` Add correction tools for ambiguous detected gaps
 
 - Outcome: let users repair the exceptional case where automatic gap detection cannot choose an unambiguous corner cycle.
@@ -565,6 +552,34 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   workstream without a merge to `main`.
 - Likely conflicts: `TASKS.md`, package scripts, structural pipeline/report
   source, generated-structure documentation, and end-to-end structural tests.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
+### `TRUSS-018` Integrate structural generation with the browser and portable projects
+
+- Outcome: the editor generates, displays, downloads, saves, exports, and
+  reopens the exact structural parts and report without requiring planar
+  `boundaryTopology`. The planar action remains a separate available route.
+- Acceptance: structural failure or staleness does not disable editing,
+  simulation, mapping, wiring, or save; pose and structural-input fingerprints
+  hide stale assets; folder and ZIP transport preserve exact STL, 3MF, preview,
+  analysis, report, profile, and hash bytes.
+- Evidence: 10 portable-project tests and 6 pipeline/browser-asset tests cover
+  exact structural files, bundled-profile reopen and re-export, hash/format
+  gates, current preview, and stale rejection. Five real Chromium journeys pass;
+  the structural journey generates 18 parts, exports and reopens a ZIP with a
+  changed same-path report, hides stale output after a panel edit, and keeps
+  mapping, save, and simulation enabled after a singular solve. `npm run verify`
+  passes with all 323 Vitest tests, the pinned WLED rebuild, TypeScript, and the
+  production web build. Independent review found cross-project object-URL
+  contamination; URL revocation and the same-path import regression passed
+  re-review with no remaining finding.
+- Depends on: `TRUSS-017`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Continue on the operator-authorized truss
+  workstream without a merge to `main`.
+- Likely conflicts: `TASKS.md`, browser controls/orchestration, portable-project
+  asset handling, structural preview loading, and browser/portable tests.
 - Integration gate: explicit operator authorization is required before merge
   into `main`.
 

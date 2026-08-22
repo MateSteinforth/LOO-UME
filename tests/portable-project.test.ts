@@ -144,6 +144,59 @@ describe("portable project folder and ZIP validation", () => {
     }
   });
 
+  it("round-trips every generated structural artifact and a bundled panel profile exactly", async () => {
+    const { definition, profile } = await portableFixture();
+    delete definition.designSurface;
+    const structural = [
+      { id: "part", role: "part", format: "stl", source: "structure/parts/part.stl", bytes: new Uint8Array([1, 2, 3]) },
+      { id: "preview", role: "preview", format: "stl", source: "structure/preview.stl", bytes: new Uint8Array([4, 5]) },
+      { id: "package", role: "package", format: "3mf", source: "structure/model.3mf", bytes: new Uint8Array([6, 7, 8]) },
+      { id: "analysis", role: "analysis", format: "json", source: "structure/analysis.json", bytes: new TextEncoder().encode("{}\n") },
+      { id: "report", role: "report", format: "markdown", source: "structure/report.md", bytes: new TextEncoder().encode("# Report\n") },
+    ] as const;
+    definition.generatedStructure = {
+      schemaVersion: "1.0.0",
+      generator: { id: "test/structural", version: "1" },
+      sourceFingerprint: { algorithm: "sha256", value: "a".repeat(64) },
+      status: { generation: "complete", validation: "passed" },
+      artifacts: structural.map(({ bytes, ...artifact }) => ({
+        ...artifact,
+        sha256: sha256Bytes(bytes),
+      })),
+    };
+    definition.panelProfile.source = "catalog/panel-profile.json";
+    const profileBytes = new TextEncoder().encode(`${JSON.stringify(profile)}\n`);
+    const assets = new Map<string, Uint8Array>([
+      [definition.panelProfile.source, profileBytes],
+      ...structural.map(({ source, bytes }) => [source, bytes] as const),
+    ]);
+
+    const files = createPortableProjectFiles(definition, assets);
+    expect(files.get(definition.panelProfile.source)).toEqual(profileBytes);
+    const reopened = await openPortableProjectZip(
+      createPortableProjectZip(definition, assets),
+      "structure.zip",
+      async () => {
+        throw new Error("Bundled panel profile was not used.");
+      },
+    );
+    try {
+      expect(reopened.project.panelProfile).toEqual(profile);
+      expect(reopened.assets.size).toBe(structural.length + 1);
+      expect(reopened.assets.get(definition.panelProfile.source)?.bytes).toEqual(profileBytes);
+      for (const { source, bytes } of structural) {
+        expect(reopened.assets.get(source)?.bytes).toEqual(bytes);
+      }
+      const reexported = createPortableProjectFiles(
+        reopened.project.sculpture,
+        new Map([...reopened.assets].map(([source, asset]) => [source, asset.bytes])),
+      );
+      expect(reexported.get(definition.panelProfile.source)).toEqual(profileBytes);
+    } finally {
+      reopened.dispose();
+    }
+  });
+
   it("rejects a missing referenced file", async () => {
     const { profile, files } = await portableFixture();
     await expect(openPortableProjectFiles(

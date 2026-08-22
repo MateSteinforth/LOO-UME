@@ -148,6 +148,7 @@ gates.
 | `src/cad/CompileStructuralArtifacts.ts` | Serialize the exact structural meshes as deterministic binary STL parts, one assembly-preview STL, and one Core 3MF package | Millimetre units, stable identities, triangle counts, package relationships, hashes, and positive-octant build transform are validated in memory |
 | `src/cad/PublishStructuralArtifacts.ts` | Stage and exact-byte verify a complete structural artifact bundle, then replace its output directory atomically | A failed final promotion restores the previous validated directory; the manifest is written last in staging |
 | `src/structure/StructuralPipeline.ts` | Run normalization, candidate generation, optimization, Manifold CAD, exact export, analysis JSON, report, and generated-structure manifest from one Schema 2 project | Deterministic output contains no timestamp; singular or non-converged analysis stops before publication; report states that results are not certification |
+| `web/src/GeneratedStructuralAssets.ts` | Load, hash-check, and format-check one current structural asset set for browser preview and download | Stale sets fail before fetch; the assembly preview uses the exact referenced STL bytes |
 | `src/sculpture/SculptureEditor.ts` | Add/move/rotate/delete/seed and mechanics invalidation | Editing does not require successful CAD |
 | `src/sculpture/MechanicalShellRegenerator.ts` | Rebuild supported planar topology after edits | Rejects unsafe or ambiguous mechanics |
 | `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, detect deterministic unambiguous gap cycles, validate flat caps, and emit a closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
@@ -158,7 +159,7 @@ gates.
 | `scripts/editor-pipeline-handler.ts` | Shared status and bounded generation HTTP handler | Used unchanged by Vite development and production hosting; loopback and same-origin only |
 | `scripts/local-editor-server.ts` | Serve the built UI and generated assets on `127.0.0.1` | Local production host; owns startup and clean shutdown |
 | `src/cad/GenerateCad.ts`, `parts/` | Legacy-typed wrappers around tested manual parts | Separate from generic CAD |
-| `web/src/PortableProject.ts` | Shared folder/ZIP validation, object-URL resolution, and self-contained export | Never rewrites saved asset paths or fetches missing export bytes |
+| `web/src/PortableProject.ts` | Shared folder/ZIP validation, object-URL resolution, bundled-profile loading, and self-contained export | Preserves exact generated structural STL, 3MF, JSON, and report bytes; never fetches missing export bytes |
 | `web/src/` | UI, Three.js rendering, placement, mapping, routing, export | `main.ts` owns most application state |
 | `tests/browser/` | Playwright Chromium journeys through real operator controls | Uses the checked-in WLED WASM; it does not rebuild the SDK |
 | `wasm/` | Deterministic portable subset of WLED 1D effects | Simulator only, not firmware |
@@ -278,6 +279,15 @@ the headless entry point. It includes the resolved panel profile and verified
 optional design surface at safe paths in the generated project folder,
 publishes the validated bundle atomically, and prints all normalization
 warnings.
+
+The browser exposes planar closure generation and structural generation as
+separate actions. Starting one action removes only the incompatible derived
+manifest from its input copy. It does not change panel poses. A successful
+structural run displays the exact world-space assembly-preview STL and keeps all
+verified part, 3MF, analysis, report, profile, and optional GLB bytes available
+for folder or ZIP export. A stale or failed structural run hides structural
+geometry and downloads but does not disable editing, simulation, mapping,
+wiring, or JSON save.
 
 ## Local desktop host
 

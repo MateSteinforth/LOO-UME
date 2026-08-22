@@ -8,8 +8,10 @@ import {
 } from "../../src/sculpture/PanelAssembly.ts";
 import {
   assertPortableProjectAssetSource,
+  sha256Bytes,
   verifyProjectAssetBytes,
 } from "../../src/sculpture/GeneratedMechanics.ts";
+import { generatedStructuralAssetReferences } from "../../src/sculpture/StructuralDesign.ts";
 import { sculptureJson } from "../../src/sculpture/SculptureEditor.ts";
 
 export interface PortableProjectFile {
@@ -22,7 +24,7 @@ export interface PortableProjectAsset {
   bytes: Uint8Array;
   sha256: string;
   objectUrl: string;
-  mediaType: "model/gltf-binary" | "model/stl";
+  mediaType: string;
 }
 
 export interface PortableProjectBundle {
@@ -66,9 +68,15 @@ const defaultObjectUrlFactory: PortableObjectUrlFactory = {
 };
 
 function mediaType(source: string): PortableProjectAsset["mediaType"] {
-  return source.toLowerCase().endsWith(".glb")
-    ? "model/gltf-binary"
-    : "model/stl";
+  const lower = source.toLowerCase();
+  if (lower.endsWith(".glb")) return "model/gltf-binary";
+  if (lower.endsWith(".stl")) return "model/stl";
+  if (lower.endsWith(".3mf")) {
+    return "application/vnd.ms-package.3dmanufacturing-3dmodel+xml";
+  }
+  if (lower.endsWith(".json")) return "application/json";
+  if (lower.endsWith(".md")) return "text/markdown";
+  return "application/octet-stream";
 }
 
 function projectAssetReferences(
@@ -93,6 +101,7 @@ function projectAssetReferences(
       references.push({ label: `Generated part ${part.id}`, reference: part });
     }
   }
+  references.push(...generatedStructuralAssetReferences(definition.generatedStructure));
   return references;
 }
 
@@ -161,7 +170,19 @@ export async function openPortableProjectFiles(
   const project = await loadPanelAssemblyProject(
     input,
     `local:${sourceLabel}/sculpture.json`,
-    loadPanelProfile,
+    async (reference, sculptureSource) => {
+      const bundled = byRelativePath.get(reference.source);
+      if (!bundled) return loadPanelProfile(reference, sculptureSource);
+      try {
+        return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bundled)) as unknown;
+      } catch (error) {
+        throw new Error(
+          `Portable panel profile ${reference.source} is invalid JSON: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    },
   );
   const validated = projectAssetReferences(project.sculpture).map(
     ({ label, reference }) => {
@@ -180,6 +201,15 @@ export async function openPortableProjectFiles(
       };
     },
   );
+  const bundledProfileBytes = byRelativePath.get(project.sculpture.panelProfile.source);
+  if (bundledProfileBytes) {
+    validated.unshift({
+      source: project.sculpture.panelProfile.source,
+      bytes: bundledProfileBytes,
+      sha256: sha256Bytes(bundledProfileBytes),
+      mediaType: "application/json",
+    });
+  }
 
   const assets = new Map<string, PortableProjectAsset>();
   const assetUrls = new Map<string, string>();
@@ -283,6 +313,10 @@ export function createPortableProjectFiles(
     "sculpture.json",
     new TextEncoder().encode(sculptureJson(definition)),
   );
+  const profileBytes = availableAssets.get(definition.panelProfile.source);
+  if (profileBytes) {
+    files.set(definition.panelProfile.source, Uint8Array.from(profileBytes));
+  }
   for (const { label, reference } of projectAssetReferences(definition)) {
     const bytes = availableAssets.get(reference.source);
     if (!bytes) {

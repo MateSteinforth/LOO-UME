@@ -531,6 +531,24 @@ or meshes. The report lists all non-circular artifact hashes; its own hash is in
 the outer manifest. Non-converged or singular results remain diagnostics and
 cannot be published as a complete generated structure.
 
+## D24 — Browser structural output is one verified portable asset set
+
+**Decision.** Browser structural generation calls `runStructuralPipeline()`
+directly. It previews the exact manifest-referenced assembly STL and transports
+all referenced structural artifacts plus the resolved panel profile without
+rewriting bytes. Planar closure generation remains a separate action. Each
+action removes the other derived manifest only from the generation input copy.
+
+**Evidence.** `web/src/GeneratedStructuralAssets.ts`,
+`web/src/PortableProject.ts`, `tests/portable-project.test.ts`, and
+`tests/browser/structural-generation.spec.ts` cover exact folder/ZIP bytes,
+bundled-profile reload, current preview, complete reopen, and stale hiding.
+
+**Consequence.** Structural generation cannot silently replace panel poses or
+disable mapping and wiring. Failed generation keeps the active project and its
+last successful assets. Pose or structural-input changes hide stale structural
+geometry and downloads until regeneration succeeds.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

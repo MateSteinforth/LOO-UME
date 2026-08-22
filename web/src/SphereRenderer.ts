@@ -18,6 +18,7 @@ import type { WiringPreview } from "./WiringPreview";
 import type { EditorCapabilities } from "./EditorCapabilities.ts";
 import type { ClosedPanelBoundary } from "../../src/sculpture/PanelOutlineBoundary.ts";
 import type { VerifiedGeneratedMechanics } from "./GeneratedMechanicsAssets.ts";
+import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts";
 import {
   SurfacePlacementController,
   type SurfacePanelPlacement,
@@ -438,6 +439,31 @@ export class SphereRenderer {
       exact.userData.exactReferencedStl = true;
       this.printableLayer.add(exact);
     });
+    this.applySelectionFocus();
+  }
+
+  setExactGeneratedStructure(
+    assets?: VerifiedGeneratedStructure,
+  ): void {
+    this.clearBoundaryPreview();
+    this.disposeGroup(this.printableLayer);
+    if (!assets) return;
+    const copy = Uint8Array.from(assets.preview.bytes);
+    const geometry = this.stlLoader.parse(copy.buffer);
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+    const preview = new THREE.Mesh(
+      geometry,
+      this.markShellMaterial(new THREE.MeshBasicMaterial({
+        color: 0x2f939c,
+        side: THREE.DoubleSide,
+      })),
+    );
+    preview.name = "exact-generated-structural-preview";
+    preview.userData.source = assets.preview.source;
+    preview.userData.sha256 = assets.preview.sha256;
+    preview.userData.exactReferencedStl = true;
+    this.printableLayer.add(preview);
     this.applySelectionFocus();
   }
 

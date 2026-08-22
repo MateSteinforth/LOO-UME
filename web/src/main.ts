@@ -70,6 +70,12 @@ import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
 import { createWiringAssemblyManualModel } from "./WiringAssemblyManual.ts";
 import { createManualHandshakeToken } from "./ManualHandshake.ts";
 import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
+import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
+import { getGeneratedStructuralState } from "../../src/sculpture/StructuralDesign.ts";
+import {
+  loadVerifiedGeneratedStructure,
+  type VerifiedGeneratedStructure,
+} from "./GeneratedStructuralAssets.ts";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -439,12 +445,18 @@ app.innerHTML = `
             <button id="download-print-parts" class="pipeline-button" type="button" disabled>
               Download verified STL files
             </button>
+            <button id="generate-structure" class="pipeline-button" type="button">
+              Generate structural truss
+            </button>
+            <button id="download-structure" class="pipeline-button" type="button" disabled>
+              Download structural files
+            </button>
           </div>
           <div id="pipeline-status" class="pipeline-status" role="status">
             Local Vite pipeline is ready.
           </div>
           <p class="mapping-note">
-            Generate puts flat caps on the holes between panel outlines. It does not use the GLB or a JSON shell as geometry. Neighbouring outline corners must meet. A failed run keeps the last successful STL set.
+            Boundary generation puts flat caps on valid holes between panel outlines. Structural generation starts at every eligible panel screw hole and makes analyzed brackets, hubs, and struts. A failed run keeps the last successful set.
           </p>
         </section>
 
@@ -554,6 +566,10 @@ const generatePrintPartsButton =
   query<HTMLButtonElement>("#generate-print-parts");
 const downloadPrintPartsButton =
   query<HTMLButtonElement>("#download-print-parts");
+const generateStructureButton =
+  query<HTMLButtonElement>("#generate-structure");
+const downloadStructureButton =
+  query<HTMLButtonElement>("#download-structure");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 let pipelineAvailable = false;
 let pipelineAvailabilityMessage =
@@ -637,6 +653,7 @@ async function start(): Promise<void> {
       attachmentSurface: "design-surface" | "mechanical-shell";
     } | undefined;
     let verifiedGeneratedMechanics: VerifiedGeneratedMechanics | undefined;
+    let verifiedGeneratedStructure: VerifiedGeneratedStructure | undefined;
     let generatedAssetLoadRevision = 0;
     let activePortableBundle: PortableProjectBundle | undefined;
     let availableProjectAssets = new Map<string, Uint8Array>();
@@ -646,6 +663,8 @@ async function start(): Promise<void> {
       bundle?: PortableProjectBundle,
     ): void => {
       activePortableBundle?.dispose();
+      generatedMemoryUrls.forEach((url) => URL.revokeObjectURL(url));
+      generatedMemoryUrls = new Map();
       activePortableBundle = bundle;
       availableProjectAssets = new Map(
         bundle
@@ -694,6 +713,12 @@ async function start(): Promise<void> {
       generatePrintPartsButton.title = editorDefinition.manualMechanics
         ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
         : "Put flat caps on the holes between panel outlines in the browser. Neighbouring corners must meet. The GLB is placement-only.";
+      generateStructureButton.disabled =
+        editorDefinition.panels.length === 0 || editorDefinition.manualMechanics !== undefined ||
+        !pipelineAvailable;
+      generateStructureButton.title = editorDefinition.manualMechanics
+        ? "Structural generation is separate from physically tested manual mechanics."
+        : "Analyze panel anchors and generate structural brackets, hubs, struts, STL, 3MF, and reports.";
       automaticPanelPlacementControls.hidden =
         editorDefinition.manualMechanics !== undefined;
       automaticallyPlacePanelsButton.disabled =
@@ -884,6 +909,10 @@ async function start(): Promise<void> {
         editorDefinition,
         editorProject.panelProfile,
       );
+      const structuralState = getGeneratedStructuralState(
+        editorDefinition,
+        editorProject.panelProfile,
+      );
       const wiringValidation = isPanelized
         ? validateWiringPreview(wiringPreview, mapping)
         : { valid: true, errors: [] };
@@ -919,6 +948,10 @@ async function start(): Promise<void> {
           : "Mapping and wiring use authoritative poses. Printable mechanics use the manually authored SCAD parts; generic cap generation is disabled."
         : editorDefinition.mechanicalShell && !mechanicalShellIsCurrent()
           ? "Panel poses changed on an authoring surface. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
+        : structuralState === "stale"
+          ? "Mapping and wiring follow the edited poses. The last structural asset set is stale and hidden until structural regeneration succeeds."
+        : verifiedGeneratedStructure
+          ? `Mapping and wiring use authoritative poses. Three.js, report, 3MF, and downloads use one SHA-256-verified structural set (${verifiedGeneratedStructure.parts.length} printable parts).`
         : generatedState === "stale"
           ? "Mapping and wiring follow the edited poses. The last generated STL set is stale and hidden until regeneration succeeds."
         : verifiedGeneratedMechanics
@@ -943,6 +976,7 @@ async function start(): Promise<void> {
       panelLabelsToggle.disabled = !isPanelized;
       const hasPrintableClosures =
         isPanelized && (verifiedGeneratedMechanics !== undefined ||
+          verifiedGeneratedStructure !== undefined ||
           (mechanicalShellIsCurrent() &&
             (mapping.printableClosures?.length ?? 0) > 0));
       printableLayerToggle.disabled = !hasPrintableClosures;
@@ -951,6 +985,8 @@ async function start(): Promise<void> {
       wiringLayerToggle.disabled = !isPanelized;
       downloadPrintPartsButton.disabled =
         verifiedGeneratedMechanics === undefined;
+      downloadStructureButton.disabled =
+        verifiedGeneratedStructure === undefined;
       wiringLayerControls.classList.toggle(
         "layer-controls--disabled",
         !isPanelized,
@@ -976,8 +1012,53 @@ async function start(): Promise<void> {
     ): Promise<void> => {
       const revision = ++generatedAssetLoadRevision;
       verifiedGeneratedMechanics = undefined;
+      verifiedGeneratedStructure = undefined;
       renderer?.setExactGeneratedMechanics(null);
+      renderer?.setExactGeneratedStructure();
       downloadPrintPartsButton.disabled = true;
+      downloadStructureButton.disabled = true;
+      const structuralState = getGeneratedStructuralState(
+        selected.definition,
+        selected.project.panelProfile,
+      );
+      if (structuralState === "stale") {
+        updateMappingStatus();
+        return;
+      }
+      if (structuralState === "current") {
+        try {
+          const assets = await loadVerifiedGeneratedStructure(
+            selected.definition,
+            selected.project.panelProfile,
+            selected.project.source,
+            fetch,
+            document.baseURI,
+            selected.project.source.startsWith("local:") || generatedMemoryUrls.size > 0
+              ? new Map([
+                ...(activePortableBundle?.assetUrls ?? []),
+                ...generatedMemoryUrls,
+              ])
+              : undefined,
+          );
+          if (revision !== generatedAssetLoadRevision || !assets) return;
+          for (const artifact of assets.artifacts) {
+            rememberProjectAsset(artifact.source, artifact.bytes);
+          }
+          renderer?.setExactGeneratedStructure(assets);
+          verifiedGeneratedStructure = assets;
+          updateMappingStatus();
+          return;
+        } catch (error) {
+          if (revision !== generatedAssetLoadRevision) return;
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+          updateMappingStatus();
+          return;
+        }
+      }
       const state = getGeneratedMechanicsState(
         selected.definition,
         selected.project.panelProfile,
@@ -1906,6 +1987,98 @@ async function start(): Promise<void> {
       viewerError.hidden = true;
     });
 
+    downloadStructureButton.addEventListener("click", () => {
+      if (!verifiedGeneratedStructure) return;
+      for (const asset of verifiedGeneratedStructure.artifacts) {
+        const type = asset.format === "stl"
+          ? "model/stl"
+          : asset.format === "3mf"
+            ? "application/vnd.ms-package.3dmanufacturing-3dmodel+xml"
+            : asset.format === "json"
+              ? "application/json"
+              : "text/markdown";
+        const objectUrl = URL.createObjectURL(new Blob(
+          [Uint8Array.from(asset.bytes)],
+          { type },
+        ));
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = asset.source.split("/").at(-1) ?? asset.id;
+        link.click();
+        URL.revokeObjectURL(objectUrl);
+      }
+      pipelineStatus.classList.remove("pipeline-status--error");
+      pipelineStatus.textContent =
+        `Downloaded ${verifiedGeneratedStructure.artifacts.length} SHA-256-verified structural files.`;
+      viewerError.hidden = true;
+    });
+
+    generateStructureButton.addEventListener("click", () => {
+      void (async () => {
+        generateStructureButton.disabled = true;
+        generatePrintPartsButton.disabled = true;
+        addPanelButton.disabled = true;
+        pipelineStatus.classList.remove("pipeline-status--error");
+        pipelineStatus.textContent =
+          "Normalizing panel anchors, solving load cases, optimizing members, and generating Manifold print files…";
+        try {
+          const structuralDefinition = structuredClone(editorDefinition);
+          delete structuralDefinition.generatedMechanics;
+          delete structuralDefinition.mechanicalShell;
+          delete structuralDefinition.closures;
+          const structuralProject = createPanelAssemblyProject(
+            structuralDefinition,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          const designSurfaceBytes = structuralDefinition.designSurface
+            ? availableProjectAssets.get(structuralDefinition.designSurface.source)
+            : undefined;
+          const result = await runStructuralPipeline(structuralProject, {
+            ...(designSurfaceBytes ? { designSurfaceBytes } : {}),
+          });
+          const previousAssets = new Map(availableProjectAssets);
+          const previousUrls = generatedMemoryUrls;
+          const nextUrls = new Map<string, string>();
+          try {
+            for (const file of result.bundle.files) {
+              rememberProjectAsset(file.source, file.bytes);
+              if (result.generatedStructure.artifacts.some(({ source }) => source === file.source)) {
+                nextUrls.set(file.source, URL.createObjectURL(new Blob(
+                  [Uint8Array.from(file.bytes)],
+                )));
+              }
+            }
+            generatedMemoryUrls = nextUrls;
+            const generatedProject = createPanelAssemblyProject(
+              result.definition,
+              "local:in-process-structural",
+              editorProject.panelProfile,
+            );
+            await applyLoadedSculpture(createLoadedSculpture(generatedProject));
+            previousUrls.forEach((url) => URL.revokeObjectURL(url));
+          } catch (error) {
+            nextUrls.forEach((url) => URL.revokeObjectURL(url));
+            generatedMemoryUrls = previousUrls;
+            availableProjectAssets = previousAssets;
+            throw error;
+          }
+          pipelineStatus.textContent =
+            `Generated and SHA-256 verified ${result.solids.length} structural parts, 3MF, preview, analysis, and report. ${result.analysis.disclaimer}`;
+          viewerError.hidden = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+        } finally {
+          renderEditorFaces();
+          updatePipelineAvailability();
+        }
+      })();
+    });
+
     generatePrintPartsButton.addEventListener("click", () => {
       void (async () => {
         generatePrintPartsButton.disabled = true;
@@ -1918,9 +2091,16 @@ async function start(): Promise<void> {
             : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…";
         try {
           try {
+            const planarDefinition = structuredClone(editorDefinition);
+            delete planarDefinition.generatedStructure;
+            const planarProject = createPanelAssemblyProject(
+              planarDefinition,
+              editorProject.source,
+              editorProject.panelProfile,
+            );
             const bundle = await compilePanelBoundaryBundle(
-              editorProject,
-              editorDefinition.panelProfile.source,
+              planarProject,
+              planarDefinition.panelProfile.source,
             );
             generatedMemoryUrls.forEach((url) => URL.revokeObjectURL(url));
             generatedMemoryUrls = new Map();
