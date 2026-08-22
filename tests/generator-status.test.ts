@@ -76,6 +76,21 @@ describe("local generator status discovery", () => {
     expect(result.message).toContain("supportedVersion must be 3.5.1");
   });
 
+  it("bounds an HTML history fallback without exposing parser text", async () => {
+    const result = await loadGeneratorStatus(async () =>
+      new Response("<!doctype html><title>WLED Orbital Lab</title>", {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      })
+    );
+
+    expect(result.available).toBe(false);
+    expect(result.message).toContain(
+      "Local generator status returned an HTML page",
+    );
+    expect(result.message).not.toContain("Unexpected token");
+  });
+
   it("uses a safe unavailable status for a non-OK response", async () => {
     const result = await loadGeneratorStatus(async () =>
       new Response("unavailable", { status: 503 })

@@ -532,3 +532,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/assembly-package.test.ts` and the Playwright generation,
   portable-project, and wiring-route journeys.
 - **Status:** Resolved.
+
+### F-029 — Replacing staged files under a live Vite server cached HTML fallbacks
+
+- **Date:** 2026-08-22
+- **Context:** LAN review of the UI-018 project and assembly-package workflow.
+- **Symptom:** Startup logged `Unexpected token '<'` because a registry-listed
+  sculpture URL returned the application HTML page with HTTP 200.
+- **Cause:** The staging command replaced the public sculpture directory while
+  the existing Vite process stayed active. Playwright startup also runs this
+  staging command. The live server kept history fallbacks for the replaced JSON
+  paths.
+- **Correction:** Stop the preview before staging, then start it again. Read
+  staged JSON responses through a bounded parser that identifies an HTML
+  fallback and gives the operator a restart action.
+- **Prevention:** Stage assets before starting Vite. Stop the live preview
+  before browser tests or any staging command. Restart only after all checks,
+  then verify every registry source returns JSON.
+- **Evidence:** `tests/json-response.test.ts` and
+  `tests/browser/json-response.spec.ts`.
+- **Status:** Resolved.

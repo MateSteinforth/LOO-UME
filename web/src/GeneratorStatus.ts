@@ -1,3 +1,5 @@
+import { readJsonResponse } from "./JsonResponse.ts";
+
 export interface GeneratorStatus {
   schemaVersion: "1.0.0";
   available: boolean;
@@ -97,7 +99,10 @@ export async function loadGeneratorStatus(
       );
     }
     try {
-      return parseGeneratorStatus(await response.json());
+      return parseGeneratorStatus(await readJsonResponse(
+        response,
+        "Local generator status",
+      ));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return unavailable(

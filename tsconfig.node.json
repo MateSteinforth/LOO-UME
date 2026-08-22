@@ -31,6 +31,7 @@
     "web/src/EditorPipelineRequest.ts",
     "web/src/GeneratedMechanicsAssets.ts",
     "web/src/GeneratorStatus.ts",
+    "web/src/JsonResponse.ts",
     "web/src/PortableProject.ts",
     "web/src/SelectionFocus.ts",
     "web/src/SurfacePlacementController.ts"

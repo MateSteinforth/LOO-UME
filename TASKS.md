@@ -373,10 +373,10 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Likely conflicts: `web/src/main.ts`, `web/src/styles.css`, portable/package
   export modules, route-editor code, browser tests, and operator docs.
 - Verification: independent re-review found no remaining findings; full unit
-  suite passed 293/293; package/route focused tests passed 6/6; combined
-  portable-project and route Playwright journeys passed 2/2, and the package
-  build/reopen, mechanics-free, and manual journeys passed 3/3; TypeScript,
-  Vite build, and `git diff --check` passed.
+  suite passed 297/297; JSON boundary tests passed 18/18; the HTML-fallback
+  Playwright regression passed 1/1; all prior UI/package browser journeys remain
+  passed; TypeScript, Vite build, and `git diff --check` passed. Every source in
+  the restarted LAN registry returned `application/json`.
 
 ### `UI-017` Prevent HTML fallback responses from becoming JSON errors
 

@@ -76,6 +76,7 @@ import {
   readEditorPipelineResult,
   shouldUseEditorPipelineFallback,
 } from "./EditorPipelineResponse.ts";
+import { readJsonResponse } from "./JsonResponse.ts";
 import {
   createAssemblyPackageZip,
   createWiringReview,
@@ -116,7 +117,10 @@ async function loadSculptureRegistry(): Promise<SculptureRegistry> {
       "Unable to load sculpture registry: HTTP " + response.status + ".",
     );
   }
-  const registry = (await response.json()) as Partial<SculptureRegistry>;
+  const registry = (await readJsonResponse(
+    response,
+    "Sculpture registry",
+  )) as Partial<SculptureRegistry>;
   if (
     registry.schemaVersion !== "1.0.0" ||
     !Array.isArray(registry.sculptures) ||
@@ -160,7 +164,7 @@ async function loadSculptureContract(
       "Unable to load sculpture JSON " + source + ": HTTP " + response.status + ".",
     );
   }
-  const sculptureInput: unknown = await response.json();
+  const sculptureInput = await readJsonResponse(response, "Sculpture JSON");
   const project = await loadPanelAssemblyProject(
     sculptureInput,
     source,
@@ -176,7 +180,7 @@ async function loadSculptureContract(
             ".",
         );
       }
-      return profileResponse.json() as Promise<unknown>;
+      return readJsonResponse(profileResponse, "Panel profile");
     },
   );
   return createLoadedSculpture(project);
@@ -203,7 +207,7 @@ async function loadStagedPanelProfile(
       `Unable to find panel profile ${reference.id} in the staged catalog.`,
     );
   }
-  return profileResponse.json() as Promise<unknown>;
+  return readJsonResponse(profileResponse, "Panel profile");
 }
 
 const app = document.querySelector<HTMLDivElement>("#app");

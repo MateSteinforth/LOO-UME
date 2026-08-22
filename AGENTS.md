@@ -173,6 +173,12 @@ uses `createPanelAssemblyMapping()`.
 - Browser and CI tests must not use ignored generated preview output as fixture
   input. Confirm static fixtures are tracked, or build derived fixtures from
   tracked authored sources under the test output directory.
+- Do not run `stage:sculptures` while a Vite preview is active. Stop the
+  preview before browser tests too, because their web server stages the same
+  files. Stage once after all checks, restart the preview, and verify every
+  registry source returns JSON. Replacing the public sculpture directory under
+  a live Vite process can leave HTTP 200 HTML history fallbacks cached for valid
+  JSON paths.
 
 - On the macOS GitHub runners, `lipo -verify_arch` returned a false failure for
   the qualified universal OpenSCAD DMG. Do not use that command as the native

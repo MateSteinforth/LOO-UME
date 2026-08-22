@@ -30,6 +30,9 @@ Schema 2 pose-only projects are valid JSON. They load, edit, simulate, map,
 wire, save, and reopen without a placeholder shell. When panels form an
 unambiguous closed exposed-edge graph, local 3D-part generation can detect and
 persist the missing gap connectivity without a pre-authored mechanical shell.
+Registry, sculpture, and panel-profile responses pass through one bounded JSON
+reader. A static-host history fallback is reported as an HTML endpoint error;
+raw parser text is not exposed to the operator.
 
 The implemented locally hosted fabrication route extends that lifecycle without
 adding another pose authority:
