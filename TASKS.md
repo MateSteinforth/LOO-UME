@@ -42,12 +42,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Acceptance: one real model defines the need; Manifold output preserves PCB
   envelopes and connector access; mesh and physical review pass.
 
-### `LEGACY-011` Isolate or retire remaining Schema 1 mapping dependencies
-
-- Acceptance: active browser and Schema 2 paths no longer depend on legacy
-  procedural mapping; migration-fixture policy is explicit.
-- Depends on: `HR-005`.
-
 ### `ARCH-010` Split browser orchestration along covered behavior boundaries
 
 - Acceptance: project, placement, mechanics, mapping, wiring, package, and
@@ -76,7 +70,7 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 - Acceptance: reproducible pinned firmware, exact bus fragment and ledmap,
   non-secret procedure, and one fused-panel smoke test.
-- Depends on: `WIRE-012` and measured `CAL-010` facts where applicable.
+- Depends on: `WIRE-012` and the operator-approved `CAL-010` profile facts.
 
 ### `DIAG-010` Deliver deterministic hardware diagnostic frames
 
@@ -103,10 +97,20 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Depends on: completed route, lifecycle, transform, GPIO, and WLED deployment
   contracts. Electrical approval remains separate.
 
-### `BUILD-010` Fail CI when a pinned WASM rebuild changes tracked bytes — P1
+### `BUILD-010` Separate WLED simulator generation from main — P1
 
-- Acceptance: CI checks both tracked WASM files after the pinned rebuild and
-  fails on any byte change.
+- Outcome: normal `main` use and verification keep the checked-in simulator but
+  do not require Python, Emscripten, or the WLED source checkout.
+- Acceptance: a dedicated generation branch preserves pinned source, compiler,
+  rebuild instructions, checksums, and receipts; `main` verifies tracked WASM
+  integrity without rebuilding it; clean setup and CI require no WLED submodule
+  or Emscripten SDK.
+
+### `LEGACY-011` Retire remaining Schema 1 mapping dependencies — P1
+
+- Acceptance: preserve the authoritative 41-panel Schema 2 project; active
+  browser, CLI, tests, and docs no longer depend on the Schema 1 migration
+  fixture or procedural mapping path.
 
 ### `VALID-010` Make LED dimensions profile-driven end to end — P1
 
@@ -117,18 +121,18 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Acceptance: browser and CLI share one loader for nested mapping, calibration,
   boundary, generated asset, and note validation.
 
+### `INSTALL-011` Complete one-command clean-checkout bootstrap — P2
+
+- Scope: repository-local Node/npm, npm dependencies, Manifold generator proof,
+  and desktop start without administrator or global PATH changes.
+- Depends on: `BUILD-010` removing the WLED source/compiler requirement from
+  normal `main` setup.
+
 ## In Progress
 
 No tasks.
 
 ## Blocked
-
-### `INSTALL-011` Complete one-command clean-checkout bootstrap
-
-- Blocked by: `HR-013`, then base-toolchain acquisition and final orchestration.
-- Scope: repository-local Node/npm, Python, WLED, npm dependencies, Emscripten,
-  generator proof, and desktop start without administrator or global PATH
-  changes.
 
 ### `INSTALL-012` Prove automatic setup on clean Linux and macOS systems
 
@@ -136,13 +140,13 @@ No tasks.
 
 ### `PWR-010` Approve power and protection
 
-- Blocked by: `CAL-010`, available hardware, and physical review.
+- Blocked by: available hardware, electrical calculation, and physical review.
 - Acceptance: supply, domains, injection, wire, connector, fuse, voltage-drop,
   derating, inrush, backfeed, and current-limit plan passes before full power.
 
 ### `HW-012` Record the installed 41-panel route
 
-- Blocked by: `CAL-010`, `PWR-010`, `FIRM-011`, and physical assembly.
+- Blocked by: `PWR-010`, `FIRM-011`, and physical assembly.
 
 ### `FIRM-010` Add later transport or audio behavior
 
@@ -151,34 +155,36 @@ No tasks.
 
 ## Human Review
 
-### `UI-011` Approve opaque glossy black PCB rendering
-
-- Required review: inspect the live interface and approve black level and gloss.
-
-### `CAL-010` Measure one panel before mass wiring
-
-- Required evidence: DIN/DOUT orientation, pixel zero, all 64 addresses, snake
-  direction, RGB order, current, pad/keep-out dimensions, batch identity, and
-  tied photos or video.
-
-### `HR-013` Choose the managed Python distribution
-
-- Needed to unblock the clean-checkout bootstrap.
-
-### `HR-005` Decide whether legacy migration fixtures remain
-
 ### `HR-006` Physically review representative Manifold parts
-
-### `HR-008` Choose stale-part inspection behavior
-
-### `HR-009` Choose another boundary asset format only from a concrete need
 
 ## Ready to Merge
 
-No tasks.
+### `CTRL-008` Record operator review decisions
+
+- Outcome: close resolved human-review gates and align the Ready queue with the
+  approved WLED-generation, Schema 2, stale-mechanics, boundary-format, panel
+  profile, and visual decisions.
+- Acceptance: `TASKS.md` and durable decisions agree; no implementation or
+  evidence status is overstated.
+- Owner: branch `codex/ctrl-008-review-decisions`; worktree
+  `/tmp/led-rhombo-ctrl-008`.
 
 ## Done
 
+- `UI-011`: operator approved the opaque glossy black PCB appearance.
+- `CAL-010`: operator approved the existing panel profile for the current
+  41-panel build. Existing measured values stay measured; provisional or
+  unknown electrical, pad, and address facts are not relabelled as measurements
+  and remain subject to `PWR-010` and `PROOF-010`.
+- `HR-013`: normal `main` will use the checked-in WLED simulator and will not
+  require Python or Emscripten; reproducible generation moves to a dedicated
+  branch under `BUILD-010`.
+- `HR-005`: the 41-panel authority is already Schema 2; remaining Schema 1
+  migration dependencies can be retired under `LEGACY-011`.
+- `HR-008`: stale generated parts stay hidden until regeneration; no stale-part
+  inspection toggle is required.
+- `HR-009`: keep JSON poses/topology and STL output; do not add another boundary
+  asset format without a concrete future need.
 - `UI-019`: removed the performance overlay and individual-file export menu,
   moved secondary display and GLB controls into Advanced Tools, and unified
   operator messages in one activity log in `main` at `6615c54`.
