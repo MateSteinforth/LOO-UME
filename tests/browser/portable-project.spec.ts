@@ -328,18 +328,12 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   );
 
   await page.goto("/");
-  await expect(page.locator("#engine-status")).toContainText(
-    "WLED effects ready",
-  );
-  await expect(page.locator("#surface-status")).toContainText(
+  await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );
   await chooseDirectory(page, fixture.directory);
-  await expect(page.locator("#surface-status")).toContainText(
-    "4 triangles, 100 × 100 × 100 mm, watertight",
-  );
-  await expect(page.locator("#mapping-note")).toContainText(
-    "same SHA-256-verified STL bytes (2 parts)",
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Loaded complete project",
   );
   await expect(page.locator("#assembly-package")).toHaveText(
     "Download assembly package",
@@ -470,9 +464,6 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded complete project current-project.zip with 4 verified assets",
   );
-  await expect(page.locator("#mapping-note")).toContainText(
-    "same SHA-256-verified STL bytes (2 parts)",
-  );
   const reopenedAudit = await browserAudit(page);
   const reopenedAssets = assetEntries(reopenedAudit).filter(
     ({ url }) => !folderAssetEntries.some((entry) => entry.url === url),
@@ -494,13 +485,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   await expect(page.locator("#pipeline-status")).toContainText(
     "Placed P-01 across the active GLB",
   );
-  await expect(page.locator("#panel-count-display")).toHaveText("5");
-  await expect(page.locator("#mapping-status")).toContainText(
-    "5 panels / 320 LEDs / 1 routes valid",
-  );
-  await expect(page.locator("#mapping-note")).toContainText(
-    "last generated STL set is stale and hidden",
-  );
+  await expect(page.locator(".route-panel")).toHaveCount(5);
   await expect(page.locator("#assembly-package")).toHaveText(
     "Build assembly package",
   );
@@ -541,12 +526,6 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded complete project stale-project.zip with 4 verified assets",
   );
-  await expect(page.locator("#surface-status")).toContainText(
-    "4 triangles, 100 × 100 × 100 mm, watertight",
-  );
-  await expect(page.locator("#mapping-note")).toContainText(
-    "last generated STL set is stale and hidden",
-  );
   const staleAudit = await browserAudit(page);
   const staleAssets = assetEntries(staleAudit).filter(
     ({ url }) =>
@@ -567,7 +546,6 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
     expect(staleAudit.revoked).not.toContain(url);
   }
   await expect(page.locator(".pipeline-status--error")).toHaveCount(0);
-  await expect(page.locator("#viewer-error")).toBeHidden();
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
 });

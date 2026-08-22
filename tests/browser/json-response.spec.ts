@@ -8,11 +8,10 @@ test("reports an HTML sculpture fallback without exposing a JSON parser error", 
 
   await page.goto("/?sculptureJson=./missing-project.json");
 
-  await expect(page.locator("#engine-status")).toHaveText("Engine failed to load");
-  await expect(page.locator("#viewer-error")).toContainText(
+  await expect(page.locator("#pipeline-status")).toContainText(
     "Sculpture JSON returned an HTML page",
   );
-  await expect(page.locator("#viewer-error")).not.toContainText(
+  await expect(page.locator("#pipeline-status")).not.toContainText(
     "Unexpected token",
   );
   expect(pageErrors).toEqual([]);

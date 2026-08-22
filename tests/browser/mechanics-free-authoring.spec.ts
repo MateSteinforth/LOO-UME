@@ -94,8 +94,9 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/");
-  await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
-  await expect(page.locator("#viewer-error")).toBeHidden();
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "design/placement-surface.glb",
+  );
 
   const projectBytes = await readFile("sculptures/pose-only-two-panel/sculpture.json");
   await page.locator(".action-menu").first().locator("summary").click();
@@ -107,26 +108,23 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator("#pipeline-status")).toHaveText(
     "Loaded pose-only-two-panel.json.",
   );
-  await expect(page.locator("#panel-count-display")).toHaveText("2");
+  await expect(page.locator(".route-panel")).toHaveCount(2);
   await expect(page.locator("#add-panel-controls")).toBeHidden();
-  await expect(page.locator("#mapping-status")).toContainText(
-    "2 panels / 128 LEDs / 1 routes valid",
-  );
-  await expect(page.locator("#mapping-note")).toContainText(
-    "No printable mechanics exist yet",
-  );
 
+  await page.locator("#advanced-tools > summary").click();
+  await expect(page.locator("#advanced-tools #display-mode")).toBeVisible();
+  await expect(page.locator("#advanced-tools #auto-rotate")).toBeVisible();
+  await expect(page.locator("#advanced-tools #panel-labels")).toBeVisible();
+  await expect(page.locator("#advanced-tools #printable-layer")).toBeVisible();
+  await expect(page.locator("#advanced-tools #surface-scale")).toBeVisible();
   await page.locator("#surface-scale").fill("1");
   await chooseFile(page, "#load-design-surface", {
     name: "tetrahedron.glb",
     mimeType: "model/gltf-binary",
     buffer: tetrahedronGlb(),
   });
-  await expect(page.locator("#surface-status")).toContainText(
-    "4 triangles, 100 × 100 × 100 mm, watertight",
-  );
   await expect(page.locator("#pipeline-status")).toContainText(
-    "Attached tetrahedron.glb",
+    "4 triangles, 100 × 100 × 100 mm, watertight",
   );
   await expect(page.locator("#automatically-place-panels")).toBeEnabled();
 
@@ -135,10 +133,7 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator("#pipeline-status")).toContainText(
     "Placed P-03, P-04 across the active GLB",
   );
-  await expect(page.locator("#panel-count-display")).toHaveText("4");
-  await expect(page.locator("#mapping-status")).toContainText(
-    "4 panels / 256 LEDs / 1 routes valid",
-  );
+  await expect(page.locator(".route-panel")).toHaveCount(4);
 
   const selectedLabel = page.locator(".panel-label:visible").first();
   await expect(selectedLabel).toBeVisible();
@@ -146,22 +141,20 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   if (!deletedPanelId) throw new Error("No visible panel label is selectable.");
   await selectedLabel.click();
   await expect(selectedLabel).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#selected-panel-status")).toContainText(
+  await expect(page.locator("#pipeline-status")).toContainText(
     `Selected ${deletedPanelId}.`,
   );
   await page.getByRole("button", {
     name: `Delete selected panel ${deletedPanelId}`,
   }).click();
   await expect(page.locator(`[data-panel-id="${deletedPanelId}"]`)).toHaveCount(0);
-  await expect(page.locator("#panel-count-display")).toHaveText("3");
-  await expect(page.locator("#mapping-status")).toContainText(
-    "3 panels / 192 LEDs / 1 routes valid",
-  );
+  await expect(page.locator(".route-panel")).toHaveCount(3);
   await expect(page.locator("#pipeline-status")).toContainText(
     `Deleted ${deletedPanelId}. Mapping and wiring refreshed; no printable mechanics exist yet.`,
   );
 
-  await expect(page.locator("#generate-mapping")).toBeEnabled();
+  await expect(page.locator("#generate-mapping, #open-wiring-manual, .export-menu"))
+    .toHaveCount(0);
   await expect(page.locator("#connector-layer")).toBeEnabled();
   await expect(page.locator("#wiring-layer")).toBeEnabled();
   await expect(page.locator(".output-layer-toggle").first()).toBeEnabled();
@@ -171,20 +164,15 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator(
     "#primary-color, #secondary-color, #shell-transparency",
   )).toHaveCount(0);
-  await expect(page.locator("#led-count")).toBeHidden();
-  await expect(page.locator("#apply-count")).toBeHidden();
-  await expect(page.locator(".viewer-overlay--top, .architecture-card, footer")).toHaveCount(0);
-  await expect(page.locator("#engine-status")).toBeHidden();
-  await expect(page.locator("#mapping-note")).toBeHidden();
-  const firstFrameTime = Number.parseInt(
-    await page.locator("#frame-time").innerText(),
-    10,
-  );
-  await expect
-    .poll(async () => Number.parseInt(await page.locator("#frame-time").innerText(), 10))
-    .toBeGreaterThan(firstFrameTime);
+  await expect(page.locator("#advanced-tools #led-count")).toBeVisible();
+  await expect(page.locator("#advanced-tools #apply-count")).toBeVisible();
+  await expect(page.locator(
+    ".viewer-overlay, #fps, #led-count-display, #panel-count-display, #frame-time, " +
+      "#engine-status, #viewer-error, #mapping-status, #mapping-note, " +
+      "#surface-status, #selected-panel-status, #route-editor-status",
+  )).toHaveCount(0);
+  await expect(page.locator("#pipeline-status")).toHaveCount(1);
 
-  await page.locator("#advanced-tools > summary").click();
   const savedDownloadPromise = page.waitForEvent("download");
   await page.locator("#save-sculpture-file").click();
   const savedDownload = await savedDownloadPromise;
@@ -221,7 +209,6 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator("#add-panel")).toBeVisible();
 
   await expect(page.locator(".pipeline-status--error")).toHaveCount(0);
-  await expect(page.locator("#viewer-error")).toBeHidden();
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
 });

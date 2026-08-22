@@ -224,31 +224,11 @@ app.innerHTML = `
           <h1>WLED Orbital Lab</h1>
         </div>
       </div>
-      <span id="engine-status" hidden>Loading WebAssembly…</span>
     </header>
 
     <main class="workspace">
       <section class="viewer-panel" aria-label="3D LED sphere">
         <div id="viewer" class="viewer"></div>
-        <div class="viewer-overlay viewer-overlay--bottom">
-          <div class="metric">
-            <span class="metric-label">FPS</span>
-            <strong id="fps">—</strong>
-          </div>
-          <div class="metric">
-            <span class="metric-label">LEDs</span>
-            <strong id="led-count-display">—</strong>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Panels</span>
-            <strong id="panel-count-display">—</strong>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Frame</span>
-            <strong id="frame-time">0 ms</strong>
-          </div>
-        </div>
-        <div id="viewer-error" class="viewer-error" hidden></div>
       </section>
 
       <aside class="control-panel">
@@ -285,26 +265,6 @@ app.innerHTML = `
               <option value="">Loading sculpture registry…</option>
             </select>
           </label>
-          <label class="field">
-            <span>Display</span>
-            <select id="display-mode">
-              <option value="wled">WLED framebuffer</option>
-              <option value="physical-index">Physical index bands</option>
-              <option value="logical-index">Logical index bands</option>
-            </select>
-          </label>
-          <label class="toggle-field">
-            <input id="auto-rotate" type="checkbox" checked />
-            <span>Slow auto-rotation</span>
-          </label>
-          <label class="toggle-field">
-            <input id="panel-labels" type="checkbox" checked />
-            <span>Panel IDs</span>
-          </label>
-          <label class="toggle-field">
-            <input id="printable-layer" type="checkbox" checked />
-            <span>Exact Manifold closures + screw tabs</span>
-          </label>
           <div id="wiring-layer-controls" class="layer-controls">
             <div class="layer-controls__heading">Wiring layers</div>
             <label class="toggle-field">
@@ -316,19 +276,7 @@ app.innerHTML = `
               <span>Panel-to-panel wiring</span>
             </label>
             <div id="output-layer-list" class="output-layer-list" aria-label="Controller output visibility"></div>
-            <div class="connector-key">
-              <span><i class="connector-dot connector-dot--din"></i>DIN</span>
-              <span><i class="connector-dot connector-dot--dout"></i>DOUT</span>
-              <small>Gold = closure tab to PCB mounting hole</small>
-              <small>Back view: DIN bottom-left · DOUT top-right; pad centres TBD</small>
-              <small>Data only · controller assumed near the sculpture top</small>
-            </div>
           </div>
-          <div id="mapping-status" class="validation-row">
-            <span class="validation-icon">✓</span>
-            <span>Mapping LUT is valid</span>
-          </div>
-          <p id="mapping-note" hidden>Transforms, pixel order, and wiring are unmeasured.</p>
         </section>
 
         <section class="control-section editor-section">
@@ -351,6 +299,30 @@ app.innerHTML = `
           <details id="advanced-tools" class="compact-menu">
             <summary>Advanced tools</summary>
             <div class="compact-menu__content">
+              <label class="field">
+                <span>Display</span>
+                <select id="display-mode">
+                  <option value="wled">WLED framebuffer</option>
+                  <option value="physical-index">Physical index bands</option>
+                  <option value="logical-index">Logical index bands</option>
+                </select>
+              </label>
+              <label class="toggle-field">
+                <input id="auto-rotate" type="checkbox" checked />
+                <span>Slow auto-rotation</span>
+              </label>
+              <label class="toggle-field">
+                <input id="panel-labels" type="checkbox" checked />
+                <span>Panel IDs</span>
+              </label>
+              <label class="toggle-field">
+                <input id="printable-layer" type="checkbox" checked />
+                <span>Exact Manifold closures + screw tabs</span>
+              </label>
+              <label class="field">
+                <span>GLB units to millimetres</span>
+                <input id="surface-scale" type="number" min="0.000001" step="any" value="1000" />
+              </label>
               <label class="field">
                 <span>Custom sculpture JSON URL</span>
                 <div class="input-action">
@@ -377,23 +349,14 @@ app.innerHTML = `
             <p id="route-editor-note" class="mapping-note"></p>
             <div id="route-editor" class="route-editor" aria-label="Panel wiring route editor"></div>
             <button id="route-action" class="editor-button" type="button">Edit suggested route</button>
-            <p id="route-editor-status" class="route-editor-status" aria-live="polite"></p>
           </section>
           <div class="section-heading editor-subheading">
             <span>Design surface</span>
             <small>watertight GLB</small>
           </div>
-          <label class="field">
-            <span>GLB units to millimetres</span>
-            <input id="surface-scale" type="number" min="0.000001" step="any" value="1000" />
-          </label>
           <button id="load-design-surface" class="editor-button" type="button">
             Load watertight GLB
           </button>
-          <p id="surface-status" class="mapping-note">
-            Load a GLB, or use the sculpture JSON shell as the editing surface.
-          </p>
-          <p id="selected-panel-status" class="mapping-note"></p>
           <div id="automatic-panel-placement-controls">
             <label class="field">
               <span>Target panel count</span>
@@ -416,15 +379,8 @@ app.innerHTML = `
             <button id="assembly-package" class="pipeline-button" type="button">
               Build assembly package
             </button>
-            <details class="compact-menu export-menu">
-              <summary>Export individual files</summary>
-              <div class="compact-menu__content">
-                <button id="open-wiring-manual" class="editor-button" type="button">Assembly manual HTML</button>
-                <button id="generate-mapping" class="editor-button" type="button">Ledmap + wiring review</button>
-              </div>
-            </details>
           </div>
-          <div id="pipeline-status" class="pipeline-status" role="status">
+          <div id="pipeline-status" class="pipeline-status" role="log" aria-live="polite" aria-label="Activity log">
             Local Vite pipeline is ready.
           </div>
         </section>
@@ -440,12 +396,6 @@ const query = <T extends Element>(selector: string): T => {
 };
 
 const viewerElement = query<HTMLDivElement>("#viewer");
-const engineStatus = query<HTMLSpanElement>("#engine-status");
-const viewerError = query<HTMLDivElement>("#viewer-error");
-const fpsDisplay = query<HTMLElement>("#fps");
-const ledCountDisplay = query<HTMLElement>("#led-count-display");
-const panelCountDisplay = query<HTMLElement>("#panel-count-display");
-const frameTimeDisplay = query<HTMLElement>("#frame-time");
 const effectSelect = query<HTMLSelectElement>("#effect");
 const paletteSelect = query<HTMLSelectElement>("#palette");
 const speedInput = query<HTMLInputElement>("#speed");
@@ -460,8 +410,6 @@ const ledCountInput = query<HTMLInputElement>("#led-count");
 const applyCountButton = query<HTMLButtonElement>("#apply-count");
 const displayMode = query<HTMLSelectElement>("#display-mode");
 const autoRotate = query<HTMLInputElement>("#auto-rotate");
-const mappingStatus = query<HTMLElement>("#mapping-status");
-const mappingNote = query<HTMLElement>("#mapping-note");
 const panelLabelsToggle = query<HTMLInputElement>("#panel-labels");
 const printableLayerToggle = query<HTMLInputElement>("#printable-layer");
 const connectorLayerToggle =
@@ -483,14 +431,11 @@ const routeEditorSection = query<HTMLElement>("#route-editor-section");
 const routeEditorNote = query<HTMLElement>("#route-editor-note");
 const routeEditor = query<HTMLElement>("#route-editor");
 const routeActionButton = query<HTMLButtonElement>("#route-action");
-const routeEditorStatus = query<HTMLElement>("#route-editor-status");
 const designSurfaceFileInput =
   query<HTMLInputElement>("#design-surface-file");
 const loadDesignSurfaceButton =
   query<HTMLButtonElement>("#load-design-surface");
 const surfaceScaleInput = query<HTMLInputElement>("#surface-scale");
-const surfaceStatus = query<HTMLElement>("#surface-status");
-const selectedPanelStatus = query<HTMLElement>("#selected-panel-status");
 const automaticPanelPlacementControls =
   query<HTMLElement>("#automatic-panel-placement-controls");
 const automaticPanelCountInput =
@@ -500,12 +445,12 @@ const automaticallyPlacePanelsButton =
 const addPanelFaceSelect = query<HTMLSelectElement>("#add-panel-face");
 const addPanelButton = query<HTMLButtonElement>("#add-panel");
 const addPanelControls = query<HTMLElement>("#add-panel-controls");
-const generateMappingButton =
-  query<HTMLButtonElement>("#generate-mapping");
-const openWiringManualButton =
-  query<HTMLButtonElement>("#open-wiring-manual");
 const assemblyPackageButton = query<HTMLButtonElement>("#assembly-package");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
+const setLogMessage = (message: string, error = false): void => {
+  pipelineStatus.classList.toggle("pipeline-status--error", error);
+  pipelineStatus.textContent = message;
+};
 let pipelineAvailable = false;
 let pipelineAvailabilityMessage =
   "Checking local Manifold availability. Mapping and wiring remain available.";
@@ -574,12 +519,8 @@ async function start(): Promise<void> {
     engine.setPrimaryColor(DEFAULT_PRIMARY_COLOR);
     engine.setSecondaryColor(DEFAULT_SECONDARY_COLOR);
 
-    engineStatus.textContent = `${engine.effects.length} WLED effects ready`;
-
     let simulationTime = 0;
     let previousTime = performance.now();
-    let fpsWindowStart = previousTime;
-    let fpsFrames = 0;
     let currentDisplayMode: DisplayMode = "wled";
     let activePlacementSurface: {
       surface: LoadedDesignSurface;
@@ -630,14 +571,6 @@ async function start(): Promise<void> {
         editorDefinition, activePlacementSurface !== undefined, pipelineAvailable,
       );
       renderer?.setEditorCapabilities(capabilities);
-      generateMappingButton.disabled =
-        mapping.topology !== "panelized-sculpture" ||
-        !capabilities.canExportMappingAndWiring;
-      openWiringManualButton.disabled =
-        mapping.topology !== "panelized-sculpture";
-      openWiringManualButton.title = !hardwareContract.readiness.mappingReady
-        ? "Download the current draft wiring suggestion as a labelled printable manual."
-        : "Download the current project as a self-contained A4 landscape wiring manual.";
       const packageIsCurrent = verifiedGeneratedMechanics !== undefined;
       assemblyPackageButton.textContent = packageIsCurrent
         ? "Download assembly package"
@@ -691,7 +624,7 @@ async function start(): Promise<void> {
         routeEditorNote.textContent = "A panelized sculpture is required for route editing.";
         routeActionButton.hidden = true;
         routeActionButton.disabled = true;
-        routeEditorStatus.textContent = "No panel route is available.";
+        setLogMessage("No panel route is available.");
         return;
       }
       const model = routeEditorModel;
@@ -717,12 +650,11 @@ async function start(): Promise<void> {
         ? "Edit suggested route"
         : "Save route";
       routeActionButton.disabled = !isDraftSuggestion && !validation.valid;
-      routeEditorStatus.classList.toggle("route-editor-status--error", !validation.valid);
-      routeEditorStatus.textContent = validation.valid
+      setLogMessage(validation.valid
         ? isDraftSuggestion
           ? "Review the suggestion, then choose Edit suggested route."
           : `Route is complete. Save route revision ${(editorDefinition.wiring.routeRevision ?? 0) + 1}.`
-        : validation.errors[0]!;
+        : validation.errors[0]!, !validation.valid);
 
       const nodeById = new Map(wiringPreview.nodes.map((node) => [node.panelId, node]));
       const outputFields = model.outputs.map((output) => {
@@ -883,10 +815,6 @@ async function start(): Promise<void> {
     const updateMappingStatus = (): void => {
       const validation = validateMapping(mapping, engine.ledCount);
       const isPanelized = mapping.topology === "panelized-sculpture";
-      const generatedState = getGeneratedMechanicsState(
-        editorDefinition,
-        editorProject.panelProfile,
-      );
       const wiringValidation = isPanelized
         ? validateWiringPreview(wiringPreview, mapping)
         : { valid: true, errors: [] };
@@ -897,42 +825,13 @@ async function start(): Promise<void> {
         validation.valid &&
         wiringValidation.valid &&
         ledmapErrors.length === 0;
-      mappingStatus.classList.toggle("validation-row--error", !allValid);
-      const validSummary = isPanelized
-        ? mapping.panels.length +
-          " panels / " +
-          mapping.entries.length.toLocaleString() + " LEDs / " +
-          wiringPreview.outputs.length + " routes valid"
-        : "Fallback mapping is valid";
-      mappingStatus.innerHTML = allValid
-        ? `<span class="validation-icon">✓</span><span>${validSummary}</span>`
-        : `<span class="validation-icon">!</span><span>${validation.errors[0] ?? wiringValidation.errors[0] ?? ledmapErrors[0] ?? "Invalid mapping"}</span>`;
-      panelCountDisplay.textContent = isPanelized
-        ? String(mapping.panels.length)
-        : "—";
-      const mechanicalNote = editorDefinition.mechanicalShell && !mechanicalShellIsCurrent()
-          ? "Panel poses changed on an authoring surface. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
-        : generatedState === "stale"
-          ? "Mapping and wiring follow the edited poses. The last generated STL set is stale and hidden until regeneration succeeds."
-        : verifiedGeneratedMechanics
-          ? `Mapping and wiring use authoritative poses. Three.js and downloads use the same SHA-256-verified STL bytes (${verifiedGeneratedMechanics.parts.length} parts).`
-        : editorDefinition.boundaryTopology
-          ? "Mapping and wiring use authoritative poses. Build assembly package validates the accepted gap cycles before creating printable material."
-        : !editorDefinition.mechanicalShell
-          ? "Mapping and wiring use authoritative poses. No printable mechanics exist yet; the complete pose-first interface remains available."
-        : "Custom LED counts use the panel-free Fibonacci fallback.";
-      const routeLifecycleNote = !isPanelized
-        ? ""
-        : hardwareContract.readiness.mappingReady
-          ? `Simulator and ledmap share mapping-ready ${wiringPreview.status.replace("-", " ")} route ${hardwareContract.fingerprint}. Electrical approval remains separate.`
-        : hardwareContract.readiness.ready
-          ? wiringPreview.status === "hardware-verified"
-            ? `Simulator and ledmap share hardware-verified route ${hardwareContract.fingerprint}.`
-            : `Simulator and ledmap share measured route ${hardwareContract.fingerprint}; PROOF-010 hardware verification remains separate.`
-          : `Simulator and ledmap share a ${wiringPreview.status.replace("-", " ")} route ${hardwareContract.fingerprint}. Hardware export is blocked until ${hardwareContract.readiness.blockers.length} readiness requirements are resolved.`;
-      mappingNote.textContent = routeLifecycleNote
-        ? mechanicalNote + " " + routeLifecycleNote
-        : mechanicalNote;
+      if (!allValid) {
+        setLogMessage(
+          validation.errors[0] ?? wiringValidation.errors[0] ??
+            ledmapErrors[0] ?? "Invalid mapping",
+          true,
+        );
+      }
       panelLabelsToggle.disabled = !isPanelized;
       const hasPrintableClosures =
         isPanelized && (verifiedGeneratedMechanics !== undefined ||
@@ -1011,8 +910,6 @@ async function start(): Promise<void> {
         const message = error instanceof Error ? error.message : String(error);
         pipelineStatus.classList.add("pipeline-status--error");
         pipelineStatus.textContent = message;
-        viewerError.hidden = false;
-        viewerError.textContent = message;
         updateMappingStatus();
       }
     };
@@ -1066,7 +963,6 @@ async function start(): Promise<void> {
       );
       engine.resize(mapping.entries.length);
       ledCountInput.value = String(mapping.entries.length);
-      ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
       renderer?.setPanelProfileThickness(
         selected.project.panelProfile.dimensions.thickness,
       );
@@ -1083,9 +979,7 @@ async function start(): Promise<void> {
       activePlacementSurface = undefined;
       automaticallyPlacePanelsButton.disabled = true;
       renderer?.setDesignSurface(null);
-      surfaceStatus.textContent = message;
-      selectedPanelStatus.textContent =
-        "No authoring surface loaded. Existing panels can still be selected, moved in their local plane, rotated, or deleted.";
+      setLogMessage(message);
       updatePipelineAvailability();
     };
 
@@ -1103,14 +997,14 @@ async function start(): Promise<void> {
       const size = surface.validation.bounds.size
         .map((value) => Math.round(value))
         .join(" × ");
-      surfaceStatus.textContent =
+      setLogMessage(
         source +
         ": " +
         surface.validation.triangleCount.toLocaleString() +
         " triangles, " +
         size +
-        " mm, watertight.";
-      selectedPanelStatus.textContent = "";
+        " mm, watertight.",
+      );
     };
 
     const showMechanicalShellSurface = (message?: string): void => {
@@ -1119,7 +1013,7 @@ async function start(): Promise<void> {
       }
       const surface = loadMechanicalShellDesignSurface(editorDefinition);
       showDesignSurface(surface, "sculpture JSON face graph", "mechanical-shell");
-      if (message) surfaceStatus.textContent = message;
+      if (message) setLogMessage(message);
     };
 
     const loadReferencedDesignSurface = async (): Promise<void> => {
@@ -1214,10 +1108,9 @@ async function start(): Promise<void> {
             capabilities.canRotateSelectedPanel ? "rotate around local Z" : "",
             capabilities.canDeleteSelectedPanel ? "delete" : "",
           ].filter(Boolean);
-          selectedPanelStatus.textContent =
-            "Selected " + panelId + ". Available: " + actions.join(", ") + ".";
-        } else {
-          selectedPanelStatus.textContent = "";
+          setLogMessage(
+            "Selected " + panelId + ". Available: " + actions.join(", ") + ".",
+          );
         }
       },
       onPlacementCommit: (placement) => {
@@ -1237,16 +1130,10 @@ async function start(): Promise<void> {
           pipelineStatus.textContent = edited.mechanicalShell
               ? "Moved " + placement.panelId + ". Pose is saved; 3D generation will validate it against the JSON boundary and regenerate printable mechanics."
               : "Moved " + placement.panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.";
-          selectedPanelStatus.textContent =
-            placement.panelId + " is attached to triangle " +
-            placement.attachment.triangleIndex + ".";
-          viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
-          viewerError.hidden = false;
-          viewerError.textContent = message;
         }
       },
       onLocalTranslationCommit: (panelId, deltaX, deltaY) => {
@@ -1263,13 +1150,10 @@ async function start(): Promise<void> {
           pipelineStatus.textContent = edited.mechanicalShell
               ? "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; generated mechanics require regeneration."
               : "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; no printable mechanics exist yet.";
-          viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
-          viewerError.hidden = false;
-          viewerError.textContent = message;
         }
       },
       onRotationCommit: (panelId, degrees) => {
@@ -1291,13 +1175,10 @@ async function start(): Promise<void> {
           pipelineStatus.textContent = edited.mechanicalShell
               ? "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + " as viewed from outside. 3D generation will revalidate its full PCB envelope."
               : "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + " as viewed from outside. Mapping and wiring refreshed; no printable mechanics exist yet.";
-          viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
-          viewerError.hidden = false;
-          viewerError.textContent = message;
         }
       },
       onAddPanelCommit: (placement) => {
@@ -1315,15 +1196,10 @@ async function start(): Promise<void> {
           pipelineStatus.textContent = editorDefinition.mechanicalShell
             ? `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. 3D generation will regenerate from the JSON mechanical boundary.`
             : `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. Mapping and wiring refreshed; no printable mechanics exist yet.`;
-          selectedPanelStatus.textContent =
-            `${panelId} was added and can now be dragged across the surface.`;
-          viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
-          viewerError.hidden = false;
-          viewerError.textContent = message;
         }
       },
       onDeletePanelRequest: (panelId) => {
@@ -1339,13 +1215,10 @@ async function start(): Promise<void> {
           pipelineStatus.textContent = edited.mechanicalShell
               ? "Deleted " + panelId + ". 3D generation will regenerate the closed JSON mechanical boundary."
               : "Deleted " + panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.";
-          viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
-          viewerError.hidden = false;
-          viewerError.textContent = message;
         }
       },
     });
@@ -1394,8 +1267,6 @@ async function start(): Promise<void> {
           if (!routeEditorModel.copiedDraftSuggestion) {
             routeEditorModel = copyDraftSuggestionToRouteEditor(routeEditorModel);
             renderRouteEditor();
-            routeEditorStatus.textContent =
-              "Route editing is active. Drag rows into order, then choose Save route.";
             return;
           }
           const edited = confirmWiringRouteEditorModel(
@@ -1411,13 +1282,10 @@ async function start(): Promise<void> {
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
             `Saved wiring route revision ${edited.wiring.routeRevision}. Save the project ZIP to keep it.`;
-          viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
-          viewerError.hidden = false;
-          viewerError.textContent = message;
         }
       })();
     });
@@ -1443,11 +1311,11 @@ async function start(): Promise<void> {
         const url = new URL(window.location.href);
         url.searchParams.set("sculptureJson", source);
         window.history.replaceState(null, "", url);
-        viewerError.hidden = true;
       } catch (error) {
-        viewerError.hidden = false;
-        viewerError.textContent =
-          error instanceof Error ? error.message : String(error);
+        setLogMessage(
+          error instanceof Error ? error.message : String(error),
+          true,
+        );
       } finally {
         loadSculptureButton.disabled = false;
       }
@@ -1493,7 +1361,6 @@ async function start(): Promise<void> {
       renderOutputLayerControls();
       renderRouteEditor();
       resetTimeline();
-      ledCountDisplay.textContent = requested.toLocaleString();
       updateMappingStatus();
     });
     const applyPortableBundle = async (
@@ -1509,15 +1376,12 @@ async function start(): Promise<void> {
       pipelineStatus.classList.remove("pipeline-status--error");
       pipelineStatus.textContent =
         `Loaded complete project ${label} with ${bundle.assets.size} verified assets.`;
-      viewerError.hidden = true;
     };
 
     const reportPortableError = (error: unknown): void => {
       const message = error instanceof Error ? error.message : String(error);
       pipelineStatus.classList.add("pipeline-status--error");
       pipelineStatus.textContent = message;
-      viewerError.hidden = false;
-      viewerError.textContent = message;
     };
 
     openProjectFileButton.addEventListener("click", () => {
@@ -1545,7 +1409,6 @@ async function start(): Promise<void> {
             sculptureJsonInput.value = file.name;
             pipelineStatus.classList.remove("pipeline-status--error");
             pipelineStatus.textContent = `Loaded ${file.name}.`;
-            viewerError.hidden = true;
           }
         } catch (error) {
           reportPortableError(error);
@@ -1608,7 +1471,6 @@ async function start(): Promise<void> {
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent =
           `Exported ${link.download} from verified in-memory project assets.`;
-        viewerError.hidden = true;
       } catch (error) {
         reportPortableError(error);
       }
@@ -1637,7 +1499,6 @@ async function start(): Promise<void> {
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
             `Exported complete project folder ${folderName}.`;
-          viewerError.hidden = true;
         } catch (error) {
           reportPortableError(error);
         } finally {
@@ -1678,17 +1539,10 @@ async function start(): Promise<void> {
           applyLoadedSculpture(createLoadedSculpture(project));
           rememberProjectAsset(file.name, bytes);
           showDesignSurface(surface, file.name);
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent =
-            "Attached " + file.name +
-            " to the sculpture JSON. Export a project folder or ZIP to preserve every referenced file.";
-          viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
-          viewerError.hidden = false;
-          viewerError.textContent = message;
         } finally {
           designSurfaceFileInput.value = "";
           loadDesignSurfaceButton.disabled = false;
@@ -1741,13 +1595,10 @@ async function start(): Promise<void> {
               ? " before separate 3D generation"
               : "; 3D generation remains unavailable until boundary input exists"
           }.`;
-        viewerError.hidden = true;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         pipelineStatus.classList.add("pipeline-status--error");
         pipelineStatus.textContent = message;
-        viewerError.hidden = false;
-        viewerError.textContent = message;
       }
     });
     addPanelButton.addEventListener("click", () => {
@@ -1767,11 +1618,11 @@ async function start(): Promise<void> {
         applyLoadedSculpture(createLoadedSculpture(project));
         pipelineStatus.textContent =
           `Added ${edited.panels.at(-1)!.id} to ${faceId}. Save the project ZIP or build the assembly package.`;
-        viewerError.hidden = true;
       } catch (error) {
-        viewerError.hidden = false;
-        viewerError.textContent =
-          error instanceof Error ? error.message : String(error);
+        setLogMessage(
+          error instanceof Error ? error.message : String(error),
+          true,
+        );
       }
     });
     addPanelFaceSelect.addEventListener("change", () => {
@@ -1779,18 +1630,6 @@ async function start(): Promise<void> {
       addPanelButton.hidden = !hasEligibleSelection;
       addPanelButton.disabled = !hasEligibleSelection;
     });
-    const downloadJson = (filename: string, value: unknown): void => {
-      const blob = new Blob([JSON.stringify(value, null, 2) + "\n"], {
-        type: "application/json",
-      });
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = filename;
-      link.click();
-      URL.revokeObjectURL(objectUrl);
-    };
-
     const createCurrentAssemblyManualDocument = (): string => {
       const model = createWiringAssemblyManualModel(
         editorDefinition,
@@ -1803,57 +1642,6 @@ async function start(): Promise<void> {
         wiringManualStyles,
       );
     };
-
-    openWiringManualButton.addEventListener("click", () => {
-      try {
-        const html = createCurrentAssemblyManualDocument();
-        const objectUrl = URL.createObjectURL(new Blob([html], {
-          type: "text/html;charset=utf-8",
-        }));
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download =
-          `${portableProjectFolderName(editorDefinition)}-assembly-manual.html`;
-        link.click();
-        URL.revokeObjectURL(objectUrl);
-        pipelineStatus.classList.remove("pipeline-status--error");
-        pipelineStatus.textContent = `Downloaded ${link.download}.`;
-        viewerError.hidden = true;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        pipelineStatus.classList.add("pipeline-status--error");
-        pipelineStatus.textContent = message;
-        viewerError.hidden = false;
-        viewerError.textContent = message;
-      }
-    });
-
-    generateMappingButton.addEventListener("click", () => {
-      try {
-        if (mapping.topology !== "panelized-sculpture") {
-          throw new Error("WLED mapping requires a panelized sculpture.");
-        }
-        const baseName = editorDefinition.id;
-        downloadJson(
-          `${baseName}.wled-ledmap.json`,
-          hardwareContract.ledmap,
-        );
-        downloadJson(
-          `${baseName}.${wiringPreview.status}-wiring.json`,
-          createWiringReview(editorDefinition, hardwareContract, wiringPreview),
-        );
-        pipelineStatus.classList.remove("pipeline-status--error");
-        pipelineStatus.textContent =
-          `Exported WLED ledmap and ${wiringPreview.status === "draft" ? "draft wiring review" : wiringPreview.status + " route review"} for ${mapping.entries.length.toLocaleString()} LEDs; fingerprint ${hardwareContract.fingerprint}.`;
-        viewerError.hidden = true;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        pipelineStatus.classList.add("pipeline-status--error");
-        pipelineStatus.textContent = message;
-        viewerError.hidden = false;
-        viewerError.textContent = message;
-      }
-    });
 
     const downloadAssemblyPackage = (): void => {
       if (!verifiedGeneratedMechanics) {
@@ -1885,7 +1673,6 @@ async function start(): Promise<void> {
       pipelineStatus.classList.remove("pipeline-status--error");
       pipelineStatus.textContent =
         `Downloaded ${link.download} with the project, verified geometry, assembly manual, ledmap, and wiring review.`;
-      viewerError.hidden = true;
     };
 
     const buildAssemblyPackage = async (): Promise<void> => {
@@ -1927,7 +1714,6 @@ async function start(): Promise<void> {
             ).length;
             pipelineStatus.textContent =
               `Built and SHA-256 verified ${partCount} printable parts. The assembly package is ready to download.`;
-            viewerError.hidden = true;
           } catch (inProcessError) {
             if (!shouldUseEditorPipelineFallback(inProcessError)) {
               throw inProcessError;
@@ -1972,14 +1758,11 @@ async function start(): Promise<void> {
           const lastLogLine = result.log?.trim().split("\n").at(-1);
           pipelineStatus.textContent =
             lastLogLine ?? "Pipeline complete; exact STL meshes are now loaded.";
-          viewerError.hidden = true;
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
-          viewerError.hidden = false;
-          viewerError.textContent = message;
         } finally {
           renderEditorFaces();
           updatePipelineAvailability();
@@ -1998,14 +1781,11 @@ async function start(): Promise<void> {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
-          viewerError.hidden = false;
-          viewerError.textContent = message;
           updatePipelineAvailability();
         }
       })();
     });
     ledCountInput.value = String(mapping.entries.length);
-    ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
     renderEditorFaces();
     renderOutputLayerControls();
     renderRouteEditor();
@@ -2032,22 +1812,11 @@ async function start(): Promise<void> {
       renderer?.updateColors(engine.pixels, currentDisplayMode);
       renderer?.render();
 
-      fpsFrames += 1;
-      const fpsElapsed = now - fpsWindowStart;
-      if (fpsElapsed >= 500) {
-        fpsDisplay.textContent = String(
-          Math.round((fpsFrames * 1000) / fpsElapsed),
-        );
-        frameTimeDisplay.textContent = `${Math.round(simulationTime).toLocaleString()} ms`;
-        fpsWindowStart = now;
-        fpsFrames = 0;
-      }
-
       if (engine.outOfBoundsWriteCount > 0) {
-        viewerError.hidden = false;
-        viewerError.textContent = `Guard caught ${engine.outOfBoundsWriteCount} out-of-range pixel writes.`;
-      } else {
-        viewerError.hidden = true;
+        setLogMessage(
+          `Guard caught ${engine.outOfBoundsWriteCount} out-of-range pixel writes.`,
+          true,
+        );
       }
       animationFrame = requestAnimationFrame(animate);
     };
@@ -2055,9 +1824,7 @@ async function start(): Promise<void> {
     animationFrame = requestAnimationFrame(animate);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    engineStatus.textContent = "Engine failed to load";
-    viewerError.hidden = false;
-    viewerError.textContent = message;
+    setLogMessage(message, true);
     console.error(error);
   }
 }
