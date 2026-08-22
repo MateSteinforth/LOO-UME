@@ -87,7 +87,7 @@ audio input, presets, or complete native WLED behavior.
 The main operator path is Open project, edit panels and route, then Build or
 Download assembly package. The package joins the authoritative project,
 verified assets, printable manual, ledmap, and wiring review from one in-memory
-contract. Raw and individual exports remain secondary tools.
+contract. Raw JSON and project-folder exports remain secondary tools.
 
 ## D14 — `main` is the integration baseline
 
@@ -102,3 +102,32 @@ risk-based independent review for substantial normal features. QUALITY is for
 architecture, geometry, conflict resolution, high-risk changes, ambiguity, or
 repeated failure. Escalate Luna to Terra to Sol only when evidence requires it,
 and stop when acceptance criteria and relevant checks pass.
+
+## D16 — Normal main does not rebuild the WLED simulator
+
+The checked-in WLED JavaScript and WASM files are the normal runtime on `main`.
+Running, testing, or installing the editor must not require Python, Emscripten,
+or a WLED source checkout. A dedicated generation branch preserves the pinned
+source, compiler, reproducible rebuild procedure, checksums, and receipt. A
+reviewed artifact update can move exact rebuilt bytes back to `main`.
+
+## D17 — The 41-panel authority is Schema 2
+
+The current 41-panel sculpture JSON contains the project needed for the physical
+build. No old Schema 1 project must remain runnable. Retire the migration fixture
+and procedural Schema 1 mapping dependencies without changing the Schema 2
+poses, route, mapping, or generated deployment artifacts.
+
+## D18 — Hide stale mechanics and keep the boundary contract small
+
+After a relevant edit, stale generated parts stay hidden until regeneration.
+Do not add a stale-part inspection toggle. Authoritative JSON poses and topology
+plus exact STL output are sufficient; add another boundary asset format only
+when a concrete workflow proves that it is necessary.
+
+## D19 — Preserve evidence labels in the approved panel profile
+
+The operator approved the existing panel profile for the current 41-panel
+build. Keep its present dimensions, connector orientation, and physically tested
+corrections. Approval does not convert fields marked provisional or unknown into
+measured evidence. Electrical approval and device parity remain separate gates.
