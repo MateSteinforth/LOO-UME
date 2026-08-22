@@ -196,6 +196,26 @@ the interval `(0, 1]`. An infeasible terminal trace cannot be labeled as
 converged, and reaching the iteration bound while values still change reports
 `iteration-limit`.
 
+The normalizer also derives a cable-clearance axis at each profile hole blocked
+by DIN or DOUT. `buildStructuralSolids()` uses those axes only as conservative
+voids; it does not claim measured connector-pad geometry.
+
+One printable panel-bracket part joins all eligible screw bosses, rear hubs,
+and retained local ties for that panel. The boss starts at the PCB rear surface
+plus the proven 0.50 mm flush correction. It keeps the profile's 1.60 mm pilot,
+3.20 × 0.70 mm lead-in, and moves the pilot 0.20 mm inward from its nearest
+panel edge. The exact authored hole remains the structural anchor. Each hub
+has wall-backed sockets for retained inter-panel struts. A 4.20 mm across-flats
+hex pocket provides an explicit M2 nut-trap policy.
+
+Each inter-panel member is a separate tapered polygonal strut. Reduced-radius
+tenons enter the hub sockets with 0.25 mm radial assembly clearance, and a
+three-sided start collar is the orientation mark. Every returned mesh must have
+Manifold `NoError`, one printable component, positive volume, finite vertices,
+non-degenerate triangles, and millimetre bounds.
+The final bracket and strut volumes are intersected with every nearby oriented
+PCB envelope. CAD stops if any printable volume enters a PCB.
+
 ### Panel-outline boundary generation
 
 Milestone 3 is implemented in `src/sculpture/PanelOutlineBoundary.ts`. A

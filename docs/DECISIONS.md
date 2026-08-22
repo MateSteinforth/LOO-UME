@@ -473,6 +473,25 @@ compression, attachment, and printability terms. Only a converged result can
 continue to printable geometry; infeasible and iteration-limit results remain
 diagnostic analysis.
 
+## D21 — Panel-local structure is one bracket; inter-panel members are struts
+
+**Decision.** Manifold CAD unites every eligible screw boss, rear hub, and
+panel-local tie into one bracket part per panel. Each retained inter-panel
+member is a separate tapered strut with socket tenons. Hub sockets, pilot holes,
+lead-ins, nut traps, cable voids, and orientation marks are Boolean features of
+those exact solids.
+
+**Evidence.** `src/cad/GenerateStructuralSolids.ts` and
+`tests/structural-solids.test.ts` check exact anchors, the measured corrections,
+fastener policy, DIN/DOUT clearance, socket voids, connected Manifold topology,
+positive volume, finite vertices, non-degenerate triangles, and separated part
+IDs on arbitrary perpendicular panel poses.
+
+**Consequence.** Local panel ties do not become many loose print parts. Stable
+world-space meshes preserve millimetre assembly geometry for the next export
+stage. Unknown connector pad shapes remain conservative cylindrical voids and
+must not be described as measured keep-outs.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

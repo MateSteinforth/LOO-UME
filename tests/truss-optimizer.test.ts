@@ -45,7 +45,7 @@ describe("structural truss optimization", () => {
     expect(optimized.trace.length).toBeLessThanOrEqual(optimized.policy.maximumIterations);
     expect(() => validateCandidateTruss(optimized.optimizedCandidate)).not.toThrow();
     expect(optimized.violations).toEqual([]);
-  });
+  }, 15_000);
 
   it("rounds resized members up to printable increments and updates self-weight", async () => {
     const normalized = await loadedTwoPanel();

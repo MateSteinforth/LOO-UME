@@ -25,15 +25,15 @@ poses and hardware profile:
 (no mechanics fields) ----------> complete pose-first interface, no CAD
 manualMechanics ----------------> verified wrappers around parts/*.scad
 mechanicalShell + closures -----> planar validation -> Manifold STL parts
-structuralDesign ----------------> anchors -> truss -> analysis -> optimization
+structuralDesign -------------> truss -> analysis -> optimization -> Manifold
 ```
 
 The structural branch implements the Schema 2 input contract, pose/profile
 normalization, preview support policy, deterministic candidate graph, linear 3D
 truss analysis, bounded load-path optimization, artifact manifest, and stale
-fingerprint. Printable Manifold solids and export remain the ordered
-`TRUSS-015` through `TRUSS-018` tasks. It does not replace the two existing
-fabrication routes.
+fingerprint. Printable Manifold bracket/hub/strut solids are also implemented.
+Mesh export and publication remain the ordered `TRUSS-016` through `TRUSS-018`
+tasks. This branch does not replace the two existing fabrication routes.
 
 Schema 2 pose-only projects are valid JSON. They load, edit, simulate, map,
 wire, save, and reopen without a placeholder shell. When panels form an
@@ -144,6 +144,7 @@ gates.
 | `src/structure/CandidateTruss.ts` | Put one bracket and rear hub at every eligible anchor, add local ties and collision-checked inter-panel candidates, then prove connectivity and redundant paths | Candidate members avoid expanded PCB envelopes and deterministic length limits; rejected candidates remain diagnostic evidence |
 | `src/structure/TrussSolver.ts` | Compile normalized supports and loads onto candidate hubs, assemble and solve the linear 3D axial stiffness model, and select governing member cases | Three translational DOFs per node; N/mm/MPa units; singular systems fail before results are published |
 | `src/structure/TrussOptimizer.ts` | Remove low-load or long-compression candidates, preserve redundant stable paths, round member diameters, reapply self-weight, and retain an objective trace | Bounded iterations report converged, infeasible, or iteration-limit status; no failed optimization can become printable geometry |
+| `src/cad/GenerateStructuralSolids.ts` | Build one integrated bracket/hub plate per panel and one tapered socket strut per retained inter-panel member with Manifold | Only converged optimization enters CAD; exact anchor, fastener, connector-clearance, topology, component, triangle, and volume checks gate each mesh |
 | `src/sculpture/SculptureEditor.ts` | Add/move/rotate/delete/seed and mechanics invalidation | Editing does not require successful CAD |
 | `src/sculpture/MechanicalShellRegenerator.ts` | Rebuild supported planar topology after edits | Rejects unsafe or ambiguous mechanics |
 | `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, detect deterministic unambiguous gap cycles, validate flat caps, and emit a closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
@@ -260,6 +261,13 @@ compression beyond the unsupported-length limit. A removal batch is accepted
 only after bridge-free validation and a maximum-diameter capacity solve. The
 remaining diameters round up to authored printable increments for stress,
 buckling, and displacement, then member self-weight is solved again.
+
+Structural CAD integrates each panel's required local ties, rear hubs, and
+screw bosses into one part. Profile pilot holes, lead-ins, measured flush
+offsets, hex nut traps, conservative DIN/DOUT clearance bores, strut sockets,
+and a stable orientation mark are Boolean-cut or joined with Manifold. Each
+retained inter-panel member becomes a separate tapered strut with two socket
+tenons and a keyed start collar.
 
 ## Local desktop host
 

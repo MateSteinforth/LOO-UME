@@ -146,8 +146,37 @@ otherwise it is `infeasible`. A result that still changes on the last permitted
 iteration is `iteration-limit`, even if its current values violate a limit.
 Only `converged` is eligible for printable generation.
 
+## Printable Manifold solids
+
+`buildStructuralSolids()` accepts only a converged optimization with the same
+source fingerprint. It emits one world-space millimetre mesh for each panel
+bracket and each retained inter-panel strut. The exact mesh will be the source
+for both printable export and assembly preview in `TRUSS-016`.
+
+A panel bracket unites all eligible screw bosses, rear hubs, and panel-local
+ties. The structural anchor stays at the exact authored hole. The printed pilot
+moves 0.20 mm inward from the nearest panel edge, consistent with the measured
+hole-edge correction. Printed material starts at the rear PCB surface plus the
+measured 0.50 mm flush correction. Boolean cutters create the profile's 1.60 mm
+pilots and 3.20 × 0.70 mm lead-ins, 4.20 mm
+across-flats M2 nut traps, inter-panel sockets, and configured cable-clearance
+bores at DIN/DOUT-blocked profile holes. A triangular rear mark identifies the
+first stable local tie.
+
+Each inter-panel strut has socket tenons, full-diameter ends, a narrower middle,
+and a triangular start collar. The socket/tenon policy provides 0.25 mm radial
+clearance and at least 1.20 mm socket wall. Hub spheres and overlapping tapered
+members give continuous transitions.
+
+Before a mesh leaves the Manifold stage, its kernel status, connected-component
+count, volume, bounds, vertices, indices, and triangle areas are checked. Tiny
+Boolean fragments below `0.00001 mm^3` are discarded; more than one printable
+component is an error. All constructed WASM objects are explicitly released.
+The final solid volume of every bracket and strut is also checked against each
+nearby oriented PCB envelope. Any intersection stops CAD generation.
+
 ## Remaining ordered implementation
 
-`TRUSS-015` through `TRUSS-018` add Manifold parts, STL/3MF export, reports, and
-browser portable-project integration. Every report must state that the
-analysis gives load-path guidance and is not engineering certification.
+`TRUSS-016` through `TRUSS-018` add STL/3MF export, reports, and browser
+portable-project integration. Every report must state that the analysis gives
+load-path guidance and is not engineering certification.

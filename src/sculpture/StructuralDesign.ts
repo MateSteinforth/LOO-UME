@@ -87,6 +87,16 @@ export interface NormalizedStructuralAnchor {
   surfaceFlushCorrectionMm: number;
 }
 
+export interface NormalizedStructuralCableClearance {
+  id: string;
+  panelId: string;
+  holeId: PanelMountingHoleId;
+  blockedBy: "DIN" | "DOUT";
+  positionMm: StructuralVector;
+  outwardNormal: StructuralVector;
+  diameterMm: number;
+}
+
 export interface NormalizedStructuralPanel {
   id: string;
   centerMm: StructuralVector;
@@ -146,6 +156,7 @@ export interface NormalizedStructuralDesign {
   design: StructuralDesignDefinition;
   panels: NormalizedStructuralPanel[];
   anchors: NormalizedStructuralAnchor[];
+  cableClearances: NormalizedStructuralCableClearance[];
   supports: NormalizedStructuralSupport[];
   loadCases: NormalizedStructuralLoadCase[];
   warnings: StructuralWarning[];
@@ -583,6 +594,7 @@ export function normalizeStructuralDesign(
   validateStructuralDesign(design);
   const panels: NormalizedStructuralPanel[] = [];
   const anchors: NormalizedStructuralAnchor[] = [];
+  const cableClearances: NormalizedStructuralCableClearance[] = [];
   const anchorByPanelAndHole = new Map<string, NormalizedStructuralAnchor>();
   for (const panel of [...definition.panels].sort((left, right) => compareText(left.id, right.id))) {
     const center = [...panel.pose.position] as StructuralVector;
@@ -611,6 +623,28 @@ export function normalizeStructuralDesign(
     for (const anchor of panelAnchors) {
       anchors.push(anchor);
       anchorByPanelAndHole.set(`${anchor.panelId}\u0000${anchor.holeId}`, anchor);
+    }
+    for (const hole of profile.mounting.holes
+      .filter((candidate) => candidate.mechanicalUse === "blocked")
+      .sort((left, right) => compareText(left.id, right.id))) {
+      if (!hole.blockedBy) {
+        throw new Error(`Blocked mounting hole ${hole.id} requires a connector reason.`);
+      }
+      cableClearances.push({
+        id: `${panel.id}:cable-clearance:${hole.blockedBy.toLowerCase()}`,
+        panelId: panel.id,
+        holeId: hole.id,
+        blockedBy: hole.blockedBy,
+        positionMm: panelPoint(
+          center,
+          xAxis,
+          yAxis,
+          hole.localPosition[0],
+          hole.localPosition[1],
+        ),
+        outwardNormal: normal,
+        diameterMm: design.fabrication.cableClearanceMm,
+      });
     }
     panels.push({
       id: panel.id,
@@ -732,6 +766,7 @@ export function normalizeStructuralDesign(
     design,
     panels,
     anchors,
+    cableClearances,
     supports: [...supportMap.values()].sort((left, right) => compareText(left.id, right.id)),
     loadCases,
     warnings,

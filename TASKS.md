@@ -45,19 +45,6 @@ This file is the persistent source of truth for work status. Read it before star
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
 
-### `TRUSS-015` Generate printable Manifold brackets, hubs, and struts
-
-- Outcome: turn the optimized graph into separated watertight parts with
-  tapered struts, larger hubs, smooth transitions, panel brackets, screw
-  holes, insert or nut pockets, cable clearance, labels, and orientation marks.
-- Acceptance: exact panel anchors and millimetre scale are preserved; minimum
-  printable dimensions and connector hardware are explicit; PCB envelopes and
-  blocked connector corners remain clear; every Manifold object is released;
-  every solid has valid topology and positive volume.
-- Depends on: `TRUSS-014`.
-- Verify: Manifold status, topology, bounds, volume, anchor alignment,
-  keep-outs, and representative mesh inspection.
-
 ### `TRUSS-016` Export deterministic STL, 3MF, and preview assets
 
 - Outcome: serialize useful printable parts and an assembly preview from the
@@ -518,6 +505,35 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   workstream without a merge to `main`.
 - Likely conflicts: `TASKS.md`, `src/structure/`, structural workflow and
   architecture documentation, and structural tests.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
+### `TRUSS-015` Generate printable Manifold brackets, hubs, and struts
+
+- Outcome: one integrated bracket per panel and one tapered socket strut per
+  retained inter-panel member are generated as separated world-space Manifold
+  meshes. Brackets include exact structural anchors, corrected screw pilots,
+  lead-ins, open nut traps, cable voids, sockets, and orientation marks.
+- Acceptance: millimetre scale, printable dimensions, connector hardware,
+  PCB-volume keep-outs, stable part IDs, Manifold status, one meaningful
+  component, positive volume, finite vertices, and non-degenerate triangles are
+  checked before a mesh is returned. All Manifold objects are released on
+  success and failure paths.
+- Evidence: 5 focused solid tests cover arbitrary perpendicular panel poses,
+  part separation, exact anchors, the measured 0.20/0.50 mm corrections,
+  fastener and cable voids, socket fit, stale fingerprints, non-converged
+  analysis, and PCB-volume collision rejection. All 307 Vitest tests,
+  `npx tsc -b --pretty false`, `npm run build:web`, and `git diff --check` pass.
+  Independent review found solid-volume, fingerprint, correction, and cleanup
+  gaps; all corrections passed two focused re-reviews with no remaining
+  material finding. OpenSCAD is unavailable on this host, so no OpenSCAD render
+  is claimed; Manifold topology and representative material/void probes pass.
+- Depends on: `TRUSS-014`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Continue on the operator-authorized truss
+  workstream without a merge to `main`.
+- Likely conflicts: `TASKS.md`, `FAILURES.md`, `src/cad/`, structural workflow
+  and architecture documentation, and structural CAD tests.
 - Integration gate: explicit operator authorization is required before merge
   into `main`.
 

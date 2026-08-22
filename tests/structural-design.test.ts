@@ -128,6 +128,16 @@ describe("Schema 2 structural design normalization", () => {
     expect(normalized.referencePanelId).toBe("P-01");
     expect(normalized.panels.map(({ id }) => id)).toEqual(["P-01", "P-02"]);
     expect(normalized.anchors).toHaveLength(8);
+    expect(normalized.cableClearances).toHaveLength(4);
+    expect(normalized.cableClearances.find(({ id }) =>
+      id === "P-01:cable-clearance:din"
+    )).toMatchObject({
+      panelId: "P-01",
+      holeId: "bottom-left",
+      blockedBy: "DIN",
+      positionMm: [-25, 50, 24.5],
+      diameterMm: 12,
+    });
     expect(normalized.anchors.filter(({ panelId }) => panelId === "P-01").map(
       ({ holeId }) => holeId,
     )).toEqual(["bottom-right", "middle-left", "middle-right", "top-left"]);

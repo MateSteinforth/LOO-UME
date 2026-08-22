@@ -448,3 +448,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   checks alone. Require both redundant topology and numerical capacity.
 - **Evidence:** `tests/truss-optimizer.test.ts` and decision D20.
 - **Status:** Resolved.
+
+### F-025 — Collision-free truss axes do not prove collision-free printed solids
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-015 conversion of candidate members and hubs into printable
+  Manifold volumes.
+- **Symptom:** A small bracket offset passed hub-centre and member-axis checks,
+  but the generated hub sphere entered the PCB envelope.
+- **Cause:** Candidate checks treated nodes and members as points and lines.
+  Printable hubs, bosses, and struts have nonzero radius.
+- **Correction:** Intersect each final bracket and strut solid with every nearby
+  oriented PCB envelope and reject any positive collision volume.
+- **Prevention:** Keep fast point/segment checks during candidate generation,
+  but require solid-volume keep-out checks before mesh publication.
+- **Evidence:** `tests/structural-solids.test.ts` with a 1 mm bracket offset.
+- **Status:** Resolved.
