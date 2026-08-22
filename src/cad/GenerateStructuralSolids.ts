@@ -17,6 +17,9 @@ const MAXIMUM_STRUT_SEGMENTS = 256;
 const LOFT_STATION_COUNT = 9;
 const LOFT_REAR_DEPARTURE_MM = 6;
 
+const compareText = (left: string, right: string): number =>
+  left < right ? -1 : left > right ? 1 : 0;
+
 export interface StructuralGeometryPolicy {
   schemaVersion: "1.0.0";
   minimumWallMm: number;
@@ -59,7 +62,7 @@ export interface StructuralSolidProbe {
 
 export interface StructuralSolidMesh {
   partId: string;
-  kind: "organic-connector" | "connector-bracket" | "strut-segment" | "splice-sleeve";
+  kind: "organic-connector" | "ribbon-junction" | "connector-bracket" | "strut-segment" | "splice-sleeve";
   status: string;
   volumeCubicMm: number;
   numTri: number;
@@ -68,8 +71,9 @@ export interface StructuralSolidMesh {
   vertProperties: Float32Array;
   triVerts: Uint32Array;
   panelId?: string;
-  panelIds?: [string, string];
+  panelIds?: string[];
   connectorCellId?: string;
+  connectorJunctionId?: string;
   memberId?: string;
   segmentIndex?: number;
   segmentCount?: number;
@@ -1145,6 +1149,65 @@ function buildOrganicConnector(
   }
 }
 
+function uniqueProbes(probes: StructuralSolidProbe[]): StructuralSolidProbe[] {
+  const found = new Map<string, StructuralSolidProbe>();
+  for (const item of probes) {
+    const key = [item.x, item.y, item.z].map((value) => value.toFixed(6)).join(":");
+    if (!found.has(key)) found.set(key, item);
+  }
+  return [...found.values()];
+}
+
+function mergeRibbonJunction(
+  wasm: ManifoldToplevel,
+  normalized: NormalizedStructuralDesign,
+  junctionId: string,
+  meshes: StructuralSolidMesh[],
+): StructuralSolidMesh {
+  const solids = meshes.map((mesh) => new wasm.Manifold(new wasm.Mesh({
+    numProp: 3,
+    vertProperties: mesh.vertProperties,
+    triVerts: mesh.triVerts,
+  })));
+  const unioned = unionAll(wasm, solids);
+  let solid: Manifold;
+  try {
+    solid = wasm.Manifold.ofMesh(unioned.getMesh());
+  } finally {
+    unioned.delete();
+  }
+  const panelIds = [...new Set(meshes.flatMap(({ panelIds: ids }) => ids ?? []))]
+    .sort(compareText);
+  const partId = `ribbon-junction:${panelIds.join("--")}`;
+  try {
+    assertAvoidsPanelEnvelopes(wasm, solid, normalized, partId);
+    return meshFromSolid(solid, {
+      partId,
+      kind: "ribbon-junction",
+      panelIds,
+      connectorJunctionId: junctionId,
+      anchorIds: [...new Set(meshes.flatMap(({ anchorIds }) => anchorIds))].sort(compareText),
+      anchorCentersMm: uniqueProbes(meshes.flatMap(({ anchorCentersMm }) => anchorCentersMm)),
+      printedPilotDiameterMm: meshes[0]?.printedPilotDiameterMm,
+      holeEdgeCorrectionMm: meshes[0]?.holeEdgeCorrectionMm,
+      surfaceFlushCorrectionMm: meshes[0]?.surfaceFlushCorrectionMm,
+      screwHoleCentersMm: uniqueProbes(meshes.flatMap(({ screwHoleCentersMm }) => screwHoleCentersMm)),
+      nutTrapCentersMm: uniqueProbes(meshes.flatMap(({ nutTrapCentersMm }) => nutTrapCentersMm)),
+      nutTrapDepthMm: meshes[0]?.nutTrapDepthMm,
+      cableClearanceCentersMm: uniqueProbes(
+        meshes.flatMap(({ cableClearanceCentersMm }) => cableClearanceCentersMm),
+      ),
+      socketCentersMm: uniqueProbes(meshes.flatMap(({ socketCentersMm }) => socketCentersMm)),
+      orientationMarkCenterMm: meshes[0]?.orientationMarkCenterMm,
+      loftStationCentersMm: uniqueProbes(
+        meshes.flatMap(({ loftStationCentersMm }) => loftStationCentersMm ?? []),
+      ),
+    });
+  } finally {
+    solid.delete();
+  }
+}
+
 function assertFitsPrintBed(
   mesh: StructuralSolidMesh,
   normalized: NormalizedStructuralDesign,
@@ -1191,9 +1254,23 @@ export async function buildStructuralRibbonSolids(
   const wasm = await loadManifoldRuntime();
   wasm.setCircularSegments(CIRCULAR_SEGMENTS);
   const parts: StructuralSolidMesh[] = [];
+  const junctionMeshes = new Map<string, StructuralSolidMesh[]>();
   for (const cell of candidate.connectorCells) {
-    parts.push(buildOrganicConnector(wasm, normalized, candidate, cell));
+    const mesh = buildOrganicConnector(wasm, normalized, candidate, cell);
+    if (!cell.junctionId) {
+      parts.push(mesh);
+      continue;
+    }
+    const values = junctionMeshes.get(cell.junctionId) ?? [];
+    values.push(mesh);
+    junctionMeshes.set(cell.junctionId, values);
   }
+  for (const [junctionId, meshes] of [...junctionMeshes].sort(([left], [right]) =>
+    compareText(left, right)
+  )) {
+    parts.push(mergeRibbonJunction(wasm, normalized, junctionId, meshes));
+  }
+  parts.sort((left, right) => compareText(left.partId, right.partId));
   for (const part of parts) assertFitsPrintBed(part, normalized);
   return parts;
 }

@@ -74,6 +74,7 @@ export interface StructuralAnalysisDocument {
   printable: {
     parts: number;
     organicConnectors: number;
+    multiPanelJunctions: number;
     connectorBrackets: number;
     strutSegments: number;
     spliceSleeves: number;
@@ -177,7 +178,7 @@ function assumptions(normalized: NormalizedStructuralDesign): string[] {
   return [
     "Panels are rigid load-transfer plates between their eligible mounting anchors.",
     "Panel-rigidity nodes and ties represent PCB/bracket plate stiffness for analysis only; they are not extra printable struts.",
-    "Each printable connector cell joins one neighboring panel pair through the nearest unused eligible screw anchors and one cap-surface loft.",
+    "Each independent connector cell becomes one cap-surface loft; mutually local cells can share screw shoes and unite as one multi-panel ribbon junction.",
     "Ribbon generation depends on valid panel geometry, hardware clearances, PCB avoidance, and print limits; it does not depend on truss convergence.",
     "The axial truss validates local load paths and reports member sizing, but those circular sections do not set loft thickness or certify stresses in the lofted solid.",
     "Members are straight, pin-jointed, linearly elastic axial truss elements with three translational node degrees of freedom.",
@@ -263,6 +264,7 @@ function analysisDocument(
     printable: {
       parts: solids.length,
       organicConnectors: solids.filter(({ kind }) => kind === "organic-connector").length,
+      multiPanelJunctions: solids.filter(({ kind }) => kind === "ribbon-junction").length,
       connectorBrackets: solids.filter(({ kind }) => kind === "connector-bracket").length,
       strutSegments: solids.filter(({ kind }) => kind === "strut-segment").length,
       spliceSleeves: solids.filter(({ kind }) => kind === "splice-sleeve").length,
@@ -331,7 +333,7 @@ function report(
     `- Final printable loft material: ${finite(analysis.printable.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.printable.materialMassKg, 5)} kg`,
     `- Candidate members: ${analysis.candidate.initialMembers}; retained: ${analysis.candidate.retainedMembers}`,
     `- Local panel-pair connectors: ${analysis.candidate.connectorCells}`,
-    `- Printable parts: ${analysis.printable.parts}; cap-surface loft bodies: ${analysis.printable.organicConnectors}; separate brackets: ${analysis.printable.connectorBrackets}; strut segments: ${analysis.printable.strutSegments}; splice sleeves: ${analysis.printable.spliceSleeves}`,
+    `- Printable parts: ${analysis.printable.parts}; panel-pair ribbon bodies: ${analysis.printable.organicConnectors}; multi-panel ribbon junctions: ${analysis.printable.multiPanelJunctions}; separate brackets: ${analysis.printable.connectorBrackets}; strut segments: ${analysis.printable.strutSegments}; splice sleeves: ${analysis.printable.spliceSleeves}`,
     `- Split members: ${analysis.printable.splitMembers}`,
     `- Print envelope: ${analysis.connectorization.printBedSizeMm.join(" × ")} mm with ${finite(analysis.connectorization.printBedMarginMm)} mm margin`,
     "",

@@ -650,6 +650,26 @@ success with structural approval. This supersedes the CAD gate in D20 and D23;
 their solver diagnostics, deterministic reports, and certification disclaimer
 remain in force.
 
+## D29 — Co-located panel-pair paths form one local ribbon junction
+
+**Decision.** Selected panel pairs are grouped only when they share a panel and
+all of their pose-derived nearest-hole connection-region centers are no farther apart
+than 70% of the smallest involved panel dimension. A group must contain at
+least three panels. Connector cells in that group reuse one owned screw-shoe
+set on each repeated panel; anchors cannot be shared across unrelated cells.
+Manifold unions the already-cut loft bodies and validates the final union as
+one printable part.
+
+**Evidence.** The three-panel junction fixture produces two candidate paths,
+one junction ID, six unique pilot holes, and one watertight mesh. The spaced
+three-panel trail keeps two junction-free printable ribbons. Tests probe every
+merged screw, nut, and cable void and retain final PCB and print-bed checks.
+
+**Consequence.** Three or more panels can meet smoothly without becoming a
+sculpture-sized printed structure. Graph connectivity alone never authorizes a
+merge, so a long panel trail stays modular. The junction remains load-path
+guidance, not engineering certification.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

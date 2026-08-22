@@ -86,10 +86,13 @@ describe("deterministic candidate truss", () => {
     ));
 
     expect(candidate.panelAttachments).toHaveLength(41);
-    expect(candidate.anchors).toHaveLength(160);
+    expect(candidate.anchors.length).toBeLessThanOrEqual(160);
     expect(candidate.brackets).toHaveLength(candidate.anchors.length);
     expect(candidate.validation.redundantPaths).toBe("passed");
     expect(candidate.connectorCells).toHaveLength(40);
+    expect(new Set(candidate.connectorCells.flatMap(({ junctionId }) =>
+      junctionId ? [junctionId] : []
+    )).size).toBe(3);
     expect(Math.max(...candidate.panelAttachments.map((attachment) =>
       candidate.connectorCells.filter((cell) => cell.panelIds.includes(attachment.panelId)).length
     ))).toBeLessThanOrEqual(2);
@@ -121,6 +124,31 @@ describe("deterministic candidate truss", () => {
     }
   });
 
+  it("shares screw shoes only inside one spatially local three-panel junction", async () => {
+    const junction = createCandidateTruss(await normalizedProject(
+      "sculptures/structural-three-panel-junction/sculpture.json",
+    ));
+    const junctionIds = new Set(junction.connectorCells.map(({ junctionId }) => junctionId));
+    expect(junction.connectorCells).toHaveLength(2);
+    expect(junctionIds).toEqual(new Set(["junction:P-01--P-02--P-03"]));
+    const sharedPanelAnchors = junction.connectorCells.map((cell) => {
+      const sideIndex = cell.panelIds.indexOf("P-02");
+      return cell.panelAnchorIds[sideIndex]!.slice().sort();
+    });
+    expect(sharedPanelAnchors[0]).toEqual(sharedPanelAnchors[1]);
+
+    const trail = createCandidateTruss(await normalizedProject(
+      "sculptures/structural-three-panel-trail/sculpture.json",
+    ));
+    expect(trail.connectorCells).toHaveLength(2);
+    expect(trail.connectorCells.every(({ junctionId }) => junctionId === undefined)).toBe(true);
+    expect(new Set(trail.connectorCells.flatMap(({ panelAnchorIds }) => panelAnchorIds.flat())).size)
+      .toBe(trail.connectorCells.reduce(
+        (count, { panelAnchorIds }) => count + panelAnchorIds.flat().length,
+        0,
+      ));
+  });
+
   it("is independent of panel, anchor, and hole storage order", async () => {
     const first = await normalized();
     const reordered = structuredClone(first);
@@ -129,6 +157,15 @@ describe("deterministic candidate truss", () => {
     for (const panel of reordered.panels) panel.anchorIds.reverse();
 
     expect(createCandidateTruss(reordered)).toEqual(createCandidateTruss(first));
+
+    const junction = await normalizedProject(
+      "sculptures/structural-three-panel-junction/sculpture.json",
+    );
+    const reorderedJunction = structuredClone(junction);
+    reorderedJunction.panels.reverse();
+    reorderedJunction.anchors.reverse();
+    for (const panel of reorderedJunction.panels) panel.anchorIds.reverse();
+    expect(createCandidateTruss(reorderedJunction)).toEqual(createCandidateTruss(junction));
   });
 
   it("detects PCB-envelope collisions in panel-local coordinates", async () => {

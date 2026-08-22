@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
+  buildStructuralRibbonSolids,
   buildStructuralSolids,
   structuralMeshContainsPoint,
   STRUCTURAL_GEOMETRY_POLICY,
@@ -41,6 +42,33 @@ describe("Manifold structural solids", () => {
         value > part.boundingBoxMm.min[index]!
       )).toBe(true);
       expect(part.genus).toBe(part.anchorIds.length);
+    }
+  });
+
+  it("unites co-located paths into one watertight three-panel ribbon junction", async () => {
+    const path = "sculptures/structural-three-panel-junction/sculpture.json";
+    const source = parsePanelAssemblyDefinition(JSON.parse(await readFile(path, "utf8")));
+    const normalized = normalizeStructuralDesign(createPanelAssemblyProject(source, path));
+    const candidate = createCandidateTruss(normalized);
+    const parts = await buildStructuralRibbonSolids(normalized, candidate);
+
+    expect(candidate.connectorCells).toHaveLength(2);
+    expect(parts).toHaveLength(1);
+    expect(parts[0]).toMatchObject({
+      partId: "ribbon-junction:P-01--P-02--P-03",
+      kind: "ribbon-junction",
+      connectorJunctionId: "junction:P-01--P-02--P-03",
+      panelIds: ["P-01", "P-02", "P-03"],
+      status: "NoError",
+    });
+    expect(parts[0]!.anchorIds).toHaveLength(6);
+    expect(parts[0]!.genus).toBe(parts[0]!.anchorIds.length);
+    for (const point of [
+      ...parts[0]!.screwHoleCentersMm,
+      ...parts[0]!.nutTrapCentersMm,
+      ...parts[0]!.cableClearanceCentersMm,
+    ]) {
+      expect(await structuralMeshContainsPoint(parts[0]!, point)).toBe(false);
     }
   });
 

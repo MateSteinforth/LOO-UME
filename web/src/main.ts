@@ -2243,8 +2243,9 @@ async function start(): Promise<void> {
             throw error;
           }
           const loftBodyCount = result.analysis.printable.organicConnectors;
+          const junctionCount = result.analysis.printable.multiPanelJunctions;
           pipelineStatus.textContent =
-            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${loftBodyCount} cap-surface loft ${loftBodyCount === 1 ? "body" : "bodies"}. ` +
+            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${loftBodyCount} cap-surface loft ${loftBodyCount === 1 ? "body" : "bodies"} and ${junctionCount} multi-panel ribbon ${junctionCount === 1 ? "junction" : "junctions"}. ` +
             (result.analysis.printable.splitMembers > 0
               ? `PRINT SPLIT WARNING: ${result.analysis.printable.splitMembers} member(s) require numbered segments and splice sleeves. `
               : "") +

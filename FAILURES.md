@@ -655,3 +655,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   and displacement-infeasible states; all produce the same ribbon mesh while
   failed analysis remains explicit.
 - **Status:** Resolved.
+
+### F-036 — Graph connectivity is not sufficient evidence for a printable junction
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-032 local merges for three or more nearby panels.
+- **Symptom:** Treating every connected pair cell as one junction would turn a
+  long panel trail into one sculpture-sized printed part.
+- **Cause:** A graph records load-path adjacency but does not record whether two
+  connection regions occupy the same physical gap.
+- **Correction:** Compare pose-derived nearest-hole connection-region centers.
+  Group only pair cells that share a panel and fall inside the documented local
+  distance. Require at least three panels and share anchors only within that
+  group.
+- **Prevention:** Every multi-cell merge needs a spatial-locality test and a
+  negative trail fixture. Do not infer printable part boundaries from graph
+  connectivity alone.
+- **Evidence:** Candidate and solid tests distinguish one three-panel junction
+  from two independent three-panel-trail ribbons.
+- **Status:** Resolved.

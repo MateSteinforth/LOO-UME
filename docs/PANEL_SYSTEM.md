@@ -203,7 +203,7 @@ The normalizer also derives a cable-clearance axis at each profile hole blocked
 by DIN or DOUT. `buildStructuralSolids()` uses those axes only as conservative
 voids; it does not claim measured connector-pad geometry.
 
-Each panel-pair connector is one printable loft body. Each side starts with
+Each independent panel-pair connector is one printable loft body. Each side starts with
 broad 13 mm rounded screw shoes derived from the canonical triangle and
 pentagon fixtures. Candidate generation reserves the unused eligible holes
 nearest the neighboring panel. Those shoes are the exact end profiles of one
@@ -212,7 +212,12 @@ starts at the PCB rear surface plus the proven 0.50 mm flush correction. It keep
 3.20 × 0.70 mm lead-in, and moves the pilot 0.20 mm inward from its nearest
 panel edge. The exact authored hole remains the structural anchor. Each shoe
 has a 2.20 mm-deep, 4.20 mm across-flats M2 hex pocket with a lateral
-insertion slot toward the nearest panel edge.
+insertion slot toward the nearest panel edge. When at least two selected pairs
+share a panel and all pose-derived nearest-hole connection regions are within
+70% of the smallest involved panel dimension, candidate generation marks one
+local junction. It reuses that junction's screw shoes on the shared panel and
+Manifold unites the loft paths into one printable part. A three-panel trail
+whose connection regions are farther apart stays as two parts.
 
 The surface uses nine deterministic cap-shaped stations. A cubic path leaves
 each shoe only 6 mm along its panel rear normal before it bends through the gap. Manifold

@@ -93,12 +93,18 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     inputSource: string;
     supports: unknown[];
     loadCases: unknown[];
-    printable: { parts: number; organicConnectors: number; spliceSleeves: number };
+    printable: {
+      parts: number;
+      organicConnectors: number;
+      multiPanelJunctions: number;
+      spliceSleeves: number;
+    };
   };
   expect(analysis.inputSource).toBe("authored");
   expect(analysis.supports).toHaveLength(2);
   expect(analysis.loadCases).toHaveLength(10);
   expect(analysis.printable.organicConnectors).toBe(2);
+  expect(analysis.printable.multiPanelJunctions).toBe(0);
   expect(analysis.printable.spliceSleeves).toBe(0);
   expect(partNames).toHaveLength(analysis.printable.parts);
 
@@ -194,4 +200,31 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   expect(consoleErrors).toEqual([
     "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
   ]);
+});
+
+test("generates one local printable junction for three co-located panels", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.route("**/api/generator-status", async (route) => {
+    await route.fulfill({ status: 503, contentType: "text/plain", body: "unavailable" });
+  });
+  await page.goto("/");
+  await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
+  await page.locator("#sculpture-select").selectOption(
+    "./sculptures/structural-three-panel-junction/sculpture.json",
+  );
+  await expect(page.locator("#panel-count-display")).toHaveText("3");
+  await expect(page.locator("#connector-pair-list")).toContainText("P-01 ↔ P-02");
+  await expect(page.locator("#connector-pair-list")).toContainText("P-02 ↔ P-03");
+
+  await page.locator("#generate-structure").click();
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "2 local panel-pair connectors",
+    { timeout: 120_000 },
+  );
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "1 multi-panel ribbon junction",
+  );
+  await expect(page.locator("#pipeline-status")).not.toHaveClass(/pipeline-status--error/);
+  await expect(page.locator("#download-structure")).toBeEnabled();
+  await expect(page.locator("#printable-layer")).toBeEnabled();
 });

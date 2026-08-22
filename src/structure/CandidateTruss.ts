@@ -53,6 +53,7 @@ export interface CandidateConnectorCell {
   memberIds: string[];
   source: "automatic" | "authored-include";
   panelDistanceMm: number;
+  junctionId?: string;
 }
 
 export interface RejectedCandidateMember {
@@ -260,30 +261,102 @@ function selectConnectorAnchors(
   panelId: string,
   otherPanel: NormalizedStructuralPanel,
   anchors: NormalizedStructuralAnchor[],
-  usedAnchorIds: Set<string>,
+  anchorOwners: Map<string, string>,
+  ownerId: string,
   requiredAnchorIds: Set<string>,
   count: number,
 ): NormalizedStructuralAnchor[] {
   const available = anchors.filter((anchor) =>
-    anchor.panelId === panelId && !usedAnchorIds.has(anchor.id)
+    anchor.panelId === panelId &&
+    (!anchorOwners.has(anchor.id) || anchorOwners.get(anchor.id) === ownerId)
   );
   if (available.length < count) {
     throw new Error(
-      `Connector ${pair.id} needs ${count} unused anchors on panel ${panelId}, but only ${available.length} remain. ` +
+      `Connector ${pair.id} needs ${count} available anchors on panel ${panelId}, but only ${available.length} remain. ` +
       `Reduce panel degree or add a different panel-pair override.`,
     );
   }
   const ranked = available.map((anchor) => ({
     anchor,
+    owned: anchorOwners.get(anchor.id) === ownerId,
     required: requiredAnchorIds.has(anchor.id),
     score: distance(anchor.positionMm, otherPanel.centerMm),
   })).sort((left, right) =>
+    Number(right.owned) - Number(left.owned) ||
     Number(right.required) - Number(left.required) ||
     left.score - right.score || compareText(left.anchor.id, right.anchor.id)
   );
   const selected = ranked.slice(0, count).map(({ anchor }) => anchor);
-  for (const anchor of selected) usedAnchorIds.add(anchor.id);
+  for (const anchor of selected) anchorOwners.set(anchor.id, ownerId);
   return selected.sort((left, right) => compareText(left.id, right.id));
+}
+
+function connectorRegionCenter(
+  pair: PanelPairCandidate,
+  panelById: Map<string, NormalizedStructuralPanel>,
+  anchors: NormalizedStructuralAnchor[],
+): StructuralVector {
+  const points = pair.panelIds.map((panelId, sideIndex) => {
+    const otherPanelId = sideIndex === 0 ? pair.panelIds[1] : pair.panelIds[0];
+    const otherPanel = panelById.get(otherPanelId)!;
+    return anchors.filter((anchor) => anchor.panelId === panelId)
+      .sort((left, right) =>
+        distance(left.positionMm, otherPanel.centerMm) -
+          distance(right.positionMm, otherPanel.centerMm) ||
+        compareText(left.id, right.id)
+      )[0]!.positionMm;
+  });
+  return scale(add(points[0]!, points[1]!), 0.5);
+}
+
+function assignLocalJunctions(
+  pairs: PanelPairCandidate[],
+  panels: NormalizedStructuralPanel[],
+  anchors: NormalizedStructuralAnchor[],
+): Map<string, string> {
+  const panelById = new Map(panels.map((panel) => [panel.id, panel]));
+  const centerByPair = new Map(pairs.map((pair) => [
+    pair.id,
+    connectorRegionCenter(pair, panelById, anchors),
+  ]));
+  const clusters = pairs.map((pair) => [pair]);
+  let merged = true;
+  while (merged) {
+    merged = false;
+    outer: for (let firstIndex = 0; firstIndex < clusters.length - 1; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < clusters.length; secondIndex += 1) {
+        const first = clusters[firstIndex]!;
+        const second = clusters[secondIndex]!;
+        if (!first.some((left) => second.some((right) =>
+          left.panelIds.some((panelId) => right.panelIds.includes(panelId))
+        ))) continue;
+        const combined = [...first, ...second];
+        const involvedPanels = [...new Set(combined.flatMap(({ panelIds }) => panelIds))]
+          .map((panelId) => panelById.get(panelId)!);
+        const mergeDistanceMm = Math.min(...involvedPanels.map((panel) =>
+          Math.min(panel.dimensionsMm.width, panel.dimensionsMm.height)
+        )) * 0.7;
+        const mutuallyLocal = combined.every((left, leftIndex) =>
+          combined.slice(leftIndex + 1).every((right) =>
+            distance(centerByPair.get(left.id)!, centerByPair.get(right.id)!) <= mergeDistanceMm
+          )
+        );
+        if (!mutuallyLocal) continue;
+        clusters[firstIndex] = combined.sort((left, right) => compareText(left.id, right.id));
+        clusters.splice(secondIndex, 1);
+        merged = true;
+        break outer;
+      }
+    }
+  }
+  const result = new Map<string, string>();
+  for (const values of clusters) {
+    const panelIds = [...new Set(values.flatMap(({ panelIds: ids }) => ids))].sort(compareText);
+    if (panelIds.length < 3) continue;
+    const junctionId = `junction:${panelIds.join("--")}`;
+    for (const pair of values) result.set(pair.id, junctionId);
+  }
+  return result;
 }
 
 function panelCoordinates(
@@ -446,11 +519,18 @@ export function validateCandidateTruss(candidate: CandidateTruss): void {
   const missingBracket = candidate.anchors.find((anchor) => !bracketAnchorIds.has(anchor.id));
   if (missingBracket) throw new Error(`Candidate anchor ${missingBracket.id} has no screw bracket.`);
   const cells = new Set<string>();
+  const anchorOwnerById = new Map<string, string>();
+  const cellsByJunction = new Map<string, CandidateConnectorCell[]>();
   for (const cell of candidate.connectorCells) {
     if (cells.has(cell.id)) throw new Error(`Connector cell ${cell.id} is duplicated.`);
     cells.add(cell.id);
     if (cell.panelIds[0] === cell.panelIds[1]) {
       throw new Error(`Connector cell ${cell.id} must join two panels.`);
+    }
+    if (cell.junctionId) {
+      const values = cellsByJunction.get(cell.junctionId) ?? [];
+      values.push(cell);
+      cellsByJunction.set(cell.junctionId, values);
     }
     if (
       cell.panelAnchorIds.length !== 2 || cell.sideNodeIds.length !== 2 ||
@@ -464,6 +544,14 @@ export function validateCandidateTruss(candidate: CandidateTruss): void {
       }
       const panelId = cell.panelIds[sideIndex]!;
       for (const anchorId of side) {
+        const ownerId = cell.junctionId ?? cell.id;
+        const existingOwner = anchorOwnerById.get(anchorId);
+        if (existingOwner !== undefined && existingOwner !== ownerId) {
+          throw new Error(
+            `Candidate anchor ${anchorId} is shared by unrelated connector cells ${existingOwner} and ${ownerId}.`,
+          );
+        }
+        anchorOwnerById.set(anchorId, ownerId);
         const anchor = anchorById.get(anchorId);
         const node = [...nodeById.values()].find((candidateNode) =>
           candidateNode.anchorId === anchorId
@@ -503,6 +591,14 @@ export function validateCandidateTruss(candidate: CandidateTruss): void {
       if (side.some((nodeId) => !touchedNodes.has(nodeId))) {
         throw new Error(`Connector cell ${cell.id} does not engage every bracket-side node.`);
       }
+    }
+  }
+  for (const [junctionId, junctionCells] of cellsByJunction) {
+    const panelIds = new Set(junctionCells.flatMap(({ panelIds }) => panelIds));
+    if (junctionCells.length < 2 || panelIds.size < 3) {
+      throw new Error(
+        `Local junction ${junctionId} must contain at least two connector cells and three panels.`,
+      );
     }
   }
   for (const member of candidate.members.filter(({ kind }) => kind === "inter-panel")) {
@@ -679,22 +775,26 @@ export function createCandidateTruss(
       node.anchorId !== undefined
     ).map((node) => [node.anchorId, node]),
   );
-  const usedAnchorIds = new Set<string>();
+  const selectedPairs = selectPanelPairs(normalized, panels, nodes);
+  const junctionByPair = assignLocalJunctions(selectedPairs, panels, anchors);
+  const anchorOwners = new Map<string, string>();
   const requiredAnchorIds = new Set(
     normalized.supports
       .filter(({ source }) => source === "authored-anchor")
       .map(({ anchorId }) => anchorId),
   );
-  for (const pair of selectPanelPairs(normalized, panels, nodes)) {
+  for (const pair of selectedPairs) {
     const firstPanel = panelById.get(pair.panelIds[0])!;
     const secondPanel = panelById.get(pair.panelIds[1])!;
+    const junctionId = junctionByPair.get(pair.id);
+    const ownerId = junctionId ?? pair.id;
     const firstAnchors = selectConnectorAnchors(
-      pair, firstPanel.id, secondPanel, anchors, usedAnchorIds,
+      pair, firstPanel.id, secondPanel, anchors, anchorOwners, ownerId,
       requiredAnchorIds,
       policy.minimumAnchorsPerPanelSide,
     );
     const secondAnchors = selectConnectorAnchors(
-      pair, secondPanel.id, firstPanel, anchors, usedAnchorIds,
+      pair, secondPanel.id, firstPanel, anchors, anchorOwners, ownerId,
       requiredAnchorIds,
       policy.minimumAnchorsPerPanelSide,
     );
@@ -814,6 +914,7 @@ export function createCandidateTruss(
       memberIds: cellMemberIds.sort(compareText),
       source: pair.source,
       panelDistanceMm: pair.distanceMm,
+      ...(junctionId ? { junctionId } : {}),
     });
   }
   const activeAnchorIds = new Set(

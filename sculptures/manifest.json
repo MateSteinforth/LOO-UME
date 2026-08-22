@@ -39,6 +39,12 @@
       "artifactStatus": "authoring-only"
     },
     {
+      "id": "structural-three-panel-junction-trial",
+      "name": "Structural Three-panel Local Junction",
+      "source": "./sculptures/structural-three-panel-junction/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
       "id": "panel-outline-prism-boundary-fixture",
       "name": "Panel-outline Prism Boundary Fixture",
       "source": "./sculptures/panel-outline-prism/sculpture.json",

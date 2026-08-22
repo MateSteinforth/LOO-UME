@@ -301,3 +301,8 @@ and portable project export after validation.
 The trial values are not measured mounting evidence. Replace the bench support,
 material, mass, and loads before physical use. The generated report is
 load-path guidance, not engineering certification.
+
+For a local merge trial, select **Structural Three-panel Local Junction**. Its
+two selected pair paths meet at one shared panel hole region and export as one
+watertight three-panel ribbon junction. This grouping is spatial. It does not
+merge every connected panel path in a trail.

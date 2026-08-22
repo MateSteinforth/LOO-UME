@@ -38,10 +38,31 @@ beforeAll(async () => {
 }, 60_000);
 
 describe("headless structural system pipeline", () => {
+  it("exports one STL and one 3MF object for a local three-panel junction", async () => {
+    const path = "sculptures/structural-three-panel-junction/sculpture.json";
+    const definition = parsePanelAssemblyDefinition(JSON.parse(await readFile(path, "utf8")));
+    const junctionResult = await runStructuralPipeline(
+      createPanelAssemblyProject(definition, path),
+    );
+
+    expect(junctionResult.candidate.connectorCells).toHaveLength(2);
+    expect(junctionResult.solids).toHaveLength(1);
+    expect(junctionResult.solids[0]!.kind).toBe("ribbon-junction");
+    expect(junctionResult.analysis.printable).toMatchObject({
+      parts: 1,
+      organicConnectors: 0,
+      multiPanelJunctions: 1,
+    });
+    expect(junctionResult.bundle.files.filter(({ role }) => role === "part")).toHaveLength(1);
+    expect(junctionResult.bundle.files.filter(({ role }) => role === "package")).toHaveLength(1);
+    expect(junctionResult.reportMarkdown).toContain("multi-panel ribbon junctions: 1");
+  });
+
   it("runs existing Schema 2 JSON through analysis, printable assets, reports, and a current manifest", () => {
     expect(result.optimization!.status).toBe("converged");
     expect(result.solids).toHaveLength(result.candidate.connectorCells.length);
     expect(result.solids.every(({ kind }) => kind === "organic-connector")).toBe(true);
+    expect(result.analysis.printable.multiPanelJunctions).toBe(0);
     expect(result.bundle.files).toHaveLength(result.solids.length + 6);
     expect(() => validateStructuralArtifactBundle(result.bundle)).not.toThrow();
     expect(result.generatedStructure.artifacts).toHaveLength(result.solids.length + 4);

@@ -25,7 +25,7 @@ poses and hardware profile:
 (no mechanics fields) ----------> complete pose-first interface, no CAD
 manualMechanics ----------------> verified wrappers around parts/*.scad
 mechanicalShell + closures -----> planar validation -> Manifold STL parts
-structuralDesign -> panel pairs + nearest holes -> Manifold ribbon parts
+structuralDesign -> panel pairs + local junction groups -> Manifold ribbon parts
                  \-> advisory truss analysis + optimization -> report
 ```
 
@@ -142,10 +142,10 @@ gates.
 | `catalog/` | Reusable panel dimensions, grid, holes, connectors, corrections, electrical facts | Hardware truth shared by projects |
 | `src/sculpture/PanelAssembly.ts` | Schema 2 parsing, pose compilation, face graph, LED geometry | Active model; poses remain authoritative |
 | `src/sculpture/StructuralDesign.ts` | Validate optional structural inputs and derive sorted panels, eligible anchors, supports, load points, warnings, and structural fingerprints | No second panel schema; blocked holes and GLB triangles are excluded |
-| `src/structure/CandidateTruss.ts` | Derive degree-limited local panel neighbors, reserve two anchors per panel-pair side, add connector hubs and collision-checked triangulated cells, then prove connectivity and local redundancy | Trail layouts use adjacent connector cells rather than long all-to-all members; explicit include/exclude overrides remain pose-derived |
+| `src/structure/CandidateTruss.ts` | Derive degree-limited local panel neighbors, group shared-panel connection regions within 70% of the smallest panel dimension, reserve anchors per independent cell or local junction, add connector hubs and collision-checked triangulated cells, then prove connectivity and local redundancy | Three or more panels can share screw shoes in one local junction; trail layouts keep independent adjacent cells; explicit include/exclude overrides remain pose-derived |
 | `src/structure/TrussSolver.ts` | Compile normalized supports and loads onto candidate hubs, assemble and solve the linear 3D axial stiffness model, and select governing member cases | Three translational DOFs per node; N/mm/MPa units; singular systems fail before results are published |
 | `src/structure/TrussOptimizer.ts` | Remove low-load or long-compression candidates, preserve redundant stable paths, round member diameters, reapply self-weight, and retain an objective trace | Bounded iterations report converged, infeasible, or iteration-limit status as advisory analysis; they do not authorize ribbon CAD |
-| `src/cad/GenerateStructuralSolids.ts` | Loft one broad cap-derived surface between the nearest eligible screw shoes of each candidate panel pair with Manifold | A short 6 mm cubic rear-normal departure keeps the ribbon near panel level; exact anchor, print-envelope, fastener, clearance, topology, triangle, and volume checks gate each mesh |
+| `src/cad/GenerateStructuralSolids.ts` | Loft broad cap-derived surfaces between nearest eligible screw shoes and Boolean-union co-located paths into one local multi-panel junction with Manifold | A short 6 mm cubic rear-normal departure keeps the ribbon near panel level; exact anchor, print-envelope, fastener, clearance, topology, triangle, and volume checks gate each final mesh |
 | `src/cad/CompileStructuralArtifacts.ts` | Serialize the exact structural meshes as deterministic binary STL parts, one assembly-preview STL, and one Core 3MF package | Millimetre units, stable identities, triangle counts, package relationships, hashes, and positive-octant build transform are validated in memory |
 | `src/cad/PublishStructuralArtifacts.ts` | Stage and exact-byte verify a complete structural artifact bundle, then replace its output directory atomically | A failed final promotion restores the previous validated directory; the manifest is written last in staging |
 | `src/structure/StructuralPipeline.ts` | Run normalization, candidate generation, independent ribbon CAD, advisory optimization, exact export, analysis JSON, report, and generated-structure manifest from one Schema 2 project | Singular or non-converged analysis becomes a prominent diagnostic without blocking valid CAD; geometry and artifact failures still stop publication |
