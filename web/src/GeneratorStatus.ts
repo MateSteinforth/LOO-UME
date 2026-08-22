@@ -15,6 +15,20 @@ type FetchGeneratorStatus = (
 const UNAVAILABLE_PREFIX =
   "Printable STL generation is unavailable because";
 
+const LOOPBACK_HOSTNAMES = new Set(["127.0.0.1", "::1", "[::1]", "localhost"]);
+
+function browserGenerationStatus(): GeneratorStatus {
+  return {
+    schemaVersion: "1.0.0",
+    available: true,
+    generator: "manifold",
+    supportedVersion: "3.5.1",
+    detectedVersion: "3.5.1",
+    message:
+      "In-browser Manifold 3.5.1 generation is ready. The loopback-only file-generation service is not used from this LAN address.",
+  };
+}
+
 function unavailable(message: string): GeneratorStatus {
   return {
     schemaVersion: "1.0.0",
@@ -69,7 +83,11 @@ function parseGeneratorStatus(input: unknown): GeneratorStatus {
 
 export async function loadGeneratorStatus(
   fetchStatus: FetchGeneratorStatus = fetch,
+  browserHostname: string | undefined = globalThis.location?.hostname,
 ): Promise<GeneratorStatus> {
+  if (browserHostname !== undefined && !LOOPBACK_HOSTNAMES.has(browserHostname)) {
+    return browserGenerationStatus();
+  }
   try {
     const response = await fetchStatus("./api/generator-status", {
       headers: { Accept: "application/json" },

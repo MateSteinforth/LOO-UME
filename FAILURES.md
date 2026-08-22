@@ -516,3 +516,39 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The translated `structural-two-panel-spatial-trial` headless and
   browser generation checks.
 - **Status:** Resolved.
+
+### F-029 — Browser generation must not depend on a loopback-only service
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-020 LAN review of the two-panel structural trial.
+- **Symptom:** The browser received HTTP 403 from `/api/generator-status`, and
+  the structural generation button did nothing because it was disabled.
+- **Cause:** The in-browser structural action was gated by the status of an
+  optional file-writing service that deliberately accepts loopback requests
+  only.
+- **Correction:** Keep browser-native structural generation independent of the
+  service status, and skip the service request on non-loopback browser hosts.
+- **Prevention:** Treat browser Manifold execution and the loopback file-writing
+  fallback as separate capabilities. Test LAN-host discovery without a fetch.
+- **Evidence:** `tests/generator-status.test.ts` and the structural browser
+  journey.
+- **Status:** Resolved.
+
+### F-030 — Verify a LAN preview by its project assets, not only its port
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-020 LAN preview restart in a host with concurrent agent
+  worktrees.
+- **Symptom:** A newly started Vite process reported port 4175 as ready, but the
+  laptop-facing port still served an older worktree and returned the SPA HTML
+  fallback for the new structural fixture path.
+- **Cause:** An older host process already owned the same LAN port while the new
+  process ran in a separate execution network context.
+- **Correction:** Preserve the unrelated process, select unused port 4181, and
+  verify the page, registry, and exact fixture through the LAN address.
+- **Prevention:** Before sharing a LAN URL, request one distinctive authored
+  asset and check its status and content type. A Vite ready message or page-only
+  HTTP 200 is insufficient in a concurrent-worktree environment.
+- **Evidence:** Port 4181 returns HTTP 200 with `application/json` for both the
+  sculpture registry and the two-panel structural fixture.
+- **Status:** Resolved.

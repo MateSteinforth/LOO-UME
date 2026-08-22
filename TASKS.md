@@ -609,6 +609,27 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Integration gate: explicit operator authorization is required before merge
   into `main`.
 
+### `TRUSS-020` Keep browser structural generation available on LAN preview
+
+- Outcome: the structural action uses the in-browser Manifold pipeline without
+  depending on the loopback-only file-generation service.
+- Acceptance: a LAN-hosted editor does not request the forbidden local status
+  endpoint; the two-panel spatial trial keeps its structural action enabled;
+  the loopback API security boundary remains unchanged.
+- Evidence: 10 focused status tests cover LAN bypass and explicit localhost,
+  IPv4, and IPv6 loopback hosts. The real Chromium structural journey forces
+  HTTP 503 from the optional service and still generates, previews, exports,
+  reopens, invalidates, and reports a singular solve correctly. TypeScript,
+  the production web build, and `git diff --check` pass. Independent review's
+  missing-browser-regression finding was corrected and passed re-review.
+- Depends on: `TRUSS-018` and `TRUSS-019`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, `FAILURES.md`, browser generator status and
+  orchestration, and generator-status/browser tests.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
 ## Done
 
 ### `CAD-030`–`CAD-036` Replace generic OpenSCAD generation with Manifold

@@ -29,9 +29,15 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     if (message.type() === "error") consoleErrors.push(message.text());
   });
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.route("**/api/generator-status", async (route) => {
+    await route.fulfill({ status: 503, contentType: "text/plain", body: "unavailable" });
+  });
 
   await page.goto("/");
   await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "local generator status request failed with HTTP 503",
+  );
   await page.locator("#sculpture-select").selectOption(
     "./sculptures/structural-two-panel-spatial/sculpture.json",
   );
@@ -161,5 +167,7 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   await expect(page.locator("#play-toggle")).toBeEnabled();
 
   expect(pageErrors).toEqual([]);
-  expect(consoleErrors).toEqual([]);
+  expect(consoleErrors).toEqual([
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+  ]);
 });

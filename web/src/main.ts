@@ -714,8 +714,7 @@ async function start(): Promise<void> {
         ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
         : "Put flat caps on the holes between panel outlines in the browser. Neighbouring corners must meet. The GLB is placement-only.";
       generateStructureButton.disabled =
-        editorDefinition.panels.length === 0 || editorDefinition.manualMechanics !== undefined ||
-        !pipelineAvailable;
+        editorDefinition.panels.length === 0 || editorDefinition.manualMechanics !== undefined;
       generateStructureButton.title = editorDefinition.manualMechanics
         ? "Structural generation is separate from physically tested manual mechanics."
         : "Analyze panel anchors and generate structural brackets, hubs, struts, STL, 3MF, and reports.";

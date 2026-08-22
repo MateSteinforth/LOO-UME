@@ -21,6 +21,28 @@ describe("local generator status discovery", () => {
     });
   });
 
+  it.each(["localhost", "127.0.0.1", "::1", "[::1]"])(
+    "keeps the local service status check on loopback host %s",
+    async (hostname) => {
+      const fetchStatus = vi.fn(async () => Response.json(READY));
+
+      await expect(loadGeneratorStatus(fetchStatus, hostname)).resolves.toEqual(READY);
+      expect(fetchStatus).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("uses browser generation on a LAN origin without requesting the loopback service", async () => {
+    const fetchStatus = vi.fn(async () => Response.json(READY));
+
+    await expect(loadGeneratorStatus(fetchStatus, "192.168.68.61"))
+      .resolves.toEqual({
+        ...READY,
+        message:
+          "In-browser Manifold 3.5.1 generation is ready. The loopback-only file-generation service is not used from this LAN address.",
+      });
+    expect(fetchStatus).not.toHaveBeenCalled();
+  });
+
   it("accepts an unavailable status and keeps its repair message", async () => {
     const status = {
       ...READY,
