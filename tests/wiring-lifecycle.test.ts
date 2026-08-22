@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { CANONICAL_SCULPTURE_PROJECT } from "../src/sculpture/Definition.ts";
 import {
   createInstalledAddressOptimizationFingerprint,
   createPanelAssemblyMapping,
@@ -173,7 +172,7 @@ describe("Schema 2 wiring lifecycle", () => {
     });
     const optimizationFingerprint = createInstalledAddressOptimizationFingerprint(
       definition,
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      projectFor(await loadManual()).project.panelProfile,
     );
     definition.panels.forEach((panel) => {
       panel.installedAddressTransform!.optimizationFingerprint = optimizationFingerprint;

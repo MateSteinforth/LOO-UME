@@ -1,18 +1,51 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  createPanelizedSculptureMapping,
   createUniformSphereMapping,
 } from "../web/src/LedMapping.ts";
 import {
   createProvisionalWiringPreview,
   validateWiringPreview,
 } from "../web/src/WiringPreview.ts";
-import { CANONICAL_SCULPTURE_PROJECT } from "../src/sculpture/Definition.ts";
+import {
+  createPanelAssemblyMapping,
+  createPanelAssemblyProject,
+} from "../src/sculpture/PanelAssembly.ts";
+
+function loadFixture() {
+  const source = "sculptures/rhombicosidodecahedron/sculpture.json";
+  const project = createPanelAssemblyProject(
+    JSON.parse(readFileSync(source, "utf8")),
+    source,
+  );
+  return { project, mapping: createPanelAssemblyMapping(project) };
+}
+
+function loadDraftFixture() {
+  const { project } = loadFixture();
+  const definition = structuredClone(project.sculpture);
+  definition.wiring.status = "provisional";
+  delete definition.wiring.routeRevision;
+  for (const output of definition.wiring.outputs) {
+    delete output.panelIds;
+    output.gpio = null;
+  }
+  for (const panel of definition.panels) {
+    if (panel.installedAddressTransform?.selectionMethod === "route-optimized") {
+      panel.installedAddressTransform.selectionMethod = "manual";
+      delete panel.installedAddressTransform.optimizationFingerprint;
+    }
+  }
+  const draftProject = createPanelAssemblyProject(definition, project.source);
+  return { project: draftProject, mapping: createPanelAssemblyMapping(draftProject) };
+}
 
 describe("provisional wiring preview", () => {
   it("creates four complete and continuous output routes", () => {
-    const mapping = createPanelizedSculptureMapping();
-    const preview = createProvisionalWiringPreview(mapping);
+    const { project, mapping } = loadDraftFixture();
+    const preview = createProvisionalWiringPreview(
+      mapping, project.sculpture, project.panelProfile,
+    );
 
     expect(validateWiringPreview(preview, mapping)).toEqual({
       valid: true,
@@ -92,22 +125,28 @@ describe("provisional wiring preview", () => {
   });
 
   it("rejects a mixed authored and draft route instead of applying the heuristic", () => {
-    const mapping = createPanelizedSculptureMapping();
-    const draft = createProvisionalWiringPreview(mapping);
-    const definition = structuredClone(CANONICAL_SCULPTURE_PROJECT.sculpture);
+    const { project, mapping } = loadDraftFixture();
+    const draft = createProvisionalWiringPreview(
+      mapping, project.sculpture, project.panelProfile,
+    );
+    const definition = structuredClone(project.sculpture);
     definition.wiring.outputs[0]!.panelIds = [
       ...draft.outputs[0]!.panelIds,
     ];
 
-    expect(() => createProvisionalWiringPreview(mapping, definition)).toThrow(
+    expect(() => createProvisionalWiringPreview(
+      mapping, definition, project.panelProfile,
+    )).toThrow(
       /every output/,
     );
 
-    const malformed = structuredClone(CANONICAL_SCULPTURE_PROJECT.sculpture);
+    const malformed = structuredClone(project.sculpture);
     for (const output of malformed.wiring.outputs) {
       (output as unknown as { panelIds: unknown }).panelIds = null;
     }
-    expect(() => createProvisionalWiringPreview(mapping, malformed)).toThrow(
+    expect(() => createProvisionalWiringPreview(
+      mapping, malformed, project.panelProfile,
+    )).toThrow(
       /every output/,
     );
   });

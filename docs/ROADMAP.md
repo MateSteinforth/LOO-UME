@@ -41,8 +41,8 @@ blocked by `PWR-010`.
 - Add correction tools only when a real ambiguous gap arrangement provides a
   concrete fixture.
 - Split `web/src/main.ts` only along covered behavior boundaries.
-- Isolate or retire the remaining Schema 1 mapping fixture after its migration
-  policy receives human review.
+- Keep Schema 2 as the only authored sculpture and mapping input. Historical
+  Schema 1 files remain available through Git history only.
 
 ## Product constraints
 

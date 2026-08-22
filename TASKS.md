@@ -113,16 +113,7 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## In Progress
 
-### `LEGACY-011` Retire remaining Schema 1 mapping dependencies — P1
-
-- Acceptance: preserve the authoritative 41-panel Schema 2 project; active
-  browser, CLI, tests, and docs no longer depend on the Schema 1 migration
-  fixture or procedural mapping path.
-- Owner: `codex/legacy-011-retire-schema1` in
-  `/tmp/led-rhombo-legacy-011`.
-- Conflict rule: TRUSS owns `PanelAssembly.ts`, the Schema 2 schema, project
-  registry, portable-project/browser structural paths, and its structural
-  subsystem. LEGACY-011 must not edit those paths before TRUSS integration.
+No tasks.
 
 ## Blocked
 
@@ -151,7 +142,20 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready to Merge
 
-No tasks.
+### `LEGACY-011` Retire remaining Schema 1 mapping dependencies — P1
+
+- Outcome: Schema 2 is the only active sculpture/mapping input; the old schema,
+  migration fixture/script, procedural mapper, and legacy-only tests are gone.
+- Preserved: the authoritative 41-panel Schema 2 JSON, panel map, and diagnostic
+  deployment artifacts are byte-identical.
+- Verification: 38 Vitest files / 224 tests, TypeScript build, Vite production
+  build, tracked-reference scan, hash comparison, and diff check pass.
+- Owner: `codex/legacy-011-retire-schema1` in
+  `/tmp/led-rhombo-legacy-011`.
+- Integration dependency: no TRUSS-owned implementation or documentation path
+  was changed. After TRUSS integration, remove its stale Schema 1 statements
+  from `AGENTS.md` and `docs/ARCHITECTURE.md`, then reconcile this shared board
+  entry before LEGACY-011 becomes Done.
 
 ## Done
 

@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CANONICAL_SCULPTURE_PROJECT } from "../src/sculpture/Definition.ts";
 import {
   calculateAuthoredRouteCableLength,
   optimizeInstalledAddressTransforms,
@@ -17,6 +16,11 @@ function loadManual() {
     "utf8",
   )));
 }
+
+const PANEL_PROFILE = createPanelAssemblyProject(
+  loadManual(),
+  "sculptures/rhombicosidodecahedron/sculpture.json",
+).panelProfile;
 
 function withIdentityTransforms<T extends ReturnType<typeof loadManual>>(definition: T): T {
   const identity = structuredClone(definition);
@@ -37,7 +41,7 @@ describe("installed address transform optimizer", () => {
     const sourceSnapshot = structuredClone(source);
     const optimized = optimizeInstalledAddressTransforms(
       source,
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     );
 
     expect(source).toEqual(sourceSnapshot);
@@ -47,15 +51,15 @@ describe("installed address transform optimizer", () => {
     );
     expect(calculateAuthoredRouteCableLength(
       optimized,
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     )).toBeLessThanOrEqual(calculateAuthoredRouteCableLength(
       withIdentityTransforms(source),
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     ));
     expect(optimized.panels).toHaveLength(41);
     const optimizationFingerprint = createInstalledAddressOptimizationFingerprint(
       optimized,
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     );
     expect(optimized.panels.every((panel) =>
       panel.installedAddressTransform?.status === "assumed" &&
@@ -72,11 +76,11 @@ describe("installed address transform optimizer", () => {
     const source = loadManual();
     const first = optimizeInstalledAddressTransforms(
       source,
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     );
     const second = optimizeInstalledAddressTransforms(
       source,
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     );
 
     expect(first).toEqual(second);
@@ -108,7 +112,7 @@ describe("installed address transform optimizer", () => {
   it("rejects route-optimized transforms after direct route or pose edits", () => {
     const optimized = optimizeInstalledAddressTransforms(
       loadManual(),
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     );
     const routeChanged = structuredClone(optimized);
     [routeChanged.wiring.outputs[0]!.panelIds![0], routeChanged.wiring.outputs[0]!.panelIds![1]] = [
@@ -118,7 +122,7 @@ describe("installed address transform optimizer", () => {
     expect(() => createPanelAssemblyProject(
       routeChanged,
       "sculptures/rhombicosidodecahedron/sculpture.json",
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     )).toThrow(
       /current optimization fingerprint/,
     );
@@ -128,12 +132,12 @@ describe("installed address transform optimizer", () => {
     expect(() => createPanelAssemblyProject(
       poseChanged,
       "sculptures/rhombicosidodecahedron/sculpture.json",
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     )).toThrow(
       /current optimization fingerprint/,
     );
 
-    const profileChanged = structuredClone(CANONICAL_SCULPTURE_PROJECT.panelProfile);
+    const profileChanged = structuredClone(PANEL_PROFILE);
     profileChanged.dimensions.width += 1;
     expect(() => createPanelAssemblyProject(
       optimized,
@@ -170,7 +174,7 @@ describe("installed address transform optimizer", () => {
 
     const optimized = optimizeInstalledAddressTransforms(
       definition,
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     );
     expect(optimized.panels.map((panel) =>
       panel.installedAddressTransform!.quarterTurnsClockwise
@@ -206,7 +210,7 @@ describe("installed address transform optimizer", () => {
             exhaustive,
             calculateAuthoredRouteCableLength(
               candidate,
-              CANONICAL_SCULPTURE_PROJECT.panelProfile,
+              PANEL_PROFILE,
             ),
           );
         }
@@ -214,11 +218,11 @@ describe("installed address transform optimizer", () => {
     }
     const optimized = optimizeInstalledAddressTransforms(
       definition,
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     );
     expect(calculateAuthoredRouteCableLength(
       optimized,
-      CANONICAL_SCULPTURE_PROJECT.panelProfile,
+      PANEL_PROFILE,
     )).toBeCloseTo(exhaustive, 9);
   });
 });
