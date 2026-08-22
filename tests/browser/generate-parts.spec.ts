@@ -36,8 +36,7 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   delete source.generatedMechanics;
 
   await page.goto("/");
-  await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
-  await expect(page.locator("#surface-status")).toContainText("watertight");
+  await expect(page.locator("#pipeline-status")).toContainText("watertight");
   await expect(page.locator("#automatically-place-panels")).toBeEnabled();
 
   await page.locator(".action-menu").first().locator("summary").click();
@@ -49,38 +48,18 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded panel-outline-prism.json",
   );
-  await expect(page.locator("#panel-count-display")).toHaveText("4");
-  await expect(page.locator("#mapping-note")).toContainText(
-    "No printable mechanics exist yet",
-  );
+  await expect(page.locator(".route-panel")).toHaveCount(4);
   await expect(page.locator("#assembly-package")).toHaveText(
     "Build assembly package",
   );
   await expect(page.locator("#assembly-package")).toBeEnabled();
-  await page.locator(".export-menu > summary").click();
-  const draftManualPromise = page.waitForEvent("download");
-  await page.locator("#open-wiring-manual").click();
-  const draftManualPath = await (await draftManualPromise).path();
-  if (!draftManualPath) {
-    throw new Error("The browser did not expose the draft assembly manual.");
-  }
-  const draftManual = await readFile(draftManualPath, "utf8");
-  expect(draftManual).toContain("DRAFT SUGGESTION");
-  expect(draftManual).toContain("GPIO unassigned");
-  expect(draftManual).toContain(
-    "Not route-optimized; current assumed turns are shown",
-  );
-  await expect(page.locator("#pipeline-status")).toContainText(
-    "Downloaded panel-outline-prism-boundary-fixture-assembly-manual.html",
-  );
+  await expect(page.locator(".export-menu, #open-wiring-manual, #generate-mapping"))
+    .toHaveCount(0);
 
   await page.locator("#assembly-package").click();
   await expect(page.locator("#assembly-package")).toHaveText(
     "Download assembly package",
     { timeout: 120_000 },
-  );
-  await expect(page.locator("#mapping-note")).not.toContainText(
-    "No printable mechanics exist yet",
   );
 
   const packagePromise = page.waitForEvent("download");

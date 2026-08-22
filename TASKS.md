@@ -175,7 +175,16 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `UI-019` Simplify controls and unify operator messages
+
+- Outcome: remove the performance overlay and individual-file export menu;
+  move display, rotation, label, printable-layer, and GLB-scale controls into
+  Advanced Tools; show operator messages in one activity log.
+- Acceptance: no duplicate visible status windows or removed controls remain;
+  existing project, route, surface, mapping, and assembly actions report in the
+  shared log; unit, TypeScript, build, and five browser journeys pass.
+- Owner: branch `codex/ui-019-simplify-controls`; worktree
+  `/tmp/led-rhombo-ui019`.
 
 ## Done
 

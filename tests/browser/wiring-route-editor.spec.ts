@@ -26,8 +26,7 @@ async function readJsonDownload(download: Download): Promise<Record<string, unkn
 test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   test.setTimeout(240_000);
   await page.goto("/");
-  await expect(page.locator("#engine-status")).toContainText("WLED effects ready");
-  await expect(page.locator("#surface-status")).toContainText(
+  await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );
 
@@ -76,7 +75,7 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
     .getAttribute("data-panel-id");
   if (!selectedPanelId) throw new Error("The first route row has no panel ID.");
   await page.locator(".route-panel").first().click();
-  await expect(page.locator("#selected-panel-status")).toContainText(
+  await expect(page.locator("#pipeline-status")).toContainText(
     `Selected ${selectedPanelId}`,
   );
   await expect(page.getByRole("button", {
@@ -86,6 +85,9 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
 
   await page.locator("#route-action").click();
   await expect(page.locator("#route-action")).toHaveText("Save route");
+  await expect(page.locator("#pipeline-status")).toHaveText(
+    "Route is complete. Save route revision 1.",
+  );
   const firstOutputSelect = page.locator(".route-panel select").first();
   const nestedSpaceWasNotCancelled = await firstOutputSelect.evaluate((element) =>
     element.dispatchEvent(new KeyboardEvent("keydown", {
