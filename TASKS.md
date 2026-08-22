@@ -86,17 +86,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `WIRE-012` Unify browser and CLI export policy — P0
-
-- Outcome: draft data produces explicit diagnostic artifacts; an installation
-  bundle requires current mapping-ready inputs and binds ledmap, bus config,
-  route/mapping manifest, source/artifact hashes, target/build identity, and
-  current-limit data.
-- Acceptance: shared policy, browser/CLI byte equivalence, portable reopen, and
-  draft/stale/tamper negative tests.
-- Depends on: completed route, lifecycle, transform, GPIO, and WLED deployment
-  contracts. Electrical approval remains separate.
-
 ### `BUILD-010` Separate WLED simulator generation from main — P1
 
 - Outcome: normal `main` use and verification keep the checked-in simulator but
@@ -130,7 +119,20 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## In Progress
 
-No tasks.
+### `WIRE-012` Unify browser and CLI export policy — P0
+
+- Outcome: draft data produces explicit diagnostic artifacts; an installation
+  bundle requires current mapping-ready inputs and binds ledmap, bus config,
+  route/mapping manifest, source/artifact hashes, target/build identity, and
+  current-limit data.
+- Acceptance: shared policy, browser/CLI byte equivalence, portable reopen, and
+  draft/stale/tamper negative tests.
+- Depends on: completed route, lifecycle, transform, GPIO, and WLED deployment
+  contracts. Electrical approval remains separate.
+- Owner: `codex/wire-012-deployment` in `/tmp/led-rhombo-wire-012`.
+- Conflict risk: `web/src/main.ts`, `web/src/AssemblyPackage.ts`,
+  `scripts/generate-mapping.ts`, `src/wled/DeploymentContract.ts`, related
+  tests, and this task board. Do not overlap TRUSS files or its worktree.
 
 ## Blocked
 
