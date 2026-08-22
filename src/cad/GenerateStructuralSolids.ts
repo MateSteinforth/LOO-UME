@@ -3,13 +3,18 @@ import type {
   NormalizedStructuralDesign,
   StructuralVector,
 } from "../sculpture/StructuralDesign.ts";
-import type { CandidateTrussMember, CandidateTrussNode } from "../structure/CandidateTruss.ts";
+import type {
+  CandidateConnectorCell,
+  CandidateTrussMember,
+  CandidateTrussNode,
+} from "../structure/CandidateTruss.ts";
 import { validateCandidateTruss } from "../structure/CandidateTruss.ts";
 import type { TrussOptimizationResult } from "../structure/TrussOptimizer.ts";
 import { loadManifoldRuntime } from "./ManifoldRuntime.ts";
 
 const EPSILON_MM = 0.03;
 const CIRCULAR_SEGMENTS = 32;
+const MAXIMUM_STRUT_SEGMENTS = 256;
 
 export interface StructuralGeometryPolicy {
   schemaVersion: "1.0.0";
@@ -45,7 +50,7 @@ export interface StructuralSolidProbe {
 
 export interface StructuralSolidMesh {
   partId: string;
-  kind: "panel-bracket" | "strut";
+  kind: "connector-bracket" | "strut-segment" | "splice-sleeve";
   status: string;
   volumeCubicMm: number;
   numTri: number;
@@ -54,7 +59,11 @@ export interface StructuralSolidMesh {
   vertProperties: Float32Array;
   triVerts: Uint32Array;
   panelId?: string;
+  panelIds?: [string, string];
+  connectorCellId?: string;
   memberId?: string;
+  segmentIndex?: number;
+  segmentCount?: number;
   anchorIds: string[];
   anchorCentersMm: StructuralSolidProbe[];
   printedPilotDiameterMm?: number;
@@ -368,6 +377,7 @@ function buildHubRadii(
 ): Map<string, number> {
   const radii = new Map(nodes.map((node) => [node.id, STRUCTURAL_GEOMETRY_POLICY.hubMinimumRadiusMm]));
   for (const member of members) {
+    if (member.analysisOnly) continue;
     const radius = member.initialDiameterMm / 2 + STRUCTURAL_GEOMETRY_POLICY.minimumWallMm;
     radii.set(member.startNodeId, Math.max(radii.get(member.startNodeId) ?? 0, radius));
     radii.set(member.endNodeId, Math.max(radii.get(member.endNodeId) ?? 0, radius));
@@ -375,17 +385,20 @@ function buildHubRadii(
   return radii;
 }
 
-function buildPanelBracket(
+function buildConnectorBracket(
   wasm: ManifoldToplevel,
   normalized: NormalizedStructuralDesign,
   optimized: TrussOptimizationResult,
-  panelId: string,
+  cell: CandidateConnectorCell,
+  sideIndex: 0 | 1,
   hubRadii: Map<string, number>,
 ): StructuralSolidMesh {
   const candidate = optimized.optimizedCandidate;
+  const panelId = cell.panelIds[sideIndex];
   const panel = normalized.panels.find(({ id }) => id === panelId)!;
-  const attachment = candidate.panelAttachments.find((item) => item.panelId === panelId)!;
-  const nodes = attachment.hubNodeIds.map((id) => candidate.nodes.find((node) => node.id === id)!);
+  const anchorIds = cell.panelAnchorIds[sideIndex];
+  const nodes = cell.sideNodeIds[sideIndex]
+    .map((id) => candidate.nodes.find((node) => node.id === id)!);
   const nodeById = new Map(candidate.nodes.map((node) => [node.id, node]));
   const memberById = new Map(candidate.members.map((member) => [member.id, member]));
   const positives: Manifold[] = [];
@@ -398,6 +411,7 @@ function buildPanelBracket(
   for (const node of nodes) {
     const hubRadius = hubRadii.get(node.id)!;
     positives.push(translatedSphere(wasm, node.positionMm, hubRadius));
+    if (node.anchorId === undefined || !anchorIds.includes(node.anchorId)) continue;
     const bracket = candidate.brackets.find((item) => item.hubNodeId === node.id)!;
     const anchor = normalized.anchors.find(({ id }) => id === bracket.anchorId)!;
     const inward = normalize(subtract(bracket.hubPositionMm, bracket.anchorPositionMm));
@@ -454,7 +468,7 @@ function buildPanelBracket(
     screwHoleCentersMm.push(probe(scale(add(mountPosition, screwEnd), 0.5)));
     nutTrapCentersMm.push(probe(add(nutStart, scale(inward, STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm / 2))));
   }
-  for (const memberId of attachment.localTieMemberIds) {
+  for (const memberId of cell.bracketTieMemberIds[sideIndex]) {
     const member = memberById.get(memberId);
     if (!member) throw new Error(`Panel ${panelId} is missing required local tie ${memberId}.`);
     const start = nodeById.get(member.startNodeId)!;
@@ -467,9 +481,9 @@ function buildPanelBracket(
       member.initialDiameterMm / 2,
     ));
   }
-  for (const member of candidate.members.filter(({ kind }) => kind === "inter-panel")) {
-    const isStart = attachment.hubNodeIds.includes(member.startNodeId);
-    const isEnd = attachment.hubNodeIds.includes(member.endNodeId);
+  for (const member of candidate.members.filter(({ id }) => cell.memberIds.includes(id))) {
+    const isStart = cell.sideNodeIds[sideIndex].includes(member.startNodeId);
+    const isEnd = cell.sideNodeIds[sideIndex].includes(member.endNodeId);
     if (!isStart && !isEnd) continue;
     const node = nodeById.get(isStart ? member.startNodeId : member.endNodeId)!;
     const other = nodeById.get(isStart ? member.endNodeId : member.startNodeId)!;
@@ -511,7 +525,7 @@ function buildPanelBracket(
       scale(inward, normalized.design.fabrication.bracketOffsetMm),
     )));
   }
-  const firstTie = memberById.get([...attachment.localTieMemberIds].sort()[0]!)!;
+  const firstTie = memberById.get([...cell.bracketTieMemberIds[sideIndex]].sort()[0]!)!;
   const firstTieStart = nodeById.get(firstTie.startNodeId)!;
   const firstTieEnd = nodeById.get(firstTie.endNodeId)!;
   const markBase = scale(add(firstTieStart.positionMm, firstTieEnd.positionMm), 0.5);
@@ -522,12 +536,15 @@ function buildPanelBracket(
   const positive = unionAll(wasm, positives);
   const solid = subtractCutters(wasm, positive, cutters);
   try {
-    assertAvoidsPanelEnvelopes(wasm, solid, normalized, `panel-bracket:${panelId}`);
+    const partId = `connector-bracket:${cell.panelIds.join("--")}:side:${panelId}`;
+    assertAvoidsPanelEnvelopes(wasm, solid, normalized, partId);
     return meshFromSolid(solid, {
-      partId: `panel-bracket:${panelId}`,
-      kind: "panel-bracket",
+      partId,
+      kind: "connector-bracket",
       panelId,
-      anchorIds: [...attachment.anchorIds],
+      panelIds: [...cell.panelIds],
+      connectorCellId: cell.id,
+      anchorIds: [...anchorIds],
       anchorCentersMm,
       printedPilotDiameterMm: normalized.anchors[0]?.printedPilotDiameterMm,
       holeEdgeCorrectionMm: normalized.anchors[0]?.holeEdgeCorrectionMm,
@@ -558,6 +575,9 @@ function buildStrut(
   const nodeById = new Map(optimized.optimizedCandidate.nodes.map((node) => [node.id, node]));
   const startNode = nodeById.get(member.startNodeId)!;
   const endNode = nodeById.get(member.endNodeId)!;
+  const cell = optimized.optimizedCandidate.connectorCells.find(
+    ({ id }) => id === member.connectorCellId,
+  )!;
   const direction = normalize(subtract(endNode.positionMm, startNode.positionMm));
   const startHubRadius = hubRadii.get(startNode.id)!;
   const endHubRadius = hubRadii.get(endNode.id)!;
@@ -633,8 +653,12 @@ function buildStrut(
       assertAvoidsPanelEnvelopes(wasm, solid, normalized, `strut:${member.id}`);
       return meshFromSolid(solid, {
       partId: `strut:${member.id}`,
-      kind: "strut",
+      kind: "strut-segment",
+      panelIds: [...cell.panelIds],
+      connectorCellId: cell.id,
       memberId: member.id,
+      segmentIndex: 1,
+      segmentCount: 1,
       anchorIds: [],
       anchorCentersMm: [],
       screwHoleCentersMm: [],
@@ -649,6 +673,168 @@ function buildStrut(
   } catch (error) {
     dispose(localParts);
     throw error;
+  }
+}
+
+function buildSegmentedStrut(
+  wasm: ManifoldToplevel,
+  normalized: NormalizedStructuralDesign,
+  optimized: TrussOptimizationResult,
+  member: CandidateTrussMember,
+  hubRadii: Map<string, number>,
+): StructuralSolidMesh[] {
+  const candidate = optimized.optimizedCandidate;
+  const nodeById = new Map(candidate.nodes.map((node) => [node.id, node]));
+  const startNode = nodeById.get(member.startNodeId)!;
+  const endNode = nodeById.get(member.endNodeId)!;
+  const direction = normalize(subtract(endNode.positionMm, startNode.positionMm));
+  const startHubRadius = hubRadii.get(startNode.id)!;
+  const endHubRadius = hubRadii.get(endNode.id)!;
+  const bodyStart = add(startNode.positionMm, scale(
+    direction,
+    startHubRadius + STRUCTURAL_GEOMETRY_POLICY.socketBossExtensionMm,
+  ));
+  const bodyEnd = add(endNode.positionMm, scale(
+    direction,
+    -endHubRadius - STRUCTURAL_GEOMETRY_POLICY.socketBossExtensionMm,
+  ));
+  const startTenon = add(
+    bodyStart,
+    scale(direction, -STRUCTURAL_GEOMETRY_POLICY.socketDepthMm -
+      STRUCTURAL_GEOMETRY_POLICY.socketBossExtensionMm + EPSILON_MM),
+  );
+  const endTenon = add(
+    bodyEnd,
+    scale(direction, STRUCTURAL_GEOMETRY_POLICY.socketDepthMm +
+      STRUCTURAL_GEOMETRY_POLICY.socketBossExtensionMm - EPSILON_MM),
+  );
+  const totalLengthMm = distance(startTenon, endTenon);
+  const maximumSegmentLengthMm = normalized.connectorization.maximumStrutSegmentLengthMm;
+  if (totalLengthMm <= maximumSegmentLengthMm + 1e-9) {
+    return [buildStrut(wasm, normalized, optimized, member, hubRadii)];
+  }
+  const cell = candidate.connectorCells.find(({ id }) => id === member.connectorCellId)!;
+  const segmentCount = Math.ceil(totalLengthMm / maximumSegmentLengthMm);
+  if (!Number.isSafeInteger(segmentCount) || segmentCount > MAXIMUM_STRUT_SEGMENTS) {
+    throw new Error(
+      `Structural member ${member.id} requires ${segmentCount} segments; the safe limit is ` +
+      `${MAXIMUM_STRUT_SEGMENTS}. Increase maximumStrutSegmentLengthMm or shorten the connector.`,
+    );
+  }
+  const segmentLengthMm = totalLengthMm / segmentCount;
+  const radiusMm = member.initialDiameterMm / 2;
+  const parts: StructuralSolidMesh[] = [];
+  for (let index = 0; index < segmentCount; index += 1) {
+    const segmentStart = add(startTenon, scale(direction, segmentLengthMm * index));
+    const segmentEnd = index === segmentCount - 1
+      ? endTenon
+      : add(startTenon, scale(direction, segmentLengthMm * (index + 1)));
+    const solids: Manifold[] = [cylinderAlong(
+      wasm,
+      segmentStart,
+      segmentEnd,
+      radiusMm,
+      radiusMm,
+    )];
+    if (index === 0) {
+      solids.push(cylinderAlong(
+        wasm,
+        add(segmentStart, scale(direction, 0.3)),
+        add(segmentStart, scale(direction, 1.3)),
+        radiusMm + 0.65,
+        radiusMm + 0.65,
+        3,
+      ));
+    }
+    const solid = unionAll(wasm, solids);
+    const partId = `strut:${member.id}:segment:${String(index + 1).padStart(2, "0")}-of-${String(segmentCount).padStart(2, "0")}`;
+    try {
+      assertAvoidsPanelEnvelopes(wasm, solid, normalized, partId);
+      parts.push(meshFromSolid(solid, {
+        partId,
+        kind: "strut-segment",
+        panelIds: [...cell.panelIds],
+        connectorCellId: cell.id,
+        memberId: member.id,
+        segmentIndex: index + 1,
+        segmentCount,
+        anchorIds: [],
+        anchorCentersMm: [],
+        screwHoleCentersMm: [],
+        nutTrapCentersMm: [],
+        cableClearanceCentersMm: [],
+        socketCentersMm: [probe(segmentStart), probe(segmentEnd)],
+        ...(index === 0
+          ? { orientationMarkCenterMm: probe(add(segmentStart, scale(direction, 0.8))) }
+          : {}),
+      }));
+    } finally {
+      solid.delete();
+    }
+  }
+  const sleeveDepthMm = Math.max(6, 1.5 * member.initialDiameterMm);
+  for (let index = 1; index < segmentCount; index += 1) {
+    const joint = add(startTenon, scale(direction, segmentLengthMm * index));
+    const sleeveStart = add(joint, scale(direction, -sleeveDepthMm));
+    const sleeveEnd = add(joint, scale(direction, sleeveDepthMm));
+    const outer = cylinderAlong(
+      wasm,
+      sleeveStart,
+      sleeveEnd,
+      radiusMm + STRUCTURAL_GEOMETRY_POLICY.socketRadialClearanceMm +
+        STRUCTURAL_GEOMETRY_POLICY.minimumWallMm,
+    );
+    const bore = cylinderAlong(
+      wasm,
+      add(sleeveStart, scale(direction, -EPSILON_MM)),
+      add(sleeveEnd, scale(direction, EPSILON_MM)),
+      radiusMm + STRUCTURAL_GEOMETRY_POLICY.socketRadialClearanceMm,
+    );
+    const sleeve = outer.subtract(bore);
+    outer.delete();
+    bore.delete();
+    const partId = `sleeve:${member.id}:joint:${String(index).padStart(2, "0")}`;
+    try {
+      assertAvoidsPanelEnvelopes(wasm, sleeve, normalized, partId);
+      parts.push(meshFromSolid(sleeve, {
+        partId,
+        kind: "splice-sleeve",
+        panelIds: [...cell.panelIds],
+        connectorCellId: cell.id,
+        memberId: member.id,
+        segmentIndex: index,
+        segmentCount: segmentCount - 1,
+        anchorIds: [],
+        anchorCentersMm: [],
+        screwHoleCentersMm: [],
+        nutTrapCentersMm: [],
+        cableClearanceCentersMm: [],
+        socketCentersMm: [probe(joint)],
+        orientationMarkCenterMm: probe(joint),
+      }));
+    } finally {
+      sleeve.delete();
+    }
+  }
+  return parts;
+}
+
+function assertFitsPrintBed(
+  mesh: StructuralSolidMesh,
+  normalized: NormalizedStructuralDesign,
+): void {
+  const extents = mesh.boundingBoxMm.max
+    .map((value, axis) => value - mesh.boundingBoxMm.min[axis]!)
+    .sort((left, right) => left - right);
+  const available = normalized.connectorization.printBedSizeMm
+    .map((value) => value - 2 * normalized.connectorization.printBedMarginMm)
+    .sort((left, right) => left - right);
+  if (extents.some((extent, axis) => extent > available[axis]! + 1e-5)) {
+    throw new Error(
+      `Structural part ${mesh.partId} does not fit the configured print bed after margins: ` +
+      `${extents.map((value) => value.toFixed(2)).join(" x ")} mm requires no more than ` +
+      `${available.map((value) => value.toFixed(2)).join(" x ")} mm after rotation.`,
+    );
   }
 }
 
@@ -671,12 +857,14 @@ export async function buildStructuralSolids(
   const candidate = optimized.optimizedCandidate;
   const hubRadii = buildHubRadii(candidate.nodes, candidate.members);
   const parts: StructuralSolidMesh[] = [];
-  for (const panel of normalized.panels) {
-    parts.push(buildPanelBracket(wasm, normalized, optimized, panel.id, hubRadii));
+  for (const cell of candidate.connectorCells) {
+    parts.push(buildConnectorBracket(wasm, normalized, optimized, cell, 0, hubRadii));
+    parts.push(buildConnectorBracket(wasm, normalized, optimized, cell, 1, hubRadii));
   }
   for (const member of candidate.members.filter(({ kind }) => kind === "inter-panel")) {
-    parts.push(buildStrut(wasm, normalized, optimized, member, hubRadii));
+    parts.push(...buildSegmentedStrut(wasm, normalized, optimized, member, hubRadii));
   }
+  for (const part of parts) assertFitsPrintBed(part, normalized);
   return parts;
 }
 

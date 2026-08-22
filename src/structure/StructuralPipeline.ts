@@ -43,6 +43,8 @@ export interface StructuralPipelineMemberResult {
   eulerBucklingCapacityNewtons: number;
   bucklingUtilization: number;
   governingLoadCaseId: string;
+  connectorCellId?: string;
+  analysisOnly: boolean;
 }
 
 export interface StructuralAnalysisDocument {
@@ -56,6 +58,7 @@ export interface StructuralAnalysisDocument {
   assumptions: string[];
   warnings: NormalizedStructuralDesign["warnings"];
   design: NormalizedStructuralDesign["design"];
+  connectorization: NormalizedStructuralDesign["connectorization"];
   supports: NormalizedStructuralDesign["supports"];
   loadCases: NormalizedStructuralDesign["loadCases"];
   candidate: {
@@ -63,6 +66,14 @@ export interface StructuralAnalysisDocument {
     initialMembers: number;
     rejectedMembers: number;
     retainedMembers: number;
+    connectorCells: number;
+  };
+  printable: {
+    parts: number;
+    connectorBrackets: number;
+    strutSegments: number;
+    spliceSleeves: number;
+    splitMembers: number;
   };
   optimization: {
     status: TrussOptimizationResult["status"];
@@ -115,6 +126,14 @@ function canonicalDesign(
   for (const support of result.supports) support.constrainedTranslations.sort(compareText);
   result.supports.sort((left, right) => compareText(left.id, right.id));
   result.loads.sort((left, right) => compareText(left.id, right.id));
+  if (result.connectorization) {
+    for (const override of result.connectorization.panelPairOverrides) {
+      override.panelIds.sort(compareText);
+    }
+    result.connectorization.panelPairOverrides.sort((left, right) =>
+      compareText(left.panelIds.join("\u0000"), right.panelIds.join("\u0000"))
+    );
+  }
   return result;
 }
 
@@ -127,6 +146,13 @@ function canonicalDefinition(definition: PanelAssemblyDefinition): PanelAssembly
     }
     result.structuralDesign.supports.sort((left, right) => compareText(left.id, right.id));
     result.structuralDesign.loads.sort((left, right) => compareText(left.id, right.id));
+    result.structuralDesign.connectorization?.panelPairOverrides.sort((left, right) =>
+      compareText([...left.panelIds].sort(compareText).join("\u0000"),
+        [...right.panelIds].sort(compareText).join("\u0000"))
+    );
+    for (const override of result.structuralDesign.connectorization?.panelPairOverrides ?? []) {
+      override.panelIds.sort(compareText);
+    }
   }
   return result;
 }
@@ -139,6 +165,8 @@ function assumptions(normalized: NormalizedStructuralDesign): string[] {
     : "Connector clearance follows the resolved panel-profile evidence.";
   return [
     "Panels are rigid load-transfer plates between their eligible mounting anchors.",
+    "Panel-rigidity nodes and ties represent PCB/bracket plate stiffness for analysis only; they are not extra printable struts.",
+    "Each printable connector cell joins one neighboring panel pair through two screw anchors per side and a triangulated bracket hub.",
     "Members are straight, pin-jointed, linearly elastic axial truss elements with three translational node degrees of freedom.",
     "Euler compression capacity uses a pinned-pinned end condition and the optimized circular section.",
     "Face loads are distributed across panel hubs; corner and cable loads use the nearest eligible hub as a rigid-bracket approximation.",
@@ -172,6 +200,10 @@ function enrichedMembers(optimization: TrussOptimizationResult): StructuralPipel
       eulerBucklingCapacityNewtons: governing.eulerBucklingCapacityNewtons,
       bucklingUtilization: governing.bucklingUtilization,
       governingLoadCaseId: member.governingLoadCaseId,
+      analysisOnly: candidate.analysisOnly === true,
+      ...(candidate.connectorCellId
+        ? { connectorCellId: candidate.connectorCellId }
+        : {}),
     };
   }).sort((left, right) => compareText(left.memberId, right.memberId));
 }
@@ -188,6 +220,7 @@ function analysisDocument(
   candidate: CandidateTruss,
   optimization: TrussOptimizationResult,
   printFiles: StructuralArtifactFile[],
+  solids: StructuralSolidMesh[],
 ): StructuralAnalysisDocument {
   return {
     schemaVersion: "1.0.0",
@@ -200,7 +233,9 @@ function analysisDocument(
     assumptions: assumptions(normalized),
     warnings: structuredClone(normalized.warnings),
     design: canonicalDesign(normalized.design),
+    connectorization: structuredClone(normalized.connectorization),
     supports: structuredClone(normalized.supports)
+      .filter(({ anchorId }) => candidate.anchors.some(({ id }) => id === anchorId))
       .sort((left, right) => compareText(left.id, right.id)),
     loadCases: structuredClone(normalized.loadCases)
       .sort((left, right) => compareText(left.id, right.id)),
@@ -209,6 +244,15 @@ function analysisDocument(
       initialMembers: candidate.members.length,
       rejectedMembers: candidate.rejectedMembers.length,
       retainedMembers: optimization.optimizedCandidate.members.length,
+      connectorCells: candidate.connectorCells.length,
+    },
+    printable: {
+      parts: solids.length,
+      connectorBrackets: solids.filter(({ kind }) => kind === "connector-bracket").length,
+      strutSegments: solids.filter(({ kind }) => kind === "strut-segment").length,
+      spliceSleeves: solids.filter(({ kind }) => kind === "splice-sleeve").length,
+      splitMembers: new Set(solids.filter(({ segmentCount }) => (segmentCount ?? 1) > 1)
+        .map(({ memberId }) => memberId)).size,
     },
     optimization: {
       status: optimization.status,
@@ -261,8 +305,18 @@ function report(
     `- Panel mass: ${finite(analysis.design.panelMassKg)} kg each`,
     `- Optimized material: ${finite(analysis.optimization.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.optimization.materialMassKg, 5)} kg`,
     `- Candidate members: ${analysis.candidate.initialMembers}; retained: ${analysis.candidate.retainedMembers}`,
+    `- Local panel-pair connectors: ${analysis.candidate.connectorCells}`,
+    `- Printable parts: ${analysis.printable.parts}; two-hole brackets: ${analysis.printable.connectorBrackets}; strut segments: ${analysis.printable.strutSegments}; splice sleeves: ${analysis.printable.spliceSleeves}`,
+    `- Split members: ${analysis.printable.splitMembers}`,
+    `- Print envelope: ${analysis.connectorization.printBedSizeMm.join(" × ")} mm with ${finite(analysis.connectorization.printBedMarginMm)} mm margin`,
     "",
   ];
+  if (analysis.printable.splitMembers > 0) {
+    lines.push(
+      `> **PRINT SPLIT WARNING: ${analysis.printable.splitMembers} MEMBER(S) EXCEED THE CONFIGURED SEGMENT LENGTH AND REQUIRE NUMBERED SEGMENTS PLUS SPLICE SLEEVES.**`,
+      "",
+    );
+  }
   if (normalized.supports.some(({ source }) => source === "preview-reference-panel")) {
     lines.push(
       "> **MOUNTING WARNING: NO REAL SUPPORT WAS AUTHORED. THE REFERENCE PANEL IS FIXED FOR PREVIEW ONLY. ANALYSIS REQUIRES REAL MOUNTING CONDITIONS.**",
@@ -297,12 +351,12 @@ function report(
     "",
     "Stress utilization includes the configured safety factor. Euler buckling utilization is approximate and uses a pinned-pinned compression member.",
     "",
-    "| Member | Length (mm) | Diameter (mm) | State | Axial force (N) | Stress (MPa) | Stress util. | Euler capacity (N) | Buckling util. | Governing case |",
-    "| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |",
+    "| Member | Role | Length (mm) | Diameter (mm) | State | Axial force (N) | Stress (MPa) | Stress util. | Euler capacity (N) | Buckling util. | Governing case |",
+    "| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |",
   );
   for (const member of analysis.members) {
     lines.push(
-      `| ${markdown(member.memberId)} | ${finite(member.lengthMm, 3)} | ${finite(member.diameterMm, 3)} | ${member.forceType} | ${finite(member.axialForceNewtons, 4)} | ${finite(member.stressMpa, 5)} | ${finite(member.stressUtilization, 5)} | ${finite(member.eulerBucklingCapacityNewtons, 3)} | ${finite(member.bucklingUtilization, 5)} | ${markdown(member.governingLoadCaseId)} |`,
+      `| ${markdown(member.memberId)} | ${member.analysisOnly ? "panel-rigidity model" : "printable"} | ${finite(member.lengthMm, 3)} | ${finite(member.diameterMm, 3)} | ${member.forceType} | ${finite(member.axialForceNewtons, 4)} | ${finite(member.stressMpa, 5)} | ${finite(member.stressUtilization, 5)} | ${finite(member.eulerBucklingCapacityNewtons, 3)} | ${finite(member.bucklingUtilization, 5)} | ${markdown(member.governingLoadCaseId)} |`,
     );
   }
   lines.push(
@@ -375,7 +429,7 @@ export async function runStructuralPipeline(
   }
   const solids = await buildStructuralSolids(normalized, optimization);
   const printBundle = compileStructuralArtifactBundle(normalized.sourceFingerprint, solids);
-  const analysis = analysisDocument(normalized, candidate, optimization, printBundle.files);
+  const analysis = analysisDocument(normalized, candidate, optimization, printBundle.files, solids);
   const analysisBytes = TEXT.encode(`${JSON.stringify(analysis, null, 2)}\n`);
   const analysisFile = createStructuralArtifactFile(
     "analysis", "analysis", "json", "structure/analysis.json", analysisBytes,

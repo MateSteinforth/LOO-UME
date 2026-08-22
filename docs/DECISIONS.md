@@ -549,6 +549,33 @@ disable mapping and wiring. Failed generation keeps the active project and its
 last successful assets. Pose or structural-input changes hide stale structural
 geometry and downloads until regeneration succeeds.
 
+## D25 — Global analysis produces local print-bed-bounded connector cells
+
+**Decision.** The solver continues to analyze the complete panel assembly, but
+printable topology is partitioned by neighboring panel pair. Automatic
+relative-neighborhood selection is degree limited and deterministically
+repaired for connectivity. Each cell reserves at least two screw anchors per
+panel, adds an offset bracket hub, and retains redundant local truss members.
+The CAD stage emits separate bracket sides, strut segments, and splice sleeves.
+No Boolean operation joins unrelated panel-pair cells.
+
+The existing Schema 2 `structuralDesign` owns neighbor limits, explicit pair
+include/exclude overrides, print-bed dimensions and margin, and maximum segment
+length. Missing values use named deterministic defaults; panel poses and the
+resolved panel profile remain the only geometry authorities.
+
+**Evidence.** `src/sculpture/StructuralDesign.ts`,
+`src/structure/CandidateTruss.ts`, `src/structure/TrussOptimizer.ts`,
+`src/cad/GenerateStructuralSolids.ts`, and the structural unit/browser tests
+cover a three-panel trail, override round-trip, two-hole engagement, forced
+segmentation, sleeves, print-envelope checks, exact export, and portable reopen.
+
+**Consequence.** A long trail no longer becomes one sculpture-sized printed
+structure or an all-to-all strut field. Global analysis still identifies
+governing forces and displacements, while filenames, 3MF object names, preview,
+analysis, and report preserve local connector identities. These results remain
+load-path guidance, not engineering certification.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

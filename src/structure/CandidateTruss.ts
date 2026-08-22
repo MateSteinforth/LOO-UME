@@ -10,7 +10,9 @@ export interface CandidateTrussPolicy {
   maximumCandidateMemberLengthMm: number;
   minimumNodeSeparationMm: number;
   pcbEnvelopeClearanceMm: number;
-  requiredInterPanelPaths: 2;
+  requiredInterPanelPaths: 3;
+  maximumAutomaticNeighborsPerPanel: number;
+  minimumAnchorsPerPanelSide: number;
 }
 
 export interface CandidateTrussBracket {
@@ -25,9 +27,9 @@ export interface CandidateTrussBracket {
 
 export interface CandidateTrussNode {
   id: string;
-  kind: "anchor-hub";
+  kind: "anchor-hub" | "panel-rigidity" | "connector-hub";
   panelId: string;
-  anchorId: string;
+  anchorId?: string;
   positionMm: StructuralVector;
 }
 
@@ -38,6 +40,19 @@ export interface CandidateTrussMember {
   endNodeId: string;
   lengthMm: number;
   initialDiameterMm: number;
+  connectorCellId?: string;
+  analysisOnly?: boolean;
+}
+
+export interface CandidateConnectorCell {
+  id: string;
+  panelIds: [string, string];
+  panelAnchorIds: [string[], string[]];
+  sideNodeIds: [string[], string[]];
+  bracketTieMemberIds: [string[], string[]];
+  memberIds: string[];
+  source: "automatic" | "authored-include";
+  panelDistanceMm: number;
 }
 
 export interface RejectedCandidateMember {
@@ -54,6 +69,7 @@ export interface CandidatePanelAttachment {
   anchorIds: string[];
   bracketIds: string[];
   hubNodeIds: string[];
+  rigidityNodeId: string;
   localTieMemberIds: string[];
 }
 
@@ -66,6 +82,7 @@ export interface CandidateTruss {
   nodes: CandidateTrussNode[];
   members: CandidateTrussMember[];
   panelAttachments: CandidatePanelAttachment[];
+  connectorCells: CandidateConnectorCell[];
   rejectedMembers: RejectedCandidateMember[];
   validation: {
     connectivity: "passed";
@@ -108,6 +125,165 @@ function canonicalEdgeId(
 ): string {
   const [start, end] = [leftNodeId, rightNodeId].sort(compareText);
   return `${prefix}:${start}--${end}`;
+}
+
+function panelPairId(leftPanelId: string, rightPanelId: string): string {
+  return [leftPanelId, rightPanelId].sort(compareText).join("--");
+}
+
+interface PanelPairCandidate {
+  id: string;
+  panelIds: [string, string];
+  distanceMm: number;
+  source: "automatic" | "authored-include";
+}
+
+class DisjointSet {
+  private readonly parent = new Map<string, string>();
+
+  constructor(ids: string[]) {
+    for (const id of ids) this.parent.set(id, id);
+  }
+
+  find(id: string): string {
+    const parent = this.parent.get(id)!;
+    if (parent === id) return id;
+    const root = this.find(parent);
+    this.parent.set(id, root);
+    return root;
+  }
+
+  union(left: string, right: string): void {
+    const first = this.find(left);
+    const second = this.find(right);
+    if (first !== second) this.parent.set(second, first);
+  }
+}
+
+function selectPanelPairs(
+  normalized: NormalizedStructuralDesign,
+  panels: NormalizedStructuralPanel[],
+  nodes: CandidateTrussNode[],
+): PanelPairCandidate[] {
+  if (panels.length < 2) return [];
+  const nodeByPanel = new Map<string, CandidateTrussNode[]>();
+  for (const node of nodes) {
+    const values = nodeByPanel.get(node.panelId) ?? [];
+    values.push(node);
+    nodeByPanel.set(node.panelId, values);
+  }
+  const overrides = new Map(
+    normalized.connectorization.panelPairOverrides.map((override) => [
+      panelPairId(...override.panelIds),
+      override.action,
+    ]),
+  );
+  const allPairs: PanelPairCandidate[] = [];
+  for (let left = 0; left < panels.length - 1; left += 1) {
+    for (let right = left + 1; right < panels.length; right += 1) {
+      const first = panels[left]!;
+      const second = panels[right]!;
+      const id = panelPairId(first.id, second.id);
+      const distanceMm = Math.min(...(nodeByPanel.get(first.id) ?? []).flatMap((start) =>
+        (nodeByPanel.get(second.id) ?? []).map((end) =>
+          distance(start.positionMm, end.positionMm)
+        )
+      ));
+      const override = overrides.get(id);
+      if (override === "exclude") continue;
+      if (
+        override !== "include" &&
+        distanceMm > normalized.connectorization.maximumNeighborDistanceMm
+      ) continue;
+      allPairs.push({
+        id,
+        panelIds: [first.id, second.id],
+        distanceMm,
+        source: override === "include" ? "authored-include" : "automatic",
+      });
+    }
+  }
+  allPairs.sort((left, right) =>
+    left.distanceMm - right.distanceMm || compareText(left.id, right.id)
+  );
+  const distanceByPair = new Map(allPairs.map((pair) => [pair.id, pair.distanceMm]));
+  const selected = new Map<string, PanelPairCandidate>();
+  const degree = new Map(panels.map((panel) => [panel.id, 0]));
+  const components = new DisjointSet(panels.map(({ id }) => id));
+  const addPair = (pair: PanelPairCandidate): boolean => {
+    if (selected.has(pair.id)) return true;
+    if (
+      pair.source === "automatic" &&
+      ((degree.get(pair.panelIds[0]) ?? 0) >= normalized.connectorization.maximumAutomaticNeighborsPerPanel ||
+        (degree.get(pair.panelIds[1]) ?? 0) >= normalized.connectorization.maximumAutomaticNeighborsPerPanel)
+    ) return false;
+    selected.set(pair.id, pair);
+    degree.set(pair.panelIds[0], (degree.get(pair.panelIds[0]) ?? 0) + 1);
+    degree.set(pair.panelIds[1], (degree.get(pair.panelIds[1]) ?? 0) + 1);
+    return true;
+  };
+  for (const pair of allPairs.filter(({ source }) => source === "authored-include")) addPair(pair);
+  for (const pair of selected.values()) components.union(...pair.panelIds);
+  for (const pair of allPairs.filter(({ source }) => source === "automatic")) {
+    const [firstId, secondId] = pair.panelIds;
+    const relativeNeighbor = panels.every((third) => {
+      if (third.id === firstId || third.id === secondId) return true;
+      const firstDistance = distanceByPair.get(panelPairId(firstId, third.id));
+      const secondDistance = distanceByPair.get(panelPairId(secondId, third.id));
+      return firstDistance === undefined || secondDistance === undefined ||
+        Math.max(firstDistance, secondDistance) >= pair.distanceMm - 1e-9;
+    });
+    if (
+      relativeNeighbor &&
+      components.find(firstId) !== components.find(secondId) &&
+      addPair(pair)
+    ) components.union(firstId, secondId);
+  }
+  for (const pair of allPairs) {
+    if (components.find(pair.panelIds[0]) === components.find(pair.panelIds[1])) continue;
+    if (addPair(pair)) components.union(...pair.panelIds);
+  }
+  const firstRoot = components.find(panels[0]!.id);
+  const disconnected = panels.find(({ id }) => components.find(id) !== firstRoot);
+  if (disconnected) {
+    throw new Error(
+      `Automatic connector neighbors cannot connect panel ${disconnected.id} within ` +
+      `${normalized.connectorization.maximumNeighborDistanceMm} mm and degree ` +
+      `${normalized.connectorization.maximumAutomaticNeighborsPerPanel}. Add an include override or increase the limits.`,
+    );
+  }
+  return [...selected.values()].sort((left, right) => compareText(left.id, right.id));
+}
+
+function selectConnectorAnchors(
+  pair: PanelPairCandidate,
+  panelId: string,
+  otherPanel: NormalizedStructuralPanel,
+  anchors: NormalizedStructuralAnchor[],
+  usedAnchorIds: Set<string>,
+  requiredAnchorIds: Set<string>,
+  count: number,
+): NormalizedStructuralAnchor[] {
+  const available = anchors.filter((anchor) =>
+    anchor.panelId === panelId && !usedAnchorIds.has(anchor.id)
+  );
+  if (available.length < count) {
+    throw new Error(
+      `Connector ${pair.id} needs ${count} unused anchors on panel ${panelId}, but only ${available.length} remain. ` +
+      `Reduce panel degree or add a different panel-pair override.`,
+    );
+  }
+  const ranked = available.map((anchor) => ({
+    anchor,
+    required: requiredAnchorIds.has(anchor.id),
+    score: distance(anchor.positionMm, otherPanel.centerMm),
+  })).sort((left, right) =>
+    Number(right.required) - Number(left.required) ||
+    left.score - right.score || compareText(left.anchor.id, right.anchor.id)
+  );
+  const selected = ranked.slice(0, count).map(({ anchor }) => anchor);
+  for (const anchor of selected) usedAnchorIds.add(anchor.id);
+  return selected.sort((left, right) => compareText(left.id, right.id));
 }
 
 function panelCoordinates(
@@ -269,6 +445,71 @@ export function validateCandidateTruss(candidate: CandidateTruss): void {
   }
   const missingBracket = candidate.anchors.find((anchor) => !bracketAnchorIds.has(anchor.id));
   if (missingBracket) throw new Error(`Candidate anchor ${missingBracket.id} has no screw bracket.`);
+  const cells = new Set<string>();
+  for (const cell of candidate.connectorCells) {
+    if (cells.has(cell.id)) throw new Error(`Connector cell ${cell.id} is duplicated.`);
+    cells.add(cell.id);
+    if (cell.panelIds[0] === cell.panelIds[1]) {
+      throw new Error(`Connector cell ${cell.id} must join two panels.`);
+    }
+    if (
+      cell.panelAnchorIds.length !== 2 || cell.sideNodeIds.length !== 2 ||
+      cell.bracketTieMemberIds.length !== 2
+    ) {
+      throw new Error(`Connector cell ${cell.id} requires two bracket sides.`);
+    }
+    for (const [sideIndex, side] of cell.panelAnchorIds.entries()) {
+      if (new Set(side).size < candidate.policy.minimumAnchorsPerPanelSide) {
+        throw new Error(`Connector cell ${cell.id} has an insufficient two-hole attachment.`);
+      }
+      const panelId = cell.panelIds[sideIndex]!;
+      for (const anchorId of side) {
+        const anchor = anchorById.get(anchorId);
+        const node = [...nodeById.values()].find((candidateNode) =>
+          candidateNode.anchorId === anchorId
+        );
+        if (!anchor || anchor.panelId !== panelId || !node ||
+          !cell.sideNodeIds[sideIndex]!.includes(node.id)) {
+          throw new Error(`Connector cell ${cell.id} has an invalid anchor assignment ${anchorId}.`);
+        }
+      }
+      const connectorHubs = cell.sideNodeIds[sideIndex]!.filter((nodeId) =>
+        nodeById.get(nodeId)?.kind === "connector-hub" &&
+        nodeById.get(nodeId)?.panelId === panelId
+      );
+      if (connectorHubs.length !== 1) {
+        throw new Error(`Connector cell ${cell.id} requires one offset hub on panel ${panelId}.`);
+      }
+      for (const tieId of cell.bracketTieMemberIds[sideIndex]!) {
+        const tie = candidate.members.find(({ id }) => id === tieId);
+        if (!tie || tie.kind !== "panel-tie" || tie.connectorCellId !== cell.id) {
+          throw new Error(`Connector cell ${cell.id} references invalid bracket tie ${tieId}.`);
+        }
+      }
+    }
+    if (cell.memberIds.length < candidate.policy.requiredInterPanelPaths) {
+      throw new Error(`Connector cell ${cell.id} has no redundant local load path.`);
+    }
+    const touchedNodes = new Set<string>();
+    for (const memberId of cell.memberIds) {
+      const member = candidate.members.find(({ id }) => id === memberId);
+      if (!member || member.kind !== "inter-panel" || member.connectorCellId !== cell.id) {
+        throw new Error(`Connector cell ${cell.id} references invalid member ${memberId}.`);
+      }
+      touchedNodes.add(member.startNodeId);
+      touchedNodes.add(member.endNodeId);
+    }
+    for (const side of cell.sideNodeIds) {
+      if (side.some((nodeId) => !touchedNodes.has(nodeId))) {
+        throw new Error(`Connector cell ${cell.id} does not engage every bracket-side node.`);
+      }
+    }
+  }
+  for (const member of candidate.members.filter(({ kind }) => kind === "inter-panel")) {
+    if (!member.connectorCellId || !cells.has(member.connectorCellId)) {
+      throw new Error(`Inter-panel member ${member.id} has no connector cell.`);
+    }
+  }
   const diagnostics = graphDiagnostics(candidate.nodes.map(({ id }) => id), candidate.members);
   if (diagnostics.visited.size !== candidate.nodes.length) {
     const isolated = candidate.nodes.find(({ id }) => !diagnostics.visited.has(id));
@@ -294,7 +535,11 @@ export function createCandidateTruss(
       normalized.design.fabrication.maximumUnsupportedCompressionLengthMm * 2,
     minimumNodeSeparationMm: 0.1,
     pcbEnvelopeClearanceMm: clearanceMm,
-    requiredInterPanelPaths: 2,
+    requiredInterPanelPaths: 3,
+    maximumAutomaticNeighborsPerPanel:
+      normalized.connectorization.maximumAutomaticNeighborsPerPanel,
+    minimumAnchorsPerPanelSide:
+      normalized.connectorization.minimumAnchorsPerPanelSide,
   };
   const panels = [...normalized.panels].sort((left, right) => compareText(left.id, right.id));
   const anchors = normalized.anchors
@@ -344,11 +589,22 @@ export function createCandidateTruss(
         lengthMm: distance(anchor.positionMm, hub.positionMm),
       });
     }
+    const rigidityNode: CandidateTrussNode = {
+      id: `panel-rigidity:${panel.id}`,
+      kind: "panel-rigidity",
+      panelId: panel.id,
+      positionMm: add(
+        panel.centerMm,
+        scale(panel.outwardNormal, -2 * normalized.design.fabrication.bracketOffsetMm),
+      ),
+    };
+    nodes.push(rigidityNode);
     panelAttachments.push({
       panelId: panel.id,
       anchorIds: panelAnchors.map(({ id }) => id),
       bracketIds: panelAnchors.map(({ id }) => `bracket:${id}`),
       hubNodeIds: hubNodes.map(({ id }) => id),
+      rigidityNodeId: rigidityNode.id,
       localTieMemberIds: [],
     });
   }
@@ -392,22 +648,127 @@ export function createCandidateTruss(
           startNodeId: start.id,
           endNodeId: end.id,
           lengthMm: distance(start.positionMm, end.positionMm),
-          initialDiameterMm: normalized.design.fabrication.minimumMemberDiameterMm,
+          initialDiameterMm: normalized.design.fabrication.maximumMemberDiameterMm,
+          analysisOnly: true,
         });
         attachment.localTieMemberIds.push(id);
       }
     }
+    const rigidityNode = nodes.find(({ id }) => id === attachment.rigidityNodeId)!;
+    for (const hubNodeId of attachment.hubNodeIds) {
+      const hub = nodes.find(({ id }) => id === hubNodeId)!;
+      const id = canonicalEdgeId("tie", hub.id, rigidityNode.id);
+      members.push({
+        id,
+        kind: "panel-tie",
+        startNodeId: hub.id,
+        endNodeId: rigidityNode.id,
+        lengthMm: distance(hub.positionMm, rigidityNode.positionMm),
+        initialDiameterMm: normalized.design.fabrication.maximumMemberDiameterMm,
+        analysisOnly: true,
+      });
+      attachment.localTieMemberIds.push(id);
+    }
   }
 
   const rejectedMembers: RejectedCandidateMember[] = [];
-  for (let left = 0; left < nodes.length - 1; left += 1) {
-    for (let right = left + 1; right < nodes.length; right += 1) {
-      const start = nodes[left]!;
-      const end = nodes[right]!;
-      if (start.panelId === end.panelId) continue;
+  const connectorCells: CandidateConnectorCell[] = [];
+  const panelById = new Map(panels.map((panel) => [panel.id, panel]));
+  const nodeByAnchorId = new Map(
+    nodes.filter((node): node is CandidateTrussNode & { anchorId: string } =>
+      node.anchorId !== undefined
+    ).map((node) => [node.anchorId, node]),
+  );
+  const usedAnchorIds = new Set<string>();
+  const requiredAnchorIds = new Set(
+    normalized.supports
+      .filter(({ source }) => source === "authored-anchor")
+      .map(({ anchorId }) => anchorId),
+  );
+  for (const pair of selectPanelPairs(normalized, panels, nodes)) {
+    const firstPanel = panelById.get(pair.panelIds[0])!;
+    const secondPanel = panelById.get(pair.panelIds[1])!;
+    const firstAnchors = selectConnectorAnchors(
+      pair, firstPanel.id, secondPanel, anchors, usedAnchorIds,
+      requiredAnchorIds,
+      policy.minimumAnchorsPerPanelSide,
+    );
+    const secondAnchors = selectConnectorAnchors(
+      pair, secondPanel.id, firstPanel, anchors, usedAnchorIds,
+      requiredAnchorIds,
+      policy.minimumAnchorsPerPanelSide,
+    );
+    const cellId = `connector:${pair.id}`;
+    const sideAnchorNodes = [
+      firstAnchors.map((anchor) => nodeByAnchorId.get(anchor.id)!),
+      secondAnchors.map((anchor) => nodeByAnchorId.get(anchor.id)!),
+    ] as [CandidateTrussNode[], CandidateTrussNode[]];
+    const sidePanels = [firstPanel, secondPanel] as const;
+    const sideNodes: [CandidateTrussNode[], CandidateTrussNode[]] = [[], []];
+    const bracketTieMemberIds: [string[], string[]] = [[], []];
+    for (const sideIndex of [0, 1] as const) {
+      const anchorNodes = sideAnchorNodes[sideIndex];
+      const panel = sidePanels[sideIndex];
+      const midpoint = scale(
+        add(anchorNodes[0]!.positionMm, anchorNodes[1]!.positionMm),
+        0.5,
+      );
+      let connectorHubPosition = add(
+        midpoint,
+        scale(panel.outwardNormal, -normalized.design.fabrication.bracketOffsetMm),
+      );
+      const panelAttachment = panelAttachments.find(
+        (attachment) => attachment.panelId === panel.id,
+      )!;
+      const rigidityNode = nodes.find(({ id }) => id === panelAttachment.rigidityNodeId)!;
+      if (distance(connectorHubPosition, rigidityNode.positionMm) < policy.minimumNodeSeparationMm) {
+        connectorHubPosition = add(
+          connectorHubPosition,
+          scale(panel.xAxis, Math.max(2, normalized.design.fabrication.minimumMemberDiameterMm)),
+        );
+      }
+      const connectorHub: CandidateTrussNode = {
+        id: `${cellId}:hub:${panel.id}`,
+        kind: "connector-hub",
+        panelId: panel.id,
+        positionMm: connectorHubPosition,
+      };
+      nodes.push(connectorHub);
+      sideNodes[sideIndex] = [...anchorNodes, connectorHub];
+      for (const anchorNode of anchorNodes) {
+        const tieId = canonicalEdgeId("tie", anchorNode.id, connectorHub.id);
+        members.push({
+          id: tieId,
+          kind: "panel-tie",
+          startNodeId: anchorNode.id,
+          endNodeId: connectorHub.id,
+          lengthMm: distance(anchorNode.positionMm, connectorHub.positionMm),
+          initialDiameterMm: normalized.design.fabrication.minimumMemberDiameterMm,
+          connectorCellId: cellId,
+        });
+        bracketTieMemberIds[sideIndex].push(tieId);
+      }
+      const rigidityTieId = canonicalEdgeId("tie", connectorHub.id, rigidityNode.id);
+      members.push({
+        id: rigidityTieId,
+        kind: "panel-tie",
+        startNodeId: connectorHub.id,
+        endNodeId: rigidityNode.id,
+        lengthMm: distance(connectorHub.positionMm, rigidityNode.positionMm),
+        initialDiameterMm: normalized.design.fabrication.maximumMemberDiameterMm,
+        connectorCellId: cellId,
+        analysisOnly: true,
+      });
+      panelAttachment.localTieMemberIds.push(rigidityTieId);
+    }
+    const cellMemberIds: string[] = [];
+    for (const start of sideNodes[0]) for (const end of sideNodes[1]) {
       const id = canonicalEdgeId("inter", start.id, end.id);
       const lengthMm = distance(start.positionMm, end.positionMm);
-      if (lengthMm > policy.maximumCandidateMemberLengthMm) {
+      if (
+        pair.source !== "authored-include" &&
+        lengthMm > policy.maximumCandidateMemberLengthMm
+      ) {
         rejectedMembers.push({
           id, startNodeId: start.id, endNodeId: end.id, lengthMm,
           reason: "member-too-long",
@@ -431,9 +792,70 @@ export function createCandidateTruss(
         endNodeId: end.id,
         lengthMm,
         initialDiameterMm: normalized.design.fabrication.minimumMemberDiameterMm,
+        connectorCellId: cellId,
       });
+      cellMemberIds.push(id);
+    }
+    connectorCells.push({
+      id: cellId,
+      panelIds: [...pair.panelIds],
+      panelAnchorIds: [
+        firstAnchors.map(({ id }) => id),
+        secondAnchors.map(({ id }) => id),
+      ],
+      sideNodeIds: [
+        sideNodes[0].map(({ id }) => id).sort(compareText),
+        sideNodes[1].map(({ id }) => id).sort(compareText),
+      ],
+      bracketTieMemberIds: [
+        bracketTieMemberIds[0].sort(compareText),
+        bracketTieMemberIds[1].sort(compareText),
+      ],
+      memberIds: cellMemberIds.sort(compareText),
+      source: pair.source,
+      panelDistanceMm: pair.distanceMm,
+    });
+  }
+  const activeAnchorIds = new Set(
+    connectorCells.flatMap(({ panelAnchorIds }) => panelAnchorIds.flat()),
+  );
+  const missingRequiredAnchor = [...requiredAnchorIds]
+    .sort(compareText)
+    .find((anchorId) => !activeAnchorIds.has(anchorId));
+  if (missingRequiredAnchor) {
+    throw new Error(
+      `Authored structural support ${missingRequiredAnchor} is not held by a printable connector. ` +
+      "Include a connector that can use this anchor or reduce competing panel connections.",
+    );
+  }
+  const inactiveNodeIds = new Set(
+    nodes
+      .filter(({ anchorId }) => anchorId !== undefined && !activeAnchorIds.has(anchorId))
+      .map(({ id }) => id),
+  );
+  for (let index = nodes.length - 1; index >= 0; index -= 1) {
+    if (inactiveNodeIds.has(nodes[index]!.id)) nodes.splice(index, 1);
+  }
+  for (let index = brackets.length - 1; index >= 0; index -= 1) {
+    if (!activeAnchorIds.has(brackets[index]!.anchorId)) brackets.splice(index, 1);
+  }
+  for (let index = members.length - 1; index >= 0; index -= 1) {
+    const member = members[index]!;
+    if (inactiveNodeIds.has(member.startNodeId) || inactiveNodeIds.has(member.endNodeId)) {
+      members.splice(index, 1);
     }
   }
+  for (const attachment of panelAttachments) {
+    attachment.anchorIds = attachment.anchorIds.filter((id) => activeAnchorIds.has(id));
+    attachment.bracketIds = attachment.bracketIds.filter((id) =>
+      brackets.some((bracket) => bracket.id === id)
+    );
+    attachment.hubNodeIds = attachment.hubNodeIds.filter((id) => !inactiveNodeIds.has(id));
+    attachment.localTieMemberIds = attachment.localTieMemberIds.filter((id) =>
+      members.some((member) => member.id === id)
+    );
+  }
+  nodes.sort((left, right) => compareText(left.id, right.id));
   members.sort((left, right) => compareText(left.id, right.id));
   rejectedMembers.sort((left, right) => compareText(left.id, right.id));
   panelAttachments.sort((left, right) => compareText(left.panelId, right.panelId));
@@ -441,11 +863,12 @@ export function createCandidateTruss(
     schemaVersion: "1.0.0",
     sourceFingerprint: { ...normalized.sourceFingerprint },
     policy,
-    anchors,
+    anchors: anchors.filter(({ id }) => activeAnchorIds.has(id)),
     brackets,
     nodes,
     members,
     panelAttachments,
+    connectorCells: connectorCells.sort((left, right) => compareText(left.id, right.id)),
     rejectedMembers,
     validation: {
       connectivity: "passed",

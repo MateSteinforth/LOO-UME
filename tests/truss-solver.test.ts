@@ -200,7 +200,7 @@ describe("linear 3D truss solver", () => {
     ]);
     const face = analysis.loadCases.find(({ id }) => id === "force:face")!;
     expect(face.nodes.filter(({ appliedForceNewtons }) => appliedForceNewtons[2] !== 0))
-      .toHaveLength(4);
+      .toHaveLength(2);
     const corner = analysis.loadCases.find(({ id }) => id === "force:corner")!;
     expect(corner.nodes.filter(({ appliedForceNewtons }) => appliedForceNewtons[0] !== 0))
       .toHaveLength(1);

@@ -14,6 +14,7 @@ import {
   segmentIntersectsPanelEnvelope,
   validateCandidateTruss,
 } from "../src/structure/CandidateTruss.ts";
+import { compileStructuralTrussModel } from "../src/structure/TrussSolver.ts";
 
 async function definition(): Promise<PanelAssemblyDefinition> {
   return parsePanelAssemblyDefinition(JSON.parse(await readFile(
@@ -36,24 +37,35 @@ async function normalizedProject(path: string): Promise<NormalizedStructuralDesi
 }
 
 describe("deterministic candidate truss", () => {
-  it("starts one screw bracket at every eligible hole and creates redundant paths", async () => {
-    const candidate = createCandidateTruss(await normalized());
+  it("starts a screw bracket at every anchor used by a local connector", async () => {
+    const input = await normalized();
+    const candidate = createCandidateTruss(input);
 
-    expect(candidate.anchors).toHaveLength(8);
-    expect(candidate.brackets).toHaveLength(8);
+    expect(candidate.anchors).toHaveLength(4);
+    expect(candidate.brackets).toHaveLength(4);
     expect(candidate.nodes).toHaveLength(8);
+    expect(candidate.connectorCells).toHaveLength(1);
+    expect(candidate.connectorCells[0]).toMatchObject({
+      id: "connector:P-01--P-02",
+      panelIds: ["P-01", "P-02"],
+      source: "automatic",
+    });
+    expect(candidate.connectorCells[0]!.panelAnchorIds.map((ids) => ids.length))
+      .toEqual([2, 2]);
+    expect(candidate.connectorCells[0]!.sideNodeIds.map((ids) => ids.length))
+      .toEqual([3, 3]);
     expect(candidate.members.filter(({ kind }) => kind === "panel-tie")).toHaveLength(12);
-    expect(candidate.members.filter(({ kind }) => kind === "inter-panel")).toHaveLength(16);
+    expect(candidate.members.filter(({ kind }) => kind === "inter-panel")).toHaveLength(9);
     expect(candidate.anchors.some(({ holeId }) =>
       holeId === "bottom-left" || holeId === "top-right"
     )).toBe(false);
-    expect(candidate.brackets.find(({ id }) => id === "bracket:P-01:top-left"))
+    expect(candidate.brackets.find(({ id }) => id === "bracket:P-01:bottom-right"))
       .toMatchObject({
         panelId: "P-01",
-        anchorId: "P-01:top-left",
-        hubNodeId: "hub:P-01:top-left",
-        anchorPositionMm: [-25, 50, -24.5],
-        hubPositionMm: [-25, 42, -24.5],
+        anchorId: "P-01:bottom-right",
+        hubNodeId: "hub:P-01:bottom-right",
+        anchorPositionMm: [25, 50, 24.5],
+        hubPositionMm: [25, 42, 24.5],
         lengthMm: 8,
       });
     expect(candidate.validation).toEqual({
@@ -61,17 +73,26 @@ describe("deterministic candidate truss", () => {
       redundantPaths: "passed",
       pcbEnvelopeCollisions: "passed",
     });
+    const model = compileStructuralTrussModel(input, candidate);
+    expect(model.supports.map(({ nodeId }) => nodeId)).toEqual(
+      candidate.nodes.filter(({ panelId }) => panelId === "P-01")
+        .map(({ id }) => id).sort(),
+    );
   });
 
-  it("connects every eligible hole in the existing arbitrary-pose 41-panel project", async () => {
+  it("limits each panel-pair connector to its reserved holes in the existing arbitrary-pose 41-panel project", async () => {
     const candidate = createCandidateTruss(await normalizedProject(
       "sculptures/rhombicosidodecahedron/sculpture.json",
     ));
 
     expect(candidate.panelAttachments).toHaveLength(41);
-    expect(candidate.anchors).toHaveLength(164);
+    expect(candidate.anchors).toHaveLength(160);
     expect(candidate.brackets).toHaveLength(candidate.anchors.length);
     expect(candidate.validation.redundantPaths).toBe("passed");
+    expect(candidate.connectorCells).toHaveLength(40);
+    expect(Math.max(...candidate.panelAttachments.map((attachment) =>
+      candidate.connectorCells.filter((cell) => cell.panelIds.includes(attachment.panelId)).length
+    ))).toBeLessThanOrEqual(2);
   });
 
   it("is independent of panel, anchor, and hole storage order", async () => {
@@ -113,7 +134,7 @@ describe("deterministic candidate truss", () => {
     }
 
     expect(() => createCandidateTruss(input)).toThrow(
-      /disconnected.*rejected 16 PCB-envelope collisions/,
+      /no redundant local load path/,
     );
   });
 
@@ -140,7 +161,7 @@ describe("deterministic candidate truss", () => {
     for (const anchor of disconnected.anchors.filter(({ panelId }) => panelId === remotePanel.id)) {
       anchor.positionMm[0] += 1000;
     }
-    expect(() => createCandidateTruss(disconnected)).toThrow(/disconnected at panel P-02/);
+    expect(() => createCandidateTruss(disconnected)).toThrow(/cannot connect panel P-02/);
   });
 
   it("rejects attachments without three non-collinear eligible holes", async () => {
@@ -171,7 +192,9 @@ describe("deterministic candidate truss", () => {
       ({ startNodeId, endNodeId }) =>
         startNodeId !== isolatedNodeId && endNodeId !== isolatedNodeId,
     );
-    expect(() => validateCandidateTruss(isolated)).toThrow(/disconnected at panel/);
+    expect(() => validateCandidateTruss(isolated)).toThrow(
+      /invalid member|invalid bracket tie|disconnected at panel/,
+    );
 
     const movedBracket = createCandidateTruss(await normalized());
     movedBracket.brackets[0]!.anchorPositionMm[0] += 10;
@@ -179,5 +202,39 @@ describe("deterministic candidate truss", () => {
     expect(() => validateCandidateTruss(movedBracket)).toThrow(
       /inconsistent attachment geometry/,
     );
+  });
+
+  it("forms a local panel-pair trail instead of an all-to-all sculpture truss", async () => {
+    const input = await normalized();
+    const templatePanel = input.panels.find(({ id }) => id === "P-01")!;
+    const templateAnchors = input.anchors.filter(({ panelId }) => panelId === "P-01");
+    input.panels = [0, 1, 2].map((index) => {
+      const panel = structuredClone(templatePanel);
+      panel.id = `P-0${index + 1}`;
+      panel.centerMm[0] += index * 80;
+      for (const corner of Object.values(panel.corners)) corner[0] += index * 80;
+      panel.anchorIds = templateAnchors.map(({ id }) =>
+        id.replace("P-01:", `${panel.id}:`)
+      );
+      return panel;
+    });
+    input.anchors = input.panels.flatMap((panel, index) =>
+      templateAnchors.map((anchor) => {
+        const copy = structuredClone(anchor);
+        copy.id = copy.id.replace("P-01:", `${panel.id}:`);
+        copy.panelId = panel.id;
+        copy.positionMm[0] += index * 80;
+        return copy;
+      })
+    );
+
+    const candidate = createCandidateTruss(input);
+    expect(candidate.connectorCells.map(({ panelIds }) => panelIds)).toEqual([
+      ["P-01", "P-02"],
+      ["P-02", "P-03"],
+    ]);
+    expect(candidate.connectorCells.some(({ panelIds }) =>
+      panelIds[0] === "P-01" && panelIds[1] === "P-03"
+    )).toBe(false);
   });
 });

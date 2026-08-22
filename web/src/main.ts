@@ -71,7 +71,14 @@ import { createWiringAssemblyManualModel } from "./WiringAssemblyManual.ts";
 import { createManualHandshakeToken } from "./ManualHandshake.ts";
 import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
 import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
-import { getGeneratedStructuralState } from "../../src/sculpture/StructuralDesign.ts";
+import {
+  getGeneratedStructuralState,
+  normalizeStructuralDesign,
+  STRUCTURAL_CONNECTOR_DEFAULTS,
+  STRUCTURAL_PREVIEW_DEFAULTS,
+  type StructuralConnectorizationDefinition,
+} from "../../src/sculpture/StructuralDesign.ts";
+import { createCandidateTruss } from "../../src/structure/CandidateTruss.ts";
 import {
   loadVerifiedGeneratedStructure,
   type VerifiedGeneratedStructure,
@@ -433,6 +440,32 @@ app.innerHTML = `
             and keeps every panel edge connected to printable closure parts.
           </p>
           <div class="pipeline-actions">
+            <details id="structural-connector-settings" class="connector-settings" open>
+              <summary>Modular connector settings</summary>
+              <label class="field">
+                <span>Maximum automatic neighbor distance (mm)</span>
+                <input id="connector-neighbor-distance" type="number" min="1" step="1" value="200" />
+              </label>
+              <label class="field">
+                <span>Maximum automatic neighbors per panel</span>
+                <input id="connector-neighbor-degree" type="number" min="1" step="1" value="2" />
+              </label>
+              <div class="connector-bed-grid">
+                <label class="field"><span>Bed X (mm)</span><input id="connector-bed-x" type="number" min="1" step="1" value="250" /></label>
+                <label class="field"><span>Bed Y (mm)</span><input id="connector-bed-y" type="number" min="1" step="1" value="250" /></label>
+                <label class="field"><span>Bed Z (mm)</span><input id="connector-bed-z" type="number" min="1" step="1" value="250" /></label>
+              </div>
+              <label class="field">
+                <span>Maximum strut segment length (mm)</span>
+                <input id="connector-segment-length" type="number" min="1" step="1" value="220" />
+              </label>
+              <div class="connector-pair-add">
+                <select id="connector-pair-first" aria-label="First panel"></select>
+                <select id="connector-pair-second" aria-label="Second panel"></select>
+                <button id="include-connector-pair" class="editor-button" type="button">Include panel pair</button>
+              </div>
+              <div id="connector-pair-list" class="connector-pair-list"></div>
+            </details>
             <button id="open-wiring-manual" class="pipeline-button" type="button">
               Export wiring assembly manual
             </button>
@@ -570,6 +603,19 @@ const generateStructureButton =
   query<HTMLButtonElement>("#generate-structure");
 const downloadStructureButton =
   query<HTMLButtonElement>("#download-structure");
+const connectorSettings = query<HTMLDetailsElement>("#structural-connector-settings");
+const connectorNeighborDistanceInput = query<HTMLInputElement>("#connector-neighbor-distance");
+const connectorNeighborDegreeInput = query<HTMLInputElement>("#connector-neighbor-degree");
+const connectorBedInputs = [
+  query<HTMLInputElement>("#connector-bed-x"),
+  query<HTMLInputElement>("#connector-bed-y"),
+  query<HTMLInputElement>("#connector-bed-z"),
+] as const;
+const connectorSegmentLengthInput = query<HTMLInputElement>("#connector-segment-length");
+const connectorPairFirstSelect = query<HTMLSelectElement>("#connector-pair-first");
+const connectorPairSecondSelect = query<HTMLSelectElement>("#connector-pair-second");
+const includeConnectorPairButton = query<HTMLButtonElement>("#include-connector-pair");
+const connectorPairList = query<HTMLElement>("#connector-pair-list");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 let pipelineAvailable = false;
 let pipelineAvailabilityMessage =
@@ -1165,8 +1211,142 @@ async function start(): Promise<void> {
       renderRouteEditor();
       resetTimeline();
       updateMappingStatus();
+      renderConnectorControls();
       return restoreGeneratedMechanics(selected);
     };
+
+    const connectorPairKey = (left: string, right: string): string =>
+      [left, right].sort().join("\u0000");
+
+    const resolvedConnectorization = (): StructuralConnectorizationDefinition => ({
+      ...structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS),
+      ...structuredClone(editorDefinition.structuralDesign?.connectorization ?? {}),
+      panelPairOverrides: structuredClone(
+        editorDefinition.structuralDesign?.connectorization?.panelPairOverrides ?? [],
+      ),
+    });
+
+    const applyConnectorization = async (
+      connectorization: StructuralConnectorizationDefinition,
+    ): Promise<void> => {
+      const nextDefinition = structuredClone(editorDefinition);
+      nextDefinition.structuralDesign ??= structuredClone(STRUCTURAL_PREVIEW_DEFAULTS);
+      nextDefinition.structuralDesign.connectorization = connectorization;
+      const project = createPanelAssemblyProject(
+        nextDefinition,
+        editorProject.source,
+        editorProject.panelProfile,
+      );
+      await applyLoadedSculpture(createLoadedSculpture(project));
+      renderConnectorControls();
+      pipelineStatus.classList.remove("pipeline-status--error");
+      pipelineStatus.textContent =
+        "Modular connector settings changed. Generate the structural truss to refresh printable parts.";
+    };
+
+    const renderConnectorControls = (): void => {
+      connectorSettings.hidden = editorDefinition.manualMechanics !== undefined;
+      const settings = resolvedConnectorization();
+      connectorNeighborDistanceInput.value = String(settings.maximumNeighborDistanceMm);
+      connectorNeighborDegreeInput.value = String(settings.maximumAutomaticNeighborsPerPanel);
+      connectorBedInputs.forEach((input, axis) => {
+        input.value = String(settings.printBedSizeMm[axis]);
+      });
+      connectorSegmentLengthInput.value = String(settings.maximumStrutSegmentLengthMm);
+      const panelIds = editorDefinition.panels.map(({ id }) => id).sort();
+      const options = panelIds.map((id) => new Option(id, id));
+      connectorPairFirstSelect.replaceChildren(...options.map((option) => option.cloneNode(true)));
+      connectorPairSecondSelect.replaceChildren(...options.map((option) => option.cloneNode(true)));
+      if (panelIds.length > 1) connectorPairSecondSelect.value = panelIds[1]!;
+      includeConnectorPairButton.disabled = panelIds.length < 2;
+      try {
+        const normalized = normalizeStructuralDesign(editorProject);
+        const candidate = createCandidateTruss(normalized);
+        const rows = candidate.connectorCells.map((cell) => ({
+          panelIds: cell.panelIds,
+          checked: true,
+          detail: `${cell.panelDistanceMm.toFixed(1)} mm; ${cell.source === "automatic" ? "automatic" : "included"}`,
+        }));
+        for (const override of settings.panelPairOverrides.filter(
+          ({ action }) => action === "exclude",
+        )) {
+          if (!rows.some(({ panelIds: ids }) =>
+            connectorPairKey(...ids) === connectorPairKey(...override.panelIds)
+          )) rows.push({
+            panelIds: override.panelIds,
+            checked: false,
+            detail: "excluded",
+          });
+        }
+        rows.sort((left, right) =>
+          connectorPairKey(...left.panelIds).localeCompare(connectorPairKey(...right.panelIds))
+        );
+        connectorPairList.replaceChildren(...rows.map((row) => {
+          const label = document.createElement("label");
+          const input = document.createElement("input");
+          input.type = "checkbox";
+          input.checked = row.checked;
+          input.addEventListener("change", () => {
+            const next = resolvedConnectorization();
+            const key = connectorPairKey(...row.panelIds);
+            next.panelPairOverrides = next.panelPairOverrides.filter(
+              ({ panelIds: ids }) => connectorPairKey(...ids) !== key,
+            );
+            next.panelPairOverrides.push({
+              panelIds: [...row.panelIds],
+              action: input.checked ? "include" : "exclude",
+            });
+            void applyConnectorization(next).catch((error) => {
+              pipelineStatus.classList.add("pipeline-status--error");
+              pipelineStatus.textContent = error instanceof Error ? error.message : String(error);
+            });
+          });
+          label.append(input, `${row.panelIds[0]} ↔ ${row.panelIds[1]} (${row.detail})`);
+          return label;
+        }));
+      } catch (error) {
+        const message = document.createElement("span");
+        message.textContent = error instanceof Error ? error.message : String(error);
+        connectorPairList.replaceChildren(message);
+      }
+    };
+
+    const applyConnectorInputs = (): void => {
+      const next = resolvedConnectorization();
+      next.maximumNeighborDistanceMm = Number(connectorNeighborDistanceInput.value);
+      next.maximumAutomaticNeighborsPerPanel = Number(connectorNeighborDegreeInput.value);
+      next.printBedSizeMm = connectorBedInputs.map((input) => Number(input.value)) as [number, number, number];
+      next.maximumStrutSegmentLengthMm = Number(connectorSegmentLengthInput.value);
+      void applyConnectorization(next).catch((error) => {
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = error instanceof Error ? error.message : String(error);
+      });
+    };
+    for (const input of [
+      connectorNeighborDistanceInput,
+      connectorNeighborDegreeInput,
+      ...connectorBedInputs,
+      connectorSegmentLengthInput,
+    ]) input.addEventListener("change", applyConnectorInputs);
+    includeConnectorPairButton.addEventListener("click", () => {
+      const first = connectorPairFirstSelect.value;
+      const second = connectorPairSecondSelect.value;
+      if (!first || !second || first === second) {
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = "Select two different panels for a connector.";
+        return;
+      }
+      const next = resolvedConnectorization();
+      const key = connectorPairKey(first, second);
+      next.panelPairOverrides = next.panelPairOverrides.filter(
+        ({ panelIds }) => connectorPairKey(...panelIds) !== key,
+      );
+      next.panelPairOverrides.push({ panelIds: [first, second].sort() as [string, string], action: "include" });
+      void applyConnectorization(next).catch((error) => {
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = error instanceof Error ? error.message : String(error);
+      });
+    });
 
     const clearDesignSurface = (message: string): void => {
       activePlacementSurface = undefined;
@@ -2063,7 +2243,12 @@ async function start(): Promise<void> {
             throw error;
           }
           pipelineStatus.textContent =
-            `Generated and SHA-256 verified ${result.solids.length} structural parts, 3MF, preview, analysis, and report. ${result.analysis.disclaimer}`;
+            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${result.solids.length} print-bed-checked parts ` +
+            `(${result.analysis.printable.connectorBrackets} two-hole brackets, ${result.analysis.printable.strutSegments} strut segments, ${result.analysis.printable.spliceSleeves} splice sleeves). ` +
+            (result.analysis.printable.splitMembers > 0
+              ? `PRINT SPLIT WARNING: ${result.analysis.printable.splitMembers} member(s) require numbered segments and splice sleeves. `
+              : "") +
+            `The package also contains 3MF, preview, analysis, and report. ${result.analysis.disclaimer}`;
           viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -2242,6 +2427,7 @@ async function start(): Promise<void> {
     ledCountInput.value = String(mapping.entries.length);
     ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
     renderEditorFaces();
+    renderConnectorControls();
     renderOutputLayerControls();
     renderRouteEditor();
     updateMappingStatus();

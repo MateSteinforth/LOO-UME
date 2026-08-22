@@ -141,10 +141,10 @@ gates.
 | `catalog/` | Reusable panel dimensions, grid, holes, connectors, corrections, electrical facts | Hardware truth shared by projects |
 | `src/sculpture/PanelAssembly.ts` | Schema 2 parsing, pose compilation, face graph, LED geometry | Active model; poses remain authoritative |
 | `src/sculpture/StructuralDesign.ts` | Validate optional structural inputs and derive sorted panels, eligible anchors, supports, load points, warnings, and structural fingerprints | No second panel schema; blocked holes and GLB triangles are excluded |
-| `src/structure/CandidateTruss.ts` | Put one bracket and rear hub at every eligible anchor, add local ties and collision-checked inter-panel candidates, then prove connectivity and redundant paths | Candidate members avoid expanded PCB envelopes and deterministic length limits; rejected candidates remain diagnostic evidence |
+| `src/structure/CandidateTruss.ts` | Derive degree-limited local panel neighbors, reserve two anchors per panel-pair side, add connector hubs and collision-checked triangulated cells, then prove connectivity and local redundancy | Trail layouts use adjacent connector cells rather than long all-to-all members; explicit include/exclude overrides remain pose-derived |
 | `src/structure/TrussSolver.ts` | Compile normalized supports and loads onto candidate hubs, assemble and solve the linear 3D axial stiffness model, and select governing member cases | Three translational DOFs per node; N/mm/MPa units; singular systems fail before results are published |
 | `src/structure/TrussOptimizer.ts` | Remove low-load or long-compression candidates, preserve redundant stable paths, round member diameters, reapply self-weight, and retain an objective trace | Bounded iterations report converged, infeasible, or iteration-limit status; no failed optimization can become printable geometry |
-| `src/cad/GenerateStructuralSolids.ts` | Build one integrated bracket/hub plate per panel and one tapered socket strut per retained inter-panel member with Manifold | Only converged optimization enters CAD; exact anchor, fastener, connector-clearance, topology, component, triangle, and volume checks gate each mesh |
+| `src/cad/GenerateStructuralSolids.ts` | Build two-hole bracket sides per panel-pair cell plus tapered strut segments and splice sleeves with Manifold | No part spans unrelated cells; exact anchor, print-envelope, fastener, clearance, topology, triangle, and volume checks gate each mesh |
 | `src/cad/CompileStructuralArtifacts.ts` | Serialize the exact structural meshes as deterministic binary STL parts, one assembly-preview STL, and one Core 3MF package | Millimetre units, stable identities, triangle counts, package relationships, hashes, and positive-octant build transform are validated in memory |
 | `src/cad/PublishStructuralArtifacts.ts` | Stage and exact-byte verify a complete structural artifact bundle, then replace its output directory atomically | A failed final promotion restores the previous validated directory; the manifest is written last in staging |
 | `src/structure/StructuralPipeline.ts` | Run normalization, candidate generation, optimization, Manifold CAD, exact export, analysis JSON, report, and generated-structure manifest from one Schema 2 project | Deterministic output contains no timestamp; singular or non-converged analysis stops before publication; report states that results are not certification |
@@ -244,12 +244,15 @@ separate `generatedStructure` manifest and cannot coexist with planar generated
 mechanics or manually authored mechanics. Its source fingerprint includes the
 panel poses, structural inputs, and relevant profile facts.
 
-Candidate generation puts one rear hub behind each eligible screw anchor and
-fully ties the hubs on each panel. It considers stable inter-panel hub pairs,
-rejects pairs longer than twice the configured unsupported compression length,
-and rejects segments that intersect any PCB oriented box plus the measured
-surface-flush clearance. The result is accepted only when every hub is
-connected and no structural member is a graph bridge.
+Candidate generation starts from all eligible screw anchors, selects a
+deterministic degree-limited relative-neighborhood graph, and reserves two
+distinct anchors on each side of every panel-pair cell. Only reserved anchors
+become load or support hubs. Analysis-only panel-rigidity nodes and ties model
+PCB/bracket plate stiffness without adding print mass or self-weight. Each cell
+adds an offset connector hub and triangulated cross-brace. Explicit
+include/exclude pair overrides win. The result is accepted only when every hub
+is connected, every cell engages all bracket-side nodes, and no structural
+member is a graph bridge.
 
 The truss solver gives each hub three translational degrees of freedom. It
 assembles standard axial member stiffness from length, direction, circular
@@ -266,12 +269,12 @@ only after bridge-free validation and a maximum-diameter capacity solve. The
 remaining diameters round up to authored printable increments for stress,
 buckling, and displacement, then member self-weight is solved again.
 
-Structural CAD integrates each panel's required local ties, rear hubs, and
-screw bosses into one part. Profile pilot holes, lead-ins, measured flush
-offsets, hex nut traps, conservative DIN/DOUT clearance bores, strut sockets,
-and a stable orientation mark are Boolean-cut or joined with Manifold. Each
-retained inter-panel member becomes a separate tapered strut with two socket
-tenons and a keyed start collar.
+Structural CAD emits two separate two-hole bracket sides per panel-pair cell.
+Profile pilot holes, lead-ins, measured flush offsets, hex nut traps,
+conservative DIN/DOUT clearance bores, strut sockets, and a stable orientation
+mark are Boolean-cut or joined with Manifold. Retained members become tapered
+struts; long members become numbered segments and clearance-fit splice sleeves.
+Every part must fit the configured print envelope after margin and rotation.
 
 The browser-safe structural pipeline composes these stages without a second
 panel schema. `npm run generate:structure -- --sculpture <sculpture.json>` is

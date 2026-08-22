@@ -39,19 +39,36 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     "local generator status request failed with HTTP 503",
   );
   await page.locator("#sculpture-select").selectOption(
-    "./sculptures/structural-two-panel-spatial/sculpture.json",
+    "./sculptures/structural-three-panel-trail/sculpture.json",
   );
-  await expect(page.locator("#panel-count-display")).toHaveText("2");
+  await expect(page.locator("#panel-count-display")).toHaveText("3");
   await expect(page.locator("#sculpture-select")).toHaveValue(
-    "./sculptures/structural-two-panel-spatial/sculpture.json",
+    "./sculptures/structural-three-panel-trail/sculpture.json",
   );
   await expect(page.locator("#generate-structure")).toBeEnabled();
+  await expect(page.locator("#connector-pair-list")).toContainText("P-01 ↔ P-02");
+  await expect(page.locator("#connector-pair-list")).toContainText("P-02 ↔ P-03");
+  await expect(page.locator("#connector-pair-list")).not.toContainText("P-01 ↔ P-03");
+
+  await page.locator("#connector-pair-first").selectOption("P-01");
+  await page.locator("#connector-pair-second").selectOption("P-03");
+  await page.locator("#include-connector-pair").click();
+  await expect(page.locator("#pipeline-status")).toContainText("settings changed");
+  await expect(page.locator("#connector-pair-list")).toContainText("P-01 ↔ P-03");
+  const directPair = page.locator("#connector-pair-list label", { hasText: "P-01 ↔ P-03" });
+  await directPair.locator("input").uncheck();
+  await expect(page.locator("#pipeline-status")).toContainText("settings changed");
+  await expect(page.locator("#connector-pair-list")).toContainText("P-02 ↔ P-03");
+  await page.locator("#connector-segment-length").fill("30");
+  await page.locator("#connector-segment-length").dispatchEvent("change");
+  await expect(page.locator("#pipeline-status")).toContainText("settings changed");
 
   await page.locator("#generate-structure").click();
   await expect(page.locator("#pipeline-status")).toContainText(
-    "Generated and SHA-256 verified 18 structural parts",
+    "Generated and SHA-256 verified 2 local panel-pair connectors",
     { timeout: 120_000 },
   );
+  await expect(page.locator("#pipeline-status")).toContainText("splice sleeves");
   await expect(page.locator("#pipeline-status")).toContainText(
     "not engineering certification",
   );
@@ -74,16 +91,19 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   expect(names.some((name) => name.endsWith("structure/structure.model.3mf"))).toBe(true);
   expect(names.some((name) => name.endsWith("structure/analysis.json"))).toBe(true);
   expect(names.some((name) => name.endsWith("structure/report.md"))).toBe(true);
-  expect(names.filter((name) => name.includes("structure/parts/")).length).toBe(18);
+  const partNames = names.filter((name) => name.includes("structure/parts/"));
   const analysisName = names.find((name) => name.endsWith("structure/analysis.json"))!;
   const analysis = JSON.parse(new TextDecoder().decode(files[analysisName]!)) as {
     inputSource: string;
     supports: unknown[];
     loadCases: unknown[];
+    printable: { parts: number; spliceSleeves: number };
   };
   expect(analysis.inputSource).toBe("authored");
-  expect(analysis.supports).toHaveLength(4);
+  expect(analysis.supports).toHaveLength(2);
   expect(analysis.loadCases).toHaveLength(10);
+  expect(analysis.printable.spliceSleeves).toBeGreaterThan(0);
+  expect(partNames).toHaveLength(analysis.printable.parts);
 
   const sculptureName = names.find((name) => name.endsWith("sculpture.json"))!;
   const reportName = names.find((name) => name.endsWith("structure/report.md"))!;

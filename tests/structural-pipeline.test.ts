@@ -165,11 +165,16 @@ describe("headless structural system pipeline", () => {
         forceNewtons: [0, 0, 1],
       },
     ];
+    authored.structuralDesign.connectorization!.panelPairOverrides = [{
+      panelIds: ["P-01", "P-02"],
+      action: "include",
+    }];
     const reordered = structuredClone(authored);
     reordered.panels.reverse();
     reordered.structuralDesign!.supports.reverse();
     reordered.structuralDesign!.supports[0]!.constrainedTranslations.reverse();
     reordered.structuralDesign!.loads.reverse();
+    reordered.structuralDesign!.connectorization!.panelPairOverrides[0]!.panelIds.reverse();
     const first = await runStructuralPipeline(createPanelAssemblyProject(
       authored, sourcePath, project.panelProfile,
     ));

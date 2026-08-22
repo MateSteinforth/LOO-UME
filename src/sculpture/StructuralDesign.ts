@@ -37,8 +37,24 @@ export interface StructuralDesignDefinition {
     bracketOffsetMm: number;
     cableClearanceMm: number;
   };
+  connectorization?: StructuralConnectorizationDefinition;
   supports: StructuralSupportDefinition[];
   loads: StructuralLoadDefinition[];
+}
+
+export interface StructuralPanelPairOverride {
+  panelIds: [string, string];
+  action: "include" | "exclude";
+}
+
+export interface StructuralConnectorizationDefinition {
+  maximumNeighborDistanceMm: number;
+  maximumAutomaticNeighborsPerPanel: number;
+  minimumAnchorsPerPanelSide: number;
+  printBedSizeMm: StructuralVector;
+  printBedMarginMm: number;
+  maximumStrutSegmentLengthMm: number;
+  panelPairOverrides: StructuralPanelPairOverride[];
 }
 
 export type StructuralSupportDefinition = {
@@ -154,6 +170,7 @@ export interface NormalizedStructuralDesign {
   inputSource: "authored" | "preview-defaults";
   referencePanelId: string | null;
   design: StructuralDesignDefinition;
+  connectorization: StructuralConnectorizationDefinition;
   panels: NormalizedStructuralPanel[];
   anchors: NormalizedStructuralAnchor[];
   cableClearances: NormalizedStructuralCableClearance[];
@@ -161,6 +178,16 @@ export interface NormalizedStructuralDesign {
   loadCases: NormalizedStructuralLoadCase[];
   warnings: StructuralWarning[];
 }
+
+export const STRUCTURAL_CONNECTOR_DEFAULTS: StructuralConnectorizationDefinition = {
+  maximumNeighborDistanceMm: 200,
+  maximumAutomaticNeighborsPerPanel: 2,
+  minimumAnchorsPerPanelSide: 2,
+  printBedSizeMm: [250, 250, 250],
+  printBedMarginMm: 5,
+  maximumStrutSegmentLengthMm: 220,
+  panelPairOverrides: [],
+};
 
 export const STRUCTURAL_PREVIEW_DEFAULTS: StructuralDesignDefinition = {
   schemaVersion: "1.0.0",
@@ -186,6 +213,7 @@ export const STRUCTURAL_PREVIEW_DEFAULTS: StructuralDesignDefinition = {
     bracketOffsetMm: 8,
     cableClearanceMm: 12,
   },
+  connectorization: structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS),
   supports: [],
   loads: [],
 };
@@ -254,7 +282,8 @@ export function validateStructuralDesign(value: unknown): void {
   }
   exactKeys(value, [
     "schemaVersion", "material", "panelMassKg", "safetyFactor",
-    "maximumDisplacementMm", "gravity", "fabrication", "supports", "loads",
+    "maximumDisplacementMm", "gravity", "fabrication", "connectorization",
+    "supports", "loads",
   ], "Structural design");
   if (!isRecord(value.material)) throw new Error("Structural material must be an object.");
   exactKeys(value.material, [
@@ -302,6 +331,81 @@ export function validateStructuralDesign(value: unknown): void {
       (value.fabrication.minimumMemberDiameterMm as number)
   ) {
     throw new Error("Maximum member diameter must not be smaller than the minimum.");
+  }
+
+  if (value.connectorization !== undefined) {
+    if (!isRecord(value.connectorization)) {
+      throw new Error("Structural connectorization must be an object.");
+    }
+    exactKeys(value.connectorization, [
+      "maximumNeighborDistanceMm", "maximumAutomaticNeighborsPerPanel",
+      "minimumAnchorsPerPanelSide", "printBedSizeMm", "printBedMarginMm",
+      "maximumStrutSegmentLengthMm", "panelPairOverrides",
+    ], "Structural connectorization");
+    positive(value.connectorization.maximumNeighborDistanceMm, "Maximum neighbor distance");
+    positive(value.connectorization.maximumStrutSegmentLengthMm, "Maximum strut segment length");
+    if ((value.connectorization.maximumStrutSegmentLengthMm as number) < 1) {
+      throw new Error("Maximum strut segment length must be at least 1 mm.");
+    }
+    if (
+      typeof value.connectorization.maximumAutomaticNeighborsPerPanel !== "number" ||
+      !Number.isInteger(value.connectorization.maximumAutomaticNeighborsPerPanel) ||
+      value.connectorization.maximumAutomaticNeighborsPerPanel < 1
+    ) {
+      throw new Error("Maximum automatic neighbors per panel must be a positive integer.");
+    }
+    if (
+      typeof value.connectorization.minimumAnchorsPerPanelSide !== "number" ||
+      !Number.isInteger(value.connectorization.minimumAnchorsPerPanelSide) ||
+      value.connectorization.minimumAnchorsPerPanelSide < 2
+    ) {
+      throw new Error("Minimum anchors per panel side must be an integer of at least 2.");
+    }
+    finiteVector(value.connectorization.printBedSizeMm, "Print bed size");
+    if (value.connectorization.printBedSizeMm.some((size) => size <= 0)) {
+      throw new Error("Print bed size values must be greater than zero.");
+    }
+    if (
+      typeof value.connectorization.printBedMarginMm !== "number" ||
+      !Number.isFinite(value.connectorization.printBedMarginMm) ||
+      value.connectorization.printBedMarginMm < 0
+    ) {
+      throw new Error("Print bed margin must be a finite non-negative number.");
+    }
+    const printBedMarginMm = value.connectorization.printBedMarginMm;
+    if (value.connectorization.printBedSizeMm.some(
+      (size) => size <= 2 * printBedMarginMm,
+    )) {
+      throw new Error("Print bed margin leaves no printable build envelope.");
+    }
+    const printableSpan = Math.max(...value.connectorization.printBedSizeMm) -
+      2 * value.connectorization.printBedMarginMm;
+    if (value.connectorization.maximumStrutSegmentLengthMm > printableSpan) {
+      throw new Error("Maximum strut segment length must fit the print bed after margins.");
+    }
+    if (!Array.isArray(value.connectorization.panelPairOverrides)) {
+      throw new Error("Panel-pair overrides must be an array.");
+    }
+    const pairActions = new Map<string, string>();
+    for (const override of value.connectorization.panelPairOverrides) {
+      if (!isRecord(override)) throw new Error("Each panel-pair override must be an object.");
+      exactKeys(override, ["panelIds", "action"], "Panel-pair override");
+      if (
+        !Array.isArray(override.panelIds) || override.panelIds.length !== 2 ||
+        override.panelIds.some((id) => typeof id !== "string" || id.length === 0) ||
+        override.panelIds[0] === override.panelIds[1]
+      ) {
+        throw new Error("Panel-pair override requires two different panel IDs.");
+      }
+      if (override.action !== "include" && override.action !== "exclude") {
+        throw new Error("Panel-pair override action must be include or exclude.");
+      }
+      const key = [...override.panelIds].sort(compareText).join("\u0000");
+      if (pairActions.has(key)) {
+        throw new Error(`Panel-pair override ${override.panelIds.join("--")} is duplicated or contradictory.`);
+      }
+      pairActions.set(key, override.action);
+    }
   }
 
   if (!Array.isArray(value.supports)) throw new Error("Structural supports must be an array.");
@@ -378,6 +482,13 @@ export function validateStructuralPanelReferences(
   for (const load of value.loads) {
     if (!panelIds.has(load.panelId)) {
       throw new Error(`Structural load ${load.id} references unknown panel ${load.panelId}.`);
+    }
+  }
+  for (const override of value.connectorization?.panelPairOverrides ?? []) {
+    for (const panelId of override.panelIds) {
+      if (!panelIds.has(panelId)) {
+        throw new Error(`Structural panel-pair override references unknown panel ${panelId}.`);
+      }
     }
   }
 }
@@ -511,7 +622,15 @@ function effectiveDesign(definition: PanelAssemblyDefinition): {
   source: NormalizedStructuralDesign["inputSource"];
 } {
   if (definition.structuralDesign) {
-    return { design: structuredClone(definition.structuralDesign), source: "authored" };
+    const design = structuredClone(definition.structuralDesign);
+    const { connectorization: _designConnectorization, ...designInputs } = design;
+    const { connectorization: _previewConnectorization, ...previewInputs } =
+      STRUCTURAL_PREVIEW_DEFAULTS;
+    const source = JSON.stringify(canonicalize(designInputs)) ===
+        JSON.stringify(canonicalize(previewInputs))
+      ? "preview-defaults"
+      : "authored";
+    return { design, source };
   }
   return { design: structuredClone(STRUCTURAL_PREVIEW_DEFAULTS), source: "preview-defaults" };
 }
@@ -519,6 +638,18 @@ function effectiveDesign(definition: PanelAssemblyDefinition): {
 function fingerprintDesign(design: StructuralDesignDefinition): StructuralDesignDefinition {
   return {
     ...design,
+    connectorization: {
+      ...structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS),
+      ...structuredClone(design.connectorization ?? {}),
+      panelPairOverrides: [...(design.connectorization?.panelPairOverrides ?? [])]
+        .map((override) => ({
+          ...override,
+          panelIds: [...override.panelIds].sort(compareText) as [string, string],
+        }))
+        .sort((left, right) =>
+          compareText(left.panelIds.join("\u0000"), right.panelIds.join("\u0000"))
+        ),
+    },
     supports: design.supports
       .map((support) => ({
         ...support,
@@ -592,6 +723,18 @@ export function normalizeStructuralDesign(
   }
   const { design, source } = effectiveDesign(definition);
   validateStructuralDesign(design);
+  const connectorization: StructuralConnectorizationDefinition = {
+    ...structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS),
+    ...structuredClone(design.connectorization ?? {}),
+    panelPairOverrides: [...(design.connectorization?.panelPairOverrides ?? [])]
+      .map((override) => ({
+        ...override,
+        panelIds: [...override.panelIds].sort(compareText) as [string, string],
+      }))
+      .sort((left, right) =>
+        compareText(left.panelIds.join("\u0000"), right.panelIds.join("\u0000"))
+      ),
+  };
   const panels: NormalizedStructuralPanel[] = [];
   const anchors: NormalizedStructuralAnchor[] = [];
   const cableClearances: NormalizedStructuralCableClearance[] = [];
@@ -767,6 +910,7 @@ export function normalizeStructuralDesign(
     inputSource: source,
     referencePanelId: design.supports.length === 0 ? panels[0]!.id : null,
     design,
+    connectorization,
     panels,
     anchors,
     cableClearances,

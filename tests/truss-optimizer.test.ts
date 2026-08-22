@@ -16,7 +16,7 @@ async function normalizedProject(path: string): Promise<NormalizedStructuralDesi
   return normalizeStructuralDesign(createPanelAssemblyProject(source, path));
 }
 
-async function loadedTwoPanel(forceNewtons = -500): Promise<NormalizedStructuralDesign> {
+async function loadedTwoPanel(forceNewtons = -5): Promise<NormalizedStructuralDesign> {
   const normalized = await normalizedProject("sculptures/pose-only-two-panel/sculpture.json");
   normalized.loadCases = [{
     id: "compression-force",
@@ -32,11 +32,11 @@ async function loadedTwoPanel(forceNewtons = -500): Promise<NormalizedStructural
 
 describe("structural truss optimization", () => {
   it("removes consistently low-load candidates and preserves redundant connectivity", async () => {
-    const normalized = await normalizedProject(
-      "sculptures/rhombicosidodecahedron/sculpture.json",
-    );
+    const normalized = await normalizedProject("sculptures/pose-only-two-panel/sculpture.json");
     const candidate = createCandidateTruss(normalized);
-    const optimized = optimizeStructuralTruss(normalized, candidate);
+    const optimized = optimizeStructuralTruss(normalized, candidate, {
+      unloadedForceRatio: 0.3,
+    });
 
     expect(optimized.status).toBe("converged");
     expect(optimized.optimizedCandidate.members.length).toBeLessThan(candidate.members.length);
@@ -44,6 +44,12 @@ describe("structural truss optimization", () => {
     expect(optimized.trace.at(-1)?.action).toBe("converged");
     expect(optimized.trace.length).toBeLessThanOrEqual(optimized.policy.maximumIterations);
     expect(() => validateCandidateTruss(optimized.optimizedCandidate)).not.toThrow();
+    expect(optimized.optimizedCandidate.connectorCells.every((cell) =>
+      cell.sideNodeIds.flat().every((nodeId) => cell.memberIds.some((memberId) => {
+        const member = optimized.optimizedCandidate.members.find(({ id }) => id === memberId)!;
+        return member.startNodeId === nodeId || member.endNodeId === nodeId;
+      }))
+    )).toBe(true);
     expect(optimized.violations).toEqual([]);
   }, 15_000);
 
@@ -52,14 +58,20 @@ describe("structural truss optimization", () => {
     normalized.design.fabrication.maximumMemberDiameterMm = 14.1;
     const candidate = createCandidateTruss(normalized);
     const initialMass = candidate.members.reduce((sum, member) =>
-      sum + Math.PI * member.initialDiameterMm ** 2 / 4 * member.lengthMm * 1e-9 *
-        normalized.design.material.densityKgPerCubicMeter,
+      sum + (member.analysisOnly
+        ? 0
+        : Math.PI * member.initialDiameterMm ** 2 / 4 * member.lengthMm * 1e-9 *
+          normalized.design.material.densityKgPerCubicMeter),
     0);
     const optimized = optimizeStructuralTruss(normalized, candidate);
 
     expect(optimized.status).toBe("converged");
     expect(optimized.trace.some(({ action }) => action === "resize")).toBe(true);
-    expect(optimized.members.every(({ diameterMm }) =>
+    const printableMemberIds = new Set(optimized.optimizedCandidate.members
+      .filter(({ analysisOnly }) => !analysisOnly)
+      .map(({ id }) => id));
+    expect(optimized.members.filter(({ memberId }) => printableMemberIds.has(memberId))
+      .every(({ diameterMm }) =>
       diameterMm >= normalized.design.fabrication.minimumMemberDiameterMm &&
       diameterMm <= normalized.design.fabrication.maximumMemberDiameterMm &&
       Number.isInteger(

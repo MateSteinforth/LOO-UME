@@ -32,10 +32,12 @@ describe("Manifold structural solids", () => {
       ({ kind }) => kind === "inter-panel",
     );
 
-    expect(parts).toHaveLength(normalized.panels.length + interMembers.length);
+    expect(parts).toHaveLength(
+      optimized.optimizedCandidate.connectorCells.length * 2 + interMembers.length,
+    );
     expect(new Set(parts.map(({ partId }) => partId)).size).toBe(parts.length);
-    expect(parts.filter(({ kind }) => kind === "panel-bracket")).toHaveLength(2);
-    expect(parts.filter(({ kind }) => kind === "strut")).toHaveLength(interMembers.length);
+    expect(parts.filter(({ kind }) => kind === "connector-bracket")).toHaveLength(2);
+    expect(parts.filter(({ kind }) => kind === "strut-segment")).toHaveLength(interMembers.length);
     for (const part of parts) {
       expect(part.status).toBe("NoError");
       expect(part.volumeCubicMm).toBeGreaterThan(1);
@@ -45,15 +47,20 @@ describe("Manifold structural solids", () => {
       expect(part.boundingBoxMm.max.every((value, index) =>
         value > part.boundingBoxMm.min[index]!
       )).toBe(true);
-      if (part.kind === "strut") expect(part.genus).toBe(0);
+      if (part.kind === "strut-segment") expect(part.genus).toBe(0);
     }
   });
 
   it("preserves exact anchors and cuts screw holes, nut traps, sockets, and cable clearance", async () => {
     const { normalized, optimized } = await structuralFixture();
     const parts = await buildStructuralSolids(normalized, optimized);
-    const bracket = parts.find(({ partId }) => partId === "panel-bracket:P-01")!;
-    const panelAnchors = normalized.anchors.filter(({ panelId }) => panelId === "P-01");
+    const cell = optimized.optimizedCandidate.connectorCells[0]!;
+    const bracket = parts.find(({ partId }) =>
+      partId === "connector-bracket:P-01--P-02:side:P-01"
+    )!;
+    const panelAnchors = normalized.anchors.filter(({ id }) =>
+      cell.panelAnchorIds[0].includes(id)
+    );
 
     expect(bracket.anchorIds).toEqual(panelAnchors.map(({ id }) => id));
     expect(bracket.anchorCentersMm).toEqual(panelAnchors.map(({ positionMm }) => ({
@@ -63,12 +70,12 @@ describe("Manifold structural solids", () => {
     expect(bracket.holeEdgeCorrectionMm).toBe(0.2);
     expect(bracket.surfaceFlushCorrectionMm).toBe(0.5);
     expect(bracket.screwHoleCentersMm.map(({ x }) => Math.abs(x))).toEqual([
-      24.8, 24.8, 24.8, 24.8,
+      24.8, 24.8,
     ]);
-    expect(bracket.screwHoleCentersMm).toHaveLength(4);
-    expect(bracket.nutTrapCentersMm).toHaveLength(4);
+    expect(bracket.screwHoleCentersMm).toHaveLength(2);
+    expect(bracket.nutTrapCentersMm).toHaveLength(2);
     expect(bracket.cableClearanceCentersMm).toHaveLength(2);
-    expect(bracket.socketCentersMm).toHaveLength(16);
+    expect(bracket.socketCentersMm).toHaveLength(9);
     for (const point of [
       ...bracket.screwHoleCentersMm,
       ...bracket.nutTrapCentersMm,
@@ -82,6 +89,33 @@ describe("Manifold structural solids", () => {
       .toBe(true);
     expect(STRUCTURAL_GEOMETRY_POLICY.minimumWallMm).toBeGreaterThanOrEqual(1.2);
     expect(STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm).toBe(4.2);
+  });
+
+  it("splits long connector struts into print-bed-bounded segments and sleeves", async () => {
+    const { normalized, optimized } = await structuralFixture();
+    normalized.connectorization.maximumStrutSegmentLengthMm = 30;
+    const parts = await buildStructuralSolids(normalized, optimized);
+    const segments = parts.filter(({ kind }) => kind === "strut-segment");
+    const sleeves = parts.filter(({ kind }) => kind === "splice-sleeve");
+
+    expect(segments.some(({ segmentCount }) => (segmentCount ?? 1) > 1)).toBe(true);
+    expect(sleeves.length).toBeGreaterThan(0);
+    expect(parts.every(({ boundingBoxMm }) => {
+      const extents = boundingBoxMm.max.map(
+        (value, axis) => value - boundingBoxMm.min[axis]!,
+      ).sort((left, right) => left - right);
+      return extents.every((extent) => extent <= 240 + 1e-5);
+    })).toBe(true);
+    expect(new Set(parts.map(({ partId }) => partId)).size).toBe(parts.length);
+  });
+
+  it("bounds the number of generated strut segments", async () => {
+    const { normalized, optimized } = await structuralFixture();
+    normalized.connectorization.maximumStrutSegmentLengthMm = 0.001;
+
+    await expect(buildStructuralSolids(normalized, optimized)).rejects.toThrow(
+      /safe limit is 256/,
+    );
   });
 
   it("rejects geometry for an optimization that did not converge", async () => {
@@ -103,7 +137,8 @@ describe("Manifold structural solids", () => {
   });
 
   it("rejects generated solid volumes that enter a PCB envelope", async () => {
-    const { normalized, optimized } = await structuralFixture(1);
+    const { normalized, optimized } = await structuralFixture();
+    normalized.panels[0]!.centerMm[1] -= 8;
 
     await expect(buildStructuralSolids(normalized, optimized)).rejects.toThrow(
       /intersects PCB envelope/,

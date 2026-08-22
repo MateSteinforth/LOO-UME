@@ -368,6 +368,34 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `TRUSS-021` through `TRUSS-025` Generate modular local structural connectors — P0
+
+- Outcome: Schema 2 connector policy selects deterministic nearby panel pairs,
+  analyzes the complete assembly, preserves redundant local load paths, and
+  emits separate print-bed-bounded brackets, strut segments, and splice sleeves.
+  The browser exposes pair overrides and print-envelope settings without a new
+  panel schema.
+- Acceptance: a three-panel spatial trail produces only adjacent connector
+  cells by default; each active solver anchor has printed bracket material;
+  analysis-only PCB-rigidity links add no print mass or self-weight; explicit
+  include/exclude overrides, active supports, optimization, Manifold topology,
+  STL/3MF export, preview, save/reopen, stale state, and failure isolation pass.
+- Evidence: 12 structural-design, 9 candidate, 5 optimizer, 7 solid, and 6
+  pipeline tests pass. The real Chromium trail journey passes with pair edits,
+  forced segmentation, exact ZIP reopen, stale edit, and singular failure.
+  The full suite passes 335 tests after active-interface expectations were
+  updated. TypeScript, the production web build, and `git diff --check` pass.
+  Independent review found unprinted solver interfaces and lost preview
+  provenance; both corrections passed focused verification and re-review.
+- Depends on: `TRUSS-020`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, `FAILURES.md`, Schema 2 structural validation,
+  `src/structure/`, structural CAD/pipeline files, browser orchestration and
+  styles, structural fixtures/tests, and structural knowledge pages.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
 ### `TRUSS-011` Define structural input and normalize panel anchors — P0
 
 - Outcome: Schema 2 accepts strict optional structural inputs and derives

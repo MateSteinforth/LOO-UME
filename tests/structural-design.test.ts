@@ -9,6 +9,8 @@ import {
   createStructuralFingerprint,
   getGeneratedStructuralState,
   normalizeStructuralDesign,
+  STRUCTURAL_CONNECTOR_DEFAULTS,
+  STRUCTURAL_PREVIEW_DEFAULTS,
   type GeneratedStructuralManifest,
   type StructuralDesignDefinition,
 } from "../src/sculpture/StructuralDesign.ts";
@@ -125,6 +127,15 @@ describe("Schema 2 structural design normalization", () => {
     const normalized = normalizeStructuralDesign(project);
 
     expect(normalized.inputSource).toBe("preview-defaults");
+    expect(normalized.connectorization).toEqual({
+      maximumNeighborDistanceMm: 200,
+      maximumAutomaticNeighborsPerPanel: 2,
+      minimumAnchorsPerPanelSide: 2,
+      printBedSizeMm: [250, 250, 250],
+      printBedMarginMm: 5,
+      maximumStrutSegmentLengthMm: 220,
+      panelPairOverrides: [],
+    });
     expect(normalized.referencePanelId).toBe("P-01");
     expect(normalized.panels.map(({ id }) => id)).toEqual(["P-01", "P-02"]);
     expect(normalized.anchors).toHaveLength(8);
@@ -167,6 +178,22 @@ describe("Schema 2 structural design normalization", () => {
       /preview only.*requires real mounting conditions/,
     );
     expect(normalized.sourceFingerprint.value).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("keeps preview provenance when only connector policy is stored", async () => {
+    const source = await definition();
+    const design = structuredClone(STRUCTURAL_PREVIEW_DEFAULTS);
+    design.connectorization = {
+      ...structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS),
+      maximumNeighborDistanceMm: 125,
+    };
+    source.structuralDesign = design;
+
+    const normalized = normalizeStructuralDesign(createPanelAssemblyProject(source, "connector-only"));
+
+    expect(normalized.inputSource).toBe("preview-defaults");
+    expect(normalized.warnings.map(({ code }) => code)).toContain("STRUCTURAL_PREVIEW_DEFAULTS");
+    expect(normalized.connectorization.maximumNeighborDistanceMm).toBe(125);
   });
 
   it("resolves authored panel and anchor supports plus face, corner, and cable loads", async () => {
@@ -282,6 +309,70 @@ describe("Schema 2 structural design normalization", () => {
     expect(() => parsePanelAssemblyDefinition(unknownField)).toThrow(
       /unsupported field secondPose/,
     );
+  });
+
+  it("normalizes modular connector policy and fingerprints pair overrides", async () => {
+    const source = await definition();
+    source.structuralDesign = design();
+    source.structuralDesign.connectorization = {
+      maximumNeighborDistanceMm: 180,
+      maximumAutomaticNeighborsPerPanel: 2,
+      minimumAnchorsPerPanelSide: 2,
+      printBedSizeMm: [250, 245, 240],
+      printBedMarginMm: 6,
+      maximumStrutSegmentLengthMm: 210,
+      panelPairOverrides: [{ panelIds: ["P-02", "P-01"], action: "include" }],
+    };
+    const project = createPanelAssemblyProject(source, "connector/sculpture.json");
+    const normalized = normalizeStructuralDesign(project);
+
+    expect(normalized.connectorization.panelPairOverrides).toEqual([
+      { panelIds: ["P-01", "P-02"], action: "include" },
+    ]);
+    const firstFingerprint = normalized.sourceFingerprint.value;
+    source.structuralDesign.connectorization.panelPairOverrides[0]!.action = "exclude";
+    expect(createStructuralFingerprint(source, project.panelProfile)).not.toBe(firstFingerprint);
+  });
+
+  it("rejects invalid print envelopes and contradictory or unknown panel pairs", async () => {
+    const invalidBed = await definition();
+    invalidBed.structuralDesign = design();
+    invalidBed.structuralDesign.connectorization = {
+      maximumNeighborDistanceMm: 200,
+      maximumAutomaticNeighborsPerPanel: 2,
+      minimumAnchorsPerPanelSide: 2,
+      printBedSizeMm: [250, 250, 250],
+      printBedMarginMm: 20,
+      maximumStrutSegmentLengthMm: 220,
+      panelPairOverrides: [],
+    };
+    expect(() => parsePanelAssemblyDefinition(invalidBed)).toThrow(/segment length must fit/);
+
+    invalidBed.structuralDesign.connectorization.maximumStrutSegmentLengthMm = 0.5;
+    invalidBed.structuralDesign.connectorization.printBedMarginMm = 5;
+    expect(() => parsePanelAssemblyDefinition(invalidBed)).toThrow(/at least 1 mm/);
+    invalidBed.structuralDesign.connectorization.maximumStrutSegmentLengthMm = 220;
+
+    const duplicate = await definition();
+    duplicate.structuralDesign = design();
+    duplicate.structuralDesign.connectorization = {
+      ...structuredClone(invalidBed.structuralDesign.connectorization),
+      printBedMarginMm: 5,
+      panelPairOverrides: [
+        { panelIds: ["P-01", "P-02"], action: "include" },
+        { panelIds: ["P-02", "P-01"], action: "exclude" },
+      ],
+    };
+    expect(() => parsePanelAssemblyDefinition(duplicate)).toThrow(/duplicated or contradictory/);
+
+    const unknown = await definition();
+    unknown.structuralDesign = design();
+    unknown.structuralDesign.connectorization = {
+      ...structuredClone(invalidBed.structuralDesign.connectorization),
+      printBedMarginMm: 5,
+      panelPairOverrides: [{ panelIds: ["P-01", "UNKNOWN"], action: "include" }],
+    };
+    expect(() => parsePanelAssemblyDefinition(unknown)).toThrow(/unknown panel UNKNOWN/);
   });
 
   it("round-trips a structural manifest and becomes stale after a pose edit", async () => {

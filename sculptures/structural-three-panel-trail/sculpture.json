@@ -1,0 +1,147 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "structural-three-panel-trail-trial",
+  "name": "Structural Three-panel Spatial Trail",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "ws2812b-8x8-66x65",
+    "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
+  },
+  "panels": [
+    {
+      "id": "P-01",
+      "pose": {
+        "position": [0, 0, 0],
+        "orientation": {
+          "xAxis": [1, 0, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [0, -1, 0]
+        }
+      }
+    },
+    {
+      "id": "P-02",
+      "pose": {
+        "position": [80, 4, 12],
+        "orientation": {
+          "xAxis": [0.984807753, 0, -0.173648178],
+          "yAxis": [0.173648178, 0, 0.984807753],
+          "normal": [0, -1, 0]
+        }
+      }
+    },
+    {
+      "id": "P-03",
+      "pose": {
+        "position": [160, -3, 25],
+        "orientation": {
+          "xAxis": [0.939692621, 0, -0.342020143],
+          "yAxis": [0.342020143, 0, 0.939692621],
+          "normal": [0, -1, 0]
+        }
+      }
+    }
+  ],
+  "structuralDesign": {
+    "schemaVersion": "1.0.0",
+    "material": {
+      "id": "petg-trial-isotropic",
+      "youngsModulusMpa": 2100,
+      "yieldStrengthMpa": 45,
+      "densityKgPerCubicMeter": 1270
+    },
+    "panelMassKg": 0.12,
+    "safetyFactor": 2.5,
+    "maximumDisplacementMm": 3,
+    "gravity": {
+      "installedDirection": [0, 0, -1],
+      "accelerationMetersPerSecondSquared": 9.80665,
+      "includeWorldAxisTransportCases": true
+    },
+    "fabrication": {
+      "minimumMemberDiameterMm": 4,
+      "maximumMemberDiameterMm": 16,
+      "memberDiameterIncrementMm": 0.5,
+      "maximumUnsupportedCompressionLengthMm": 150,
+      "bracketOffsetMm": 14,
+      "cableClearanceMm": 12
+    },
+    "connectorization": {
+      "maximumNeighborDistanceMm": 140,
+      "maximumAutomaticNeighborsPerPanel": 2,
+      "minimumAnchorsPerPanelSide": 2,
+      "printBedSizeMm": [250, 250, 250],
+      "printBedMarginMm": 5,
+      "maximumStrutSegmentLengthMm": 220,
+      "panelPairOverrides": []
+    },
+    "supports": [
+      {
+        "id": "bench-reference-panel",
+        "kind": "panel",
+        "panelId": "P-01",
+        "constrainedTranslations": ["x", "y", "z"]
+      }
+    ],
+    "loads": [
+      {
+        "id": "trail-face-push",
+        "kind": "panel-face-force",
+        "panelId": "P-03",
+        "forceNewtons": [0, -2, -4]
+      },
+      {
+        "id": "trail-corner-handling",
+        "kind": "panel-corner-force",
+        "panelId": "P-03",
+        "corner": "top-left",
+        "forceNewtons": [1, 0, -1]
+      },
+      {
+        "id": "trail-cable-pull",
+        "kind": "cable-pull",
+        "panelId": "P-02",
+        "connector": "DIN",
+        "forceNewtons": [2, 0, 0]
+      }
+    ]
+  },
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "longitude-sectors-nearest-neighbor",
+    "chainLengths": [3],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Spatial trail output",
+        "gpio": null,
+        "color": "#36e0d0"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Three nearby panels form two local connector cells; no P-01 to P-03 shortcut is generated.",
+    "P-01 is a bench reference support. Replace it with real mounting conditions before physical use.",
+    "Material and loads are trial inputs. The report is load-path guidance, not engineering certification."
+  ]
+}

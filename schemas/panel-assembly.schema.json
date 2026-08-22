@@ -1297,6 +1297,41 @@
             "cableClearanceMm": { "type": "number", "exclusiveMinimum": 0 }
           }
         },
+        "connectorization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximumNeighborDistanceMm", "maximumAutomaticNeighborsPerPanel",
+            "minimumAnchorsPerPanelSide", "printBedSizeMm", "printBedMarginMm",
+            "maximumStrutSegmentLengthMm", "panelPairOverrides"
+          ],
+          "properties": {
+            "maximumNeighborDistanceMm": { "type": "number", "exclusiveMinimum": 0 },
+            "maximumAutomaticNeighborsPerPanel": { "type": "integer", "minimum": 1 },
+            "minimumAnchorsPerPanelSide": { "type": "integer", "minimum": 2 },
+            "printBedSizeMm": {
+              "type": "array", "minItems": 3, "maxItems": 3,
+              "items": { "type": "number", "exclusiveMinimum": 0 }
+            },
+            "printBedMarginMm": { "type": "number", "minimum": 0 },
+            "maximumStrutSegmentLengthMm": { "type": "number", "minimum": 1 },
+            "panelPairOverrides": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["panelIds", "action"],
+                "properties": {
+                  "panelIds": {
+                    "type": "array", "minItems": 2, "maxItems": 2,
+                    "items": { "type": "string", "minLength": 1 }
+                  },
+                  "action": { "enum": ["include", "exclude"] }
+                }
+              }
+            }
+          }
+        },
         "supports": {
           "type": "array",
           "items": {

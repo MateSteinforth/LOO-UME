@@ -225,6 +225,23 @@ function residualRatio(
   return maximumResidual / maximumLoad;
 }
 
+function residualVector(
+  matrix: Float64Array,
+  solution: Float64Array,
+  rightHandSide: Float64Array,
+): Float64Array {
+  const size = solution.length;
+  const residual = new Float64Array(size);
+  for (let row = 0; row < size; row += 1) {
+    let value = rightHandSide[row]!;
+    for (let column = 0; column < size; column += 1) {
+      value -= matrix[row * size + column]! * solution[column]!;
+    }
+    residual[row] = value;
+  }
+  return residual;
+}
+
 export function solveLinearTruss(model: LinearTrussModel): LinearTrussResult {
   const nodes = [...model.nodes].sort((left, right) => compareText(left.id, right.id));
   const members = [...model.members].sort((left, right) => compareText(left.id, right.id));
@@ -334,14 +351,30 @@ export function solveLinearTruss(model: LinearTrussModel): LinearTrussResult {
     for (const [index, globalDof] of freeDofs.entries()) {
       rightHandSide[index] = forces[Math.floor(globalDof / 3)]![globalDof % 3]!;
     }
-    const freeSolution = solveCholesky(factor, rightHandSide);
+    let freeSolution = solveCholesky(factor, rightHandSide);
     if (freeSolution.some((value) => !Number.isFinite(value))) {
       throw new TrussSolveError(
         "NUMERICAL_FAILURE",
         `Load case ${loadCase.id} produced a non-finite displacement.`,
       );
     }
-    const relativeResidual = residualRatio(stiffness, freeSolution, rightHandSide);
+    let relativeResidual = residualRatio(stiffness, freeSolution, rightHandSide);
+    for (
+      let refinement = 0;
+      refinement < 3 && Number.isFinite(relativeResidual) &&
+        relativeResidual > RELATIVE_RESIDUAL_TOLERANCE;
+      refinement += 1
+    ) {
+      const correction = solveCholesky(
+        factor,
+        residualVector(stiffness, freeSolution, rightHandSide),
+      );
+      freeSolution = Float64Array.from(
+        freeSolution,
+        (value, index) => value + correction[index]!,
+      );
+      relativeResidual = residualRatio(stiffness, freeSolution, rightHandSide);
+    }
     if (!Number.isFinite(relativeResidual) || relativeResidual > RELATIVE_RESIDUAL_TOLERANCE) {
       throw new TrussSolveError(
         "NUMERICAL_FAILURE",
@@ -461,9 +494,12 @@ export function compileStructuralTrussModel(
     id,
     positionMm: [...positionMm],
   }));
-  const nodeByAnchor = new Map(candidate.nodes.map((node) => [node.anchorId, node]));
+  const anchorNodes = candidate.nodes.filter(
+    (node): node is typeof node & { anchorId: string } => node.anchorId !== undefined,
+  );
+  const nodeByAnchor = new Map(anchorNodes.map((node) => [node.anchorId, node]));
   const nodesByPanel = new Map<string, typeof candidate.nodes>();
-  for (const node of candidate.nodes) {
+  for (const node of anchorNodes) {
     const panelNodes = nodesByPanel.get(node.panelId) ?? [];
     panelNodes.push(node);
     nodesByPanel.set(node.panelId, panelNodes);
@@ -483,14 +519,33 @@ export function compileStructuralTrussModel(
       safetyFactor: normalized.design.safetyFactor,
     };
   });
-  const supports = normalized.supports.map((support): LinearTrussSupport => {
+  const supportByNode = new Map<string, Set<StructuralAxis>>();
+  for (const support of normalized.supports) {
     const node = nodeByAnchor.get(support.anchorId);
-    if (!node) throw new TrussSolveError("INVALID_MODEL", `Support ${support.id} has no candidate hub for ${support.anchorId}.`);
-    return {
-      nodeId: node.id,
-      constrainedTranslations: [...support.constrainedTranslations],
-    };
-  });
+    if (!node) {
+      if (support.source === "authored-anchor") {
+        throw new TrussSolveError(
+          "INVALID_MODEL",
+          `Support ${support.id} has no printable connector hub for ${support.anchorId}.`,
+        );
+      }
+      continue;
+    }
+    const supportedNodes = support.source === "authored-anchor"
+      ? [node]
+      : candidate.nodes.filter(({ panelId }) => panelId === node.panelId);
+    for (const supportedNode of supportedNodes) {
+      const axes = supportByNode.get(supportedNode.id) ?? new Set<StructuralAxis>();
+      for (const axis of support.constrainedTranslations) axes.add(axis);
+      supportByNode.set(supportedNode.id, axes);
+    }
+  }
+  const supports = [...supportByNode]
+    .map(([nodeId, axes]): LinearTrussSupport => ({
+      nodeId,
+      constrainedTranslations: [...axes].sort(compareText),
+    }))
+    .sort((left, right) => compareText(left.nodeId, right.nodeId));
   const candidateNodeById = new Map(candidate.nodes.map((node) => [node.id, node]));
   const candidateMemberById = new Map(candidate.members.map((member) => [member.id, member]));
   const loadCases: LinearTrussLoadCase[] = normalized.loadCases.map((loadCase) => {
@@ -507,6 +562,7 @@ export function compileStructuralTrussModel(
       }
       for (const member of members) {
         const candidateMember = candidateMemberById.get(member.id)!;
+        if (candidateMember.analysisOnly) continue;
         const massKg = material.densityKgPerCubicMeter * member.areaMm2 *
           candidateMember.lengthMm * 1e-9;
         const halfWeight = scale(

@@ -555,3 +555,24 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** After the post-staging restart, port 4181 returns HTTP 200 with
   `application/json` for the registry, two-panel fixture, and panel profile.
 - **Status:** Resolved.
+
+### F-031 — The truss model must not use unprinted panel interfaces
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-022 through TRUSS-024 modular panel-pair connectors.
+- **Symptom:** The first local-cell model distributed panel loads and supports
+  through every eligible hole, but CAD printed only the anchors reserved by a
+  connector cell. Analysis-only panel ties also counted as printed mass and
+  member self-weight.
+- **Cause:** Candidate anchor discovery, panel-rigidity approximation, and
+  printable bracket ownership did not have an explicit interface boundary.
+- **Correction:** Keep load and support hubs only for anchors reserved by a
+  printable connector. Require an authored individual support anchor to be
+  reserved, constrain panel supports through the active bracket interface, and
+  mark PCB-rigidity members as analysis-only with zero print mass/self-weight.
+- **Prevention:** Every external solver load or constraint must resolve to a
+  printed interface. Every non-printed stiffness element must have explicit
+  analysis-only provenance and must not enter fabrication material totals.
+- **Evidence:** Candidate, solver, optimizer, structural pipeline, solid, and
+  independent-review checks cover active anchors and analysis-only members.
+- **Status:** Resolved.

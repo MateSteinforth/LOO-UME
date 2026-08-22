@@ -101,12 +101,25 @@ function canonicalCandidate(candidate: CandidateTruss): CandidateTruss {
   result.nodes.sort((left, right) => compareText(left.id, right.id));
   result.members.sort((left, right) => compareText(left.id, right.id));
   result.panelAttachments.sort((left, right) => compareText(left.panelId, right.panelId));
+  result.connectorCells.sort((left, right) => compareText(left.id, right.id));
   result.rejectedMembers.sort((left, right) => compareText(left.id, right.id));
   for (const attachment of result.panelAttachments) {
     attachment.anchorIds.sort(compareText);
     attachment.bracketIds.sort(compareText);
     attachment.hubNodeIds.sort(compareText);
     attachment.localTieMemberIds.sort(compareText);
+  }
+  for (const cell of result.connectorCells) {
+    if (compareText(cell.panelIds[0], cell.panelIds[1]) > 0) {
+      cell.panelIds.reverse();
+      cell.panelAnchorIds.reverse();
+      cell.sideNodeIds.reverse();
+      cell.bracketTieMemberIds.reverse();
+    }
+    cell.panelAnchorIds = cell.panelAnchorIds.map((ids) => ids.sort(compareText)) as [string[], string[]];
+    cell.sideNodeIds = cell.sideNodeIds.map((ids) => ids.sort(compareText)) as [string[], string[]];
+    cell.bracketTieMemberIds = cell.bracketTieMemberIds.map((ids) => ids.sort(compareText)) as [string[], string[]];
+    cell.memberIds.sort(compareText);
   }
   return result;
 }
@@ -148,6 +161,7 @@ function memberMetrics(
 }
 
 function memberVolume(member: CandidateTrussMember): number {
+  if (member.analysisOnly) return 0;
   return Math.PI * member.initialDiameterMm ** 2 / 4 * member.lengthMm;
 }
 
@@ -169,34 +183,23 @@ function objectiveMetrics(
   let longCompressionPenalty = 0;
   let unprintablePenalty = 0;
   let fragileAttachmentPenalty = 0;
-  const nodeById = new Map(candidate.nodes.map((node) => [node.id, node]));
-  const interPanelMembersByPanel = new Map<string, number>();
-  for (const member of candidate.members) {
-    if (member.kind !== "inter-panel") continue;
-    const startPanelId = nodeById.get(member.startNodeId)?.panelId;
-    const endPanelId = nodeById.get(member.endNodeId)?.panelId;
-    if (startPanelId) {
-      interPanelMembersByPanel.set(
-        startPanelId,
-        (interPanelMembersByPanel.get(startPanelId) ?? 0) + 1,
-      );
-    }
-    if (endPanelId) {
-      interPanelMembersByPanel.set(
-        endPanelId,
-        (interPanelMembersByPanel.get(endPanelId) ?? 0) + 1,
-      );
-    }
-  }
-  if (candidate.panelAttachments.length > 1) {
-    for (const attachment of candidate.panelAttachments) {
-      const shortage = Math.max(
-        0,
-        candidate.policy.requiredInterPanelPaths -
-          (interPanelMembersByPanel.get(attachment.panelId) ?? 0),
-      );
-      fragileAttachmentPenalty += shortage ** 2;
-    }
+  const memberById = new Map(candidate.members.map((member) => [member.id, member]));
+  for (const cell of candidate.connectorCells) {
+    const retained = cell.memberIds.flatMap((id) => {
+      const member = memberById.get(id);
+      return member ? [member] : [];
+    });
+    const shortage = Math.max(
+      0,
+      candidate.policy.requiredInterPanelPaths - retained.length,
+    );
+    fragileAttachmentPenalty += shortage ** 2;
+    const touched = new Set(retained.flatMap((member) => [
+      member.startNodeId,
+      member.endNodeId,
+    ]));
+    fragileAttachmentPenalty += cell.sideNodeIds.flat()
+      .filter((nodeId) => !touched.has(nodeId)).length;
   }
   const maximumForce = Math.max(
     1e-12,
@@ -206,6 +209,7 @@ function objectiveMetrics(
   );
   for (const member of candidate.members) {
     const memberMetric = metrics.get(member.id)!;
+    if (member.analysisOnly) continue;
     maximumStressUtilization = Math.max(
       maximumStressUtilization,
       memberMetric.maximumStressUtilization,
@@ -354,6 +358,10 @@ export function optimizeStructuralTruss(
           ...restorable.slice(0, count),
         ].map((member) => structuredClone(member))
           .sort((left, right) => compareText(left.id, right.id));
+        const retainedIds = new Set(proposed.members.map(({ id }) => id));
+        for (const cell of proposed.connectorCells) {
+          cell.memberIds = cell.memberIds.filter((id) => retainedIds.has(id));
+        }
         return proposed;
       };
       const canMeetHardLimits = (proposed: CandidateTruss): boolean => {
@@ -409,6 +417,7 @@ export function optimizeStructuralTruss(
     const displacementFactor = Math.sqrt(Math.max(1, objective.maximumDisplacementUtilization));
     const resizedMemberIds: string[] = [];
     for (const member of working.members) {
+      if (member.analysisOnly) continue;
       const metric = metrics.get(member.id)!;
       const requiredFactor = Math.max(
         1,

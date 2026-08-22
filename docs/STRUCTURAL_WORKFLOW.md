@@ -16,6 +16,9 @@ use a GLB as printable material.
   six world-axis transport cases;
 - printable member diameter limits and increment, maximum unsupported
   compression length, bracket offset, and cable clearance in mm;
+- modular connector limits: automatic neighbor distance and degree, minimum
+  screw anchors per panel side, print-bed dimensions and margin, maximum strut
+  segment length, and explicit include/exclude panel-pair overrides;
 - panel or individual-anchor supports with constrained X/Y/Z translations; and
 - panel-face, named panel-corner, or DIN/DOUT cable-pull forces in newtons.
 
@@ -25,6 +28,13 @@ structural assets. Add at least one authoritative panel pose first.
 The runtime parser rejects non-finite or non-positive physical values, safety
 factors below 1, zero gravity or force vectors, duplicate IDs, unknown panels,
 blocked anchors, and invalid axes, corners, or connector names.
+It also rejects duplicate, contradictory, self-referential, or unknown panel
+pairs and any segment limit that does not fit the configured print envelope.
+Omitted connector settings use named deterministic defaults: two automatic
+neighbors, two screw anchors per side, a 250 × 250 × 250 mm print envelope with
+5 mm margin, and 220 mm maximum strut segments.
+Segment length must be at least 1 mm, and one member cannot produce more than
+256 segments. These limits bound imported JSON before large CAD allocation.
 
 ## Normalized geometry
 
@@ -70,24 +80,25 @@ not change it. Any relevant input change makes the last artifact set stale.
 
 ## Candidate truss
 
-`createCandidateTruss()` consumes only `NormalizedStructuralDesign`. It puts a
-stable bracket at every eligible anchor and offsets a structural hub behind
-that anchor by `bracketOffsetMm`. It joins all hubs on one panel with local
-ties. This local complete graph represents a rigid bracket plate for the later
-axial-truss model without adding a new panel pose.
+`createCandidateTruss()` consumes only `NormalizedStructuralDesign`. It starts
+from every eligible anchor, then keeps analytical hubs only at anchors reserved
+by a local connector. Panel-rigidity nodes and ties represent PCB/bracket plate
+stiffness in the axial model. They are not printable struts and do not add
+print mass or member self-weight.
 
-Inter-panel candidates connect hub pairs in stable ID order. The current named
-policy limits candidate length to twice
-`maximumUnsupportedCompressionLengthMm`. A member is rejected if its closed
-segment intersects any panel PCB oriented box expanded by at least 0.50 mm.
-Rejected length and collision candidates are kept as diagnostics.
+Automatic inter-panel topology is a degree-limited relative-neighborhood
+forest with deterministic connectivity repair. Thus, a trail becomes local
+P-01–P-02 and P-02–P-03 cells instead of an all-to-all or sculpture-spanning
+truss. Authored include/exclude overrides take precedence. Each accepted cell
+reserves at least two distinct unused screw anchors on each panel, adds one
+offset bracket hub per side, and proposes a triangulated cross-brace between
+the two three-node bracket sides. PCB collisions remain rejected diagnostics.
 
 The generator rejects fewer than three non-collinear eligible anchors,
 coincident hubs, zero-length or duplicate edges, disconnected panel groups, and
-graphs with a bridge. A bridge means that one member is the only remaining
-path. Thus, every accepted candidate graph has at least two graph paths around
-each structural member. This is candidate redundancy only; the optimizer must
-preserve it when it removes members.
+graphs with a member bridge. A whole panel-pair cell can be part of a trail,
+but no individual member may be its only load path. Every cell must keep all
+two screw anchors and its offset hub engaged after optimization.
 
 ## Linear 3D truss analysis
 
@@ -107,7 +118,16 @@ plate transfer approximation used by the axial model.
 removes constrained degrees of freedom, and uses one Cholesky factor for every
 sorted load case. The relative pivot tolerance is `1e-10` of the largest free
 diagonal. A failed pivot reports insufficient support or a rigid-body
-mechanism. Each solution must satisfy a relative residual of `1e-8`.
+mechanism. Each solution must satisfy a relative residual of `1e-8`; bounded
+iterative refinement reuses the same factor before numerical failure.
+
+Panel-level supports intentionally constrain the complete rigid-plate model for
+that active bracket interface, including connector hubs and the analysis-only
+panel-rigidity node. Individual-anchor supports constrain only their exact
+printed anchor and must be selected by a connector; otherwise candidate
+generation fails. Loads
+and panel mass are distributed only through connector anchors that exist in
+printable brackets.
 
 Results contain nodal applied force, displacement, and reaction. Each member
 gets signed axial force, tension/compression state, stress, safety-factored
@@ -121,12 +141,13 @@ the governing load case, with stable load-case ID as the tie-breaker.
 means that the maximum absolute member force across every selected load case is
 below the larger of the absolute floor and relative force threshold. Only
 inter-panel candidates can be removed. Long compression candidates are also
-removal targets. Panel-local ties always remain.
+removal targets. Panel-local and connector-bracket ties always remain.
 
-The optimizer first tries the complete removal batch. It validates connected,
-bridge-free attachments and solves a copy with every retained diameter at the
-authored maximum. If that graph cannot satisfy stress, buckling, and
-displacement, it restores the shortest candidates with stable-ID tie-breaking.
+The optimizer first tries the complete removal batch. It updates every cell's
+retained-member list, validates all bracket-side nodes and redundant local
+paths, and solves a copy with every retained diameter at the authored maximum.
+If that graph cannot satisfy stress, buckling, and displacement, it restores
+the shortest candidates with stable-ID tie-breaking.
 This capacity check prevents a graph that is topologically redundant but too
 flexible from losing needed load paths.
 
@@ -149,12 +170,13 @@ Only `converged` is eligible for printable generation.
 ## Printable Manifold solids
 
 `buildStructuralSolids()` accepts only a converged optimization with the same
-source fingerprint. It emits one world-space millimetre mesh for each panel
-bracket and each retained inter-panel strut. The exact mesh will be the source
-for both printable export and assembly preview in `TRUSS-016`.
+source fingerprint. It emits two separate panel-side brackets for each local
+panel-pair cell, plus retained strut segments and splice sleeves. It never
+Boolean-unites brackets from unrelated cells into one sculpture-sized part.
 
-A panel bracket unites all eligible screw bosses, rear hubs, and panel-local
-ties. The structural anchor stays at the exact authored hole. The printed pilot
+A connector bracket unites exactly its reserved screw bosses, rear hubs,
+offset connector hub, and local bracket ties. The structural anchor stays at
+the exact authored hole. The printed pilot
 moves 0.20 mm inward from the nearest panel edge, consistent with the measured
 hole-edge correction. Printed material starts at the rear PCB surface plus the
 measured 0.50 mm flush correction. Boolean cutters create the profile's 1.60 mm
@@ -163,10 +185,10 @@ across-flats M2 nut traps, inter-panel sockets, and configured cable-clearance
 bores at DIN/DOUT-blocked profile holes. A triangular rear mark identifies the
 first stable local tie.
 
-Each inter-panel strut has socket tenons, full-diameter ends, a narrower middle,
-and a triangular start collar. The socket/tenon policy provides 0.25 mm radial
-clearance and at least 1.20 mm socket wall. Hub spheres and overlapping tapered
-members give continuous transitions.
+Each short inter-panel strut has socket tenons, full-diameter ends, a narrower
+middle, and a triangular start collar. A longer member becomes stable numbered
+segments and hollow splice sleeves with explicit radial clearance. Part IDs
+carry the panel pair, side, member, segment, and joint identity.
 
 Before a mesh leaves the Manifold stage, its kernel status, connected-component
 count, volume, bounds, vertices, indices, and triangle areas are checked. Tiny
@@ -174,6 +196,8 @@ Boolean fragments below `0.00001 mm^3` are discarded; more than one printable
 component is an error. All constructed WASM objects are explicitly released.
 The final solid volume of every bracket and strut is also checked against each
 nearby oriented PCB envelope. Any intersection stops CAD generation.
+Sorted part extents must also fit the configured print-bed dimensions after the
+authored margin and an allowed print rotation.
 
 ## Exact printable artifacts
 
@@ -216,9 +240,10 @@ Schema 2 project and panel profile, runs every structural stage, includes the
 resolved profile and verified optional design surface at safe paths in the
 emitted project, and publishes only after all files and hashes validate.
 
-`structure/analysis.json` contains normalized supports and load cases, units,
+`structure/analysis.json` contains active printable supports and load cases, units,
 input source, warnings, the complete design/material/safety policy, candidate
-counts, optimization objective and trace, full load-case node/member results,
+and connector counts, resolved print envelope, bracket/segment/sleeve counts,
+optimization objective and trace, full load-case node/member results,
 enriched governing member results, and exact print-artifact hashes.
 
 `structure/report.md` starts and ends with the statement that its results are
@@ -232,8 +257,10 @@ records the report's own hash without creating a circular report hash.
 
 ## Browser and portable projects
 
-The editor has a separate **Generate structural truss** action. It calls the
-same browser-safe pipeline as the headless command, loads the exact referenced
+The editor has a separate **Generate structural truss** action. Its modular
+connector settings show proposed panel pairs, accept explicit include/exclude
+overrides, and edit neighbor and print-envelope limits in the existing Schema
+2 `structuralDesign`. It calls the same browser-safe pipeline and loads the exact referenced
 assembly-preview STL, and enables downloads only after every structural
 artifact passes its hash and format check. The existing planar closure action
 remains available as a separate fabrication route.
@@ -248,9 +275,10 @@ simulation, mapping, wiring, and JSON save continue.
 ### Quick UI trial
 
 Run `npm run dev:web`, open the shown local URL, and select **Structural
-Two-panel Spatial Trial**. The project contains two nearby non-coplanar panels
-with independent in-plane rotations, one authored bench support, and face,
-corner, and cable-pull loads. Select **Generate structural truss**. The browser
+Three-panel Spatial Trail**. The project contains three nearby spatial panels,
+one authored bench support, and face, corner, and cable-pull loads. The settings
+show two local cells and no first-to-third shortcut. Select **Generate
+structural truss**. The browser
 shows the exact assembly-preview STL and enables **Download structural files**
 and portable project export after validation.
 
