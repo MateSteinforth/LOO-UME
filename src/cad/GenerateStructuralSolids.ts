@@ -15,6 +15,7 @@ const EPSILON_MM = 0.03;
 const CIRCULAR_SEGMENTS = 32;
 const MAXIMUM_STRUT_SEGMENTS = 256;
 const LOFT_STATION_COUNT = 9;
+const LOFT_REAR_DEPARTURE_MM = 6;
 
 export interface StructuralGeometryPolicy {
   schemaVersion: "1.0.0";
@@ -30,6 +31,7 @@ export interface StructuralGeometryPolicy {
   capScrewTabWidthMm: number;
   capShoeThicknessMm: number;
   loftStationCount: number;
+  loftRearDepartureMm: number;
 }
 
 export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
@@ -46,6 +48,7 @@ export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
   capScrewTabWidthMm: 13,
   capShoeThicknessMm: 3,
   loftStationCount: LOFT_STATION_COUNT,
+  loftRearDepartureMm: LOFT_REAR_DEPARTURE_MM,
 };
 
 export interface StructuralSolidProbe {
@@ -854,10 +857,7 @@ function loftPoint(
   const second = useBack ? secondBack : secondFront;
   const firstInward = normalize(subtract(firstBack, firstFront));
   const secondInward = normalize(subtract(secondBack, secondFront));
-  const controlOffsetMm = Math.max(
-    STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm,
-    Math.min(distance(first, second) * 0.25, 30),
-  );
+  const controlOffsetMm = STRUCTURAL_GEOMETRY_POLICY.loftRearDepartureMm;
   return cubicBezier(
     first,
     add(first, scale(firstInward, controlOffsetMm)),
@@ -980,10 +980,9 @@ function buildLoftBridge(
 function buildOrganicConnector(
   wasm: ManifoldToplevel,
   normalized: NormalizedStructuralDesign,
-  optimized: TrussOptimizationResult,
+  candidate: import("../structure/CandidateTruss.ts").CandidateTruss,
   cell: CandidateConnectorCell,
 ): StructuralSolidMesh {
-  const candidate = optimized.optimizedCandidate;
   const positives: Manifold[] = [];
   const cutters: Manifold[] = [];
   const loftSides: LoftSide[] = [];
@@ -1178,13 +1177,22 @@ export async function buildStructuralSolids(
   if (optimized.optimizedCandidate.sourceFingerprint.value !== normalized.sourceFingerprint.value) {
     throw new Error("Optimized candidate fingerprint does not match normalized structural inputs.");
   }
-  validateCandidateTruss(optimized.optimizedCandidate);
+  return buildStructuralRibbonSolids(normalized, optimized.optimizedCandidate);
+}
+
+export async function buildStructuralRibbonSolids(
+  normalized: NormalizedStructuralDesign,
+  candidate: import("../structure/CandidateTruss.ts").CandidateTruss,
+): Promise<StructuralSolidMesh[]> {
+  if (candidate.sourceFingerprint.value !== normalized.sourceFingerprint.value) {
+    throw new Error("Candidate truss fingerprint does not match normalized structural inputs.");
+  }
+  validateCandidateTruss(candidate);
   const wasm = await loadManifoldRuntime();
   wasm.setCircularSegments(CIRCULAR_SEGMENTS);
-  const candidate = optimized.optimizedCandidate;
   const parts: StructuralSolidMesh[] = [];
   for (const cell of candidate.connectorCells) {
-    parts.push(buildOrganicConnector(wasm, normalized, optimized, cell));
+    parts.push(buildOrganicConnector(wasm, normalized, candidate, cell));
   }
   for (const part of parts) assertFitsPrintBed(part, normalized);
   return parts;

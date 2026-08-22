@@ -18,6 +18,7 @@ import {
   runStructuralPipeline,
   type StructuralPipelineResult,
 } from "../src/structure/StructuralPipeline.ts";
+import { TrussSolveError } from "../src/structure/TrussSolver.ts";
 import { loadVerifiedGeneratedStructure } from "../web/src/GeneratedStructuralAssets.ts";
 
 const sourcePath = "sculptures/pose-only-two-panel/sculpture.json";
@@ -38,7 +39,7 @@ beforeAll(async () => {
 
 describe("headless structural system pipeline", () => {
   it("runs existing Schema 2 JSON through analysis, printable assets, reports, and a current manifest", () => {
-    expect(result.optimization.status).toBe("converged");
+    expect(result.optimization!.status).toBe("converged");
     expect(result.solids).toHaveLength(result.candidate.connectorCells.length);
     expect(result.solids.every(({ kind }) => kind === "organic-connector")).toBe(true);
     expect(result.bundle.files).toHaveLength(result.solids.length + 6);
@@ -68,7 +69,7 @@ describe("headless structural system pipeline", () => {
     expect(result.analysis.loadCases).toHaveLength(7);
     expect(result.analysis.loadCaseResults).toHaveLength(7);
     expect(result.analysis.members).toHaveLength(
-      result.optimization.optimizedCandidate.members.length,
+      result.optimization!.optimizedCandidate.members.length,
     );
     expect(result.analysis.members.every(({ governingLoadCaseId }) => governingLoadCaseId.length > 0))
       .toBe(true);
@@ -213,7 +214,7 @@ describe("headless structural system pipeline", () => {
       .toBe(false);
   }, 60_000);
 
-  it("fails clearly when authored supports leave a singular system", async () => {
+  it("generates the same ribbon and reports a warning when supports leave a singular system", async () => {
     const singularDefinition = structuredClone(source);
     const normalized = normalizeStructuralDesign(project);
     singularDefinition.structuralDesign = structuredClone(normalized.design);
@@ -229,8 +230,63 @@ describe("headless structural system pipeline", () => {
       project.panelProfile,
     );
 
-    await expect(runStructuralPipeline(singularProject)).rejects.toThrow(
+    const singular = await runStructuralPipeline(singularProject);
+
+    expect(singular.optimization).toBeNull();
+    expect(singular.analysis.optimization.status).toBe("unavailable");
+    expect(singular.analysis.optimization.diagnostics.join(" ")).toMatch(
       /singular|supports are insufficient|rigid-body mechanism/i,
     );
+    expect(singular.analysis.loadCaseResults).toEqual([]);
+    expect(singular.analysis.members).toEqual([]);
+    expect(singular.analysis.candidate.retainedMembers).toBe(0);
+    expect(singular.solids).toEqual(result.solids);
+    expect(singular.reportMarkdown).toContain("THE PRINTABLE RIBBON WAS GENERATED");
+  });
+
+  it("generates the ribbon when advisory analysis misses its numerical residual", async () => {
+    const numerical = await runStructuralPipeline(project, {
+      advisoryOptimizer: () => {
+        throw new TrussSolveError(
+          "NUMERICAL_FAILURE",
+          "Load case installed-gravity did not satisfy the stiffness-equation residual tolerance.",
+        );
+      },
+    });
+
+    expect(numerical.optimization).toBeNull();
+    expect(numerical.analysis.optimization.status).toBe("unavailable");
+    expect(numerical.analysis.optimization.diagnostics).toEqual([
+      "Advisory structural analysis is unavailable: Load case installed-gravity did not satisfy the stiffness-equation residual tolerance.",
+    ]);
+    expect(numerical.solids).toEqual(result.solids);
+  });
+
+  it("does not hide an invalid advisory truss model behind ribbon output", async () => {
+    await expect(runStructuralPipeline(project, {
+      advisoryOptimizer: () => {
+        throw new TrussSolveError("INVALID_MODEL", "Synthetic invalid truss model.");
+      },
+    })).rejects.toThrow("Synthetic invalid truss model.");
+  });
+
+  it("generates the ribbon when advisory displacement limits are infeasible", async () => {
+    const infeasibleDefinition = structuredClone(source);
+    const normalized = normalizeStructuralDesign(project);
+    infeasibleDefinition.structuralDesign = structuredClone(normalized.design);
+    infeasibleDefinition.structuralDesign.maximumDisplacementMm = 0.01;
+    infeasibleDefinition.structuralDesign.fabrication.maximumMemberDiameterMm =
+      infeasibleDefinition.structuralDesign.fabrication.minimumMemberDiameterMm;
+    const infeasible = await runStructuralPipeline(createPanelAssemblyProject(
+      infeasibleDefinition,
+      sourcePath,
+      project.panelProfile,
+    ));
+
+    expect(infeasible.optimization?.status).toBe("infeasible");
+    expect(infeasible.analysis.optimization.diagnostics.join(" ")).toContain(
+      "Displacement utilization",
+    );
+    expect(infeasible.solids).toEqual(result.solids);
   });
 });

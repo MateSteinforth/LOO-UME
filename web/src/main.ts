@@ -479,7 +479,7 @@ app.innerHTML = `
               Download verified STL files
             </button>
             <button id="generate-structure" class="pipeline-button" type="button">
-              Generate structural truss
+              Generate connector ribbons
             </button>
             <button id="download-structure" class="pipeline-button" type="button" disabled>
               Download structural files
@@ -763,7 +763,7 @@ async function start(): Promise<void> {
         editorDefinition.panels.length === 0 || editorDefinition.manualMechanics !== undefined;
       generateStructureButton.title = editorDefinition.manualMechanics
         ? "Structural generation is separate from physically tested manual mechanics."
-        : "Analyze panel anchors and generate structural brackets, hubs, struts, STL, 3MF, and reports.";
+        : "Generate nearest-hole connector ribbons, STL, 3MF, and an optional load-path report.";
       automaticPanelPlacementControls.hidden =
         editorDefinition.manualMechanics !== undefined;
       automaticallyPlacePanelsButton.disabled =
@@ -1241,7 +1241,7 @@ async function start(): Promise<void> {
       renderConnectorControls();
       pipelineStatus.classList.remove("pipeline-status--error");
       pipelineStatus.textContent =
-        "Modular connector settings changed. Generate the structural truss to refresh printable parts.";
+        "Modular connector settings changed. Generate connector ribbons to refresh printable parts.";
     };
 
     const renderConnectorControls = (): void => {
@@ -2199,7 +2199,7 @@ async function start(): Promise<void> {
         addPanelButton.disabled = true;
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent =
-          "Normalizing panel anchors, solving load cases, optimizing members, and generating Manifold print files…";
+          "Generating nearest-hole ribbon geometry and running optional load-path analysis…";
         try {
           const structuralDefinition = structuredClone(editorDefinition);
           delete structuralDefinition.generatedMechanics;
@@ -2242,10 +2242,14 @@ async function start(): Promise<void> {
             availableProjectAssets = previousAssets;
             throw error;
           }
+          const loftBodyCount = result.analysis.printable.organicConnectors;
           pipelineStatus.textContent =
-            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${result.analysis.printable.organicConnectors} cap-surface loft bodies. ` +
+            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${loftBodyCount} cap-surface loft ${loftBodyCount === 1 ? "body" : "bodies"}. ` +
             (result.analysis.printable.splitMembers > 0
               ? `PRINT SPLIT WARNING: ${result.analysis.printable.splitMembers} member(s) require numbered segments and splice sleeves. `
+              : "") +
+            (result.analysis.optimization.status !== "converged"
+              ? `Advisory truss analysis: ${result.analysis.optimization.status}; ribbon generation is unaffected. `
               : "") +
             `The package also contains 3MF, preview, analysis, and report. ${result.analysis.disclaimer}`;
           viewerError.hidden = true;

@@ -469,8 +469,9 @@ converges in seven iterations from 13,366 to 2,385 members.
 
 **Consequence.** Topological connectivity alone cannot authorize aggressive
 removal. The objective exposes material, stress, displacement, buckling, long-
-compression, attachment, and printability terms. Only a converged result can
-continue to printable geometry; infeasible and iteration-limit results remain
+compression, attachment, and printability terms. This originally gated
+member-shaped printable geometry. D28 supersedes that gate for independent
+cap-surface ribbon CAD; infeasible and iteration-limit results remain advisory
 diagnostic analysis.
 
 ## D21 — Panel-local structure is one bracket; inter-panel members are struts
@@ -524,12 +525,14 @@ It does not implement another project or panel contract.
 `scripts/generate-structural-system.ts`, and
 `tests/structural-pipeline.test.ts` cover existing Schema 2 JSON through the
 complete file set, current manifest and hashes, missing-input warnings,
-singular-support failure, and repeated-byte equivalence.
+singular-support diagnostics with independent ribbon output, and repeated-byte
+equivalence.
 
-**Consequence.** Reports and printable files cannot describe different solves
-or meshes. The report lists all non-circular artifact hashes; its own hash is in
-the outer manifest. Non-converged or singular results remain diagnostics and
-cannot be published as a complete generated structure.
+**Consequence.** Reports and printable files share one panel/anchor source and
+one artifact manifest. The report lists all non-circular artifact hashes; its
+own hash is in the outer manifest. Non-converged or singular analysis can be
+published only as an explicit advisory diagnostic beside independently
+validated ribbon geometry, as specified by D28.
 
 ## D24 — Browser structural output is one verified portable asset set
 
@@ -622,6 +625,30 @@ thickness. Its individual members are not exposed as rods and it does not
 certify stresses in the lofted solid. This supersedes the
 member-centered signed-distance geometry in D26 while retaining its exact
 hardware, local-cell, export, and fabrication-safety decisions.
+
+## D28 — Ribbon fabrication does not depend on advisory truss convergence
+
+**Decision.** Validated panel pairs and their nearest unused eligible screw
+holes authorize cap-surface ribbon CAD. The pipeline runs the truss solver and
+optimizer as a separate advisory branch. Singular systems, numerical residual
+failures, infeasible limits, and iteration limits become explicit analysis JSON
+and report diagnostics. They do not block a ribbon that passes exact hardware,
+PCB-envelope, Manifold, and print-envelope checks.
+
+The nine-station cubic uses a fixed 6 mm rear-normal departure. This keeps the
+connector close to panel level while still leaving each PCB on its safe side.
+
+**Evidence.** Pipeline tests prove identical ribbon meshes for converged,
+singular, injected numerical-residual, and displacement-infeasible analysis
+states. Failed analysis publishes no load-case or member claims. The browser
+journey generates and downloads a singular-layout ribbon with a concise
+advisory warning instead of an error.
+
+**Consequence.** A user can fabricate the intended flat connector without
+tuning an unrelated beam displacement limit. Reports cannot confuse geometry
+success with structural approval. This supersedes the CAD gate in D20 and D23;
+their solver diagnostics, deterministic reports, and certification disclaimer
+remain in force.
 
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in

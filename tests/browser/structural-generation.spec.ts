@@ -177,8 +177,15 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     buffer: Buffer.from(`${JSON.stringify(singular)}\n`),
   });
   await page.locator("#generate-structure").click();
-  await expect(page.locator("#pipeline-status")).toContainText(/singular|insufficient/i);
-  await expect(page.locator("#pipeline-status")).toHaveClass(/pipeline-status--error/);
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "1 cap-surface loft body",
+    { timeout: 120_000 },
+  );
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Advisory truss analysis: unavailable; ribbon generation is unaffected",
+  );
+  await expect(page.locator("#pipeline-status")).not.toHaveClass(/pipeline-status--error/);
+  await expect(page.locator("#download-structure")).toBeEnabled();
   await expect(page.locator("#generate-mapping")).toBeEnabled();
   await expect(page.locator("#save-sculpture-file")).toBeEnabled();
   await expect(page.locator("#play-toggle")).toBeEnabled();

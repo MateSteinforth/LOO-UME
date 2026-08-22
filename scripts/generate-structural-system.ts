@@ -43,9 +43,13 @@ console.log(
   `${relative(rootDirectory, published.outputDirectory)}.`,
 );
 console.log(
-  `Optimization ${result.optimization.status}; ${result.optimization.optimizedCandidate.members.length} retained members; ` +
+  `Advisory optimization ${result.optimization?.status ?? "unavailable"}; ` +
+  `${result.optimization?.optimizedCandidate.members.length ?? result.candidate.members.length} retained candidate members; ` +
   `source fingerprint ${result.normalized.sourceFingerprint.value}.`,
 );
+for (const diagnostic of result.analysis.optimization.diagnostics) {
+  console.warn(diagnostic);
+}
 for (const warning of result.normalized.warnings) {
   console.warn(`${warning.code}: ${warning.message}`);
 }

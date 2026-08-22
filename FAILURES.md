@@ -633,3 +633,25 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Independent re-review confirmed pad, section, and accumulated
   segment cleanup with no remaining P1/P2 finding.
 - **Status:** Resolved.
+
+### F-035 — Advisory truss convergence must not gate ribbon fabrication
+
+- **Date:** 2026-08-22
+- **Context:** Operator testing of arbitrary layouts after TRUSS-030.
+- **Symptom:** Valid nearest-hole ribbons were blocked by residual-tolerance
+  errors or displacement utilization above one, although their shape did not
+  use optimized circular member sections.
+- **Cause:** The pipeline retained the earlier rod/strut dependency in which a
+  converged optimization authorized CAD. The later loft architecture made that
+  dependency false but did not remove the gate.
+- **Correction:** Generate ribbon CAD directly from validated candidate panel
+  pairs and anchors. Run optimization as an advisory branch. Store singular,
+  numerical, infeasible, and iteration-limit outcomes as prominent report and
+  analysis diagnostics without fabricating member-result claims.
+- **Prevention:** A stage can gate fabrication only when its result changes or
+  validates the fabricated geometry. Test identical ribbon meshes across
+  converged and failed advisory-analysis states.
+- **Evidence:** Pipeline tests cover converged, singular, numerical-residual,
+  and displacement-infeasible states; all produce the same ribbon mesh while
+  failed analysis remains explicit.
+- **Status:** Resolved.

@@ -102,6 +102,7 @@ describe("Manifold structural solids", () => {
     expect(body.loftStationCentersMm).toHaveLength(
       STRUCTURAL_GEOMETRY_POLICY.loftStationCount,
     );
+    expect(STRUCTURAL_GEOMETRY_POLICY.loftRearDepartureMm).toBe(6);
     for (const center of body.loftStationCentersMm!) {
       expect(await structuralMeshContainsPoint(body, center)).toBe(true);
     }

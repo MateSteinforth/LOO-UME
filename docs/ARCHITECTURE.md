@@ -25,7 +25,8 @@ poses and hardware profile:
 (no mechanics fields) ----------> complete pose-first interface, no CAD
 manualMechanics ----------------> verified wrappers around parts/*.scad
 mechanicalShell + closures -----> planar validation -> Manifold STL parts
-structuralDesign -------------> truss -> analysis -> optimization -> Manifold
+structuralDesign -> panel pairs + nearest holes -> Manifold ribbon parts
+                 \-> advisory truss analysis + optimization -> report
 ```
 
 The structural branch implements the Schema 2 input contract, pose/profile
@@ -143,11 +144,11 @@ gates.
 | `src/sculpture/StructuralDesign.ts` | Validate optional structural inputs and derive sorted panels, eligible anchors, supports, load points, warnings, and structural fingerprints | No second panel schema; blocked holes and GLB triangles are excluded |
 | `src/structure/CandidateTruss.ts` | Derive degree-limited local panel neighbors, reserve two anchors per panel-pair side, add connector hubs and collision-checked triangulated cells, then prove connectivity and local redundancy | Trail layouts use adjacent connector cells rather than long all-to-all members; explicit include/exclude overrides remain pose-derived |
 | `src/structure/TrussSolver.ts` | Compile normalized supports and loads onto candidate hubs, assemble and solve the linear 3D axial stiffness model, and select governing member cases | Three translational DOFs per node; N/mm/MPa units; singular systems fail before results are published |
-| `src/structure/TrussOptimizer.ts` | Remove low-load or long-compression candidates, preserve redundant stable paths, round member diameters, reapply self-weight, and retain an objective trace | Bounded iterations report converged, infeasible, or iteration-limit status; no failed optimization can become printable geometry |
-| `src/cad/GenerateStructuralSolids.ts` | Loft one broad cap-derived surface between the nearest eligible screw shoes of each optimized panel pair with Manifold | Cubic rear-normal departure, exact anchor, print-envelope, fastener, clearance, topology, triangle, and volume checks gate each mesh |
+| `src/structure/TrussOptimizer.ts` | Remove low-load or long-compression candidates, preserve redundant stable paths, round member diameters, reapply self-weight, and retain an objective trace | Bounded iterations report converged, infeasible, or iteration-limit status as advisory analysis; they do not authorize ribbon CAD |
+| `src/cad/GenerateStructuralSolids.ts` | Loft one broad cap-derived surface between the nearest eligible screw shoes of each candidate panel pair with Manifold | A short 6 mm cubic rear-normal departure keeps the ribbon near panel level; exact anchor, print-envelope, fastener, clearance, topology, triangle, and volume checks gate each mesh |
 | `src/cad/CompileStructuralArtifacts.ts` | Serialize the exact structural meshes as deterministic binary STL parts, one assembly-preview STL, and one Core 3MF package | Millimetre units, stable identities, triangle counts, package relationships, hashes, and positive-octant build transform are validated in memory |
 | `src/cad/PublishStructuralArtifacts.ts` | Stage and exact-byte verify a complete structural artifact bundle, then replace its output directory atomically | A failed final promotion restores the previous validated directory; the manifest is written last in staging |
-| `src/structure/StructuralPipeline.ts` | Run normalization, candidate generation, optimization, Manifold CAD, exact export, analysis JSON, report, and generated-structure manifest from one Schema 2 project | Deterministic output contains no timestamp; singular or non-converged analysis stops before publication; report states that results are not certification |
+| `src/structure/StructuralPipeline.ts` | Run normalization, candidate generation, independent ribbon CAD, advisory optimization, exact export, analysis JSON, report, and generated-structure manifest from one Schema 2 project | Singular or non-converged analysis becomes a prominent diagnostic without blocking valid CAD; geometry and artifact failures still stop publication |
 | `web/src/GeneratedStructuralAssets.ts` | Load, hash-check, and format-check one current structural asset set for browser preview and download | Stale sets fail before fetch; the assembly preview uses the exact referenced STL bytes |
 | `src/sculpture/SculptureEditor.ts` | Add/move/rotate/delete/seed and mechanics invalidation | Editing does not require successful CAD |
 | `src/sculpture/MechanicalShellRegenerator.ts` | Rebuild supported planar topology after edits | Rejects unsafe or ambiguous mechanics |
@@ -271,8 +272,8 @@ buckling, and displacement, then member self-weight is solved again.
 
 Structural CAD emits one loft body per panel-pair cell. Broad 13 mm rounded
 screw shoes reuse the canonical triangle/pentagon fixture language. Nine
-cap-shaped stations follow a cubic path that first leaves each PCB along its
-rear normal. Adjacent stations form a continuous twisted surface, then profile
+cap-shaped stations follow a cubic path with a short 6 mm departure along each
+PCB rear normal. Adjacent stations form a flat, continuous twisted ribbon, then profile
 pilot holes, lead-ins, measured flush offsets, shallow hex pockets with lateral
 insertion slots,
 conservative DIN/DOUT clearance bores, and a stable orientation mark are cut or

@@ -175,7 +175,9 @@ case. It reports member axial force, tension/compression state, stress, safety-
 factored yield utilization, pinned-pinned Euler buckling capacity and
 utilization, and the governing case. A singular stiffness matrix or residual
 failure stops analysis with an error. These results guide load paths only; they
-are not engineering certification.
+are not engineering certification. A pipeline catches this analysis error,
+records it as an unavailable advisory result, and still generates a ribbon
+when the independent panel, hardware, PCB, and print checks pass.
 
 `optimizeStructuralTruss()` uses the maximum absolute force and utilization
 from all selected cases. It can remove only inter-panel candidates; panel-local
@@ -213,7 +215,7 @@ has a 2.20 mm-deep, 4.20 mm across-flats M2 hex pocket with a lateral
 insertion slot toward the nearest panel edge.
 
 The surface uses nine deterministic cap-shaped stations. A cubic path leaves
-each shoe along its panel rear normal before it bends through the gap. Manifold
+each shoe only 6 mm along its panel rear normal before it bends through the gap. Manifold
 hulls adjacent stations, which keeps the 3 mm cap thickness near each panel and
 creates a continuous surface when the panel planes differ. The axial solver
 still validates panel-pair load paths and reports its own circular member

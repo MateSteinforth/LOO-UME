@@ -5,7 +5,10 @@ import {
   type CompiledStructuralArtifactBundle,
   type StructuralArtifactFile,
 } from "../cad/CompileStructuralArtifacts.ts";
-import { buildStructuralSolids, type StructuralSolidMesh } from "../cad/GenerateStructuralSolids.ts";
+import {
+  buildStructuralRibbonSolids,
+  type StructuralSolidMesh,
+} from "../cad/GenerateStructuralSolids.ts";
 import {
   createPanelAssemblyProject,
   type PanelAssemblyDefinition,
@@ -24,7 +27,7 @@ import {
   optimizeStructuralTruss,
   type TrussOptimizationResult,
 } from "./TrussOptimizer.ts";
-import type { TrussMemberResult } from "./TrussSolver.ts";
+import { TrussSolveError, type TrussMemberResult } from "./TrussSolver.ts";
 
 const TEXT = new TextEncoder();
 const DISCLAIMER = "Load-path guidance only; not engineering certification." as const;
@@ -48,8 +51,8 @@ export interface StructuralPipelineMemberResult {
 }
 
 export interface StructuralAnalysisDocument {
-  schemaVersion: "1.0.0";
-  generator: { id: "wled-orbital-lab/structural-pipeline"; version: "1.0.0" };
+  schemaVersion: "1.1.0";
+  generator: { id: "wled-orbital-lab/structural-pipeline"; version: "1.1.0" };
   disclaimer: typeof DISCLAIMER;
   sourceFingerprint: NormalizedStructuralDesign["sourceFingerprint"];
   units: NormalizedStructuralDesign["units"];
@@ -79,12 +82,13 @@ export interface StructuralAnalysisDocument {
     materialMassKg: number;
   };
   optimization: {
-    status: TrussOptimizationResult["status"];
-    policy: TrussOptimizationResult["policy"];
-    objective: number;
-    objectiveBreakdown: TrussOptimizationResult["objectiveBreakdown"];
-    materialVolumeCubicMm: number;
-    materialMassKg: number;
+    status: TrussOptimizationResult["status"] | "unavailable";
+    diagnostics: string[];
+    policy: TrussOptimizationResult["policy"] | null;
+    objective: number | null;
+    objectiveBreakdown: TrussOptimizationResult["objectiveBreakdown"] | null;
+    materialVolumeCubicMm: number | null;
+    materialMassKg: number | null;
     violations: string[];
     trace: TrussOptimizationResult["trace"];
   };
@@ -103,7 +107,7 @@ export interface StructuralAnalysisDocument {
 export interface StructuralPipelineResult {
   normalized: NormalizedStructuralDesign;
   candidate: CandidateTruss;
-  optimization: TrussOptimizationResult;
+  optimization: TrussOptimizationResult | null;
   solids: StructuralSolidMesh[];
   analysis: StructuralAnalysisDocument;
   analysisBytes: Uint8Array;
@@ -116,6 +120,10 @@ export interface StructuralPipelineResult {
 
 export interface StructuralPipelineOptions {
   designSurfaceBytes?: Uint8Array;
+  advisoryOptimizer?: (
+    normalized: NormalizedStructuralDesign,
+    candidate: CandidateTruss,
+  ) => TrussOptimizationResult;
 }
 
 function compareText(left: string, right: string): number {
@@ -170,6 +178,7 @@ function assumptions(normalized: NormalizedStructuralDesign): string[] {
     "Panels are rigid load-transfer plates between their eligible mounting anchors.",
     "Panel-rigidity nodes and ties represent PCB/bracket plate stiffness for analysis only; they are not extra printable struts.",
     "Each printable connector cell joins one neighboring panel pair through the nearest unused eligible screw anchors and one cap-surface loft.",
+    "Ribbon generation depends on valid panel geometry, hardware clearances, PCB avoidance, and print limits; it does not depend on truss convergence.",
     "The axial truss validates local load paths and reports member sizing, but those circular sections do not set loft thickness or certify stresses in the lofted solid.",
     "Members are straight, pin-jointed, linearly elastic axial truss elements with three translational node degrees of freedom.",
     "Euler compression capacity uses a pinned-pinned end condition and the optimized circular section.",
@@ -222,13 +231,14 @@ function artifactReferences(files: StructuralArtifactFile[]): StructuralAnalysis
 function analysisDocument(
   normalized: NormalizedStructuralDesign,
   candidate: CandidateTruss,
-  optimization: TrussOptimizationResult,
+  optimization: TrussOptimizationResult | null,
+  diagnostics: string[],
   printFiles: StructuralArtifactFile[],
   solids: StructuralSolidMesh[],
 ): StructuralAnalysisDocument {
   return {
-    schemaVersion: "1.0.0",
-    generator: { id: "wled-orbital-lab/structural-pipeline", version: "1.0.0" },
+    schemaVersion: "1.1.0",
+    generator: { id: "wled-orbital-lab/structural-pipeline", version: "1.1.0" },
     disclaimer: DISCLAIMER,
     sourceFingerprint: { ...normalized.sourceFingerprint },
     units: { ...normalized.units },
@@ -247,7 +257,7 @@ function analysisDocument(
       nodes: candidate.nodes.length,
       initialMembers: candidate.members.length,
       rejectedMembers: candidate.rejectedMembers.length,
-      retainedMembers: optimization.optimizedCandidate.members.length,
+      retainedMembers: optimization?.optimizedCandidate.members.length ?? 0,
       connectorCells: candidate.connectorCells.length,
     },
     printable: {
@@ -263,17 +273,20 @@ function analysisDocument(
         1e-9 * normalized.design.material.densityKgPerCubicMeter,
     },
     optimization: {
-      status: optimization.status,
-      policy: structuredClone(optimization.policy),
-      objective: optimization.objective,
-      objectiveBreakdown: structuredClone(optimization.objectiveBreakdown),
-      materialVolumeCubicMm: optimization.materialVolumeCubicMm,
-      materialMassKg: optimization.materialMassKg,
-      violations: [...optimization.violations],
-      trace: structuredClone(optimization.trace),
+      status: optimization?.status ?? "unavailable",
+      diagnostics: [...diagnostics],
+      policy: optimization ? structuredClone(optimization.policy) : null,
+      objective: optimization?.objective ?? null,
+      objectiveBreakdown: optimization
+        ? structuredClone(optimization.objectiveBreakdown)
+        : null,
+      materialVolumeCubicMm: optimization?.materialVolumeCubicMm ?? null,
+      materialMassKg: optimization?.materialMassKg ?? null,
+      violations: optimization ? [...optimization.violations] : [],
+      trace: optimization ? structuredClone(optimization.trace) : [],
     },
-    loadCaseResults: structuredClone(optimization.analysis.loadCases),
-    members: enrichedMembers(optimization),
+    loadCaseResults: optimization ? structuredClone(optimization.analysis.loadCases) : [],
+    members: optimization ? enrichedMembers(optimization) : [],
     artifacts: artifactReferences(printFiles),
   };
 }
@@ -301,7 +314,7 @@ function report(
     "",
     "> **WARNING: LOAD-PATH GUIDANCE ONLY. THIS REPORT IS NOT ENGINEERING CERTIFICATION.**",
     "",
-    "The linear truss model guides printable load paths. A qualified engineer and physical tests must approve real mounting, material, print, fastener, impact, fatigue, and safety conditions.",
+    "Panel poses and eligible screw holes define the printable ribbon. The separate linear truss model is advisory only. A qualified engineer and physical tests must approve real mounting, material, print, fastener, impact, fatigue, and safety conditions.",
     "",
     "## Result",
     "",
@@ -311,7 +324,10 @@ function report(
     `- Safety factor: ${finite(analysis.design.safetyFactor)}`,
     `- Material: ${markdown(analysis.design.material.id)}; E ${finite(analysis.design.material.youngsModulusMpa)} MPa; yield ${finite(analysis.design.material.yieldStrengthMpa)} MPa; density ${finite(analysis.design.material.densityKgPerCubicMeter)} kg/m^3`,
     `- Panel mass: ${finite(analysis.design.panelMassKg)} kg each`,
-    `- Optimized axial-skeleton material: ${finite(analysis.optimization.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.optimization.materialMassKg, 5)} kg`,
+    analysis.optimization.materialVolumeCubicMm === null ||
+        analysis.optimization.materialMassKg === null
+      ? "- Optimized axial-skeleton material: unavailable; see analysis warning"
+      : `- Optimized axial-skeleton material: ${finite(analysis.optimization.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.optimization.materialMassKg, 5)} kg`,
     `- Final printable loft material: ${finite(analysis.printable.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.printable.materialMassKg, 5)} kg`,
     `- Candidate members: ${analysis.candidate.initialMembers}; retained: ${analysis.candidate.retainedMembers}`,
     `- Local panel-pair connectors: ${analysis.candidate.connectorCells}`,
@@ -320,6 +336,16 @@ function report(
     `- Print envelope: ${analysis.connectorization.printBedSizeMm.join(" × ")} mm with ${finite(analysis.connectorization.printBedMarginMm)} mm margin`,
     "",
   ];
+  if (analysis.optimization.status !== "converged") {
+    lines.push(
+      "> **ANALYSIS WARNING: THE PRINTABLE RIBBON WAS GENERATED FROM PANEL GEOMETRY, BUT THE ADVISORY TRUSS ANALYSIS DID NOT CONVERGE. DO NOT USE IT AS STRUCTURAL APPROVAL.**",
+      "",
+      ...analysis.optimization.diagnostics.map((diagnostic) =>
+        `> ${markdown(diagnostic)}`
+      ),
+      "",
+    );
+  }
   if (analysis.printable.splitMembers > 0) {
     lines.push(
       `> **PRINT SPLIT WARNING: ${analysis.printable.splitMembers} MEMBER(S) EXCEED THE CONFIGURED SEGMENT LENGTH AND REQUIRE NUMBERED SEGMENTS PLUS SPLICE SLEEVES.**`,
@@ -429,16 +455,36 @@ export async function runStructuralPipeline(
 ): Promise<StructuralPipelineResult> {
   const normalized = normalizeStructuralDesign(project);
   const candidate = createCandidateTruss(normalized);
-  const optimization = optimizeStructuralTruss(normalized, candidate);
-  if (optimization.status !== "converged") {
-    throw new Error(
-      `Structural optimization did not converge (${optimization.status}): ` +
-      (optimization.violations.join(" ") || "iteration limit reached"),
+  let optimization: TrussOptimizationResult | null = null;
+  const diagnostics: string[] = [];
+  try {
+    optimization = (options.advisoryOptimizer ?? optimizeStructuralTruss)(
+      normalized,
+      candidate,
     );
+    if (optimization.status !== "converged") {
+      diagnostics.push(
+        `Advisory structural optimization is ${optimization.status}: ` +
+        (optimization.violations.join(" ") || "iteration limit reached."),
+      );
+    }
+  } catch (error) {
+    if (
+      !(error instanceof TrussSolveError) ||
+      (error.code !== "SINGULAR_SYSTEM" && error.code !== "NUMERICAL_FAILURE")
+    ) throw error;
+    diagnostics.push(`Advisory structural analysis is unavailable: ${error.message}`);
   }
-  const solids = await buildStructuralSolids(normalized, optimization);
+  const solids = await buildStructuralRibbonSolids(normalized, candidate);
   const printBundle = compileStructuralArtifactBundle(normalized.sourceFingerprint, solids);
-  const analysis = analysisDocument(normalized, candidate, optimization, printBundle.files, solids);
+  const analysis = analysisDocument(
+    normalized,
+    candidate,
+    optimization,
+    diagnostics,
+    printBundle.files,
+    solids,
+  );
   const analysisBytes = TEXT.encode(`${JSON.stringify(analysis, null, 2)}\n`);
   const analysisFile = createStructuralArtifactFile(
     "analysis", "analysis", "json", "structure/analysis.json", analysisBytes,

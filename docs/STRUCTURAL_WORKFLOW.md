@@ -166,13 +166,17 @@ term zero. The trace keeps the evaluated objective and exact removed or resized
 member IDs. A stationary result is `converged` only when all hard limits pass;
 otherwise it is `infeasible`. A result that still changes on the last permitted
 iteration is `iteration-limit`, even if its current values violate a limit.
-Only `converged` is eligible for printable generation.
+These statuses gate analysis claims only. They do not gate the independent
+nearest-hole ribbon geometry.
 
 ## Printable Manifold solids
 
-`buildStructuralSolids()` accepts only a converged optimization with the same
-source fingerprint. It emits one cap-surface loft body for each local
-panel-pair cell. It never joins unrelated cells into one sculpture-sized part.
+`buildStructuralRibbonSolids()` accepts the validated pose-derived candidate
+panel pairs directly. It emits one cap-surface loft body for each local cell and
+never joins unrelated cells into one sculpture-sized part.
+`buildStructuralSolids()` remains a strict converged-analysis entry for focused
+analysis-to-CAD checks, but the product pipeline uses the independent ribbon
+entry.
 
 A connector body starts with broad 13 mm rounded screw shoes derived from the
 canonical triangle and pentagon fixture language. Candidate generation assigns
@@ -188,8 +192,8 @@ cable-clearance bores at DIN/DOUT-blocked
 profile holes. A triangular rear mark identifies the first stable side.
 
 Nine deterministic cap-shaped stations interpolate the two screw-shoe
-profiles. Their center path is cubic: it first leaves each PCB along that
-panel's rear normal, then bends across the gap. Manifold hulls each adjacent
+profiles. Their center path is cubic: it first leaves each PCB only 6 mm along
+that panel's rear normal, then bends across the gap. Manifold hulls each adjacent
 station pair and unites the segments into one watertight twisted surface. This
 avoids both a visible rod field and one thick straight convex wedge for
 misaligned panels. The axial truss analysis validates local load paths and
@@ -253,6 +257,10 @@ input source, warnings, the complete design/material/safety policy, candidate
 and connector counts, resolved print envelope, loft body count and mass,
 optimization objective and trace, full load-case node/member results,
 enriched governing member results, and exact print-artifact hashes.
+When the advisory solve is singular or numerically unreliable, optimization is
+`unavailable`, diagnostics are explicit, and load-case/member result arrays are
+empty. An infeasible or iteration-limited solve retains its advisory results and
+violations. None of these analysis states blocks valid ribbon artifacts.
 
 `structure/report.md` starts and ends with the statement that its results are
 load-path guidance and not engineering certification. It makes preview-only
@@ -265,7 +273,7 @@ records the report's own hash without creating a circular report hash.
 
 ## Browser and portable projects
 
-The editor has a separate **Generate structural truss** action. Its modular
+The editor has a separate **Generate connector ribbons** action. Its modular
 connector settings show proposed panel pairs, accept explicit include/exclude
 overrides, and edit neighbor and print-envelope limits in the existing Schema
 2 `structuralDesign`. It calls the same browser-safe pipeline and loads the exact referenced
@@ -286,7 +294,7 @@ Run `npm run dev:web`, open the shown local URL, and select **Structural
 Three-panel Spatial Trail**. The project contains three nearby spatial panels,
 one authored bench support, and face, corner, and cable-pull loads. The settings
 show two local cells and no first-to-third shortcut. Select **Generate
-structural truss**. The browser
+connector ribbons**. The browser
 shows the exact assembly-preview STL and enables **Download structural files**
 and portable project export after validation.
 
