@@ -6,9 +6,7 @@
 *.3mf
 *.amf
 *.off
-*.csg
-
-# OpenSCAD/editor temporary files
+# Editor temporary files
 *.autosave
 *.tmp
 *~

@@ -646,16 +646,11 @@ async function start(): Promise<void> {
         (!packageIsCurrent && !capabilities.canGenerateGenericMechanics);
       assemblyPackageButton.title = packageIsCurrent
         ? "Download the current project, verified geometry, manual, ledmap, and wiring review."
-        : editorDefinition.manualMechanics
-          ? "This manual SCAD project has no browser-generated STL package."
-          : "Build current boundary and part STLs. The button changes to Download when they are verified.";
-      automaticPanelPlacementControls.hidden =
-        editorDefinition.manualMechanics !== undefined;
+        : "Build current boundary and part STLs. The button changes to Download when they are verified.";
+      automaticPanelPlacementControls.hidden = false;
       automaticallyPlacePanelsButton.disabled =
         !capabilities.canAutomaticallySeed;
-      automaticallyPlacePanelsButton.title = editorDefinition.manualMechanics
-        ? "Automatic placement is disabled for manually authored mechanics."
-        : activePlacementSurface
+      automaticallyPlacePanelsButton.title = activePlacementSurface
           ? "Seed panels evenly across the active placement surface."
           : "Load a GLB or sculpture JSON shell first.";
     };
@@ -915,11 +910,7 @@ async function start(): Promise<void> {
       panelCountDisplay.textContent = isPanelized
         ? String(mapping.panels.length)
         : "—";
-      const mechanicalNote = editorDefinition.manualMechanics
-        ? editorDefinition.manualMechanics.compatibilityStatus === "requires-review"
-          ? "Mapping and wiring use the edited authoritative poses. Manually authored printable mechanics require review and cannot be presented as verified."
-          : "Mapping and wiring use authoritative poses. Printable mechanics use the manually authored SCAD parts; generic cap generation is disabled."
-        : editorDefinition.mechanicalShell && !mechanicalShellIsCurrent()
+      const mechanicalNote = editorDefinition.mechanicalShell && !mechanicalShellIsCurrent()
           ? "Panel poses changed on an authoring surface. Wiring preview follows those poses; printable closures are hidden until the mechanical shell is regenerated."
         : generatedState === "stale"
           ? "Mapping and wiring follow the edited poses. The last generated STL set is stale and hidden until regeneration succeeds."
@@ -1119,9 +1110,7 @@ async function start(): Promise<void> {
         " triangles, " +
         size +
         " mm, watertight.";
-      selectedPanelStatus.textContent = editorDefinition.manualMechanics
-        ? "Click a panel to move it across the referenced GLB, rotate around local Z, or delete it. New manual panels require explicit face metadata and are not added by canvas clicks."
-        : "";
+      selectedPanelStatus.textContent = "";
     };
 
     const showMechanicalShellSurface = (message?: string): void => {
@@ -1135,12 +1124,6 @@ async function start(): Promise<void> {
 
     const loadReferencedDesignSurface = async (): Promise<void> => {
       const definition = editorDefinition.designSurface;
-      if (!definition && editorDefinition.manualMechanics) {
-        clearDesignSurface(
-          "No authoring surface is referenced. Existing manual panels remain editable in their saved planes; generic cap generation is disabled.",
-        );
-        return;
-      }
       if (!definition) {
         if (editorDefinition.mechanicalShell) {
           showMechanicalShellSurface();
@@ -1157,12 +1140,7 @@ async function start(): Promise<void> {
         ? bundledSurface.objectUrl
         : undefined;
       if (editorProject.source.startsWith("local:") && !surfaceObjectUrl) {
-        if (editorDefinition.manualMechanics) {
-          clearDesignSurface(
-            "This local project references " + definition.source +
-              "; load that companion GLB to use it as a visual authoring canvas. Existing panels remain editable in their saved planes.",
-          );
-        } else if (editorDefinition.mechanicalShell) {
+        if (editorDefinition.mechanicalShell) {
           showMechanicalShellSurface(
             "Using the JSON face graph. This project references " +
               definition.source +
@@ -1256,9 +1234,7 @@ async function start(): Promise<void> {
           );
           applyLoadedSculpture(createLoadedSculpture(project));
           pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = edited.manualMechanics
-            ? "Moved " + placement.panelId + ". Mapping and wiring refreshed; manual printable mechanics now require review."
-            : edited.mechanicalShell
+          pipelineStatus.textContent = edited.mechanicalShell
               ? "Moved " + placement.panelId + ". Pose is saved; 3D generation will validate it against the JSON boundary and regenerate printable mechanics."
               : "Moved " + placement.panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.";
           selectedPanelStatus.textContent =
@@ -1284,9 +1260,7 @@ async function start(): Promise<void> {
           applyLoadedSculpture(createLoadedSculpture(project));
           renderer?.selectEditorPanel(panelId);
           pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = edited.manualMechanics
-            ? "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; manual printable mechanics now require review."
-            : edited.mechanicalShell
+          pipelineStatus.textContent = edited.mechanicalShell
               ? "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; generated mechanics require regeneration."
               : "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; no printable mechanics exist yet.";
           viewerError.hidden = true;
@@ -1314,9 +1288,7 @@ async function start(): Promise<void> {
           renderer?.selectEditorPanel(panelId);
           const direction = degrees >= 0 ? "counter-clockwise" : "clockwise";
           pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = edited.manualMechanics
-            ? "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + ". Mapping and wiring refreshed; manual printable mechanics now require review."
-            : edited.mechanicalShell
+          pipelineStatus.textContent = edited.mechanicalShell
               ? "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + " as viewed from outside. 3D generation will revalidate its full PCB envelope."
               : "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + " as viewed from outside. Mapping and wiring refreshed; no printable mechanics exist yet.";
           viewerError.hidden = true;
@@ -1364,9 +1336,7 @@ async function start(): Promise<void> {
           );
           applyLoadedSculpture(createLoadedSculpture(project));
           pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = edited.manualMechanics
-            ? "Deleted " + panelId + ". Mapping and wiring refreshed; manual printable mechanics now require review."
-            : edited.mechanicalShell
+          pipelineStatus.textContent = edited.mechanicalShell
               ? "Deleted " + panelId + ". 3D generation will regenerate the closed JSON mechanical boundary."
               : "Deleted " + panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.";
           viewerError.hidden = true;

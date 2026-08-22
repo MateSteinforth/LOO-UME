@@ -201,7 +201,6 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
     scaleToMillimeters: 1,
   });
   expect((saved.designSurface as { sha256: string }).sha256).toMatch(/^[0-9a-f]{64}$/);
-  expect(saved).not.toHaveProperty("manualMechanics");
   expect(saved).not.toHaveProperty("mechanicalShell");
   expect(saved).not.toHaveProperty("closures");
 

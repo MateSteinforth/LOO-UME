@@ -618,9 +618,6 @@ function buildOneClosure(
 export async function buildPanelClosureSolids(
   project: PanelAssemblyProject,
 ): Promise<ClosureSolidMesh[]> {
-  if (project.sculpture.manualMechanics) {
-    throw new Error("Manually authored mechanics cannot enter generic Manifold solids.");
-  }
   const wasm = await loadManifoldRuntime();
   wasm.setCircularSegments(CIRCULAR_SEGMENTS);
   const assembly = compilePanelAssembly(project);

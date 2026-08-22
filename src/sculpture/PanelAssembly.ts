@@ -179,14 +179,6 @@ export interface PanelAssemblyDefinition {
     connectorCornerClearance: number;
     panelEnvelopeClearance: number;
   };
-  manualMechanics?: {
-    kind: "manually-authored-parts";
-    generator: "verified-scad-wrappers";
-    /** Omitted legacy values mean verified until an authoritative panel edit occurs. */
-    compatibilityStatus?: "verified" | "requires-review";
-    centerPanelMount: Record<string, unknown>;
-    openings: Record<string, unknown>;
-  };
   mapping: {
     projection: "equirectangular";
     logicalOrder: "north-to-south-then-longitude";
@@ -665,6 +657,11 @@ export function parsePanelAssemblyDefinition(
   input: unknown,
 ): PanelAssemblyDefinition {
   if (!isRecord(input)) throw new Error("Panel assembly must be an object.");
+  if (input.manualMechanics !== undefined) {
+    throw new Error(
+      "manualMechanics is retired. Use panel outlines and Manifold-generated mechanics.",
+    );
+  }
   if (
     input.schemaVersion !== "2.0.0" ||
     input.units !== "mm" ||
@@ -700,33 +697,15 @@ export function parsePanelAssemblyDefinition(
   }
   validateGeneratedMechanics(input.generatedMechanics);
   validateUniqueProjectAssetSources(input);
-  const manualMechanics = input.manualMechanics;
-  const usesManualMechanics = manualMechanics !== undefined;
   const hasMechanicalShell = input.mechanicalShell !== undefined;
   const hasClosures = input.closures !== undefined;
   const usesGeneratedMechanics = hasMechanicalShell && hasClosures;
   if (
-    usesManualMechanics &&
-    (!isRecord(manualMechanics) ||
-      manualMechanics.kind !== "manually-authored-parts" ||
-      manualMechanics.generator !== "verified-scad-wrappers" ||
-      (manualMechanics.compatibilityStatus !== undefined &&
-        manualMechanics.compatibilityStatus !== "verified" &&
-        manualMechanics.compatibilityStatus !== "requires-review") ||
-      !isRecord(manualMechanics.centerPanelMount) ||
-      !isRecord(manualMechanics.openings))
-  ) {
-    throw new Error("Manual mechanics must reference the verified authored-part contract.");
-  }
-  if (usesManualMechanics && (input.mechanicalShell !== undefined || input.closures !== undefined)) {
-    throw new Error("Manual mechanics cannot also request generated closure topology.");
-  }
-  if (
     input.boundaryTopology !== undefined &&
-    (usesManualMechanics || hasMechanicalShell || hasClosures)
+    (hasMechanicalShell || hasClosures)
   ) {
     throw new Error(
-      "Panel-outline gap topology is a pose-first boundary input and cannot be combined with manual or existing planar-shell mechanics.",
+      "Panel-outline gap topology is a pose-first boundary input and cannot be combined with existing planar-shell mechanics.",
     );
   }
   if (hasMechanicalShell !== hasClosures) {
@@ -997,26 +976,6 @@ export function parsePanelAssemblyDefinition(
       gapIds.add(gap.id);
     }
   }
-  if (usesManualMechanics) {
-    for (const panel of input.panels) {
-      if (
-        !isRecord(panel) ||
-        panel.faceType === undefined ||
-        !Array.isArray(panel.neighborPanelIds) ||
-        panel.neighborPanelIds.some((id) => !panelIds.has(id as string))
-      ) {
-        throw new Error(
-          "Manual-mechanics panels require a face type and known neighbor panel IDs.",
-        );
-      }
-    }
-    validateWiring(record(input, "wiring"), input.panels.length, panelIds);
-    validateInstalledAddressOptimizationFingerprintShape(
-      input as unknown as PanelAssemblyDefinition,
-    );
-    if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
-    return input as unknown as PanelAssemblyDefinition;
-  }
   if (!usesGeneratedMechanics) {
     validateWiring(record(input, "wiring"), input.panels.length, panelIds);
     validateInstalledAddressOptimizationFingerprintShape(
@@ -1111,11 +1070,6 @@ export function parsePanelAssemblyDefinition(
 export function assertMechanicalShellReady(
   project: PanelAssemblyProject,
 ): void {
-  if (project.sculpture.manualMechanics) {
-    throw new Error(
-      "This sculpture uses manually authored printable parts; generic closure CAD generation is intentionally unavailable.",
-    );
-  }
   if (!project.sculpture.mechanicalShell || !project.sculpture.closures) {
     throw new Error(
       "Generic 3D-part generation is unavailable until generation input exists. Add a supported mechanical boundary, or wait for panel-outline boundary generation.",
@@ -1265,7 +1219,7 @@ export function compilePanelAssembly(
   const definition = project.sculpture;
   const mechanicalShell = definition.mechanicalShell;
   const closures = definition.closures;
-  if (definition.manualMechanics || !mechanicalShell || !closures) {
+  if (!mechanicalShell || !closures) {
     throw new Error(
       "Projects without generated mechanics do not compile generic closure topology.",
     );
@@ -1688,8 +1642,7 @@ export function createPanelAssemblyMapping(
   assembly?: CompiledPanelAssembly,
 ): LedMapping {
   const resolvedAssembly = assembly ??
-    (project.sculpture.manualMechanics ||
-        !project.sculpture.mechanicalShell ||
+    (!project.sculpture.mechanicalShell ||
         !project.sculpture.closures ||
         project.sculpture.mechanicalShell.derivationStatus === "requires-regeneration"
       ? null
@@ -1864,16 +1817,12 @@ export function createPanelAssemblyMapping(
       normal: face.normal,
     })),
     notes: project.sculpture.mapping.notes ?? [
-      project.sculpture.manualMechanics
-        ? "Panel transforms compile directly from explicit poses; printable mechanics remain in the manually authored SCAD parts."
-        : project.sculpture.mechanicalShell
+      project.sculpture.mechanicalShell
           ? "Panel transforms compile directly from explicit poses in sculpture.json; the mechanical shell supplies closure faces."
           : "Panel transforms compile directly from explicit poses in sculpture.json; no printable mechanics exist yet.",
       resolvedAssembly
         ? "Each closure connector targets a real, uniquely assigned PCB mounting hole."
-        : project.sculpture.manualMechanics
-          ? "Generic closure and mechanical-mount preview layers are intentionally omitted."
-          : project.sculpture.mechanicalShell
+        : project.sculpture.mechanicalShell
             ? "Mechanical previews are omitted until the design-surface poses receive regenerated shell topology."
             : "Mechanical previews are omitted because this project has no mechanics.",
       resolvedAssembly

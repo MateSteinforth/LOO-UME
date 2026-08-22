@@ -263,12 +263,6 @@ export async function createEditorPipelineHandler(
         const sourceId = definition.id as string;
         const profile = definition.panelProfile as Record<string, unknown>;
         const runId = `${sourceId.slice(0, 60)}-editor-preview`;
-        if (definition.manualMechanics) {
-          throw new HttpError(
-            400,
-            "Manually authored mechanics cannot enter generic part generation.",
-          );
-        }
         if (
           definition.boundaryTopology === undefined &&
           (!Array.isArray(definition.panels) || definition.panels.length === 0)

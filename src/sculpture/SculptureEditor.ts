@@ -57,24 +57,11 @@ export function markGeneratedMechanicsStale(
   definition.mechanicalShell.derivationStatus = "requires-regeneration";
 }
 
-export function markManualMechanicsRequiresReview(
+export function markPanelEditConsequences(
   definition: PanelAssemblyDefinition,
   _affectedPanelIds: readonly string[],
 ): void {
-  if (definition.manualMechanics) {
-    definition.manualMechanics.compatibilityStatus = "requires-review";
-  }
-}
-
-export function markPanelEditConsequences(
-  definition: PanelAssemblyDefinition,
-  affectedPanelIds: readonly string[],
-): void {
-  if (definition.manualMechanics) {
-    markManualMechanicsRequiresReview(definition, affectedPanelIds);
-  } else {
-    markGeneratedMechanicsStale(definition);
-  }
+  markGeneratedMechanicsStale(definition);
   definition.status = "provisional";
   definition.wiring.status = hasAuthoredWiringRoutes(definition.wiring)
     ? "requires-review"
@@ -404,7 +391,7 @@ export function movePanelOnDesignSurface(
     throw new Error("This project has no JSON mechanical-shell placement surface.");
   }
   const definition = structuredClone(source);
-  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
+  preserveAuthoringBoundary(definition);
   const panel = definition.panels.find((candidate) => candidate.id === panelId);
   if (!panel) throw new Error(`Unknown panel ${panelId}.`);
   panel.pose = {
@@ -438,7 +425,7 @@ export function movePanelInLocalPlane(
     throw new Error(`Panel ${panelId} local-plane movement must be finite.`);
   }
   const definition = structuredClone(source);
-  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
+  preserveAuthoringBoundary(definition);
   const panel = definition.panels.find((candidate) => candidate.id === panelId);
   if (!panel) throw new Error(`Unknown panel ${panelId}.`);
   const { xAxis, yAxis } = panel.pose.orientation;
@@ -460,7 +447,7 @@ export function rotatePanelAroundLocalZ(
     throw new Error(`Panel ${panelId} rotation must be a finite angle in degrees.`);
   }
   const definition = structuredClone(source);
-  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
+  preserveAuthoringBoundary(definition);
   const panel = definition.panels.find((candidate) => candidate.id === panelId);
   if (!panel) throw new Error(`Unknown panel ${panelId}.`);
 
@@ -513,12 +500,9 @@ export function addPanelOnDesignSurface(
   if (placement.attachment.surface === "mechanical-shell" && !source.mechanicalShell) {
     throw new Error("This project has no JSON mechanical-shell placement surface.");
   }
-  if (source.manualMechanics && !metadata?.faceType) {
-    throw new Error("Adding a panel to manual mechanics requires an explicit faceType.");
-  }
   const definition = structuredClone(source);
   invalidateAuthoredRoutesForPanelSetEdit(definition);
-  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
+  preserveAuthoringBoundary(definition);
   const panelId = nextPanelId(definition);
   definition.panels.push({
     id: panelId,
@@ -884,11 +868,6 @@ export function automaticallySeedPanelsOnSurface(
   panelDimensions: AddPanelDimensions,
   options: AutomaticSurfacePlacementOptions,
 ): AutomaticSurfacePlacementResult {
-  if (source.manualMechanics) {
-    throw new Error(
-      "Automatic surface placement is disabled for manualMechanics projects.",
-    );
-  }
   if (
     !Number.isInteger(options.targetPanelCount) ||
     options.targetPanelCount < source.panels.length
@@ -993,7 +972,7 @@ export function deletePanel(
 ): PanelAssemblyDefinition {
   const definition = structuredClone(source);
   invalidateAuthoredRoutesForPanelSetEdit(definition);
-  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
+  preserveAuthoringBoundary(definition);
   const panelIndex = definition.panels.findIndex(
     (candidate) => candidate.id === panelId,
   );

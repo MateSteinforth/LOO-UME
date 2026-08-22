@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import definitionJson from "../sculptures/truncated-octahedron/sculpture.json" with {
   type: "json",
 };
-import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
 import {
   compilePanelAssembly,
   createPanelAssemblyMapping,
@@ -127,23 +126,5 @@ describe("truncated octahedron end-to-end compiler", () => {
     expect(new Set(contract.ledmap.map).size).toBe(384);
     expect(contract.fingerprint).toBe("b7169f35");
 
-    const outputDirectory = await mkdtemp(
-      join(tmpdir(), "truncated-octahedron-cad-"),
-    );
-    temporaryDirectories.push(outputDirectory);
-    const cad = await emitPanelClosureCadArtifacts(project, { outputDirectory });
-    expect(cad.manifest.parts).toHaveLength(8);
-    expect(
-      cad.manifest.parts.every((part) => part.connectorPanelIds.length === 3),
-    ).toBe(true);
-    expect(cad.manifest.warnings).toContain(
-      "12 closure-to-closure edges are clean butt seams without direct fasteners.",
-    );
-    const source = await readFile(
-      cad.entrypointPaths.closures[cad.manifest.parts[0]!.closureFaceId]!,
-      "utf8",
-    );
-    expect(source.match(/module connector_[0-2]\(\)/g)).toHaveLength(3);
-    expect(source).toContain("polyhedron(points=clip_points");
   });
 });

@@ -1,4 +1,4 @@
-name: Verify Manifold and manual parts
+name: Verify Manifold application
 
 on:
   push:
@@ -14,11 +14,8 @@ jobs:
     name: Stage-zero bootstrap (Linux x86-64)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-
     steps:
-      # actions/checkout v7
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-
       - name: Verify and extract the approved Go builder
         run: |
           archive="$RUNNER_TEMP/go1.26.6.linux-amd64.tar.gz"
@@ -30,14 +27,11 @@ jobs:
           tar -xzf "$archive" -C "$compiler_root" --strip-components=1
           test "$("$compiler_root/bin/go" version)" = "go version go1.26.6 linux/amd64"
           echo "GO_BOOTSTRAP=$compiler_root/bin/go" >> "$GITHUB_ENV"
-
       - name: Test stage-zero source
         working-directory: toolchains/bootstrap/src
         run: $GO_BOOTSTRAP test ./...
-
       - name: Rebuild and verify all committed executables
         run: sh scripts/build-bootstrap.sh --check
-
       - name: Run the committed native executable
         run: sh scripts/verify-bootstrap-binaries.sh linux-x64
 
@@ -55,56 +49,36 @@ jobs:
           - runner: macos-15-intel
             architecture: x86_64
             target: darwin-x64
-
     steps:
-      # actions/checkout v7
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-
       - name: Confirm native target
         run: test "$(/usr/bin/uname -m)" = "${{ matrix.architecture }}"
-
       - name: Verify and run the committed native executable
         run: sh scripts/verify-bootstrap-binaries.sh "${{ matrix.target }}"
 
   clean-checkout:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
-
       - name: Verify pinned WLED checkout
         run: npm run setup:wled
-
       - name: Install npm dependencies
         run: npm ci
-
-      - name: Confirm generic verification does not require OpenSCAD
-        run: |
-          if command -v openscad >/dev/null 2>&1; then
-            echo "Generic verification must not use a system OpenSCAD."
-            exit 1
-          fi
-
       - name: Install pinned Emscripten SDK
         run: npm run setup:emsdk
-
       - name: Generate assets and build WASM
         run: npm run generate:assets && npm run build:wasm
-
       - name: Run all Vitest tests
         run: npm test
-
       - name: Type-check
         run: npx tsc -b
-
       - name: Build Vite application
         run: npm run build:web
 
@@ -112,31 +86,22 @@ jobs:
     name: Manifold panel-outline parts
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-
     steps:
       - uses: actions/checkout@v7
-
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
-
       - name: Install npm dependencies
         run: npm ci
-
-      - name: Generate prism parts without OpenSCAD
+      - name: Generate and inspect prism parts
         run: |
-          if command -v openscad >/dev/null 2>&1; then
-            echo "This job must not use a system OpenSCAD."
-            exit 1
-          fi
           npx tsx scripts/generate-panel-boundary-parts.ts \
             --sculpture sculptures/panel-outline-prism/sculpture.json \
             --output build/ci-manifold-prism
           test -s build/ci-manifold-prism/mechanics/boundary.stl
           test -s build/ci-manifold-prism/mechanics/parts/part-001.stl
           test -s build/ci-manifold-prism/mechanics/parts/part-002.stl
-
       - name: Keep failure artifacts
         if: failure()
         uses: actions/upload-artifact@v7
@@ -150,24 +115,18 @@ jobs:
     name: Browser smoke (Chromium)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-
     steps:
       - uses: actions/checkout@v7
-
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
-
       - name: Install npm dependencies
         run: npm ci
-
       - name: Install Chromium and host libraries
         run: npm run setup:browser -- --with-deps
-
       - name: Run real browser authoring smoke test
         run: npm run test:browser
-
       - name: Upload browser failure evidence
         if: failure()
         uses: actions/upload-artifact@v7
@@ -178,361 +137,3 @@ jobs:
             test-results/
           if-no-files-found: ignore
           retention-days: 30
-
-  macos-managed-openscad:
-    name: Managed OpenSCAD (${{ matrix.architecture }})
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-15
-            architecture: arm64
-            target: darwin-arm64
-          - runner: macos-15-intel
-            architecture: x86_64
-            target: darwin-x64
-    defaults:
-      run:
-        working-directory: orbital lab source
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          path: orbital lab source
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: orbital lab source/package-lock.json
-
-      - name: Confirm clean native host
-        run: |
-          test "$(uname -m)" = "${{ matrix.architecture }}"
-          test "$(/usr/bin/sw_vers -productVersion | cut -d. -f1)" = "15"
-          test -z "${OPENSCAD:-}"
-          ! command -v openscad
-          test ! -e /Applications/OpenSCAD.app
-          test ! -e "$HOME/Applications/OpenSCAD.app"
-          ! /usr/sbin/sysctl -in sysctl.proc_translated 2>/dev/null | grep -qx 1
-
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Install managed OpenSCAD twice
-        run: |
-          npm run setup:openscad
-          npm run setup:openscad
-
-      - name: Verify native render and production editor
-        env:
-          EXPECTED_OPENSCAD_TARGET: ${{ matrix.target }}
-        run: |
-          npm run verify:openscad
-          npm run build:desktop
-          npm run verify:desktop-install
-
-  windows-managed-openscad-surrogate:
-    name: Managed OpenSCAD surrogate (${{ matrix.runner }})
-    if: github.event_name == 'workflow_dispatch'
-    continue-on-error: true
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [windows-2022, windows-2025]
-    defaults:
-      run:
-        shell: pwsh
-        working-directory: orbital lab source
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          path: orbital lab source
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - name: Confirm clean Windows x64 surrogate
-        run: |
-          if ($env:PROCESSOR_ARCHITECTURE -ne "AMD64") {
-            throw "Expected an x64 Windows host."
-          }
-          if ($env:OPENSCAD) {
-            throw "OPENSCAD must be unset for the managed-install proof."
-          }
-          if (Get-Command openscad, openscad.com, openscad.exe -ErrorAction SilentlyContinue) {
-            throw "A discoverable system OpenSCAD would invalidate the proof."
-          }
-
-          $standardPaths = @(
-            (Join-Path $env:ProgramFiles "OpenSCAD"),
-            (Join-Path ${env:ProgramFiles(x86)} "OpenSCAD"),
-            (Join-Path $env:LOCALAPPDATA "Programs\OpenSCAD")
-          )
-          if ($standardPaths | Where-Object { Test-Path $_ }) {
-            throw "A standard OpenSCAD installation would invalidate the proof."
-          }
-
-          $uninstallRoots = @(
-            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
-            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
-            "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
-          )
-          $registry = Get-ItemProperty -Path $uninstallRoots -ErrorAction SilentlyContinue |
-            Where-Object { $_.DisplayName -like "*OpenSCAD*" } |
-            Select-Object PSPath, DisplayName, DisplayVersion, InstallLocation
-          if ($registry) {
-            throw "An OpenSCAD uninstall record would invalidate the proof."
-          }
-
-          [ordered]@{
-            userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-            machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
-            registry = @($registry)
-          } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath "$env:RUNNER_TEMP\openscad-host-before.json"
-
-      - name: Install npm dependencies
-        run: npm.cmd ci
-
-      - name: Install managed OpenSCAD twice
-        run: |
-          npm.cmd run setup:openscad
-          npm.cmd run setup:openscad
-
-      - name: Verify real render and production editor
-        env:
-          EXPECTED_OPENSCAD_TARGET: win32-x64
-        run: |
-          npm.cmd run verify:openscad
-          npm.cmd run verify:openscad-shutdown:windows
-          npm.cmd run build:desktop
-          npm.cmd run verify:desktop-install
-
-      - name: Confirm no host mutation
-        run: |
-          if ($env:OPENSCAD) {
-            throw "Setup changed OPENSCAD."
-          }
-          if (Get-Command openscad, openscad.com, openscad.exe -ErrorAction SilentlyContinue) {
-            throw "Setup exposed OpenSCAD through PATH."
-          }
-
-          $standardPaths = @(
-            (Join-Path $env:ProgramFiles "OpenSCAD"),
-            (Join-Path ${env:ProgramFiles(x86)} "OpenSCAD"),
-            (Join-Path $env:LOCALAPPDATA "Programs\OpenSCAD")
-          )
-          if ($standardPaths | Where-Object { Test-Path $_ }) {
-            throw "Setup wrote an OpenSCAD installation outside the repository."
-          }
-
-          $uninstallRoots = @(
-            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
-            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
-            "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
-          )
-          $registry = Get-ItemProperty -Path $uninstallRoots -ErrorAction SilentlyContinue |
-            Where-Object { $_.DisplayName -like "*OpenSCAD*" } |
-            Select-Object PSPath, DisplayName, DisplayVersion, InstallLocation
-          [ordered]@{
-            userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-            machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
-            registry = @($registry)
-          } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath "$env:RUNNER_TEMP\openscad-host-after.json"
-
-          $before = Get-Content -Raw -LiteralPath "$env:RUNNER_TEMP\openscad-host-before.json"
-          $after = Get-Content -Raw -LiteralPath "$env:RUNNER_TEMP\openscad-host-after.json"
-          if ($before -ne $after) {
-            throw "Setup changed the user or machine PATH, or the OpenSCAD uninstall registry state."
-          }
-
-  render:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        part:
-          - triangle
-          - pentagon_u
-          - middle_panel_connector
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Install OpenSCAD
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes openscad xvfb xauth
-
-      - name: Render STL
-        run: |
-          mkdir -p build
-          openscad --hardwarnings \
-            -o "build/${{ matrix.part }}.stl" \
-            "parts/${{ matrix.part }}.scad"
-
-      - name: Render preview
-        run: |
-          xvfb-run -a openscad \
-            --imgsize=1200,900 \
-            --viewall \
-            --autocenter \
-            --render \
-            -o "build/${{ matrix.part }}.png" \
-            "parts/${{ matrix.part }}.scad"
-
-      - name: Upload printable artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.part }}
-          path: |
-            build/${{ matrix.part }}.stl
-            build/${{ matrix.part }}.png
-          if-no-files-found: error
-          retention-days: 30
-
-  cad-contract:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install OpenSCAD
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes openscad xvfb xauth
-
-      - name: Generate and verify JSON-driven CAD
-        run: |
-          npm run verify:cad
-          npm run generate:cuboctahedron
-          npm run verify:cuboctahedron
-          npm run generate:rhombicosidodecahedron:auto
-          npm run verify:rhombicosidodecahedron:auto
-          npm run generate:truncated-octahedron
-          npm run verify:truncated-octahedron
-
-      - name: Upload generated CAD contract
-        uses: actions/upload-artifact@v7
-        with:
-          name: generated-cad-contract
-          path: |
-            build/generated/
-            build/verify-cad/triangle-generated.stl
-            build/verify-cad/triangle-assembly.png
-            build/verify-cad/pentagon-u-frame-generated.stl
-            build/verify-cad/middle-panel-connector-generated.stl
-            build/verify-cad/populated-pentagon-assembly.png
-            build/verify-panel-assembly/**/closure-*.stl
-            build/verify-panel-assembly/**/closure-detail.png
-            build/verify-panel-assembly/**/assembly-preview.png
-          if-no-files-found: error
-          retention-days: 30
-
-  publish-latest-prototype:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs:
-      - browser-smoke
-      - stage-zero-bootstrap-linux
-      - stage-zero-bootstrap-macos
-      - clean-checkout
-      - manifold-panel-parts
-      - macos-managed-openscad
-      - render
-      - cad-contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Download rendered parts
-        uses: actions/download-artifact@v8
-        with:
-          path: release
-          merge-multiple: true
-
-      - name: Publish rolling prototype release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: latest-prototype
-          RELEASE_TITLE: Latest Prototype
-          RELEASE_NOTES: |
-            This rolling release contains the current printable models from ${{ github.sha }}.
-
-            Git history preserves every source revision. The assets here are replaced only after all OpenSCAD renders succeed.
-
-            ## Triangle
-            [Open triangle preview](https://github.com/${{ github.repository }}/blob/generated-previews/triangle.png)
-
-            [Download triangle STL](https://github.com/${{ github.repository }}/releases/download/latest-prototype/triangle.stl)
-
-            ## Pentagon U-frame
-            [Open pentagon U-frame preview](https://github.com/${{ github.repository }}/blob/generated-previews/pentagon_u.png)
-
-            [Download pentagon U-frame STL](https://github.com/${{ github.repository }}/releases/download/latest-prototype/pentagon_u.stl)
-
-            ## Middle-panel connector
-            [Open middle-panel connector preview](https://github.com/${{ github.repository }}/blob/generated-previews/middle_panel_connector.png)
-
-            [Download middle-panel connector STL](https://github.com/${{ github.repository }}/releases/download/latest-prototype/middle_panel_connector.stl)
-        run: |
-          git tag --force "$RELEASE_TAG" "$GITHUB_SHA"
-          git push --force origin "refs/tags/$RELEASE_TAG"
-
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release edit "$RELEASE_TAG" \
-              --title "$RELEASE_TITLE" \
-              --notes "$RELEASE_NOTES"
-          else
-            gh release create "$RELEASE_TAG" \
-              --verify-tag \
-              --title "$RELEASE_TITLE" \
-              --notes "$RELEASE_NOTES"
-          fi
-
-          gh release upload "$RELEASE_TAG" \
-            release/triangle.stl \
-            release/triangle.png \
-            release/pentagon_u.stl \
-            release/pentagon_u.png \
-            release/middle_panel_connector.stl \
-            release/middle_panel_connector.png \
-            --clobber
-
-      - name: Publish mobile preview branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          preview_dir="$RUNNER_TEMP/generated-previews"
-          mkdir -p "$preview_dir"
-          cp release/*.png "$preview_dir/"
-          gh auth setup-git
-
-          git -C "$preview_dir" init --initial-branch=generated-previews
-          git -C "$preview_dir" config user.name github-actions
-          git -C "$preview_dir" config user.email github-actions@github.com
-          git -C "$preview_dir" add .
-          git -C "$preview_dir" commit -m "Preview ${GITHUB_SHA}"
-          git -C "$preview_dir" remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git -C "$preview_dir" push --force origin generated-previews

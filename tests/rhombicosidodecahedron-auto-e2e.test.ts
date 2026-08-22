@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import definitionJson from "../sculptures/rhombicosidodecahedron-auto/sculpture.json" with {
   type: "json",
 };
-import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
 import {
   compilePanelAssembly,
   createPanelAssemblyMapping,
@@ -134,24 +133,5 @@ describe("automatic rhombicosidodecahedron end-to-end compiler", () => {
     expect(new Set(contract.ledmap.map).size).toBe(1_920);
     expect(contract.fingerprint).toBe("93987755");
 
-    const outputDirectory = await mkdtemp(join(tmpdir(), "rco-auto-cad-"));
-    temporaryDirectories.push(outputDirectory);
-    const cad = await emitPanelClosureCadArtifacts(project, { outputDirectory });
-    expect(cad.manifest.parts).toHaveLength(32);
-    expect(
-      cad.manifest.parts.filter((part) => part.connectorPanelIds.length === 3),
-    ).toHaveLength(20);
-    expect(
-      cad.manifest.parts.filter((part) => part.connectorPanelIds.length === 5),
-    ).toHaveLength(12);
-    const pentagon = cad.manifest.parts.find(
-      (part) => part.connectorPanelIds.length === 5,
-    )!;
-    const source = await readFile(
-      cad.entrypointPaths.closures[pentagon.closureFaceId]!,
-      "utf8",
-    );
-    expect(source.match(/module connector_[0-4]\(\)/g)).toHaveLength(5);
-    expect(source).toContain("polyhedron(points=clip_points");
   });
 });

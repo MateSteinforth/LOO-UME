@@ -10,7 +10,6 @@ export interface EditorCapabilities {
   canAutomaticallySeed: boolean;
   canExportMappingAndWiring: boolean;
   canGenerateGenericMechanics: boolean;
-  manualMechanicsRequiresReview: boolean;
 }
 
 export function deriveEditorCapabilities(
@@ -19,7 +18,6 @@ export function deriveEditorCapabilities(
   _pipelineAvailable = true,
 ): EditorCapabilities {
   const hasPanels = definition.panels.length > 0;
-  const usesManualMechanics = definition.manualMechanics !== undefined;
   const hasGenericGenerationInput =
     definition.mechanicalShell !== undefined && definition.closures !== undefined;
   const hasPanelBoundaryInput = definition.boundaryTopology !== undefined;
@@ -29,13 +27,10 @@ export function deriveEditorCapabilities(
     canDeleteSelectedPanel: hasPanels,
     canTranslateOnActiveSurface: hasPanels && hasActiveSurface,
     canTranslateInPanelPlane: hasPanels && !hasActiveSurface,
-    canCreateOnActiveSurface: hasActiveSurface && !usesManualMechanics,
-    canAutomaticallySeed: hasActiveSurface && !usesManualMechanics,
+    canCreateOnActiveSurface: hasActiveSurface,
+    canAutomaticallySeed: hasActiveSurface,
     canExportMappingAndWiring: true,
     canGenerateGenericMechanics:
-      !usesManualMechanics &&
-      (hasPanels || hasPanelBoundaryInput || hasGenericGenerationInput),
-    manualMechanicsRequiresReview:
-      definition.manualMechanics?.compatibilityStatus === "requires-review",
+      hasPanels || hasPanelBoundaryInput || hasGenericGenerationInput,
   };
 }

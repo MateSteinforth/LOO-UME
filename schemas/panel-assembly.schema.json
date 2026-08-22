@@ -20,8 +20,6 @@
   "allOf": [
     {
       "if": {
-        "allOf": [
-          {
             "properties": {
               "panels": {
                 "contains": {
@@ -48,15 +46,6 @@
             "required": [
               "panels"
             ]
-          },
-          {
-            "not": {
-              "required": [
-                "manualMechanics"
-              ]
-            }
-          }
-        ]
       },
       "then": {
         "required": [
@@ -66,8 +55,6 @@
     },
     {
       "if": {
-        "allOf": [
-          {
             "properties": {
               "panels": {
                 "contains": {
@@ -82,15 +69,6 @@
             "required": [
               "panels"
             ]
-          },
-          {
-            "not": {
-              "required": [
-                "manualMechanics"
-              ]
-            }
-          }
-        ]
       },
       "then": {
         "properties": {
@@ -113,40 +91,11 @@
           "required": [
             "mechanicalShell",
             "closures"
-          ],
-          "not": {
-            "required": [
-              "manualMechanics"
-            ]
-          }
-        },
-        {
-          "required": [
-            "manualMechanics"
-          ],
-          "not": {
-            "anyOf": [
-              {
-                "required": [
-                  "mechanicalShell"
-                ]
-              },
-              {
-                "required": [
-                  "closures"
-                ]
-              }
-            ]
-          }
+          ]
         },
         {
           "not": {
             "anyOf": [
-              {
-                "required": [
-                  "manualMechanics"
-                ]
-              },
               {
                 "required": [
                   "mechanicalShell"
@@ -1179,37 +1128,6 @@
         },
         "status": {
           "const": "watertight"
-        }
-      }
-    },
-    "manualMechanics": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "kind",
-        "generator",
-        "centerPanelMount",
-        "openings"
-      ],
-      "properties": {
-        "kind": {
-          "const": "manually-authored-parts"
-        },
-        "generator": {
-          "const": "verified-scad-wrappers"
-        },
-        "compatibilityStatus": {
-          "description": "Whether the manually authored printable parts are known to match the authoritative panel population and poses. Omission is retained for backward compatibility and means verified until the first panel edit.",
-          "enum": [
-            "verified",
-            "requires-review"
-          ]
-        },
-        "centerPanelMount": {
-          "type": "object"
-        },
-        "openings": {
-          "type": "object"
         }
       }
     },

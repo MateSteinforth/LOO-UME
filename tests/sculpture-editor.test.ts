@@ -21,7 +21,6 @@ import {
   rotatePanelAroundLocalZ,
 } from "../src/sculpture/SculptureEditor.ts";
 import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegenerator.ts";
-import { emitPanelClosureCadArtifacts } from "../src/cad/GeneratePanelClosureCad.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
 type Vector3Tuple = [number, number, number];
@@ -372,20 +371,6 @@ describe("browser sculpture editor", () => {
     ).toBe(true);
     expect(regenerated.designSurface?.source).toBe("visual-canvas.glb");
     expect(regenerated.mechanicalShell!.vertices).not.toEqual([]);
-    const outputDirectory = await mkdtemp(join(tmpdir(), "regenerated-cad-"));
-    const cad = await emitPanelClosureCadArtifacts(project, { outputDirectory });
-    expect(cad.manifest.parts).toHaveLength(8);
-    const ringPart = cad.manifest.parts.find((part) =>
-      part.closureFaceId.includes("P-07")
-    )!;
-    expect(ringPart.connectorPanelIds.filter((panelId) => panelId === "P-07"))
-      .toHaveLength(4);
-    expect(ringPart.connectorHoleIds).toHaveLength(7);
-    const scad = await readFile(
-      cad.entrypointPaths.closures[ringPart.closureFaceId]!,
-      "utf8",
-    );
-    expect(scad).toContain("cover_point_sets=");
   });
 
   it("rejects a panel whose cleared envelope crosses the JSON boundary", async () => {

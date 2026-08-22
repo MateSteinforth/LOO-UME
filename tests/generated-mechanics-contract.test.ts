@@ -158,16 +158,13 @@ describe("Schema 2 portable generated-mechanics assets", () => {
     expect(getGeneratedMechanicsState(definition, changedProfile)).toBe("stale");
   });
 
-  it("continues to preserve the existing manually authored mechanics branch", async () => {
-    const manual = parsePanelAssemblyDefinition(JSON.parse(await readFile(
+  it("loads the flagship project without a second mechanics authority", async () => {
+    const flagship = parsePanelAssemblyDefinition(JSON.parse(await readFile(
       "sculptures/rhombicosidodecahedron/sculpture.json",
       "utf8",
     )));
-    expect(manual.manualMechanics).toMatchObject({
-      kind: "manually-authored-parts",
-      generator: "verified-scad-wrappers",
-    });
-    expect(manual.generatedMechanics).toBeUndefined();
+    expect(flagship.generatedMechanics).toBeUndefined();
+    expect(flagship.mechanicalShell).toBeUndefined();
   });
 
   it.each([

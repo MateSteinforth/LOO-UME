@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { createManualCadProject } from "../src/cad/GenerateCad.ts";
 import {
   createPanelAssemblyMapping,
   createPanelAssemblyProject,
@@ -40,6 +39,20 @@ function mappingFor(definition: Awaited<ReturnType<typeof loadManual>>) {
 }
 
 describe("mechanics-independent panel JSON editing", () => {
+  it("rejects the retired manual mechanics contract", async () => {
+    const definition = await loadManual();
+    const retired = {
+      ...definition,
+      manualMechanics: {
+        status: "verified-scad-wrappers",
+      },
+    };
+
+    expect(() => parsePanelAssemblyDefinition(retired)).toThrow(
+      /manualMechanics is retired/,
+    );
+  });
+
   it("validates installed address transforms and migrates missing values to assumed identity", async () => {
     const source = await loadManual();
     expect(source.panels.every((panel) =>
@@ -189,7 +202,7 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(() => roundTrip(outputIndexMismatch)).toThrow(/array-ordered/);
   });
 
-  it("rotates a manual panel without changing population, metadata, or other panels", async () => {
+  it("rotates a flagship panel without changing population, metadata, or other panels", async () => {
     const source = await loadManual();
     const before = structuredClone(source.panels[0]!);
     const unaffected = structuredClone(source.panels[1]!);
@@ -197,8 +210,6 @@ describe("mechanics-independent panel JSON editing", () => {
     const edited = rotatePanelAroundLocalZ(source, before.id, 23);
     const after = edited.panels[0]!;
 
-    expect(source.manualMechanics?.compatibilityStatus).toBeUndefined();
-    expect(edited.manualMechanics?.compatibilityStatus).toBe("requires-review");
     expect(edited.panels.map((panel) => panel.id)).toEqual(
       source.panels.map((panel) => panel.id),
     );
@@ -279,7 +290,6 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(reparsed.wiring.chainLengths).toEqual([10, 10, 10, 10]);
     expect(JSON.stringify(reparsed.wiring.outputs)).toBe(outputBytes);
     expect(mappingFor(reparsed).mapping.entries).toHaveLength(2_560);
-    expect(reparsed.manualMechanics?.compatibilityStatus).toBe("requires-review");
   });
 
   it("invalidates authored routes when the panel set changes without reordering them", async () => {
@@ -323,7 +333,7 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(mappingFor(reparsed).mapping.entries).toEqual([]);
   });
 
-  it("requires honest metadata for manual creation on a referenced GLB", async () => {
+  it("adds a pose-first panel on a referenced GLB", async () => {
     const source = await loadManual();
     source.designSurface = {
       kind: "triangle-mesh", format: "glb", source: "canvas.glb",
@@ -352,21 +362,17 @@ describe("mechanics-independent panel JSON editing", () => {
         barycentric: [0.2, 0.3, 0.5] as [number, number, number], normalOffset: 0.4,
       },
     };
-    expect(() => addPanelOnDesignSurface(source, placement)).toThrow(/faceType/);
-    const edited = roundTrip(addPanelOnDesignSurface(
-      source, placement, { faceType: "square-face" },
-    ));
+    const edited = roundTrip(addPanelOnDesignSurface(source, placement));
     expect(edited.panels.at(-1)).toMatchObject({
-      id: "P-01", faceType: "square-face", neighborPanelIds: [],
+      id: "P-01",
       pose: { position: [1, 2, 3] },
     });
     expect(edited.wiring.chainLengths).toEqual([11, 11, 10, 10]);
     expect(edited.wiring.status).toBe("requires-review");
     expect(edited.wiring.outputs).toEqual(originalRoute);
-    expect(edited.manualMechanics?.compatibilityStatus).toBe("requires-review");
   });
 
-  it("keeps the unedited golden contract and gates reviewed manual wrappers", async () => {
+  it("keeps the unedited golden mapping contract", async () => {
     const source = await loadManual();
     const { project, mapping } = mappingFor(source);
     const wiring = createProvisionalWiringPreview(mapping, source, project.panelProfile);
@@ -375,12 +381,9 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(source.wiring.chainLengths).toEqual([11, 10, 10, 10]);
     expect(createHardwareMappingContract(mapping, wiring, project.panelProfile).fingerprint)
       .toBe("bc5054d1");
-    expect(() => createManualCadProject(project)).not.toThrow();
-    const editedProject = mappingFor(rotatePanelAroundLocalZ(source, "SQ-01", 1)).project;
-    expect(() => createManualCadProject(editedProject)).toThrow(/require review/);
   });
 
-  it("exposes manual editing capabilities while keeping generic mechanics disabled", async () => {
+  it("exposes pose-first editing and Manifold generation capabilities", async () => {
     const source = await loadManual();
     expect(deriveEditorCapabilities(source, false)).toMatchObject({
       canSelectPanels: true,
@@ -391,7 +394,7 @@ describe("mechanics-independent panel JSON editing", () => {
       canCreateOnActiveSurface: false,
       canAutomaticallySeed: false,
       canExportMappingAndWiring: true,
-      canGenerateGenericMechanics: false,
+      canGenerateGenericMechanics: true,
     });
   });
 

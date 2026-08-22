@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { compilePanelBoundaryBundle } from "../src/cad/CompilePanelBoundaryBundle.ts";
 import {
@@ -15,7 +14,7 @@ import { generateClosedPanelBoundary } from "../src/sculpture/PanelOutlineBounda
 const FIXTURE = "sculptures/panel-outline-prism/sculpture.json";
 
 describe("Manifold panel closure solids", () => {
-  it("builds a watertight prism closure without the SCAD emitter", async () => {
+  it("builds a watertight prism closure with Manifold", async () => {
     const project = await loadPanelAssemblyProjectFromFile(FIXTURE);
     const boundary = generateClosedPanelBoundary(
       project.sculpture,
@@ -50,10 +49,6 @@ describe("Manifold panel closure solids", () => {
     for (const envelope of part.panelEnvelopeCenters) {
       expect(await meshContainsPoint(part, envelope)).toBe(false);
     }
-
-    const emitter = await readFile("src/cad/GeneratePanelClosureCad.ts", "utf8");
-    expect(emitter).toContain("pilot_d=${scadNumber(profile.mounting.printedPilotDiameter)}");
-    expect(emitter).toContain("linear_extrude");
   });
 
   it("caps holes from panel poses when a leftover JSON shell and no GLB bytes are present", async () => {
