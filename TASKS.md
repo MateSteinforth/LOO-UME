@@ -95,12 +95,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
   integrity without rebuilding it; clean setup and CI require no WLED submodule
   or Emscripten SDK.
 
-### `LEGACY-011` Retire remaining Schema 1 mapping dependencies — P1
-
-- Acceptance: preserve the authoritative 41-panel Schema 2 project; active
-  browser, CLI, tests, and docs no longer depend on the Schema 1 migration
-  fixture or procedural mapping path.
-
 ### `VALID-010` Make LED dimensions profile-driven end to end — P1
 
 - Acceptance: one non-8x8 profile parses, maps, validates, exports, and reloads.
@@ -119,7 +113,16 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## In Progress
 
-No tasks.
+### `LEGACY-011` Retire remaining Schema 1 mapping dependencies — P1
+
+- Acceptance: preserve the authoritative 41-panel Schema 2 project; active
+  browser, CLI, tests, and docs no longer depend on the Schema 1 migration
+  fixture or procedural mapping path.
+- Owner: `codex/legacy-011-retire-schema1` in
+  `/tmp/led-rhombo-legacy-011`.
+- Conflict rule: TRUSS owns `PanelAssembly.ts`, the Schema 2 schema, project
+  registry, portable-project/browser structural paths, and its structural
+  subsystem. LEGACY-011 must not edit those paths before TRUSS integration.
 
 ## Blocked
 
