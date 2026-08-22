@@ -175,19 +175,13 @@ No tasks.
 
 ## Ready to Merge
 
-### `UI-019` Simplify controls and unify operator messages
-
-- Outcome: remove the performance overlay and individual-file export menu;
-  move display, rotation, label, printable-layer, and GLB-scale controls into
-  Advanced Tools; show operator messages in one activity log.
-- Acceptance: no duplicate visible status windows or removed controls remain;
-  existing project, route, surface, mapping, and assembly actions report in the
-  shared log; unit, TypeScript, build, and five browser journeys pass.
-- Owner: branch `codex/ui-019-simplify-controls`; worktree
-  `/tmp/led-rhombo-ui019`.
+No tasks.
 
 ## Done
 
+- `UI-019`: removed the performance overlay and individual-file export menu,
+  moved secondary display and GLB controls into Advanced Tools, and unified
+  operator messages in one activity log in `main` at `6615c54`.
 - `CTRL-007`: removed the retired printable toolchain and its generated
   artifacts, made Manifold the only printable-parts kernel, and established
   FAST/STANDARD/QUALITY execution and Luna/Terra/Sol routing in `main` at
