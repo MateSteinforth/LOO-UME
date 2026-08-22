@@ -37,6 +37,7 @@ h1 { margin: 18mm 0 6mm; font-size: 34px; line-height: 1.05; }
 h2 { margin: 0 0 8px; font-size: 21px; }
 p, li, dd, dt, td, th { font-size: 10px; line-height: 1.35; }
 .status-banner { display: inline-block; padding: 7px 10px; color: #fff; background: #14673e; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; }
+.status-banner--draft { background: #b66b00; }
 .cover-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16mm; margin-top: 12mm; }
 .cover-grid section { border-top: 3px solid #172129; padding-top: 5mm; }
 ol { padding-left: 18px; }

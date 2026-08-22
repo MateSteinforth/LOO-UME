@@ -5,6 +5,7 @@ import {
 } from "../../src/sculpture/PanelAssembly.ts";
 import { createHardwareMappingContract } from "./HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "./WiringPreview.ts";
+import { readJsonResponse } from "./JsonResponse.ts";
 import {
   createWiringAssemblyManualModel,
   renderWiringAssemblyManualHtml,
@@ -47,7 +48,7 @@ async function loadManual(): Promise<void> {
   if (!response.ok) {
     throw new Error(`Unable to load sculpture JSON: HTTP ${response.status}.`);
   }
-  const input: unknown = await response.json();
+  const input = await readJsonResponse(response, "Sculpture JSON");
   const project = await loadPanelAssemblyProject(
     input,
     source,
@@ -56,7 +57,7 @@ async function loadManual(): Promise<void> {
       if (!profileResponse.ok) {
         throw new Error(`Unable to load panel profile: HTTP ${profileResponse.status}.`);
       }
-      return profileResponse.json() as Promise<unknown>;
+      return readJsonResponse(profileResponse, "Panel profile");
     },
   );
   const mapping = createPanelAssemblyMapping(project);

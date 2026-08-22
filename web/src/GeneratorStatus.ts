@@ -1,3 +1,5 @@
+import { readJsonResponse } from "./JsonResponse.ts";
+
 export interface GeneratorStatus {
   schemaVersion: "1.0.0";
   available: boolean;
@@ -14,6 +16,20 @@ type FetchGeneratorStatus = (
 
 const UNAVAILABLE_PREFIX =
   "Printable STL generation is unavailable because";
+
+const BROWSER_READY: GeneratorStatus = {
+  schemaVersion: "1.0.0",
+  available: true,
+  generator: "manifold",
+  supportedVersion: "3.5.1",
+  detectedVersion: "3.5.1",
+  message: "Manifold 3.5.1 is ready for in-browser generation.",
+};
+
+function isLoopbackHostname(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" ||
+    hostname === "::1" || hostname === "[::1]";
+}
 
 function unavailable(message: string): GeneratorStatus {
   return {
@@ -69,7 +85,9 @@ function parseGeneratorStatus(input: unknown): GeneratorStatus {
 
 export async function loadGeneratorStatus(
   fetchStatus: FetchGeneratorStatus = fetch,
+  hostname = typeof window === "undefined" ? "localhost" : window.location.hostname,
 ): Promise<GeneratorStatus> {
+  if (!isLoopbackHostname(hostname)) return { ...BROWSER_READY };
   try {
     const response = await fetchStatus("./api/generator-status", {
       headers: { Accept: "application/json" },
@@ -81,7 +99,10 @@ export async function loadGeneratorStatus(
       );
     }
     try {
-      return parseGeneratorStatus(await response.json());
+      return parseGeneratorStatus(await readJsonResponse(
+        response,
+        "Local generator status",
+      ));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return unavailable(

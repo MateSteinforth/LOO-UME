@@ -93,30 +93,39 @@ A later relevant edit retains a receipt only as stale evidence under
 
 The browser route editor shows each output label, known GPIO or `unknown`,
 one-based chain position, predecessor, successor, and back-view DIN/DOUT
-direction. It uses buttons and output selectors to change a working route; the
-saved sculpture JSON does not change until **Confirm wiring route revision**.
+direction. A route row selects the same panel in the viewer. Drag rows to change
+order; use
+the output selector to change an assignment. There are no per-row Select,
+Up, or Down buttons. The saved sculpture JSON does not change until **Save
+route**.
 
-A draft or temporary draft suggestion must first be copied explicitly. This
-prevents the geographic heuristic from becoming an assembly route by accident.
-The confirmation stores exact `panelIds`, derives the output `chainLengths`,
+A draft or temporary draft suggestion must first enter **Edit suggested
+route**. This prevents the geographic heuristic from becoming an assembly route
+by accident.
+**Save route** stores exact `panelIds`, derives the output `chainLengths`,
 sets `status: authored`, clears stale proof evidence, resets physical-chain
 calibration to provisional, and increments `routeRevision` (first revision is
 `1`). It does not create GPIO, measured, optimized, or physical claims.
 
 When a panel-set edit makes a stored route stale, the editor shows the saved
 route evidence separately and starts with the temporary current-panel draft.
-The operator can use it only after explicit copy and confirmation.
+The operator can use it only after Edit suggested route and Save route.
 
 ## Printable assembly-manual export
 
-The editor enables **Export wiring assembly manual** for any current
-mapping-ready Schema 2 project. It sends the current in-memory mapping model to
-the same-origin print page, so the manual agrees with visible saved or imported
-editor state. A directly opened standalone page loads and revalidates its
-Schema 2 source. Both paths refuse draft, temporary, stale, or otherwise
-non-mapping-ready wiring. The export derives panel count, output count, output
-labels and colors, GPIOs, routes, transforms, and address ranges from that
-contract. It does not contain a hard-coded flagship route.
+The **Export individual files** menu can write one
+self-contained HTML file for the current Schema 2 wiring preview. It uses the
+current in-memory model, embeds the A4 print CSS, and does not depend on a
+popup. Open the downloaded file in a browser and select **Print / Save PDF**. A
+directly opened standalone page still loads and revalidates its Schema 2
+source. Mapping-ready routes retain their ready label. Draft and temporary
+suggestions export as explicit **DRAFT SUGGESTION** manuals; they show missing
+GPIOs as unassigned and current non-optimized panel turns as assumptions. The
+assembly package contains the same `assembly-manual.html` together with the
+project, verified GLB/STL assets, ledmap, and wiring review. The export
+derives panel count, output count, output labels and colors, GPIOs, routes,
+transforms, and address ranges from the current contract. It does not contain
+a hard-coded flagship route.
 
 The A4 landscape export contains a control cover, front/right/top placement
 projections from the authoritative panel poses, and one or more detailed sheets

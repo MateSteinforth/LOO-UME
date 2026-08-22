@@ -76,6 +76,36 @@ export function moveRoutePanelWithinOutput(
   return next;
 }
 
+/** Moves one panel to a drop position measured before removal. */
+export function moveRoutePanelToPosition(
+  model: WiringRouteEditorModel,
+  panelId: string,
+  destinationOutputIndex: number,
+  destinationIndex: number,
+): WiringRouteEditorModel {
+  if (!model.copiedDraftSuggestion) {
+    throw new Error("Edit the suggested route before changing its order.");
+  }
+  const next = clone(model);
+  const source = next.outputs.find((output) => output.panelIds.includes(panelId));
+  const destination = next.outputs.find((output) =>
+    output.outputIndex === destinationOutputIndex
+  );
+  if (!source) throw new Error(`Panel ${panelId} is not assigned to a route.`);
+  if (!destination) throw new Error(`Unknown output ${destinationOutputIndex}.`);
+  const sourceIndex = source.panelIds.indexOf(panelId);
+  source.panelIds.splice(sourceIndex, 1);
+  let insertionIndex = Math.max(
+    0,
+    Math.min(destinationIndex, destination.panelIds.length),
+  );
+  if (source === destination && sourceIndex < destinationIndex) {
+    insertionIndex = Math.max(0, insertionIndex - 1);
+  }
+  destination.panelIds.splice(insertionIndex, 0, panelId);
+  return next;
+}
+
 export function copyDraftSuggestionToRouteEditor(
   model: WiringRouteEditorModel,
 ): WiringRouteEditorModel {
@@ -107,7 +137,7 @@ export function validateWiringRouteEditorModel(
   if (!model) return { valid: false, errors: ["A panelized wiring route is unavailable."] };
   const errors: string[] = [];
   if (!model.copiedDraftSuggestion) {
-    errors.push("Copy the draft suggestion before confirming an authored route.");
+    errors.push("Choose Edit suggested route before saving an authored route.");
   }
   if (model.outputs.length !== definition.wiring.outputs.length) {
     errors.push("The editor route does not contain every controller output.");

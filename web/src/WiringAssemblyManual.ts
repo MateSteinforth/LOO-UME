@@ -33,7 +33,7 @@ export interface WiringManualPanel {
 export interface WiringManualOutput {
   outputIndex: number;
   label: string;
-  gpio: number;
+  gpio: number | null;
   color: string;
   physicalStart: number;
   physicalEnd: number;
@@ -46,8 +46,13 @@ export interface WiringAssemblyManualModel {
   source: string;
   routeRevision: number;
   wiringStatus: string;
+  routeSource: Exclude<
+    HardwareMappingContract["wiring"]["routeSource"],
+    null
+  >;
+  mappingReady: boolean;
   mappingFingerprint: string;
-  optimizationFingerprint: string;
+  optimizationFingerprint: string | null;
   totalPixels: number;
   colorOrder: "RGB";
   pixelOrder: string;
@@ -100,13 +105,8 @@ export function createWiringAssemblyManualModel(
   profile: PanelHardwareProfile,
   source: string,
 ): WiringAssemblyManualModel {
-  if (!contract.readiness.mappingReady) {
-    throw new Error(
-      "The printable wiring manual requires a current mapping-ready project.",
-    );
-  }
-  if (contract.wiring.routeSource !== "authored-route") {
-    throw new Error("The printable wiring manual requires the saved authored route.");
+  if (contract.mapping.panels.length === 0) {
+    throw new Error("The printable wiring manual requires at least one panel.");
   }
   if (contract.mapping.panels.some(
     (panel) => panel.installedAddressTransform.mirrored,
@@ -120,9 +120,6 @@ export function createWiringAssemblyManualModel(
   );
   const ledsPerPanel = profile.pixelGrid.columns * profile.pixelGrid.rows;
   const outputs = contract.outputs.map((output) => {
-    if (output.gpio === null) {
-      throw new Error(`Output ${output.outputIndex + 1} has no GPIO.`);
-    }
     const outputDefinition = definition.wiring.outputs[output.outputIndex];
     if (!outputDefinition || !/^#[0-9a-fA-F]{6}$/.test(outputDefinition.color)) {
       throw new Error(`Output ${output.outputIndex + 1} has no valid display color.`);
@@ -138,7 +135,11 @@ export function createWiringAssemblyManualModel(
         chainPosition,
         physicalStart,
         physicalEnd: physicalStart + ledsPerPanel - 1,
-        dataIn: previous ? `${previous} DOUT` : `Controller GPIO ${output.gpio}`,
+        dataIn: previous
+          ? `${previous} DOUT`
+          : output.gpio === null
+            ? "Controller output (GPIO unassigned)"
+            : `Controller GPIO ${output.gpio}`,
         dataOut: next ? `${next} DIN` : `End of ${outputDefinition.label}`,
         turnDegrees: (
           ((4 - panel.installedAddressTransform.quarterTurnsClockwise) % 4) * 90
@@ -175,19 +176,25 @@ export function createWiringAssemblyManualModel(
   const optimizationFingerprints = new Set(
     definition.panels.map(
       (panel) => panel.installedAddressTransform?.optimizationFingerprint,
-    ),
+    ).filter((fingerprint): fingerprint is string => fingerprint !== undefined),
   );
-  if (optimizationFingerprints.size !== 1 || optimizationFingerprints.has(undefined)) {
-    throw new Error("Panels do not share one current orientation fingerprint.");
-  }
+  const optimizationFingerprint = optimizationFingerprints.size === 1 &&
+      definition.panels.every(
+        (panel) => panel.installedAddressTransform?.optimizationFingerprint !==
+          undefined,
+      )
+    ? [...optimizationFingerprints][0]!
+    : null;
   return {
     sculptureId: definition.id,
     sculptureName: definition.name,
     source,
     routeRevision: definition.wiring.routeRevision ?? 0,
     wiringStatus: contract.wiring.status,
+    routeSource: contract.wiring.routeSource ?? "draft-suggestion",
+    mappingReady: contract.readiness.mappingReady,
     mappingFingerprint: contract.fingerprint,
-    optimizationFingerprint: [...optimizationFingerprints][0]!,
+    optimizationFingerprint,
     totalPixels: contract.mapping.entries.length,
     colorOrder: "RGB",
     pixelOrder: `${profile.pixelGrid.columns} × ${profile.pixelGrid.rows} snake`,
@@ -360,11 +367,16 @@ function renderChainStrip(
   ).join("")}${after}</div>`;
 }
 
+function gpioLabel(output: WiringManualOutput): string {
+  return output.gpio === null ? "GPIO unassigned" : `GPIO ${output.gpio}`;
+}
+
 function renderOutputPage(
   output: WiringManualOutput,
   panels: WiringManualPanel[],
   pageIndex: number,
   pageCount: number,
+  statusLabel: string,
 ): string {
   const rows = panels.map((panel) => `<tr>
     <td class="check-cell">□</td>
@@ -384,20 +396,23 @@ function renderOutputPage(
     : "Continue from the previous sheet.";
   return `<section class="sheet chain-sheet" style="--output-color:${output.color}">
     <header class="sheet-header">
-      <div><p class="eyebrow">DATA OUTPUT ${output.outputIndex + 1}${pageLabel}</p><h2>${escapeHtml(output.label)} · GPIO ${output.gpio}</h2></div>
+      <div><p class="eyebrow">${statusLabel} · DATA OUTPUT ${output.outputIndex + 1}${pageLabel}</p><h2>${escapeHtml(output.label)} · ${gpioLabel(output)}</h2></div>
       <div class="range-badge">${panels.length} panel${panels.length === 1 ? "" : "s"} on this sheet · ${range}</div>
     </header>
-    <p>${startInstruction} Follow the arrows. View every PCB from the back. Connector corners are authoritative; pad centres are schematic. Connect data and reference ground; do not carry accumulated panel power through this data chain. Mapping-ready does not mean electrically approved.</p>
+    <p>${startInstruction} Follow the arrows. View every PCB from the back. Connector corners are authoritative; pad centres are schematic. Connect data and reference ground; do not carry accumulated panel power through this data chain. Electrical approval is separate from this route.</p>
     ${renderChainStrip(output, panels, pageIndex, pageCount)}
     <table class="chain-table">
       <thead><tr><th>Done</th><th>Pos.</th><th>Panel</th><th>Back-view PCB orientation</th><th>Data into DIN</th><th>Data out from DOUT</th><th>Physical LEDs</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <footer class="sheet-footer">${escapeHtml(output.label)} · GPIO ${output.gpio} · Follow panel IDs and saved orientation exactly.</footer>
+    <footer class="sheet-footer">${statusLabel} · ${escapeHtml(output.label)} · ${gpioLabel(output)} · Follow panel IDs and the shown orientation.</footer>
   </section>`;
 }
 
-function renderOutputPages(output: WiringManualOutput): string {
+function renderOutputPages(
+  output: WiringManualOutput,
+  statusLabel: string,
+): string {
   const pageCount = Math.max(
     1,
     Math.ceil(output.panels.length / PANELS_PER_CHAIN_PAGE),
@@ -409,39 +424,73 @@ function renderOutputPages(output: WiringManualOutput): string {
       output.panels.slice(start, start + PANELS_PER_CHAIN_PAGE),
       pageIndex,
       pageCount,
+      statusLabel,
     );
   }).join("");
 }
 
 export function renderWiringAssemblyManualHtml(
   model: WiringAssemblyManualModel,
+  options: { includeBackLink?: boolean } = {},
 ): string {
   const outputSummary = model.outputs.map((output) => `<tr>
     <td><span class="output-key" style="--output-color:${output.color}"></span>${escapeHtml(output.label)}</td>
-    <td>${output.gpio}</td><td>${output.panels.length}</td><td>${output.panels.length > 0 ? `${output.physicalStart}–${output.physicalEnd}` : "—"}</td>
+    <td>${output.gpio ?? "Unassigned"}</td><td>${output.panels.length}</td><td>${output.panels.length > 0 ? `${output.physicalStart}–${output.physicalEnd}` : "—"}</td>
     <td>${output.panels.length > 0 ? `${escapeHtml(output.panels[0]!.id)} → ${escapeHtml(output.panels.at(-1)!.id)}` : "No panels"}</td>
   </tr>`).join("");
+  const backLink = options.includeBackLink === false
+    ? ""
+    : '<a id="back-to-simulator" href="./">Back to simulator</a>';
+  const statusLabel = model.mappingReady ? "MAPPING READY" : "DRAFT SUGGESTION";
+  const statusClass = model.mappingReady ? "" : " status-banner--draft";
+  const orientationFingerprint = model.optimizationFingerprint ??
+    "Not route-optimized; current assumed turns are shown";
+  const routeNote = model.mappingReady
+    ? "Use the saved route and installed turns exactly."
+    : "This manual uses the current automatic draft route and current assumed panel turns. Review and adjust them during assembly.";
   return `<main class="manual">
     <section class="sheet cover-sheet">
-      <div class="screen-actions no-print"><button id="print-manual" type="button">Print / Save PDF</button><a id="back-to-simulator" href="./">Back to simulator</a></div>
+      <div class="screen-actions no-print"><button id="print-manual" type="button">Print / Save PDF</button>${backLink}</div>
       <p class="eyebrow">WLED ORBITAL LAB · ASSEMBLY CONTROL COPY</p>
       <h1>${escapeHtml(model.sculptureName)}<br>Wiring assembly manual</h1>
-      <div class="status-banner">MAPPING READY · ${model.totalPixels.toLocaleString()} LEDs · ${model.outputs.length} outputs</div>
+      <div class="status-banner${statusClass}">${statusLabel} · ${model.totalPixels.toLocaleString()} LEDs · ${model.outputs.length} outputs</div>
       <div class="cover-grid">
-        <section><h2>Use this manual for</h2><ol><li>Label each PCB with its panel ID.</li><li>Place it at the matching ID in the projection sheets.</li><li>Rotate it as shown from the back.</li><li>Connect the exact controller → DIN → DOUT chain.</li><li>Tick each completed row before continuing.</li></ol></section>
-        <section><h2>Fixed mapping assumptions</h2><dl><dt>Pixel order</dt><dd>${model.pixelOrder}</dd><dt>Color order</dt><dd>${model.colorOrder}</dd><dt>Mirroring</dt><dd>None</dd><dt>Route revision</dt><dd>${model.routeRevision}</dd><dt>Mapping fingerprint</dt><dd><code>${model.mappingFingerprint}</code></dd><dt>Orientation fingerprint</dt><dd><code>${model.optimizationFingerprint}</code></dd></dl></section>
+        <section><h2>Use this manual for</h2><ol><li>Label each PCB with its panel ID.</li><li>Place it at the matching ID in the projection sheets.</li><li>Rotate it as shown from the back.</li><li>Connect the shown controller → DIN → DOUT chain.</li><li>Tick each completed row before continuing.</li></ol></section>
+        <section><h2>Current mapping assumptions</h2><dl><dt>Pixel order</dt><dd>${model.pixelOrder}</dd><dt>Color order</dt><dd>${model.colorOrder}</dd><dt>Mirroring</dt><dd>None</dd><dt>Route source</dt><dd>${escapeHtml(model.routeSource)}</dd><dt>Route revision</dt><dd>${model.routeRevision}</dd><dt>Mapping fingerprint</dt><dd><code>${model.mappingFingerprint}</code></dd><dt>Orientation fingerprint</dt><dd><code>${escapeHtml(orientationFingerprint)}</code></dd></dl></section>
       </div>
-      <div class="warning"><strong>Data direction:</strong> controller GPIO → first panel DIN → panel DOUT → next panel DIN. Connect a reference ground with every data chain. Panel power distribution is separate. Connector corners are authoritative; exact pad centres are schematic.</div>
+      <div class="warning"><strong>${model.mappingReady ? "Data direction:" : "Draft wiring:"}</strong> ${routeNote} Controller output → first panel DIN → panel DOUT → next panel DIN. Connect a reference ground with every data chain. Panel power distribution is separate. Connector corners are authoritative; exact pad centres are schematic.</div>
       <table class="summary-table"><thead><tr><th>Output</th><th>GPIO</th><th>Panels</th><th>Physical LEDs</th><th>First → last panel</th></tr></thead><tbody>${outputSummary}</tbody></table>
-      <footer class="sheet-footer">Source: ${escapeHtml(model.source)} · Wiring ${escapeHtml(model.wiringStatus)} · Mapping-ready assumptions; electrical approval is separate.</footer>
+      <footer class="sheet-footer">Source: ${escapeHtml(model.source)} · Wiring ${escapeHtml(model.wiringStatus)} · ${statusLabel}; electrical approval is separate.</footer>
     </section>
     <section class="sheet placement-sheet">
       <header class="sheet-header"><div><p class="eyebrow">PLACEMENT MAP</p><h2>Find each panel in the sculpture</h2></div><div class="range-badge">Route arrows show data direction</div></header>
       <p>Use at least two views to identify a position. Panel rectangles are projected from the saved 3D poses; overlaps are normal in an orthographic view.</p>
       <div class="projection-grid">${renderProjection(model, "front")}${renderProjection(model, "right")}${renderProjection(model, "top")}</div>
-      <div class="output-legend">${model.outputs.map((output) => `<span><i style="--output-color:${output.color}"></i>${escapeHtml(output.label)} · GPIO ${output.gpio}</span>`).join("")}</div>
-      <footer class="sheet-footer">Panel IDs and positions come from the current Schema 2 sculpture poses · Mapping-ready assumptions; electrical approval is separate.</footer>
+      <div class="output-legend">${model.outputs.map((output) => `<span><i style="--output-color:${output.color}"></i>${escapeHtml(output.label)} · ${gpioLabel(output)}</span>`).join("")}</div>
+      <footer class="sheet-footer">Panel IDs and positions come from the current Schema 2 sculpture poses · ${statusLabel}; electrical approval is separate.</footer>
     </section>
-    ${model.outputs.map(renderOutputPages).join("")}
+    ${model.outputs.map((output) => renderOutputPages(output, statusLabel)).join("")}
   </main>`;
+}
+
+export function renderStandaloneWiringAssemblyManualDocument(
+  model: WiringAssemblyManualModel,
+  stylesheet: string,
+): string {
+  const safeStylesheet = stylesheet.replace(/<\/style/gi, "<\\/style");
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Print-ready LED sculpture wiring assembly manual." />
+    <title>${escapeHtml(model.sculptureName)} wiring assembly manual</title>
+    <style>${safeStylesheet}</style>
+  </head>
+  <body>
+    ${renderWiringAssemblyManualHtml(model, { includeBackLink: false })}
+    <script>document.getElementById("print-manual")?.addEventListener("click", function () { window.print(); });</script>
+  </body>
+</html>
+`;
 }

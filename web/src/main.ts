@@ -47,7 +47,7 @@ import {
   copyDraftSuggestionToRouteEditor,
   createWiringRouteEditorModel,
   moveRoutePanelToOutput,
-  moveRoutePanelWithinOutput,
+  moveRoutePanelToPosition,
   validateWiringRouteEditorModel,
   type WiringRouteEditorModel,
 } from "./WiringRouteEditor";
@@ -67,12 +67,27 @@ import {
 } from "./PortableProject.ts";
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
-import { createWiringAssemblyManualModel } from "./WiringAssemblyManual.ts";
-import { createManualHandshakeToken } from "./ManualHandshake.ts";
+import {
+  createWiringAssemblyManualModel,
+  renderStandaloneWiringAssemblyManualDocument,
+} from "./WiringAssemblyManual.ts";
 import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
+import {
+  readEditorPipelineResult,
+  shouldUseEditorPipelineFallback,
+} from "./EditorPipelineResponse.ts";
+import { readJsonResponse } from "./JsonResponse.ts";
+import {
+  createAssemblyPackageZip,
+  createWiringReview,
+} from "./AssemblyPackage.ts";
+import wiringManualStyles from "./wiring-manual.css?raw";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
+const DEFAULT_PRIMARY_COLOR = "#ff7a18";
+const DEFAULT_SECONDARY_COLOR = "#050816";
+const DEFAULT_SHELL_TRANSPARENCY = 0.35;
 const initialSculptureSource =
   new URLSearchParams(window.location.search).get("sculptureJson") ??
   DEFAULT_SCULPTURE_JSON;
@@ -102,7 +117,10 @@ async function loadSculptureRegistry(): Promise<SculptureRegistry> {
       "Unable to load sculpture registry: HTTP " + response.status + ".",
     );
   }
-  const registry = (await response.json()) as Partial<SculptureRegistry>;
+  const registry = (await readJsonResponse(
+    response,
+    "Sculpture registry",
+  )) as Partial<SculptureRegistry>;
   if (
     registry.schemaVersion !== "1.0.0" ||
     !Array.isArray(registry.sculptures) ||
@@ -146,7 +164,7 @@ async function loadSculptureContract(
       "Unable to load sculpture JSON " + source + ": HTTP " + response.status + ".",
     );
   }
-  const sculptureInput: unknown = await response.json();
+  const sculptureInput = await readJsonResponse(response, "Sculpture JSON");
   const project = await loadPanelAssemblyProject(
     sculptureInput,
     source,
@@ -162,7 +180,7 @@ async function loadSculptureContract(
             ".",
         );
       }
-      return profileResponse.json() as Promise<unknown>;
+      return readJsonResponse(profileResponse, "Panel profile");
     },
   );
   return createLoadedSculpture(project);
@@ -189,7 +207,7 @@ async function loadStagedPanelProfile(
       `Unable to find panel profile ${reference.id} in the staged catalog.`,
     );
   }
-  return profileResponse.json() as Promise<unknown>;
+  return readJsonResponse(profileResponse, "Panel profile");
 }
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -206,19 +224,12 @@ app.innerHTML = `
           <h1>WLED Orbital Lab</h1>
         </div>
       </div>
-      <div class="engine-badge">
-        <span class="status-dot" id="engine-dot"></span>
-        <span id="engine-status">Loading WebAssembly…</span>
-      </div>
+      <span id="engine-status" hidden>Loading WebAssembly…</span>
     </header>
 
     <main class="workspace">
       <section class="viewer-panel" aria-label="3D LED sphere">
         <div id="viewer" class="viewer"></div>
-        <div class="viewer-overlay viewer-overlay--top">
-          <span id="mapping-tag" class="provisional-tag">LOADING SCULPTURE JSON</span>
-          <span>Drag to orbit · Scroll to zoom</span>
-        </div>
         <div class="viewer-overlay viewer-overlay--bottom">
           <div class="metric">
             <span class="metric-label">FPS</span>
@@ -241,18 +252,9 @@ app.innerHTML = `
       </section>
 
       <aside class="control-panel">
-        <section class="control-section transport">
-          <button id="play-toggle" class="play-button" type="button">
-            <span id="play-icon">Ⅱ</span>
-            <span id="play-label">Pause engine</span>
-          </button>
-          <button id="restart" class="icon-button" type="button" title="Restart deterministic timeline">↺</button>
-        </section>
-
         <section class="control-section">
           <div class="section-heading">
             <span>WLED engine</span>
-            <small>actual C++ / WASM</small>
           </div>
           <label class="field">
             <span>Effect</span>
@@ -270,16 +272,6 @@ app.innerHTML = `
             <span>Intensity <output id="intensity-value">128</output></span>
             <input id="intensity" type="range" min="0" max="255" value="128" />
           </label>
-          <div class="color-row">
-            <label class="color-field">
-              <span>Primary</span>
-              <input id="primary-color" type="color" value="#ff7a18" />
-            </label>
-            <label class="color-field">
-              <span>Secondary</span>
-              <input id="secondary-color" type="color" value="#050816" />
-            </label>
-          </div>
         </section>
 
         <section class="control-section">
@@ -294,26 +286,12 @@ app.innerHTML = `
             </select>
           </label>
           <label class="field">
-            <span>Custom sculpture JSON</span>
-            <div class="input-action">
-              <input id="sculpture-json" type="text" />
-              <button id="load-sculpture" type="button">Load</button>
-            </div>
-          </label>
-          <label class="field">
             <span>Display</span>
             <select id="display-mode">
               <option value="wled">WLED framebuffer</option>
               <option value="physical-index">Physical index bands</option>
               <option value="logical-index">Logical index bands</option>
             </select>
-          </label>
-          <label class="field">
-            <span>Virtual LED count</span>
-            <div class="input-action">
-              <input id="led-count" type="number" min="64" max="200000" step="1" value="64" />
-              <button id="apply-count" type="button">Apply</button>
-            </div>
           </label>
           <label class="toggle-field">
             <input id="auto-rotate" type="checkbox" checked />
@@ -326,10 +304,6 @@ app.innerHTML = `
           <label class="toggle-field">
             <input id="printable-layer" type="checkbox" checked />
             <span>Exact Manifold closures + screw tabs</span>
-          </label>
-          <label class="field slider-field">
-            <span>Shell transparency <output id="shell-transparency-value">35%</output></span>
-            <input id="shell-transparency" type="range" min="0" max="90" value="35" />
           </label>
           <div id="wiring-layer-controls" class="layer-controls">
             <div class="layer-controls__heading">Wiring layers</div>
@@ -354,27 +328,47 @@ app.innerHTML = `
             <span class="validation-icon">✓</span>
             <span>Mapping LUT is valid</span>
           </div>
-          <p id="mapping-note" class="mapping-note">Transforms, pixel order, and wiring are unmeasured.</p>
+          <p id="mapping-note" hidden>Transforms, pixel order, and wiring are unmeasured.</p>
         </section>
 
         <section class="control-section editor-section">
           <div class="section-heading">
             <span>Sculpture editor</span>
-            <small>pose-first JSON</small>
           </div>
-          <input id="sculpture-file" type="file" accept="application/json,.json" hidden />
+          <input id="project-file" type="file" accept="application/json,application/zip,.json,.zip" hidden />
           <input id="project-folder" type="file" webkitdirectory multiple hidden />
-          <input id="project-zip" type="file" accept="application/zip,.zip" hidden />
           <input id="design-surface-file" type="file" accept="model/gltf-binary,.glb" hidden />
-          <div class="editor-actions">
-            <button id="load-sculpture-file" type="button">Load JSON file</button>
-            <button id="save-sculpture-file" type="button">Save JSON</button>
-            <button id="load-project-folder" type="button">Open project folder</button>
-            <button id="load-project-zip" type="button">Open project ZIP</button>
-            <button id="export-project-folder" type="button">Export project folder</button>
-            <button id="export-project-zip" type="button">Export project ZIP</button>
+          <div class="project-actions">
+            <details class="action-menu">
+              <summary>Open project</summary>
+              <div class="action-menu__items">
+                <button id="open-project-file" type="button">Open JSON or ZIP</button>
+                <button id="open-project-folder" type="button">Open folder</button>
+              </div>
+            </details>
+            <button id="save-project" class="editor-button" type="button">Save project ZIP</button>
           </div>
-          <p class="mapping-note">Folder and ZIP projects keep the JSON, GLB, boundary, and exact STL parts together.</p>
+          <details id="advanced-tools" class="compact-menu">
+            <summary>Advanced tools</summary>
+            <div class="compact-menu__content">
+              <label class="field">
+                <span>Custom sculpture JSON URL</span>
+                <div class="input-action">
+                  <input id="sculpture-json" type="text" />
+                  <button id="load-sculpture" type="button">Load</button>
+                </div>
+              </label>
+              <label class="field">
+                <span>Virtual LED count</span>
+                <div class="input-action">
+                  <input id="led-count" type="number" min="64" max="200000" step="1" value="64" />
+                  <button id="apply-count" type="button">Apply</button>
+                </div>
+              </label>
+              <button id="save-sculpture-file" class="editor-button" type="button">Export raw JSON</button>
+              <button id="export-project-folder" class="editor-button" type="button">Export project folder</button>
+            </div>
+          </details>
           <section id="route-editor-section" class="route-editor-section" hidden>
             <div class="section-heading editor-subheading">
               <span>Wiring route editor</span>
@@ -382,8 +376,7 @@ app.innerHTML = `
             </div>
             <p id="route-editor-note" class="mapping-note"></p>
             <div id="route-editor" class="route-editor" aria-label="Panel wiring route editor"></div>
-            <button id="copy-draft-route" class="editor-button" type="button">Copy draft suggestion to edit</button>
-            <button id="confirm-wiring-route" class="editor-button" type="button">Confirm wiring route revision</button>
+            <button id="route-action" class="editor-button" type="button">Edit suggested route</button>
             <p id="route-editor-status" class="route-editor-status" aria-live="polite"></p>
           </section>
           <div class="section-heading editor-subheading">
@@ -400,9 +393,7 @@ app.innerHTML = `
           <p id="surface-status" class="mapping-note">
             Load a GLB, or use the sculpture JSON shell as the editing surface.
           </p>
-          <p id="selected-panel-status" class="mapping-note">
-            No design surface loaded.
-          </p>
+          <p id="selected-panel-status" class="mapping-note"></p>
           <div id="automatic-panel-placement-controls">
             <label class="field">
               <span>Target panel count</span>
@@ -411,55 +402,34 @@ app.innerHTML = `
             <button id="automatically-place-panels" class="editor-button" type="button" disabled>
               Automatically place panels
             </button>
-            <p class="mapping-note">
-              The GLB is only a placement aid. Printable caps come from the holes between panel outlines, not from the mesh.
-            </p>
           </div>
-          <label class="field">
-            <span>Available closure face</span>
-            <select id="add-panel-face"></select>
-          </label>
-          <button id="add-panel" class="editor-button" type="button">
-            Add panel to face
-          </button>
-          <p class="mapping-note">
-            Add panel insets the PCB into a closure face, fills the surrounding ring,
-            and keeps every panel edge connected to printable closure parts.
-          </p>
+          <div id="add-panel-controls" hidden>
+            <label class="field">
+              <span>Available closure face</span>
+              <select id="add-panel-face"></select>
+            </label>
+            <button id="add-panel" class="editor-button" type="button" hidden>
+              Add panel to selected face
+            </button>
+          </div>
           <div class="pipeline-actions">
-            <button id="open-wiring-manual" class="pipeline-button" type="button">
-              Export wiring assembly manual
+            <button id="assembly-package" class="pipeline-button" type="button">
+              Build assembly package
             </button>
-            <button id="generate-mapping" class="pipeline-button" type="button">
-              Generate WLED mapping + wiring review
-            </button>
-            <button id="generate-print-parts" class="pipeline-button" type="button">
-              Generate boundary / 3D parts
-            </button>
-            <button id="download-print-parts" class="pipeline-button" type="button" disabled>
-              Download verified STL files
-            </button>
+            <details class="compact-menu export-menu">
+              <summary>Export individual files</summary>
+              <div class="compact-menu__content">
+                <button id="open-wiring-manual" class="editor-button" type="button">Assembly manual HTML</button>
+                <button id="generate-mapping" class="editor-button" type="button">Ledmap + wiring review</button>
+              </div>
+            </details>
           </div>
           <div id="pipeline-status" class="pipeline-status" role="status">
             Local Vite pipeline is ready.
           </div>
-          <p class="mapping-note">
-            Generate puts flat caps on the holes between panel outlines. It does not use the GLB or a JSON shell as geometry. Neighbouring outline corners must meet. A failed run keeps the last successful STL set.
-          </p>
-        </section>
-
-        <section class="architecture-card">
-          <span>FRAME PATH</span>
-          <p>WLED FX.cpp → WASM memory → LUT → Three.js</p>
-          <small>No JavaScript effect reimplementation.</small>
         </section>
       </aside>
     </main>
-
-    <footer>
-      <span>Upstream WLED <code>d9b9a84</code></span>
-      <span>Photosensitive users: avoid strobe effects and high speed.</span>
-    </footer>
   </div>
 `;
 
@@ -471,7 +441,6 @@ const query = <T extends Element>(selector: string): T => {
 
 const viewerElement = query<HTMLDivElement>("#viewer");
 const engineStatus = query<HTMLSpanElement>("#engine-status");
-const engineDot = query<HTMLSpanElement>("#engine-dot");
 const viewerError = query<HTMLDivElement>("#viewer-error");
 const fpsDisplay = query<HTMLElement>("#fps");
 const ledCountDisplay = query<HTMLElement>("#led-count-display");
@@ -483,53 +452,37 @@ const speedInput = query<HTMLInputElement>("#speed");
 const speedValue = query<HTMLOutputElement>("#speed-value");
 const intensityInput = query<HTMLInputElement>("#intensity");
 const intensityValue = query<HTMLOutputElement>("#intensity-value");
-const primaryColor = query<HTMLInputElement>("#primary-color");
-const secondaryColor = query<HTMLInputElement>("#secondary-color");
-const playButton = query<HTMLButtonElement>("#play-toggle");
-const playIcon = query<HTMLElement>("#play-icon");
-const playLabel = query<HTMLElement>("#play-label");
-const restartButton = query<HTMLButtonElement>("#restart");
 const sculptureSelect = query<HTMLSelectElement>("#sculpture-select");
 const sculptureJsonInput = query<HTMLInputElement>("#sculpture-json");
 const loadSculptureButton = query<HTMLButtonElement>("#load-sculpture");
-const displayMode = query<HTMLSelectElement>("#display-mode");
+const advancedTools = query<HTMLDetailsElement>("#advanced-tools");
 const ledCountInput = query<HTMLInputElement>("#led-count");
-const applyCount = query<HTMLButtonElement>("#apply-count");
+const applyCountButton = query<HTMLButtonElement>("#apply-count");
+const displayMode = query<HTMLSelectElement>("#display-mode");
 const autoRotate = query<HTMLInputElement>("#auto-rotate");
 const mappingStatus = query<HTMLElement>("#mapping-status");
-const mappingTag = query<HTMLElement>("#mapping-tag");
 const mappingNote = query<HTMLElement>("#mapping-note");
 const panelLabelsToggle = query<HTMLInputElement>("#panel-labels");
 const printableLayerToggle = query<HTMLInputElement>("#printable-layer");
-const shellTransparencyInput =
-  query<HTMLInputElement>("#shell-transparency");
-const shellTransparencyValue =
-  query<HTMLOutputElement>("#shell-transparency-value");
 const connectorLayerToggle =
   query<HTMLInputElement>("#connector-layer");
 const wiringLayerToggle = query<HTMLInputElement>("#wiring-layer");
 const wiringLayerControls = query<HTMLElement>("#wiring-layer-controls");
 const outputLayerList = query<HTMLElement>("#output-layer-list");
-const sculptureFileInput = query<HTMLInputElement>("#sculpture-file");
-const loadSculptureFileButton =
-  query<HTMLButtonElement>("#load-sculpture-file");
+const projectFileInput = query<HTMLInputElement>("#project-file");
+const openProjectFileButton = query<HTMLButtonElement>("#open-project-file");
 const saveSculptureFileButton =
   query<HTMLButtonElement>("#save-sculpture-file");
 const projectFolderInput = query<HTMLInputElement>("#project-folder");
-const projectZipInput = query<HTMLInputElement>("#project-zip");
-const loadProjectFolderButton =
-  query<HTMLButtonElement>("#load-project-folder");
-const loadProjectZipButton =
-  query<HTMLButtonElement>("#load-project-zip");
+const openProjectFolderButton =
+  query<HTMLButtonElement>("#open-project-folder");
 const exportProjectFolderButton =
   query<HTMLButtonElement>("#export-project-folder");
-const exportProjectZipButton =
-  query<HTMLButtonElement>("#export-project-zip");
+const saveProjectButton = query<HTMLButtonElement>("#save-project");
 const routeEditorSection = query<HTMLElement>("#route-editor-section");
 const routeEditorNote = query<HTMLElement>("#route-editor-note");
 const routeEditor = query<HTMLElement>("#route-editor");
-const copyDraftRouteButton = query<HTMLButtonElement>("#copy-draft-route");
-const confirmWiringRouteButton = query<HTMLButtonElement>("#confirm-wiring-route");
+const routeActionButton = query<HTMLButtonElement>("#route-action");
 const routeEditorStatus = query<HTMLElement>("#route-editor-status");
 const designSurfaceFileInput =
   query<HTMLInputElement>("#design-surface-file");
@@ -546,19 +499,17 @@ const automaticallyPlacePanelsButton =
   query<HTMLButtonElement>("#automatically-place-panels");
 const addPanelFaceSelect = query<HTMLSelectElement>("#add-panel-face");
 const addPanelButton = query<HTMLButtonElement>("#add-panel");
+const addPanelControls = query<HTMLElement>("#add-panel-controls");
 const generateMappingButton =
   query<HTMLButtonElement>("#generate-mapping");
 const openWiringManualButton =
   query<HTMLButtonElement>("#open-wiring-manual");
-const generatePrintPartsButton =
-  query<HTMLButtonElement>("#generate-print-parts");
-const downloadPrintPartsButton =
-  query<HTMLButtonElement>("#download-print-parts");
+const assemblyPackageButton = query<HTMLButtonElement>("#assembly-package");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 let pipelineAvailable = false;
 let pipelineAvailabilityMessage =
   "Checking local Manifold availability. Mapping and wiring remain available.";
-generatePrintPartsButton.disabled = true;
+assemblyPackageButton.disabled = true;
 pipelineStatus.textContent = pipelineAvailabilityMessage;
 let outputLayerToggles: HTMLInputElement[] = [];
 
@@ -601,7 +552,7 @@ async function start(): Promise<void> {
       editorProject.panelProfile.dimensions.thickness,
     );
     renderer.setShellTransparency(
-      Number(shellTransparencyInput.value) / 100,
+      DEFAULT_SHELL_TRANSPARENCY,
     );
     renderer.setWiringPreview(wiringPreview);
 
@@ -620,13 +571,11 @@ async function start(): Promise<void> {
     engine.setPalette(6);
     engine.setSpeed(128);
     engine.setIntensity(128);
-    engine.setPrimaryColor(primaryColor.value);
-    engine.setSecondaryColor(secondaryColor.value);
+    engine.setPrimaryColor(DEFAULT_PRIMARY_COLOR);
+    engine.setSecondaryColor(DEFAULT_SECONDARY_COLOR);
 
     engineStatus.textContent = `${engine.effects.length} WLED effects ready`;
-    engineDot.classList.add("status-dot--ready");
 
-    let playing = true;
     let simulationTime = 0;
     let previousTime = performance.now();
     let fpsWindowStart = previousTime;
@@ -641,6 +590,7 @@ async function start(): Promise<void> {
     let activePortableBundle: PortableProjectBundle | undefined;
     let availableProjectAssets = new Map<string, Uint8Array>();
     let generatedMemoryUrls = new Map<string, string>();
+    let selectedEditorPanelId: string | null = null;
 
     const replacePortableBundle = (
       bundle?: PortableProjectBundle,
@@ -684,16 +634,21 @@ async function start(): Promise<void> {
         mapping.topology !== "panelized-sculpture" ||
         !capabilities.canExportMappingAndWiring;
       openWiringManualButton.disabled =
-        mapping.topology !== "panelized-sculpture" ||
-        !hardwareContract.readiness.mappingReady;
+        mapping.topology !== "panelized-sculpture";
       openWiringManualButton.title = !hardwareContract.readiness.mappingReady
-        ? "The printable manual requires a current mapping-ready route."
-        : "Open the current in-memory project as an A4 landscape wiring manual.";
-      generatePrintPartsButton.disabled =
-        !capabilities.canGenerateGenericMechanics;
-      generatePrintPartsButton.title = editorDefinition.manualMechanics
-        ? "This sculpture uses manually authored SCAD parts; generic 3D generation is intentionally disabled."
-        : "Put flat caps on the holes between panel outlines in the browser. Neighbouring corners must meet. The GLB is placement-only.";
+        ? "Download the current draft wiring suggestion as a labelled printable manual."
+        : "Download the current project as a self-contained A4 landscape wiring manual.";
+      const packageIsCurrent = verifiedGeneratedMechanics !== undefined;
+      assemblyPackageButton.textContent = packageIsCurrent
+        ? "Download assembly package"
+        : "Build assembly package";
+      assemblyPackageButton.disabled = mapping.topology !== "panelized-sculpture" ||
+        (!packageIsCurrent && !capabilities.canGenerateGenericMechanics);
+      assemblyPackageButton.title = packageIsCurrent
+        ? "Download the current project, verified geometry, manual, ledmap, and wiring review."
+        : editorDefinition.manualMechanics
+          ? "This manual SCAD project has no browser-generated STL package."
+          : "Build current boundary and part STLs. The button changes to Download when they are verified.";
       automaticPanelPlacementControls.hidden =
         editorDefinition.manualMechanics !== undefined;
       automaticallyPlacePanelsButton.disabled =
@@ -739,8 +694,8 @@ async function start(): Promise<void> {
       if (!isPanelized || !routeEditorModel) {
         routeEditor.replaceChildren();
         routeEditorNote.textContent = "A panelized sculpture is required for route editing.";
-        copyDraftRouteButton.hidden = true;
-        confirmWiringRouteButton.disabled = true;
+        routeActionButton.hidden = true;
+        routeActionButton.disabled = true;
         routeEditorStatus.textContent = "No panel route is available.";
         return;
       }
@@ -753,21 +708,25 @@ async function start(): Promise<void> {
       const sourceLabel = model.source === "temporary-draft-suggestion"
         ? "The shown route is a temporary draft suggestion. The saved route evidence is below."
         : model.source === "draft-suggestion"
-          ? "The shown route is a draft suggestion. Copy it before you edit or confirm it."
+          ? "The shown route is a draft suggestion. Choose Edit suggested route before changing it."
           : wiringPreview.status === "measured"
-            ? "This is the saved measured route. A new confirmation saves an authored revision and removes the old measurement approval."
+            ? "This is the saved measured route. Saving a new authored revision removes the old measurement approval."
             : editorDefinition.wiring.routeRevision === undefined
-              ? "This saved route has no confirmed revision. Review it, then confirm revision 1."
+              ? "This saved route has no revision. Review it, then choose Save route."
               : wiringPreview.status === "requires-review"
-                ? "This saved route requires review. Confirm it only after its order matches the sculpture."
-                : "This is the saved authored route. Edit it, then confirm a new route revision.";
+                ? "This saved route requires review. Save it only after its order matches the sculpture."
+                : "This is the saved authored route. Edit it, then save a new route revision.";
       routeEditorNote.textContent = sourceLabel;
-      copyDraftRouteButton.hidden = !isDraftSuggestion;
-      copyDraftRouteButton.disabled = !isDraftSuggestion;
-      confirmWiringRouteButton.disabled = !validation.valid;
+      routeActionButton.hidden = false;
+      routeActionButton.textContent = isDraftSuggestion
+        ? "Edit suggested route"
+        : "Save route";
+      routeActionButton.disabled = !isDraftSuggestion && !validation.valid;
       routeEditorStatus.classList.toggle("route-editor-status--error", !validation.valid);
       routeEditorStatus.textContent = validation.valid
-        ? `Route is complete. Confirm to save revision ${(editorDefinition.wiring.routeRevision ?? 0) + 1}.`
+        ? isDraftSuggestion
+          ? "Review the suggestion, then choose Edit suggested route."
+          : `Route is complete. Save route revision ${(editorDefinition.wiring.routeRevision ?? 0) + 1}.`
         : validation.errors[0]!;
 
       const nodeById = new Map(wiringPreview.nodes.map((node) => [node.panelId, node]));
@@ -784,6 +743,14 @@ async function start(): Promise<void> {
           const item = document.createElement("li");
           item.className = "route-panel";
           item.dataset.panelId = panelId;
+          item.dataset.outputIndex = String(output.outputIndex);
+          item.draggable = !isDraftSuggestion;
+          item.tabIndex = 0;
+          item.setAttribute("aria-label", `Select panel ${panelId}; drag to reorder`);
+          item.classList.toggle(
+            "route-panel--selected",
+            selectedEditorPanelId === panelId,
+          );
           const node = nodeById.get(panelId);
           const previousPanelId = output.panelIds[chainPosition - 1] ?? null;
           const nextPanelId = output.panelIds[chainPosition + 1] ?? null;
@@ -796,41 +763,10 @@ async function start(): Promise<void> {
           const dout = node?.doutCorner ?? "DOUT";
           direction.textContent = `${previousPanelId ? `${previousPanelId} DOUT` : "Controller"} → ${panelId} DIN ${din}; ${panelId} DOUT ${dout} → ${nextPanelId ? `${nextPanelId} DIN` : "output end"}.`;
           detail.append(heading, direction);
-          const selectPanel = document.createElement("button");
-          selectPanel.type = "button";
-          selectPanel.textContent = "Select";
-          selectPanel.setAttribute("aria-label", `Select panel ${panelId}`);
-          selectPanel.addEventListener("click", () => {
-            renderer?.selectEditorPanel(panelId);
-          });
-          const up = document.createElement("button");
-          up.type = "button";
-          up.textContent = "Up";
-          up.setAttribute(
-            "aria-label",
-            `Move ${panelId} up in ${output.label}`,
-          );
-          up.disabled = isDraftSuggestion || chainPosition === 0;
-          up.addEventListener("click", () => {
-            routeEditorModel = moveRoutePanelWithinOutput(
-              model, output.outputIndex, panelId, -1,
-            );
-            renderRouteEditor();
-          });
-          const down = document.createElement("button");
-          down.type = "button";
-          down.textContent = "Down";
-          down.setAttribute(
-            "aria-label",
-            `Move ${panelId} down in ${output.label}`,
-          );
-          down.disabled = isDraftSuggestion || chainPosition === output.panelIds.length - 1;
-          down.addEventListener("click", () => {
-            routeEditorModel = moveRoutePanelWithinOutput(
-              model, output.outputIndex, panelId, 1,
-            );
-            renderRouteEditor();
-          });
+          const dragHandle = document.createElement("span");
+          dragHandle.className = "route-panel__drag";
+          dragHandle.textContent = isDraftSuggestion ? "Locked" : "Drag";
+          dragHandle.setAttribute("aria-hidden", "true");
           const assignment = document.createElement("label");
           assignment.className = "route-panel__assignment";
           assignment.textContent = "Output ";
@@ -849,9 +785,81 @@ async function start(): Promise<void> {
             );
             renderRouteEditor();
           });
+          outputSelect.addEventListener("click", (event) => event.stopPropagation());
           assignment.append(outputSelect);
-          item.append(detail, selectPanel, up, down, assignment);
+          item.addEventListener("click", () => {
+            renderer?.selectEditorPanel(panelId);
+          });
+          item.addEventListener("keydown", (event) => {
+            if (event.target !== item) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              renderer?.selectEditorPanel(panelId);
+              return;
+            }
+            if (
+              !isDraftSuggestion && event.altKey &&
+              (event.key === "ArrowUp" || event.key === "ArrowDown")
+            ) {
+              event.preventDefault();
+              const destinationIndex = chainPosition +
+                (event.key === "ArrowUp" ? -1 : 2);
+              routeEditorModel = moveRoutePanelToPosition(
+                model,
+                panelId,
+                output.outputIndex,
+                destinationIndex,
+              );
+              renderRouteEditor();
+            }
+          });
+          item.addEventListener("dragstart", (event) => {
+            if (isDraftSuggestion || !event.dataTransfer) {
+              event.preventDefault();
+              return;
+            }
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", panelId);
+            item.classList.add("route-panel--dragging");
+          });
+          item.addEventListener("dragend", () => {
+            item.classList.remove("route-panel--dragging");
+          });
+          item.addEventListener("dragover", (event) => {
+            if (!isDraftSuggestion) event.preventDefault();
+          });
+          item.addEventListener("drop", (event) => {
+            if (isDraftSuggestion) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const draggedPanelId = event.dataTransfer?.getData("text/plain");
+            if (!draggedPanelId) return;
+            routeEditorModel = moveRoutePanelToPosition(
+              model,
+              draggedPanelId,
+              output.outputIndex,
+              chainPosition,
+            );
+            renderRouteEditor();
+          });
+          item.append(dragHandle, detail, assignment);
           list.append(item);
+        });
+        list.addEventListener("dragover", (event) => {
+          if (!isDraftSuggestion) event.preventDefault();
+        });
+        list.addEventListener("drop", (event) => {
+          if (isDraftSuggestion || event.target !== list) return;
+          event.preventDefault();
+          const panelId = event.dataTransfer?.getData("text/plain");
+          if (!panelId) return;
+          routeEditorModel = moveRoutePanelToPosition(
+            model,
+            panelId,
+            output.outputIndex,
+            output.panelIds.length,
+          );
+          renderRouteEditor();
         });
         fieldset.append(list);
         return fieldset;
@@ -907,12 +915,6 @@ async function start(): Promise<void> {
       panelCountDisplay.textContent = isPanelized
         ? String(mapping.panels.length)
         : "—";
-      mappingTag.textContent = isPanelized
-        ? mapping.panels.length +
-          "-PANEL " +
-          mapping.id.toUpperCase() +
-          " PREVIEW"
-        : "PROVISIONAL UNIFORM FALLBACK";
       const mechanicalNote = editorDefinition.manualMechanics
         ? editorDefinition.manualMechanics.compatibilityStatus === "requires-review"
           ? "Mapping and wiring use the edited authoritative poses. Manually authored printable mechanics require review and cannot be presented as verified."
@@ -924,7 +926,7 @@ async function start(): Promise<void> {
         : verifiedGeneratedMechanics
           ? `Mapping and wiring use authoritative poses. Three.js and downloads use the same SHA-256-verified STL bytes (${verifiedGeneratedMechanics.parts.length} parts).`
         : editorDefinition.boundaryTopology
-          ? "Mapping and wiring use authoritative poses. Generate 3D Parts validates the accepted gap cycles before creating printable material."
+          ? "Mapping and wiring use authoritative poses. Build assembly package validates the accepted gap cycles before creating printable material."
         : !editorDefinition.mechanicalShell
           ? "Mapping and wiring use authoritative poses. No printable mechanics exist yet; the complete pose-first interface remains available."
         : "Custom LED counts use the panel-free Fibonacci fallback.";
@@ -946,11 +948,8 @@ async function start(): Promise<void> {
           (mechanicalShellIsCurrent() &&
             (mapping.printableClosures?.length ?? 0) > 0));
       printableLayerToggle.disabled = !hasPrintableClosures;
-      shellTransparencyInput.disabled = !isPanelized;
       connectorLayerToggle.disabled = !isPanelized;
       wiringLayerToggle.disabled = !isPanelized;
-      downloadPrintPartsButton.disabled =
-        verifiedGeneratedMechanics === undefined;
       wiringLayerControls.classList.toggle(
         "layer-controls--disabled",
         !isPanelized,
@@ -977,7 +976,6 @@ async function start(): Promise<void> {
       const revision = ++generatedAssetLoadRevision;
       verifiedGeneratedMechanics = undefined;
       renderer?.setExactGeneratedMechanics(null);
-      downloadPrintPartsButton.disabled = true;
       const state = getGeneratedMechanicsState(
         selected.definition,
         selected.project.panelProfile,
@@ -1045,10 +1043,12 @@ async function start(): Promise<void> {
         : [];
       addPanelFaceSelect.replaceChildren(
         ...(options.length > 0
-          ? options
+          ? [new Option("Choose a closure face…", "", true, true), ...options]
           : [new Option("No closure faces available", "")]),
       );
-      addPanelButton.disabled = options.length === 0;
+      addPanelControls.hidden = options.length === 0;
+      addPanelButton.hidden = true;
+      addPanelButton.disabled = true;
     };
 
     const applyLoadedSculpture = (
@@ -1057,7 +1057,7 @@ async function start(): Promise<void> {
     ): Promise<void> => {
       loadedSculpture = selected;
       selectedHardwareContract = selected.contract;
-      hardwareContract = selected.contract;
+      hardwareContract = selectedHardwareContract;
       mapping = selected.contract.mapping;
       wiringPreview = selected.contract.wiring;
       if (!preserveEditorDefinition) {
@@ -1121,7 +1121,7 @@ async function start(): Promise<void> {
         " mm, watertight.";
       selectedPanelStatus.textContent = editorDefinition.manualMechanics
         ? "Click a panel to move it across the referenced GLB, rotate around local Z, or delete it. New manual panels require explicit face metadata and are not added by canvas clicks."
-        : "Click a panel for its local-XY/local-Z gizmo. Drag empty space to orbit; click the " + attachmentSurface + " mesh to add a panel.";
+        : "";
     };
 
     const showMechanicalShellSurface = (message?: string): void => {
@@ -1215,6 +1215,13 @@ async function start(): Promise<void> {
 
     renderer?.setSurfaceEditorCallbacks({
       onSelectionChange: (panelId) => {
+        selectedEditorPanelId = panelId;
+        for (const row of routeEditor.querySelectorAll<HTMLElement>(".route-panel")) {
+          row.classList.toggle(
+            "route-panel--selected",
+            row.dataset.panelId === panelId,
+          );
+        }
         const capabilities = deriveEditorCapabilities(
           editorDefinition, activePlacementSurface !== undefined, pipelineAvailable,
         );
@@ -1232,9 +1239,7 @@ async function start(): Promise<void> {
           selectedPanelStatus.textContent =
             "Selected " + panelId + ". Available: " + actions.join(", ") + ".";
         } else {
-          selectedPanelStatus.textContent = capabilities.canCreateOnActiveSurface
-            ? "Click a panel for its gizmo, or click the active surface to add a panel."
-            : "Click a panel to edit its authoritative JSON pose or delete it.";
+          selectedPanelStatus.textContent = "";
         }
       },
       onPlacementCommit: (placement) => {
@@ -1390,12 +1395,6 @@ async function start(): Promise<void> {
       intensityValue.value = intensityInput.value;
       engine.setIntensity(Number(intensityInput.value));
     });
-    primaryColor.addEventListener("input", () =>
-      engine.setPrimaryColor(primaryColor.value),
-    );
-    secondaryColor.addEventListener("input", () =>
-      engine.setSecondaryColor(secondaryColor.value),
-    );
     displayMode.addEventListener("change", () => {
       currentDisplayMode = displayMode.value as DisplayMode;
     });
@@ -1407,12 +1406,6 @@ async function start(): Promise<void> {
         mapping.topology === "panelized-sculpture" && panelLabelsToggle.checked,
       );
     });
-    shellTransparencyInput.addEventListener("input", () => {
-      shellTransparencyValue.value = shellTransparencyInput.value + "%";
-      renderer?.setShellTransparency(
-        Number(shellTransparencyInput.value) / 100,
-      );
-    });
     printableLayerToggle.addEventListener("change", () => {
       renderer?.setPrintableLayerVisible(printableLayerToggle.checked);
     });
@@ -1422,16 +1415,18 @@ async function start(): Promise<void> {
     wiringLayerToggle.addEventListener("change", () => {
       renderer?.setWiringLayerVisible(wiringLayerToggle.checked);
     });
-    copyDraftRouteButton.addEventListener("click", () => {
-      if (!routeEditorModel) return;
-      routeEditorModel = copyDraftSuggestionToRouteEditor(routeEditorModel);
-      renderRouteEditor();
-    });
-    confirmWiringRouteButton.addEventListener("click", () => {
+    routeActionButton.addEventListener("click", () => {
       void (async () => {
         try {
           if (!routeEditorModel) {
             throw new Error("A panelized wiring route is unavailable.");
+          }
+          if (!routeEditorModel.copiedDraftSuggestion) {
+            routeEditorModel = copyDraftSuggestionToRouteEditor(routeEditorModel);
+            renderRouteEditor();
+            routeEditorStatus.textContent =
+              "Route editing is active. Drag rows into order, then choose Save route.";
+            return;
           }
           const edited = confirmWiringRouteEditorModel(
             editorDefinition,
@@ -1445,7 +1440,7 @@ async function start(): Promise<void> {
           await applyLoadedSculpture(createLoadedSculpture(project));
           pipelineStatus.classList.remove("pipeline-status--error");
           pipelineStatus.textContent =
-            `Confirmed wiring route revision ${edited.wiring.routeRevision}. Save the JSON to keep this authored route.`;
+            `Saved wiring route revision ${edited.wiring.routeRevision}. Save the project ZIP to keep it.`;
           viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -1489,6 +1484,7 @@ async function start(): Promise<void> {
     };
     sculptureSelect.addEventListener("change", () => {
       if (!sculptureSelect.value) {
+        advancedTools.open = true;
         sculptureJsonInput.focus();
         return;
       }
@@ -1501,32 +1497,35 @@ async function start(): Promise<void> {
     sculptureJsonInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") void loadSelectedSculpture();
     });
-    loadSculptureFileButton.addEventListener("click", () => {
-      sculptureFileInput.click();
+    applyCountButton.addEventListener("click", () => {
+      const requested = Number(ledCountInput.value);
+      if (!Number.isInteger(requested) || requested < 64 || requested > 200000) {
+        ledCountInput.setCustomValidity("Choose an integer from 64 to 200,000.");
+        ledCountInput.reportValidity();
+        return;
+      }
+      ledCountInput.setCustomValidity("");
+      engine.resize(requested);
+      if (requested === selectedHardwareContract.mapping.entries.length) {
+        hardwareContract = selectedHardwareContract;
+        mapping = hardwareContract.mapping;
+        wiringPreview = hardwareContract.wiring;
+      } else {
+        mapping = createUniformSphereMapping(requested);
+        wiringPreview = createProvisionalWiringPreview(mapping);
+      }
+      renderer?.setMapping(mapping);
+      renderer?.setWiringPreview(wiringPreview);
+      routeEditorModel = createWiringRouteEditorModel(
+        editorDefinition,
+        wiringPreview,
+      );
+      renderOutputLayerControls();
+      renderRouteEditor();
+      resetTimeline();
+      ledCountDisplay.textContent = requested.toLocaleString();
+      updateMappingStatus();
     });
-    sculptureFileInput.addEventListener("change", () => {
-      const file = sculptureFileInput.files?.[0];
-      if (!file) return;
-      void (async () => {
-        try {
-          const selected = await loadLocalSculpture(file);
-          replacePortableBundle();
-          await applyLoadedSculpture(selected);
-          await loadReferencedDesignSurface();
-          sculptureSelect.value = "";
-          sculptureJsonInput.value = file.name;
-          pipelineStatus.textContent = `Loaded ${file.name}.`;
-          viewerError.hidden = true;
-        } catch (error) {
-          viewerError.hidden = false;
-          viewerError.textContent =
-            error instanceof Error ? error.message : String(error);
-        } finally {
-          sculptureFileInput.value = "";
-        }
-      })();
-    });
-
     const applyPortableBundle = async (
       bundle: PortableProjectBundle,
       label: string,
@@ -1551,14 +1550,50 @@ async function start(): Promise<void> {
       viewerError.textContent = message;
     };
 
-    loadProjectFolderButton.addEventListener("click", () => {
+    openProjectFileButton.addEventListener("click", () => {
+      projectFileInput.click();
+    });
+    projectFileInput.addEventListener("change", () => {
+      const file = projectFileInput.files?.[0];
+      if (!file) return;
+      void (async () => {
+        openProjectFileButton.disabled = true;
+        try {
+          if (file.name.toLowerCase().endsWith(".zip")) {
+            const bundle = await openPortableProjectZip(
+              new Uint8Array(await file.arrayBuffer()),
+              file.name,
+              loadStagedPanelProfile,
+            );
+            await applyPortableBundle(bundle, file.name);
+          } else {
+            const selected = await loadLocalSculpture(file);
+            replacePortableBundle();
+            await applyLoadedSculpture(selected);
+            await loadReferencedDesignSurface();
+            sculptureSelect.value = "";
+            sculptureJsonInput.value = file.name;
+            pipelineStatus.classList.remove("pipeline-status--error");
+            pipelineStatus.textContent = `Loaded ${file.name}.`;
+            viewerError.hidden = true;
+          }
+        } catch (error) {
+          reportPortableError(error);
+        } finally {
+          projectFileInput.value = "";
+          openProjectFileButton.disabled = false;
+        }
+      })();
+    });
+
+    openProjectFolderButton.addEventListener("click", () => {
       projectFolderInput.click();
     });
     projectFolderInput.addEventListener("change", () => {
       const files = [...(projectFolderInput.files ?? [])];
       if (files.length === 0) return;
       void (async () => {
-        loadProjectFolderButton.disabled = true;
+        openProjectFolderButton.disabled = true;
         try {
           const entries: PortableProjectFile[] = await Promise.all(
             files.map(async (file) => ({
@@ -1578,36 +1613,12 @@ async function start(): Promise<void> {
           reportPortableError(error);
         } finally {
           projectFolderInput.value = "";
-          loadProjectFolderButton.disabled = false;
+          openProjectFolderButton.disabled = false;
         }
       })();
     });
 
-    loadProjectZipButton.addEventListener("click", () => {
-      projectZipInput.click();
-    });
-    projectZipInput.addEventListener("change", () => {
-      const file = projectZipInput.files?.[0];
-      if (!file) return;
-      void (async () => {
-        loadProjectZipButton.disabled = true;
-        try {
-          const bundle = await openPortableProjectZip(
-            new Uint8Array(await file.arrayBuffer()),
-            file.name,
-            loadStagedPanelProfile,
-          );
-          await applyPortableBundle(bundle, file.name);
-        } catch (error) {
-          reportPortableError(error);
-        } finally {
-          projectZipInput.value = "";
-          loadProjectZipButton.disabled = false;
-        }
-      })();
-    });
-
-    exportProjectZipButton.addEventListener("click", () => {
+    saveProjectButton.addEventListener("click", () => {
       try {
         const folderName = portableProjectFolderName(editorDefinition);
         const bytes = createPortableProjectZip(
@@ -1785,13 +1796,18 @@ async function start(): Promise<void> {
         );
         applyLoadedSculpture(createLoadedSculpture(project));
         pipelineStatus.textContent =
-          `Added ${edited.panels.at(-1)!.id} to ${faceId}. Save the JSON or generate the 3D print elements.`;
+          `Added ${edited.panels.at(-1)!.id} to ${faceId}. Save the project ZIP or build the assembly package.`;
         viewerError.hidden = true;
       } catch (error) {
         viewerError.hidden = false;
         viewerError.textContent =
           error instanceof Error ? error.message : String(error);
       }
+    });
+    addPanelFaceSelect.addEventListener("change", () => {
+      const hasEligibleSelection = addPanelFaceSelect.value !== "";
+      addPanelButton.hidden = !hasEligibleSelection;
+      addPanelButton.disabled = !hasEligibleSelection;
     });
     const downloadJson = (filename: string, value: unknown): void => {
       const blob = new Blob([JSON.stringify(value, null, 2) + "\n"], {
@@ -1805,44 +1821,40 @@ async function start(): Promise<void> {
       URL.revokeObjectURL(objectUrl);
     };
 
-    openWiringManualButton.addEventListener("click", () => {
+    const createCurrentAssemblyManualDocument = (): string => {
       const model = createWiringAssemblyManualModel(
         editorDefinition,
         hardwareContract,
         editorProject.panelProfile,
         editorProject.source,
       );
-      const token = createManualHandshakeToken();
-      const manualUrl = new URL("./wiring-manual.html", window.location.href);
-      manualUrl.searchParams.set("fromEditor", token);
-      let manualWindow: Window | null = null;
-      const receiveReady = (event: MessageEvent<unknown>): void => {
-        if (
-          event.origin !== window.location.origin ||
-          event.source !== manualWindow ||
-          typeof event.data !== "object" ||
-          event.data === null ||
-          !("type" in event.data) ||
-          event.data.type !== "wiring-manual-ready" ||
-          !("token" in event.data) ||
-          event.data.token !== token
-        ) return;
-        window.removeEventListener("message", receiveReady);
-        window.clearTimeout(handshakeTimeout);
-        manualWindow?.postMessage(
-          { type: "wiring-manual-model", token, model },
-          window.location.origin,
-        );
-      };
-      window.addEventListener("message", receiveReady);
-      const handshakeTimeout = window.setTimeout(() => {
-        window.removeEventListener("message", receiveReady);
-      }, 15_000);
-      manualWindow = window.open(manualUrl.href, "_blank");
-      if (!manualWindow) {
-        window.removeEventListener("message", receiveReady);
-        window.clearTimeout(handshakeTimeout);
-        throw new Error("The browser blocked the wiring manual window.");
+      return renderStandaloneWiringAssemblyManualDocument(
+        model,
+        wiringManualStyles,
+      );
+    };
+
+    openWiringManualButton.addEventListener("click", () => {
+      try {
+        const html = createCurrentAssemblyManualDocument();
+        const objectUrl = URL.createObjectURL(new Blob([html], {
+          type: "text/html;charset=utf-8",
+        }));
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download =
+          `${portableProjectFolderName(editorDefinition)}-assembly-manual.html`;
+        link.click();
+        URL.revokeObjectURL(objectUrl);
+        pipelineStatus.classList.remove("pipeline-status--error");
+        pipelineStatus.textContent = `Downloaded ${link.download}.`;
+        viewerError.hidden = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = message;
+        viewerError.hidden = false;
+        viewerError.textContent = message;
       }
     });
 
@@ -1858,17 +1870,7 @@ async function start(): Promise<void> {
         );
         downloadJson(
           `${baseName}.${wiringPreview.status}-wiring.json`,
-          {
-            schemaVersion: "1.0.0",
-            sculptureId: editorDefinition.id,
-            status: wiringPreview.status,
-            routeSource: wiringPreview.routeSource,
-            savedOutputPanelIds: wiringPreview.savedOutputPanelIds,
-            fingerprint: hardwareContract.fingerprint,
-            outputs: hardwareContract.outputs,
-            wiring: wiringPreview,
-            readiness: hardwareContract.readiness,
-          },
+          createWiringReview(editorDefinition, hardwareContract, wiringPreview),
         );
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent =
@@ -1883,32 +1885,41 @@ async function start(): Promise<void> {
       }
     });
 
-    downloadPrintPartsButton.addEventListener("click", () => {
-      if (!verifiedGeneratedMechanics) return;
-      const assets = [
-        verifiedGeneratedMechanics.boundary,
-        ...verifiedGeneratedMechanics.parts,
-      ];
-      for (const asset of assets) {
-        const blob = new Blob([Uint8Array.from(asset.bytes)], {
-          type: "model/stl",
-        });
-        const objectUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = asset.source.split("/").at(-1) ?? `${asset.id}.stl`;
-        link.click();
-        URL.revokeObjectURL(objectUrl);
+    const downloadAssemblyPackage = (): void => {
+      if (!verifiedGeneratedMechanics) {
+        throw new Error("Build the assembly package before downloading it.");
       }
+      const zipBytes = createAssemblyPackageZip(
+        editorDefinition,
+        availableProjectAssets,
+        {
+          assemblyManualHtml: createCurrentAssemblyManualDocument(),
+          ledmap: hardwareContract.ledmap,
+          wiringReview: createWiringReview(
+            editorDefinition,
+            hardwareContract,
+            wiringPreview,
+          ),
+        },
+      );
+      const objectUrl = URL.createObjectURL(new Blob(
+        [Uint8Array.from(zipBytes)],
+        { type: "application/zip" },
+      ));
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download =
+        `${portableProjectFolderName(editorDefinition)}-assembly-package.zip`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
       pipelineStatus.classList.remove("pipeline-status--error");
       pipelineStatus.textContent =
-        `Downloaded ${assets.length} SHA-256-verified STL files from the exact bytes displayed in Three.js.`;
+        `Downloaded ${link.download} with the project, verified geometry, assembly manual, ledmap, and wiring review.`;
       viewerError.hidden = true;
-    });
+    };
 
-    generatePrintPartsButton.addEventListener("click", () => {
-      void (async () => {
-        generatePrintPartsButton.disabled = true;
+    const buildAssemblyPackage = async (): Promise<void> => {
+        assemblyPackageButton.disabled = true;
         addPanelButton.disabled = true;
         pipelineStatus.classList.remove("pipeline-status--error");
         pipelineStatus.textContent = editorDefinition.boundaryTopology
@@ -1945,13 +1956,10 @@ async function start(): Promise<void> {
               file.source.startsWith("mechanics/parts/")
             ).length;
             pipelineStatus.textContent =
-              `Generated and SHA-256 verified ${partCount} exact printable STL files in the browser.`;
+              `Built and SHA-256 verified ${partCount} printable parts. The assembly package is ready to download.`;
             viewerError.hidden = true;
           } catch (inProcessError) {
-            const inProcessMessage = inProcessError instanceof Error
-              ? inProcessError.message
-              : String(inProcessError);
-            if (!/manifold|wasm|WebAssembly/i.test(inProcessMessage)) {
+            if (!shouldUseEditorPipelineFallback(inProcessError)) {
               throw inProcessError;
             }
             const response = await fetch("./api/editor-pipeline", {
@@ -1961,14 +1969,7 @@ async function start(): Promise<void> {
               availableProjectAssets,
             ),
           });
-          const result = (await response.json()) as {
-            ok?: boolean;
-            assetSculptureId?: string;
-            log?: string;
-            definition?: unknown;
-            projectSource?: string;
-            error?: string;
-          };
+          const result = await readEditorPipelineResult(response);
           if (!response.ok || !result.ok || !result.assetSculptureId || !result.definition) {
             throw new Error(
               result.error ?? `Pipeline failed with HTTP ${response.status}.`,
@@ -2013,53 +2014,26 @@ async function start(): Promise<void> {
           renderEditorFaces();
           updatePipelineAvailability();
         }
+    };
+
+    assemblyPackageButton.addEventListener("click", () => {
+      void (async () => {
+        try {
+          if (verifiedGeneratedMechanics) {
+            downloadAssemblyPackage();
+          } else {
+            await buildAssemblyPackage();
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          pipelineStatus.classList.add("pipeline-status--error");
+          pipelineStatus.textContent = message;
+          viewerError.hidden = false;
+          viewerError.textContent = message;
+          updatePipelineAvailability();
+        }
       })();
     });
-    restartButton.addEventListener("click", resetTimeline);
-
-    playButton.addEventListener("click", () => {
-      playing = !playing;
-      playIcon.textContent = playing ? "Ⅱ" : "▶";
-      playLabel.textContent = playing ? "Pause engine" : "Resume engine";
-      playButton.classList.toggle("play-button--paused", !playing);
-    });
-
-    applyCount.addEventListener("click", () => {
-      const requested = Number(ledCountInput.value);
-      if (
-        !Number.isInteger(requested) ||
-        requested < 64 ||
-        requested > 200000
-      ) {
-        ledCountInput.setCustomValidity(
-          "Choose an integer from 64 to 200,000.",
-        );
-        ledCountInput.reportValidity();
-        return;
-      }
-      ledCountInput.setCustomValidity("");
-      engine.resize(requested);
-      if (requested === selectedHardwareContract.mapping.entries.length) {
-        hardwareContract = selectedHardwareContract;
-        mapping = hardwareContract.mapping;
-        wiringPreview = hardwareContract.wiring;
-      } else {
-        mapping = createUniformSphereMapping(requested);
-        wiringPreview = createProvisionalWiringPreview(mapping);
-      }
-      renderer?.setMapping(mapping);
-      renderer?.setWiringPreview(wiringPreview);
-      routeEditorModel = createWiringRouteEditorModel(
-        editorDefinition,
-        wiringPreview,
-      );
-      renderOutputLayerControls();
-      renderRouteEditor();
-      resetTimeline();
-      ledCountDisplay.textContent = requested.toLocaleString();
-      updateMappingStatus();
-    });
-
     ledCountInput.value = String(mapping.entries.length);
     ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
     renderEditorFaces();
@@ -2082,10 +2056,8 @@ async function start(): Promise<void> {
     const animate = (now: number): void => {
       const delta = Math.min(now - previousTime, 100);
       previousTime = now;
-      if (playing) {
-        simulationTime += delta;
-        engine.tick(Math.floor(simulationTime));
-      }
+      simulationTime += delta;
+      engine.tick(Math.floor(simulationTime));
 
       renderer?.updateColors(engine.pixels, currentDisplayMode);
       renderer?.render();
@@ -2114,7 +2086,6 @@ async function start(): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     engineStatus.textContent = "Engine failed to load";
-    engineDot.classList.add("status-dot--error");
     viewerError.hidden = false;
     viewerError.textContent = message;
     console.error(error);

@@ -349,8 +349,162 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
-No tasks. The operator authorized integration of the completed Codex and Grok
-branches on 2026-08-21.
+### `UI-018` Unify project, route, and assembly-package workflow
+
+- Outcome: the primary operator path is Open project, edit panels/wiring, then
+  Build or Download one complete assembly package.
+- Acceptance:
+  - one compact Open project control handles JSON, folder, and ZIP input;
+    project ZIP is the primary Save action; raw JSON, folder export, custom URL,
+    and virtual LED count are under Advanced tools;
+  - one state-aware assembly button builds current mechanics when required and
+    otherwise downloads a ZIP containing `sculpture.json`, referenced GLB,
+    boundary/part STLs, `assembly-manual.html`, `ledmap.json`, and
+    `wiring-review.json` from the same in-memory contract;
+  - standalone manual and mapping downloads live in Export individual files;
+  - one route action changes from Edit suggested route to Save route; route rows
+    select their panel and use drag/drop ordering with no Select or Up/Down
+    buttons;
+  - Add panel appears only after an eligible closure face is selected; Delete
+    panel remains a contextual viewer action.
+- Depends on: `UI-017`, portable-project byte verification, route editor, and
+  in-browser Manifold generation.
+- Owner: `codex/ui018-unified-workflow` in `/tmp/led-rhombo-ui018`.
+- Likely conflicts: `web/src/main.ts`, `web/src/styles.css`, portable/package
+  export modules, route-editor code, browser tests, and operator docs.
+- Verification: independent re-review found no remaining findings; full unit
+  suite passed 297/297; JSON boundary tests passed 18/18; the HTML-fallback
+  Playwright regression passed 1/1; all prior UI/package browser journeys remain
+  passed; TypeScript, Vite build, and `git diff --check` passed. Every source in
+  the restarted LAN registry returned `application/json`.
+
+### `UI-017` Prevent HTML fallback responses from becoming JSON errors
+
+- Outcome: browser part generation reports the real in-process geometry error
+  and uses the optional local service only for an explicit Manifold runtime-load
+  failure.
+- Acceptance: geometry errors containing the word Manifold do not call the
+  local fallback; runtime-load failures can still use it; non-JSON, malformed,
+  or wrong-shaped fallback responses produce a clear bounded error instead of
+  `Unexpected token '<'`; existing generation works end to end.
+- Depends on: `UI-016` and the integrated in-browser Manifold path.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `src/cad/ManifoldRuntime.ts`, `web/src/main.ts`, and focused
+  runtime/response tests.
+- Verification: independent re-review found no remaining findings; focused
+  runtime, response-contract, and closure tests passed 11/11; browser generation
+  and ZIP reopen passed 1/1; full unit suite passed 291/291; TypeScript, Vite
+  build, and `git diff --check` passed.
+
+### `UI-016` Remove redundant simulator chrome and controls
+
+- Outcome: the simulator keeps its primary authoring, wiring, generation, and
+  display controls without transport controls, low-level engine fields, or
+  repeated implementation guidance.
+- Acceptance: animation runs continuously; play/restart, primary/secondary
+  colors, virtual LED count, and shell-transparency controls are removed with
+  their event code; the requested header, viewport, mapping, editor, geometry,
+  architecture, and footer text is not visible; hidden readiness hooks preserve
+  deterministic browser startup waits; panel selection status remains useful.
+- Depends on: current integrated browser interface through `UI-015`.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `web/src/main.ts`, `web/src/styles.css`, and browser tests.
+- Verification: independent review found no production defect; strengthened
+  continuous-animation browser check passed 1/1; complete authoring,
+  generation, ZIP reopen, and manual-download journeys passed 3/3; editor suite
+  passed 33/33; full unit suite passed 284/284; TypeScript, Vite build, and
+  `git diff --check` passed.
+
+### `UI-015` Export draft-suggestion assembly manuals end to end
+
+- Outcome: every current panelized wiring preview, including the automatic
+  draft suggestion, exports as a printable manual and is included in the STL
+  ZIP.
+- Acceptance: draft manuals show a prominent **DRAFT SUGGESTION** status, use
+  the current suggested panel order and assumed installed turns, label missing
+  GPIOs as unassigned, and do not claim route optimization or mapping readiness;
+  mapping-ready manuals remain unchanged; mirrored transforms still refuse
+  instructions that rotation alone cannot realize.
+- Depends on: `UI-014` and the current wiring-preview contract.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `web/src/WiringAssemblyManual.ts`, `web/src/main.ts`, their
+  tests, and wiring/manual documentation.
+- Verification: draft and mapping-ready manual tests 7/7; full draft browser
+  journey from direct manual download through part generation, STL ZIP download,
+  unzip, and manual-content inspection plus the flagship ready journey 2/2;
+  full unit suite 284/284 with loopback permission; TypeScript and web builds;
+  clean diff review.
+
+### `UI-014` Put the printable assembly manual in generated-part ZIPs
+
+- Outcome: assembly-manual export is a direct HTML download, and the generated
+  STL ZIP contains the same self-contained printable manual when the current
+  wiring contract can produce one.
+- Acceptance: no popup or handshake is required; the HTML contains its print
+  CSS and works when opened from disk; a mapping-ready parts ZIP contains
+  `assembly-manual.html`; a non-ready ZIP contains a plain-text blocker record
+  instead of a false manual; one click still produces one ZIP download.
+- Depends on: `UI-013` and the existing generic wiring-manual model.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `web/src/main.ts`, `web/src/WiringAssemblyManual.ts`,
+  `web/src/GeneratedMechanicsAssets.ts`, and their tests.
+- Verification: manual and ZIP unit tests 8/8; real Chromium direct-manual and
+  generated-parts ZIP journeys 2/2; full unit suite 283/283 with loopback
+  permission; TypeScript and web builds; clean diff review.
+- Follow-up: `UI-015` replaces the non-ready blocker record with the operator-
+  requested labelled draft manual.
+
+### `UI-013` Download generated STL parts as one ZIP
+
+- Outcome: one click downloads one ZIP that contains the verified boundary STL
+  and all verified printable-part STL files.
+- Acceptance: the ZIP preserves each generated asset's canonical relative
+  source path and exact bytes; its name is project-specific; the browser emits
+  one download instead of one download per STL; the button and success message
+  state this behavior; project ZIP export remains unchanged.
+- Depends on: `UI-012`, `CAD-037`, and integrated Manifold generation.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `web/src/main.ts`, `web/src/GeneratedMechanicsAssets.ts`,
+  generated-parts tests, and `docs/MECHANICS_WORKFLOW.md`.
+- Verification: deterministic ZIP tests 2/2; generated-parts pipeline tests
+  5/5; real Chromium generation/download/reopen journey 1/1; full unit suite
+  282/282; TypeScript and web builds; clean diff review.
+
+### `CAD-037` Accept bounded centroid-referenced cap warp
+
+- Outcome: the deterministic 30-panel rhombicosidodecahedron produces its 20
+  triangular and 12 pentagonal caps without treating boundary contact as PCB
+  interior overlap.
+- Acceptance: cap distance is measured from the polygon centroid; the named
+  limit is 0.10 mm; clipped PCB overlap must span 0.01 mm in both local axes;
+  the exact browser placement closes as one 62-face manifold and compiles all
+  Manifold STL parts; invalid non-planar and intersecting fixtures still fail.
+- Depends on: `UI-012` and integrated Manifold generation.
+- Owner: `codex/cad037-cap-coplanarity` in
+  `/tmp/led-rhombo-main-review`.
+- Likely conflicts: `src/sculpture/PanelOutlineBoundary.ts`,
+  `src/sculpture/PanelAssembly.ts`, their tests,
+  `docs/MECHANICS_WORKFLOW.md`, `FAILURES.md`.
+- Verification: focused boundary and pose-equivalence tests 23/23; full unit
+  suite 280/280; TypeScript and web builds; diff check; exact 32-part browser
+  Manifold generation from the live 30-panel placement; independent geometry
+  review with no blocking findings.
+
+### `UI-012` Keep browser Manifold status local on LAN review origins
+
+- Outcome: same-network browsers use in-process Manifold without calling the
+  deliberately loopback-only helper API; loopback discovery is unchanged.
+- Acceptance: non-loopback status makes zero API requests, all loopback host
+  forms keep helper discovery, and the live populated LAN project enables
+  **Generate 3D Parts**.
+- Depends on: integrated Manifold browser generation (`CAD-030`–`CAD-036`).
+- Owner: `codex/lan-manifold-status` in
+  `/tmp/led-rhombo-main-review`.
+- Likely conflicts: `web/src/GeneratorStatus.ts`,
+  `tests/generator-status.test.ts`, `docs/ARCHITECTURE.md`, `FAILURES.md`.
+- Verification: generator-status and capability tests 12/12, pipeline/server
+  security tests 15/15, TypeScript and web builds, live Chrome LAN proof, and
+  independent review pass.
 
 ## Done
 

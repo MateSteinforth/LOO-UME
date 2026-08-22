@@ -253,8 +253,11 @@ async function browserAudit(page: Page): Promise<BrowserAudit> {
 }
 
 async function chooseDirectory(page: Page, directory: string): Promise<void> {
+  await page.locator(".action-menu").first().evaluate((element) => {
+    (element as HTMLDetailsElement).open = true;
+  });
   const chooserPromise = page.waitForEvent("filechooser");
-  await page.locator("#load-project-folder").click();
+  await page.locator("#open-project-folder").click();
   const chooser = await chooserPromise;
   await chooser.setFiles(directory);
 }
@@ -264,8 +267,11 @@ async function chooseZip(
   name: string,
   buffer: Uint8Array,
 ): Promise<void> {
+  await page.locator(".action-menu").first().evaluate((element) => {
+    (element as HTMLDetailsElement).open = true;
+  });
   const chooserPromise = page.waitForEvent("filechooser");
-  await page.locator("#load-project-zip").click();
+  await page.locator("#open-project-file").click();
   const chooser = await chooserPromise;
   await chooser.setFiles({
     name,
@@ -303,7 +309,7 @@ function assetEntries(audit: BrowserAudit): UrlAuditEntry[] {
 test("round-trips portable folder and ZIP controls with exact browser assets", async ({
   page,
 }, testInfo) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
   page.on("console", (message) => {
@@ -335,8 +341,26 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   await expect(page.locator("#mapping-note")).toContainText(
     "same SHA-256-verified STL bytes (2 parts)",
   );
-  await expect(page.locator("#download-print-parts")).toBeEnabled();
+  await expect(page.locator("#assembly-package")).toHaveText(
+    "Download assembly package",
+  );
+  await expect(page.locator("#assembly-package")).toBeEnabled();
   await expect(page.locator("#printable-layer")).toBeEnabled();
+  const assemblyDownloadPromise = page.waitForEvent("download");
+  await page.locator("#assembly-package").click();
+  const assemblyFiles = relativeZipFiles(
+    await downloadBytes(await assemblyDownloadPromise),
+  );
+  expect([...assemblyFiles.keys()].sort()).toEqual([
+    "assembly-manual.html",
+    "design/tetrahedron.glb",
+    "ledmap.json",
+    "mechanics/boundary.stl",
+    "mechanics/parts/part-001.stl",
+    "mechanics/parts/part-002.stl",
+    "sculpture.json",
+    "wiring-review.json",
+  ]);
   await expect.poll(async () => {
     const entries = assetEntries(await browserAudit(page));
     return entries.filter(({ sha256 }) => sha256 !== undefined).length;
@@ -350,6 +374,9 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
     expect(folderAudit.revoked).not.toContain(url);
   }
 
+  await page.locator("#advanced-tools").evaluate((element) => {
+    (element as HTMLDetailsElement).open = true;
+  });
   await page.locator("#export-project-folder").click();
   await expect(page.locator("#pipeline-status")).toContainText(
     "Exported complete project folder panel-outline-prism-boundary-fixture",
@@ -372,7 +399,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   }
 
   const currentDownloadPromise = page.waitForEvent("download");
-  await page.locator("#export-project-zip").click();
+  await page.locator("#save-project").click();
   const currentDownload = await currentDownloadPromise;
   expect(currentDownload.suggestedFilename()).toBe(
     "panel-outline-prism-boundary-fixture.zip",
@@ -400,6 +427,12 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   );
 
   const fullEntries = unzipSync(currentZipBytes);
+  const pristineEntries = Object.fromEntries(
+    Object.entries(fullEntries).map(([path, bytes]) => [
+      path,
+      Uint8Array.from(bytes),
+    ]),
+  );
   const partPath = Object.keys(fullEntries).find((path) =>
     path.endsWith("/mechanics/parts/part-001.stl")
   );
@@ -433,7 +466,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
     expect(afterFailures.revoked).not.toContain(url);
   }
 
-  await chooseZip(page, "current-project.zip", currentZipBytes);
+  await chooseZip(page, "current-project.zip", zipSync(pristineEntries));
   await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded complete project current-project.zip with 4 verified assets",
   );
@@ -468,7 +501,9 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   await expect(page.locator("#mapping-note")).toContainText(
     "last generated STL set is stale and hidden",
   );
-  await expect(page.locator("#download-print-parts")).toBeDisabled();
+  await expect(page.locator("#assembly-package")).toHaveText(
+    "Build assembly package",
+  );
   await expect(page.locator("#printable-layer")).toBeDisabled();
   const staleEditAudit = await browserAudit(page);
   for (const { url } of reopenedAssets) {
@@ -476,13 +511,13 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   }
 
   const staleDownloadPromise = page.waitForEvent("download");
-  await page.locator("#export-project-zip").click();
+  await page.locator("#save-project").click();
   const staleZipBytes = await downloadBytes(await staleDownloadPromise);
   const afterStaleExportAudit = await browserAudit(page);
   const zipUrls = afterStaleExportAudit.created.filter(
     ({ type }) => type === "application/zip",
   );
-  expect(zipUrls).toHaveLength(2);
+  expect(zipUrls).toHaveLength(3);
   for (const { url } of zipUrls) {
     expect(afterStaleExportAudit.revoked).toContain(url);
   }

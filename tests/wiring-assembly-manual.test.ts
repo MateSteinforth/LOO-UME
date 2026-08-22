@@ -6,11 +6,29 @@ import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 import {
   createWiringAssemblyManualModel,
+  renderStandaloneWiringAssemblyManualDocument,
   renderWiringAssemblyManualHtml,
 } from "../web/src/WiringAssemblyManual.ts";
 
 async function fixture() {
   const source = "sculptures/rhombicosidodecahedron/sculpture.json";
+  const project = await loadPanelAssemblyProjectFromFile(source, process.cwd());
+  const mapping = createPanelAssemblyMapping(project);
+  const wiring = createProvisionalWiringPreview(
+    mapping,
+    project.sculpture,
+    project.panelProfile,
+  );
+  const contract = createHardwareMappingContract(
+    mapping,
+    wiring,
+    project.panelProfile,
+  );
+  return { source, project, contract };
+}
+
+async function draftFixture() {
+  const source = "sculptures/panel-outline-prism/sculpture.json";
   const project = await loadPanelAssemblyProjectFromFile(source, process.cwd());
   const mapping = createPanelAssemblyMapping(project);
   const wiring = createProvisionalWiringPreview(
@@ -39,6 +57,8 @@ describe("printable wiring assembly manual", () => {
     expect(model).toMatchObject({
       routeRevision: 1,
       wiringStatus: "authored",
+      routeSource: "authored-route",
+      mappingReady: true,
       mappingFingerprint: "bc5054d1",
       optimizationFingerprint: "2771611b3264c1da",
       totalPixels: 2_624,
@@ -87,26 +107,37 @@ describe("printable wiring assembly manual", () => {
     expect(new Set(panelIds).size).toBe(41);
   });
 
-  it("refuses non-ready and non-authored assembly instructions", async () => {
+  it("uses a draft suggestion, unassigned GPIO, and assumed turns", async () => {
+    const { source, project, contract } = await draftFixture();
+    const model = createWiringAssemblyManualModel(
+      project.sculpture,
+      contract,
+      project.panelProfile,
+      source,
+    );
+
+    expect(model).toMatchObject({
+      wiringStatus: "draft",
+      routeSource: "draft-suggestion",
+      mappingReady: false,
+      optimizationFingerprint: null,
+      totalPixels: 256,
+    });
+    expect(model.outputs).toHaveLength(1);
+    expect(model.outputs[0]!.gpio).toBeNull();
+    expect(model.outputs[0]!.panels).toHaveLength(4);
+    expect(model.outputs[0]!.panels[0]!.dataIn).toBe(
+      "Controller output (GPIO unassigned)",
+    );
+    const html = renderWiringAssemblyManualHtml(model);
+    expect(html).toContain("DRAFT SUGGESTION");
+    expect(html).toContain("GPIO unassigned");
+    expect(html).toContain("Not route-optimized; current assumed turns are shown");
+    expect(html).not.toContain("MAPPING READY");
+  });
+
+  it("refuses mirrored assembly instructions", async () => {
     const { source, project, contract } = await fixture();
-    expect(() => createWiringAssemblyManualModel(
-      project.sculpture,
-      {
-        ...contract,
-        readiness: { ...contract.readiness, mappingReady: false },
-      },
-      project.panelProfile,
-      source,
-    )).toThrow(/mapping-ready project/);
-    expect(() => createWiringAssemblyManualModel(
-      project.sculpture,
-      {
-        ...contract,
-        wiring: { ...contract.wiring, routeSource: "temporary-draft-suggestion" },
-      },
-      project.panelProfile,
-      source,
-    )).toThrow(/saved authored route/);
     const mirroredContract = structuredClone(contract);
     mirroredContract.mapping.panels[0]!.installedAddressTransform.mirrored = true;
     expect(() => createWiringAssemblyManualModel(
@@ -189,5 +220,25 @@ describe("printable wiring assembly manual", () => {
     expect(css).toContain("@page { size: A4 landscape");
     expect(css).toContain("break-inside: avoid");
     expect(css).toContain(".no-print { display: none");
+  });
+
+  it("renders a self-contained printable HTML document for direct download", async () => {
+    const { source, project, contract } = await fixture();
+    const model = createWiringAssemblyManualModel(
+      project.sculpture,
+      contract,
+      project.panelProfile,
+      source,
+    );
+    const css = readFileSync("web/src/wiring-manual.css", "utf8");
+    const document = renderStandaloneWiringAssemblyManualDocument(model, css);
+
+    expect(document).toMatch(/^<!doctype html>/);
+    expect(document).toContain("<style>:root {");
+    expect(document).toContain("@page { size: A4 landscape");
+    expect(document).toContain("Print / Save PDF");
+    expect(document).not.toContain("Back to simulator");
+    expect(document).toContain('window.print()');
+    expect(document).toContain("SQ-03");
   });
 });

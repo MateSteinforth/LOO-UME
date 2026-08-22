@@ -16,6 +16,7 @@ import {
   copyDraftSuggestionToRouteEditor,
   createWiringRouteEditorModel,
   moveRoutePanelToOutput,
+  moveRoutePanelToPosition,
   moveRoutePanelWithinOutput,
   validateWiringRouteEditorModel,
 } from "../web/src/WiringRouteEditor.ts";
@@ -32,7 +33,7 @@ function previewFor(definition: PanelAssemblyDefinition, source: string) {
 }
 
 describe("browser wiring route editor model", () => {
-  it("requires explicit draft copy, then persists an authored revision and exact order", async () => {
+  it("requires explicit draft editing, then persists an authored revision and exact order", async () => {
     const source = "sculptures/pose-only-two-panel/sculpture.json";
     const definition = await loadDefinition(source);
     const preview = previewFor(definition, source);
@@ -40,7 +41,7 @@ describe("browser wiring route editor model", () => {
     expect(model?.source).toBe("draft-suggestion");
     expect(validateWiringRouteEditorModel(definition, model)).toMatchObject({
       valid: false,
-      errors: ["Copy the draft suggestion before confirming an authored route."],
+      errors: ["Choose Edit suggested route before saving an authored route."],
     });
 
     const copied = copyDraftSuggestionToRouteEditor(model!);
@@ -181,6 +182,39 @@ describe("browser wiring route editor model", () => {
     expect(validateWiringRouteEditorModel(definition, tampered).errors).toContain(
       "Output 1 is missing or out of order.",
     );
+  });
+
+  it("moves panels to drag positions and rejects edits to an uncopied draft", async () => {
+    const draftSource = "sculptures/pose-only-two-panel/sculpture.json";
+    const draftDefinition = await loadDefinition(draftSource);
+    const draft = createWiringRouteEditorModel(
+      draftDefinition,
+      previewFor(draftDefinition, draftSource),
+    )!;
+    const draftPanelId = draft.outputs[0]!.panelIds[0]!;
+    expect(() => moveRoutePanelToPosition(draft, draftPanelId, 0, 2)).toThrow(
+      /Edit the suggested route/,
+    );
+
+    const source = "sculptures/rhombicosidodecahedron/sculpture.json";
+    const definition = await loadDefinition(source);
+    const editable = createWiringRouteEditorModel(
+      definition,
+      previewFor(definition, source),
+    )!;
+    const panelId = editable.outputs[0]!.panelIds[0]!;
+    const sameOutput = moveRoutePanelToPosition(editable, panelId, 0, 2);
+    expect(sameOutput.outputs[0]!.panelIds[1]).toBe(panelId);
+    const destination = sameOutput.outputs[1]!;
+    const movedAcross = moveRoutePanelToPosition(
+      sameOutput,
+      panelId,
+      destination.outputIndex,
+      0,
+    );
+    expect(movedAcross.outputs[1]!.panelIds[0]).toBe(panelId);
+    expect(movedAcross.outputs[0]!.panelIds).not.toContain(panelId);
+    expect(editable.outputs[0]!.panelIds[0]).toBe(panelId);
   });
 
   it("starts a stale requires-review route from its temporary suggestion", async () => {

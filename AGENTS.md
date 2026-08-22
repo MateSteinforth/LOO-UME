@@ -40,6 +40,10 @@ uses `createPanelAssemblyMapping()`.
   may constrain editing but must not silently replace a saved pose.
 - Mapping, wiring, and simulation must continue after a panel edit even when
   printable mechanics are stale or unavailable.
+- Keep the primary operator workflow state-aware and artifact-complete. Prefer
+  one action that changes from build to download over separate sequential
+  buttons, and keep raw/debug exports under Advanced when one self-contained
+  project or assembly package is the normal handoff.
 - Schema 2 mechanics are optional. Omitting `manualMechanics`,
   `mechanicalShell`, and `closures` is the implemented mechanics-free state:
   load GLB, place/edit panels, simulate, map, wire, save, and reload before any
@@ -69,6 +73,10 @@ uses `createPanelAssemblyMapping()`.
 - Use the saved route and generated mapping artifacts for staged physical
   assembly only when their fingerprints match the current project. A pose,
   route, panel-set, profile, or bus edit requires regeneration.
+- Printable assembly manuals may use the current automatic draft route when no
+  authored route exists. Such a manual must say **DRAFT SUGGESTION**, show
+  unknown GPIOs as unassigned, describe current non-optimized panel turns as
+  assumptions, and never claim mapping readiness.
 - Address parity requires the same authored route, panel addressing, WLED bus
   configuration, RGB order, GPIOs, and deployment identity. Optional device
   evidence is separate from mapping readiness.
@@ -165,6 +173,12 @@ uses `createPanelAssemblyMapping()`.
 - Browser and CI tests must not use ignored generated preview output as fixture
   input. Confirm static fixtures are tracked, or build derived fixtures from
   tracked authored sources under the test output directory.
+- Do not run `stage:sculptures` while a Vite preview is active. Stop the
+  preview before browser tests too, because their web server stages the same
+  files. Stage once after all checks, restart the preview, and verify every
+  registry source returns JSON. Replacing the public sculpture directory under
+  a live Vite process can leave HTTP 200 HTML history fallbacks cached for valid
+  JSON paths.
 
 - On the macOS GitHub runners, `lipo -verify_arch` returned a false failure for
   the qualified universal OpenSCAD DMG. Do not use that command as the native

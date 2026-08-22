@@ -67,6 +67,11 @@ async function chooseFile(
   buttonSelector: string,
   file: { name: string; mimeType: string; buffer: Buffer },
 ): Promise<void> {
+  if (buttonSelector === "#open-project-file") {
+    await page.locator(".action-menu").first().evaluate((element) => {
+      (element as HTMLDetailsElement).open = true;
+    });
+  }
   const chooserPromise = page.waitForEvent("filechooser");
   await page.locator(buttonSelector).click();
   const chooser = await chooserPromise;
@@ -80,6 +85,7 @@ async function readJsonDownload(download: Download): Promise<Record<string, unkn
 }
 
 test("authors and saves a mechanics-free GLB project through real controls", async ({ page }) => {
+  test.setTimeout(120_000);
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
   page.on("console", (message) => {
@@ -92,7 +98,8 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator("#viewer-error")).toBeHidden();
 
   const projectBytes = await readFile("sculptures/pose-only-two-panel/sculpture.json");
-  await chooseFile(page, "#load-sculpture-file", {
+  await page.locator(".action-menu").first().locator("summary").click();
+  await chooseFile(page, "#open-project-file", {
     name: "pose-only-two-panel.json",
     mimeType: "application/json",
     buffer: projectBytes,
@@ -101,6 +108,7 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
     "Loaded pose-only-two-panel.json.",
   );
   await expect(page.locator("#panel-count-display")).toHaveText("2");
+  await expect(page.locator("#add-panel-controls")).toBeHidden();
   await expect(page.locator("#mapping-status")).toContainText(
     "2 panels / 128 LEDs / 1 routes valid",
   );
@@ -159,11 +167,24 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator(".output-layer-toggle").first()).toBeEnabled();
   await page.locator("#wiring-layer").uncheck();
   await page.locator("#wiring-layer").check();
-  await page.locator("#play-toggle").click();
-  await expect(page.locator("#play-label")).toHaveText("Resume engine");
-  await page.locator("#play-toggle").click();
-  await expect(page.locator("#play-label")).toHaveText("Pause engine");
+  await expect(page.locator("#play-toggle, #restart")).toHaveCount(0);
+  await expect(page.locator(
+    "#primary-color, #secondary-color, #shell-transparency",
+  )).toHaveCount(0);
+  await expect(page.locator("#led-count")).toBeHidden();
+  await expect(page.locator("#apply-count")).toBeHidden();
+  await expect(page.locator(".viewer-overlay--top, .architecture-card, footer")).toHaveCount(0);
+  await expect(page.locator("#engine-status")).toBeHidden();
+  await expect(page.locator("#mapping-note")).toBeHidden();
+  const firstFrameTime = Number.parseInt(
+    await page.locator("#frame-time").innerText(),
+    10,
+  );
+  await expect
+    .poll(async () => Number.parseInt(await page.locator("#frame-time").innerText(), 10))
+    .toBeGreaterThan(firstFrameTime);
 
+  await page.locator("#advanced-tools > summary").click();
   const savedDownloadPromise = page.waitForEvent("download");
   await page.locator("#save-sculpture-file").click();
   const savedDownload = await savedDownloadPromise;
@@ -183,6 +204,22 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   expect(saved).not.toHaveProperty("manualMechanics");
   expect(saved).not.toHaveProperty("mechanicalShell");
   expect(saved).not.toHaveProperty("closures");
+
+  const closureProject = await readFile(
+    "sculptures/truncated-octahedron/sculpture.json",
+  );
+  await chooseFile(page, "#open-project-file", {
+    name: "truncated-octahedron.json",
+    mimeType: "application/json",
+    buffer: closureProject,
+  });
+  await expect(page.locator("#add-panel-controls")).toBeVisible();
+  await expect(page.locator("#add-panel")).toBeHidden();
+  const eligibleFace = await page.locator("#add-panel-face option").nth(1)
+    .getAttribute("value");
+  if (!eligibleFace) throw new Error("The fixture has no eligible closure face.");
+  await page.locator("#add-panel-face").selectOption(eligibleFace);
+  await expect(page.locator("#add-panel")).toBeVisible();
 
   await expect(page.locator(".pipeline-status--error")).toHaveCount(0);
   await expect(page.locator("#viewer-error")).toBeHidden();

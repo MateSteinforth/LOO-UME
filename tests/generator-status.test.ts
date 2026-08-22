@@ -11,6 +11,21 @@ const READY = {
 } as const;
 
 describe("local generator status discovery", () => {
+  it("uses in-browser Manifold without requesting the loopback API on LAN origins", async () => {
+    const fetchStatus = vi.fn();
+
+    await expect(loadGeneratorStatus(fetchStatus, "192.168.68.61"))
+      .resolves.toEqual({
+        schemaVersion: "1.0.0",
+        available: true,
+        generator: "manifold",
+        supportedVersion: "3.5.1",
+        detectedVersion: "3.5.1",
+        message: "Manifold 3.5.1 is ready for in-browser generation.",
+      });
+    expect(fetchStatus).not.toHaveBeenCalled();
+  });
+
   it("accepts a ready Manifold status", async () => {
     const fetchStatus = vi.fn(async () => Response.json(READY));
 
@@ -20,6 +35,17 @@ describe("local generator status discovery", () => {
       cache: "no-store",
     });
   });
+
+  it.each(["127.0.0.1", "::1", "[::1]"])(
+    "keeps helper discovery for loopback hostname %s",
+    async (hostname) => {
+      const fetchStatus = vi.fn(async () => Response.json(READY));
+
+      await expect(loadGeneratorStatus(fetchStatus, hostname))
+        .resolves.toEqual(READY);
+      expect(fetchStatus).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("accepts an unavailable status and keeps its repair message", async () => {
     const status = {
@@ -48,6 +74,21 @@ describe("local generator status discovery", () => {
     expect(result.available).toBe(false);
     expect(result.message).toContain("status response is invalid");
     expect(result.message).toContain("supportedVersion must be 3.5.1");
+  });
+
+  it("bounds an HTML history fallback without exposing parser text", async () => {
+    const result = await loadGeneratorStatus(async () =>
+      new Response("<!doctype html><title>WLED Orbital Lab</title>", {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      })
+    );
+
+    expect(result.available).toBe(false);
+    expect(result.message).toContain(
+      "Local generator status returned an HTML page",
+    );
+    expect(result.message).not.toContain("Unexpected token");
   });
 
   it("uses a safe unavailable status for a non-OK response", async () => {

@@ -25,10 +25,13 @@
     "web/src/WiringAssemblyManual.ts",
     "web/src/ManualHandshake.ts",
     "web/src/EditorCapabilities.ts",
+    "web/src/EditorPipelineResponse.ts",
+    "web/src/AssemblyPackage.ts",
     "web/src/DesignSurfaceLoader.ts",
     "web/src/EditorPipelineRequest.ts",
     "web/src/GeneratedMechanicsAssets.ts",
     "web/src/GeneratorStatus.ts",
+    "web/src/JsonResponse.ts",
     "web/src/PortableProject.ts",
     "web/src/SelectionFocus.ts",
     "web/src/SurfacePlacementController.ts"

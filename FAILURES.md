@@ -415,3 +415,140 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   a rejected import cannot appear to succeed against prior controls.
 - **Evidence:** `tests/browser/wiring-route-editor.spec.ts`.
 - **Status:** Resolved.
+
+### F-023 — LAN review requested a deliberately loopback-only helper API
+
+- **Date:** 2026-08-21
+- **Context:** Reviewing merged Manifold generation from another computer on
+  the same network.
+- **Symptom:** The browser logged HTTP 403 for `/api/generator-status`.
+- **Cause:** The helper API correctly accepts only loopback Host values, but the
+  browser requested it even though Manifold generation runs in-process.
+- **Correction:** Non-loopback browser origins report in-browser Manifold ready
+  without requesting the helper API. Loopback origins keep API discovery.
+- **Prevention:** Keep optional loopback helpers separate from capabilities
+  that are bundled into the browser. Do not weaken the helper Host or
+  same-origin guards for LAN preview convenience.
+- **Evidence:** `tests/generator-status.test.ts` and HTTP LAN review.
+- **Status:** Resolved.
+
+### F-024 — First-vertex cap distance rejected a valid deterministic gap
+
+- **Date:** 2026-08-21
+- **Context:** Live 30-panel rhombicosidodecahedron Manifold generation.
+- **Symptom:** `gap-1efef6988a7b` failed as 0.111107 mm non-planar against a
+  0.05 mm limit, then appeared to intersect PCB P-04.
+- **Cause:** Plane distance used the first cap vertex instead of the polygon
+  centroid, and any non-empty clipped polygon counted as PCB interior overlap,
+  including boundary-only numerical slivers.
+- **Correction:** Measure from the centroid-referenced polygon plane, use a
+  documented 0.10 mm coplanarity limit for the measured 0.061419 mm warp,
+  require a named 0.01 mm clipped span in both panel-local axes for real PCB
+  interior overlap, and use the centroid/Newell flat-cover frame only for
+  closure faces outside the legacy strict plane. Panel faces remain strict and
+  already-planar closure output remains byte-for-byte unchanged.
+- **Prevention:** Exercise closed-boundary generation, not topology detection
+  alone, on each flagship automatic placement. Keep invalid warped and
+  intersecting fixtures as rejection coverage.
+- **Evidence:** `tests/panel-outline-boundary.test.ts` and exact live-project
+  Manifold generation.
+- **Status:** Resolved.
+
+### F-025 — Manual export treated useful draft wiring as unavailable
+
+- **Date:** 2026-08-22
+- **Context:** Printable assembly-manual export for automatically generated
+  panel layouts.
+- **Symptom:** The manual control reported draft route, missing GPIO, and
+  non-optimized orientation blockers, and the STL ZIP contained no manual.
+- **Cause:** Mapping readiness was used as an export gate even though the
+  operator explicitly wanted the current automatic wiring suggestion as the
+  working assembly plan.
+- **Correction:** Export the current preview for all panelized projects. Label
+  non-ready output **DRAFT SUGGESTION**, show GPIO as unassigned, show current
+  turns as non-optimized assumptions, and include that HTML in the STL ZIP.
+- **Prevention:** Do not convert evidence quality into an availability gate
+  when a clearly labelled draft artifact remains useful and the operator has
+  authorized draft assumptions.
+- **Evidence:** Draft manual model tests and the browser manual-to-STL-ZIP E2E
+  journey.
+- **Status:** Resolved.
+
+### F-026 — The main interface exposed duplicate controls and internal status text
+
+- **Date:** 2026-08-22
+- **Context:** Operator review of the simulator before physical assembly.
+- **Symptom:** The interface mixed useful authoring actions with pause/restart,
+  fixed engine values, implementation provenance, repeated geometry guidance,
+  and long readiness text.
+- **Cause:** Development diagnostics and low-level tuning controls accumulated
+  in the primary operator interface after their values became project-derived
+  or stable defaults.
+- **Correction:** Keep WLED playback continuous, remove the duplicate controls
+  and explanatory chrome, and retain only hidden state hooks needed for stable
+  browser startup tests.
+- **Prevention:** Add an operator-facing control only when it changes a current
+  authored result or supports a necessary review action. Keep implementation
+  provenance and test synchronization state out of the visible workflow.
+- **Evidence:** `tests/browser/mechanics-free-authoring.spec.ts` asserts the
+  reduced interface and advancing engine timeline.
+- **Status:** Resolved.
+
+### F-027 — A geometry error entered the runtime fallback and parsed HTML as JSON
+
+- **Date:** 2026-08-22
+- **Context:** Browser boundary and printable-part generation on a LAN review
+  server.
+- **Symptom:** The console reported `Unexpected token '<'` because `<!doctype`
+  application HTML was passed to `Response.json()`.
+- **Cause:** A broad text match treated all errors containing `Manifold` as a
+  WASM-load failure. The optional local endpoint then returned the static app
+  fallback instead of a pipeline JSON response.
+- **Correction:** Use a dedicated `ManifoldRuntimeUnavailableError` for the
+  only condition that can enter the local fallback. Validate the response media
+  type, JSON syntax, and object shape before reading pipeline fields.
+- **Prevention:** Route fallback behavior by typed failure category, not a
+  product-name substring. Validate response contracts before parsing bodies.
+- **Evidence:** `tests/manifold-runtime.test.ts`,
+  `tests/editor-pipeline-response.test.ts`, and the real browser generation and
+  ZIP-reopen journey.
+- **Status:** Resolved.
+
+### F-028 — Separate project and fabrication controls produced a fragmented handoff
+
+- **Date:** 2026-08-22
+- **Context:** Operator preparation for physical panel and wiring assembly.
+- **Symptom:** JSON, folder, ZIP, STL, manual, ledmap, and wiring-review actions
+  appeared as separate primary buttons. The operator had to know which sequence
+  produced a complete current package.
+- **Cause:** Each subsystem added its own import or export control instead of
+  joining verified outputs at the project handoff boundary.
+- **Correction:** Use one Open project menu, ZIP-first Save, one Build/Download
+  assembly action, one Edit/Save route action, and one complete assembly ZIP.
+  Keep raw and individual files in compact secondary menus.
+- **Prevention:** When several files describe one physical build, export them
+  from one current in-memory contract and test exact package contents plus
+  reopen. Prefer stateful actions over separate prerequisite/result buttons.
+- **Evidence:** `tests/assembly-package.test.ts` and the Playwright generation,
+  portable-project, and wiring-route journeys.
+- **Status:** Resolved.
+
+### F-029 — Replacing staged files under a live Vite server cached HTML fallbacks
+
+- **Date:** 2026-08-22
+- **Context:** LAN review of the UI-018 project and assembly-package workflow.
+- **Symptom:** Startup logged `Unexpected token '<'` because a registry-listed
+  sculpture URL returned the application HTML page with HTTP 200.
+- **Cause:** The staging command replaced the public sculpture directory while
+  the existing Vite process stayed active. Playwright startup also runs this
+  staging command. The live server kept history fallbacks for the replaced JSON
+  paths.
+- **Correction:** Stop the preview before staging, then start it again. Read
+  staged JSON responses through a bounded parser that identifies an HTML
+  fallback and gives the operator a restart action.
+- **Prevention:** Stage assets before starting Vite. Stop the live preview
+  before browser tests or any staging command. Restart only after all checks,
+  then verify every registry source returns JSON.
+- **Evidence:** `tests/json-response.test.ts` and
+  `tests/browser/json-response.spec.ts`.
+- **Status:** Resolved.

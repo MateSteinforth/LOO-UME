@@ -6,20 +6,48 @@ export const MANIFOLD_VERSION = "3.5.1";
 export const MANIFOLD_LICENSE = "Apache-2.0";
 export const MANIFOLD_SOURCE = "https://github.com/elalish/manifold";
 
-let loaded: Promise<ManifoldToplevel> | undefined;
+export class ManifoldRuntimeUnavailableError extends Error {
+  constructor(cause: unknown) {
+    const detail = cause instanceof Error ? cause.message : String(cause);
+    super(`Manifold WASM could not be loaded: ${detail}`, {
+      cause: cause instanceof Error ? cause : undefined,
+    });
+    this.name = "ManifoldRuntimeUnavailableError";
+  }
+}
+
+export type ManifoldModuleFactory = () => Promise<ManifoldToplevel>;
+
+export function createManifoldRuntimeLoader(
+  moduleFactory: ManifoldModuleFactory,
+): () => Promise<ManifoldToplevel> {
+  let loaded: Promise<ManifoldToplevel> | undefined;
+  return () => {
+    if (!loaded) {
+      loaded = moduleFactory()
+        .then((wasm) => {
+          wasm.setup();
+          return wasm;
+        })
+        .catch((error: unknown) => {
+          loaded = undefined;
+          throw error instanceof ManifoldRuntimeUnavailableError
+            ? error
+            : new ManifoldRuntimeUnavailableError(error);
+        });
+    }
+    return loaded;
+  };
+}
+
+const loadPinnedManifoldRuntime = createManifoldRuntimeLoader(Module);
 
 /**
  * Loads the pinned Manifold WASM once per process. Callers must `delete()`
  * every constructed `Manifold` or `CrossSection`; the WASM heap is not GC'd.
  */
 export function loadManifoldRuntime(): Promise<ManifoldToplevel> {
-  if (!loaded) {
-    loaded = Module().then((wasm) => {
-      wasm.setup();
-      return wasm;
-    });
-  }
-  return loaded;
+  return loadPinnedManifoldRuntime();
 }
 
 export interface ManifoldGeneratorStatus {
@@ -50,7 +78,7 @@ export async function probeManifoldGeneratorStatus(): Promise<ManifoldGeneratorS
       generator: "manifold",
       supportedVersion: MANIFOLD_VERSION,
       message:
-        `Printable STL generation is unavailable because Manifold WASM could not be loaded: ${detail}`,
+        `Printable STL generation is unavailable because ${detail}`,
     };
   }
 }

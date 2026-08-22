@@ -26,14 +26,17 @@ The implemented generation and portable-project data flow is:
    It does not use the GLB or a JSON shell as geometry.
 4. Use simulation, mapping, wiring preview, save, and reload without generating
    any mechanics.
-5. Press **Generate 3D Parts**.
+5. Press **Build assembly package**.
 6. Detect and persist the ordered corner cycle around every unambiguous gap,
    then generate a closed boundary by filling those cycles.
 7. Validate the boundary, split it into printable parts, and add the proven PCB
    clearances, mounting details, and interior panel-ID labels. Each eligible
    hole still gets one unique tab; assignment prefers the hole nearest each
    edge middle. Recessed text matches the simulator hover label (`P-01`).
-8. Export the exact STL files and load those same STL files into Three.js.
+8. Press **Download assembly package**. The ZIP contains `sculpture.json`, the
+   GLB when present, the exact boundary and part STLs loaded into Three.js,
+   `assembly-manual.html`, `ledmap.json`, and `wiring-review.json`. A draft
+   preview is labelled **DRAFT SUGGESTION** and keeps unknown GPIOs explicit.
 9. Save relative asset references and hashes in the sculpture JSON.
 10. Reopen the project folder or ZIP and restore the GLB, panels, generated
     boundary, and exact printable parts.
@@ -41,6 +44,12 @@ The implemented generation and portable-project data flow is:
 Mechanics generation is optional. Failure or absence of mechanics must never
 disable panel editing, WLED simulation, LED mapping, provisional wiring, or
 project save/reload.
+
+The **Export individual files** menu writes the same self-contained manual HTML
+directly. Open the downloaded file in a browser, then use **Print / Save PDF**.
+The export uses the current automatic draft
+suggestion when no mapping-ready route exists; it does not silently promote
+that suggestion to an authored or mapping-ready route.
 
 ## Geometry assumption for the first generator
 
@@ -91,6 +100,13 @@ For each proposed cap, generation must reject:
 - edges that leave the combined panel-and-cap surface open or non-manifold; and
 - disconnected boundary components unless the project explicitly supports
   multiple bodies.
+
+Coplanarity uses a centroid-referenced polygon plane and a named 0.10 mm
+maximum vertex distance. This bounded allowance covers the deterministic
+0.061419 mm pentagon warp from 66 x 65 mm PCBs on the 66 mm
+rhombicosidodecahedron faces. PCB-envelope clipping requires at least 0.01 mm
+of span in both panel-local axes before it is an interior intersection; a
+boundary line or smaller numerical sliver remains permitted contact.
 
 The first supported class is a panel layout whose holes form valid planar
 N-gons. It is not arbitrary curved gap filling. Generation rejects other
@@ -160,7 +176,7 @@ server. It prints a loopback URL at `127.0.0.1`, using port 4173 unless
 Both local hosts use the same bounded handler for
 `/api/generator-status` and `/api/editor-pipeline`. The browser fetches status
 instead of inferring availability from its build mode. Unavailable Manifold
-disables **Generate 3D Parts**; editing, simulation, mapping, wiring, save, and
+disables **Build assembly package**; editing, simulation, mapping, wiring, save, and
 reopen continue.
 
 OpenSCAD remains separate and is needed only when the manual `parts/*.scad`
@@ -292,7 +308,7 @@ generation-relevant profile fact changes:
 - the generated-mechanics fingerprint no longer matches;
 - the parts are marked stale and are not presented as current printable output;
 - the UI may allow an explicitly labelled stale inspection mode; and
-- **Generate 3D Parts** creates a new boundary and replaces the referenced part
+- **Build assembly package** creates a new boundary and replaces the referenced part
   set only after the complete pipeline succeeds.
 
 A failed generation must not partially replace the last successful manifest or
