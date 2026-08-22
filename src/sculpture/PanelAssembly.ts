@@ -21,6 +21,15 @@ import {
   isLowercaseSha256,
   portableProjectAssetCollisionKey,
 } from "./GeneratedMechanics.ts";
+import {
+  generatedStructuralAssetReferences,
+  normalizeStructuralDesign,
+  validateGeneratedStructuralManifest,
+  validateStructuralDesign,
+  validateStructuralPanelReferences,
+  type GeneratedStructuralManifest,
+  type StructuralDesignDefinition,
+} from "./StructuralDesign.ts";
 export {
   createGeneratedMechanicsFingerprint,
   getGeneratedMechanicsState,
@@ -105,6 +114,10 @@ export interface PanelAssemblyDefinition {
   };
   boundaryTopology?: PanelBoundaryTopology;
   generatedMechanics?: GeneratedMechanicsManifest;
+  /** Optional structural inputs; all panel geometry still derives from poses/profile. */
+  structuralDesign?: StructuralDesignDefinition;
+  /** Derived structural assets. This is mutually exclusive with other CAD routes. */
+  generatedStructure?: GeneratedStructuralManifest;
   panels: Array<{
     id: string;
     faceType?: "square-face" | "pentagon-centre";
@@ -432,13 +445,20 @@ function validateUniqueProjectAssetSources(input: Record<string, unknown>): void
     sources.add(collisionKey);
   };
   add(input.designSurface, "Design surface");
-  if (!isRecord(input.generatedMechanics)) return;
-  add(input.generatedMechanics.boundary, "Generated boundary");
-  if (!Array.isArray(input.generatedMechanics.parts)) return;
-  for (const part of input.generatedMechanics.parts) {
-    add(part, isRecord(part) && typeof part.id === "string"
-      ? `Generated part ${part.id}`
-      : "Generated part");
+  if (isRecord(input.generatedMechanics)) {
+    add(input.generatedMechanics.boundary, "Generated boundary");
+    if (Array.isArray(input.generatedMechanics.parts)) {
+      for (const part of input.generatedMechanics.parts) {
+        add(part, isRecord(part) && typeof part.id === "string"
+          ? `Generated part ${part.id}`
+          : "Generated part");
+      }
+    }
+  }
+  for (const { reference, label } of generatedStructuralAssetReferences(
+    input.generatedStructure,
+  )) {
+    add(reference, label);
   }
 }
 
@@ -698,12 +718,22 @@ export function parsePanelAssemblyDefinition(
     assertProjectAssetReference(designSurface, "Design surface");
   }
   validateGeneratedMechanics(input.generatedMechanics);
+  validateStructuralDesign(input.structuralDesign);
+  validateGeneratedStructuralManifest(input.generatedStructure);
   validateUniqueProjectAssetSources(input);
   const manualMechanics = input.manualMechanics;
   const usesManualMechanics = manualMechanics !== undefined;
   const hasMechanicalShell = input.mechanicalShell !== undefined;
   const hasClosures = input.closures !== undefined;
   const usesGeneratedMechanics = hasMechanicalShell && hasClosures;
+  if (
+    input.generatedStructure !== undefined &&
+    (input.generatedMechanics !== undefined || usesManualMechanics || hasMechanicalShell || hasClosures)
+  ) {
+    throw new Error(
+      "Generated structural assets cannot be combined with planar or manually authored mechanics.",
+    );
+  }
   if (
     usesManualMechanics &&
     (!isRecord(manualMechanics) ||
@@ -932,7 +962,19 @@ export function parsePanelAssemblyDefinition(
     panelIds.add(panel.id);
     if (panel.mountFaceId !== undefined) panelFaceIds.add(panel.mountFaceId as string);
   }
+  if (
+    input.panels.length === 0 &&
+    (input.structuralDesign !== undefined || input.generatedStructure !== undefined)
+  ) {
+    throw new Error(
+      "Structural design and generated structural assets require at least one panel pose.",
+    );
+  }
   const calibration = record(input, "calibration");
+  validateStructuralPanelReferences(
+    input.structuralDesign as StructuralDesignDefinition | undefined,
+    panelIds,
+  );
   if (
     calibration.installedPanelOrientation === "measured" &&
     input.panels.some((panel) =>
@@ -1140,7 +1182,11 @@ export function createPanelAssemblyProject(
     );
   }
   validateInstalledAddressOptimizationFingerprint(sculpture, panelProfile);
-  return { sculpture, panelProfile, source };
+  const project = { sculpture, panelProfile, source };
+  if (sculpture.structuralDesign && sculpture.panels.length > 0) {
+    normalizeStructuralDesign(project);
+  }
+  return project;
 }
 
 export async function loadPanelAssemblyProject(

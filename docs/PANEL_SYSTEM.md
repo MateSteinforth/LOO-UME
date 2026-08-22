@@ -113,6 +113,42 @@ Some truncated-octahedron closure edges are unfastened butt seams; this is a
 known limitation, not missing geometry. Generic parts are iterative fabrication
 output and still require print/fit inspection.
 
+### Structural truss route
+
+`structuralDesign` is an optional part of the same Schema 2 sculpture JSON. It
+stores material, panel mass, safety factor, displacement and fabrication
+limits, installed gravity, transport-case selection, supports, and explicit
+face, corner, or cable forces. It does not store panel coordinates or duplicate
+the panel profile.
+
+`normalizeStructuralDesign()` in `src/sculpture/StructuralDesign.ts` derives a
+stable structural input model from the authoritative poses and profile:
+
+- every panel has its centre, right-handed axes, exact dimensions, mass, and
+  four derived outline corners;
+- every mechanically eligible profile hole becomes an anchor with a stable
+  `<panel-id>:<hole-id>` identity and exact world position;
+- DIN/DOUT-blocked holes never become anchors;
+- panel supports expand to all eligible anchors, while anchor supports constrain
+  only their named eligible hole;
+- installed gravity and optional world-axis transport cases have normalized
+  directions; and
+- face, corner, and cable forces have derived world application points.
+
+When no structural design exists, normalization uses named preview defaults.
+When no support exists, it fixes every eligible anchor on the first panel in
+stable ID order and emits `NO_REAL_SUPPORTS`. This reference is only for
+preview. The analysis requires real mounting conditions. Unknown electrical
+pad envelopes also produce a warning; cable load points use the measured DIN
+or DOUT corner until exact pad positions exist.
+
+`generatedStructure` is a derived, hash-checked asset manifest for the later
+STL, 3MF, analysis, and report pipeline. It is mutually exclusive with the
+planar and manual generated-part routes. A pose, profile, support, load,
+material, or fabrication change makes its fingerprint stale without disabling
+editing, simulation, mapping, wiring, or save. See
+[`STRUCTURAL_WORKFLOW.md`](STRUCTURAL_WORKFLOW.md).
+
 ### Panel-outline boundary generation
 
 Milestone 3 is implemented in `src/sculpture/PanelOutlineBoundary.ts`. A
@@ -201,3 +237,5 @@ flow, asset bundle, staleness rules, and remaining interface-test gaps.
   panel/cap boundary as closed and two-manifold before making printable parts.
 - Display the exact generated STL assets; do not call an approximate Three.js
   reconstruction the printable result.
+- Treat truss results as load-path guidance. Do not call them engineering
+  certification, and do not hide preview supports or assumed material facts.

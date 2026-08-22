@@ -1,12 +1,12 @@
 # Project task board
 
-Last reconciled: 2026-08-21
-Integration baseline: Codex wiring/manual work at `5329044` plus Grok Manifold
-work at `9adb160`.
-Current milestone: keep the exact simulator-to-ESP32 wiring contract while the
-generic panel-outline fabrication path uses pinned `manifold-3d` 3.5.1. The
-physically tested manual `parts/*.scad` route remains separate. The Codex and
-Grok worktrees are retained as requested; `main` is the integrated baseline.
+Last reconciled: 2026-08-22
+Integration baseline: `main` at `b9e0f7c`, which combines the Codex
+wiring/manual work and Grok Manifold work.
+Current milestone: generate a deterministic structural truss and printable
+connectors from arbitrary Schema 2 panel poses. The work starts from every
+eligible profile mounting hole, uses pinned `manifold-3d` 3.5.1, and keeps the
+existing planar-closure and physically tested manual CAD routes separate.
 
 This file is the persistent source of truth for work status. Read it before starting work and update it whenever a task changes state.
 
@@ -34,6 +34,107 @@ This file is the persistent source of truth for work status. Read it before star
     `AGENTS.md`.
 
 ## Backlog
+
+### `TRUSS-010` Generate analyzed printable structures from arbitrary panel poses — umbrella
+
+- Outcome: existing Schema 2 panel JSON produces normalized anchors, a
+  candidate and optimized 3D truss, printable brackets/hubs/struts, exact STL
+  and 3MF assets, an exact-mesh preview, and an engineering report.
+- Acceptance: `TRUSS-011` through `TRUSS-018` pass; panel poses and panel
+  profiles remain the only panel-geometry authorities; the report states that
+  analysis is load-path guidance and not engineering certification.
+- Depends on: its component tasks and `HR-016` for physical fit claims.
+
+### `TRUSS-012` Generate a deterministic candidate truss
+
+- Outcome: put a screw connector at every eligible profile hole and grow a
+  collision-checked, redundant candidate structure between arbitrary panel
+  poses.
+- Acceptance: stable anchor, bracket, hub, and member IDs are independent of
+  panel array order; blocked holes, PCB envelopes, zero-length members,
+  duplicate edges, isolated panels, and impossible attachments fail clearly;
+  supported layouts retain the required redundant paths.
+- Depends on: `TRUSS-011`.
+- Verify: arbitrary-pose, shuffled-input, near-coincident, disconnected,
+  collision, and graph-connectivity fixtures.
+
+### `TRUSS-013` Solve linear 3D truss load cases
+
+- Outcome: solve axial truss response with three translational degrees of
+  freedom per node for installed gravity, transport gravity on all six world
+  axes, panel-face forces, panel-corner forces, and cable pulls.
+- Acceptance: deterministic stiffness assembly uses member length, direction,
+  area, and Young's modulus; supports are applied by node degree of freedom;
+  singular and insufficiently constrained systems report useful diagnostics;
+  results include displacement, reaction, axial force, tension/compression,
+  stress, utilization, Euler buckling utilization, and governing load case.
+- Depends on: `TRUSS-011` and the graph contract from `TRUSS-012`.
+- Verify: analytical fixtures, equilibrium, reordered input, every load type,
+  zero-length members, and rigid-body-mode negatives.
+
+### `TRUSS-014` Optimize member sizes and load paths
+
+- Outcome: minimize material with bounded deterministic resizing and removal
+  while retaining required connectivity and redundant load paths.
+- Acceptance: the objective penalizes stress, displacement, buckling, long
+  unsupported compression members, fragile attachments, and unprintable
+  dimensions; member self-weight is updated; unloaded means unloaded across all
+  selected cases; iteration limits, tie-breaking, convergence, and failure are
+  explicit; an optimization trace is retained.
+- Depends on: `TRUSS-012` and `TRUSS-013`.
+- Verify: sizing, buckling, displacement, removal, redundancy, convergence, and
+  deterministic-output tests.
+
+### `TRUSS-015` Generate printable Manifold brackets, hubs, and struts
+
+- Outcome: turn the optimized graph into separated watertight parts with
+  tapered struts, larger hubs, smooth transitions, panel brackets, screw
+  holes, insert or nut pockets, cable clearance, labels, and orientation marks.
+- Acceptance: exact panel anchors and millimetre scale are preserved; minimum
+  printable dimensions and connector hardware are explicit; PCB envelopes and
+  blocked connector corners remain clear; every Manifold object is released;
+  every solid has valid topology and positive volume.
+- Depends on: `TRUSS-014`.
+- Verify: Manifold status, topology, bounds, volume, anchor alignment,
+  keep-outs, and representative mesh inspection.
+
+### `TRUSS-016` Export deterministic STL, 3MF, and preview assets
+
+- Outcome: serialize useful printable parts and an assembly preview from the
+  same exact Manifold meshes.
+- Acceptance: STL and 3MF outputs use millimetres, stable part identities and
+  transforms, contain no non-finite vertices or degenerate triangles, and pass
+  watertight/manifold checks; all files are hashed and only a complete validated
+  set is published.
+- Depends on: `TRUSS-015`.
+- Verify: STL inspection, 3MF package validation, mesh round-trip, stable hashes,
+  bounds, tamper rejection, and failed-publication rollback.
+
+### `TRUSS-017` Publish the headless pipeline and engineering report
+
+- Outcome: one TypeScript command reads an existing Schema 2 project and emits
+  the complete structural asset set plus structured and readable reports.
+- Acceptance: the report contains supports, load cases, safety factor,
+  assumptions, warnings, displacements, per-member results, governing cases,
+  buckling, optimization history, and artifact hashes; preview-only supports,
+  assumed mass, and unknown connector geometry are prominent; the report says
+  that the result is not engineering certification.
+- Depends on: `TRUSS-011` through `TRUSS-016`.
+- Verify: complete JSON-to-artifacts fixture, repeated-byte equivalence,
+  singular failure, missing-input warnings, TypeScript, and Vitest.
+
+### `TRUSS-018` Integrate structural generation with the browser and portable projects
+
+- Outcome: the editor can generate, display, save, export, and reopen the exact
+  structural parts and report without requiring planar `boundaryTopology`.
+- Acceptance: the planar closure route remains available; structural failure
+  or staleness does not disable editing, simulation, mapping, wiring, or save;
+  pose, profile, support, load, material, or fabrication edits invalidate the
+  structural fingerprint; folder and ZIP transport preserve exact STL, 3MF,
+  preview, report, and hash bytes.
+- Depends on: `TRUSS-017`.
+- Verify: focused browser generation, exact-byte folder/ZIP round-trip, stale
+  and failure states, existing mechanics regressions, and `npm run verify`.
 
 ### `MECH-020` Add correction tools for ambiguous detected gaps
 
@@ -280,6 +381,15 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Human Review
 
+### `HR-016` Review structural assumptions and printed connector fit
+
+- Required review: inspect representative analysis results and exact meshes,
+  then print and fit one bracket, hub, and strut connection before any physical
+  fit or load claim.
+- Constraint: code tests, linear truss analysis, optimization, and watertight
+  meshes do not certify structural safety.
+- Depends on: `TRUSS-017`; browser review also depends on `TRUSS-018`.
+
 ### `UI-011` Render LED PCBs as opaque glossy black — P1
 
 - Outcome: panel boards now render as physical opaque near-black PCBs with a
@@ -349,8 +459,29 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
-No tasks. The operator authorized integration of the completed Codex and Grok
-branches on 2026-08-21.
+### `TRUSS-011` Define structural input and normalize panel anchors — P0
+
+- Outcome: Schema 2 accepts strict optional structural inputs and derives
+  deterministic panel geometry, load points, and every eligible mounting
+  anchor directly from authoritative poses and the resolved panel profile.
+- Acceptance: panel and individual-anchor supports, named units, material,
+  mass, safety factor, displacement/print limits, installed and transport
+  gravity, face/corner/cable loads, preview defaults, prominent fallback
+  warnings, versioned artifacts, fingerprints, and stale state are implemented;
+  blocked holes and empty structural projects fail clearly; no second panel
+  schema exists.
+- Evidence: 8 focused structural tests and all 284 Vitest tests pass;
+  `npx tsc -b --pretty false`, `npm run build:web`, schema JSON parsing, and
+  `git diff --check` pass. Independent review found the empty-project bypass;
+  the runtime/schema/test correction passed re-review with no remaining
+  material finding.
+- Depends on: integrated Manifold baseline `b9e0f7c`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`.
+- Likely conflicts: `TASKS.md`, `src/sculpture/PanelAssembly.ts`, generated
+  mechanics/fingerprint code, Schema 2 documentation, and validation tests.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
 
 ## Done
 

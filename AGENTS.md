@@ -13,6 +13,12 @@ To establish this workflow in another repository, follow
 - Authored projects: `sculptures/*/sculpture.json` (active format: Schema 2).
 - Reusable PCB facts: `catalog/panels/ws2812b-8x8-66x65.json`.
 - Runtime Schema 2 contract and mapping compiler: `src/sculpture/PanelAssembly.ts`.
+- Structural input, normalization, warnings, and fingerprints:
+  `src/sculpture/StructuralDesign.ts`.
+- Generic printable-part compiler: `src/cad/CompilePanelBoundaryBundle.ts`,
+  `src/cad/GeneratePanelClosureSolids.ts`, and pinned `manifold-3d` 3.5.1.
+  `GeneratePanelClosureCad.ts` is retained compatibility code, not the active
+  generic mesh kernel.
 - Editor mutations and mechanical invalidation: `src/sculpture/SculptureEditor.ts`.
 - Browser orchestration: `web/src/main.ts`; mapping and wiring are under
   `web/src/`.
@@ -44,13 +50,18 @@ uses `createPanelAssemblyMapping()`.
   `mechanicalShell`, and `closures` is the implemented mechanics-free state:
   load GLB, place/edit panels, simulate, map, wire, save, and reload before any
   mechanics exist.
-- GLBs are authoring surfaces only. The general generator starts from
+- GLBs are authoring surfaces only. The planar closure generator starts from
   authoritative panel outlines, closes each gap with a validated flat N-gon,
   builds a closed boundary, and only then creates printable parts. It does not
   turn arbitrary GLB triangles directly into printable material.
+- The structural route also ignores GLB triangles. It starts from every
+  mechanically eligible profile hole transformed by the authoritative panel
+  pose. Blocked DIN/DOUT holes are never structural anchors.
 - The first boundary generator supports layouts in which every cap is a flat
   simple N-gon. It validates planarity, topology, winding, intersections, and
   manifold closure and rejects invalid layouts clearly.
+- Generic panel-outline parts use Manifold in Node or directly in the browser.
+  OpenSCAD remains only for the separate manual `parts/*.scad` route.
 - After successful generation, the viewer loads the exact referenced STL parts.
   A panel edit makes those parts stale without disabling the rest of the
   interface. See `docs/MECHANICS_WORKFLOW.md`.
@@ -62,6 +73,10 @@ uses `createPanelAssemblyMapping()`.
 - Printable material must not intersect PCB envelopes or obstruct DIN, DOUT,
   V+, or V-. Keep centre structures within the pentagon boundary and outside
   filler surfaces flat-printable.
+- Structural analysis is load-path guidance, not engineering certification.
+  A reference-panel support and material/mass defaults are preview assumptions
+  that must remain prominent until real mounting and material facts replace
+  them.
 - The saved route, GPIOs, snake pixel order, RGB color order, and optimized
   installed quarter turns are authorized assumptions. They make the current
   simulator-to-controller mapping ready, but they are not measured facts and

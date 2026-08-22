@@ -18,13 +18,21 @@ Schema 2 sculpture JSON + panel hardware profile
                      WLED ledmap
 ```
 
-Fabrication is a separate, optional branch with two supported routes:
+Fabrication is a separate, optional branch. Three routes share the same panel
+poses and hardware profile:
 
 ```text
 (no mechanics fields) ----------> complete pose-first interface, no CAD
 manualMechanics ----------------> verified wrappers around parts/*.scad
-mechanicalShell + closures -----> planar validation -> generated SCAD/STL
+mechanicalShell + closures -----> planar validation -> Manifold STL parts
+structuralDesign ----------------> normalized eligible anchors (TRUSS-011)
 ```
+
+The structural branch currently implements the Schema 2 input contract,
+pose/profile normalization, preview support policy, artifact manifest, and
+stale fingerprint. Candidate generation, analysis, optimization, printable
+Manifold solids, and export remain the ordered `TRUSS-012` through `TRUSS-018`
+tasks. It does not replace the two existing fabrication routes.
 
 Schema 2 pose-only projects are valid JSON. They load, edit, simulate, map,
 wire, save, and reopen without a placeholder shell. When panels form an
@@ -131,11 +139,14 @@ gates.
 | `sculptures/` | Authored Schema 2 projects and one legacy migration fixture | Project truth; do not hand-edit derived maps instead |
 | `catalog/` | Reusable panel dimensions, grid, holes, connectors, corrections, electrical facts | Hardware truth shared by projects |
 | `src/sculpture/PanelAssembly.ts` | Schema 2 parsing, pose compilation, face graph, LED geometry | Active model; poses remain authoritative |
+| `src/sculpture/StructuralDesign.ts` | Validate optional structural inputs and derive sorted panels, eligible anchors, supports, load points, warnings, and structural fingerprints | No second panel schema; blocked holes and GLB triangles are excluded |
 | `src/sculpture/SculptureEditor.ts` | Add/move/rotate/delete/seed and mechanics invalidation | Editing does not require successful CAD |
 | `src/sculpture/MechanicalShellRegenerator.ts` | Rebuild supported planar topology after edits | Rejects unsafe or ambiguous mechanics |
 | `src/sculpture/PanelOutlineBoundary.ts` | Derive exact panel rectangles, detect deterministic unambiguous gap cycles, validate flat caps, and emit a closed boundary | Gap topology stores connectivity only; poses/profile own all coordinates |
+| `src/cad/CompilePanelBoundaryBundle.ts` | Compile one validated panel boundary into a complete in-memory asset set | Removes stale shell/closure input before deriving current output |
+| `src/cad/GeneratePanelClosureSolids.ts` | Build generic closure solids with pinned Manifold | Active generic mesh kernel; releases WASM objects after use |
 | `src/cad/GeneratePanelBoundaryParts.ts` | Detect and persist missing gap topology, then turn the validated boundary into a staged, hash-verified exact STL bundle | Publishes the manifest only after every file validates |
-| `src/cad/GeneratePanelClosureCad.ts` | Generic flat closures from compiled planar faces | Reused by explicit shells and panel-gap generation; not a GLB generator |
+| `src/cad/GeneratePanelClosureCad.ts` | Retained SCAD compatibility emitter | Not the active generic browser or local-service mesh kernel |
 | `scripts/editor-pipeline-handler.ts` | Shared status and bounded generation HTTP handler | Used unchanged by Vite development and production hosting; loopback and same-origin only |
 | `scripts/local-editor-server.ts` | Serve the built UI and generated assets on `127.0.0.1` | Local production host; owns startup and clean shutdown |
 | `src/cad/GenerateCad.ts`, `parts/` | Legacy-typed wrappers around tested manual parts | Separate from generic CAD |
@@ -215,6 +226,14 @@ unambiguous exposed-edge graph and saves them in the generated project. The
 field contains no vertex positions or transforms. The browser derives and
 validates the zero-thickness mesh on demand and displays it as a boundary
 preview.
+
+Schema 2 also accepts optional `structuralDesign` inputs. The normalizer sorts
+panels and profile holes by stable ID, transforms each eligible local hole with
+the saved right-handed pose, and derives panel corners and connector load
+points from the same pose/profile facts. A structural artifact set uses the
+separate `generatedStructure` manifest and cannot coexist with planar generated
+mechanics or manually authored mechanics. Its source fingerprint includes the
+panel poses, structural inputs, and relevant profile facts.
 
 ## Local desktop host
 

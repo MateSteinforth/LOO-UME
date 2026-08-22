@@ -393,6 +393,26 @@ modified files, and a contradictory re-hashed bus configuration.
 status is `assumed-mapping-ready`. The external identity is the manifest
 SHA-256. Credentials never enter this bundle.
 
+## D17 — Structural generation is an additive pose-derived route
+
+**Decision.** Structural inputs are optional fields in Schema 2. All panel
+centres, axes, corners, PCB dimensions, and mounting anchors derive from the
+existing panel poses and resolved hardware profile. The structural route does
+not read GLB triangles as material and does not add another panel schema.
+
+**Evidence.** `src/sculpture/StructuralDesign.ts`,
+`schemas/panel-assembly.schema.json`, and
+`tests/structural-design.test.ts` validate the input, transform every eligible
+profile hole, exclude blocked holes, resolve supports and loads, and create the
+structural source fingerprint.
+
+**Consequence.** `generatedStructure` is a separate derived artifact manifest
+and is mutually exclusive with planar or manually authored generated parts.
+Missing structural values use named preview defaults. Missing supports select
+the first panel in stable ID order and must emit a prominent preview-only
+warning. Structural results are load-path guidance, not engineering
+certification.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).
