@@ -175,8 +175,35 @@ component is an error. All constructed WASM objects are explicitly released.
 The final solid volume of every bracket and strut is also checked against each
 nearby oriented PCB envelope. Any intersection stops CAD generation.
 
+## Exact printable artifacts
+
+`compileStructuralArtifactBundle()` sorts stable part IDs and serializes every
+validated mesh as deterministic binary STL. It also concatenates those same
+indexed meshes into one world-space assembly-preview STL. It does not retessellate
+or rebuild the solids during export.
+
+The print package is a Core 3MF ZIP with the required content-type, root
+relationship, and `3D/3dmodel.model` parts. Each structural part is one named
+mesh object. The model declares millimetres, and every build item receives the
+same translation that moves an arbitrary world-space assembly into the positive
+build octant without changing relative panel geometry.
+
+Every artifact has a stable project-relative path, byte length, and SHA-256 in
+`structure/artifacts.json`. Compilation reopens STL and 3MF bytes to check
+triangle counts, bounds, identities, units, indices, transforms, and package
+structure. Publication writes and exact-byte verifies all files in a sibling
+staging directory, writes the manifest last, and then swaps the complete
+directory. It can replace only one safe direct child of an explicitly supplied
+artifact root, and only when the existing child is a complete generator-owned
+bundle with no unknown files. If final promotion fails, the prior directory is
+restored.
+
+In-memory export has explicit limits: 5,000 parts, 500,000 triangles per part,
+and 6,000,000 total triangles or vertices. Inputs above a limit fail before STL
+or 3MF allocation with the measured count in the error.
+
 ## Remaining ordered implementation
 
-`TRUSS-016` through `TRUSS-018` add STL/3MF export, reports, and browser
+`TRUSS-017` and `TRUSS-018` add reports and browser
 portable-project integration. Every report must state that the analysis gives
 load-path guidance and is not engineering certification.

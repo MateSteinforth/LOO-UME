@@ -492,6 +492,26 @@ world-space meshes preserve millimetre assembly geometry for the next export
 stage. Unknown connector pad shapes remain conservative cylindrical voids and
 must not be described as measured keep-outs.
 
+## D22 — STL, preview, and 3MF share the validated structural meshes
+
+**Decision.** Export does not run a second geometry kernel. Each part becomes a
+deterministic binary STL, the preview concatenates those exact indexed meshes,
+and Core 3MF stores one named object per part. One shared 3MF build translation
+moves arbitrary world coordinates into the positive build octant. All formats
+declare or preserve millimetres.
+
+**Evidence.** `src/cad/CompileStructuralArtifacts.ts`,
+`src/cad/PublishStructuralArtifacts.ts`, and
+`tests/structural-artifacts.test.ts` verify reordered-input byte equivalence,
+STL and 3MF mesh round-trips, stable identities, package relationships, hashes,
+tamper rejection, exact staged bytes, and failed-promotion rollback.
+
+**Consequence.** STL parts, the assembly preview, and 3MF cannot drift through
+independent tessellation. Only a complete hash-verified directory is published;
+the next reporting stage can reference the exact artifact manifest. Publication
+cannot replace an unrelated directory, and bounded in-memory export fails
+clearly before an uncontrolled large allocation.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

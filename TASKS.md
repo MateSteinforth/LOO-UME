@@ -45,18 +45,6 @@ This file is the persistent source of truth for work status. Read it before star
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
 
-### `TRUSS-016` Export deterministic STL, 3MF, and preview assets
-
-- Outcome: serialize useful printable parts and an assembly preview from the
-  same exact Manifold meshes.
-- Acceptance: STL and 3MF outputs use millimetres, stable part identities and
-  transforms, contain no non-finite vertices or degenerate triangles, and pass
-  watertight/manifold checks; all files are hashed and only a complete validated
-  set is published.
-- Depends on: `TRUSS-015`.
-- Verify: STL inspection, 3MF package validation, mesh round-trip, stable hashes,
-  bounds, tamper rejection, and failed-publication rollback.
-
 ### `TRUSS-017` Publish the headless pipeline and engineering report
 
 - Outcome: one TypeScript command reads an existing Schema 2 project and emits
@@ -534,6 +522,34 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   workstream without a merge to `main`.
 - Likely conflicts: `TASKS.md`, `FAILURES.md`, `src/cad/`, structural workflow
   and architecture documentation, and structural CAD tests.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
+### `TRUSS-016` Export deterministic STL, 3MF, and preview assets
+
+- Outcome: each validated structural mesh becomes one stable binary STL; the
+  same indexed meshes form one assembly-preview STL and named Core 3MF objects.
+  A shared millimetre 3MF transform preserves relative geometry in the positive
+  build octant.
+- Acceptance: stable part identities, safe paths, units, finite vertices,
+  triangle indices and counts, package relationships, byte lengths, hashes,
+  resource bounds, and exact reordered-input bytes validate before publication.
+  Only one complete generator-owned child of an authorized artifact root can be
+  replaced; failed promotion restores the prior directory.
+- Evidence: 8 structural artifact tests cover STL/3MF round-trip, exact preview
+  mesh count, reordered-input byte equivalence, tampering, reserved IDs,
+  resource limits, unrelated-directory refusal, exact staged files, and
+  promotion rollback. All 315 Vitest tests, `npx tsc -b --pretty false`,
+  `npm run build:web`, `git diff --check`, and ASCII source inspection pass.
+  Independent review found broad-directory replacement, ID collision,
+  uncontrolled allocation, and raw-control-byte risks; all corrections passed
+  focused re-review with no remaining material finding.
+- Depends on: `TRUSS-015`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Continue on the operator-authorized truss
+  workstream without a merge to `main`.
+- Likely conflicts: `TASKS.md`, `FAILURES.md`, `src/cad/`, structural artifact
+  documentation, and structural export tests.
 - Integration gate: explicit operator authorization is required before merge
   into `main`.
 

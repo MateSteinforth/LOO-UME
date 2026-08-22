@@ -35,22 +35,34 @@ function inspectPoints(
   return { format, triangles, bounds: { minimum, maximum } };
 }
 
+function updateBounds(
+  minimum: Vector3Tuple,
+  maximum: Vector3Tuple,
+  point: Vector3Tuple,
+): void {
+  for (let axis = 0; axis < 3; axis += 1) {
+    minimum[axis] = Math.min(minimum[axis]!, point[axis]!);
+    maximum[axis] = Math.max(maximum[axis]!, point[axis]!);
+  }
+}
+
 export function inspectStl(bytes: Uint8Array): StlInspection {
   if (bytes.byteLength >= 84) {
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     const triangles = view.getUint32(80, true);
     if (triangles > 0 && 84 + triangles * 50 === bytes.byteLength) {
-      const points: Vector3Tuple[] = [];
+      const minimum: Vector3Tuple = [Infinity, Infinity, Infinity];
+      const maximum: Vector3Tuple = [-Infinity, -Infinity, -Infinity];
       for (let triangle = 0; triangle < triangles; triangle += 1) {
         const offset = 84 + triangle * 50 + 12;
         for (let vertex = 0; vertex < 3; vertex += 1) {
-          points.push(finitePoint(Array.from(
+          updateBounds(minimum, maximum, finitePoint(Array.from(
             { length: 3 },
             (_, axis) => view.getFloat32(offset + vertex * 12 + axis * 4, true),
           )));
         }
       }
-      return inspectPoints("binary", triangles, points);
+      return { format: "binary", triangles, bounds: { minimum, maximum } };
     }
   }
 
@@ -157,4 +169,54 @@ export function serializeManifoldMeshAsciiStl(
     if (length > Number.EPSILON) triangles.push(triangle);
   }
   return serializeAsciiStl(name, vertices, triangles);
+}
+
+/** Serializes a Manifold XYZ triangle mesh to deterministic binary STL. */
+export function serializeManifoldMeshBinaryStl(
+  name: string,
+  vertProperties: ArrayLike<number>,
+  triVerts: ArrayLike<number>,
+  numProp = 3,
+): Uint8Array {
+  if (numProp < 3) throw new Error("Manifold mesh must store XYZ properties.");
+  if (triVerts.length === 0 || triVerts.length % 3 !== 0) {
+    throw new Error("Manifold mesh must contain complete triangles.");
+  }
+  const vertices: Vector3Tuple[] = [];
+  for (let index = 0; index + 2 < vertProperties.length; index += numProp) {
+    vertices.push(finitePoint([
+      Number(vertProperties[index]),
+      Number(vertProperties[index + 1]),
+      Number(vertProperties[index + 2]),
+    ]));
+  }
+  const triangles = triVerts.length / 3;
+  const bytes = new Uint8Array(84 + triangles * 50);
+  const header = new TextEncoder().encode(`WLED Orbital Lab ${name}`.slice(0, 80));
+  bytes.set(header, 0);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(80, triangles, true);
+  for (let triangle = 0; triangle < triangles; triangle += 1) {
+    const indices = [
+      Number(triVerts[triangle * 3]),
+      Number(triVerts[triangle * 3 + 1]),
+      Number(triVerts[triangle * 3 + 2]),
+    ];
+    const points = indices.map((index) => vertices[index]);
+    if (indices.some((index) => !Number.isInteger(index)) ||
+      points.some((point) => point === undefined)) {
+      throw new Error("Manifold mesh triangle references an unknown vertex.");
+    }
+    const [a, b, c] = points as [Vector3Tuple, Vector3Tuple, Vector3Tuple];
+    const n = normal(a, b, c);
+    const offset = 84 + triangle * 50;
+    for (let axis = 0; axis < 3; axis += 1) view.setFloat32(offset + axis * 4, n[axis]!, true);
+    for (let vertex = 0; vertex < 3; vertex += 1) {
+      for (let axis = 0; axis < 3; axis += 1) {
+        view.setFloat32(offset + 12 + vertex * 12 + axis * 4, points[vertex]![axis]!, true);
+      }
+    }
+  }
+  inspectStl(bytes);
+  return bytes;
 }

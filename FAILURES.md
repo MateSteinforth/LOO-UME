@@ -464,3 +464,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   but require solid-volume keep-out checks before mesh publication.
 - **Evidence:** `tests/structural-solids.test.ts` with a 1 mm bracket offset.
 - **Status:** Resolved.
+
+### F-026 — Atomic publication must not accept an arbitrary output directory
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-016 complete-directory publication.
+- **Symptom:** The first publisher could rename and replace any existing path
+  except the filesystem root, including a repository or unrelated data folder.
+- **Cause:** Atomic replacement safety was implemented without a narrow output
+  ownership contract.
+- **Correction:** Accept one safe direct child of an explicit artifact root.
+  Before replacement, require a real directory whose manifest, artifact hashes,
+  formats, paths, and complete file list validate as this generator's output.
+- **Prevention:** A staging-and-rename strategy is not safe by itself. Prove
+  ownership and exact scope before moving or deleting an existing destination.
+- **Evidence:** `tests/structural-artifacts.test.ts` covers unrelated-directory
+  refusal and restoration after an injected final-promotion failure.
+- **Status:** Resolved.
