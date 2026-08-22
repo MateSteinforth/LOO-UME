@@ -109,6 +109,10 @@ replace the confirmed route.
 Static address and RGB parity are the first proof target. The browser runs a
 limited deterministic subset of WLED effects, so static parity does not prove
 identical timing, networking, audio input, or all native WLED effects.
+The browser engine timeline runs continuously. The operator interface exposes
+effect, palette, speed, and intensity, while fixed engine colors, mapped LED
+count, and shell opacity remain implementation defaults rather than duplicate
+controls.
 
 Physical power is a separate safety boundary. At the conservative profile value
 of 60 mA per pixel, 2,624 pixels can require 157.44 A at 5 V. Full-sculpture
@@ -357,9 +361,9 @@ provider decision in `HR-013`.
   runner label is scheduled to retire in August 2027, so CI must move to a
   supported native Intel label before that date.
 - Playwright Chromium now operates the real local JSON and GLB controls,
-  automatic placement, panel selection and deletion, WLED play/pause, mapping
-  and wiring controls, and saved JSON. It also fails on browser page or console
-  errors. A second real-browser journey operates folder and ZIP import and
+  automatic placement, panel selection and deletion, continuous WLED playback,
+  mapping and wiring controls, and saved JSON. It also fails on browser page or
+  console errors. A second real-browser journey operates folder and ZIP import and
   export, verifies exact GLB/STL bytes and hashes, checks current and stale
   mechanics, rejects missing or tampered assets, reopens the exported ZIP, and
   verifies object-URL release when a project is replaced.

@@ -1,6 +1,5 @@
 import "./styles.css";
 import {
-  createUniformSphereMapping,
   validateMapping,
 } from "./LedMapping";
 import {
@@ -77,6 +76,9 @@ import wiringManualStyles from "./wiring-manual.css?raw";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
+const DEFAULT_PRIMARY_COLOR = "#ff7a18";
+const DEFAULT_SECONDARY_COLOR = "#050816";
+const DEFAULT_SHELL_TRANSPARENCY = 0.35;
 const initialSculptureSource =
   new URLSearchParams(window.location.search).get("sculptureJson") ??
   DEFAULT_SCULPTURE_JSON;
@@ -210,19 +212,12 @@ app.innerHTML = `
           <h1>WLED Orbital Lab</h1>
         </div>
       </div>
-      <div class="engine-badge">
-        <span class="status-dot" id="engine-dot"></span>
-        <span id="engine-status">Loading WebAssembly…</span>
-      </div>
+      <span id="engine-status" hidden>Loading WebAssembly…</span>
     </header>
 
     <main class="workspace">
       <section class="viewer-panel" aria-label="3D LED sphere">
         <div id="viewer" class="viewer"></div>
-        <div class="viewer-overlay viewer-overlay--top">
-          <span id="mapping-tag" class="provisional-tag">LOADING SCULPTURE JSON</span>
-          <span>Drag to orbit · Scroll to zoom</span>
-        </div>
         <div class="viewer-overlay viewer-overlay--bottom">
           <div class="metric">
             <span class="metric-label">FPS</span>
@@ -245,18 +240,9 @@ app.innerHTML = `
       </section>
 
       <aside class="control-panel">
-        <section class="control-section transport">
-          <button id="play-toggle" class="play-button" type="button">
-            <span id="play-icon">Ⅱ</span>
-            <span id="play-label">Pause engine</span>
-          </button>
-          <button id="restart" class="icon-button" type="button" title="Restart deterministic timeline">↺</button>
-        </section>
-
         <section class="control-section">
           <div class="section-heading">
             <span>WLED engine</span>
-            <small>actual C++ / WASM</small>
           </div>
           <label class="field">
             <span>Effect</span>
@@ -274,16 +260,6 @@ app.innerHTML = `
             <span>Intensity <output id="intensity-value">128</output></span>
             <input id="intensity" type="range" min="0" max="255" value="128" />
           </label>
-          <div class="color-row">
-            <label class="color-field">
-              <span>Primary</span>
-              <input id="primary-color" type="color" value="#ff7a18" />
-            </label>
-            <label class="color-field">
-              <span>Secondary</span>
-              <input id="secondary-color" type="color" value="#050816" />
-            </label>
-          </div>
         </section>
 
         <section class="control-section">
@@ -312,13 +288,6 @@ app.innerHTML = `
               <option value="logical-index">Logical index bands</option>
             </select>
           </label>
-          <label class="field">
-            <span>Virtual LED count</span>
-            <div class="input-action">
-              <input id="led-count" type="number" min="64" max="200000" step="1" value="64" />
-              <button id="apply-count" type="button">Apply</button>
-            </div>
-          </label>
           <label class="toggle-field">
             <input id="auto-rotate" type="checkbox" checked />
             <span>Slow auto-rotation</span>
@@ -330,10 +299,6 @@ app.innerHTML = `
           <label class="toggle-field">
             <input id="printable-layer" type="checkbox" checked />
             <span>Exact Manifold closures + screw tabs</span>
-          </label>
-          <label class="field slider-field">
-            <span>Shell transparency <output id="shell-transparency-value">35%</output></span>
-            <input id="shell-transparency" type="range" min="0" max="90" value="35" />
           </label>
           <div id="wiring-layer-controls" class="layer-controls">
             <div class="layer-controls__heading">Wiring layers</div>
@@ -358,13 +323,12 @@ app.innerHTML = `
             <span class="validation-icon">✓</span>
             <span>Mapping LUT is valid</span>
           </div>
-          <p id="mapping-note" class="mapping-note">Transforms, pixel order, and wiring are unmeasured.</p>
+          <p id="mapping-note" hidden>Transforms, pixel order, and wiring are unmeasured.</p>
         </section>
 
         <section class="control-section editor-section">
           <div class="section-heading">
             <span>Sculpture editor</span>
-            <small>pose-first JSON</small>
           </div>
           <input id="sculpture-file" type="file" accept="application/json,.json" hidden />
           <input id="project-folder" type="file" webkitdirectory multiple hidden />
@@ -404,9 +368,7 @@ app.innerHTML = `
           <p id="surface-status" class="mapping-note">
             Load a GLB, or use the sculpture JSON shell as the editing surface.
           </p>
-          <p id="selected-panel-status" class="mapping-note">
-            No design surface loaded.
-          </p>
+          <p id="selected-panel-status" class="mapping-note"></p>
           <div id="automatic-panel-placement-controls">
             <label class="field">
               <span>Target panel count</span>
@@ -415,9 +377,6 @@ app.innerHTML = `
             <button id="automatically-place-panels" class="editor-button" type="button" disabled>
               Automatically place panels
             </button>
-            <p class="mapping-note">
-              The GLB is only a placement aid. Printable caps come from the holes between panel outlines, not from the mesh.
-            </p>
           </div>
           <label class="field">
             <span>Available closure face</span>
@@ -447,23 +406,9 @@ app.innerHTML = `
           <div id="pipeline-status" class="pipeline-status" role="status">
             Local Vite pipeline is ready.
           </div>
-          <p class="mapping-note">
-            Generate puts flat caps on the holes between panel outlines. It does not use the GLB or a JSON shell as geometry. Neighbouring outline corners must meet. A failed run keeps the last successful STL set.
-          </p>
-        </section>
-
-        <section class="architecture-card">
-          <span>FRAME PATH</span>
-          <p>WLED FX.cpp → WASM memory → LUT → Three.js</p>
-          <small>No JavaScript effect reimplementation.</small>
         </section>
       </aside>
     </main>
-
-    <footer>
-      <span>Upstream WLED <code>d9b9a84</code></span>
-      <span>Photosensitive users: avoid strobe effects and high speed.</span>
-    </footer>
   </div>
 `;
 
@@ -475,7 +420,6 @@ const query = <T extends Element>(selector: string): T => {
 
 const viewerElement = query<HTMLDivElement>("#viewer");
 const engineStatus = query<HTMLSpanElement>("#engine-status");
-const engineDot = query<HTMLSpanElement>("#engine-dot");
 const viewerError = query<HTMLDivElement>("#viewer-error");
 const fpsDisplay = query<HTMLElement>("#fps");
 const ledCountDisplay = query<HTMLElement>("#led-count-display");
@@ -487,28 +431,15 @@ const speedInput = query<HTMLInputElement>("#speed");
 const speedValue = query<HTMLOutputElement>("#speed-value");
 const intensityInput = query<HTMLInputElement>("#intensity");
 const intensityValue = query<HTMLOutputElement>("#intensity-value");
-const primaryColor = query<HTMLInputElement>("#primary-color");
-const secondaryColor = query<HTMLInputElement>("#secondary-color");
-const playButton = query<HTMLButtonElement>("#play-toggle");
-const playIcon = query<HTMLElement>("#play-icon");
-const playLabel = query<HTMLElement>("#play-label");
-const restartButton = query<HTMLButtonElement>("#restart");
 const sculptureSelect = query<HTMLSelectElement>("#sculpture-select");
 const sculptureJsonInput = query<HTMLInputElement>("#sculpture-json");
 const loadSculptureButton = query<HTMLButtonElement>("#load-sculpture");
 const displayMode = query<HTMLSelectElement>("#display-mode");
-const ledCountInput = query<HTMLInputElement>("#led-count");
-const applyCount = query<HTMLButtonElement>("#apply-count");
 const autoRotate = query<HTMLInputElement>("#auto-rotate");
 const mappingStatus = query<HTMLElement>("#mapping-status");
-const mappingTag = query<HTMLElement>("#mapping-tag");
 const mappingNote = query<HTMLElement>("#mapping-note");
 const panelLabelsToggle = query<HTMLInputElement>("#panel-labels");
 const printableLayerToggle = query<HTMLInputElement>("#printable-layer");
-const shellTransparencyInput =
-  query<HTMLInputElement>("#shell-transparency");
-const shellTransparencyValue =
-  query<HTMLOutputElement>("#shell-transparency-value");
 const connectorLayerToggle =
   query<HTMLInputElement>("#connector-layer");
 const wiringLayerToggle = query<HTMLInputElement>("#wiring-layer");
@@ -591,8 +522,7 @@ async function start(): Promise<void> {
     );
     let editorDefinition = loadedSculpture.definition;
     let editorProject = loadedSculpture.project;
-    let selectedHardwareContract = loadedSculpture.contract;
-    let hardwareContract = selectedHardwareContract;
+    let hardwareContract = loadedSculpture.contract;
     const engine = await WledEngine.create(
       hardwareContract.mapping.entries.length,
     );
@@ -605,7 +535,7 @@ async function start(): Promise<void> {
       editorProject.panelProfile.dimensions.thickness,
     );
     renderer.setShellTransparency(
-      Number(shellTransparencyInput.value) / 100,
+      DEFAULT_SHELL_TRANSPARENCY,
     );
     renderer.setWiringPreview(wiringPreview);
 
@@ -624,13 +554,11 @@ async function start(): Promise<void> {
     engine.setPalette(6);
     engine.setSpeed(128);
     engine.setIntensity(128);
-    engine.setPrimaryColor(primaryColor.value);
-    engine.setSecondaryColor(secondaryColor.value);
+    engine.setPrimaryColor(DEFAULT_PRIMARY_COLOR);
+    engine.setSecondaryColor(DEFAULT_SECONDARY_COLOR);
 
     engineStatus.textContent = `${engine.effects.length} WLED effects ready`;
-    engineDot.classList.add("status-dot--ready");
 
-    let playing = true;
     let simulationTime = 0;
     let previousTime = performance.now();
     let fpsWindowStart = previousTime;
@@ -910,12 +838,6 @@ async function start(): Promise<void> {
       panelCountDisplay.textContent = isPanelized
         ? String(mapping.panels.length)
         : "—";
-      mappingTag.textContent = isPanelized
-        ? mapping.panels.length +
-          "-PANEL " +
-          mapping.id.toUpperCase() +
-          " PREVIEW"
-        : "PROVISIONAL UNIFORM FALLBACK";
       const mechanicalNote = editorDefinition.manualMechanics
         ? editorDefinition.manualMechanics.compatibilityStatus === "requires-review"
           ? "Mapping and wiring use the edited authoritative poses. Manually authored printable mechanics require review and cannot be presented as verified."
@@ -949,7 +871,6 @@ async function start(): Promise<void> {
           (mechanicalShellIsCurrent() &&
             (mapping.printableClosures?.length ?? 0) > 0));
       printableLayerToggle.disabled = !hasPrintableClosures;
-      shellTransparencyInput.disabled = !isPanelized;
       connectorLayerToggle.disabled = !isPanelized;
       wiringLayerToggle.disabled = !isPanelized;
       downloadPrintPartsButton.disabled =
@@ -1059,7 +980,6 @@ async function start(): Promise<void> {
       preserveEditorDefinition = false,
     ): Promise<void> => {
       loadedSculpture = selected;
-      selectedHardwareContract = selected.contract;
       hardwareContract = selected.contract;
       mapping = selected.contract.mapping;
       wiringPreview = selected.contract.wiring;
@@ -1077,7 +997,6 @@ async function start(): Promise<void> {
         wiringPreview,
       );
       engine.resize(mapping.entries.length);
-      ledCountInput.value = String(mapping.entries.length);
       ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
       renderer?.setPanelProfileThickness(
         selected.project.panelProfile.dimensions.thickness,
@@ -1124,7 +1043,7 @@ async function start(): Promise<void> {
         " mm, watertight.";
       selectedPanelStatus.textContent = editorDefinition.manualMechanics
         ? "Click a panel to move it across the referenced GLB, rotate around local Z, or delete it. New manual panels require explicit face metadata and are not added by canvas clicks."
-        : "Click a panel for its local-XY/local-Z gizmo. Drag empty space to orbit; click the " + attachmentSurface + " mesh to add a panel.";
+        : "";
     };
 
     const showMechanicalShellSurface = (message?: string): void => {
@@ -1235,9 +1154,7 @@ async function start(): Promise<void> {
           selectedPanelStatus.textContent =
             "Selected " + panelId + ". Available: " + actions.join(", ") + ".";
         } else {
-          selectedPanelStatus.textContent = capabilities.canCreateOnActiveSurface
-            ? "Click a panel for its gizmo, or click the active surface to add a panel."
-            : "Click a panel to edit its authoritative JSON pose or delete it.";
+          selectedPanelStatus.textContent = "";
         }
       },
       onPlacementCommit: (placement) => {
@@ -1393,12 +1310,6 @@ async function start(): Promise<void> {
       intensityValue.value = intensityInput.value;
       engine.setIntensity(Number(intensityInput.value));
     });
-    primaryColor.addEventListener("input", () =>
-      engine.setPrimaryColor(primaryColor.value),
-    );
-    secondaryColor.addEventListener("input", () =>
-      engine.setSecondaryColor(secondaryColor.value),
-    );
     displayMode.addEventListener("change", () => {
       currentDisplayMode = displayMode.value as DisplayMode;
     });
@@ -1408,12 +1319,6 @@ async function start(): Promise<void> {
     panelLabelsToggle.addEventListener("change", () => {
       renderer?.setPanelLabelsVisible(
         mapping.topology === "panelized-sculpture" && panelLabelsToggle.checked,
-      );
-    });
-    shellTransparencyInput.addEventListener("input", () => {
-      shellTransparencyValue.value = shellTransparencyInput.value + "%";
-      renderer?.setShellTransparency(
-        Number(shellTransparencyInput.value) / 100,
       );
     });
     printableLayerToggle.addEventListener("change", () => {
@@ -2033,52 +1938,6 @@ async function start(): Promise<void> {
         }
       })();
     });
-    restartButton.addEventListener("click", resetTimeline);
-
-    playButton.addEventListener("click", () => {
-      playing = !playing;
-      playIcon.textContent = playing ? "Ⅱ" : "▶";
-      playLabel.textContent = playing ? "Pause engine" : "Resume engine";
-      playButton.classList.toggle("play-button--paused", !playing);
-    });
-
-    applyCount.addEventListener("click", () => {
-      const requested = Number(ledCountInput.value);
-      if (
-        !Number.isInteger(requested) ||
-        requested < 64 ||
-        requested > 200000
-      ) {
-        ledCountInput.setCustomValidity(
-          "Choose an integer from 64 to 200,000.",
-        );
-        ledCountInput.reportValidity();
-        return;
-      }
-      ledCountInput.setCustomValidity("");
-      engine.resize(requested);
-      if (requested === selectedHardwareContract.mapping.entries.length) {
-        hardwareContract = selectedHardwareContract;
-        mapping = hardwareContract.mapping;
-        wiringPreview = hardwareContract.wiring;
-      } else {
-        mapping = createUniformSphereMapping(requested);
-        wiringPreview = createProvisionalWiringPreview(mapping);
-      }
-      renderer?.setMapping(mapping);
-      renderer?.setWiringPreview(wiringPreview);
-      routeEditorModel = createWiringRouteEditorModel(
-        editorDefinition,
-        wiringPreview,
-      );
-      renderOutputLayerControls();
-      renderRouteEditor();
-      resetTimeline();
-      ledCountDisplay.textContent = requested.toLocaleString();
-      updateMappingStatus();
-    });
-
-    ledCountInput.value = String(mapping.entries.length);
     ledCountDisplay.textContent = mapping.entries.length.toLocaleString();
     renderEditorFaces();
     renderOutputLayerControls();
@@ -2100,10 +1959,8 @@ async function start(): Promise<void> {
     const animate = (now: number): void => {
       const delta = Math.min(now - previousTime, 100);
       previousTime = now;
-      if (playing) {
-        simulationTime += delta;
-        engine.tick(Math.floor(simulationTime));
-      }
+      simulationTime += delta;
+      engine.tick(Math.floor(simulationTime));
 
       renderer?.updateColors(engine.pixels, currentDisplayMode);
       renderer?.render();
@@ -2132,7 +1989,6 @@ async function start(): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     engineStatus.textContent = "Engine failed to load";
-    engineDot.classList.add("status-dot--error");
     viewerError.hidden = false;
     viewerError.textContent = message;
     console.error(error);

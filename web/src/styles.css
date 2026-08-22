@@ -58,14 +58,13 @@ select {
 button,
 select,
 input[type="range"],
-input[type="color"],
 input[type="checkbox"] {
   cursor: pointer;
 }
 
 .app-shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -118,37 +117,6 @@ input[type="checkbox"] {
   font-size: clamp(17px, 2vw, 22px);
   font-weight: 620;
   letter-spacing: -0.025em;
-}
-
-.engine-badge {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  padding: 8px 11px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: #aebbd0;
-  background: rgba(255, 255, 255, 0.025);
-  font-size: 11px;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #8590a2;
-  box-shadow: 0 0 0 4px rgba(133, 144, 162, 0.1);
-}
-
-.status-dot--ready {
-  background: var(--cyan);
-  box-shadow:
-    0 0 0 4px rgba(57, 217, 208, 0.12),
-    0 0 12px var(--cyan);
-}
-
-.status-dot--error {
-  background: var(--red);
 }
 
 .workspace {
@@ -276,21 +244,6 @@ input[type="checkbox"] {
   pointer-events: none;
 }
 
-.viewer-overlay--top {
-  top: 20px;
-  left: 22px;
-  gap: 12px;
-}
-
-.provisional-tag {
-  padding: 5px 7px;
-  border: 1px solid rgba(255, 139, 69, 0.28);
-  border-radius: 4px;
-  color: #ffad79;
-  background: rgba(255, 139, 69, 0.07);
-  font-weight: 700;
-}
-
 .viewer-overlay--bottom {
   right: 22px;
   bottom: 18px;
@@ -351,14 +304,6 @@ input[type="checkbox"] {
   border-bottom: 1px solid var(--line);
 }
 
-.transport {
-  display: grid;
-  grid-template-columns: 1fr 42px;
-  gap: 9px;
-}
-
-.play-button,
-.icon-button,
 .input-action button,
 .editor-actions button,
 .editor-button,
@@ -369,36 +314,12 @@ input[type="checkbox"] {
   transition: 150ms ease;
 }
 
-.play-button:hover,
-.icon-button:hover,
 .input-action button:hover,
 .editor-actions button:hover,
 .editor-button:hover,
 .pipeline-button:hover {
   border-color: rgba(57, 217, 208, 0.62);
   background: rgba(57, 217, 208, 0.16);
-}
-
-.play-button {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: center;
-  height: 42px;
-  border-radius: 7px;
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.play-button--paused {
-  color: #ffe5d4;
-  border-color: rgba(255, 139, 69, 0.35);
-  background: rgba(255, 139, 69, 0.1);
-}
-
-.icon-button {
-  border-radius: 7px;
-  font-size: 20px;
 }
 
 .section-heading {
@@ -468,21 +389,6 @@ input[type="range"] {
   height: 3px;
   margin: 7px 0 3px;
   accent-color: var(--cyan);
-}
-
-.color-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-input[type="color"] {
-  width: 100%;
-  height: 38px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #0b1220;
 }
 
 .input-action {
@@ -843,55 +749,6 @@ input[type="color"] {
   line-height: 1.45;
 }
 
-.architecture-card {
-  margin: 18px;
-  padding: 15px;
-  border: 1px solid rgba(255, 139, 69, 0.16);
-  border-radius: 8px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 139, 69, 0.06),
-    rgba(57, 217, 208, 0.025)
-  );
-}
-
-.architecture-card span {
-  color: #ad795b;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-}
-
-.architecture-card p {
-  margin: 7px 0 4px;
-  color: #d8e2f0;
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 10px;
-  line-height: 1.55;
-}
-
-.architecture-card small {
-  color: #738198;
-  font-size: 9px;
-}
-
-footer {
-  z-index: 4;
-  display: flex;
-  justify-content: space-between;
-  min-height: 32px;
-  padding: 8px 20px;
-  border-top: 1px solid var(--line);
-  color: #59677d;
-  background: #050811;
-  font-size: 9px;
-  letter-spacing: 0.03em;
-}
-
-footer code {
-  color: #8190a6;
-}
-
 @media (max-width: 820px) {
   body {
     overflow: auto;
@@ -916,20 +773,6 @@ footer code {
     padding-inline: 16px;
   }
 
-  .engine-badge {
-    max-width: 44%;
-  }
-
-  .engine-badge span:last-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  footer {
-    gap: 12px;
-    flex-direction: column;
-  }
 }
 
 @media (max-width: 520px) {
@@ -940,10 +783,6 @@ footer code {
   .route-panel__detail,
   .route-panel__assignment {
     grid-column: 1 / -1;
-  }
-
-  .viewer-overlay--top > span:last-child {
-    display: none;
   }
 
   .viewer-overlay--bottom {

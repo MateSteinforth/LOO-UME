@@ -473,3 +473,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Draft manual model tests and the browser manual-to-STL-ZIP E2E
   journey.
 - **Status:** Resolved.
+
+### F-026 — The main interface exposed duplicate controls and internal status text
+
+- **Date:** 2026-08-22
+- **Context:** Operator review of the simulator before physical assembly.
+- **Symptom:** The interface mixed useful authoring actions with pause/restart,
+  fixed engine values, implementation provenance, repeated geometry guidance,
+  and long readiness text.
+- **Cause:** Development diagnostics and low-level tuning controls accumulated
+  in the primary operator interface after their values became project-derived
+  or stable defaults.
+- **Correction:** Keep WLED playback continuous, remove the duplicate controls
+  and explanatory chrome, and retain only hidden state hooks needed for stable
+  browser startup tests.
+- **Prevention:** Add an operator-facing control only when it changes a current
+  authored result or supports a necessary review action. Keep implementation
+  provenance and test synchronization state out of the visible workflow.
+- **Evidence:** `tests/browser/mechanics-free-authoring.spec.ts` asserts the
+  reduced interface and advancing engine timeline.
+- **Status:** Resolved.

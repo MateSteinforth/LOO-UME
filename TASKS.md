@@ -349,6 +349,25 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `UI-016` Remove redundant simulator chrome and controls
+
+- Outcome: the simulator keeps its primary authoring, wiring, generation, and
+  display controls without transport controls, low-level engine fields, or
+  repeated implementation guidance.
+- Acceptance: animation runs continuously; play/restart, primary/secondary
+  colors, virtual LED count, and shell-transparency controls are removed with
+  their event code; the requested header, viewport, mapping, editor, geometry,
+  architecture, and footer text is not visible; hidden readiness hooks preserve
+  deterministic browser startup waits; panel selection status remains useful.
+- Depends on: current integrated browser interface through `UI-015`.
+- Owner: `codex/ui013-stl-zip` in `/tmp/led-rhombo-stl-zip`.
+- Likely conflicts: `web/src/main.ts`, `web/src/styles.css`, and browser tests.
+- Verification: independent review found no production defect; strengthened
+  continuous-animation browser check passed 1/1; complete authoring,
+  generation, ZIP reopen, and manual-download journeys passed 3/3; editor suite
+  passed 33/33; full unit suite passed 284/284; TypeScript, Vite build, and
+  `git diff --check` passed.
+
 ### `UI-015` Export draft-suggestion assembly manuals end to end
 
 - Outcome: every current panelized wiring preview, including the automatic

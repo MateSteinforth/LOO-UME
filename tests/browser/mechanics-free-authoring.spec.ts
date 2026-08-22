@@ -159,10 +159,22 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator(".output-layer-toggle").first()).toBeEnabled();
   await page.locator("#wiring-layer").uncheck();
   await page.locator("#wiring-layer").check();
-  await page.locator("#play-toggle").click();
-  await expect(page.locator("#play-label")).toHaveText("Resume engine");
-  await page.locator("#play-toggle").click();
-  await expect(page.locator("#play-label")).toHaveText("Pause engine");
+  await expect(page.locator("#play-toggle, #restart")).toHaveCount(0);
+  await expect(
+    page.locator(
+      "#primary-color, #secondary-color, #led-count, #apply-count, #shell-transparency",
+    ),
+  ).toHaveCount(0);
+  await expect(page.locator(".viewer-overlay--top, .architecture-card, footer")).toHaveCount(0);
+  await expect(page.locator("#engine-status")).toBeHidden();
+  await expect(page.locator("#mapping-note")).toBeHidden();
+  const firstFrameTime = Number.parseInt(
+    await page.locator("#frame-time").innerText(),
+    10,
+  );
+  await expect
+    .poll(async () => Number.parseInt(await page.locator("#frame-time").innerText(), 10))
+    .toBeGreaterThan(firstFrameTime);
 
   const savedDownloadPromise = page.waitForEvent("download");
   await page.locator("#save-sculpture-file").click();
