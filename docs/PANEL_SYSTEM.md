@@ -176,6 +176,26 @@ utilization, and the governing case. A singular stiffness matrix or residual
 failure stops analysis with an error. These results guide load paths only; they
 are not engineering certification.
 
+`optimizeStructuralTruss()` uses the maximum absolute force and utilization
+from all selected cases. It can remove only inter-panel candidates; panel-local
+ties remain required attachments. A proposed removal must retain a connected,
+bridge-free graph and must pass a maximum-diameter stiffness and strength solve.
+If a complete removal batch is too weak, the optimizer restores the shortest
+members by stable ID until the hard limits can be met.
+
+Remaining members grow in the authored diameter increment. Yield needs area,
+buckling needs the circular fourth-power second moment, and the global
+displacement ratio scales all retained diameters. Each iteration recompiles
+member self-weight. The retained trace records removal and resize decisions,
+material, stress, buckling, displacement, long-compression, fragile-attachment,
+and unprintable-dimension terms.
+
+If the authored maximum diameter is not on the minimum-plus-increment grid, the
+optimizer uses the largest grid value below it. A low-force ratio must be in
+the interval `(0, 1]`. An infeasible terminal trace cannot be labeled as
+converged, and reaching the iteration bound while values still change reports
+`iteration-limit`.
+
 ### Panel-outline boundary generation
 
 Milestone 3 is implemented in `src/sculpture/PanelOutlineBoundary.ts`. A

@@ -115,9 +115,39 @@ yield utilization, pinned-pinned Euler buckling capacity and compression-only
 buckling utilization. The maximum of yield and buckling utilization selects
 the governing load case, with stable load-case ID as the tie-breaker.
 
+## Load-path and member optimization
+
+`optimizeStructuralTruss()` uses bounded deterministic iterations. “Unloaded”
+means that the maximum absolute member force across every selected load case is
+below the larger of the absolute floor and relative force threshold. Only
+inter-panel candidates can be removed. Long compression candidates are also
+removal targets. Panel-local ties always remain.
+
+The optimizer first tries the complete removal batch. It validates connected,
+bridge-free attachments and solves a copy with every retained diameter at the
+authored maximum. If that graph cannot satisfy stress, buckling, and
+displacement, it restores the shortest candidates with stable-ID tie-breaking.
+This capacity check prevents a graph that is topologically redundant but too
+flexible from losing needed load paths.
+
+Diameter sizing rounds up to `memberDiameterIncrementMm`. The effective maximum
+is the largest minimum-plus-increment grid value that does not exceed the
+authored maximum. Yield utilization scales with area, Euler buckling with the
+fourth power of diameter, and global displacement with area. Every changed
+diameter changes member mass, so the next iteration recompiles gravity loads.
+
+The objective adds material volume to weighted excess stress, buckling,
+displacement, long unsupported compression, fragile attachment, and
+unprintable-dimension terms. Connectivity validation makes the fragile term
+zero for accepted iterations; diameter rounding normally makes the printable
+term zero. The trace keeps the evaluated objective and exact removed or resized
+member IDs. A stationary result is `converged` only when all hard limits pass;
+otherwise it is `infeasible`. A result that still changes on the last permitted
+iteration is `iteration-limit`, even if its current values violate a limit.
+Only `converged` is eligible for printable generation.
+
 ## Remaining ordered implementation
 
-`TRUSS-014` through `TRUSS-018` add optimization, Manifold parts, STL/3MF
-export, reports, and browser portable-project integration. Every report must
-state that the analysis gives load-path guidance and is not engineering
-certification.
+`TRUSS-015` through `TRUSS-018` add Manifold parts, STL/3MF export, reports, and
+browser portable-project integration. Every report must state that the
+analysis gives load-path guidance and is not engineering certification.

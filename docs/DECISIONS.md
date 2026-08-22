@@ -452,6 +452,27 @@ generation. Face loads are shared across panel hubs; corner and cable loads use
 the nearest eligible hub as a rigid bracket-plate approximation. The result is
 load-path guidance and not engineering certification.
 
+## D20 — Optimization preserves capacity as well as graph redundancy
+
+**Decision.** Optimization removes only inter-panel candidates that are low
+force across all cases or carry long compression. A retained graph must have no
+bridge and must satisfy stress, buckling, and displacement in a
+maximum-diameter capacity solve. Diameter changes round up to authored print
+increments and trigger a new self-weight analysis. A non-grid authored maximum
+is quantized down to the largest permitted printable increment.
+
+**Evidence.** `src/structure/TrussOptimizer.ts` and
+`tests/truss-optimizer.test.ts` cover removal on the existing 41-panel project,
+redundancy, resizing, printable increments, self-weight, infeasible limits,
+iteration bounds, and reordered input. The default 41-panel optimization
+converges in seven iterations from 13,366 to 2,385 members.
+
+**Consequence.** Topological connectivity alone cannot authorize aggressive
+removal. The objective exposes material, stress, displacement, buckling, long-
+compression, attachment, and printability terms. Only a converged result can
+continue to printable geometry; infeasible and iteration-limit results remain
+diagnostic analysis.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

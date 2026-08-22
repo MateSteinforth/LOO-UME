@@ -431,3 +431,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   the exact suite with approved loopback access.
 - **Evidence:** The subsequent unchanged full suite passed all 296 tests.
 - **Status:** Resolved.
+
+### F-024 — Bridge-free removal can retain a structure that is too flexible
+
+- **Date:** 2026-08-22
+- **Context:** TRUSS-014 removal of low-load candidates from the 41-panel
+  candidate graph.
+- **Symptom:** The reduced graph stayed connected and had no bridge, but its
+  displacement utilization was about 39 even at the maximum member diameter.
+- **Cause:** Graph redundancy proves alternate paths, not adequate 3D stiffness
+  or strength.
+- **Correction:** Test every removal proposal with a maximum-diameter capacity
+  solve. Restore the shortest candidates in stable order until stress,
+  buckling, and displacement can pass.
+- **Prevention:** Never accept structural member removal from connectivity
+  checks alone. Require both redundant topology and numerical capacity.
+- **Evidence:** `tests/truss-optimizer.test.ts` and decision D20.
+- **Status:** Resolved.

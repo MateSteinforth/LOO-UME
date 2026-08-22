@@ -45,19 +45,6 @@ This file is the persistent source of truth for work status. Read it before star
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
 
-### `TRUSS-014` Optimize member sizes and load paths
-
-- Outcome: minimize material with bounded deterministic resizing and removal
-  while retaining required connectivity and redundant load paths.
-- Acceptance: the objective penalizes stress, displacement, buckling, long
-  unsupported compression members, fragile attachments, and unprintable
-  dimensions; member self-weight is updated; unloaded means unloaded across all
-  selected cases; iteration limits, tie-breaking, convergence, and failure are
-  explicit; an optimization trace is retained.
-- Depends on: `TRUSS-012` and `TRUSS-013`.
-- Verify: sizing, buckling, displacement, removal, redundancy, convergence, and
-  deterministic-output tests.
-
 ### `TRUSS-015` Generate printable Manifold brackets, hubs, and struts
 
 - Outcome: turn the optimized graph into separated watertight parts with
@@ -500,6 +487,32 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   sub-newton residual gaps; explicit finite gates and the corrected denominator
   passed re-review with no remaining finding.
 - Depends on: `TRUSS-011` and `TRUSS-012`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Continue on the operator-authorized truss
+  workstream without a merge to `main`.
+- Likely conflicts: `TASKS.md`, `src/structure/`, structural workflow and
+  architecture documentation, and structural tests.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
+### `TRUSS-014` Optimize member sizes and load paths
+
+- Outcome: bounded deterministic iterations remove consistently low-load or
+  long-compression inter-panel candidates, restore capacity paths, round
+  printable diameters, and update member self-weight.
+- Acceptance: the objective exposes material, stress, displacement, buckling,
+  long compression, fragile attachment, and unprintable-dimension terms;
+  removal preserves bridge-free topology and maximum-diameter capacity;
+  convergence, infeasibility, and iteration limits are distinct and traced.
+- Evidence: 5 optimizer tests cover the existing 41-panel project, removal,
+  redundancy and capacity, sizing, print increments, self-weight, infeasible
+  limits, bounded iteration, ratio validation, and reordered input. The default
+  project converges in seven iterations from 13,366 to 2,385 members. All 302
+  Vitest tests, `npx tsc -b --pretty false`, `npm run build:web`, and
+  `git diff --check` pass. Independent review found terminal-state,
+  attachment-penalty, diameter-grid, and ratio-bound gaps; all corrections
+  passed focused re-review with no remaining finding.
+- Depends on: `TRUSS-012` and `TRUSS-013`.
 - Owner: branch `codex/truss-011-structural-contract`; worktree
   `/tmp/led-rhombo-truss-011`. Continue on the operator-authorized truss
   workstream without a merge to `main`.
