@@ -489,7 +489,26 @@
       }
     },
     "mapping": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projection",
+        "logicalOrder"
+      ],
+      "properties": {
+        "projection": {
+          "const": "equirectangular"
+        },
+        "logicalOrder": {
+          "const": "north-to-south-then-longitude"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
     "wiring": {
       "type": "object",
@@ -780,7 +799,41 @@
       ]
     },
     "calibration": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "panelTransforms",
+        "installedPanelOrientation",
+        "panelPixelOrder",
+        "physicalChains"
+      ],
+      "properties": {
+        "panelTransforms": {
+          "enum": [
+            "generated-provisional",
+            "measured"
+          ]
+        },
+        "installedPanelOrientation": {
+          "enum": [
+            "unknown",
+            "provisional",
+            "measured"
+          ]
+        },
+        "panelPixelOrder": {
+          "enum": [
+            "provisional",
+            "measured"
+          ]
+        },
+        "physicalChains": {
+          "enum": [
+            "provisional",
+            "measured"
+          ]
+        }
+      }
     },
     "notes": {
       "type": "array",
@@ -818,6 +871,7 @@
               "vertices": {
                 "type": "array",
                 "minItems": 3,
+                "uniqueItems": true,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,

@@ -23,7 +23,9 @@ edit marks derived mechanics stale but does not stop those functions.
 
 ## Authoritative data flow
 
-1. `LoadPanelAssemblyProject.ts` resolves the panel profile and parses Schema 2.
+1. `parsePanelAssemblyDefinition()` is the central deep Schema 2 runtime
+   validator. `LoadPanelAssemblyProject.ts` is the thin CLI file adapter, while
+   browser and portable-project adapters use the same profile-resolving loader.
 2. `createPanelAssemblyMapping()` expands authoritative poses into panels, LED
    world positions, logical indices, and mapping metadata.
 3. `createProvisionalWiringPreview()` uses the saved route or creates a labelled

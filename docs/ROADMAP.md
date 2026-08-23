@@ -34,8 +34,8 @@ blocked by `PWR-010`.
 
 ## Known technical seams
 
-- Centralize deep Schema 2 runtime validation and derive LED dimensions from
-  the selected panel profile.
+- Derive LED dimensions from the selected panel profile throughout validation,
+  export, reload, and display.
 - Bound ZIP entry count, size, total expansion, and compression ratio.
 - Preflight panel footprints during automatic placement.
 - Strengthen ledmap fingerprints beyond the low 16 bits of each index.
