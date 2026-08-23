@@ -173,8 +173,8 @@ function assumptions(normalized: NormalizedStructuralDesign): string[] {
   const connectorAssumption = normalized.warnings.some(
     ({ code }) => code === "ELECTRICAL_KEEPOUTS_UNMEASURED",
   )
-    ? "Exact connector pad geometry is unknown; cable clearance uses conservative cylindrical voids at the measured connector corners."
-    : "Connector clearance follows the resolved panel-profile evidence.";
+    ? "Exact connector pad geometry is unknown; measured connector corners inform cable loads but do not create ribbon bores."
+    : "Connector locations inform cable loads but do not create ribbon bores.";
   return [
     "Panels are rigid load-transfer plates between their eligible mounting anchors.",
     "Panel-rigidity nodes and ties represent PCB/bracket plate stiffness for analysis only; they are not extra printable struts.",

@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-22
+Last reconciled: 2026-08-23
 Integration baseline: `main` at `b9e0f7c`, which combines the Codex
 wiring/manual work and Grok Manifold work.
 Current milestone: generate a deterministic structural truss and printable
@@ -177,29 +177,6 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Depends on: none. Keep this validation slice behavior-focused rather than a broad refactor.
 
 ## In Progress
-
-### `TRUSS-032` Merge spatially shared panel pairs into local ribbon junctions — P0
-
-- Outcome: three or more panels whose nearest-hole connection regions meet in
-  one small gap produce one smooth local printable junction instead of
-  overlapping pair parts.
-- Acceptance: spatial grouping uses pose-derived anchor locations, not graph
-  connectivity alone; anchors can be shared only inside one detected local
-  junction; a trail remains separate pair ribbons; grouped CAD emits one
-  watertight part with all exact holes and clearances preserved; PCB and print
-  checks run on the final union; sub-micron Boolean sliver faces are removed by
-  a documented 0.001 mm Manifold simplification before the strict triangle
-  gate; authored three-panel junction and twelve-panel rising-spiral trials are
-  available in the browser without a new panel schema.
-- Depends on: `TRUSS-031`.
-- Owner: branch `codex/truss-011-structural-contract`; worktree
-  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
-- Likely conflicts: `TASKS.md`, connector candidate types and anchor ownership,
-  structural Manifold generation, pipeline counts/reports, sculpture registry,
-  browser tests, and structural documentation.
-- Verify: junction-versus-trail grouping, shared-anchor ownership, deterministic
-  reorder, final hardware voids, PCB/print failures, STL/3MF export, TypeScript,
-  full Vitest/web checks, and real Chromium visual review.
 
 ## Blocked
 
@@ -391,6 +368,35 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 
 ## Ready to Merge
 
+### `TRUSS-032` Merge spatially shared panel pairs into local ribbon junctions — P0
+
+- Outcome: three or more panels whose nearest-hole connection regions meet in
+  one small gap produce one smooth local printable junction instead of
+  overlapping pair parts.
+- Acceptance: spatial grouping uses pose-derived anchor locations, not graph
+  connectivity alone; anchors can be shared only inside one detected local
+  junction; a trail remains separate pair ribbons; grouped CAD emits one
+  watertight part whose only voids are the exact screw-axis pilots and
+  lead-ins; PCB and print checks run on the final union; sub-micron Boolean
+  sliver faces are removed by a documented 0.001 mm Manifold simplification
+  before the strict triangle gate; authored three-panel junction and
+  twelve-panel rising-spiral trials are available in the browser without a new
+  panel schema.
+- Evidence: all 345 Vitest tests, TypeScript, pinned WASM, asset staging, and
+  the production web build pass. Both real Chromium structural journeys pass.
+  The isolated two-panel STL visual shows only screw-axis openings. OpenSCAD is
+  unavailable on this host, so that browser STL render is not an OpenSCAD
+  render. Independent review found one stale workflow statement; after repair,
+  re-review found no P1/P2/P3 finding.
+- Depends on: `TRUSS-031`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, connector candidate types and anchor ownership,
+  structural Manifold generation, pipeline counts/reports, sculpture registry,
+  browser tests, and structural documentation.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
 ### `TRUSS-031` Generate fabrication ribbons when advisory analysis fails — P0
 
 - Outcome: valid nearest-hole cap-surface ribbons remain printable when the
@@ -427,9 +433,8 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Acceptance: the existing nearest-unused-anchor selection stays authoritative;
   each exact panel-facing shoe is an end profile of one deterministic
   nine-station cubic loft; arbitrary panel orientations produce a continuous
-  watertight body; exact pilots, lead-ins, shallow nut pockets with lateral
-  access, cable clearances, proven corrections, PCB avoidance, print limits,
-  and local panel-pair separation remain unchanged; the report separates axial
+  watertight body; exact pilots, lead-ins, proven corrections, PCB avoidance,
+  print limits, and local panel-pair separation remain unchanged; the report separates axial
   analysis from uncertified loft behavior.
 - Evidence: 23 focused candidate/solid/pipeline tests and all 336 Vitest tests
   pass. TypeScript, pinned WASM, asset generation, production web build,
@@ -437,7 +442,9 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   generate/export/reopen journey pass. The spatial trail produces two local
   PCB-safe loft bodies. Independent review found partial-construction WASM
   leaks and an over-deep nut tunnel; both fixes passed re-review with no
-  remaining P1/P2 finding.
+  remaining P1/P2 finding. The 2026-08-23 operator correction supersedes its
+  nut-pocket and cable-bore behavior: current ribbons have screw-axis openings
+  only.
 - Depends on: `TRUSS-026` through `TRUSS-029`.
 - Owner: branch `codex/truss-011-structural-contract`; worktree
   `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
@@ -453,8 +460,8 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   derived from the canonical fixtures, then grows into one smooth bounded
   implicit body around the optimized local load-path skeleton.
 - Acceptance: one watertight body is produced per panel-pair cell; all retained
-  member sections are contained; exact pilots, lead-ins, nut pockets, cable
-  voids, orientation marks, 13 mm screw shoes, and proven 0.20/0.50 mm
+  member sections are contained; exact pilots, lead-ins, orientation marks,
+  13 mm screw shoes, and proven 0.20/0.50 mm
   corrections remain after blending; oversize bodies fail clearly; the browser
   and report distinguish printable organic material from the analysis skeleton.
 - Depends on: `TRUSS-025` and the physically tested files under `parts/`.

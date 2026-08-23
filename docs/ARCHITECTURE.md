@@ -274,11 +274,10 @@ Structural CAD emits one loft body per panel-pair cell. Broad 13 mm rounded
 screw shoes reuse the canonical triangle/pentagon fixture language. Nine
 cap-shaped stations follow a cubic path with a short 6 mm departure along each
 PCB rear normal. Adjacent stations form a flat, continuous twisted ribbon, then profile
-pilot holes, lead-ins, measured flush offsets, shallow hex pockets with lateral
-insertion slots,
-conservative DIN/DOUT clearance bores, and a stable orientation mark are cut or
-joined with Manifold. Every body must fit the configured print envelope after
-margin and rotation. The axial truss validates load paths and reports circular
+pilot holes, lead-ins, measured flush offsets, and a stable raised orientation
+mark are cut or joined with Manifold. DIN/DOUT locations remain cable-load
+inputs but do not cut printable material. Every body must fit the configured
+print envelope after margin and rotation. The axial truss validates load paths and reports circular
 member sizing, but those sections do not set loft thickness or certify stress
 in the loft. Oversize splitting is not yet implemented.
 

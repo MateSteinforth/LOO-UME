@@ -186,10 +186,10 @@ anchor stays at the exact authored hole. The printed pilot
 moves 0.20 mm inward from the nearest panel edge, consistent with the measured
 hole-edge correction. Printed material starts at the rear PCB surface plus the
 measured 0.50 mm flush correction. Boolean cutters create the profile's 1.60 mm
-pilots and 3.20 × 0.70 mm lead-ins, 2.20 mm-deep × 4.20 mm
-across-flats M2 pockets with lateral insertion slots, and configured
-cable-clearance bores at DIN/DOUT-blocked
-profile holes. A triangular rear mark identifies the first stable side.
+pilots and 3.20 × 0.70 mm lead-ins. These screw-axis openings are the only
+voids in a ribbon: there are no nut or insert pockets, transverse access
+tunnels, or DIN/DOUT cable bores. Cable locations remain load-case inputs only.
+A triangular rear mark identifies the first stable side.
 
 Nine deterministic cap-shaped stations interpolate the two screw-shoe
 profiles. Their center path is cubic: it first leaves each PCB only 6 mm along

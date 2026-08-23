@@ -664,12 +664,28 @@ Boolean slivers before the non-degenerate-triangle gate.
 **Evidence.** The three-panel junction fixture produces two candidate paths,
 one junction ID, six unique pilot holes, and one watertight mesh. The spaced
 three-panel trail keeps two junction-free printable ribbons. Tests probe every
-merged screw, nut, and cable void and retain final PCB and print-bed checks.
+merged screw void and retain final PCB and print-bed checks.
 
 **Consequence.** Three or more panels can meet smoothly without becoming a
 sculpture-sized printed structure. Graph connectivity alone never authorizes a
 merge, so a long panel trail stays modular. The junction remains load-path
 guidance, not engineering certification.
+
+## D30 — Ribbon solids contain only screw-axis openings
+
+**Decision.** The printable ribbon subtracts only each selected mounting
+hole's corrected 1.60 mm pilot and 3.20 mm lead-in. It does not subtract hex
+nut or insert pockets, lateral access tunnels, or DIN/DOUT cable bores. Cable
+locations remain valid load-case inputs and do not define fabrication voids.
+
+**Evidence.** Focused Manifold tests require empty auxiliary-void metadata,
+one screw opening per selected anchor, and unchanged watertight, PCB-envelope,
+and print-bed validation for independent ribbons and merged junctions.
+
+**Consequence.** The screw path cannot be intersected by a transverse pocket,
+and the middle of a ribbon has no unrelated round opening. This supersedes the
+auxiliary-void parts of D21, D26, D27, and D29 without changing panel poses,
+anchor selection, cable-load analysis, or the proven hole/flush corrections.
 
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in

@@ -63,11 +63,9 @@ describe("Manifold structural solids", () => {
     });
     expect(parts[0]!.anchorIds).toHaveLength(6);
     expect(parts[0]!.genus).toBe(parts[0]!.anchorIds.length);
-    for (const point of [
-      ...parts[0]!.screwHoleCentersMm,
-      ...parts[0]!.nutTrapCentersMm,
-      ...parts[0]!.cableClearanceCentersMm,
-    ]) {
+    expect(parts[0]!.nutTrapCentersMm).toEqual([]);
+    expect(parts[0]!.cableClearanceCentersMm).toEqual([]);
+    for (const point of parts[0]!.screwHoleCentersMm) {
       expect(await structuralMeshContainsPoint(parts[0]!, point)).toBe(false);
     }
   });
@@ -126,7 +124,7 @@ describe("Manifold structural solids", () => {
     })).toBe(true);
   }, 30_000);
 
-  it("preserves exact anchors and cuts screw holes, nut traps, sockets, and cable clearance", async () => {
+  it("preserves exact anchors and cuts only screw-axis pilots and lead-ins", async () => {
     const { normalized, optimized } = await structuralFixture();
     const parts = await buildStructuralSolids(normalized, optimized);
     const cell = optimized.optimizedCandidate.connectorCells[0]!;
@@ -145,36 +143,18 @@ describe("Manifold structural solids", () => {
     expect(bracket.holeEdgeCorrectionMm).toBe(0.2);
     expect(bracket.surfaceFlushCorrectionMm).toBe(0.5);
     expect(bracket.screwHoleCentersMm).toHaveLength(4);
-    expect(bracket.nutTrapCentersMm).toHaveLength(4);
-    expect(bracket.nutTrapDepthMm).toBe(2.2);
-    expect(bracket.cableClearanceCentersMm).toHaveLength(4);
+    expect(bracket.nutTrapCentersMm).toEqual([]);
+    expect(bracket.nutTrapDepthMm).toBeUndefined();
+    expect(bracket.cableClearanceCentersMm).toEqual([]);
     expect(bracket.socketCentersMm).toHaveLength(0);
-    for (const point of [
-      ...bracket.screwHoleCentersMm,
-      ...bracket.nutTrapCentersMm,
-      ...bracket.cableClearanceCentersMm,
-      ...bracket.socketCentersMm,
-    ]) {
+    expect(bracket.genus).toBe(bracket.screwHoleCentersMm.length);
+    for (const point of bracket.screwHoleCentersMm) {
       expect(await structuralMeshContainsPoint(bracket, point)).toBe(false);
-    }
-    for (let index = 0; index < panelAnchors.length; index += 1) {
-      const anchor = panelAnchors[index]!;
-      const panel = normalized.panels.find(({ id }) => id === anchor.panelId)!;
-      const acrossPocket = Math.abs(anchor.localPositionMm[0]) >=
-          Math.abs(anchor.localPositionMm[1]) ? panel.yAxis : panel.xAxis;
-      const center = bracket.nutTrapCentersMm[index]!;
-      const beyondPocket = {
-        x: center.x - panel.outwardNormal[0] * 3 + acrossPocket[0] * 2,
-        y: center.y - panel.outwardNormal[1] * 3 + acrossPocket[1] * 2,
-        z: center.z - panel.outwardNormal[2] * 3 + acrossPocket[2] * 2,
-      };
-      expect(await structuralMeshContainsPoint(bracket, beyondPocket)).toBe(true);
     }
     expect(bracket.orientationMarkCenterMm).toBeDefined();
     expect(await structuralMeshContainsPoint(bracket, bracket.orientationMarkCenterMm!))
       .toBe(true);
     expect(STRUCTURAL_GEOMETRY_POLICY.minimumWallMm).toBeGreaterThanOrEqual(1.2);
-    expect(STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm).toBe(4.2);
   });
 
   it("extends each cap shoe through a continuous print-bed-bounded loft", async () => {

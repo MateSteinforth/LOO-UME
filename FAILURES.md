@@ -695,3 +695,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   parts. Its regression checks every exported triangle above the gate; focused
   hardware-void, STL, 3MF, and pipeline tests also pass.
 - **Status:** Resolved.
+
+### F-038 — Analysis clearances must not become unrequested ribbon holes
+
+- **Date:** 2026-08-23
+- **Context:** Visual review of arbitrary-pose cap-surface ribbons.
+- **Symptom:** Hexagonal pockets and their lateral tunnels intersected the
+  screw paths, and DIN/DOUT clearance cylinders made round holes in the ribbon.
+- **Cause:** Early bracket-and-strut hardware features were carried into the
+  later one-piece loft geometry although the ribbon requires only screw holes.
+- **Correction:** Subtract only corrected screw pilots and lead-ins from ribbon
+  solids. Keep DIN/DOUT locations for cable-load analysis without CAD bores.
+- **Prevention:** Treat analysis load points and fabrication voids as separate
+  contracts. A ribbon-hole regression must require empty nut/cable void sets.
+- **Evidence:** `tests/structural-solids.test.ts`, the two-panel generated STL,
+  and the real-browser generation journey.
+- **Status:** Resolved.

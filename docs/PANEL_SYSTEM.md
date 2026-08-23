@@ -199,9 +199,10 @@ the interval `(0, 1]`. An infeasible terminal trace cannot be labeled as
 converged, and reaching the iteration bound while values still change reports
 `iteration-limit`.
 
-The normalizer also derives a cable-clearance axis at each profile hole blocked
-by DIN or DOUT. `buildStructuralSolids()` uses those axes only as conservative
-voids; it does not claim measured connector-pad geometry.
+The normalizer also derives a cable-load axis at each profile hole blocked by
+DIN or DOUT. It is an analysis input only. Ribbon CAD does not cut a cable bore
+at that location because the printable connector must contain no opening other
+than its screw-axis pilots and lead-ins.
 
 Each independent panel-pair connector is one printable loft body. Each side starts with
 broad 13 mm rounded screw shoes derived from the canonical triangle and
@@ -210,9 +211,9 @@ nearest the neighboring panel. Those shoes are the exact end profiles of one
 twisted cap surface. A body does not join another panel-pair cell. The shoe
 starts at the PCB rear surface plus the proven 0.50 mm flush correction. It keeps the profile's 1.60 mm pilot,
 3.20 × 0.70 mm lead-in, and moves the pilot 0.20 mm inward from its nearest
-panel edge. The exact authored hole remains the structural anchor. Each shoe
-has a 2.20 mm-deep, 4.20 mm across-flats M2 hex pocket with a lateral
-insertion slot toward the nearest panel edge. When at least two selected pairs
+panel edge. The exact authored hole remains the structural anchor. It does not
+add a nut pocket, insert pocket, transverse access tunnel, or cable bore. When
+at least two selected pairs
 share a panel and all pose-derived nearest-hole connection regions are within
 70% of the smallest involved panel dimension, candidate generation marks one
 local junction. It reuses that junction's screw shoes on the shared panel and

@@ -28,8 +28,6 @@ export interface StructuralGeometryPolicy {
   socketBossExtensionMm: number;
   socketRadialClearanceMm: number;
   tenonRadialReductionMm: number;
-  nutTrapAcrossFlatsMm: number;
-  nutTrapDepthMm: number;
   orientationMarkHeightMm: number;
   capScrewTabWidthMm: number;
   capShoeThicknessMm: number;
@@ -46,8 +44,6 @@ export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
   socketBossExtensionMm: 1.5,
   socketRadialClearanceMm: 0.15,
   tenonRadialReductionMm: 0.1,
-  nutTrapAcrossFlatsMm: 4.2,
-  nutTrapDepthMm: 2.2,
   orientationMarkHeightMm: 1.2,
   capScrewTabWidthMm: 13,
   capShoeThicknessMm: 3,
@@ -448,7 +444,6 @@ export function buildConnectorBracket(
   const cutters: Manifold[] = [];
   const screwHoleCentersMm: StructuralSolidProbe[] = [];
   const anchorCentersMm: StructuralSolidProbe[] = [];
-  const nutTrapCentersMm: StructuralSolidProbe[] = [];
   const socketCentersMm: StructuralSolidProbe[] = [];
   try {
   for (const node of nodes) {
@@ -494,22 +489,8 @@ export function buildConnectorBracket(
       anchor.screwLeadInDiameterMm / 2,
       anchor.printedPilotDiameterMm / 2,
     ));
-    const nutStart = add(
-      pilotHubPosition,
-      scale(inward, hubRadius - STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm),
-    );
-    const nutEnd = add(pilotHubPosition, scale(inward, hubRadius + EPSILON_MM));
-    cutters.push(cylinderAlong(
-      wasm,
-      nutStart,
-      nutEnd,
-      STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm / Math.sqrt(3),
-      STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm / Math.sqrt(3),
-      6,
-    ));
     anchorCentersMm.push(probe(bracket.anchorPositionMm));
     screwHoleCentersMm.push(probe(scale(add(mountPosition, screwEnd), 0.5)));
-    nutTrapCentersMm.push(probe(add(nutStart, scale(inward, STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm / 2))));
   }
   for (const memberId of cell.bracketTieMemberIds[sideIndex]) {
     const member = memberById.get(memberId);
@@ -553,21 +534,6 @@ export function buildConnectorBracket(
     cutters.push(cylinderAlong(wasm, socketStart, socketEnd, boreRadius));
     socketCentersMm.push(probe(add(node.positionMm, scale(direction, hubRadius))));
   }
-  const cableClearanceCentersMm: StructuralSolidProbe[] = [];
-  for (const clearance of normalized.cableClearances.filter((item) => item.panelId === panelId)) {
-    const inward = scale(clearance.outwardNormal, -1);
-    const start = add(clearance.positionMm, scale(inward, -EPSILON_MM));
-    const end = add(
-      clearance.positionMm,
-      scale(inward, normalized.design.fabrication.bracketOffsetMm +
-        2 * Math.max(...nodes.map((node) => hubRadii.get(node.id)!))),
-    );
-    cutters.push(cylinderAlong(wasm, start, end, clearance.diameterMm / 2));
-    cableClearanceCentersMm.push(probe(add(
-      clearance.positionMm,
-      scale(inward, normalized.design.fabrication.bracketOffsetMm),
-    )));
-  }
   const firstTie = memberById.get([...cell.bracketTieMemberIds[sideIndex]].sort()[0]!)!;
   const firstTieStart = nodeById.get(firstTie.startNodeId)!;
   const firstTieEnd = nodeById.get(firstTie.endNodeId)!;
@@ -593,8 +559,8 @@ export function buildConnectorBracket(
       holeEdgeCorrectionMm: normalized.anchors[0]?.holeEdgeCorrectionMm,
       surfaceFlushCorrectionMm: normalized.anchors[0]?.surfaceFlushCorrectionMm,
       screwHoleCentersMm,
-      nutTrapCentersMm,
-      cableClearanceCentersMm,
+      nutTrapCentersMm: [],
+      cableClearanceCentersMm: [],
       socketCentersMm,
       orientationMarkCenterMm: probe(add(markStart, scale(markAxis, STRUCTURAL_GEOMETRY_POLICY.orientationMarkHeightMm / 2))),
     });
@@ -1010,8 +976,6 @@ function buildOrganicConnector(
   const loftSides: LoftSide[] = [];
   const anchorCentersMm: StructuralSolidProbe[] = [];
   const screwHoleCentersMm: StructuralSolidProbe[] = [];
-  const nutTrapCentersMm: StructuralSolidProbe[] = [];
-  const cableClearanceCentersMm: StructuralSolidProbe[] = [];
   let orientationMarkCenterMm: StructuralSolidProbe | undefined;
   try {
     for (const sideIndex of [0, 1] as const) {
@@ -1060,61 +1024,13 @@ function buildOrganicConnector(
           anchor.screwLeadInDiameterMm / 2,
           anchor.printedPilotDiameterMm / 2,
         ));
-        const nutStart = add(mountPosition, scale(
-          inward,
-          STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm -
-            STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm,
-        ));
-        const nutEnd = add(
-          mountPosition,
-          scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm + EPSILON_MM),
-        );
-        cutters.push(cylinderAlong(
-          wasm,
-          nutStart,
-          nutEnd,
-          STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm / Math.sqrt(3),
-          STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm / Math.sqrt(3),
-          6,
-        ));
-        const local = anchor.localPositionMm;
-        const slotAxis = Math.abs(local[0]) >= Math.abs(local[1])
-          ? scale(panel.xAxis, Math.sign(local[0]) || 1)
-          : scale(panel.yAxis, Math.sign(local[1]) || 1);
-        const nutCenter = add(
-          nutStart,
-          scale(subtract(nutEnd, nutStart), STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm /
-            (2 * distance(nutStart, nutEnd))),
-        );
-        cutters.push(cylinderAlong(
-          wasm,
-          nutCenter,
-          add(nutCenter, scale(slotAxis,
-            STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm)),
-          STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm / Math.sqrt(3),
-          STRUCTURAL_GEOMETRY_POLICY.nutTrapAcrossFlatsMm / Math.sqrt(3),
-          6,
-        ));
         anchorCentersMm.push(probe(bracket.anchorPositionMm));
         screwHoleCentersMm.push(probe(scale(add(mountPosition, screwEnd), 0.5)));
-        nutTrapCentersMm.push(probe(nutCenter));
       }
       loftSides.push({ frontMm, backMm });
       const midpoint = scale(mountPositions.reduce((sum, point) => add(sum, point), [0, 0, 0]),
         1 / mountPositions.length);
       const inward = scale(panel.outwardNormal, -1);
-      for (const clearance of normalized.cableClearances.filter((item) => item.panelId === panelId)) {
-        const start = add(clearance.positionMm, scale(inward, -EPSILON_MM));
-        const end = add(
-          clearance.positionMm,
-          scale(inward, 2 * STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm),
-        );
-        cutters.push(cylinderAlong(wasm, start, end, clearance.diameterMm / 2));
-        cableClearanceCentersMm.push(probe(add(
-          clearance.positionMm,
-          scale(inward, normalized.design.fabrication.bracketOffsetMm),
-        )));
-      }
       if (sideIndex === 0) {
         const markStart = add(midpoint, scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm));
         const markEnd = add(
@@ -1150,9 +1066,8 @@ function buildOrganicConnector(
         holeEdgeCorrectionMm: normalized.anchors[0]?.holeEdgeCorrectionMm,
         surfaceFlushCorrectionMm: normalized.anchors[0]?.surfaceFlushCorrectionMm,
         screwHoleCentersMm,
-        nutTrapCentersMm,
-        nutTrapDepthMm: STRUCTURAL_GEOMETRY_POLICY.nutTrapDepthMm,
-        cableClearanceCentersMm,
+        nutTrapCentersMm: [],
+        cableClearanceCentersMm: [],
         socketCentersMm: [],
         orientationMarkCenterMm,
         loftStationCentersMm: loft.stationCentersMm,
