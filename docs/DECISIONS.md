@@ -687,6 +687,29 @@ and the middle of a ribbon has no unrelated round opening. This supersedes the
 auxiliary-void parts of D21, D26, D27, and D29 without changing panel poses,
 anchor selection, cable-load analysis, or the proven hole/flush corrections.
 
+## D31 — Ribbon screw pairs identify their destination panel
+
+**Decision.** Each ribbon end reuses `PanelIdGlyphs.ts` to recess its own panel
+ID 0.55 mm into the flat panel-facing shoe, centered between the selected screw
+pair. The label means “attach this end to this panel.” Unsupported characters
+use the flat-cap glyph filtering behavior; CAD does not add a system-font
+dependency. A merged junction deduplicates identical label probes by panel and
+world position.
+
+Labeled solids are warped to the Float32 coordinates used by STL/3MF export,
+assigned the existing 0.001 mm tolerance, and simplified before mesh
+validation. This removes triangles that become degenerate only after exported
+coordinate rounding without increasing the mechanical cleanup tolerance.
+
+**Evidence.** Solid tests probe each recess, confirm material below its 0.55 mm
+depth, require one unique label for each junction panel, preserve screw-only
+genus, and retain deterministic reordered artifact bytes. Isolated STL review
+shows the recessed panel ID between the screw holes.
+
+**Consequence.** Loose printed connectors remain identifiable during assembly
+without a separate part map or new panel schema. Labels are shallow recesses,
+not new through-openings, and the screw pilots remain the only holes.
+
 Remaining proposals and product decisions belong in [`ROADMAP.md`](ROADMAP.md);
 the full implemented fabrication workflow is recorded in
 [`MECHANICS_WORKFLOW.md`](MECHANICS_WORKFLOW.md).

@@ -65,8 +65,16 @@ describe("Manifold structural solids", () => {
     expect(parts[0]!.genus).toBe(parts[0]!.anchorIds.length);
     expect(parts[0]!.nutTrapCentersMm).toEqual([]);
     expect(parts[0]!.cableClearanceCentersMm).toEqual([]);
+    expect(parts[0]!.labelCentersMm?.map(({ panelId }) => panelId).sort()).toEqual([
+      "P-01",
+      "P-02",
+      "P-03",
+    ]);
     for (const point of parts[0]!.screwHoleCentersMm) {
       expect(await structuralMeshContainsPoint(parts[0]!, point)).toBe(false);
+    }
+    for (const point of parts[0]!.labelCentersMm ?? []) {
+      expect(await structuralMeshContainsPoint(parts[0]!, point, 0.1)).toBe(false);
     }
   });
 
@@ -148,13 +156,30 @@ describe("Manifold structural solids", () => {
     expect(bracket.cableClearanceCentersMm).toEqual([]);
     expect(bracket.socketCentersMm).toHaveLength(0);
     expect(bracket.genus).toBe(bracket.screwHoleCentersMm.length);
+    expect(bracket.labelDepthMm).toBe(0.55);
+    expect(bracket.labelCentersMm?.map(({ panelId }) => panelId)).toEqual([
+      "P-01",
+      "P-02",
+    ]);
     for (const point of bracket.screwHoleCentersMm) {
       expect(await structuralMeshContainsPoint(bracket, point)).toBe(false);
+    }
+    for (const point of bracket.labelCentersMm ?? []) {
+      expect(await structuralMeshContainsPoint(bracket, point, 0.1)).toBe(false);
+      const panel = normalized.panels.find(({ id }) => id === point.panelId)!;
+      const belowEngraving = {
+        x: point.x - panel.outwardNormal[0] * 0.7,
+        y: point.y - panel.outwardNormal[1] * 0.7,
+        z: point.z - panel.outwardNormal[2] * 0.7,
+      };
+      expect(await structuralMeshContainsPoint(bracket, belowEngraving, 0.1)).toBe(true);
     }
     expect(bracket.orientationMarkCenterMm).toBeDefined();
     expect(await structuralMeshContainsPoint(bracket, bracket.orientationMarkCenterMm!))
       .toBe(true);
     expect(STRUCTURAL_GEOMETRY_POLICY.minimumWallMm).toBeGreaterThanOrEqual(1.2);
+    expect(STRUCTURAL_GEOMETRY_POLICY.panelLabelPixelMm).toBe(0.62);
+    expect(STRUCTURAL_GEOMETRY_POLICY.panelLabelDepthMm).toBe(0.55);
   });
 
   it("extends each cap shoe through a continuous print-bed-bounded loft", async () => {

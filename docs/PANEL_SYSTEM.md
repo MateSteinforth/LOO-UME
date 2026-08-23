@@ -213,7 +213,9 @@ starts at the PCB rear surface plus the proven 0.50 mm flush correction. It keep
 3.20 × 0.70 mm lead-in, and moves the pilot 0.20 mm inward from its nearest
 panel edge. The exact authored hole remains the structural anchor. It does not
 add a nut pocket, insert pocket, transverse access tunnel, or cable bore. When
-at least two selected pairs
+the existing 5×7 glyph set supports the panel ID, a 0.55 mm-deep recessed ID is
+centered between the two screws on the flat panel-facing surface. It identifies
+the panel that the screw pair mounts to. When at least two selected pairs
 share a panel and all pose-derived nearest-hole connection regions are within
 70% of the smallest involved panel dimension, candidate generation marks one
 local junction. It reuses that junction's screw shoes on the shared panel and

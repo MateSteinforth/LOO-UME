@@ -10,6 +10,7 @@ import type {
 import { validateCandidateTruss } from "../structure/CandidateTruss.ts";
 import type { TrussOptimizationResult } from "../structure/TrussOptimizer.ts";
 import { loadManifoldRuntime } from "./ManifoldRuntime.ts";
+import { panelIdLabelSection, panelIdLabelSize } from "./PanelIdGlyphs.ts";
 
 const EPSILON_MM = 0.03;
 const CIRCULAR_SEGMENTS = 32;
@@ -31,6 +32,8 @@ export interface StructuralGeometryPolicy {
   orientationMarkHeightMm: number;
   capScrewTabWidthMm: number;
   capShoeThicknessMm: number;
+  panelLabelPixelMm: number;
+  panelLabelDepthMm: number;
   loftStationCount: number;
   loftRearDepartureMm: number;
   meshSimplificationToleranceMm: number;
@@ -47,6 +50,8 @@ export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
   orientationMarkHeightMm: 1.2,
   capScrewTabWidthMm: 13,
   capShoeThicknessMm: 3,
+  panelLabelPixelMm: 0.62,
+  panelLabelDepthMm: 0.55,
   loftStationCount: LOFT_STATION_COUNT,
   loftRearDepartureMm: LOFT_REAR_DEPARTURE_MM,
   meshSimplificationToleranceMm: 0.001,
@@ -87,6 +92,8 @@ export interface StructuralSolidMesh {
   socketCentersMm: StructuralSolidProbe[];
   orientationMarkCenterMm?: StructuralSolidProbe;
   loftStationCentersMm?: StructuralSolidProbe[];
+  labelCentersMm?: Array<StructuralSolidProbe & { panelId: string }>;
+  labelDepthMm?: number;
 }
 
 function add(left: StructuralVector, right: StructuralVector): StructuralVector {
@@ -226,6 +233,63 @@ function translatedSphere(
   }
 }
 
+function dot(left: StructuralVector, right: StructuralVector): number {
+  return left[0] * right[0] + left[1] * right[1] + left[2] * right[2];
+}
+
+function panelIdRibbonLabelCutter(
+  wasm: ManifoldToplevel,
+  panelId: string,
+  panel: NormalizedStructuralDesign["panels"][number],
+  mountPositions: StructuralVector[],
+  inward: StructuralVector,
+): { cutter: Manifold; center: StructuralSolidProbe & { panelId: string } } |
+  undefined {
+  if (mountPositions.length < 2) return undefined;
+  const pixel = STRUCTURAL_GEOMETRY_POLICY.panelLabelPixelMm;
+  const size = panelIdLabelSize(panelId, pixel);
+  if (size.width <= 0) return undefined;
+  const spacing = distance(mountPositions[0]!, mountPositions[1]!);
+  const maximumWidth = spacing - STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm;
+  if (maximumWidth <= 0) return undefined;
+  const fit = Math.min(1, maximumWidth / size.width);
+  const section = panelIdLabelSection(wasm, panelId, pixel);
+  if (!section) return undefined;
+  let along = normalize(subtract(mountPositions[1]!, mountPositions[0]!));
+  const orientationReference = Math.abs(dot(along, panel.xAxis)) >=
+      Math.abs(dot(along, panel.yAxis)) ? panel.xAxis : panel.yAxis;
+  if (dot(along, orientationReference) < 0) along = scale(along, -1);
+  const outward = scale(inward, -1);
+  const up = normalize(cross(inward, along));
+  const midpoint = scale(add(mountPositions[0]!, mountPositions[1]!), 0.5);
+  const cutterOrigin = add(
+    midpoint,
+    scale(outward, EPSILON_MM),
+  );
+  let placed: ReturnType<typeof section.scale> | undefined;
+  let local: Manifold | undefined;
+  try {
+    placed = section.scale([-fit, fit]);
+    local = placed.extrude(
+      STRUCTURAL_GEOMETRY_POLICY.panelLabelDepthMm + 2 * EPSILON_MM,
+    );
+    const cutter = local.transform(frameMat4(cutterOrigin, along, up, inward));
+    const stemX = -fit * (-size.width / 2 + 1.5 * pixel);
+    const center = add(
+      add(cutterOrigin, scale(along, stemX)),
+      scale(
+        inward,
+        STRUCTURAL_GEOMETRY_POLICY.panelLabelDepthMm / 2 + EPSILON_MM,
+      ),
+    );
+    return { cutter, center: { ...probe(center), panelId } };
+  } finally {
+    local?.delete();
+    placed?.delete();
+    section.delete();
+  }
+}
+
 function translateOwned(
   local: Manifold,
   x: number,
@@ -360,10 +424,23 @@ function meshFromSolid(
         `with component volumes ${componentVolumes.map((volume) => volume.toFixed(6)).join(", ")} mm^3.`,
       );
     }
-    const outputSolid = meaningful[0]!.simplify(
-      STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm,
-    );
+    let floatPrecisionSolid: Manifold | undefined;
+    let toleranceSolid: Manifold | undefined;
+    let outputSolid: Manifold | undefined;
     try {
+      floatPrecisionSolid = metadata.labelCentersMm?.length
+        ? meaningful[0]!.warp((vertex) => {
+          vertex[0] = Math.fround(vertex[0]);
+          vertex[1] = Math.fround(vertex[1]);
+          vertex[2] = Math.fround(vertex[2]);
+        })
+        : undefined;
+      toleranceSolid = floatPrecisionSolid?.setTolerance(
+        STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm,
+      );
+      outputSolid = (toleranceSolid ?? meaningful[0]!).simplify(
+        STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm,
+      );
       const outputStatus = outputSolid.status();
       if (outputStatus !== "NoError") {
         throw new Error(
@@ -417,7 +494,9 @@ function meshFromSolid(
         triVerts,
       };
     } finally {
-      outputSolid.delete();
+      outputSolid?.delete();
+      toleranceSolid?.delete();
+      floatPrecisionSolid?.delete();
     }
   } finally {
     dispose(components);
@@ -973,9 +1052,11 @@ function buildOrganicConnector(
 ): StructuralSolidMesh {
   const positives: Manifold[] = [];
   const cutters: Manifold[] = [];
+  const labelCutters: Manifold[] = [];
   const loftSides: LoftSide[] = [];
   const anchorCentersMm: StructuralSolidProbe[] = [];
   const screwHoleCentersMm: StructuralSolidProbe[] = [];
+  const labelCentersMm: Array<StructuralSolidProbe & { panelId: string }> = [];
   let orientationMarkCenterMm: StructuralSolidProbe | undefined;
   try {
     for (const sideIndex of [0, 1] as const) {
@@ -1031,6 +1112,18 @@ function buildOrganicConnector(
       const midpoint = scale(mountPositions.reduce((sum, point) => add(sum, point), [0, 0, 0]),
         1 / mountPositions.length);
       const inward = scale(panel.outwardNormal, -1);
+      const label = panelIdRibbonLabelCutter(
+        wasm,
+        panelId,
+        panel,
+        mountPositions,
+        inward,
+      );
+      if (label) {
+        cutters.push(label.cutter);
+        labelCutters.push(label.cutter);
+        labelCentersMm.push(label.center);
+      }
       if (sideIndex === 0) {
         const markStart = add(midpoint, scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm));
         const markEnd = add(
@@ -1051,6 +1144,25 @@ function buildOrganicConnector(
     const loft = buildLoftBridge(wasm, loftSides[0]!, loftSides[1]!);
     positives.push(...loft.segments);
     const positive = unionAll(wasm, positives);
+    try {
+      for (const labelCutter of labelCutters) {
+        const engraving = positive.intersect(labelCutter);
+        try {
+          const engravingVolume = engraving.volume();
+          if (engraving.isEmpty() || engravingVolume <= 1) {
+            throw new Error(
+              `Ribbon label does not intersect enough printable material for ${cell.id}: ` +
+              `${engravingVolume} mm3.`,
+            );
+          }
+        } finally {
+          engraving.delete();
+        }
+      }
+    } catch (error) {
+      positive.delete();
+      throw error;
+    }
     const solid = subtractCutters(wasm, positive, cutters);
     const partId = `organic-connector:${cell.panelIds.join("--")}`;
     try {
@@ -1071,6 +1183,8 @@ function buildOrganicConnector(
         socketCentersMm: [],
         orientationMarkCenterMm,
         loftStationCentersMm: loft.stationCentersMm,
+        labelCentersMm,
+        labelDepthMm: STRUCTURAL_GEOMETRY_POLICY.panelLabelDepthMm,
       });
     } finally {
       solid.delete();
@@ -1086,6 +1200,18 @@ function uniqueProbes(probes: StructuralSolidProbe[]): StructuralSolidProbe[] {
   const found = new Map<string, StructuralSolidProbe>();
   for (const item of probes) {
     const key = [item.x, item.y, item.z].map((value) => value.toFixed(6)).join(":");
+    if (!found.has(key)) found.set(key, item);
+  }
+  return [...found.values()];
+}
+
+function uniqueLabelProbes(
+  probes: Array<StructuralSolidProbe & { panelId: string }>,
+): Array<StructuralSolidProbe & { panelId: string }> {
+  const found = new Map<string, StructuralSolidProbe & { panelId: string }>();
+  for (const item of probes) {
+    const key = `${item.panelId}:` + [item.x, item.y, item.z]
+      .map((value) => value.toFixed(6)).join(":");
     if (!found.has(key)) found.set(key, item);
   }
   return [...found.values()];
@@ -1135,6 +1261,10 @@ function mergeRibbonJunction(
       loftStationCentersMm: uniqueProbes(
         meshes.flatMap(({ loftStationCentersMm }) => loftStationCentersMm ?? []),
       ),
+      labelCentersMm: uniqueLabelProbes(
+        meshes.flatMap(({ labelCentersMm }) => labelCentersMm ?? []),
+      ),
+      labelDepthMm: meshes[0]?.labelDepthMm,
     });
   } finally {
     solid.delete();

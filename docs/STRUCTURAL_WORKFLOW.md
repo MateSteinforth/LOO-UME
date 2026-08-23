@@ -189,7 +189,9 @@ measured 0.50 mm flush correction. Boolean cutters create the profile's 1.60 mm
 pilots and 3.20 × 0.70 mm lead-ins. These screw-axis openings are the only
 voids in a ribbon: there are no nut or insert pockets, transverse access
 tunnels, or DIN/DOUT cable bores. Cable locations remain load-case inputs only.
-A triangular rear mark identifies the first stable side.
+The same 5×7 glyphs as the flat caps recess the destination panel ID 0.55 mm
+into the guaranteed-flat panel-facing surface between each screw pair. A
+triangular rear mark identifies the first stable side.
 
 Nine deterministic cap-shaped stations interpolate the two screw-shoe
 profiles. Their center path is cubic: it first leaves each PCB only 6 mm along

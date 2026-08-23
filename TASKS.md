@@ -40,7 +40,7 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: existing Schema 2 panel JSON produces normalized anchors, a
   candidate and optimized 3D truss, printable brackets/hubs/struts, exact STL
   and 3MF assets, an exact-mesh preview, and an engineering report.
-- Acceptance: `TRUSS-011` through `TRUSS-032` pass; panel poses and panel
+- Acceptance: `TRUSS-011` through `TRUSS-033` pass; panel poses and panel
   profiles remain the only panel-geometry authorities; the report states that
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
@@ -367,6 +367,31 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `TRUSS-033` Engrave panel destinations on ribbon mounting surfaces — P0
+
+- Outcome: each ribbon mounting surface identifies the panel that its screw
+  pair attaches to, using the same recessed 5×7 panel-ID glyphs as flat caps.
+- Acceptance: one deterministic, readable panel ID is centered between each
+  selected screw pair on the guaranteed-flat panel-facing shoe surface;
+  engraving depth is 0.55 mm and never passes through the 3 mm shoe; merged
+  junctions preserve one label per unique mounting interface; arbitrary panel
+  poses, reorder stability, exact screw paths, watertightness, PCB avoidance,
+  and print limits remain unchanged; unsupported glyph characters follow the
+  existing flat-cap filtering behavior without adding a font dependency.
+- Evidence: all 345 Vitest tests, TypeScript, pinned WASM, asset staging, and
+  production web build pass. Both real Chromium structural journeys pass.
+  Exact-mesh probes prove each recess and the material below it; the isolated
+  two-panel STL shows `P-01` between its screw holes. OpenSCAD remains
+  unavailable on this host. Independent review found two exception-path
+  Manifold ownership leaks; after repair, re-review found no P1/P2/P3 finding.
+- Depends on: `TRUSS-032`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, structural Manifold generation and metadata,
+  solid/artifact tests, and structural fabrication documentation.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
 
 ### `TRUSS-032` Merge spatially shared panel pairs into local ribbon junctions — P0
 

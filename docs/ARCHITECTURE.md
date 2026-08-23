@@ -277,7 +277,13 @@ PCB rear normal. Adjacent stations form a flat, continuous twisted ribbon, then 
 pilot holes, lead-ins, measured flush offsets, and a stable raised orientation
 mark are cut or joined with Manifold. DIN/DOUT locations remain cable-load
 inputs but do not cut printable material. Every body must fit the configured
-print envelope after margin and rotation. The axial truss validates load paths and reports circular
+print envelope after margin and rotation. The shared flat-cap 5×7 glyph system
+cuts a 0.55 mm-deep destination-panel ID between each mounting screw pair on
+the guaranteed-flat panel-facing shoe. Labeled meshes are rounded to their
+exported Float32 vertex precision, assigned the existing 0.001 mm tolerance,
+and simplified before the strict triangle gate.
+
+The axial truss validates load paths and reports circular
 member sizing, but those sections do not set loft thickness or certify stress
 in the loft. Oversize splitting is not yet implemented.
 

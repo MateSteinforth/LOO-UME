@@ -711,3 +711,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/structural-solids.test.ts`, the two-panel generated STL,
   and the real-browser generation journey.
 - **Status:** Resolved.
+
+### F-039 — Engraving must target a guaranteed boundary plane
+
+- **Date:** 2026-08-23
+- **Context:** TRUSS-033 arbitrary-pose ribbon labels.
+- **Symptom:** A label cutter intersected material but produced no visible text;
+  its probe remained solid.
+- **Cause:** The nominal rear shoe plane was enclosed by the hull toward the
+  next loft station, so subtraction made an internal cavity. Export rounding
+  also collapsed some engraving triangles only after Float32 conversion.
+- **Correction:** Engrave the guaranteed-flat panel-facing endpoint plane.
+  Round labeled solids to exported Float32 coordinates, set the existing 0.001
+  mm tolerance, simplify, and then apply the strict triangle gate.
+- **Prevention:** A label test must probe the recess and material below it; an
+  isolated exact-STL render must show readable surface text. Validate the same
+  coordinate precision that export uses.
+- **Evidence:** `tests/structural-solids.test.ts` and the isolated two-panel STL
+  render.
+- **Status:** Resolved.
