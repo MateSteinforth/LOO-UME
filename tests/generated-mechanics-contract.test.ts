@@ -226,6 +226,15 @@ describe("Schema 2 portable generated-mechanics assets", () => {
     );
   });
 
+  it("rejects unsupported generated-asset manifest fields", async () => {
+    const { definition } = await portableDefinition();
+    asUnknown(definition.generatedMechanics!.boundary).downloadUrl =
+      "https://example.test/part.stl";
+    expect(() => parsePanelAssemblyDefinition(definition)).toThrow(
+      /Generated boundary contains unsupported field downloadUrl/,
+    );
+  });
+
   it.each([
     "generator",
     "sourceFingerprint",

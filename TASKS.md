@@ -86,11 +86,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `VALID-011` Centralize deep Schema 2 runtime validation — P2
-
-- Acceptance: browser and CLI share one loader for nested mapping, calibration,
-  boundary, generated asset, and note validation.
-
 ### `INSTALL-011` Complete one-command clean-checkout bootstrap — P2
 
 - Scope: repository-local Node/npm, npm dependencies, Manifold generator proof,
@@ -138,6 +133,15 @@ No tasks.
   independent review passed.
 - Owner: `codex/valid-010-profile-led-dimensions` in
   `/tmp/led-rhombo-valid-010`.
+
+### `VALID-011` Centralize deep Schema 2 runtime validation — P2
+
+- Acceptance: portable browser imports and CLI files share the central loader
+  for mapping, calibration, boundary, generated asset, and note validation.
+- Verification: 238 unit tests, TypeScript, Vite build, schema JSON parse,
+  focused browser/CLI adapter parity, and independent review passed.
+- Owner: `codex/valid-011-central-schema2-validation` in
+  `/tmp/led-rhombo-valid-011`.
 
 ## Done
 

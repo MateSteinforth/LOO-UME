@@ -358,15 +358,171 @@ function nonNegative(parent: Record<string, unknown>, key: string): number {
   return value;
 }
 
+function assertOnlyKeys(
+  value: Record<string, unknown>,
+  allowed: readonly string[],
+  label: string,
+): void {
+  const unexpected = Object.keys(value).find((key) => !allowed.includes(key));
+  if (unexpected !== undefined) {
+    throw new Error(`${label} contains unsupported field ${unexpected}.`);
+  }
+}
+
+function validateStringArray(value: unknown, label: string): void {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new Error(`${label} must be an array of strings.`);
+  }
+}
+
+function validateMappingDefinition(value: unknown): void {
+  if (!isRecord(value)) throw new Error("mapping must be an object.");
+  assertOnlyKeys(value, ["projection", "logicalOrder", "notes"], "Mapping");
+  if (
+    value.projection !== "equirectangular" ||
+    value.logicalOrder !== "north-to-south-then-longitude"
+  ) {
+    throw new Error("Mapping requires the supported projection and logical order.");
+  }
+  if (value.notes !== undefined) validateStringArray(value.notes, "Mapping notes");
+}
+
+function validateCalibration(value: unknown): void {
+  if (!isRecord(value)) throw new Error("calibration must be an object.");
+  assertOnlyKeys(
+    value,
+    [
+      "panelTransforms",
+      "installedPanelOrientation",
+      "panelPixelOrder",
+      "physicalChains",
+    ],
+    "Calibration",
+  );
+  if (
+    (value.panelTransforms !== "generated-provisional" &&
+      value.panelTransforms !== "measured") ||
+    (value.installedPanelOrientation !== "unknown" &&
+      value.installedPanelOrientation !== "provisional" &&
+      value.installedPanelOrientation !== "measured") ||
+    (value.panelPixelOrder !== "provisional" &&
+      value.panelPixelOrder !== "measured") ||
+    (value.physicalChains !== "provisional" &&
+      value.physicalChains !== "measured")
+  ) {
+    throw new Error("Calibration contains an unsupported lifecycle value.");
+  }
+}
+
+function isFiniteVector3(value: unknown): value is [number, number, number] {
+  return Array.isArray(value) && value.length === 3 && value.every(
+    (coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate),
+  );
+}
+
+function isValidPanelPose(value: unknown): boolean {
+  if (!isRecord(value) || !isFiniteVector3(value.position)) return false;
+  const orientation = value.orientation;
+  if (!isRecord(orientation)) return false;
+  const xAxis = orientation.xAxis;
+  const yAxis = orientation.yAxis;
+  const normal = orientation.normal;
+  if (
+    !isFiniteVector3(xAxis) ||
+    !isFiniteVector3(yAxis) ||
+    !isFiniteVector3(normal)
+  ) return false;
+  const orthonormalError = Math.max(
+    Math.abs(Math.hypot(...xAxis) - 1),
+    Math.abs(Math.hypot(...yAxis) - 1),
+    Math.abs(Math.hypot(...normal) - 1),
+    Math.abs(xAxis[0] * yAxis[0] + xAxis[1] * yAxis[1] + xAxis[2] * yAxis[2]),
+    Math.abs(xAxis[0] * normal[0] + xAxis[1] * normal[1] + xAxis[2] * normal[2]),
+    Math.abs(yAxis[0] * normal[0] + yAxis[1] * normal[1] + yAxis[2] * normal[2]),
+    Math.hypot(
+      xAxis[1] * yAxis[2] - xAxis[2] * yAxis[1] - normal[0],
+      xAxis[2] * yAxis[0] - xAxis[0] * yAxis[2] - normal[1],
+      xAxis[0] * yAxis[1] - xAxis[1] * yAxis[0] - normal[2],
+    ),
+  );
+  return orthonormalError <= 1e-6;
+}
+
+function validateAuthoringBoundary(value: unknown): void {
+  if (value === undefined) return;
+  if (!isRecord(value)) throw new Error("Authoring boundary must be an object.");
+  assertOnlyKeys(value, ["vertices", "faces", "authoredPanels"], "Authoring boundary");
+  if (
+    !Array.isArray(value.vertices) ||
+    value.vertices.length < 4 ||
+    value.vertices.some((vertex) => !isFiniteVector3(vertex))
+  ) {
+    throw new Error("Authoring boundary requires at least four finite vertices.");
+  }
+  const vertices = value.vertices;
+  if (!Array.isArray(value.faces) || value.faces.length < 4) {
+    throw new Error("Authoring boundary requires at least four faces.");
+  }
+  const faceIds = new Set<string>();
+  for (const face of value.faces) {
+    if (!isRecord(face)) throw new Error("Authoring boundary faces must be objects.");
+    assertOnlyKeys(face, ["id", "vertexIndices", "panelPlacement"], "Authoring boundary face");
+    if (
+      typeof face.id !== "string" ||
+      face.id.length === 0 ||
+      faceIds.has(face.id) ||
+      (face.panelPlacement !== undefined && face.panelPlacement !== "whole-face") ||
+      !Array.isArray(face.vertexIndices) ||
+      face.vertexIndices.length < 3 ||
+      face.vertexIndices.some((index) =>
+        !Number.isInteger(index) ||
+        (index as number) < 0 ||
+        (index as number) >= vertices.length
+      )
+    ) {
+      throw new Error("Authoring boundary faces require unique IDs and valid vertex indices.");
+    }
+    faceIds.add(face.id);
+  }
+  if (!Array.isArray(value.authoredPanels)) {
+    throw new Error("Authoring boundary authoredPanels must be an array.");
+  }
+  const panelIds = new Set<string>();
+  for (const panel of value.authoredPanels) {
+    if (!isRecord(panel)) throw new Error("Authoring boundary panels must be objects.");
+    assertOnlyKeys(panel, ["id", "mountFaceId", "pose"], "Authoring boundary panel");
+    if (
+      typeof panel.id !== "string" ||
+      panel.id.length === 0 ||
+      panelIds.has(panel.id) ||
+      typeof panel.mountFaceId !== "string" ||
+      !faceIds.has(panel.mountFaceId) ||
+      !isValidPanelPose(panel.pose)
+    ) {
+      throw new Error("Authoring boundary panels require unique IDs, known faces, and valid poses.");
+    }
+    panelIds.add(panel.id);
+  }
+}
+
 function validateGeneratedMechanics(value: unknown): void {
   if (value === undefined) return;
   if (!isRecord(value)) {
     throw new Error("Generated mechanics must be a manifest object.");
   }
+  assertOnlyKeys(
+    value,
+    ["generator", "sourceFingerprint", "status", "boundary", "parts"],
+    "Generated mechanics",
+  );
   const generator = record(value, "generator");
   const sourceFingerprint = record(value, "sourceFingerprint");
   const status = record(value, "status");
   const boundary = record(value, "boundary");
+  assertOnlyKeys(generator, ["id", "version"], "Generated mechanics generator");
+  assertOnlyKeys(sourceFingerprint, ["algorithm", "value"], "Generated mechanics fingerprint");
+  assertOnlyKeys(status, ["generation", "validation"], "Generated mechanics status");
+  assertOnlyKeys(boundary, ["kind", "format", "source", "sha256"], "Generated boundary");
   if (
     typeof generator.id !== "string" ||
     generator.id.length === 0 ||
@@ -407,6 +563,7 @@ function validateGeneratedMechanics(value: unknown): void {
     ) {
       throw new Error("Generated STL parts require unique, non-empty stable IDs.");
     }
+    assertOnlyKeys(part, ["id", "format", "source", "sha256"], `Generated part ${part.id}`);
     assertProjectAssetReference(part, `Generated part ${part.id}`);
     partIds.add(part.id);
   }
@@ -667,11 +824,14 @@ export function parsePanelAssemblyDefinition(
     input.units !== "mm" ||
     (input.status !== "provisional" && input.status !== "measured") ||
     typeof input.id !== "string" ||
-    typeof input.name !== "string"
+    input.id.length === 0 ||
+    typeof input.name !== "string" ||
+    input.name.length === 0
   ) {
     throw new Error("Unsupported panel-assembly header.");
   }
   const panelProfile = record(input, "panelProfile");
+  assertOnlyKeys(panelProfile, ["id", "source"], "Panel profile");
   if (
     typeof panelProfile.id !== "string" ||
     panelProfile.id.length === 0 ||
@@ -693,8 +853,16 @@ export function parsePanelAssemblyDefinition(
     ) {
       throw new Error("Design surface must reference a validated GLB and SHA-256 hash.");
     }
+    assertOnlyKeys(
+      designSurface,
+      ["kind", "format", "source", "sha256", "scaleToMillimeters", "status"],
+      "Design surface",
+    );
     assertProjectAssetReference(designSurface, "Design surface");
   }
+  validateMappingDefinition(input.mapping);
+  validateCalibration(input.calibration);
+  validateStringArray(input.notes, "Notes");
   validateGeneratedMechanics(input.generatedMechanics);
   validateUniqueProjectAssetSources(input);
   const hasMechanicalShell = input.mechanicalShell !== undefined;
@@ -714,6 +882,7 @@ export function parsePanelAssemblyDefinition(
   const geometry = usesGeneratedMechanics
     ? record(input, "mechanicalShell")
     : undefined;
+  validateAuthoringBoundary(geometry?.authoringBoundary);
   if (geometry && (
     (geometry.derivationStatus !== undefined &&
       geometry.derivationStatus !== "authored" &&
@@ -827,49 +996,7 @@ export function parsePanelAssemblyDefinition(
         (installedAddressTransform.optimizationFingerprint === undefined ||
           (typeof installedAddressTransform.optimizationFingerprint === "string" &&
             /^[0-9a-f]{16}$/.test(installedAddressTransform.optimizationFingerprint))));
-    const pose = isRecord(panel) && isRecord(panel.pose) ? panel.pose : null;
-    const position = pose?.position;
-    const orientation =
-      pose && isRecord(pose.orientation) ? pose.orientation : null;
-    const xAxis = orientation?.xAxis;
-    const yAxis = orientation?.yAxis;
-    const normal = orientation?.normal;
-    const isFiniteAxis = (axis: unknown): axis is number[] =>
-      Array.isArray(axis) &&
-      axis.length === 3 &&
-      axis.every(
-        (coordinate) =>
-          typeof coordinate === "number" && Number.isFinite(coordinate),
-      );
-    const orientationIsFinite =
-      isFiniteAxis(xAxis) && isFiniteAxis(yAxis) && isFiniteAxis(normal);
-    const orthonormalError = orientationIsFinite
-      ? Math.max(
-          Math.abs(Math.hypot(...xAxis) - 1),
-          Math.abs(Math.hypot(...yAxis) - 1),
-          Math.abs(Math.hypot(...normal) - 1),
-          Math.abs(
-            xAxis[0]! * yAxis[0]! +
-              xAxis[1]! * yAxis[1]! +
-              xAxis[2]! * yAxis[2]!,
-          ),
-          Math.abs(
-            xAxis[0]! * normal[0]! +
-              xAxis[1]! * normal[1]! +
-              xAxis[2]! * normal[2]!,
-          ),
-          Math.abs(
-            yAxis[0]! * normal[0]! +
-              yAxis[1]! * normal[1]! +
-              yAxis[2]! * normal[2]!,
-          ),
-          Math.hypot(
-            xAxis[1]! * yAxis[2]! - xAxis[2]! * yAxis[1]! - normal[0]!,
-            xAxis[2]! * yAxis[0]! - xAxis[0]! * yAxis[2]! - normal[1]!,
-            xAxis[0]! * yAxis[1]! - xAxis[1]! * yAxis[0]! - normal[2]!,
-          ),
-        )
-      : Number.POSITIVE_INFINITY;
+    const poseIsValid = isRecord(panel) && isValidPanelPose(panel.pose);
     if (
       !isRecord(panel) ||
       !connectorPolicyIsValid ||
@@ -882,7 +1009,10 @@ export function parsePanelAssemblyDefinition(
         panel.faceType !== "pentagon-centre") ||
       (panel.neighborPanelIds !== undefined &&
         (!Array.isArray(panel.neighborPanelIds) ||
-          panel.neighborPanelIds.some((id) => typeof id !== "string"))) ||
+          panel.neighborPanelIds.some((id) =>
+            typeof id !== "string" || id.length === 0
+          ) ||
+          new Set(panel.neighborPanelIds).size !== panel.neighborPanelIds.length)) ||
       (panel.rotationDegrees !== undefined &&
         panel.rotationDegrees !== null &&
         (typeof panel.rotationDegrees !== "number" || !Number.isFinite(panel.rotationDegrees))) ||
@@ -896,14 +1026,7 @@ export function parsePanelAssemblyDefinition(
         : typeof panel.mountFaceId !== "string" ||
           panelFaceIds.has(panel.mountFaceId) ||
           !faceIds.has(panel.mountFaceId)) ||
-      !Array.isArray(position) ||
-      position.length !== 3 ||
-      position.some(
-        (coordinate) =>
-          typeof coordinate !== "number" || !Number.isFinite(coordinate),
-      ) ||
-      !orientationIsFinite ||
-      orthonormalError > 1e-6
+      !poseIsValid
     ) {
       throw new Error(
         "Panels require unique IDs, valid optional mechanical associations, finite positions, and right-handed orthonormal orientations.",
@@ -911,6 +1034,15 @@ export function parsePanelAssemblyDefinition(
     }
     panelIds.add(panel.id);
     if (panel.mountFaceId !== undefined) panelFaceIds.add(panel.mountFaceId as string);
+  }
+  for (const panel of input.panels) {
+    if (
+      isRecord(panel) &&
+      Array.isArray(panel.neighborPanelIds) &&
+      panel.neighborPanelIds.some((id) => !panelIds.has(id as string))
+    ) {
+      throw new Error("Panel neighbor IDs must reference known panels.");
+    }
   }
   const calibration = record(input, "calibration");
   if (
@@ -955,6 +1087,23 @@ export function parsePanelAssemblyDefinition(
     }
     const gapIds = new Set<string>();
     for (const gap of topology.gaps) {
+      const cornerReferences = isRecord(gap) && Array.isArray(gap.vertices)
+        ? gap.vertices.flatMap((vertex) =>
+          isRecord(vertex) &&
+            typeof vertex.panelId === "string" &&
+            typeof vertex.corner === "string"
+            ? [`${vertex.panelId}:${vertex.corner}`]
+            : []
+        )
+        : [];
+      if (
+        isRecord(gap) &&
+        Array.isArray(gap.vertices) &&
+        cornerReferences.length === gap.vertices.length &&
+        new Set(cornerReferences).size !== cornerReferences.length
+      ) {
+        throw new Error("Boundary gaps cannot repeat a panel-corner reference.");
+      }
       if (
         !isRecord(gap) ||
         typeof gap.id !== "string" ||
@@ -981,7 +1130,6 @@ export function parsePanelAssemblyDefinition(
     validateInstalledAddressOptimizationFingerprintShape(
       input as unknown as PanelAssemblyDefinition,
     );
-    if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
     return input as unknown as PanelAssemblyDefinition;
   }
   const closures = record(input, "closures");
@@ -1063,7 +1211,6 @@ export function parsePanelAssemblyDefinition(
   validateInstalledAddressOptimizationFingerprintShape(
     input as unknown as PanelAssemblyDefinition,
   );
-  if (!Array.isArray(input.notes)) throw new Error("Notes must be an array.");
   return input as unknown as PanelAssemblyDefinition;
 }
 
@@ -1082,12 +1229,11 @@ export function assertMechanicalShellReady(
   }
 }
 
-export function createPanelAssemblyProject(
-  sculptureInput: unknown,
+function createValidatedPanelAssemblyProject(
+  sculpture: PanelAssemblyDefinition,
   source: string,
-  panelProfileInput: unknown = panelProfileJson,
+  panelProfileInput: unknown,
 ): PanelAssemblyProject {
-  const sculpture = parsePanelAssemblyDefinition(sculptureInput);
   const panelProfile = parsePanelHardwareProfile(panelProfileInput);
   if (sculpture.panelProfile.id !== panelProfile.id) {
     throw new Error(
@@ -1096,6 +1242,18 @@ export function createPanelAssemblyProject(
   }
   validateInstalledAddressOptimizationFingerprint(sculpture, panelProfile);
   return { sculpture, panelProfile, source };
+}
+
+export function createPanelAssemblyProject(
+  sculptureInput: unknown,
+  source: string,
+  panelProfileInput: unknown = panelProfileJson,
+): PanelAssemblyProject {
+  return createValidatedPanelAssemblyProject(
+    parsePanelAssemblyDefinition(sculptureInput),
+    source,
+    panelProfileInput,
+  );
 }
 
 export async function loadPanelAssemblyProject(
@@ -1111,7 +1269,7 @@ export async function loadPanelAssemblyProject(
     sculpture.panelProfile,
     source,
   );
-  return createPanelAssemblyProject(sculpture, source, panelProfileInput);
+  return createValidatedPanelAssemblyProject(sculpture, source, panelProfileInput);
 }
 
 function vector(x: number, y: number, z: number): Vector3Data {
