@@ -115,20 +115,13 @@ No tasks.
 
 ## Ready to Merge
 
-### `INSTALL-012` Prove automatic setup on clean Linux and macOS systems
-
-- Result: Linux x86-64 and native macOS arm64/x86-64 CI jobs run the same
-  restricted-PATH `./bootstrap.sh setup` command without setup-node or admin
-  commands; explicit architecture gates fail closed.
-- Verification: clean Linux setup, desktop/Manifold proof, focused contract
-  tests, YAML lint, diff check, current GitHub runner-label review, and
-  independent review passed. Native macOS execution remains an integration CI
-  gate when this branch is proposed or merged.
-- Owner: `codex/install-012-cross-platform-proof` in
-  `/tmp/led-rhombo-install-012`.
+No tasks.
 
 ## Done
 
+- `INSTALL-012`: the restricted-PATH one-command setup passed on Linux x86-64
+  and native macOS arm64/x86-64 in integration run `32656402016`; no global
+  Node/npm installation or administrator command is required.
 - `INSTALL-011`: added one-command pinned repository-local Node/npm setup,
   locked dependency installation, desktop build, and Manifold production proof.
 - `VALID-011`: centralized deep Schema 2 validation for browser and CLI input,
