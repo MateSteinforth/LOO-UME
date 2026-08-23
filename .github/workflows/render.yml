@@ -36,9 +36,9 @@ jobs:
         run: sh scripts/verify-bootstrap-binaries.sh linux-x64
 
   stage-zero-bootstrap-macos:
-    name: Stage-zero bootstrap (${{ matrix.target }})
+    name: Stage-zero and clean setup (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 10
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -55,6 +55,8 @@ jobs:
         run: test "$(/usr/bin/uname -m)" = "${{ matrix.architecture }}"
       - name: Verify and run the committed native executable
         run: sh scripts/verify-bootstrap-binaries.sh "${{ matrix.target }}"
+      - name: Bootstrap the production desktop without global Node or npm
+        run: env PATH=/usr/bin:/bin ./bootstrap.sh setup
 
   clean-checkout:
     runs-on: ubuntu-24.04

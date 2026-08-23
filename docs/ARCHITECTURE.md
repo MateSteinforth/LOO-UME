@@ -135,8 +135,9 @@ and current-limit plan. Software brightness limiting is secondary protection.
   validation, Manifold solids, exact asset handling, local hosting, and WASM.
 - Playwright covers real authoring, project portability, route editing,
   in-browser part generation, package contents, and ZIP reopen.
-- CI verifies stage-zero binaries, clean checkout, WLED WASM, TypeScript, Vite,
-  Chromium journeys, and real Manifold STL output.
+- CI verifies stage-zero binaries and the same restricted-PATH clean setup on
+  Linux x86-64 plus native macOS arm64 and x86-64 runners. It also verifies
+  WLED WASM, TypeScript, Vite, Chromium journeys, and real Manifold STL output.
 
 These checks do not prove physical fit, electrical safety, firmware behavior,
 network transport, or full native WLED effect parity.
