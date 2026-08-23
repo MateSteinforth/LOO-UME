@@ -186,7 +186,10 @@ function choicesForPanel(
   panel: PanelAssemblyDefinition["panels"][number],
   panelProfile: PanelHardwareProfile,
 ): TransformChoice[] {
-  return TURN_CHOICES.map((turns) => ({
+  const turnChoices = panelProfile.pixelGrid.columns === panelProfile.pixelGrid.rows
+    ? TURN_CHOICES
+    : ([0, 2] as const);
+  return turnChoices.map((turns) => ({
     turns,
     din: connectorPosition(panel, panelProfile.dataConnectors.dinCorner, {
       quarterTurnsClockwise: turns,

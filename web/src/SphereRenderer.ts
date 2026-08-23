@@ -215,9 +215,20 @@ export class SphereRenderer {
       } else {
         const index =
           mode === "physical-index" ? entry.physicalIndex : entry.logicalIndex;
-        const panelBand = Math.floor(index / 64);
-        const hue = (panelBand * 0.137 + (index % 64) / 512) % 1;
-        const lightness = index % 8 === 0 ? 0.78 : 0.52;
+        const columns = this.mapping.panelPixelGrid?.columns ?? Math.max(
+          1,
+          Math.ceil(Math.sqrt(this.mapping.entries.length)),
+        );
+        const rows = this.mapping.panelPixelGrid?.rows ?? Math.max(
+          1,
+          Math.ceil(this.mapping.entries.length / columns),
+        );
+        const ledsPerPanel = columns * rows;
+        const panelBand = Math.floor(index / ledsPerPanel);
+        const hue =
+          (panelBand * 0.137 +
+            (index % ledsPerPanel) / (ledsPerPanel * columns)) % 1;
+        const lightness = index % columns === 0 ? 0.78 : 0.52;
         this.color.setHSL(hue, 0.88, lightness);
       }
       const offset = physical * 3;

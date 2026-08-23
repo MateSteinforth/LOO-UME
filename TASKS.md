@@ -86,10 +86,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `VALID-010` Make LED dimensions profile-driven end to end — P1
-
-- Acceptance: one non-8x8 profile parses, maps, validates, exports, and reloads.
-
 ### `VALID-011` Centralize deep Schema 2 runtime validation — P2
 
 - Acceptance: browser and CLI share one loader for nested mapping, calibration,
@@ -133,7 +129,15 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `VALID-010` Make LED dimensions profile-driven end to end — P1
+
+- Acceptance: a 4x3 profile parses, maps, validates, exports, and reloads;
+  rectangular installed turns fail closed; historical 1.0 panel maps reload as
+  their original 8x8 grid.
+- Verification: 228 unit tests, TypeScript, Vite build, generated mapping, and
+  independent review passed.
+- Owner: `codex/valid-010-profile-led-dimensions` in
+  `/tmp/led-rhombo-valid-010`.
 
 ## Done
 

@@ -1761,6 +1761,7 @@ export function createPanelAssemblyMapping(
     id: project.sculpture.id,
     status: project.sculpture.status,
     topology: "panelized-sculpture",
+    panelPixelGrid: { columns, rows },
     panels,
     mechanicalMounts: resolvedAssembly?.faces
       .filter((face) => face.role === "closure")

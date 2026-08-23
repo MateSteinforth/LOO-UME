@@ -55,6 +55,7 @@ const panelMap = {
   schemaVersion: "1.0.0",
   id: contract.mapping.id,
   topology: contract.mapping.topology,
+  panelPixelGrid: contract.mapping.panelPixelGrid,
   notes: contract.mapping.notes,
   status: contract.mapping.status,
   hardwareReady: contract.readiness.ready,

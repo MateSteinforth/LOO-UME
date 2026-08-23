@@ -15,11 +15,15 @@ import {
   createPanelAssemblyProject,
 } from "../src/sculpture/PanelAssembly.ts";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
+import { validateMapping } from "../web/src/LedMapping.ts";
 
 const SOURCE = "sculptures/rhombicosidodecahedron/sculpture.json";
 const PROJECT = createPanelAssemblyProject(
   JSON.parse(readFileSync(SOURCE, "utf8")),
   SOURCE,
+);
+const PANEL_PROFILE_INPUT = JSON.parse(
+  readFileSync("catalog/panels/ws2812b-8x8-66x65.json", "utf8"),
 );
 
 function createFixtureMapping() {
@@ -43,6 +47,85 @@ function createHardwareMappingContract(
 }
 
 describe("hardware mapping contract", () => {
+  it("parses, maps, validates, exports, and reloads a 4x3 panel profile", () => {
+    const definition = structuredClone(PROJECT.sculpture);
+    const profile = structuredClone(PANEL_PROFILE_INPUT);
+    profile.id = "test-ws2812b-4x3";
+    profile.pixelGrid.columns = 4;
+    profile.pixelGrid.rows = 3;
+    profile.power.worstCaseCurrentPerPanel = 0.72;
+    definition.panelProfile = {
+      id: profile.id,
+      source: "test-ws2812b-4x3.json",
+    };
+    for (const panel of definition.panels) {
+      panel.installedAddressTransform = {
+        status: "assumed",
+        referenceView: "back",
+        quarterTurnsClockwise: 0,
+        mirrored: false,
+        selectionMethod: "manual",
+      };
+    }
+
+    const project = createPanelAssemblyProject(
+      definition,
+      "test-4x3-sculpture.json",
+      profile,
+    );
+    const geometry = createPanelAssemblyMapping(project);
+    expect(geometry.panelPixelGrid).toEqual({ columns: 4, rows: 3 });
+    expect(geometry.entries).toHaveLength(41 * 12);
+    expect(validateMapping(geometry, geometry.entries.length)).toEqual({
+      valid: true,
+      errors: [],
+    });
+
+    const wiring = createWiringPreview(
+      geometry,
+      project.sculpture,
+      project.panelProfile,
+    );
+    const oddTurnGeometry = structuredClone(geometry);
+    oddTurnGeometry.panels[0]!.installedAddressTransform.quarterTurnsClockwise = 1;
+    expect(() => createContract(
+      oddTurnGeometry,
+      wiring,
+      project.panelProfile,
+    )).toThrow(/square pixel grid/);
+    const contract = createContract(geometry, wiring, project.panelProfile);
+    expect(contract.outputs.map((output) => output.pixelCount)).toEqual([
+      132, 120, 120, 120,
+    ]);
+    const panelMap = JSON.parse(JSON.stringify({
+      schemaVersion: "1.0.0",
+      id: contract.mapping.id,
+      status: contract.mapping.status,
+      topology: contract.mapping.topology,
+      panelPixelGrid: contract.mapping.panelPixelGrid,
+      notes: contract.mapping.notes,
+      hardwareReady: contract.readiness.ready,
+      mappingReady: contract.readiness.mappingReady,
+      ledmapFingerprint: contract.fingerprint,
+      readinessBlockers: contract.readiness.blockers,
+      wiringLifecycle: contract.readiness.wiringLifecycle,
+      outputs: contract.outputs,
+      wiring: contract.wiring,
+      panels: contract.mapping.panels,
+      surfaceFaces: contract.mapping.surfaceFaces,
+      mechanicalMounts: contract.mapping.mechanicalMounts,
+      printableClosures: contract.mapping.printableClosures,
+      leds: contract.mapping.entries,
+    })) as unknown;
+    const ledmap = JSON.parse(JSON.stringify(contract.ledmap)) as unknown;
+    const reloaded = loadGeneratedHardwareMappingContract(panelMap, ledmap);
+    expect(reloaded.mapping.panelPixelGrid).toEqual({ columns: 4, rows: 3 });
+    expect(reloaded.mapping.entries).toHaveLength(492);
+    expect(reloaded.outputs.map((output) => output.pixelCount)).toEqual([
+      132, 120, 120, 120,
+    ]);
+  });
+
   it("rotates fixed back-view corner vectors clockwise after mirroring", () => {
     const transform = (
       x: number,
@@ -364,6 +447,15 @@ describe("hardware mapping contract", () => {
     expect(loaded.mapping.entries).toHaveLength(2624);
     expect(loaded.wiring.outputs).toHaveLength(4);
     expect(loaded.readiness.mappingReady).toBe(true);
+
+    const legacyGridMap = structuredClone(panelMap) as {
+      panelPixelGrid?: unknown;
+    };
+    delete legacyGridMap.panelPixelGrid;
+    expect(loadGeneratedHardwareMappingContract(
+      legacyGridMap,
+      ledmap,
+    ).mapping.panelPixelGrid).toEqual({ columns: 8, rows: 8 });
 
     const legacyTransformMap = structuredClone(panelMap) as {
       panels: Array<{ installedAddressTransform?: unknown }>;
