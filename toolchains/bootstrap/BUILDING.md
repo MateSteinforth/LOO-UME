@@ -38,3 +38,9 @@ GO_BOOTSTRAP=/absolute/path/to/go/bin/go sh scripts/build-bootstrap.sh --check
 sizes, and binary SHA-256 values. Required CI downloads and verifies the pinned
 compiler archive before it rebuilds the files. Native Linux and macOS jobs run
 the exact committed executable, including its contained `self-test` command.
+
+`install-manifest.json` is the operator install policy. It pins one official
+Node.js archive for each supported target, including the archive and extracted
+tree identities. Update it only from the official release checksum list and
+verified archive bytes. `./bootstrap.sh setup` consumes this manifest; the Go
+builder is not required for normal setup.

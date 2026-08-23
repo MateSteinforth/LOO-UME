@@ -555,3 +555,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/json-response.test.ts` and
   `tests/browser/json-response.spec.ts`.
 - **Status:** Resolved.
+
+### F-030 — Normalized Node archive modes disabled managed npm launchers
+
+- **Date:** 2026-08-23
+- **Context:** Repository-local Node/npm clean-checkout bootstrap.
+- **Symptom:** The first managed setup passed, but a nested `npm run` command
+  skipped `.tools/node/bin/npm` and entered the incomplete host npm package.
+- **Cause:** The safe archive extractor normalizes regular files to mode 0644.
+  The manifest marked only `bin/node` executable, while `bin/npm` and `bin/npx`
+  are symlinks to JavaScript CLI files that remained non-executable.
+- **Correction:** Mark the real npm and npx CLI target files as executables in
+  every target manifest, recompute extracted-tree identities, and run the full
+  suite with global Node/npm removed from `PATH`.
+- **Prevention:** For archive symlink launchers, verify both the link and its
+  normalized final target. Test nested package scripts with a restricted PATH.
+- **Evidence:** `tests/bootstrap-install.test.ts` and the clean-checkout CI job
+  run through `./bootstrap.sh` with `PATH=/usr/bin:/bin`.
+- **Status:** Resolved.

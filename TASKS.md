@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-22
+Last reconciled: 2026-08-23
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -95,13 +95,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Acceptance: browser and CLI share one loader for nested mapping, calibration,
   boundary, generated asset, and note validation.
 
-### `INSTALL-011` Complete one-command clean-checkout bootstrap — P2
-
-- Scope: repository-local Node/npm, npm dependencies, Manifold generator proof,
-  and desktop start without administrator or global PATH changes.
-- Depends on: `BUILD-010` removing the WLED source/compiler requirement from
-  normal `main` setup.
-
 ## In Progress
 
 No tasks.
@@ -133,7 +126,16 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `INSTALL-011` Complete one-command clean-checkout bootstrap — P2
+
+- Result: `./bootstrap.sh setup` installs pinned repository-local Node/npm,
+  installs locked dependencies, builds the app, and proves the Manifold desktop
+  generation path without administrator access or a global Node installation.
+- Verification: restricted-PATH setup, managed full suite (229 tests), focused
+  bootstrap/server tests (10 tests), desktop install proof, TypeScript, Vite,
+  YAML lint, diff check, and independent review passed.
+- Owner: `codex/install-011-clean-checkout-bootstrap` in
+  `/tmp/led-rhombo-install-011`.
 
 ## Done
 

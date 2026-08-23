@@ -1,5 +1,6 @@
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { startLocalEditorServer } from "./local-editor-server.ts";
 import {
   parsePanelAssemblyDefinition,
@@ -11,9 +12,13 @@ const fixturePath = resolve(
   "sculptures/panel-outline-prism/sculpture.json",
 );
 let server: Awaited<ReturnType<typeof startLocalEditorServer>> | undefined;
+const generatedPublicDirectory = await mkdtemp(
+  join(tmpdir(), "orbital-install-proof-"),
+);
 
 try {
   server = await startLocalEditorServer({
+    generatedPublicDirectory,
     rootDirectory,
     port: 0,
   });
@@ -118,5 +123,9 @@ try {
     "Verified Manifold 3.5.1: production status, two-STL generation, static serving, and clean shutdown passed.",
   );
 } finally {
-  await server?.close();
+  try {
+    await server?.close();
+  } finally {
+    await rm(generatedPublicDirectory, { force: true, recursive: true });
+  }
 }

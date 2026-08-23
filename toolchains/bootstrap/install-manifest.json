@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "1.0.0",
+  "targets": [
+    {
+      "id": "linux-x64",
+      "platform": "linux",
+      "architecture": "x64",
+      "artifacts": [
+        {
+          "id": "node",
+          "version": "22.23.2",
+          "installDirectory": ".tools/node",
+          "url": "https://nodejs.org/download/release/v22.23.2/node-v22.23.2-linux-x64.tar.gz",
+          "allowedRedirectOrigins": [],
+          "size": 56851233,
+          "sha256": "b294a556e639d64338823920e5866c21c02741742d2e1529ee1a225c1ec9252a",
+          "source": {
+            "url": "https://github.com/nodejs/node",
+            "revision": "v22.23.2"
+          },
+          "license": {
+            "id": "MIT",
+            "url": "https://raw.githubusercontent.com/nodejs/node/v22.23.2/LICENSE"
+          },
+          "extraction": {
+            "kind": "tar.gz",
+            "rootDirectory": "node-v22.23.2-linux-x64",
+            "maximumEntries": 100000,
+            "maximumExpandedBytes": 1073741824,
+            "maximumEntryBytes": 268435456,
+            "maximumCompressionRatio": 100
+          },
+          "executables": [
+            "bin/node",
+            "lib/node_modules/npm/bin/npm-cli.js",
+            "lib/node_modules/npm/bin/npx-cli.js"
+          ],
+          "treeSha256": "b9bc5de6b2e556685c881d5b04a03005ceaf152d42aa90cf6d4d0e90a58887f8"
+        }
+      ]
+    },
+    {
+      "id": "darwin-arm64",
+      "platform": "darwin",
+      "architecture": "arm64",
+      "artifacts": [
+        {
+          "id": "node",
+          "version": "22.23.2",
+          "installDirectory": ".tools/node",
+          "url": "https://nodejs.org/download/release/v22.23.2/node-v22.23.2-darwin-arm64.tar.gz",
+          "allowedRedirectOrigins": [],
+          "size": 50068815,
+          "sha256": "61130f394c1630d211dd50aecc4353d379480f36d3ac913cd85dbba1aed585c6",
+          "source": {
+            "url": "https://github.com/nodejs/node",
+            "revision": "v22.23.2"
+          },
+          "license": {
+            "id": "MIT",
+            "url": "https://raw.githubusercontent.com/nodejs/node/v22.23.2/LICENSE"
+          },
+          "extraction": {
+            "kind": "tar.gz",
+            "rootDirectory": "node-v22.23.2-darwin-arm64",
+            "maximumEntries": 100000,
+            "maximumExpandedBytes": 1073741824,
+            "maximumEntryBytes": 268435456,
+            "maximumCompressionRatio": 100
+          },
+          "executables": [
+            "bin/node",
+            "lib/node_modules/npm/bin/npm-cli.js",
+            "lib/node_modules/npm/bin/npx-cli.js"
+          ],
+          "treeSha256": "7efd8833211e201a1b911104b3bf989cda25c8055ef98718fb0a0b4006d7a694"
+        }
+      ]
+    },
+    {
+      "id": "darwin-x64",
+      "platform": "darwin",
+      "architecture": "x64",
+      "artifacts": [
+        {
+          "id": "node",
+          "version": "22.23.2",
+          "installDirectory": ".tools/node",
+          "url": "https://nodejs.org/download/release/v22.23.2/node-v22.23.2-darwin-x64.tar.gz",
+          "allowedRedirectOrigins": [],
+          "size": 51246936,
+          "sha256": "58e99022c2ff89395576cc7fd4d98cea24bb68081475d5f88b801ee8729fb026",
+          "source": {
+            "url": "https://github.com/nodejs/node",
+            "revision": "v22.23.2"
+          },
+          "license": {
+            "id": "MIT",
+            "url": "https://raw.githubusercontent.com/nodejs/node/v22.23.2/LICENSE"
+          },
+          "extraction": {
+            "kind": "tar.gz",
+            "rootDirectory": "node-v22.23.2-darwin-x64",
+            "maximumEntries": 100000,
+            "maximumExpandedBytes": 1073741824,
+            "maximumEntryBytes": 268435456,
+            "maximumCompressionRatio": 100
+          },
+          "executables": [
+            "bin/node",
+            "lib/node_modules/npm/bin/npm-cli.js",
+            "lib/node_modules/npm/bin/npx-cli.js"
+          ],
+          "treeSha256": "2a2f11200d578c0819ba1f4b14b5ef5f9196c998abe90ad65d2b58259342260a"
+        }
+      ]
+    }
+  ]
+}
