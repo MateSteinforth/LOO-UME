@@ -306,3 +306,9 @@ For a local merge trial, select **Structural Three-panel Local Junction**. Its
 two selected pair paths meet at one shared panel hole region and export as one
 watertight three-panel ribbon junction. This grouping is spatial. It does not
 merge every connected panel path in a trail.
+
+For a larger modular trial, select **Structural Twelve-panel Rising Spiral**.
+Its vertical panels rise 45 mm and turn 50 degrees per step around a 90 mm
+radius. Every LED face points radially outward. Candidate generation produces
+11 adjacent ribbon parts without a first-to-last shortcut or a sculpture-sized
+union.

@@ -108,6 +108,24 @@ describe("Manifold structural solids", () => {
     expect(minimumDoubledArea).toBeGreaterThan(1e-10);
   }, 30_000);
 
+  it("builds eleven independent print-bed-bounded ribbons for the rising spiral", async () => {
+    const path = "sculptures/structural-twelve-panel-spiral/sculpture.json";
+    const source = parsePanelAssemblyDefinition(JSON.parse(await readFile(path, "utf8")));
+    const normalized = normalizeStructuralDesign(createPanelAssemblyProject(source, path));
+    const candidate = createCandidateTruss(normalized);
+    const parts = await buildStructuralRibbonSolids(normalized, candidate);
+
+    expect(parts).toHaveLength(11);
+    expect(parts.every(({ kind }) => kind === "organic-connector")).toBe(true);
+    expect(parts.every(({ panelIds }) => panelIds?.length === 2)).toBe(true);
+    expect(parts.every(({ boundingBoxMm }) => {
+      const extents = boundingBoxMm.max.map(
+        (value, axis) => value - boundingBoxMm.min[axis]!,
+      ).sort((left, right) => left - right);
+      return extents.every((extent) => extent <= 240 + 1e-5);
+    })).toBe(true);
+  }, 30_000);
+
   it("preserves exact anchors and cuts screw holes, nut traps, sockets, and cable clearance", async () => {
     const { normalized, optimized } = await structuralFixture();
     const parts = await buildStructuralSolids(normalized, optimized);

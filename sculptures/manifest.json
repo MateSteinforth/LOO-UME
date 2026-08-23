@@ -45,6 +45,12 @@
       "artifactStatus": "authoring-only"
     },
     {
+      "id": "structural-twelve-panel-rising-spiral-trial",
+      "name": "Structural Twelve-panel Rising Spiral",
+      "source": "./sculptures/structural-twelve-panel-spiral/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
       "id": "panel-outline-prism-boundary-fixture",
       "name": "Panel-outline Prism Boundary Fixture",
       "source": "./sculptures/panel-outline-prism/sculpture.json",

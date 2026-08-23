@@ -149,6 +149,27 @@ describe("deterministic candidate truss", () => {
       ));
   });
 
+  it("forms an adjacent ribbon trail through twelve outward-facing spiral panels", async () => {
+    const input = await normalizedProject(
+      "sculptures/structural-twelve-panel-spiral/sculpture.json",
+    );
+    const candidate = createCandidateTruss(input);
+
+    expect(candidate.connectorCells.map(({ panelIds }) => panelIds)).toEqual(
+      Array.from({ length: 11 }, (_, index) => [
+        `P-${String(index + 1).padStart(2, "0")}`,
+        `P-${String(index + 2).padStart(2, "0")}`,
+      ]),
+    );
+    expect(candidate.connectorCells.every(({ junctionId }) => junctionId === undefined)).toBe(true);
+    for (const panel of input.panels) {
+      expect(
+        panel.centerMm[0] * panel.outwardNormal[0] +
+          panel.centerMm[1] * panel.outwardNormal[1],
+      ).toBeGreaterThan(0);
+    }
+  });
+
   it("is independent of panel, anchor, and hole storage order", async () => {
     const first = await normalized();
     const reordered = structuredClone(first);
