@@ -16,7 +16,8 @@ assumed route or unmeasured panel facts into measured evidence.
 The current mapping pipeline separates three concepts:
 
 1. **Panel-local coordinates** identify an emitter by panel ID and `(x, y)` in
-   the 8 × 8 grid.
+   the active panel profile's `columns × rows` grid. The current physical panel
+   profile is 8 × 8.
 2. **Logical index** is effect/simulator order. LED world positions are projected
    equirectangularly, then sorted by `v`, `u`, and a deterministic tie-breaker:
    north to south, then longitude.
@@ -165,7 +166,8 @@ The production mapping must join these facts without an implicit transform:
 
 1. authoritative world pose and logical LED index;
 2. confirmed output and ordered panel IDs from controller to DIN to DOUT;
-3. tool-selected panel orientation and the assumed local 8 × 8 snake;
+3. tool-selected panel orientation and the active profile's assumed local
+   pixel order;
 4. global WLED bus start and length, GPIO, LED type, and RGB color order;
 5. source-project, route, ledmap, bus-configuration, and firmware identities;
 6. exact source and generated-artifact identities.

@@ -6,6 +6,7 @@ import type {
   PrintableClosurePreview,
   SculptureSurfaceFace,
 } from "./LedMapping.ts";
+import { validateMapping } from "./LedMapping.ts";
 import type { WiringPreview } from "./WiringPreview.ts";
 import type { PanelHardwareProfile } from "../../src/sculpture/Definition.ts";
 
@@ -387,6 +388,7 @@ interface GeneratedPanelMap {
   id: string;
   status: LedMapping["status"];
   topology: LedMapping["topology"];
+  panelPixelGrid?: LedMapping["panelPixelGrid"];
   notes: string[];
   hardwareReady: boolean;
   mappingReady?: boolean;
@@ -503,6 +505,10 @@ export function loadGeneratedHardwareMappingContract(
     id: panelMap.id,
     status: panelMap.status,
     topology: panelMap.topology,
+    panelPixelGrid: panelMap.panelPixelGrid ??
+      (panelMap.topology === "panelized-sculpture"
+        ? { columns: 8, rows: 8 }
+        : undefined),
     notes: panelMap.notes,
     panels: panelMap.panels.map(normalizeGeneratedPanelTransform),
     surfaceFaces: panelMap.surfaceFaces,
@@ -510,6 +516,10 @@ export function loadGeneratedHardwareMappingContract(
     printableClosures: panelMap.printableClosures,
     entries: panelMap.leds,
   };
+  const mappingValidation = validateMapping(mapping, mapping.entries.length);
+  if (!mappingValidation.valid) {
+    throw new Error(mappingValidation.errors[0]);
+  }
   const equivalenceErrors = validateLedmapEquivalence(mapping, ledmap);
   if (equivalenceErrors.length > 0) {
     throw new Error(equivalenceErrors[0]);

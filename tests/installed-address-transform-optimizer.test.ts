@@ -36,6 +36,27 @@ function withIdentityTransforms<T extends ReturnType<typeof loadManual>>(definit
 }
 
 describe("installed address transform optimizer", () => {
+  it("uses only dimension-preserving turns for a rectangular pixel grid", () => {
+    const definition = withIdentityTransforms(loadManual());
+    const profile = structuredClone(PANEL_PROFILE);
+    profile.pixelGrid.columns = 4;
+    profile.pixelGrid.rows = 3;
+    profile.power.worstCaseCurrentPerPanel = 0.72;
+    for (const panel of definition.panels) {
+      panel.installedAddressTransform = {
+        status: "assumed",
+        referenceView: "back",
+        quarterTurnsClockwise: 0,
+        mirrored: false,
+        selectionMethod: "manual",
+      };
+    }
+    const optimized = optimizeInstalledAddressTransforms(definition, profile);
+    expect(optimized.panels.every((panel) =>
+      panel.installedAddressTransform!.quarterTurnsClockwise % 2 === 0
+    )).toBe(true);
+  });
+
   it("does not mutate the input and never exceeds the identity-route cable length", () => {
     const source = loadManual();
     const sourceSnapshot = structuredClone(source);

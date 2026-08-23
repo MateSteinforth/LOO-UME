@@ -2,6 +2,10 @@
   "schemaVersion": "1.0.0",
   "id": "generated-rhombicosidodecahedron-41-panel-preview-routed",
   "topology": "panelized-sculpture",
+  "panelPixelGrid": {
+    "columns": 8,
+    "rows": 8
+  },
   "notes": [
     "The north-pole pentagon is intentionally unpopulated: 30 square panels plus 11 pentagon-centre panels.",
     "Northern centre panels present their top edge toward the pole; southern centre panels present their bottom edge toward the pole.",

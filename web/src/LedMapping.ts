@@ -113,6 +113,10 @@ export interface LedMapping {
   id: string;
   status: "provisional" | "measured";
   topology: "panelized-sculpture" | "uniform-sphere" | "custom";
+  panelPixelGrid?: {
+    columns: number;
+    rows: number;
+  };
   panels: PanelDefinition[];
   surfaceFaces?: SculptureSurfaceFace[];
   mechanicalMounts?: MechanicalMountPreview[];
@@ -127,8 +131,6 @@ export interface MappingValidation {
 }
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-const LEDS_PER_PANEL = 64;
-
 /**
  * Creates a deterministic Fibonacci sphere. Identity logical/physical ordering
  * is explicit here, not assumed by the renderer.
@@ -177,6 +179,20 @@ export function validateMapping(
   ledCount: number,
 ): MappingValidation {
   const errors: string[] = [];
+  const grid = mapping.panelPixelGrid;
+  if (
+    mapping.panels.length > 0 &&
+    (grid === undefined ||
+      !Number.isInteger(grid.columns) ||
+      grid.columns <= 0 ||
+      !Number.isInteger(grid.rows) ||
+      grid.rows <= 0)
+  ) {
+    errors.push("Panelized mappings require a valid panel pixel grid.");
+  }
+  const columns = grid?.columns ?? 0;
+  const rows = grid?.rows ?? 0;
+  const ledsPerPanel = columns * rows;
   if (mapping.entries.length !== ledCount) {
     errors.push(
       `Mapping has ${mapping.entries.length} entries; engine has ${ledCount} LEDs.`,
@@ -225,14 +241,14 @@ export function validateMapping(
 
   for (const panel of mapping.panels) {
     const panelEntries = entriesByPanel.get(panel.id) ?? [];
-    if (panelEntries.length !== LEDS_PER_PANEL) {
+    if (panelEntries.length !== ledsPerPanel) {
       errors.push(
-        `Panel ${panel.id} has ${panelEntries.length} LEDs; expected 64.`,
+        `Panel ${panel.id} has ${panelEntries.length} LEDs; expected ${ledsPerPanel}.`,
       );
     }
-    if (panel.ledIndices.length !== LEDS_PER_PANEL) {
+    if (panel.ledIndices.length !== ledsPerPanel) {
       errors.push(
-        `Panel ${panel.id} index list has ${panel.ledIndices.length} LEDs; expected 64.`,
+        `Panel ${panel.id} index list has ${panel.ledIndices.length} LEDs; expected ${ledsPerPanel}.`,
       );
     }
 
@@ -240,7 +256,10 @@ export function validateMapping(
     for (const entry of panelEntries) {
       const x = entry.panelPixelX;
       const y = entry.panelPixelY;
-      if (x === null || y === null || x < 0 || x >= 8 || y < 0 || y >= 8) {
+      if (
+        x === null || y === null ||
+        x < 0 || x >= columns || y < 0 || y >= rows
+      ) {
         errors.push(`Panel ${panel.id} has an invalid panel-local coordinate.`);
         continue;
       }
