@@ -86,11 +86,7 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `INSTALL-012` Prove automatic setup on clean Linux and macOS systems
-
-- Acceptance: the one-command setup succeeds on clean supported Linux and
-  macOS systems without administrator access or global Node/npm tools.
-- Depends on: completed `INSTALL-011`.
+No tasks.
 
 ## In Progress
 
@@ -119,7 +115,17 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `INSTALL-012` Prove automatic setup on clean Linux and macOS systems
+
+- Result: Linux x86-64 and native macOS arm64/x86-64 CI jobs run the same
+  restricted-PATH `./bootstrap.sh setup` command without setup-node or admin
+  commands; explicit architecture gates fail closed.
+- Verification: clean Linux setup, desktop/Manifold proof, focused contract
+  tests, YAML lint, diff check, current GitHub runner-label review, and
+  independent review passed. Native macOS execution remains an integration CI
+  gate when this branch is proposed or merged.
+- Owner: `codex/install-012-cross-platform-proof` in
+  `/tmp/led-rhombo-install-012`.
 
 ## Done
 

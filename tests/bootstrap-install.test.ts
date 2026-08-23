@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const MANIFEST = "toolchains/bootstrap/install-manifest.json";
+const WORKFLOW = ".github/workflows/render.yml";
 
 describe("clean-checkout bootstrap", () => {
   it("pins one complete Node/npm artifact for every supported target", () => {
@@ -65,5 +66,24 @@ describe("clean-checkout bootstrap", () => {
     });
     expect(result.status).toBe(2);
     expect(result.stderr).toContain("usage: ./bootstrap.sh setup");
+  });
+
+  it("runs the same restricted-PATH setup on Linux and native macOS CI", () => {
+    const workflow = readFileSync(WORKFLOW, "utf8");
+    const macJob = workflow.split("  stage-zero-bootstrap-macos:")[1]
+      ?.split("\n  clean-checkout:")[0];
+    const linuxJob = workflow.split("  clean-checkout:")[1]
+      ?.split("\n  manifold-panel-parts:")[0];
+
+    expect(macJob).toContain("runner: macos-15");
+    expect(macJob).toContain("runner: macos-15-intel");
+    expect(macJob).toContain("architecture: arm64");
+    expect(macJob).toContain("architecture: x86_64");
+    expect(macJob).toContain(
+      "run: env PATH=/usr/bin:/bin ./bootstrap.sh setup",
+    );
+    expect(linuxJob).toContain(
+      "run: env PATH=/usr/bin:/bin ./bootstrap.sh setup",
+    );
   });
 });
