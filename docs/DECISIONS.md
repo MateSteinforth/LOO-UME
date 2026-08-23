@@ -658,7 +658,8 @@ than 70% of the smallest involved panel dimension. A group must contain at
 least three panels. Connector cells in that group reuse one owned screw-shoe
 set on each repeated panel; anchors cannot be shared across unrelated cells.
 Manifold unions the already-cut loft bodies and validates the final union as
-one printable part.
+one printable part. A final 0.001 mm Manifold simplification removes numerical
+Boolean slivers before the non-degenerate-triangle gate.
 
 **Evidence.** The three-panel junction fixture produces two candidate paths,
 one junction ID, six unique pilot holes, and one watertight mesh. The spaced

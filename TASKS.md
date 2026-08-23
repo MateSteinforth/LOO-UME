@@ -187,8 +187,10 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
   connectivity alone; anchors can be shared only inside one detected local
   junction; a trail remains separate pair ribbons; grouped CAD emits one
   watertight part with all exact holes and clearances preserved; PCB and print
-  checks run on the final union; one authored three-panel junction trial is
-  available in the browser without a new panel schema.
+  checks run on the final union; sub-micron Boolean sliver faces are removed by
+  a documented 0.001 mm Manifold simplification before the strict triangle
+  gate; one authored three-panel junction trial is available in the browser
+  without a new panel schema.
 - Depends on: `TRUSS-031`.
 - Owner: branch `codex/truss-011-structural-contract`; worktree
   `/tmp/led-rhombo-truss-011`. Do not merge to `main`.

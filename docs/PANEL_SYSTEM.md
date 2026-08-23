@@ -229,6 +229,10 @@ stresses in the final lofted solid. Every part must fit the configured print
 envelope after margin and rotation. Every returned mesh must have
 Manifold `NoError`, one printable component, positive volume, finite vertices,
 non-degenerate triangles, and millimetre bounds.
+Before those final checks, Manifold simplifies the completed solid by at most
+0.001 mm. This removes sub-micron sliver faces created by Boolean overlap. It is
+three orders of magnitude smaller than the 1.2 mm minimum wall and does not
+replace the strict non-degenerate-triangle check.
 The final organic volumes are intersected with every nearby oriented
 PCB envelope. CAD stops if any printable volume enters a PCB.
 

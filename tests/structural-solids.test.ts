@@ -72,6 +72,42 @@ describe("Manifold structural solids", () => {
     }
   });
 
+  it("removes Boolean sliver faces from the complex arbitrary-pose connector set", async () => {
+    const path = "sculptures/rhombicosidodecahedron/sculpture.json";
+    const source = parsePanelAssemblyDefinition(JSON.parse(await readFile(path, "utf8")));
+    const normalized = normalizeStructuralDesign(createPanelAssemblyProject(source, path));
+    const candidate = createCandidateTruss(normalized);
+    const parts = await buildStructuralRibbonSolids(normalized, candidate);
+
+    expect(candidate.connectorCells).toHaveLength(40);
+    expect(parts).toHaveLength(37);
+    expect(STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm).toBe(0.001);
+    expect(parts.every(({ status }) => status === "NoError")).toBe(true);
+    let minimumDoubledArea = Number.POSITIVE_INFINITY;
+    for (const part of parts) {
+      for (let index = 0; index < part.triVerts.length; index += 3) {
+        const indices = [
+          part.triVerts[index]! * 3,
+          part.triVerts[index + 1]! * 3,
+          part.triVerts[index + 2]! * 3,
+        ];
+        const points = indices.map((vertex) => [
+          part.vertProperties[vertex]!,
+          part.vertProperties[vertex + 1]!,
+          part.vertProperties[vertex + 2]!,
+        ]);
+        const ab = points[1]!.map((value, axis) => value - points[0]![axis]!);
+        const ac = points[2]!.map((value, axis) => value - points[0]![axis]!);
+        minimumDoubledArea = Math.min(minimumDoubledArea, Math.hypot(
+          ab[1]! * ac[2]! - ab[2]! * ac[1]!,
+          ab[2]! * ac[0]! - ab[0]! * ac[2]!,
+          ab[0]! * ac[1]! - ab[1]! * ac[0]!,
+        ));
+      }
+    }
+    expect(minimumDoubledArea).toBeGreaterThan(1e-10);
+  }, 30_000);
+
   it("preserves exact anchors and cuts screw holes, nut traps, sockets, and cable clearance", async () => {
     const { normalized, optimized } = await structuralFixture();
     const parts = await buildStructuralSolids(normalized, optimized);

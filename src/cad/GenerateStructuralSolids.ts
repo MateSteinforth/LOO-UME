@@ -35,6 +35,7 @@ export interface StructuralGeometryPolicy {
   capShoeThicknessMm: number;
   loftStationCount: number;
   loftRearDepartureMm: number;
+  meshSimplificationToleranceMm: number;
 }
 
 export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
@@ -52,6 +53,7 @@ export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
   capShoeThicknessMm: 3,
   loftStationCount: LOFT_STATION_COUNT,
   loftRearDepartureMm: LOFT_REAR_DEPARTURE_MM,
+  meshSimplificationToleranceMm: 0.001,
 };
 
 export interface StructuralSolidProbe {
@@ -362,49 +364,65 @@ function meshFromSolid(
         `with component volumes ${componentVolumes.map((volume) => volume.toFixed(6)).join(", ")} mm^3.`,
       );
     }
-    const outputSolid = meaningful[0]!;
-    const volumeCubicMm = outputSolid.volume();
-    if (!Number.isFinite(volumeCubicMm) || volumeCubicMm <= 1e-6) {
-      throw new Error(`Structural part ${metadata.partId} has no positive volume.`);
-    }
-    const mesh = outputSolid.getMesh();
-    const vertProperties = Float32Array.from(mesh.vertProperties);
-    const triVerts = Uint32Array.from(mesh.triVerts);
-    if (vertProperties.some((value) => !Number.isFinite(value))) {
-      throw new Error(`Structural part ${metadata.partId} contains a non-finite vertex.`);
-    }
-    for (let index = 0; index < triVerts.length; index += 3) {
-      const a = triVerts[index]! * 3;
-      const b = triVerts[index + 1]! * 3;
-      const c = triVerts[index + 2]! * 3;
-      const ab: StructuralVector = [
-        vertProperties[b]! - vertProperties[a]!,
-        vertProperties[b + 1]! - vertProperties[a + 1]!,
-        vertProperties[b + 2]! - vertProperties[a + 2]!,
-      ];
-      const ac: StructuralVector = [
-        vertProperties[c]! - vertProperties[a]!,
-        vertProperties[c + 1]! - vertProperties[a + 1]!,
-        vertProperties[c + 2]! - vertProperties[a + 2]!,
-      ];
-      if (Math.hypot(...cross(ab, ac)) <= 1e-10) {
-        throw new Error(`Structural part ${metadata.partId} contains a degenerate triangle.`);
+    const outputSolid = meaningful[0]!.simplify(
+      STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm,
+    );
+    try {
+      const outputStatus = outputSolid.status();
+      if (outputStatus !== "NoError") {
+        throw new Error(
+          `Structural part ${metadata.partId} is not valid after mesh simplification: ${outputStatus}.`,
+        );
       }
+      const volumeCubicMm = outputSolid.volume();
+      if (!Number.isFinite(volumeCubicMm) || volumeCubicMm <= 1e-6) {
+        throw new Error(`Structural part ${metadata.partId} has no positive volume.`);
+      }
+      const mesh = outputSolid.getMesh();
+      const vertProperties = Float32Array.from(mesh.vertProperties);
+      const triVerts = Uint32Array.from(mesh.triVerts);
+      if (vertProperties.some((value) => !Number.isFinite(value))) {
+        throw new Error(`Structural part ${metadata.partId} contains a non-finite vertex.`);
+      }
+      for (let index = 0; index < triVerts.length; index += 3) {
+        const a = triVerts[index]! * 3;
+        const b = triVerts[index + 1]! * 3;
+        const c = triVerts[index + 2]! * 3;
+        const ab: StructuralVector = [
+          vertProperties[b]! - vertProperties[a]!,
+          vertProperties[b + 1]! - vertProperties[a + 1]!,
+          vertProperties[b + 2]! - vertProperties[a + 2]!,
+        ];
+        const ac: StructuralVector = [
+          vertProperties[c]! - vertProperties[a]!,
+          vertProperties[c + 1]! - vertProperties[a + 1]!,
+          vertProperties[c + 2]! - vertProperties[a + 2]!,
+        ];
+        const doubledArea = Math.hypot(...cross(ab, ac));
+        if (doubledArea <= 1e-10) {
+          throw new Error(
+            `Structural part ${metadata.partId} contains a degenerate triangle ` +
+            `(triangle ${index / 3}, doubled area ${doubledArea}).`,
+          );
+        }
+      }
+      const box = outputSolid.boundingBox();
+      return {
+        ...metadata,
+        status: outputStatus,
+        volumeCubicMm,
+        numTri: outputSolid.numTri(),
+        genus: outputSolid.genus(),
+        boundingBoxMm: {
+          min: [box.min[0], box.min[1], box.min[2]],
+          max: [box.max[0], box.max[1], box.max[2]],
+        },
+        vertProperties,
+        triVerts,
+      };
+    } finally {
+      outputSolid.delete();
     }
-    const box = outputSolid.boundingBox();
-    return {
-      ...metadata,
-      status,
-      volumeCubicMm,
-      numTri: outputSolid.numTri(),
-      genus: outputSolid.genus(),
-      boundingBoxMm: {
-        min: [box.min[0], box.min[1], box.min[2]],
-        max: [box.max[0], box.max[1], box.max[2]],
-      },
-      vertProperties,
-      triVerts,
-    };
   } finally {
     dispose(components);
   }
@@ -1227,6 +1245,23 @@ function assertFitsPrintBed(
   }
 }
 
+function assertMeshAvoidsPanelEnvelopes(
+  wasm: ManifoldToplevel,
+  mesh: StructuralSolidMesh,
+  normalized: NormalizedStructuralDesign,
+): void {
+  const solid = new wasm.Manifold(new wasm.Mesh({
+    numProp: 3,
+    vertProperties: mesh.vertProperties,
+    triVerts: mesh.triVerts,
+  }));
+  try {
+    assertAvoidsPanelEnvelopes(wasm, solid, normalized, mesh.partId);
+  } finally {
+    solid.delete();
+  }
+}
+
 export async function buildStructuralSolids(
   normalized: NormalizedStructuralDesign,
   optimized: TrussOptimizationResult,
@@ -1271,7 +1306,10 @@ export async function buildStructuralRibbonSolids(
     parts.push(mergeRibbonJunction(wasm, normalized, junctionId, meshes));
   }
   parts.sort((left, right) => compareText(left.partId, right.partId));
-  for (const part of parts) assertFitsPrintBed(part, normalized);
+  for (const part of parts) {
+    assertMeshAvoidsPanelEnvelopes(wasm, part, normalized);
+    assertFitsPrintBed(part, normalized);
+  }
   return parts;
 }
 

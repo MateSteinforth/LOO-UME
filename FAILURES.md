@@ -674,3 +674,24 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Candidate and solid tests distinguish one three-panel junction
   from two independent three-panel-trail ribbons.
 - **Status:** Resolved.
+
+### F-037 — Manifold Boolean slivers must be simplified before mesh rejection
+
+- **Date:** 2026-08-23
+- **Context:** Complex arbitrary-pose ribbon and multi-panel junction output.
+- **Symptom:** Valid `NoError` Manifold solids failed with “contains a
+  degenerate triangle” on complex panel sets.
+- **Cause:** Overlapping loft Boolean operations produced extremely thin faces.
+  One reproduced doubled area was `8.23e-11 mm²`: nonzero, but below the fixed
+  mesh gate. A Manifold round trip alone did not remove the sliver.
+- **Correction:** Simplify each completed printable component with a documented
+  0.001 mm tolerance before extracting and validating its mesh. Keep the strict
+  triangle, topology, hardware-void, PCB, and print-envelope checks after this
+  operation.
+- **Prevention:** Run printable generation across the complete arbitrary-pose
+  41-panel project, not only small fixtures. Treat Boolean cleanup as a final
+  solid operation and keep its tolerance far below functional dimensions.
+- **Evidence:** The 40-cell complex fixture now returns 37 valid printable
+  parts. Its regression checks every exported triangle above the gate; focused
+  hardware-void, STL, 3MF, and pipeline tests also pass.
+- **Status:** Resolved.
