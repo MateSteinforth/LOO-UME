@@ -40,6 +40,11 @@ edit marks derived mechanics stale but does not stop those functions.
 There is no database or browser local storage. Persistence uses project JSON,
 safe relative asset references, SHA-256 values, downloaded folders, and ZIPs.
 
+`bootstrap.sh` selects a reviewed native stage-zero executable. The strict
+install manifest pins official Node.js archives by target, byte size, SHA-256,
+and extracted-tree identity. It installs Node/npm and dependencies only below
+the repository, then proves the production desktop and Manifold path.
+
 ## Geometry and fabrication boundary
 
 Panel poses remain authoritative. A GLB can constrain placement but is not

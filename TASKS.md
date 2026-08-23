@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-22
+Last reconciled: 2026-08-23
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -86,22 +86,17 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `INSTALL-011` Complete one-command clean-checkout bootstrap — P2
+### `INSTALL-012` Prove automatic setup on clean Linux and macOS systems
 
-- Scope: repository-local Node/npm, npm dependencies, Manifold generator proof,
-  and desktop start without administrator or global PATH changes.
-- Depends on: `BUILD-010` removing the WLED source/compiler requirement from
-  normal `main` setup.
+- Acceptance: the one-command setup succeeds on clean supported Linux and
+  macOS systems without administrator access or global Node/npm tools.
+- Depends on: completed `INSTALL-011`.
 
 ## In Progress
 
 No tasks.
 
 ## Blocked
-
-### `INSTALL-012` Prove automatic setup on clean Linux and macOS systems
-
-- Blocked by: `INSTALL-011`.
 
 ### `PWR-010` Approve power and protection
 
@@ -124,27 +119,16 @@ No tasks.
 
 ## Ready to Merge
 
-### `VALID-010` Make LED dimensions profile-driven end to end — P1
-
-- Acceptance: a 4x3 profile parses, maps, validates, exports, and reloads;
-  rectangular installed turns fail closed; historical 1.0 panel maps reload as
-  their original 8x8 grid.
-- Verification: 228 unit tests, TypeScript, Vite build, generated mapping, and
-  independent review passed.
-- Owner: `codex/valid-010-profile-led-dimensions` in
-  `/tmp/led-rhombo-valid-010`.
-
-### `VALID-011` Centralize deep Schema 2 runtime validation — P2
-
-- Acceptance: portable browser imports and CLI files share the central loader
-  for mapping, calibration, boundary, generated asset, and note validation.
-- Verification: 238 unit tests, TypeScript, Vite build, schema JSON parse,
-  focused browser/CLI adapter parity, and independent review passed.
-- Owner: `codex/valid-011-central-schema2-validation` in
-  `/tmp/led-rhombo-valid-011`.
+No tasks.
 
 ## Done
 
+- `INSTALL-011`: added one-command pinned repository-local Node/npm setup,
+  locked dependency installation, desktop build, and Manifold production proof.
+- `VALID-011`: centralized deep Schema 2 validation for browser and CLI input,
+  including mapping, calibration, boundary, asset, and note contracts.
+- `VALID-010`: made LED grid dimensions profile-driven through mapping,
+  validation, export, reload, rendering, and rectangular-turn safeguards.
 - `LEGACY-011`: retired the Schema 1 schema, migration fixture/script,
   procedural mapping path, and legacy-only tests; the 41-panel Schema 2 project
   and deployment artifacts remain byte-identical.

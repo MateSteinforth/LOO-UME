@@ -166,12 +166,14 @@ removes the staging directory and retains the prior bundle.
 Panel-outline parts compile with pinned `manifold-3d` 3.5.1. Run:
 
 ```bash
-npm ci
-npm run desktop
+./bootstrap.sh setup
+./bootstrap.sh desktop
 ```
 
-`npm run desktop` performs a fresh production build and starts the local
-server. It prints a loopback URL at `127.0.0.1`, using port 4173 unless
+`./bootstrap.sh setup` installs the pinned repository-local Node/npm runtime,
+installs locked dependencies, builds the production application, and runs a
+two-STL Manifold server proof. `./bootstrap.sh desktop` performs a fresh build
+and starts the local server. It prints a loopback URL at `127.0.0.1`, using port 4173 unless
 `ORBITAL_LAB_PORT` selects another valid port.
 
 Both local hosts use the same bounded handler for

@@ -11,12 +11,19 @@ panel outlines and validated flat gap caps.
 
 ## Start
 
-Requirements: Node.js 22 and npm.
+On Linux x86-64 or macOS, one command installs the pinned Node.js and npm
+release under `.tools/`, installs locked dependencies, builds the application,
+and verifies the Manifold desktop generation path:
 
 ```bash
-npm ci
-npm run desktop
+./bootstrap.sh setup
+./bootstrap.sh desktop
 ```
+
+This does not need administrator access or a global Node.js installation. The
+bootstrap accepts only pinned official archives with exact size, SHA-256, and
+extracted-tree identities. Use `./bootstrap.sh npm <arguments>` for other npm
+commands with the managed runtime.
 
 The local production server listens on `127.0.0.1:4173` by default. Use
 `ORBITAL_LAB_PORT` to select another port.
@@ -58,6 +65,9 @@ npm run test:browser
 checked-in WLED simulator, then runs the normal tests and builds. It does not
 need Python, Emscripten, or a WLED source checkout. `npm run verify:clean`
 proves the same path after a clean `npm ci`.
+
+`./bootstrap.sh setup` is the clean-checkout operator path. It also runs the
+production desktop-start and two-STL Manifold proof before it reports success.
 
 Simulator rebuild tools and pinned sources live only on the long-lived
 `generate/wled-simulator` branch. A reviewed rebuild moves only the two runtime
