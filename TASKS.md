@@ -115,23 +115,15 @@ No tasks.
 
 ## Ready to Merge
 
-### `TRUSS-011` Integrate modular structural connectors and 6DOF editing
-
-- Scope: preserve current UI and Manifold workflow while integrating connector
-  ribbons, LED-surface bridges, structural presets, and free 6DOF transforms.
-- Acceptance: surface and free-3D panel modes are switchable; detailed connector
-  settings are under Advanced Tools; both generation buttons remain primary;
-  one download button exports the exact verified connector set displayed in the
-  viewport as a ZIP; current UI, project, mapping, and package journeys pass.
-- Verification: 324 unit tests, TypeScript, Vite build, all 8 browser journeys,
-  structural CLI generation, and independent QUALITY review passed.
-- Owner: `codex/truss-011-main-integration` in
-  `/tmp/led-rhombo-truss-integration`.
-- Source branch/worktree: `codex/truss-011-structural-contract` at `6bb5742`
-  in `/tmp/led-rhombo-truss-011`; preserve it until operator approval.
+No tasks.
 
 ## Done
 
+- `TRUSS-011`: integrated connector ribbons, LED-surface bridges, four JSON
+  presets, switchable surface/free-6DOF editing, Advanced Tools settings, and
+  exact displayed-connector ZIP export in `main` at `641cf6b`. The original
+  source branch and `/tmp/led-rhombo-truss-011` remain preserved by operator
+  request.
 - `INSTALL-012`: the restricted-PATH one-command setup passed on Linux x86-64
   and native macOS arm64/x86-64 in integration run `32656402016`; no global
   Node/npm installation or administrator command is required.
