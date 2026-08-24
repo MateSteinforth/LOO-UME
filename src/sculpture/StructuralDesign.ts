@@ -47,7 +47,12 @@ export interface StructuralPanelPairOverride {
   action: "include" | "exclude";
 }
 
+export type StructuralConnectorSurfaceStyle =
+  | "screw-shoe-ribbon"
+  | "led-surface-bridge";
+
 export interface StructuralConnectorizationDefinition {
+  surfaceStyle?: StructuralConnectorSurfaceStyle;
   maximumNeighborDistanceMm: number;
   maximumAutomaticNeighborsPerPanel: number;
   minimumAnchorsPerPanelSide: number;
@@ -120,6 +125,7 @@ export interface NormalizedStructuralPanel {
   yAxis: StructuralVector;
   outwardNormal: StructuralVector;
   dimensionsMm: { width: number; height: number; thickness: number };
+  emitterPlaneOffsetMm: number;
   massKg: number;
   corners: Record<PanelOutlineCornerId, StructuralVector>;
   anchorIds: string[];
@@ -180,6 +186,7 @@ export interface NormalizedStructuralDesign {
 }
 
 export const STRUCTURAL_CONNECTOR_DEFAULTS: StructuralConnectorizationDefinition = {
+  surfaceStyle: "screw-shoe-ribbon",
   maximumNeighborDistanceMm: 200,
   maximumAutomaticNeighborsPerPanel: 2,
   minimumAnchorsPerPanelSide: 2,
@@ -338,10 +345,20 @@ export function validateStructuralDesign(value: unknown): void {
       throw new Error("Structural connectorization must be an object.");
     }
     exactKeys(value.connectorization, [
+      "surfaceStyle",
       "maximumNeighborDistanceMm", "maximumAutomaticNeighborsPerPanel",
       "minimumAnchorsPerPanelSide", "printBedSizeMm", "printBedMarginMm",
       "maximumStrutSegmentLengthMm", "panelPairOverrides",
     ], "Structural connectorization");
+    if (
+      value.connectorization.surfaceStyle !== undefined &&
+      value.connectorization.surfaceStyle !== "screw-shoe-ribbon" &&
+      value.connectorization.surfaceStyle !== "led-surface-bridge"
+    ) {
+      throw new Error(
+        "Structural connector surface style must be screw-shoe-ribbon or led-surface-bridge.",
+      );
+    }
     positive(value.connectorization.maximumNeighborDistanceMm, "Maximum neighbor distance");
     positive(value.connectorization.maximumStrutSegmentLengthMm, "Maximum strut segment length");
     if ((value.connectorization.maximumStrutSegmentLengthMm as number) < 1) {
@@ -675,6 +692,7 @@ export function createStructuralFingerprint(
       id: profile.id,
       units: profile.units,
       dimensions: profile.dimensions,
+      pixelGrid: { emitterOffset: profile.pixelGrid.emitterOffset },
       mounting: {
         printedPilotDiameter: profile.mounting.printedPilotDiameter,
         screwLeadIn: profile.mounting.screwLeadIn,
@@ -796,6 +814,7 @@ export function normalizeStructuralDesign(
       yAxis,
       outwardNormal: normal,
       dimensionsMm: { ...profile.dimensions },
+      emitterPlaneOffsetMm: profile.pixelGrid.emitterOffset,
       massKg: design.panelMassKg,
       corners: panelCorners(center, xAxis, yAxis, profile.dimensions.width, profile.dimensions.height),
       anchorIds: panelAnchors.map((anchor) => anchor.id),

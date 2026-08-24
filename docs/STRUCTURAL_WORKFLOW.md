@@ -19,6 +19,8 @@ use a GLB as printable material.
 - modular connector limits: automatic neighbor distance and degree, minimum
   screw anchors per panel side, print-bed dimensions and margin, the reserved
   legacy strut-segment limit, and explicit include/exclude panel-pair overrides;
+- an optional connector surface style: the compatible default
+  `screw-shoe-ribbon`, or `led-surface-bridge` for a complete-edge sheet;
 - panel or individual-anchor supports with constrained X/Y/Z translations; and
 - panel-face, named panel-corner, or DIN/DOUT cable-pull forces in newtons.
 
@@ -172,8 +174,9 @@ nearest-hole ribbon geometry.
 ## Printable Manifold solids
 
 `buildStructuralRibbonSolids()` accepts the validated pose-derived candidate
-panel pairs directly. It emits one cap-surface loft body for each local cell and
-never joins unrelated cells into one sculpture-sized part.
+panel pairs directly. The connectorization style selects either the existing
+cap-surface ribbon or the full-edge LED-surface bridge. It never joins
+unrelated cells into one sculpture-sized part.
 `buildStructuralSolids()` remains a strict converged-analysis entry for focused
 analysis-to-CAD checks, but the product pipeline uses the independent ribbon
 entry.
@@ -203,6 +206,30 @@ reports circular member sizes. Those sections do not set loft thickness, and
 the solver does not calculate stress in the lofted surface.
 Oversize loft bodies fail the print-envelope check; keyed splitting remains a
 later task.
+
+The alternative `led-surface-bridge` style selects one complete panel edge on
+each side from the four pose-derived rectangle edges. It scores edge pairs by
+distance and outward-facing direction, uses stable edge IDs for ties, and
+reverses the second oriented edge so the ruled sheet remains orientable. Each
+endpoint has a 5 mm ridge outside the PCB outline. The ridge top is exactly at
+the profile's 1.2 mm LED-emitter offset, and the printable sheet extends 2 mm
+behind that top surface. The bridge uses 17 samples along the full 65 mm or 66
+mm edge and nine cubic cross-gap stations. It leaves each panel in that panel's
+local surface plane and can bend and twist between arbitrary poses. A 0.02 mm
+interior crown prevents exactly coplanar station tessellation without moving
+either LED-plane endpoint. Tangent controls are capped at 45 percent of the
+mean edge gap so close, rotated panels do not make the sheet fold back on
+itself.
+
+Each eligible screw pair keeps the corrected 13 mm rear shoe surface and the
+recessed panel ID. A broad rear diaphragm joins the shoes to the selected edge,
+then a full apron wraps outside the PCB to the front ridge. Nearby PCB envelopes
+trim exposed fixture material with 0.15 mm clearance; disconnected trim chips
+below 2 mm3 are discarded before the one-component gate. The apron overlaps
+0.03 mm into the sheet to prevent coincident Boolean faces. The final solid is
+checked again against every PCB. Only screw pilots and lead-ins are authored
+void cutters. Local surface bridges use the same spatial junction groups as
+ribbons, while trail cells remain separate print-bed-bounded parts.
 
 Before a mesh leaves the Manifold stage, its kernel status, connected-component
 count, volume, bounds, vertices, indices, and triangle areas are checked. Tiny
@@ -275,7 +302,8 @@ records the report's own hash without creating a circular report hash.
 
 ## Browser and portable projects
 
-The editor has a separate **Generate connector ribbons** action. Its modular
+The editor has separate **Generate connector ribbons** and **Generate
+LED-surface bridges** actions. Its modular
 connector settings show proposed panel pairs, accept explicit include/exclude
 overrides, and edit neighbor and print-envelope limits in the existing Schema
 2 `structuralDesign`. It calls the same browser-safe pipeline and loads the exact referenced

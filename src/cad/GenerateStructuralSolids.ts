@@ -1,6 +1,7 @@
 import type { Manifold, ManifoldToplevel, Mat4 } from "manifold-3d";
 import type {
   NormalizedStructuralDesign,
+  StructuralConnectorSurfaceStyle,
   StructuralVector,
 } from "../sculpture/StructuralDesign.ts";
 import type {
@@ -17,6 +18,8 @@ const CIRCULAR_SEGMENTS = 32;
 const MAXIMUM_STRUT_SEGMENTS = 256;
 const LOFT_STATION_COUNT = 9;
 const LOFT_REAR_DEPARTURE_MM = 6;
+const SURFACE_BRIDGE_STATION_COUNT = 9;
+const SURFACE_BRIDGE_EDGE_SAMPLES = 17;
 
 const compareText = (left: string, right: string): number =>
   left < right ? -1 : left > right ? 1 : 0;
@@ -36,6 +39,13 @@ export interface StructuralGeometryPolicy {
   panelLabelDepthMm: number;
   loftStationCount: number;
   loftRearDepartureMm: number;
+  surfaceRidgeWidthMm: number;
+  surfaceBridgeThicknessMm: number;
+  surfaceBridgeStationCount: number;
+  surfaceBridgeEdgeSamples: number;
+  surfacePanelClearanceMm: number;
+  surfaceOrganicCrownMm: number;
+  surfaceMeshSimplificationToleranceMm: number;
   meshSimplificationToleranceMm: number;
 }
 
@@ -54,6 +64,13 @@ export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
   panelLabelDepthMm: 0.55,
   loftStationCount: LOFT_STATION_COUNT,
   loftRearDepartureMm: LOFT_REAR_DEPARTURE_MM,
+  surfaceRidgeWidthMm: 5,
+  surfaceBridgeThicknessMm: 2,
+  surfaceBridgeStationCount: SURFACE_BRIDGE_STATION_COUNT,
+  surfaceBridgeEdgeSamples: SURFACE_BRIDGE_EDGE_SAMPLES,
+  surfacePanelClearanceMm: 0.3,
+  surfaceOrganicCrownMm: 0.02,
+  surfaceMeshSimplificationToleranceMm: 0.0001,
   meshSimplificationToleranceMm: 0.001,
 };
 
@@ -65,7 +82,9 @@ export interface StructuralSolidProbe {
 
 export interface StructuralSolidMesh {
   partId: string;
-  kind: "organic-connector" | "ribbon-junction" | "connector-bracket" | "strut-segment" | "splice-sleeve";
+  kind: "organic-connector" | "ribbon-junction" | "surface-bridge" |
+    "surface-bridge-junction" | "connector-bracket" | "strut-segment" |
+    "splice-sleeve";
   status: string;
   volumeCubicMm: number;
   numTri: number;
@@ -94,6 +113,10 @@ export interface StructuralSolidMesh {
   loftStationCentersMm?: StructuralSolidProbe[];
   labelCentersMm?: Array<StructuralSolidProbe & { panelId: string }>;
   labelDepthMm?: number;
+  surfaceStyle?: StructuralConnectorSurfaceStyle;
+  panelEdgeIds?: Array<{ panelId: string; edgeId: PanelSurfaceEdgeId }>;
+  ridgeTopCentersMm?: Array<StructuralSolidProbe & { panelId: string }>;
+  surfaceThicknessMm?: number;
 }
 
 function add(left: StructuralVector, right: StructuralVector): StructuralVector {
@@ -395,7 +418,13 @@ function assertAvoidsPanelEnvelopes(
       ));
       collision = solid.intersect(envelope);
       if (!collision.isEmpty() && collision.volume() > 1e-7) {
-        throw new Error(`Structural part ${partId} intersects PCB envelope ${panel.id}.`);
+        const collisionBounds = collision.boundingBox();
+        throw new Error(
+          `Structural part ${partId} intersects PCB envelope ${panel.id} by ` +
+          `${collision.volume().toFixed(6)} mm3 at ` +
+          `[${collisionBounds.min.map((value) => value.toFixed(3)).join(", ")}] to ` +
+          `[${collisionBounds.max.map((value) => value.toFixed(3)).join(", ")}].`,
+        );
       }
     } finally {
       localEnvelope.delete();
@@ -405,7 +434,43 @@ function assertAvoidsPanelEnvelopes(
   }
 }
 
+function subtractPanelEnvelopeClearance(
+  wasm: ManifoldToplevel,
+  solid: Manifold,
+  normalized: NormalizedStructuralDesign,
+  clearanceMm: number,
+): Manifold {
+  const cutters: Manifold[] = [];
+  let consumed = false;
+  try {
+    for (const panel of normalized.panels) {
+      const localEnvelope = wasm.Manifold.cube([
+        panel.dimensionsMm.width + 2 * clearanceMm,
+        panel.dimensionsMm.height + 2 * clearanceMm,
+        panel.dimensionsMm.thickness + 2 * clearanceMm,
+      ], true);
+      try {
+        cutters.push(localEnvelope.transform(frameMat4(
+          panel.centerMm,
+          panel.xAxis,
+          panel.yAxis,
+          panel.outwardNormal,
+        )));
+      } finally {
+        localEnvelope.delete();
+      }
+    }
+    consumed = true;
+    return subtractCutters(wasm, solid, cutters);
+  } catch (error) {
+    if (!consumed) solid.delete();
+    dispose(cutters);
+    throw error;
+  }
+}
+
 function meshFromSolid(
+  wasm: ManifoldToplevel,
   solid: Manifold,
   metadata: Omit<StructuralSolidMesh,
     "status" | "volumeCubicMm" | "numTri" | "genus" | "boundingBoxMm" |
@@ -417,7 +482,10 @@ function meshFromSolid(
   const components = solid.decompose();
   try {
     const componentVolumes = components.map((component) => component.volume());
-    const meaningful = components.filter((_, index) => componentVolumes[index]! > 1e-5);
+    const minimumComponentVolume = metadata.surfaceStyle === "led-surface-bridge" ? 2 : 1e-5;
+    const meaningful = components.filter(
+      (_, index) => componentVolumes[index]! > minimumComponentVolume,
+    );
     if (meaningful.length !== 1) {
       throw new Error(
         `Structural part ${metadata.partId} contains ${meaningful.length} printable solids ` +
@@ -427,31 +495,41 @@ function meshFromSolid(
     let floatPrecisionSolid: Manifold | undefined;
     let toleranceSolid: Manifold | undefined;
     let outputSolid: Manifold | undefined;
+    let roundTripSolid: Manifold | undefined;
+    let roundTripToleranceSolid: Manifold | undefined;
+    let finalSolid: Manifold | undefined;
     try {
-      floatPrecisionSolid = metadata.labelCentersMm?.length
+      floatPrecisionSolid = metadata.labelCentersMm?.length ||
+          metadata.surfaceStyle === "led-surface-bridge"
         ? meaningful[0]!.warp((vertex) => {
           vertex[0] = Math.fround(vertex[0]);
           vertex[1] = Math.fround(vertex[1]);
           vertex[2] = Math.fround(vertex[2]);
         })
         : undefined;
-      toleranceSolid = floatPrecisionSolid?.setTolerance(
-        STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm,
-      );
-      outputSolid = (toleranceSolid ?? meaningful[0]!).simplify(
-        STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm,
-      );
-      const outputStatus = outputSolid.status();
+      const simplificationTolerance = metadata.surfaceStyle === "led-surface-bridge"
+        ? STRUCTURAL_GEOMETRY_POLICY.surfaceMeshSimplificationToleranceMm
+        : STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm;
+      toleranceSolid = floatPrecisionSolid?.setTolerance(simplificationTolerance);
+      outputSolid = (toleranceSolid ?? meaningful[0]!).simplify(simplificationTolerance);
+      if (metadata.surfaceStyle === "led-surface-bridge") {
+        roundTripSolid = wasm.Manifold.ofMesh(outputSolid.getMesh());
+        roundTripToleranceSolid = roundTripSolid.setTolerance(simplificationTolerance);
+        finalSolid = roundTripToleranceSolid.simplify(simplificationTolerance);
+      } else {
+        finalSolid = outputSolid;
+      }
+      const outputStatus = finalSolid.status();
       if (outputStatus !== "NoError") {
         throw new Error(
           `Structural part ${metadata.partId} is not valid after mesh simplification: ${outputStatus}.`,
         );
       }
-      const volumeCubicMm = outputSolid.volume();
+      const volumeCubicMm = finalSolid.volume();
       if (!Number.isFinite(volumeCubicMm) || volumeCubicMm <= 1e-6) {
         throw new Error(`Structural part ${metadata.partId} has no positive volume.`);
       }
-      const mesh = outputSolid.getMesh();
+      const mesh = finalSolid.getMesh();
       const vertProperties = Float32Array.from(mesh.vertProperties);
       const triVerts = Uint32Array.from(mesh.triVerts);
       if (vertProperties.some((value) => !Number.isFinite(value))) {
@@ -475,17 +553,20 @@ function meshFromSolid(
         if (doubledArea <= 1e-10) {
           throw new Error(
             `Structural part ${metadata.partId} contains a degenerate triangle ` +
-            `(triangle ${index / 3}, doubled area ${doubledArea}).`,
+            `(triangle ${index / 3}, doubled area ${doubledArea}, vertices ` +
+            `${[a, b, c].map((offset) => `[` + [0, 1, 2].map((axis) =>
+              vertProperties[offset + axis]!.toFixed(6)
+            ).join(", ") + `]`).join(", ")}).`,
           );
         }
       }
-      const box = outputSolid.boundingBox();
+      const box = finalSolid.boundingBox();
       return {
         ...metadata,
         status: outputStatus,
         volumeCubicMm,
-        numTri: outputSolid.numTri(),
-        genus: outputSolid.genus(),
+        numTri: finalSolid.numTri(),
+        genus: finalSolid.genus(),
         boundingBoxMm: {
           min: [box.min[0], box.min[1], box.min[2]],
           max: [box.max[0], box.max[1], box.max[2]],
@@ -494,6 +575,9 @@ function meshFromSolid(
         triVerts,
       };
     } finally {
+      if (finalSolid !== outputSolid) finalSolid?.delete();
+      roundTripToleranceSolid?.delete();
+      roundTripSolid?.delete();
       outputSolid?.delete();
       toleranceSolid?.delete();
       floatPrecisionSolid?.delete();
@@ -626,7 +710,7 @@ export function buildConnectorBracket(
   try {
     const partId = `connector-bracket:${cell.panelIds.join("--")}:side:${panelId}`;
     assertAvoidsPanelEnvelopes(wasm, solid, normalized, partId);
-    return meshFromSolid(solid, {
+    return meshFromSolid(wasm, solid, {
       partId,
       kind: "connector-bracket",
       panelId,
@@ -739,7 +823,7 @@ function buildStrut(
     }
     try {
       assertAvoidsPanelEnvelopes(wasm, solid, normalized, `strut:${member.id}`);
-      return meshFromSolid(solid, {
+      return meshFromSolid(wasm, solid, {
       partId: `strut:${member.id}`,
       kind: "strut-segment",
       panelIds: [...cell.panelIds],
@@ -838,7 +922,7 @@ export function buildSegmentedStrut(
     const partId = `strut:${member.id}:segment:${String(index + 1).padStart(2, "0")}-of-${String(segmentCount).padStart(2, "0")}`;
     try {
       assertAvoidsPanelEnvelopes(wasm, solid, normalized, partId);
-      parts.push(meshFromSolid(solid, {
+      parts.push(meshFromSolid(wasm, solid, {
         partId,
         kind: "strut-segment",
         panelIds: [...cell.panelIds],
@@ -884,7 +968,7 @@ export function buildSegmentedStrut(
     const partId = `sleeve:${member.id}:joint:${String(index).padStart(2, "0")}`;
     try {
       assertAvoidsPanelEnvelopes(wasm, sleeve, normalized, partId);
-      parts.push(meshFromSolid(sleeve, {
+      parts.push(meshFromSolid(wasm, sleeve, {
         partId,
         kind: "splice-sleeve",
         panelIds: [...cell.panelIds],
@@ -905,6 +989,324 @@ export function buildSegmentedStrut(
     }
   }
   return parts;
+}
+
+type PanelSurfaceEdgeId = "top" | "right" | "bottom" | "left";
+
+interface PanelSurfaceEdge {
+  id: PanelSurfaceEdgeId;
+  panelId: string;
+  panel: NormalizedStructuralDesign["panels"][number];
+  startTopMm: StructuralVector;
+  endTopMm: StructuralVector;
+  midpointTopMm: StructuralVector;
+  tangent: StructuralVector;
+  outward: StructuralVector;
+  lengthMm: number;
+}
+
+function panelLocalPoint(
+  panel: NormalizedStructuralDesign["panels"][number],
+  xMm: number,
+  yMm: number,
+  normalOffsetMm: number,
+): StructuralVector {
+  return add(
+    add(panel.centerMm, scale(panel.xAxis, xMm)),
+    add(scale(panel.yAxis, yMm), scale(panel.outwardNormal, normalOffsetMm)),
+  );
+}
+
+function panelSurfaceEdges(
+  panel: NormalizedStructuralDesign["panels"][number],
+): PanelSurfaceEdge[] {
+  const halfWidth = panel.dimensionsMm.width / 2;
+  const halfHeight = panel.dimensionsMm.height / 2;
+  const z = panel.emitterPlaneOffsetMm;
+  const definitions: Array<{
+    id: PanelSurfaceEdgeId;
+    start: [number, number];
+    end: [number, number];
+    outward: StructuralVector;
+  }> = [
+    { id: "top", start: [-halfWidth, halfHeight], end: [halfWidth, halfHeight], outward: panel.yAxis },
+    { id: "right", start: [halfWidth, halfHeight], end: [halfWidth, -halfHeight], outward: panel.xAxis },
+    { id: "bottom", start: [halfWidth, -halfHeight], end: [-halfWidth, -halfHeight], outward: scale(panel.yAxis, -1) },
+    { id: "left", start: [-halfWidth, -halfHeight], end: [-halfWidth, halfHeight], outward: scale(panel.xAxis, -1) },
+  ];
+  return definitions.map((definition) => {
+    const startTopMm = panelLocalPoint(panel, definition.start[0], definition.start[1], z);
+    const endTopMm = panelLocalPoint(panel, definition.end[0], definition.end[1], z);
+    const tangent = normalize(subtract(endTopMm, startTopMm));
+    return {
+      id: definition.id,
+      panelId: panel.id,
+      panel,
+      startTopMm,
+      endTopMm,
+      midpointTopMm: scale(add(startTopMm, endTopMm), 0.5),
+      tangent,
+      outward: definition.outward,
+      lengthMm: distance(startTopMm, endTopMm),
+    };
+  });
+}
+
+function shiftedEdgePoint(
+  edge: PanelSurfaceEdge,
+  amount: number,
+  outwardOffsetMm: number,
+): StructuralVector {
+  return add(
+    add(edge.startTopMm, scale(subtract(edge.endTopMm, edge.startTopMm), amount)),
+    scale(edge.outward, outwardOffsetMm),
+  );
+}
+
+function selectSurfaceEdgePair(
+  firstPanel: NormalizedStructuralDesign["panels"][number],
+  secondPanel: NormalizedStructuralDesign["panels"][number],
+): [PanelSurfaceEdge, PanelSurfaceEdge] {
+  const ridgeOffset = STRUCTURAL_GEOMETRY_POLICY.surfaceRidgeWidthMm;
+  const candidates = panelSurfaceEdges(firstPanel).flatMap((first) =>
+    panelSurfaceEdges(secondPanel).map((second) => {
+      const firstStart = shiftedEdgePoint(first, 0, ridgeOffset);
+      const firstEnd = shiftedEdgePoint(first, 1, ridgeOffset);
+      // Reverse the second oriented edge. This keeps the ruled sheet orientable
+      // and makes its endpoint normal agree with the second panel normal.
+      const secondStart = shiftedEdgePoint(second, 1, ridgeOffset);
+      const secondEnd = shiftedEdgePoint(second, 0, ridgeOffset);
+      const delta = subtract(second.midpointTopMm, first.midpointTopMm);
+      const deltaLength = Math.max(distance(second.midpointTopMm, first.midpointTopMm), 1e-9);
+      const direction = scale(delta, 1 / deltaLength);
+      const facingPenalty = 40 * (
+        Math.max(0, -dot(direction, first.outward)) +
+        Math.max(0, dot(direction, second.outward))
+      );
+      return {
+        first,
+        second,
+        score: (
+          distance(firstStart, secondStart) +
+          distance(firstEnd, secondEnd) +
+          distance(first.midpointTopMm, second.midpointTopMm)
+        ) / 3 + facingPenalty,
+      };
+    })
+  );
+  candidates.sort((left, right) =>
+    left.score - right.score || compareText(left.first.id, right.first.id) ||
+      compareText(left.second.id, right.second.id)
+  );
+  const selected = candidates[0];
+  if (!selected) throw new Error("A surface bridge requires two panel edges.");
+  return [selected.first, selected.second];
+}
+
+export function selectStructuralSurfaceEdgeIds(
+  normalized: NormalizedStructuralDesign,
+  panelIds: [string, string],
+): [PanelSurfaceEdgeId, PanelSurfaceEdgeId] {
+  const panels = panelIds.map((panelId) => {
+    const panel = normalized.panels.find(({ id }) => id === panelId);
+    if (!panel) throw new Error(`Unknown structural surface panel ${panelId}.`);
+    return panel;
+  }) as [NormalizedStructuralDesign["panels"][number], NormalizedStructuralDesign["panels"][number]];
+  return selectSurfaceEdgePair(panels[0], panels[1]).map(({ id }) => id) as [
+    PanelSurfaceEdgeId,
+    PanelSurfaceEdgeId,
+  ];
+}
+
+function closedSurfaceGrid(
+  wasm: ManifoldToplevel,
+  topRows: StructuralVector[][],
+  backRows: StructuralVector[][],
+  outwardHint: StructuralVector,
+): Manifold {
+  if (topRows.length < 2 || topRows.some((row) => row.length < 2)) {
+    throw new Error("A structural surface grid requires at least two rows and two columns.");
+  }
+  const columns = topRows[0]!.length;
+  if (
+    topRows.some((row) => row.length !== columns) ||
+    backRows.length !== topRows.length ||
+    backRows.some((row) => row.length !== columns)
+  ) {
+    throw new Error("A structural surface grid must be rectangular.");
+  }
+  const rows = topRows.length;
+  const vertices = [...topRows.flat(), ...backRows.flat()];
+  const topIndex = (row: number, column: number): number => row * columns + column;
+  const backIndex = (row: number, column: number): number =>
+    rows * columns + row * columns + column;
+  const firstDu = subtract(topRows[0]![1]!, topRows[0]![0]!);
+  const firstDv = subtract(topRows[1]![0]!, topRows[0]![0]!);
+  const reverseTop = dot(cross(firstDu, firstDv), outwardHint) < 0;
+  const triangles: number[] = [];
+  const triangle = (a: number, b: number, c: number, reverse = false): void => {
+    triangles.push(a, ...(reverse ? [c, b] : [b, c]));
+  };
+  for (let row = 0; row < rows - 1; row += 1) {
+    for (let column = 0; column < columns - 1; column += 1) {
+      const a = topIndex(row, column);
+      const b = topIndex(row, column + 1);
+      const c = topIndex(row + 1, column + 1);
+      const d = topIndex(row + 1, column);
+      triangle(a, b, c, reverseTop);
+      triangle(a, c, d, reverseTop);
+      const aa = backIndex(row, column);
+      const bb = backIndex(row, column + 1);
+      const cc = backIndex(row + 1, column + 1);
+      const dd = backIndex(row + 1, column);
+      triangle(aa, cc, bb, reverseTop);
+      triangle(aa, dd, cc, reverseTop);
+    }
+  }
+  const boundary: Array<[number, number]> = [];
+  for (let column = 0; column < columns - 1; column += 1) {
+    boundary.push([topIndex(0, column), topIndex(0, column + 1)]);
+  }
+  for (let row = 0; row < rows - 1; row += 1) {
+    boundary.push([topIndex(row, columns - 1), topIndex(row + 1, columns - 1)]);
+  }
+  for (let column = columns - 1; column > 0; column -= 1) {
+    boundary.push([topIndex(rows - 1, column), topIndex(rows - 1, column - 1)]);
+  }
+  for (let row = rows - 1; row > 0; row -= 1) {
+    boundary.push([topIndex(row, 0), topIndex(row - 1, 0)]);
+  }
+  if (reverseTop) boundary.reverse().forEach((edge) => edge.reverse());
+  for (const [topA, topB] of boundary) {
+    const backA = topA + rows * columns;
+    const backB = topB + rows * columns;
+    triangle(topA, backA, backB);
+    triangle(topA, backB, topB);
+  }
+  const mesh = new wasm.Mesh({
+    numProp: 3,
+    vertProperties: Float32Array.from(vertices.flat()),
+    triVerts: Uint32Array.from(triangles),
+  });
+  return new wasm.Manifold(mesh);
+}
+
+function buildSurfaceSheet(
+  wasm: ManifoldToplevel,
+  first: PanelSurfaceEdge,
+  second: PanelSurfaceEdge,
+): {
+  solid: Manifold;
+  ridgeTopCentersMm: Array<StructuralSolidProbe & { panelId: string }>;
+  stationCentersMm: StructuralSolidProbe[];
+} {
+  const policy = STRUCTURAL_GEOMETRY_POLICY;
+  const firstOuter = Array.from({ length: policy.surfaceBridgeEdgeSamples }, (_, index) =>
+    shiftedEdgePoint(first, index / (policy.surfaceBridgeEdgeSamples - 1), policy.surfaceRidgeWidthMm)
+  );
+  const secondOuter = Array.from({ length: policy.surfaceBridgeEdgeSamples }, (_, index) =>
+    shiftedEdgePoint(second, 1 - index / (policy.surfaceBridgeEdgeSamples - 1), policy.surfaceRidgeWidthMm)
+  );
+  const firstInner = Array.from({ length: policy.surfaceBridgeEdgeSamples }, (_, index) =>
+    shiftedEdgePoint(first, index / (policy.surfaceBridgeEdgeSamples - 1), policy.surfacePanelClearanceMm)
+  );
+  const secondInner = Array.from({ length: policy.surfaceBridgeEdgeSamples }, (_, index) =>
+    shiftedEdgePoint(second, 1 - index / (policy.surfaceBridgeEdgeSamples - 1), policy.surfacePanelClearanceMm)
+  );
+  const meanGap = firstOuter.reduce((sum, point, index) =>
+    sum + distance(point, secondOuter[index]!), 0) / firstOuter.length;
+  const controlLength = Math.min(35, Math.max(0.5, meanGap / 3), meanGap * 0.45);
+  const topRows: StructuralVector[][] = [firstInner, firstOuter];
+  const backRows: StructuralVector[][] = [
+    firstInner.map((point) =>
+      add(point, scale(first.panel.outwardNormal, -policy.surfaceBridgeThicknessMm))
+    ),
+    firstOuter.map((point) => add(point, scale(first.panel.outwardNormal, -policy.surfaceBridgeThicknessMm))),
+  ];
+  const stationCentersMm: StructuralSolidProbe[] = [];
+  const normalSum = add(first.panel.outwardNormal, second.panel.outwardNormal);
+  const crownAxis = Math.hypot(...normalSum) > 1e-6
+    ? normalize(normalSum)
+    : first.panel.outwardNormal;
+  const addOrganicCrown = (
+    point: StructuralVector,
+    column: number,
+    amount: number,
+  ): StructuralVector => add(point, scale(
+    crownAxis,
+    policy.surfaceOrganicCrownMm * Math.sin(Math.PI * amount) *
+      Math.sin(Math.PI * column / (policy.surfaceBridgeEdgeSamples - 1)),
+  ));
+  const keepInsideEdgeGap = (
+    point: StructuralVector,
+    column: number,
+  ): StructuralVector => {
+    let result = point;
+    const firstOutline = shiftedEdgePoint(
+      first,
+      column / (policy.surfaceBridgeEdgeSamples - 1),
+      0,
+    );
+    const secondOutline = shiftedEdgePoint(
+      second,
+      1 - column / (policy.surfaceBridgeEdgeSamples - 1),
+      0,
+    );
+    for (let iteration = 0; iteration < 3; iteration += 1) {
+      for (const [edge, outline] of [
+        [first, firstOutline],
+        [second, secondOutline],
+      ] as const) {
+        const clearance = dot(subtract(result, outline), edge.outward);
+        if (clearance < policy.surfacePanelClearanceMm) {
+          result = add(
+            result,
+            scale(edge.outward, policy.surfacePanelClearanceMm - clearance),
+          );
+        }
+      }
+    }
+    return result;
+  };
+  for (let station = 1; station < policy.surfaceBridgeStationCount; station += 1) {
+    const amount = station / (policy.surfaceBridgeStationCount - 1);
+    const topRow = firstOuter.map((point, index) => addOrganicCrown(keepInsideEdgeGap(cubicBezier(
+      point,
+      add(point, scale(first.outward, controlLength)),
+      add(secondOuter[index]!, scale(second.outward, controlLength)),
+      secondOuter[index]!,
+      amount,
+    ), index), index, amount));
+    const backRow = firstOuter.map((point, index) => {
+      const firstBack = add(point, scale(first.panel.outwardNormal, -policy.surfaceBridgeThicknessMm));
+      const secondBack = add(
+        secondOuter[index]!,
+        scale(second.panel.outwardNormal, -policy.surfaceBridgeThicknessMm),
+      );
+      return addOrganicCrown(keepInsideEdgeGap(cubicBezier(
+        firstBack,
+        add(firstBack, scale(first.outward, controlLength)),
+        add(secondBack, scale(second.outward, controlLength)),
+        secondBack,
+        amount,
+      ), index), index, amount);
+    });
+    topRows.push(topRow);
+    backRows.push(backRow);
+    stationCentersMm.push(probe(scale(add(topRow[0]!, topRow.at(-1)!), 0.5)));
+  }
+  topRows.push(secondInner);
+  backRows.push(secondInner.map((point) =>
+    add(point, scale(second.panel.outwardNormal, -policy.surfaceBridgeThicknessMm))
+  ));
+  return {
+    solid: closedSurfaceGrid(wasm, topRows, backRows, first.panel.outwardNormal),
+    ridgeTopCentersMm: [
+      { ...probe(shiftedEdgePoint(first, 0.5, policy.surfaceRidgeWidthMm / 2)), panelId: first.panelId },
+      { ...probe(shiftedEdgePoint(second, 0.5, policy.surfaceRidgeWidthMm / 2)), panelId: second.panelId },
+    ],
+    stationCentersMm,
+  };
 }
 
 interface LoftSide {
@@ -1167,9 +1569,10 @@ function buildOrganicConnector(
     const partId = `organic-connector:${cell.panelIds.join("--")}`;
     try {
       assertAvoidsPanelEnvelopes(wasm, solid, normalized, partId);
-      return meshFromSolid(solid, {
+      return meshFromSolid(wasm, solid, {
         partId,
         kind: "organic-connector",
+        surfaceStyle: "screw-shoe-ribbon",
         panelIds: [...cell.panelIds],
         connectorCellId: cell.id,
         anchorIds: cell.panelAnchorIds.flat(),
@@ -1183,6 +1586,204 @@ function buildOrganicConnector(
         socketCentersMm: [],
         orientationMarkCenterMm,
         loftStationCentersMm: loft.stationCentersMm,
+        labelCentersMm,
+        labelDepthMm: STRUCTURAL_GEOMETRY_POLICY.panelLabelDepthMm,
+      });
+    } finally {
+      solid.delete();
+    }
+  } catch (error) {
+    dispose(positives);
+    dispose(cutters);
+    throw error;
+  }
+}
+
+function edgePointNearestAnchor(
+  edge: PanelSurfaceEdge,
+  anchorPositionMm: StructuralVector,
+): StructuralVector {
+  const halfUsableLength = Math.max(0, edge.lengthMm / 2 - 3.5);
+  const along = Math.max(
+    -halfUsableLength,
+    Math.min(halfUsableLength, dot(subtract(anchorPositionMm, edge.midpointTopMm), edge.tangent)),
+  );
+  return add(edge.midpointTopMm, scale(edge.tangent, along));
+}
+
+function buildSurfaceBridgeConnector(
+  wasm: ManifoldToplevel,
+  normalized: NormalizedStructuralDesign,
+  candidate: import("../structure/CandidateTruss.ts").CandidateTruss,
+  cell: CandidateConnectorCell,
+): StructuralSolidMesh {
+  const positives: Manifold[] = [];
+  const cutters: Manifold[] = [];
+  const labelCutters: Manifold[] = [];
+  const anchorCentersMm: StructuralSolidProbe[] = [];
+  const screwHoleCentersMm: StructuralSolidProbe[] = [];
+  const labelCentersMm: Array<StructuralSolidProbe & { panelId: string }> = [];
+  let orientationMarkCenterMm: StructuralSolidProbe | undefined;
+  const panels = cell.panelIds.map((panelId) =>
+    normalized.panels.find(({ id }) => id === panelId)!
+  ) as [NormalizedStructuralDesign["panels"][number], NormalizedStructuralDesign["panels"][number]];
+  const edges = selectSurfaceEdgePair(panels[0], panels[1]);
+  let sheet: ReturnType<typeof buildSurfaceSheet> | undefined;
+  try {
+    sheet = buildSurfaceSheet(wasm, edges[0], edges[1]);
+    positives.push(sheet.solid);
+    for (const sideIndex of [0, 1] as const) {
+      const panel = panels[sideIndex];
+      const edge = edges[sideIndex];
+      const mountPositions: StructuralVector[] = [];
+      const edgeApronFrames: Array<{
+        rearTop: StructuralVector;
+        rearBack: StructuralVector;
+        frontTop: StructuralVector;
+        frontBack: StructuralVector;
+      }> = [];
+      const inward = scale(panel.outwardNormal, -1);
+      for (const anchorId of cell.panelAnchorIds[sideIndex]) {
+        const bracket = candidate.brackets.find(({ anchorId: id }) => id === anchorId)!;
+        const anchor = normalized.anchors.find(({ id }) => id === anchorId)!;
+        const pilotAnchorPosition = correctedPilotPosition(
+          panel,
+          bracket.anchorPositionMm,
+          anchor.holeEdgeCorrectionMm,
+        );
+        const mountPosition = add(
+          pilotAnchorPosition,
+          scale(inward, panel.dimensionsMm.thickness / 2 + anchor.surfaceFlushCorrectionMm),
+        );
+        const edgePoint = edgePointNearestAnchor(edge, pilotAnchorPosition);
+        const wrapOffsetMm = 4;
+        const frontWrapTop = add(
+          add(edgePoint, scale(edge.outward, wrapOffsetMm)),
+          scale(inward, EPSILON_MM),
+        );
+        const frontWrapBack = add(
+          frontWrapTop,
+          scale(inward, STRUCTURAL_GEOMETRY_POLICY.surfaceBridgeThicknessMm),
+        );
+        const rearWrapTop = add(
+          frontWrapTop,
+          scale(
+            inward,
+            panel.emitterPlaneOffsetMm + panel.dimensionsMm.thickness / 2 +
+              anchor.surfaceFlushCorrectionMm,
+          ),
+        );
+        const rearWrapBack = add(
+          rearWrapTop,
+          scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm),
+        );
+        edgeApronFrames.push({
+          rearTop: rearWrapTop,
+          rearBack: rearWrapBack,
+          frontTop: frontWrapTop,
+          frontBack: frontWrapBack,
+        });
+        const screwStart = add(
+          mountPosition,
+          scale(inward, -STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm),
+        );
+        const screwEnd = add(
+          mountPosition,
+          scale(inward, 2 * STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm),
+        );
+        cutters.push(cylinderAlong(
+          wasm, screwStart, screwEnd, anchor.printedPilotDiameterMm / 2,
+        ));
+        const leadInStart = add(mountPosition, scale(inward, -EPSILON_MM));
+        cutters.push(cylinderAlong(
+          wasm,
+          leadInStart,
+          add(leadInStart, scale(inward, anchor.screwLeadInDepthMm + EPSILON_MM)),
+          anchor.screwLeadInDiameterMm / 2,
+          anchor.printedPilotDiameterMm / 2,
+        ));
+        mountPositions.push(mountPosition);
+        anchorCentersMm.push(probe(bracket.anchorPositionMm));
+        screwHoleCentersMm.push(probe(scale(add(mountPosition, screwEnd), 0.5)));
+      }
+      const edgeApronPads = edgeApronFrames.flatMap((frame) => [
+        cylinderAlong(wasm, frame.rearTop, frame.rearBack, 3),
+        cylinderAlong(wasm, frame.frontTop, frame.frontBack, 3),
+      ]);
+      try {
+        positives.push(hullAll(wasm, edgeApronPads));
+      } catch (error) {
+        dispose(edgeApronPads);
+        throw error;
+      }
+      const rearDiaphragmPads = [
+        ...mountPositions.map((mountPosition) => cylinderAlong(
+          wasm,
+          mountPosition,
+          add(
+            mountPosition,
+            scale(inward, STRUCTURAL_GEOMETRY_POLICY.capShoeThicknessMm),
+          ),
+          STRUCTURAL_GEOMETRY_POLICY.capScrewTabWidthMm / 2,
+        )),
+        ...edgeApronFrames.map((frame) =>
+          cylinderAlong(wasm, frame.rearTop, frame.rearBack, 3)
+        ),
+      ];
+      try {
+        positives.push(hullAll(wasm, rearDiaphragmPads));
+      } catch (error) {
+        dispose(rearDiaphragmPads);
+        throw error;
+      }
+      const label = panelIdRibbonLabelCutter(wasm, panel.id, panel, mountPositions, inward);
+      if (label) {
+        cutters.push(label.cutter);
+        labelCutters.push(label.cutter);
+        labelCentersMm.push(label.center);
+      }
+    }
+    const rawPositive = unionAll(wasm, positives);
+    const positive = subtractPanelEnvelopeClearance(wasm, rawPositive, normalized, 0.15);
+    try {
+      for (const labelCutter of labelCutters) {
+        const engraving = positive.intersect(labelCutter);
+        try {
+          if (engraving.isEmpty() || engraving.volume() <= 1) {
+            throw new Error(`Surface-bridge label does not intersect enough material for ${cell.id}.`);
+          }
+        } finally {
+          engraving.delete();
+        }
+      }
+    } catch (error) {
+      positive.delete();
+      throw error;
+    }
+    const solid = subtractCutters(wasm, positive, cutters);
+    const partId = `surface-bridge:${cell.panelIds.join("--")}`;
+    try {
+      assertAvoidsPanelEnvelopes(wasm, solid, normalized, partId);
+      return meshFromSolid(wasm, solid, {
+        partId,
+        kind: "surface-bridge",
+        surfaceStyle: "led-surface-bridge",
+        panelIds: [...cell.panelIds],
+        panelEdgeIds: edges.map((edge) => ({ panelId: edge.panelId, edgeId: edge.id })),
+        ridgeTopCentersMm: sheet.ridgeTopCentersMm,
+        surfaceThicknessMm: STRUCTURAL_GEOMETRY_POLICY.surfaceBridgeThicknessMm,
+        connectorCellId: cell.id,
+        anchorIds: cell.panelAnchorIds.flat(),
+        anchorCentersMm,
+        printedPilotDiameterMm: normalized.anchors[0]?.printedPilotDiameterMm,
+        holeEdgeCorrectionMm: normalized.anchors[0]?.holeEdgeCorrectionMm,
+        surfaceFlushCorrectionMm: normalized.anchors[0]?.surfaceFlushCorrectionMm,
+        screwHoleCentersMm,
+        nutTrapCentersMm: [],
+        cableClearanceCentersMm: [],
+        socketCentersMm: [],
+        orientationMarkCenterMm,
+        loftStationCentersMm: sheet.stationCentersMm,
         labelCentersMm,
         labelDepthMm: STRUCTURAL_GEOMETRY_POLICY.panelLabelDepthMm,
       });
@@ -1217,6 +1818,16 @@ function uniqueLabelProbes(
   return [...found.values()];
 }
 
+function uniquePanelEdges(
+  edges: Array<{ panelId: string; edgeId: PanelSurfaceEdgeId }>,
+): Array<{ panelId: string; edgeId: PanelSurfaceEdgeId }> {
+  const found = new Map<string, { panelId: string; edgeId: PanelSurfaceEdgeId }>();
+  for (const edge of edges) found.set(`${edge.panelId}:${edge.edgeId}`, edge);
+  return [...found.values()].sort((left, right) =>
+    compareText(left.panelId, right.panelId) || compareText(left.edgeId, right.edgeId)
+  );
+}
+
 function mergeRibbonJunction(
   wasm: ManifoldToplevel,
   normalized: NormalizedStructuralDesign,
@@ -1237,12 +1848,15 @@ function mergeRibbonJunction(
   }
   const panelIds = [...new Set(meshes.flatMap(({ panelIds: ids }) => ids ?? []))]
     .sort(compareText);
-  const partId = `ribbon-junction:${panelIds.join("--")}`;
+  const surfaceStyle = meshes[0]?.surfaceStyle ?? "screw-shoe-ribbon";
+  const isSurfaceBridge = surfaceStyle === "led-surface-bridge";
+  const partId = `${isSurfaceBridge ? "surface-bridge-junction" : "ribbon-junction"}:${panelIds.join("--")}`;
   try {
     assertAvoidsPanelEnvelopes(wasm, solid, normalized, partId);
-    return meshFromSolid(solid, {
+    return meshFromSolid(wasm, solid, {
       partId,
-      kind: "ribbon-junction",
+      kind: isSurfaceBridge ? "surface-bridge-junction" : "ribbon-junction",
+      surfaceStyle,
       panelIds,
       connectorJunctionId: junctionId,
       anchorIds: [...new Set(meshes.flatMap(({ anchorIds }) => anchorIds))].sort(compareText),
@@ -1265,6 +1879,13 @@ function mergeRibbonJunction(
         meshes.flatMap(({ labelCentersMm }) => labelCentersMm ?? []),
       ),
       labelDepthMm: meshes[0]?.labelDepthMm,
+      panelEdgeIds: uniquePanelEdges(
+        meshes.flatMap(({ panelEdgeIds }) => panelEdgeIds ?? []),
+      ),
+      ridgeTopCentersMm: uniqueLabelProbes(
+        meshes.flatMap(({ ridgeTopCentersMm }) => ridgeTopCentersMm ?? []),
+      ),
+      surfaceThicknessMm: meshes[0]?.surfaceThicknessMm,
     });
   } finally {
     solid.delete();
@@ -1336,7 +1957,9 @@ export async function buildStructuralRibbonSolids(
   const parts: StructuralSolidMesh[] = [];
   const junctionMeshes = new Map<string, StructuralSolidMesh[]>();
   for (const cell of candidate.connectorCells) {
-    const mesh = buildOrganicConnector(wasm, normalized, candidate, cell);
+    const mesh = normalized.connectorization.surfaceStyle === "led-surface-bridge"
+      ? buildSurfaceBridgeConnector(wasm, normalized, candidate, cell)
+      : buildOrganicConnector(wasm, normalized, candidate, cell);
     if (!cell.junctionId) {
       parts.push(mesh);
       continue;

@@ -239,6 +239,15 @@ replace the strict non-degenerate-triangle check.
 The final organic volumes are intersected with every nearby oriented
 PCB envelope. CAD stops if any printable volume enters a PCB.
 
+The selectable LED-surface bridge keeps the same eligible screw anchors,
+hardware corrections, labels, local junction groups, PCB gates, and print-bed
+limits. It derives one complete rectangle edge per panel pair from the saved
+poses. A 5 mm ridge sits outside that PCB edge with its top at the panel
+profile's LED-emitter plane. A 2 mm ruled sheet then bends between the two full
+65 mm or 66 mm edges. The bridge style does not change the panel profile or add
+another pose authority. The current screw-shoe ribbon remains the compatible
+default for old JSON.
+
 ### Panel-outline boundary generation
 
 Milestone 3 is implemented in `src/sculpture/PanelOutlineBoundary.ts`. A

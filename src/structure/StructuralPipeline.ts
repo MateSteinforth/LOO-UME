@@ -75,6 +75,8 @@ export interface StructuralAnalysisDocument {
     parts: number;
     organicConnectors: number;
     multiPanelJunctions: number;
+    surfaceBridges: number;
+    surfaceBridgeJunctions: number;
     connectorBrackets: number;
     strutSegments: number;
     spliceSleeves: number;
@@ -175,12 +177,15 @@ function assumptions(normalized: NormalizedStructuralDesign): string[] {
   )
     ? "Exact connector pad geometry is unknown; measured connector corners inform cable loads but do not create ribbon bores."
     : "Connector locations inform cable loads but do not create ribbon bores.";
+  const surfaceAssumption = normalized.connectorization.surfaceStyle === "led-surface-bridge"
+    ? "Each connector cell uses complete pose-derived panel edges, 5 mm ridges, and a 2 mm ruled sheet at the profile-defined LED-emitter planes; mutually local sheets can unite."
+    : "Each independent connector cell becomes one cap-surface loft; mutually local cells can share screw shoes and unite as one multi-panel ribbon junction.";
   return [
     "Panels are rigid load-transfer plates between their eligible mounting anchors.",
     "Panel-rigidity nodes and ties represent PCB/bracket plate stiffness for analysis only; they are not extra printable struts.",
-    "Each independent connector cell becomes one cap-surface loft; mutually local cells can share screw shoes and unite as one multi-panel ribbon junction.",
-    "Ribbon generation depends on valid panel geometry, hardware clearances, PCB avoidance, and print limits; it does not depend on truss convergence.",
-    "The axial truss validates local load paths and reports member sizing, but those circular sections do not set loft thickness or certify stresses in the lofted solid.",
+    surfaceAssumption,
+    "Connector generation depends on valid panel geometry, hardware clearances, PCB avoidance, and print limits; it does not depend on truss convergence.",
+    "The axial truss validates local load paths and reports member sizing, but those circular sections do not set connector-surface thickness or certify stresses in the printable solid.",
     "Members are straight, pin-jointed, linearly elastic axial truss elements with three translational node degrees of freedom.",
     "Euler compression capacity uses a pinned-pinned end condition and the optimized circular section.",
     "Face loads are distributed across panel hubs; corner and cable loads use the nearest eligible hub as a rigid-bracket approximation.",
@@ -265,6 +270,10 @@ function analysisDocument(
       parts: solids.length,
       organicConnectors: solids.filter(({ kind }) => kind === "organic-connector").length,
       multiPanelJunctions: solids.filter(({ kind }) => kind === "ribbon-junction").length,
+      surfaceBridges: solids.filter(({ kind }) => kind === "surface-bridge").length,
+      surfaceBridgeJunctions: solids.filter(
+        ({ kind }) => kind === "surface-bridge-junction",
+      ).length,
       connectorBrackets: solids.filter(({ kind }) => kind === "connector-bracket").length,
       strutSegments: solids.filter(({ kind }) => kind === "strut-segment").length,
       spliceSleeves: solids.filter(({ kind }) => kind === "splice-sleeve").length,
@@ -316,7 +325,7 @@ function report(
     "",
     "> **WARNING: LOAD-PATH GUIDANCE ONLY. THIS REPORT IS NOT ENGINEERING CERTIFICATION.**",
     "",
-    "Panel poses and eligible screw holes define the printable ribbon. The separate linear truss model is advisory only. A qualified engineer and physical tests must approve real mounting, material, print, fastener, impact, fatigue, and safety conditions.",
+    "Panel poses, profile-defined LED planes, and eligible screw holes define the selected printable connector surface. The separate linear truss model is advisory only. A qualified engineer and physical tests must approve real mounting, material, print, fastener, impact, fatigue, and safety conditions.",
     "",
     "## Result",
     "",
@@ -330,17 +339,18 @@ function report(
         analysis.optimization.materialMassKg === null
       ? "- Optimized axial-skeleton material: unavailable; see analysis warning"
       : `- Optimized axial-skeleton material: ${finite(analysis.optimization.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.optimization.materialMassKg, 5)} kg`,
-    `- Final printable loft material: ${finite(analysis.printable.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.printable.materialMassKg, 5)} kg`,
+    `- Connector surface style: ${analysis.connectorization.surfaceStyle ?? "screw-shoe-ribbon"}`,
+    `- Final printable connector material: ${finite(analysis.printable.materialVolumeCubicMm, 2)} mm^3; ${finite(analysis.printable.materialMassKg, 5)} kg`,
     `- Candidate members: ${analysis.candidate.initialMembers}; retained: ${analysis.candidate.retainedMembers}`,
     `- Local panel-pair connectors: ${analysis.candidate.connectorCells}`,
-    `- Printable parts: ${analysis.printable.parts}; panel-pair ribbon bodies: ${analysis.printable.organicConnectors}; multi-panel ribbon junctions: ${analysis.printable.multiPanelJunctions}; separate brackets: ${analysis.printable.connectorBrackets}; strut segments: ${analysis.printable.strutSegments}; splice sleeves: ${analysis.printable.spliceSleeves}`,
+    `- Printable parts: ${analysis.printable.parts}; panel-pair ribbon bodies: ${analysis.printable.organicConnectors}; multi-panel ribbon junctions: ${analysis.printable.multiPanelJunctions}; LED-surface bridges: ${analysis.printable.surfaceBridges}; LED-surface junctions: ${analysis.printable.surfaceBridgeJunctions}; separate brackets: ${analysis.printable.connectorBrackets}; strut segments: ${analysis.printable.strutSegments}; splice sleeves: ${analysis.printable.spliceSleeves}`,
     `- Split members: ${analysis.printable.splitMembers}`,
     `- Print envelope: ${analysis.connectorization.printBedSizeMm.join(" × ")} mm with ${finite(analysis.connectorization.printBedMarginMm)} mm margin`,
     "",
   ];
   if (analysis.optimization.status !== "converged") {
     lines.push(
-      "> **ANALYSIS WARNING: THE PRINTABLE RIBBON WAS GENERATED FROM PANEL GEOMETRY, BUT THE ADVISORY TRUSS ANALYSIS DID NOT CONVERGE. DO NOT USE IT AS STRUCTURAL APPROVAL.**",
+      "> **ANALYSIS WARNING: THE PRINTABLE CONNECTOR SURFACE WAS GENERATED FROM PANEL GEOMETRY, BUT THE ADVISORY TRUSS ANALYSIS DID NOT CONVERGE. DO NOT USE IT AS STRUCTURAL APPROVAL.**",
       "",
       ...analysis.optimization.diagnostics.map((diagnostic) =>
         `> ${markdown(diagnostic)}`

@@ -13,6 +13,8 @@ import { sha256Bytes } from "../src/sculpture/GeneratedMechanics.ts";
 import {
   getGeneratedStructuralState,
   normalizeStructuralDesign,
+  STRUCTURAL_CONNECTOR_DEFAULTS,
+  STRUCTURAL_PREVIEW_DEFAULTS,
 } from "../src/sculpture/StructuralDesign.ts";
 import {
   runStructuralPipeline,
@@ -56,6 +58,36 @@ describe("headless structural system pipeline", () => {
     expect(junctionResult.bundle.files.filter(({ role }) => role === "part")).toHaveLength(1);
     expect(junctionResult.bundle.files.filter(({ role }) => role === "package")).toHaveLength(1);
     expect(junctionResult.reportMarkdown).toContain("multi-panel ribbon junctions: 1");
+  });
+
+  it("exports the selected LED-surface style without changing the ribbon default", async () => {
+    const definition = structuredClone(source);
+    definition.structuralDesign ??= structuredClone(STRUCTURAL_PREVIEW_DEFAULTS);
+    definition.structuralDesign.connectorization = {
+      ...structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS),
+      surfaceStyle: "led-surface-bridge",
+    };
+    const surfaceResult = await runStructuralPipeline(
+      createPanelAssemblyProject(definition, sourcePath),
+    );
+
+    expect(result.normalized.connectorization.surfaceStyle).toBe("screw-shoe-ribbon");
+    expect(surfaceResult.normalized.connectorization.surfaceStyle).toBe("led-surface-bridge");
+    expect(surfaceResult.solids).toHaveLength(1);
+    expect(surfaceResult.solids[0]!.kind).toBe("surface-bridge");
+    expect(surfaceResult.analysis.printable).toMatchObject({
+      organicConnectors: 0,
+      multiPanelJunctions: 0,
+      surfaceBridges: 1,
+      surfaceBridgeJunctions: 0,
+    });
+    expect(surfaceResult.reportMarkdown).toContain(
+      "Connector surface style: led-surface-bridge",
+    );
+    expect(() => validateStructuralArtifactBundle(surfaceResult.bundle)).not.toThrow();
+    expect(surfaceResult.generatedStructure.sourceFingerprint.value).not.toBe(
+      result.generatedStructure.sourceFingerprint.value,
+    );
   });
 
   it("runs existing Schema 2 JSON through analysis, printable assets, reports, and a current manifest", () => {
@@ -262,7 +294,7 @@ describe("headless structural system pipeline", () => {
     expect(singular.analysis.members).toEqual([]);
     expect(singular.analysis.candidate.retainedMembers).toBe(0);
     expect(singular.solids).toEqual(result.solids);
-    expect(singular.reportMarkdown).toContain("THE PRINTABLE RIBBON WAS GENERATED");
+    expect(singular.reportMarkdown).toContain("THE PRINTABLE CONNECTOR SURFACE WAS GENERATED");
   });
 
   it("generates the ribbon when advisory analysis misses its numerical residual", async () => {

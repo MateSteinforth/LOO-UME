@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-23
+Last reconciled: 2026-08-24
 Integration baseline: `main` at `b9e0f7c`, which combines the Codex
 wiring/manual work and Grok Manifold work.
 Current milestone: generate a deterministic structural truss and printable
@@ -40,7 +40,7 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: existing Schema 2 panel JSON produces normalized anchors, a
   candidate and optimized 3D truss, printable brackets/hubs/struts, exact STL
   and 3MF assets, an exact-mesh preview, and an engineering report.
-- Acceptance: `TRUSS-011` through `TRUSS-033` pass; panel poses and panel
+- Acceptance: `TRUSS-011` through `TRUSS-034` pass; panel poses and panel
   profiles remain the only panel-geometry authorities; the report states that
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
@@ -177,6 +177,8 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Depends on: none. Keep this validation slice behavior-focused rather than a broad refactor.
 
 ## In Progress
+
+None.
 
 ## Blocked
 
@@ -367,6 +369,37 @@ Tasks are ordered. The primary agent automatically takes the first unblocked ite
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `TRUSS-034` Add full-edge LED-surface connector bridges — P0
+
+- Outcome: the current screw-shoe ribbon remains the default selectable style,
+  and a separate LED-surface action joins complete panel edges with a thin,
+  bending surface at the LED-emitter plane.
+- Acceptance: the selected style uses the existing Schema 2
+  `structuralDesign.connectorization` contract and structural fingerprint. Each
+  selected pair gets eligible screw fixtures, a 5 mm ridge, and a deterministic
+  2 mm ruled bridge at the profile emitter plane. Pair parts and local junctions
+  are watertight, manifold, print-bed bounded, PCB clear, and contain only the
+  corrected screw through-holes. Panel labels and advisory analysis remain.
+- Evidence: 39 focused structural tests cover schema, fingerprints, parallel,
+  reversed, orthogonal, two close arbitrary poses, junctions, trails, the
+  12-panel spiral, screw and label probes, exact STL/3MF output, and reports.
+  `npm run verify` passed 47 files and 352 tests plus TypeScript, WASM, assets,
+  and Vite. Three Chromium journeys passed for both styles, transport/reopen,
+  staleness, and local junction generation. A separate re-review found no P1,
+  P2, or P3 issue; its deterministic 16-pose probe passed all geometry-eligible
+  cases. `git diff --check` passed.
+- Physical review limit: OpenSCAD is not installed on this host, so no OpenSCAD
+  render or physical fit claim is made. The exact generated STL was inspected
+  in the browser preview.
+- Depends on: `TRUSS-033` and the existing panel profile emitter offset.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, structural Schema 2 types and schema,
+  fingerprint normalization, Manifold structural generation, pipeline report
+  metadata, `web/src/main.ts`, structural tests, and structural documentation.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
 
 ### `TRUSS-033` Engrave panel destinations on ribbon mounting surfaces — P0
 

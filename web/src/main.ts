@@ -76,6 +76,7 @@ import {
   normalizeStructuralDesign,
   STRUCTURAL_CONNECTOR_DEFAULTS,
   STRUCTURAL_PREVIEW_DEFAULTS,
+  type StructuralConnectorSurfaceStyle,
   type StructuralConnectorizationDefinition,
 } from "../../src/sculpture/StructuralDesign.ts";
 import { createCandidateTruss } from "../../src/structure/CandidateTruss.ts";
@@ -481,6 +482,9 @@ app.innerHTML = `
             <button id="generate-structure" class="pipeline-button" type="button">
               Generate connector ribbons
             </button>
+            <button id="generate-surface-structure" class="pipeline-button" type="button">
+              Generate LED-surface bridges
+            </button>
             <button id="download-structure" class="pipeline-button" type="button" disabled>
               Download structural files
             </button>
@@ -489,7 +493,7 @@ app.innerHTML = `
             Local Vite pipeline is ready.
           </div>
           <p class="mapping-note">
-            Boundary generation puts flat caps on valid holes between panel outlines. Structural generation starts at every eligible panel screw hole and makes analyzed brackets, hubs, and struts. A failed run keeps the last successful set.
+            Boundary generation puts flat caps on valid holes between panel outlines. Structural generation can make either screw-shoe ribbons or 2 mm full-edge bridges at the LED planes. Both styles use eligible panel screw holes and keep the load-path analysis advisory. A failed run keeps the last successful set.
           </p>
         </section>
 
@@ -601,6 +605,8 @@ const downloadPrintPartsButton =
   query<HTMLButtonElement>("#download-print-parts");
 const generateStructureButton =
   query<HTMLButtonElement>("#generate-structure");
+const generateSurfaceStructureButton =
+  query<HTMLButtonElement>("#generate-surface-structure");
 const downloadStructureButton =
   query<HTMLButtonElement>("#download-structure");
 const connectorSettings = query<HTMLDetailsElement>("#structural-connector-settings");
@@ -761,9 +767,13 @@ async function start(): Promise<void> {
         : "Put flat caps on the holes between panel outlines in the browser. Neighbouring corners must meet. The GLB is placement-only.";
       generateStructureButton.disabled =
         editorDefinition.panels.length === 0 || editorDefinition.manualMechanics !== undefined;
+      generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
       generateStructureButton.title = editorDefinition.manualMechanics
         ? "Structural generation is separate from physically tested manual mechanics."
         : "Generate nearest-hole connector ribbons, STL, 3MF, and an optional load-path report.";
+      generateSurfaceStructureButton.title = editorDefinition.manualMechanics
+        ? "Structural generation is separate from physically tested manual mechanics."
+        : "Generate 2 mm full-edge bridges at the panel LED planes, STL, 3MF, and an optional load-path report.";
       automaticPanelPlacementControls.hidden =
         editorDefinition.manualMechanics !== undefined;
       automaticallyPlacePanelsButton.disabled =
@@ -2192,19 +2202,27 @@ async function start(): Promise<void> {
       viewerError.hidden = true;
     });
 
-    generateStructureButton.addEventListener("click", () => {
-      void (async () => {
+    const generateStructuralStyle = async (
+      surfaceStyle: StructuralConnectorSurfaceStyle,
+    ): Promise<void> => {
         generateStructureButton.disabled = true;
+        generateSurfaceStructureButton.disabled = true;
         generatePrintPartsButton.disabled = true;
         addPanelButton.disabled = true;
         pipelineStatus.classList.remove("pipeline-status--error");
-        pipelineStatus.textContent =
-          "Generating nearest-hole ribbon geometry and running optional load-path analysis…";
+        pipelineStatus.textContent = surfaceStyle === "led-surface-bridge"
+          ? "Generating full-edge bridges at the LED planes and running optional load-path analysis…"
+          : "Generating nearest-hole ribbon geometry and running optional load-path analysis…";
         try {
           const structuralDefinition = structuredClone(editorDefinition);
           delete structuralDefinition.generatedMechanics;
           delete structuralDefinition.mechanicalShell;
           delete structuralDefinition.closures;
+          structuralDefinition.structuralDesign ??= structuredClone(STRUCTURAL_PREVIEW_DEFAULTS);
+          structuralDefinition.structuralDesign.connectorization = {
+            ...resolvedConnectorization(),
+            surfaceStyle,
+          };
           const structuralProject = createPanelAssemblyProject(
             structuralDefinition,
             editorProject.source,
@@ -2244,13 +2262,18 @@ async function start(): Promise<void> {
           }
           const loftBodyCount = result.analysis.printable.organicConnectors;
           const junctionCount = result.analysis.printable.multiPanelJunctions;
+          const surfaceBridgeCount = result.analysis.printable.surfaceBridges;
+          const surfaceJunctionCount = result.analysis.printable.surfaceBridgeJunctions;
+          const generatedShape = surfaceStyle === "led-surface-bridge"
+            ? `${surfaceBridgeCount} full-edge ${surfaceBridgeCount === 1 ? "bridge" : "bridges"} and ${surfaceJunctionCount} multi-panel surface ${surfaceJunctionCount === 1 ? "junction" : "junctions"}`
+            : `${loftBodyCount} cap-surface loft ${loftBodyCount === 1 ? "body" : "bodies"} and ${junctionCount} multi-panel ribbon ${junctionCount === 1 ? "junction" : "junctions"}`;
           pipelineStatus.textContent =
-            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${loftBodyCount} cap-surface loft ${loftBodyCount === 1 ? "body" : "bodies"} and ${junctionCount} multi-panel ribbon ${junctionCount === 1 ? "junction" : "junctions"}. ` +
+            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${generatedShape}. ` +
             (result.analysis.printable.splitMembers > 0
               ? `PRINT SPLIT WARNING: ${result.analysis.printable.splitMembers} member(s) require numbered segments and splice sleeves. `
               : "") +
             (result.analysis.optimization.status !== "converged"
-              ? `Advisory truss analysis: ${result.analysis.optimization.status}; ribbon generation is unaffected. `
+              ? `Advisory truss analysis: ${result.analysis.optimization.status}; ${surfaceStyle === "led-surface-bridge" ? "surface-bridge" : "ribbon"} generation is unaffected. `
               : "") +
             `The package also contains 3MF, preview, analysis, and report. ${result.analysis.disclaimer}`;
           viewerError.hidden = true;
@@ -2264,7 +2287,13 @@ async function start(): Promise<void> {
           renderEditorFaces();
           updatePipelineAvailability();
         }
-      })();
+    };
+
+    generateStructureButton.addEventListener("click", () => {
+      void generateStructuralStyle("screw-shoe-ribbon");
+    });
+    generateSurfaceStructureButton.addEventListener("click", () => {
+      void generateStructuralStyle("led-surface-bridge");
     });
 
     generatePrintPartsButton.addEventListener("click", () => {

@@ -128,6 +128,7 @@ describe("Schema 2 structural design normalization", () => {
 
     expect(normalized.inputSource).toBe("preview-defaults");
     expect(normalized.connectorization).toEqual({
+      surfaceStyle: "screw-shoe-ribbon",
       maximumNeighborDistanceMm: 200,
       maximumAutomaticNeighborsPerPanel: 2,
       minimumAnchorsPerPanelSide: 2,
@@ -138,6 +139,8 @@ describe("Schema 2 structural design normalization", () => {
     });
     expect(normalized.referencePanelId).toBe("P-01");
     expect(normalized.panels.map(({ id }) => id)).toEqual(["P-01", "P-02"]);
+    expect(normalized.panels.every(({ emitterPlaneOffsetMm }) => emitterPlaneOffsetMm === 1.2))
+      .toBe(true);
     expect(normalized.anchors).toHaveLength(8);
     expect(normalized.cableClearances).toHaveLength(4);
     expect(normalized.cableClearances.find(({ id }) =>
@@ -315,6 +318,7 @@ describe("Schema 2 structural design normalization", () => {
     const source = await definition();
     source.structuralDesign = design();
     source.structuralDesign.connectorization = {
+      surfaceStyle: "led-surface-bridge",
       maximumNeighborDistanceMm: 180,
       maximumAutomaticNeighborsPerPanel: 2,
       minimumAnchorsPerPanelSide: 2,
@@ -329,9 +333,25 @@ describe("Schema 2 structural design normalization", () => {
     expect(normalized.connectorization.panelPairOverrides).toEqual([
       { panelIds: ["P-01", "P-02"], action: "include" },
     ]);
+    expect(normalized.connectorization.surfaceStyle).toBe("led-surface-bridge");
     const firstFingerprint = normalized.sourceFingerprint.value;
     source.structuralDesign.connectorization.panelPairOverrides[0]!.action = "exclude";
     expect(createStructuralFingerprint(source, project.panelProfile)).not.toBe(firstFingerprint);
+  });
+
+  it("fingerprints the selected surface style and profile emitter plane", async () => {
+    const source = await definition();
+    source.structuralDesign = design();
+    source.structuralDesign.connectorization = structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS);
+    const project = createPanelAssemblyProject(source, "connector-style/sculpture.json");
+    const ribbonFingerprint = createStructuralFingerprint(source, project.panelProfile);
+    source.structuralDesign.connectorization.surfaceStyle = "led-surface-bridge";
+    expect(createStructuralFingerprint(source, project.panelProfile)).not.toBe(ribbonFingerprint);
+    const movedEmitterProfile = structuredClone(project.panelProfile);
+    movedEmitterProfile.pixelGrid.emitterOffset += 0.1;
+    expect(createStructuralFingerprint(source, movedEmitterProfile)).not.toBe(
+      createStructuralFingerprint(source, project.panelProfile),
+    );
   });
 
   it("rejects invalid print envelopes and contradictory or unknown panel pairs", async () => {

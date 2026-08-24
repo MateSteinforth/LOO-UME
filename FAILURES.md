@@ -730,3 +730,46 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/structural-solids.test.ts` and the isolated two-panel STL
   render.
 - **Status:** Resolved.
+
+### F-040 — Coplanar full-edge stations can export zero-area triangles
+
+- **Date:** 2026-08-24
+- **Context:** TRUSS-034 full-edge LED-surface bridges.
+- **Symptom:** A valid parallel-panel Manifold solid exported a triangle whose
+  three vertices were exactly collinear on the flat bridge back face.
+- **Cause:** Complete, parallel 65 mm edges produced coplanar ruled stations,
+  and a fixture apron ended exactly on the bridge top and back faces. Boolean
+  tessellation kept redundant collinear vertices at that coincident transition
+  even after the standard tolerance and simplification pass.
+- **Correction:** Add a deterministic 0.02 mm sinusoidal crown only inside the
+  bridge and recess fixture aprons 0.03 mm into the sheet so they overlap in
+  volume instead of sharing a face. Keep the endpoint ridges exactly on the
+  profile LED planes. Apply the strict Float32 triangle gate after the crown
+  and Manifold cleanup.
+- **Prevention:** Surface-bridge tests must include parallel, orthogonal,
+  arbitrary, local-junction, and long-trail layouts. Do not use only visibly
+  twisted examples to validate ruled-surface tessellation.
+- **Evidence:** `tests/structural-solids.test.ts` covers parallel, reversed,
+  orthogonal, two reproduced close arbitrary poses, local-junction, and
+  long-trail layouts and checks the exact exported meshes.
+- **Status:** Resolved.
+
+### F-041 — Edge-wrap fixtures must clear every nearby PCB
+
+- **Date:** 2026-08-24
+- **Context:** TRUSS-034 screw fixtures that wrap from the rear shoe to the
+  front LED-plane ridge.
+- **Symptom:** A valid three-panel local junction put part of one panel's broad
+  wrap diaphragm into a differently oriented neighboring PCB envelope.
+- **Cause:** A fixture can remain behind its own PCB but enter another close
+  panel when the panels meet at an arbitrary angle.
+- **Correction:** Trim the completed positive sheet and fixture union against
+  every PCB envelope with 0.15 mm clearance, discard only isolated trim chips
+  below 2 mm3, and then repeat the exact PCB collision and one-component
+  checks. Do not reject the untrimmed intermediate sheet.
+- **Prevention:** Validate fixtures against all normalized panels, not only the
+  two panels owned by their connector cell. Keep PCB trimming separate from
+  screw, label, cable, and hardware void semantics.
+- **Evidence:** The exact formerly rejected two-panel pose, local three-panel
+  junction, trail, and twelve-panel spiral Manifold regressions pass.
+- **Status:** Resolved.

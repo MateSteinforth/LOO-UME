@@ -1306,6 +1306,9 @@
             "maximumStrutSegmentLengthMm", "panelPairOverrides"
           ],
           "properties": {
+            "surfaceStyle": {
+              "enum": ["screw-shoe-ribbon", "led-surface-bridge"]
+            },
             "maximumNeighborDistanceMm": { "type": "number", "exclusiveMinimum": 0 },
             "maximumAutomaticNeighborsPerPanel": { "type": "integer", "minimum": 1 },
             "minimumAnchorsPerPanelSide": { "type": "integer", "minimum": 2 },
