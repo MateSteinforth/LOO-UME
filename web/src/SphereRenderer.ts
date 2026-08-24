@@ -21,6 +21,8 @@ import type { VerifiedGeneratedMechanics } from "./GeneratedMechanicsAssets.ts";
 import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts";
 import {
   SurfacePlacementController,
+  type FreePanelTransform,
+  type PanelTransformMode,
   type SurfacePanelPlacement,
   type SurfacePlacement,
 } from "./SurfacePlacementController";
@@ -275,6 +277,7 @@ export class SphereRenderer {
     onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
     onLocalTranslationCommit?: (panelId: string, deltaX: number, deltaY: number) => void;
     onRotationCommit?: (panelId: string, degrees: number) => void;
+    onFreeTransformCommit?: (transform: FreePanelTransform) => void;
     onAddPanelCommit?: (placement: SurfacePlacement) => void;
     onDeletePanelRequest?: (panelId: string) => void;
   }): void {
@@ -287,12 +290,17 @@ export class SphereRenderer {
     this.surfacePlacement.onPlacementCommit = callbacks.onPlacementCommit;
     this.surfacePlacement.onLocalTranslationCommit = callbacks.onLocalTranslationCommit;
     this.surfacePlacement.onRotationCommit = callbacks.onRotationCommit;
+    this.surfacePlacement.onFreeTransformCommit = callbacks.onFreeTransformCommit;
     this.surfacePlacement.onAddPanelCommit = callbacks.onAddPanelCommit;
     this.surfacePlacement.onDeletePanelRequest = callbacks.onDeletePanelRequest;
   }
 
   selectEditorPanel(panelId: string | null): void {
     this.surfacePlacement.selectPanel(panelId);
+  }
+
+  setPanelTransformMode(mode: PanelTransformMode): void {
+    this.surfacePlacement.setTransformMode(mode);
   }
 
   setPanelLabelsVisible(visible: boolean): void {

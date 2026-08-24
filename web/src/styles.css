@@ -361,6 +361,7 @@ input[type="checkbox"] {
 .icon-button,
 .input-action button,
 .editor-actions button,
+.transform-mode-actions button,
 .editor-button,
 .pipeline-button {
   border: 1px solid rgba(57, 217, 208, 0.28);
@@ -373,6 +374,7 @@ input[type="checkbox"] {
 .icon-button:hover,
 .input-action button:hover,
 .editor-actions button:hover,
+.transform-mode-actions button:hover,
 .editor-button:hover,
 .pipeline-button:hover {
   border-color: rgba(57, 217, 208, 0.62);
@@ -509,6 +511,28 @@ input[type="color"] {
   gap: 7px;
 }
 
+.transform-mode-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.transform-mode-actions button {
+  min-height: 34px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.transform-mode-actions button[aria-pressed="true"] {
+  border-color: rgba(255, 179, 92, 0.8);
+  color: #fff4c2;
+  background: rgba(255, 179, 92, 0.18);
+}
+
 .route-editor-section {
   margin-top: 17px;
   padding-top: 14px;
@@ -627,6 +651,7 @@ input[type="color"] {
 }
 
 .editor-actions button,
+.transform-mode-actions button,
 .editor-button,
 .pipeline-button {
   min-height: 38px;

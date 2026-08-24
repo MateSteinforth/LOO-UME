@@ -773,3 +773,46 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The exact formerly rejected two-panel pose, local three-panel
   junction, trail, and twelve-panel spiral Manifold regressions pass.
 - **Status:** Resolved.
+
+### F-042 — TransformControls does not cancel a drag on pointer cancellation
+
+- **Date:** 2026-08-24
+- **Context:** TRUSS-035 free 3D panel gizmos on touch and pointer devices.
+- **Symptom:** A cancelled gizmo drag could leave the preview uncommitted,
+  OrbitControls disabled, and the transform control in its dragging state.
+- **Cause:** Three.js `TransformControls` listens for pointer down, move, and up
+  but does not register a pointer-cancel listener. Its temporary move listener
+  and drag state therefore survive a browser cancellation unless the host
+  handles it.
+- **Correction:** On pointer cancellation, reset the attached object to its
+  drag-start transform, end the transform without a commit, reconnect the
+  control to remove its temporary listener, and restore camera controls. Keep
+  TransformControls listeners before editor listeners after reconnection.
+- **Prevention:** Every pointer-driven editor control must define commit and
+  cancel paths. A cancel must restore both model preview and control state; a
+  pointer-up-only implementation is incomplete.
+- **Evidence:** `web/src/SurfacePlacementController.ts`, focused editor tests,
+  Chromium editor journey, and independent TRUSS-035 review.
+- **Status:** Resolved.
+
+### F-043 — Asset staging can race a live Vite review page
+
+- **Date:** 2026-08-24
+- **Context:** TRUSS-035 verification while the LAN review server remained
+  open for operator testing.
+- **Symptom:** The browser reported `Unexpected token '<'` while parsing JSON;
+  Vite had returned its HTML fallback for the sculpture manifest.
+- **Cause:** `npm run verify` runs the staging script, which removes and copies
+  `web/public/sculptures`. A live page can reload during that short replacement
+  interval and request `sculptures/manifest.json` before it is restored.
+- **Correction:** Finish staging and verification before handing off or
+  refreshing a live review page. After verification, check the manifest,
+  selected sculpture JSON, generator-status JSON, JavaScript, and WASM routes
+  on the actual review server; reload a page that failed during staging.
+- **Prevention:** Do not treat a live Vite server as stable while asset staging
+  is active. Start it after verification when practical, or validate all review
+  endpoints again before telling the operator to test.
+- **Evidence:** Host requests to the active port showed valid JSON for the
+  restored manifest, selected sculpture, and generator-status routes after the
+  staging step completed.
+- **Status:** Mitigated.

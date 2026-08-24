@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import * as THREE from "three";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createManualCadProject } from "../src/cad/GenerateCad.ts";
 import {
   createPanelAssemblyMapping,
@@ -16,7 +16,8 @@ import {
 import { deriveEditorCapabilities } from "../web/src/EditorCapabilities.ts";
 import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
 import {
-  beginPanelPlaneDrag, updatePanelPlaneDrag,
+  beginPanelPlaneDrag, cancelFreePanelTransform,
+  freePanelTransformFromObject, updatePanelPlaneDrag,
 } from "../web/src/SurfacePlacementController.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
@@ -408,5 +409,46 @@ describe("mechanics-independent panel JSON editing", () => {
     const unchanged = updatePanelPlaneDrag(ray, drag)!;
     expect(unchanged.position.toArray()).toEqual(center.toArray());
     expect(unchanged).toMatchObject({ deltaX: 0, deltaY: 0 });
+  });
+
+  it("extracts a normalized right-handed pose from a compound gizmo transform", () => {
+    const object = new THREE.Object3D();
+    object.position.set(12.5, -8.25, 41);
+    object.quaternion.setFromEuler(new THREE.Euler(0.37, -0.61, 1.14, "XYZ"));
+    object.updateMatrixWorld(true);
+
+    const transform = freePanelTransformFromObject("P-07", object);
+    const xAxis = new THREE.Vector3(...transform.orientation.xAxis);
+    const yAxis = new THREE.Vector3(...transform.orientation.yAxis);
+    const normal = new THREE.Vector3(...transform.orientation.normal);
+    expect(transform.panelId).toBe("P-07");
+    expect(transform.position).toEqual([12.5, -8.25, 41]);
+    expect(xAxis.length()).toBeCloseTo(1, 12);
+    expect(yAxis.length()).toBeCloseTo(1, 12);
+    expect(normal.length()).toBeCloseTo(1, 12);
+    expect(xAxis.dot(yAxis)).toBeCloseTo(0, 12);
+    expect(xAxis.clone().cross(yAxis).distanceTo(normal)).toBeLessThan(1e-12);
+  });
+
+  it("rolls back and reconnects a cancelled free-transform drag", () => {
+    const calls: string[] = [];
+    const controls = {
+      dragging: true,
+      reset: vi.fn(() => calls.push("reset")),
+      pointerUp: vi.fn(() => {
+        calls.push("pointerUp");
+        controls.dragging = false;
+      }),
+      disconnect: vi.fn(() => calls.push("disconnect")),
+      connect: vi.fn(() => calls.push("connect")),
+    };
+    const domElement = {} as HTMLElement;
+
+    expect(cancelFreePanelTransform(controls, domElement)).toBe(true);
+    expect(calls).toEqual(["reset", "pointerUp", "disconnect", "connect"]);
+    expect(controls.pointerUp).toHaveBeenCalledWith(null);
+    expect(controls.connect).toHaveBeenCalledWith(domElement);
+    expect(cancelFreePanelTransform(controls, domElement)).toBe(false);
+    expect(calls).toHaveLength(4);
   });
 });

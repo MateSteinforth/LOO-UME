@@ -450,6 +450,58 @@ export function movePanelInLocalPlane(
   return definition;
 }
 
+export interface FreePanelPose {
+  position: Vector3Tuple;
+  orientation: {
+    xAxis: Vector3Tuple;
+    yAxis: Vector3Tuple;
+    normal: Vector3Tuple;
+  };
+}
+
+/** Replaces one authoritative pose after a free 3D gizmo transform. */
+export function setPanelWorldPose(
+  source: PanelAssemblyDefinition,
+  panelId: string,
+  pose: FreePanelPose,
+): PanelAssemblyDefinition {
+  const values = [
+    ...pose.position,
+    ...pose.orientation.xAxis,
+    ...pose.orientation.yAxis,
+    ...pose.orientation.normal,
+  ];
+  if (values.some((value) => !Number.isFinite(value))) {
+    throw new Error(`Panel ${panelId} free 3D pose must contain only finite values.`);
+  }
+  const normal = normalize([...pose.orientation.normal]);
+  const projectedX = subtract(
+    pose.orientation.xAxis,
+    scale(normal, dot(pose.orientation.xAxis, normal)),
+  );
+  if (Math.hypot(...projectedX) < 1e-8) {
+    throw new Error(`Panel ${panelId} free 3D pose has a degenerate orientation.`);
+  }
+  const xAxis = normalize(projectedX);
+  const yAxis = normalize(cross(normal, xAxis));
+  const suppliedY = normalize([...pose.orientation.yAxis]);
+  if (dot(yAxis, suppliedY) < 0.999) {
+    throw new Error(`Panel ${panelId} free 3D pose must be right-handed.`);
+  }
+
+  const definition = structuredClone(source);
+  if (!definition.manualMechanics) preserveAuthoringBoundary(definition);
+  const panel = definition.panels.find((candidate) => candidate.id === panelId);
+  if (!panel) throw new Error(`Unknown panel ${panelId}.`);
+  panel.pose = {
+    position: [...pose.position],
+    orientation: { xAxis, yAxis, normal },
+  };
+  delete panel.surfaceAttachment;
+  markPanelEditConsequences(definition, [panelId]);
+  return definition;
+}
+
 /** Rotates one authoritative panel basis in its plane without moving it. */
 export function rotatePanelAroundLocalZ(
   source: PanelAssemblyDefinition,

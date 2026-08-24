@@ -40,7 +40,7 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: existing Schema 2 panel JSON produces normalized anchors, a
   candidate and optimized 3D truss, printable brackets/hubs/struts, exact STL
   and 3MF assets, an exact-mesh preview, and an engineering report.
-- Acceptance: `TRUSS-011` through `TRUSS-034` pass; panel poses and panel
+- Acceptance: `TRUSS-011` through `TRUSS-035` pass; panel poses and panel
   profiles remain the only panel-geometry authorities; the report states that
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
@@ -369,6 +369,34 @@ None.
 - Current rule: do not add another format speculatively. Decide only from a concrete metadata/topology need.
 
 ## Ready to Merge
+
+### `TRUSS-035` Add free 3D panel transform gizmos — P0
+
+- Outcome: selected panels use a conventional three-axis viewer gizmo. Move XYZ
+  translates on world axes, and Rotate XYZ rotates on panel-local axes.
+- Acceptance: one completed drag writes a finite, normalized, orthogonal,
+  right-handed authoritative Schema 2 pose; removes stale surface attachment;
+  refreshes mapping and wiring; invalidates derived mechanics; and preserves
+  selection. Orbiting is disabled during a transform. Pointer cancellation
+  rolls the preview back, clears Three.js drag state and its temporary listener,
+  and restores camera controls. Surface-based panel creation remains available.
+- Evidence: 31 focused editor and structural tests cover arbitrary translation,
+  compound rotation, invalid bases, attachment removal, metadata and mechanics
+  consequences, matrix extraction, and ordered cancel rollback. `npm run verify`
+  passed 47 files and 356 tests plus TypeScript, WASM, assets, and Vite. The
+  90-second Chromium editor journey passed in 52.8 seconds. A separate review
+  inspected the pinned Three.js event implementation and final diff and found no
+  remaining P1, P2, or P3 issue. `git diff --check` passed.
+- Depends on: pose-first editing and `TRUSS-034` browser trial layouts.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, `FAILURES.md`,
+  `src/sculpture/SculptureEditor.ts`,
+  `web/src/SurfacePlacementController.ts`, `web/src/SphereRenderer.ts`,
+  `web/src/main.ts`, editor styles, editor/browser tests, and panel workflow
+  documentation.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
 
 ### `TRUSS-034` Add full-edge LED-surface connector bridges — P0
 

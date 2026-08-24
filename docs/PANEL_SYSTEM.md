@@ -52,8 +52,12 @@ The editor creates panels in three ways:
    Existing panels remain; new panels go to the currently shortest provisional
    output. This is placement only and does not promise CAD fit.
 
-Selected panels can move across the active surface, move in saved local XY,
-rotate around local Z, or be deleted. Selection, LED/panel/label focus,
+Selected panels use a conventional three-axis transform gizmo. **Move XYZ**
+translates on world X, Y, or Z and **Rotate XYZ** rotates around the panel's
+local X, Y, or Z. A free transform writes one normalized, right-handed saved
+pose and removes `surfaceAttachment`, because the old triangle and barycentric
+coordinates no longer describe the transformed panel. The design surface stays
+available for adding panels. Selection, LED/panel/label focus,
 wiring/connectors, gizmo, and delete control share one selected panel ID. Edits
 rebuild mapping and wiring immediately.
 
