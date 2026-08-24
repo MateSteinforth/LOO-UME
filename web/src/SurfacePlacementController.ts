@@ -31,8 +31,6 @@ export interface SurfacePanelPlacement extends SurfacePlacement {
   panelId: string;
 }
 
-export type PanelTransformMode = "translate" | "rotate";
-
 export interface FreePanelTransform {
   panelId: string;
   position: Vector3Tuple;
@@ -89,20 +87,28 @@ interface CancelableTransformControl {
   dragging: boolean;
   reset(): void;
   pointerUp(pointer: PointerEvent | null): void;
+}
+
+interface ReconnectableTransformControl {
   disconnect(): void;
   connect(element: HTMLElement): void;
 }
 
 export function cancelFreePanelTransform(
   controls: CancelableTransformControl,
-  domElement: HTMLElement,
 ): boolean {
   if (!controls.dragging) return false;
   controls.reset();
   controls.pointerUp(null);
-  controls.disconnect();
-  controls.connect(domElement);
   return true;
+}
+
+export function reconnectFreePanelTransformControls(
+  controls: readonly ReconnectableTransformControl[],
+  domElement: HTMLElement,
+): void {
+  for (const control of controls) control.disconnect();
+  for (const control of controls) control.connect(domElement);
 }
 
 
@@ -159,8 +165,10 @@ export class SurfacePlacementController {
   private readonly pointer = new THREE.Vector2();
   private readonly layer = new THREE.Group();
   private readonly gizmo = new THREE.Group();
-  private readonly transformControls: TransformControls;
-  private readonly transformHelper: THREE.Object3D;
+  private readonly translateControls: TransformControls;
+  private readonly rotateControls: TransformControls;
+  private readonly translateHelper: THREE.Object3D;
+  private readonly rotateHelper: THREE.Object3D;
   private readonly translateHandles: THREE.Object3D[] = [];
   private readonly rotateHandles: THREE.Object3D[] = [];
   private readonly panelTargets = new Map<string, THREE.Mesh>();
@@ -193,8 +201,8 @@ export class SurfacePlacementController {
   private attachmentSurface: "design-surface" | "mechanical-shell" =
     "design-surface";
   private normalOffset = 0.4;
-  private transformMode: PanelTransformMode = "translate";
   private transformStart: FreePanelTransform | null = null;
+  private activeTransformControls: TransformControls | null = null;
 
   onSelectionChange?: (panelId: string | null) => void;
   onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
@@ -210,16 +218,26 @@ export class SurfacePlacementController {
     private readonly domElement: HTMLElement,
     private readonly controls: OrbitControls,
   ) {
-    this.transformControls = new TransformControls(camera, domElement);
-    this.transformControls.setMode(this.transformMode);
-    this.transformControls.setSpace("world");
-    this.transformControls.setSize(0.85);
-    this.transformHelper = this.transformControls.getHelper();
-    this.transformHelper.name = "selected-panel-free-transform-gizmo";
-    this.scene.add(this.transformHelper);
-    this.transformControls.addEventListener("mouseDown", this.transformMouseDown);
-    this.transformControls.addEventListener("objectChange", this.transformObjectChange);
-    this.transformControls.addEventListener("mouseUp", this.transformMouseUp);
+    this.translateControls = new TransformControls(camera, domElement);
+    this.translateControls.setMode("translate");
+    this.translateControls.setSpace("local");
+    this.translateControls.setSize(0.72);
+    this.translateHelper = this.translateControls.getHelper();
+    this.translateHelper.name = "selected-panel-local-translation-gizmo";
+    this.scene.add(this.translateHelper);
+    this.rotateControls = new TransformControls(camera, domElement);
+    this.rotateControls.setMode("rotate");
+    this.rotateControls.setSpace("local");
+    this.rotateControls.setSize(1.02);
+    this.rotateHelper = this.rotateControls.getHelper();
+    this.rotateHelper.name = "selected-panel-local-rotation-gizmo";
+    this.scene.add(this.rotateHelper);
+    this.translateControls.addEventListener("mouseDown", this.translateMouseDown);
+    this.translateControls.addEventListener("objectChange", this.transformObjectChange);
+    this.translateControls.addEventListener("mouseUp", this.translateMouseUp);
+    this.rotateControls.addEventListener("mouseDown", this.rotateMouseDown);
+    this.rotateControls.addEventListener("objectChange", this.transformObjectChange);
+    this.rotateControls.addEventListener("mouseUp", this.rotateMouseUp);
     this.layer.name = "surface-placement-editor";
     this.scene.add(this.layer);
     this.gizmo.name = "selected-panel-gizmo";
@@ -326,34 +344,44 @@ export class SurfacePlacementController {
     this.select(panelId);
   }
 
-  setTransformMode(mode: PanelTransformMode): void {
-    this.transformMode = mode;
-    this.transformControls.setMode(mode);
-    this.transformControls.setSpace(mode === "translate" ? "world" : "local");
-  }
-
-
   dispose(): void {
     this.disconnectPointerListeners();
     this.setSurface(null);
     this.setPanels([], 0.8);
-    this.transformControls.removeEventListener("mouseDown", this.transformMouseDown);
-    this.transformControls.removeEventListener("objectChange", this.transformObjectChange);
-    this.transformControls.removeEventListener("mouseUp", this.transformMouseUp);
+    this.translateControls.removeEventListener("mouseDown", this.translateMouseDown);
+    this.translateControls.removeEventListener("objectChange", this.transformObjectChange);
+    this.translateControls.removeEventListener("mouseUp", this.translateMouseUp);
+    this.rotateControls.removeEventListener("mouseDown", this.rotateMouseDown);
+    this.rotateControls.removeEventListener("objectChange", this.transformObjectChange);
+    this.rotateControls.removeEventListener("mouseUp", this.rotateMouseUp);
     this.disposeGizmo();
-    this.transformControls.detach();
-    this.transformControls.dispose();
-    this.scene.remove(this.transformHelper);
+    this.translateControls.detach();
+    this.translateControls.dispose();
+    this.rotateControls.detach();
+    this.rotateControls.dispose();
+    this.scene.remove(this.translateHelper);
+    this.scene.remove(this.rotateHelper);
     this.scene.remove(this.layer);
   }
 
-  private readonly transformMouseDown = (): void => {
-    if (!this.selectedPanelId) return;
+  private readonly translateMouseDown = (): void => {
+    this.beginFreeTransform(this.translateControls);
+  };
+
+  private readonly rotateMouseDown = (): void => {
+    this.beginFreeTransform(this.rotateControls);
+  };
+
+  private beginFreeTransform(control: TransformControls): void {
+    if (this.activeTransformControls || !this.selectedPanelId) return;
     const target = this.panelTargets.get(this.selectedPanelId);
     if (!target) return;
+    this.activeTransformControls = control;
     this.transformStart = freePanelTransformFromObject(this.selectedPanelId, target);
+    this.translateControls.enabled = control === this.translateControls;
+    this.rotateControls.enabled = control === this.rotateControls;
     this.controls.enabled = false;
-  };
+  }
 
   private readonly transformObjectChange = (): void => {
     if (!this.selectedPanelId) return;
@@ -364,8 +392,19 @@ export class SurfacePlacementController {
     this.gizmo.updateMatrixWorld(true);
   };
 
-  private readonly transformMouseUp = (): void => {
+  private readonly translateMouseUp = (): void => {
+    this.endFreeTransform(this.translateControls);
+  };
+
+  private readonly rotateMouseUp = (): void => {
+    this.endFreeTransform(this.rotateControls);
+  };
+
+  private endFreeTransform(control: TransformControls): void {
+    if (this.activeTransformControls !== control) return;
+    this.activeTransformControls = null;
     this.controls.enabled = true;
+    this.updateTransformControlAvailability();
     const start = this.transformStart;
     this.transformStart = null;
     if (!start || !this.selectedPanelId) return;
@@ -375,11 +414,12 @@ export class SurfacePlacementController {
     if (freePanelTransformsDiffer(start, transform)) {
       this.onFreeTransformCommit?.(transform);
     }
-  };
+  }
 
   private readonly pointerDown = (event: PointerEvent): void => {
     if (event.button !== 0) return;
-    if (this.transformControls.axis !== null || this.transformControls.dragging) return;
+    if (this.translateControls.axis !== null || this.rotateControls.axis !== null ||
+      this.translateControls.dragging || this.rotateControls.dragging) return;
     this.backgroundPointerCandidate = null;
     this.surfacePointerCandidate = null;
     this.updateRaycaster(event);
@@ -496,10 +536,16 @@ export class SurfacePlacementController {
   };
 
   private readonly pointerCancel = (event: PointerEvent): void => {
-    if (this.transformControls.dragging) {
+    const active = this.activeTransformControls;
+    if (active?.dragging) {
       this.disconnectPointerListeners();
-      cancelFreePanelTransform(this.transformControls, this.domElement);
+      cancelFreePanelTransform(active);
+      this.activeTransformControls = null;
+      this.transformStart = null;
+      this.reconnectTransformControls();
       this.connectPointerListeners();
+      this.updateTransformControlAvailability();
+      this.controls.enabled = true;
     }
     if (this.backgroundPointerCandidate?.pointerId === event.pointerId) {
       this.backgroundPointerCandidate = null;
@@ -531,6 +577,13 @@ export class SurfacePlacementController {
     this.domElement.removeEventListener("pointermove", this.pointerMove);
     this.domElement.removeEventListener("pointerup", this.pointerUp);
     this.domElement.removeEventListener("pointercancel", this.pointerCancel);
+  }
+
+  private reconnectTransformControls(): void {
+    reconnectFreePanelTransformControls(
+      [this.translateControls, this.rotateControls],
+      this.domElement,
+    );
   }
 
   private capturePointer(event: PointerEvent): void {
@@ -790,7 +843,8 @@ export class SurfacePlacementController {
       : undefined;
     if (!target) {
       this.gizmo.visible = false;
-      this.transformControls.detach();
+      this.translateControls.detach();
+      this.rotateControls.detach();
       return;
     }
     target.geometry.computeBoundingBox();
@@ -830,17 +884,21 @@ export class SurfacePlacementController {
     this.gizmo.matrixAutoUpdate = false;
     this.gizmo.visible = true;
     this.gizmo.updateMatrixWorld(true);
-    this.transformControls.setMode(this.transformMode);
-    this.transformControls.setSpace(this.transformMode === "translate" ? "world" : "local");
-    this.transformControls.enabled = this.transformMode === "rotate"
-      ? this.capabilities.canRotateSelectedPanel
-      : this.capabilities.canTranslateOnActiveSurface ||
-        this.capabilities.canTranslateInPanelPlane;
-    this.transformControls.attach(target);
+    this.updateTransformControlAvailability();
+    this.translateControls.attach(target);
+    this.rotateControls.attach(target);
+  }
+
+  private updateTransformControlAvailability(): void {
+    if (this.activeTransformControls) return;
+    this.translateControls.enabled = this.capabilities.canTranslateOnActiveSurface ||
+      this.capabilities.canTranslateInPanelPlane;
+    this.rotateControls.enabled = this.capabilities.canRotateSelectedPanel;
   }
 
   private disposeGizmo(): void {
-    this.transformControls.detach();
+    this.translateControls.detach();
+    this.rotateControls.detach();
     this.translateHandles.length = 0;
     this.rotateHandles.length = 0;
     for (const child of [...this.gizmo.children]) {

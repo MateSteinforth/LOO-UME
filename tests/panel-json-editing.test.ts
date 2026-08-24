@@ -17,7 +17,8 @@ import { deriveEditorCapabilities } from "../web/src/EditorCapabilities.ts";
 import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
 import {
   beginPanelPlaneDrag, cancelFreePanelTransform,
-  freePanelTransformFromObject, updatePanelPlaneDrag,
+  freePanelTransformFromObject, reconnectFreePanelTransformControls,
+  updatePanelPlaneDrag,
 } from "../web/src/SurfacePlacementController.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
@@ -430,7 +431,7 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(xAxis.clone().cross(yAxis).distanceTo(normal)).toBeLessThan(1e-12);
   });
 
-  it("rolls back and reconnects a cancelled free-transform drag", () => {
+  it("rolls back a cancelled free-transform drag", () => {
     const calls: string[] = [];
     const controls = {
       dragging: true,
@@ -439,16 +440,35 @@ describe("mechanics-independent panel JSON editing", () => {
         calls.push("pointerUp");
         controls.dragging = false;
       }),
-      disconnect: vi.fn(() => calls.push("disconnect")),
-      connect: vi.fn(() => calls.push("connect")),
     };
-    const domElement = {} as HTMLElement;
 
-    expect(cancelFreePanelTransform(controls, domElement)).toBe(true);
-    expect(calls).toEqual(["reset", "pointerUp", "disconnect", "connect"]);
+    expect(cancelFreePanelTransform(controls)).toBe(true);
+    expect(calls).toEqual(["reset", "pointerUp"]);
     expect(controls.pointerUp).toHaveBeenCalledWith(null);
-    expect(controls.connect).toHaveBeenCalledWith(domElement);
-    expect(cancelFreePanelTransform(controls, domElement)).toBe(false);
-    expect(calls).toHaveLength(4);
+    expect(cancelFreePanelTransform(controls)).toBe(false);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("reconnects translation before rotation after a cancelled drag", () => {
+    const calls: string[] = [];
+    const domElement = {} as HTMLElement;
+    const control = (name: string) => ({
+      disconnect: vi.fn(() => calls.push(`disconnect-${name}`)),
+      connect: vi.fn((element: HTMLElement) => {
+        expect(element).toBe(domElement);
+        calls.push(`connect-${name}`);
+      }),
+    });
+
+    reconnectFreePanelTransformControls(
+      [control("translate"), control("rotate")],
+      domElement,
+    );
+    expect(calls).toEqual([
+      "disconnect-translate",
+      "disconnect-rotate",
+      "connect-translate",
+      "connect-rotate",
+    ]);
   });
 });

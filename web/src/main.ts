@@ -415,10 +415,6 @@ app.innerHTML = `
           <p id="surface-status" class="mapping-note">
             Load a GLB, or use the sculpture JSON shell as the editing surface.
           </p>
-          <div class="transform-mode-actions" role="group" aria-label="Selected panel transform mode">
-            <button id="panel-transform-translate" type="button" aria-pressed="true">Move XYZ</button>
-            <button id="panel-transform-rotate" type="button" aria-pressed="false">Rotate XYZ</button>
-          </div>
           <p id="selected-panel-status" class="mapping-note">
             No design surface loaded.
           </p>
@@ -592,10 +588,6 @@ const loadDesignSurfaceButton =
 const surfaceScaleInput = query<HTMLInputElement>("#surface-scale");
 const surfaceStatus = query<HTMLElement>("#surface-status");
 const selectedPanelStatus = query<HTMLElement>("#selected-panel-status");
-const panelTransformTranslateButton =
-  query<HTMLButtonElement>("#panel-transform-translate");
-const panelTransformRotateButton =
-  query<HTMLButtonElement>("#panel-transform-rotate");
 const automaticPanelPlacementControls =
   query<HTMLElement>("#automatic-panel-placement-controls");
 const automaticPanelCountInput =
@@ -674,22 +666,6 @@ async function start(): Promise<void> {
     let routeEditorModel: WiringRouteEditorModel | null =
       createWiringRouteEditorModel(editorDefinition, wiringPreview);
     renderer = new SphereRenderer(viewerElement, mapping);
-    renderer.setPanelTransformMode("translate");
-    const selectPanelTransformMode = (mode: "translate" | "rotate"): void => {
-      renderer?.setPanelTransformMode(mode);
-      panelTransformTranslateButton.setAttribute(
-        "aria-pressed", String(mode === "translate"),
-      );
-      panelTransformRotateButton.setAttribute(
-        "aria-pressed", String(mode === "rotate"),
-      );
-    };
-    panelTransformTranslateButton.addEventListener("click", () => {
-      selectPanelTransformMode("translate");
-    });
-    panelTransformRotateButton.addEventListener("click", () => {
-      selectPanelTransformMode("rotate");
-    });
     renderer.setPanelProfileThickness(
       editorProject.panelProfile.dimensions.thickness,
     );
@@ -776,8 +752,6 @@ async function start(): Promise<void> {
         editorDefinition, activePlacementSurface !== undefined, pipelineAvailable,
       );
       renderer?.setEditorCapabilities(capabilities);
-      panelTransformTranslateButton.disabled = !capabilities.canSelectPanels;
-      panelTransformRotateButton.disabled = !capabilities.canSelectPanels;
       generateMappingButton.disabled =
         mapping.topology !== "panelized-sculpture" ||
         !capabilities.canExportMappingAndWiring;
@@ -1391,7 +1365,7 @@ async function start(): Promise<void> {
       renderer?.setDesignSurface(null);
       surfaceStatus.textContent = message;
       selectedPanelStatus.textContent =
-        "No authoring surface loaded. Existing panels can still be selected, moved on world X/Y/Z, rotated on local X/Y/Z, or deleted.";
+        "No authoring surface loaded. Existing panels can still be selected, moved and rotated on local X/Y/Z, or deleted.";
       updatePipelineAvailability();
     };
 
@@ -1418,7 +1392,7 @@ async function start(): Promise<void> {
         " mm, watertight.";
       selectedPanelStatus.textContent = editorDefinition.manualMechanics
         ? "Click a panel for free XYZ movement or rotation. A free transform detaches it from the referenced GLB and marks manual mechanics for review."
-        : "Click a panel, then select Move XYZ or Rotate XYZ. Drag empty space to orbit; click the " + attachmentSurface + " mesh to add a panel.";
+        : "Click a panel, then drag its local arrows or rotation rings. Drag empty space to orbit; click the " + attachmentSurface + " mesh to add a panel.";
     };
 
     const showMechanicalShellSurface = (message?: string): void => {
@@ -1518,7 +1492,7 @@ async function start(): Promise<void> {
         if (panelId) {
           const actions = [
             capabilities.canTranslateOnActiveSurface || capabilities.canTranslateInPanelPlane
-              ? "move on world X/Y/Z"
+              ? "move on local X/Y/Z"
               : "",
             capabilities.canRotateSelectedPanel ? "rotate on local X/Y/Z" : "",
             capabilities.canDeleteSelectedPanel ? "delete" : "",
@@ -1638,7 +1612,7 @@ async function start(): Promise<void> {
               ? `Transformed ${transform.panelId} freely in 3D. Its surface attachment was removed and generated mechanics require regeneration.`
               : `Transformed ${transform.panelId} freely in 3D. Mapping and wiring refreshed; no printable mechanics exist yet.`;
           selectedPanelStatus.textContent =
-            `${transform.panelId} has an independent world pose. Use Move XYZ or Rotate XYZ to continue.`;
+            `${transform.panelId} has an independent world pose. Use its local arrows or rotation rings to continue.`;
           viewerError.hidden = true;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);

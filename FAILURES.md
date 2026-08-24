@@ -785,9 +785,10 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   and drag state therefore survive a browser cancellation unless the host
   handles it.
 - **Correction:** On pointer cancellation, reset the attached object to its
-  drag-start transform, end the transform without a commit, reconnect the
-  control to remove its temporary listener, and restore camera controls. Keep
-  TransformControls listeners before editor listeners after reconnection.
+  drag-start transform, end the transform without a commit, reconnect all
+  transform controls to remove temporary listeners, and restore camera
+  controls. Keep translation, rotation, then editor listener order after
+  reconnection.
 - **Prevention:** Every pointer-driven editor control must define commit and
   cancel paths. A cancel must restore both model preview and control state; a
   pointer-up-only implementation is incomplete.

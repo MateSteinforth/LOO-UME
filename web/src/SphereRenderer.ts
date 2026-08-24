@@ -22,7 +22,6 @@ import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts"
 import {
   SurfacePlacementController,
   type FreePanelTransform,
-  type PanelTransformMode,
   type SurfacePanelPlacement,
   type SurfacePlacement,
 } from "./SurfacePlacementController";
@@ -297,10 +296,6 @@ export class SphereRenderer {
 
   selectEditorPanel(panelId: string | null): void {
     this.surfacePlacement.selectPanel(panelId);
-  }
-
-  setPanelTransformMode(mode: PanelTransformMode): void {
-    this.surfacePlacement.setTransformMode(mode);
   }
 
   setPanelLabelsVisible(visible: boolean): void {

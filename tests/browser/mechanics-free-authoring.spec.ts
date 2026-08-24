@@ -108,17 +108,8 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator("#mapping-note")).toContainText(
     "No printable mechanics exist yet",
   );
-  await expect(page.locator("#panel-transform-translate")).toBeEnabled();
-  await expect(page.locator("#panel-transform-translate")).toHaveAttribute(
-    "aria-pressed", "true",
-  );
-  await page.locator("#panel-transform-rotate").click();
-  await expect(page.locator("#panel-transform-rotate")).toHaveAttribute(
-    "aria-pressed", "true",
-  );
-  await expect(page.locator("#panel-transform-translate")).toHaveAttribute(
-    "aria-pressed", "false",
-  );
+  await expect(page.locator("#panel-transform-translate")).toHaveCount(0);
+  await expect(page.locator("#panel-transform-rotate")).toHaveCount(0);
 
   await page.locator("#surface-scale").fill("1");
   await chooseFile(page, "#load-design-surface", {
@@ -154,11 +145,7 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
     `Selected ${deletedPanelId}.`,
   );
   await expect(page.locator("#selected-panel-status")).toContainText(
-    "move on world X/Y/Z, rotate on local X/Y/Z",
-  );
-  await page.locator("#panel-transform-translate").click();
-  await expect(page.locator("#panel-transform-translate")).toHaveAttribute(
-    "aria-pressed", "true",
+    "move on local X/Y/Z, rotate on local X/Y/Z",
   );
   await page.getByRole("button", {
     name: `Delete selected panel ${deletedPanelId}`,

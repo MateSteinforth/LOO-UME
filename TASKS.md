@@ -40,7 +40,7 @@ This file is the persistent source of truth for work status. Read it before star
 - Outcome: existing Schema 2 panel JSON produces normalized anchors, a
   candidate and optimized 3D truss, printable brackets/hubs/struts, exact STL
   and 3MF assets, an exact-mesh preview, and an engineering report.
-- Acceptance: `TRUSS-011` through `TRUSS-035` pass; panel poses and panel
+- Acceptance: `TRUSS-011` through `TRUSS-036` pass; panel poses and panel
   profiles remain the only panel-geometry authorities; the report states that
   analysis is load-path guidance and not engineering certification.
 - Depends on: its component tasks and `HR-016` for physical fit claims.
@@ -370,10 +370,37 @@ None.
 
 ## Ready to Merge
 
+### `TRUSS-036` Show simultaneous local move and rotate gizmos — P0
+
+- Outcome: clicking a panel shows Three.js translation arrows and rotation
+  rings together, aligned to that panel's local X/Y/Z basis. The old mode
+  buttons are removed.
+- Acceptance: both helpers attach only to the shared selected panel; local-axis
+  translation and rotation can each start without the other control or camera
+  also dragging; one completed drag commits one normalized authoritative pose;
+  cancellation rolls back and reconnects both controls in stable event order;
+  selection, deletion, surface creation, and mechanics invalidation remain.
+- Evidence: `npm run verify` passed 47 files and 357 tests plus TypeScript,
+  WASM, assets, and Vite. The real Chromium mechanics-free editor journey
+  passed in 43.9 seconds. Direct Chromium probes confirmed both helpers render
+  together and independently commit local translation and rotation. A separate
+  review ran 32 focused tests, TypeScript, and `git diff --check` and found no
+  P1, P2, or P3 issue.
+- Depends on: `TRUSS-035`.
+- Owner: branch `codex/truss-011-structural-contract`; worktree
+  `/tmp/led-rhombo-truss-011`. Do not merge to `main`.
+- Likely conflicts: `TASKS.md`, `web/src/SurfacePlacementController.ts`,
+  `web/src/SphereRenderer.ts`, `web/src/main.ts`, editor styles and tests, and
+  panel workflow documentation.
+- Integration gate: explicit operator authorization is required before merge
+  into `main`.
+
 ### `TRUSS-035` Add free 3D panel transform gizmos — P0
 
 - Outcome: selected panels use a conventional three-axis viewer gizmo. Move XYZ
   translates on world axes, and Rotate XYZ rotates on panel-local axes.
+- Superseded UI detail: `TRUSS-036` makes translation local and displays both
+  transform controls without mode buttons.
 - Acceptance: one completed drag writes a finite, normalized, orthogonal,
   right-handed authoritative Schema 2 pose; removes stale surface attachment;
   refreshes mapping and wiring; invalidates derived mechanics; and preserves
