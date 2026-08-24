@@ -30,6 +30,7 @@
     "web/src/DesignSurfaceLoader.ts",
     "web/src/EditorPipelineRequest.ts",
     "web/src/GeneratedMechanicsAssets.ts",
+    "web/src/GeneratedStructuralAssets.ts",
     "web/src/GeneratorStatus.ts",
     "web/src/JsonResponse.ts",
     "web/src/PortableProject.ts",

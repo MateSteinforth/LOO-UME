@@ -18,8 +18,11 @@ import type { WiringPreview } from "./WiringPreview";
 import type { EditorCapabilities } from "./EditorCapabilities.ts";
 import type { ClosedPanelBoundary } from "../../src/sculpture/PanelOutlineBoundary.ts";
 import type { VerifiedGeneratedMechanics } from "./GeneratedMechanicsAssets.ts";
+import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts";
 import {
   SurfacePlacementController,
+  type FreePanelTransform,
+  type PanelTransformMode,
   type SurfacePanelPlacement,
   type SurfacePlacement,
 } from "./SurfacePlacementController";
@@ -271,6 +274,10 @@ export class SphereRenderer {
     this.surfacePlacement.setCapabilities(capabilities);
   }
 
+  setPanelTransformMode(mode: PanelTransformMode): void {
+    this.surfacePlacement.setTransformMode(mode);
+  }
+
   setDesignSurface(
     geometry: THREE.BufferGeometry | null,
     attachmentSurface: "design-surface" | "mechanical-shell" = "design-surface",
@@ -285,6 +292,7 @@ export class SphereRenderer {
     onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
     onLocalTranslationCommit?: (panelId: string, deltaX: number, deltaY: number) => void;
     onRotationCommit?: (panelId: string, degrees: number) => void;
+    onFreeTransformCommit?: (transform: FreePanelTransform) => void;
     onAddPanelCommit?: (placement: SurfacePlacement) => void;
     onDeletePanelRequest?: (panelId: string) => void;
   }): void {
@@ -297,6 +305,7 @@ export class SphereRenderer {
     this.surfacePlacement.onPlacementCommit = callbacks.onPlacementCommit;
     this.surfacePlacement.onLocalTranslationCommit = callbacks.onLocalTranslationCommit;
     this.surfacePlacement.onRotationCommit = callbacks.onRotationCommit;
+    this.surfacePlacement.onFreeTransformCommit = callbacks.onFreeTransformCommit;
     this.surfacePlacement.onAddPanelCommit = callbacks.onAddPanelCommit;
     this.surfacePlacement.onDeletePanelRequest = callbacks.onDeletePanelRequest;
   }
@@ -449,6 +458,31 @@ export class SphereRenderer {
       exact.userData.exactReferencedStl = true;
       this.printableLayer.add(exact);
     });
+    this.applySelectionFocus();
+  }
+
+  setExactGeneratedStructure(
+    assets?: VerifiedGeneratedStructure,
+  ): void {
+    this.clearBoundaryPreview();
+    this.disposeGroup(this.printableLayer);
+    if (!assets) return;
+    const copy = Uint8Array.from(assets.preview.bytes);
+    const geometry = this.stlLoader.parse(copy.buffer);
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+    const preview = new THREE.Mesh(
+      geometry,
+      this.markShellMaterial(new THREE.MeshBasicMaterial({
+        color: 0x2f939c,
+        side: THREE.DoubleSide,
+      })),
+    );
+    preview.name = "exact-generated-structural-preview";
+    preview.userData.source = assets.preview.source;
+    preview.userData.sha256 = assets.preview.sha256;
+    preview.userData.exactReferencedStl = true;
+    this.printableLayer.add(preview);
     this.applySelectionFocus();
   }
 

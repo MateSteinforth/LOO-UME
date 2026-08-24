@@ -52,8 +52,13 @@ The editor creates panels in three ways:
    Existing panels remain; new panels go to the currently shortest provisional
    output. This is placement only and does not promise CAD fit.
 
-Selected panels can move across the active surface, move in saved local XY,
-rotate around local Z, or be deleted. Selection, LED/panel/label focus,
+Selected panels have two explicit transform modes. Surface mode keeps the
+existing constrained surface move, saved local-XY move without a surface, and
+local-Z rotation. Free 6DOF mode shows local XYZ translation and rotation
+controls. A completed free transform writes one normalized, right-handed saved
+pose and removes `surfaceAttachment`, because the old triangle and barycentric
+coordinates no longer describe the transformed panel. The design surface stays
+available for adding panels. Selection, LED/panel/label focus,
 wiring/connectors, gizmo, and delete control share one selected panel ID. Edits
 rebuild mapping and wiring immediately.
 
@@ -94,6 +99,141 @@ Supported checked-in examples:
 Some truncated-octahedron closure edges are unfastened butt seams; this is a
 known limitation, not missing geometry. Generic parts are iterative fabrication
 output and still require print/fit inspection.
+
+### Structural truss route
+
+`structuralDesign` is an optional part of the same Schema 2 sculpture JSON. It
+stores material, panel mass, safety factor, displacement and fabrication
+limits, installed gravity, transport-case selection, supports, and explicit
+face, corner, or cable forces. It does not store panel coordinates or duplicate
+the panel profile.
+
+`normalizeStructuralDesign()` in `src/sculpture/StructuralDesign.ts` derives a
+stable structural input model from the authoritative poses and profile:
+
+- every panel has its centre, right-handed axes, exact dimensions, mass, and
+  four derived outline corners;
+- every mechanically eligible profile hole becomes an anchor with a stable
+  `<panel-id>:<hole-id>` identity and exact world position;
+- DIN/DOUT-blocked holes never become anchors;
+- panel supports expand to all eligible anchors, while anchor supports constrain
+  only their named eligible hole;
+- installed gravity and optional world-axis transport cases have normalized
+  directions; and
+- face, corner, and cable forces have derived world application points.
+
+When no structural design exists, normalization uses named preview defaults.
+When no support exists, it fixes every eligible anchor on the first panel in
+stable ID order and emits `NO_REAL_SUPPORTS`. This reference is only for
+preview. The analysis requires real mounting conditions. Unknown electrical
+pad envelopes also produce a warning; cable load points use the measured DIN
+or DOUT corner until exact pad positions exist.
+
+`generatedStructure` is a derived, hash-checked asset manifest for the later
+STL, 3MF, analysis, and report pipeline. It is mutually exclusive with the
+planar generated-part route. A pose, profile, support, load,
+material, or fabrication change makes its fingerprint stale without disabling
+editing, simulation, mapping, wiring, or save. See
+[`STRUCTURAL_WORKFLOW.md`](STRUCTURAL_WORKFLOW.md).
+
+`createCandidateTruss()` starts from all normalized eligible anchors, selects
+local degree-limited panel neighbors, and keeps analytical hubs only at anchors
+reserved by a connector. It applies explicit include/exclude overrides,
+reserves at least two distinct anchors on each side of every panel-pair
+connector, and adds a triangulated offset connector hub. Analysis-only nodes
+and ties represent panel rigidity without adding print mass or self-weight. It
+rejects members that intersect an expanded PCB oriented box.
+
+The candidate is valid only when all hub nodes are connected and every member
+has another graph path around it. Coincident hubs, duplicate or zero-length
+edges, isolated panels, and fewer than three non-collinear eligible holes fail
+with an error. Rejected collision and length candidates remain in the result as
+diagnostic evidence for later reports.
+
+`solveStructuralTruss()` maps each normalized anchor support to its rear hub
+and preserves each constrained X/Y/Z translation. It distributes panel gravity
+across that panel's hubs and member self-weight across member ends. A face force
+is shared across all panel hubs. A corner or cable force is applied to the
+nearest eligible hub because the PCB and bracket plate transfer that point
+load into the axial model.
+
+The solver reports node displacement, applied force, and reaction for every
+case. It reports member axial force, tension/compression state, stress, safety-
+factored yield utilization, pinned-pinned Euler buckling capacity and
+utilization, and the governing case. A singular stiffness matrix or residual
+failure stops analysis with an error. These results guide load paths only; they
+are not engineering certification. A pipeline catches this analysis error,
+records it as an unavailable advisory result, and still generates a ribbon
+when the independent panel, hardware, PCB, and print checks pass.
+
+`optimizeStructuralTruss()` uses the maximum absolute force and utilization
+from all selected cases. It can remove only inter-panel candidates; panel-local
+ties remain required attachments. A proposed removal must retain a connected,
+bridge-free graph and must pass a maximum-diameter stiffness and strength solve.
+If a complete removal batch is too weak, the optimizer restores the shortest
+members by stable ID until the hard limits can be met.
+
+Remaining members grow in the authored diameter increment. Yield needs area,
+buckling needs the circular fourth-power second moment, and the global
+displacement ratio scales all retained diameters. Each iteration recompiles
+member self-weight. The retained trace records removal and resize decisions,
+material, stress, buckling, displacement, long-compression, fragile-attachment,
+and unprintable-dimension terms.
+
+If the authored maximum diameter is not on the minimum-plus-increment grid, the
+optimizer uses the largest grid value below it. A low-force ratio must be in
+the interval `(0, 1]`. An infeasible terminal trace cannot be labeled as
+converged, and reaching the iteration bound while values still change reports
+`iteration-limit`.
+
+The normalizer also derives a cable-load axis at each profile hole blocked by
+DIN or DOUT. It is an analysis input only. Ribbon CAD does not cut a cable bore
+at that location because the printable connector must contain no opening other
+than its screw-axis pilots and lead-ins.
+
+Each independent panel-pair connector is one printable loft body. Each side starts with
+broad 13 mm rounded screw shoes derived from the canonical triangle and
+pentagon fixtures. Candidate generation reserves the unused eligible holes
+nearest the neighboring panel. Those shoes are the exact end profiles of one
+twisted cap surface. A body does not join another panel-pair cell. The shoe
+starts at the PCB rear surface plus the proven 0.50 mm flush correction. It keeps the profile's 1.60 mm pilot,
+3.20 × 0.70 mm lead-in, and moves the pilot 0.20 mm inward from its nearest
+panel edge. The exact authored hole remains the structural anchor. It does not
+add a nut pocket, insert pocket, transverse access tunnel, or cable bore. When
+the existing 5×7 glyph set supports the panel ID, a 0.55 mm-deep recessed ID is
+centered between the two screws on the flat panel-facing surface. It identifies
+the panel that the screw pair mounts to. When at least two selected pairs
+share a panel and all pose-derived nearest-hole connection regions are within
+70% of the smallest involved panel dimension, candidate generation marks one
+local junction. It reuses that junction's screw shoes on the shared panel and
+Manifold unites the loft paths into one printable part. A three-panel trail
+whose connection regions are farther apart stays as two parts.
+
+The surface uses nine deterministic cap-shaped stations. A cubic path leaves
+each shoe only 6 mm along its panel rear normal before it bends through the gap. Manifold
+hulls adjacent stations, which keeps the 3 mm cap thickness near each panel and
+creates a continuous surface when the panel planes differ. The axial solver
+still validates panel-pair load paths and reports its own circular member
+sizes. Those sizes do not set loft thickness, and the solver does not calculate
+stresses in the final lofted solid. Every part must fit the configured print
+envelope after margin and rotation. Every returned mesh must have
+Manifold `NoError`, one printable component, positive volume, finite vertices,
+non-degenerate triangles, and millimetre bounds.
+Before those final checks, Manifold simplifies the completed solid by at most
+0.001 mm. This removes sub-micron sliver faces created by Boolean overlap. It is
+three orders of magnitude smaller than the 1.2 mm minimum wall and does not
+replace the strict non-degenerate-triangle check.
+The final organic volumes are intersected with every nearby oriented
+PCB envelope. CAD stops if any printable volume enters a PCB.
+
+The selectable LED-surface bridge keeps the same eligible screw anchors,
+hardware corrections, labels, local junction groups, PCB gates, and print-bed
+limits. It derives one complete rectangle edge per panel pair from the saved
+poses. A 5 mm ridge sits outside that PCB edge with its top at the panel
+profile's LED-emitter plane. A 2 mm ruled sheet then bends between the two full
+65 mm or 66 mm edges. The bridge style does not change the panel profile or add
+another pose authority. The current screw-shoe ribbon remains the compatible
+default for old JSON.
 
 ### Panel-outline boundary generation
 
@@ -181,3 +321,5 @@ flow, asset bundle, staleness rules, and remaining interface-test gaps.
   panel/cap boundary as closed and two-manifold before making printable parts.
 - Display the exact generated STL assets; do not call an approximate Three.js
   reconstruction the printable result.
+- Treat truss results as load-path guidance. Do not call them engineering
+  certification, and do not hide preview supports or assumed material facts.

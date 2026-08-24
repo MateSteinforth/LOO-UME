@@ -27,6 +27,30 @@
       "artifactStatus": "authoring-only"
     },
     {
+      "id": "structural-two-panel-spatial-trial",
+      "name": "Structural Two-panel Spatial Trial",
+      "source": "./sculptures/structural-two-panel-spatial/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
+      "id": "structural-three-panel-trail-trial",
+      "name": "Structural Three-panel Spatial Trail",
+      "source": "./sculptures/structural-three-panel-trail/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
+      "id": "structural-three-panel-junction-trial",
+      "name": "Structural Three-panel Local Junction",
+      "source": "./sculptures/structural-three-panel-junction/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
+      "id": "structural-twelve-panel-rising-spiral-trial",
+      "name": "Structural Twelve-panel Rising Spiral",
+      "source": "./sculptures/structural-twelve-panel-spiral/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
       "id": "panel-outline-prism-boundary-fixture",
       "name": "Panel-outline Prism Boundary Fixture",
       "source": "./sculptures/panel-outline-prism/sculpture.json",

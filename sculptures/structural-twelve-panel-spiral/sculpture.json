@@ -1,0 +1,239 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "structural-twelve-panel-rising-spiral-trial",
+  "name": "Structural Twelve-panel Rising Spiral",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "ws2812b-8x8-66x65",
+    "source": "../../catalog/panels/ws2812b-8x8-66x65.json"
+  },
+  "panels": [
+    {
+      "id": "P-01",
+      "pose": {
+        "position": [90, 0, 0],
+        "orientation": {
+          "xAxis": [0, 1, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [1, 0, 0]
+        }
+      }
+    },
+    {
+      "id": "P-02",
+      "pose": {
+        "position": [57.850885, 68.943999, 45],
+        "orientation": {
+          "xAxis": [-0.766044443, 0.64278761, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [0.64278761, 0.766044443, 0]
+        }
+      }
+    },
+    {
+      "id": "P-03",
+      "pose": {
+        "position": [-15.628336, 88.632698, 90],
+        "orientation": {
+          "xAxis": [-0.984807753, -0.173648178, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [-0.173648178, 0.984807753, 0]
+        }
+      }
+    },
+    {
+      "id": "P-04",
+      "pose": {
+        "position": [-77.942286, 45, 135],
+        "orientation": {
+          "xAxis": [-0.5, -0.866025404, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [-0.866025404, 0.5, 0]
+        }
+      }
+    },
+    {
+      "id": "P-05",
+      "pose": {
+        "position": [-84.572336, -30.781813, 180],
+        "orientation": {
+          "xAxis": [0.342020143, -0.939692621, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [-0.939692621, -0.342020143, 0]
+        }
+      }
+    },
+    {
+      "id": "P-06",
+      "pose": {
+        "position": [-30.781813, -84.572336, 225],
+        "orientation": {
+          "xAxis": [0.939692621, -0.342020143, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [-0.342020143, -0.939692621, 0]
+        }
+      }
+    },
+    {
+      "id": "P-07",
+      "pose": {
+        "position": [45, -77.942286, 270],
+        "orientation": {
+          "xAxis": [0.866025404, 0.5, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [0.5, -0.866025404, 0]
+        }
+      }
+    },
+    {
+      "id": "P-08",
+      "pose": {
+        "position": [88.632698, -15.628336, 315],
+        "orientation": {
+          "xAxis": [0.173648178, 0.984807753, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [0.984807753, -0.173648178, 0]
+        }
+      }
+    },
+    {
+      "id": "P-09",
+      "pose": {
+        "position": [68.943999, 57.850885, 360],
+        "orientation": {
+          "xAxis": [-0.64278761, 0.766044443, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [0.766044443, 0.64278761, 0]
+        }
+      }
+    },
+    {
+      "id": "P-10",
+      "pose": {
+        "position": [0, 90, 405],
+        "orientation": {
+          "xAxis": [-1, 0, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [0, 1, 0]
+        }
+      }
+    },
+    {
+      "id": "P-11",
+      "pose": {
+        "position": [-68.943999, 57.850885, 450],
+        "orientation": {
+          "xAxis": [-0.64278761, -0.766044443, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [-0.766044443, 0.64278761, 0]
+        }
+      }
+    },
+    {
+      "id": "P-12",
+      "pose": {
+        "position": [-88.632698, -15.628336, 495],
+        "orientation": {
+          "xAxis": [0.173648178, -0.984807753, 0],
+          "yAxis": [0, 0, 1],
+          "normal": [-0.984807753, -0.173648178, 0]
+        }
+      }
+    }
+  ],
+  "structuralDesign": {
+    "schemaVersion": "1.0.0",
+    "material": {
+      "id": "petg-trial-isotropic",
+      "youngsModulusMpa": 2100,
+      "yieldStrengthMpa": 45,
+      "densityKgPerCubicMeter": 1270
+    },
+    "panelMassKg": 0.12,
+    "safetyFactor": 2.5,
+    "maximumDisplacementMm": 3,
+    "gravity": {
+      "installedDirection": [0, 0, -1],
+      "accelerationMetersPerSecondSquared": 9.80665,
+      "includeWorldAxisTransportCases": true
+    },
+    "fabrication": {
+      "minimumMemberDiameterMm": 4,
+      "maximumMemberDiameterMm": 16,
+      "memberDiameterIncrementMm": 0.5,
+      "maximumUnsupportedCompressionLengthMm": 150,
+      "bracketOffsetMm": 14,
+      "cableClearanceMm": 12
+    },
+    "connectorization": {
+      "maximumNeighborDistanceMm": 130,
+      "maximumAutomaticNeighborsPerPanel": 2,
+      "minimumAnchorsPerPanelSide": 2,
+      "printBedSizeMm": [250, 250, 250],
+      "printBedMarginMm": 5,
+      "maximumStrutSegmentLengthMm": 220,
+      "panelPairOverrides": []
+    },
+    "supports": [
+      {
+        "id": "spiral-base-reference",
+        "kind": "panel",
+        "panelId": "P-01",
+        "constrainedTranslations": ["x", "y", "z"]
+      }
+    ],
+    "loads": [
+      {
+        "id": "spiral-top-face-push",
+        "kind": "panel-face-force",
+        "panelId": "P-12",
+        "forceNewtons": [-2, -0.5, -4]
+      },
+      {
+        "id": "spiral-mid-cable-pull",
+        "kind": "cable-pull",
+        "panelId": "P-06",
+        "connector": "DIN",
+        "forceNewtons": [2, 1, 0]
+      }
+    ]
+  },
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "provisional",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "longitude-sectors-nearest-neighbor",
+    "chainLengths": [12],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Rising spiral output",
+        "gpio": null,
+        "color": "#ff7a45"
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Twelve vertical panels rise 45 mm and rotate 50 degrees per step around a 90 mm radius helix.",
+    "Every panel normal points radially away from the helix axis, so the LED faces point outward.",
+    "P-01 is a preview support only. Replace it with real mounting conditions before physical use."
+  ]
+}

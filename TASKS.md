@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-23
+Last reconciled: 2026-08-24
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -115,7 +115,20 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `TRUSS-011` Integrate modular structural connectors and 6DOF editing
+
+- Scope: preserve current UI and Manifold workflow while integrating connector
+  ribbons, LED-surface bridges, structural presets, and free 6DOF transforms.
+- Acceptance: surface and free-3D panel modes are switchable; detailed connector
+  settings are under Advanced Tools; both generation buttons remain primary;
+  one download button exports the exact verified connector set displayed in the
+  viewport as a ZIP; current UI, project, mapping, and package journeys pass.
+- Verification: 324 unit tests, TypeScript, Vite build, all 8 browser journeys,
+  structural CLI generation, and independent QUALITY review passed.
+- Owner: `codex/truss-011-main-integration` in
+  `/tmp/led-rhombo-truss-integration`.
+- Source branch/worktree: `codex/truss-011-structural-contract` at `6bb5742`
+  in `/tmp/led-rhombo-truss-011`; preserve it until operator approval.
 
 ## Done
 

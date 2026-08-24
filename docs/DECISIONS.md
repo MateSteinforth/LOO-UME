@@ -131,3 +131,32 @@ The operator approved the existing panel profile for the current 41-panel
 build. Keep its present dimensions, connector orientation, and physically tested
 corrections. Approval does not convert fields marked provisional or unknown into
 measured evidence. Electrical approval and device parity remain separate gates.
+
+## D20 — Structural generation is an additive pose-derived route
+
+Structural inputs use the same Schema 2 panel poses and resolved profile. They
+do not create another geometry authority and do not convert GLB triangles into
+printable material. Load-path analysis is advisory, not certification. Ribbon
+or bridge fabrication succeeds only when its independent hardware, PCB,
+Manifold, and print-envelope checks pass.
+
+## D21 — Keep two modular connector surface styles
+
+Connector ribbons use eligible screw-shoe pairs and pose-derived lofts. LED-
+surface bridges use the same eligible anchors but span complete panel edges at
+the LED-emitter plane. The two primary generation buttons select the style.
+Detailed neighbor, bed, split, and pair controls stay under Advanced Tools.
+
+## D22 — Surface and free-3D editing are separate modes
+
+Surface mode preserves constrained surface translation, saved local-XY movement
+without a surface, and local-Z rotation. Free 6DOF mode exposes local XYZ
+translation and rotation. A completed free transform saves one normalized,
+right-handed pose and removes the obsolete surface attachment.
+
+## D23 — Structural download follows the verified viewport set
+
+Only one structural download action is shown. It creates a deterministic ZIP
+from the current hash-verified structural artifact set displayed in Three.js.
+Generating the other style replaces the current set; stale assets stay hidden
+and cannot be downloaded.

@@ -19,6 +19,7 @@ import {
   movePanelOnDesignSurface,
   projectPanelOrientationOntoSurface,
   rotatePanelAroundLocalZ,
+  setPanelWorldPose,
 } from "../src/sculpture/SculptureEditor.ts";
 import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegenerator.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
@@ -48,6 +49,68 @@ function expectVectorClose(
 }
 
 describe("browser sculpture editor", () => {
+  it("stores a free translated and compound-rotated world pose", async () => {
+    const source = parsePanelAssemblyDefinition(JSON.parse(
+      await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
+    ));
+    const originalPanel = structuredClone(source.panels[0]!);
+    source.panels[0]!.surfaceAttachment = {
+      surface: "mechanical-shell",
+      triangleIndex: 0,
+      barycentric: [0.2, 0.3, 0.5],
+      normalOffset: 0.4,
+    };
+    const sqrt2 = Math.sqrt(2);
+    const sqrt3 = Math.sqrt(3);
+    const sqrt6 = Math.sqrt(6);
+    const edited = setPanelWorldPose(source, originalPanel.id, {
+      position: [17.25, -31.5, 42.75],
+      orientation: {
+        xAxis: [1 / sqrt2, -1 / sqrt2, 0],
+        yAxis: [1 / sqrt6, 1 / sqrt6, -2 / sqrt6],
+        normal: [1 / sqrt3, 1 / sqrt3, 1 / sqrt3],
+      },
+    });
+    const panel = edited.panels[0]!;
+
+    expect(panel.pose.position).toEqual([17.25, -31.5, 42.75]);
+    expectVectorClose(panel.pose.orientation.xAxis, [1 / sqrt2, -1 / sqrt2, 0]);
+    expectVectorClose(panel.pose.orientation.yAxis, [1 / sqrt6, 1 / sqrt6, -2 / sqrt6]);
+    expectVectorClose(panel.pose.orientation.normal, [1 / sqrt3, 1 / sqrt3, 1 / sqrt3]);
+    expect(panel.surfaceAttachment).toBeUndefined();
+    expect(panel.mountFaceId).toBe(originalPanel.mountFaceId);
+    expect(panel.id).toBe(originalPanel.id);
+    expect(edited.panels[1]).toEqual(source.panels[1]);
+    expect(edited.mechanicalShell?.derivationStatus).toBe("requires-regeneration");
+    expect(edited.wiring.status).toBe("draft");
+    expect(() => parsePanelAssemblyDefinition(JSON.parse(JSON.stringify(edited))))
+      .not.toThrow();
+  });
+
+  it("rejects non-finite, degenerate, and left-handed free poses", async () => {
+    const source = parsePanelAssemblyDefinition(JSON.parse(
+      await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),
+    ));
+    const panelId = source.panels[0]!.id;
+    const pose = {
+      position: [1, 2, 3] as Vector3Tuple,
+      orientation: {
+        xAxis: [1, 0, 0] as Vector3Tuple,
+        yAxis: [0, 1, 0] as Vector3Tuple,
+        normal: [0, 0, 1] as Vector3Tuple,
+      },
+    };
+    const nonFinite = structuredClone(pose);
+    nonFinite.position[0] = Number.NaN;
+    expect(() => setPanelWorldPose(source, panelId, nonFinite)).toThrow(/finite/);
+    const degenerate = structuredClone(pose);
+    degenerate.orientation.xAxis = [0, 0, 2];
+    expect(() => setPanelWorldPose(source, panelId, degenerate)).toThrow(/degenerate/);
+    const leftHanded = structuredClone(pose);
+    leftHanded.orientation.yAxis = [0, -1, 0];
+    expect(() => setPanelWorldPose(source, panelId, leftHanded)).toThrow(/right-handed/);
+  });
+
   it("rotates only the selected panel's right-handed in-plane basis", async () => {
     const source: unknown = JSON.parse(
       await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),

@@ -573,6 +573,63 @@ input[type="range"] {
   margin-top: 0;
 }
 
+.connector-settings {
+  padding: 10px;
+  border: 1px solid rgba(255, 139, 69, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 139, 69, 0.035);
+}
+
+.connector-settings summary {
+  cursor: pointer;
+  color: #d9b49e;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.connector-bed-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.connector-pair-add {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.connector-pair-add select {
+  min-width: 0;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: #dce7f5;
+  background: #0b1220;
+}
+
+.connector-pair-add button {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.connector-pair-list {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+  color: #9cabbf;
+  font-size: 10px;
+}
+
+.connector-pair-list label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .pipeline-button {
   color: #fff0e7;
   border-color: rgba(255, 139, 69, 0.38);

@@ -36,17 +36,16 @@ describe("local generator status discovery", () => {
     });
   });
 
-  it.each(["127.0.0.1", "::1", "[::1]"])(
+  it.each(["localhost", "127.0.0.1", "::1", "[::1]"])(
     "keeps helper discovery for loopback hostname %s",
     async (hostname) => {
       const fetchStatus = vi.fn(async () => Response.json(READY));
 
       await expect(loadGeneratorStatus(fetchStatus, hostname))
         .resolves.toEqual(READY);
-      expect(fetchStatus).toHaveBeenCalledTimes(1);
+      expect(fetchStatus).toHaveBeenCalledOnce();
     },
   );
-
   it("accepts an unavailable status and keeps its repair message", async () => {
     const status = {
       ...READY,

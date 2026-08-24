@@ -573,3 +573,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/bootstrap-install.test.ts` and the clean-checkout CI job
   run through `./bootstrap.sh` with `PATH=/usr/bin:/bin`.
 - **Status:** Resolved.
+
+### F-031 — A long-running feature branch can restore retired contracts
+
+- **Date:** 2026-08-24
+- **Context:** Integration of the structural connector branch after the
+  Manifold-only, Schema 2 validation, and unified-UI milestones.
+- **Symptom:** A text merge retained structural additions but also reintroduced
+  references to retired OpenSCAD/manual mechanics and removed UI controls.
+- **Cause:** The feature branch started before those later decisions, so clean
+  textual hunks were not necessarily valid against the current architecture.
+- **Correction:** Integrate in a separate worktree, keep current shared control
+  documents as the base, port structural behavior explicitly, and scan active
+  code and documentation for retired contract names before testing.
+- **Prevention:** Treat a large old-base branch as a semantic migration. Preserve
+  its source ref, but accept each shared-file hunk only against current source
+  authorities and operator UI requirements.
+- **Evidence:** `TRUSS-011`, `docs/DECISIONS.md`, and the integrated retired-
+  reference scan.
+- **Status:** Resolved.

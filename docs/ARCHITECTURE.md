@@ -13,8 +13,10 @@ Schema 2 JSON + panel profile
     view  mapping  wiring
        \    |    /
       assembly package
-             |
-  validated boundary + Manifold STLs
+        /         \
+ planar closure  structural connectors
+        \         /
+       exact Manifold assets
 ```
 
 Fabrication is optional. A project without `mechanicalShell`, `closures`, or
@@ -34,7 +36,10 @@ edit marks derived mechanics stale but does not stop those functions.
    ledmap from the same current project.
 5. `compilePanelBoundaryBundle()` derives or reuses corner-only gap cycles,
    validates the closed boundary, and compiles exact STL bytes with Manifold.
-6. The assembly package joins project JSON, verified GLB/STL bytes, printable
+6. `runStructuralPipeline()` derives eligible anchors from the same poses and
+   profile, runs advisory load-path analysis, and compiles either modular
+   connector ribbons or LED-surface bridges into exact STL/3MF assets.
+7. The assembly package joins project JSON, verified GLB/STL bytes, printable
    manual, ledmap, and wiring review. Project ZIP remains the normal save form.
 
 There is no database or browser local storage. Persistence uses project JSON,
@@ -74,11 +79,21 @@ N-gon. Ambiguous junctions, invalid caps, intersections, or non-manifold
 boundaries fail before asset publication. Printable material must stay outside
 PCB envelopes and keep DIN, DOUT, V+, V-, and blocked mounting holes clear.
 
+The structural route does not use GLB triangles. It derives eligible mounting
+holes from panel poses and the selected profile. Its axial truss results guide
+load paths but are not engineering certification. Printable ribbon and bridge
+solids still require exact hardware-clearance, PCB-envelope, Manifold, and
+print-envelope checks. See `docs/STRUCTURAL_WORKFLOW.md`.
+
 ## Browser and local host
 
 `web/src/main.ts` coordinates loading, editing, rendering, mapping, wiring,
 generation, and export. Focused modules own portable projects, assembly-package
 bytes, renderer state, route editing, mapping, and Manifold runtime handling.
+Surface mode keeps the established constrained move and local-Z rotation.
+Free 6DOF mode uses local translation and rotation controls, writes one
+right-handed pose, and removes the old surface attachment. Structural downloads
+ZIP the same hash-verified connector asset set shown in the viewport.
 
 Manifold normally runs in the browser. The local server and Vite adapter share
 `createEditorPipelineHandler()`, which is a bounded loopback/same-origin fallback
@@ -123,6 +138,9 @@ and current-limit plan. Software brightness limiting is secondary protection.
 | `src/cad/CompilePanelBoundaryBundle.ts` | Boundary and exact Manifold STL bundle |
 | `src/cad/GeneratePanelClosureSolids.ts` | Printable Manifold solids |
 | `src/cad/GeneratePanelBoundaryParts.ts` | Atomic file publication |
+| `src/sculpture/StructuralDesign.ts` | Structural inputs, defaults, warnings, fingerprints |
+| `src/structure/StructuralPipeline.ts` | Candidate, advisory solve/optimization, and structural composition |
+| `src/cad/CompileStructuralArtifacts.ts` | Exact structural STL, preview, and 3MF bundle |
 | `web/src/` | Browser editor, renderer, mapping, wiring, project and package export |
 | `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
 | `tests/browser/` | Real Chromium operator journeys |
@@ -132,7 +150,8 @@ and current-limit plan. Software brightness limiting is secondary protection.
 ## Verification boundaries
 
 - Vitest covers Schema 2 parsing, editing, placement, mapping, wiring, boundary
-  validation, Manifold solids, exact asset handling, local hosting, and WASM.
+  validation, structural analysis/connectors, Manifold solids, exact asset
+  handling, local hosting, and WASM.
 - Playwright covers real authoring, project portability, route editing,
   in-browser part generation, package contents, and ZIP reopen.
 - CI verifies stage-zero binaries and the same restricted-PATH clean setup on

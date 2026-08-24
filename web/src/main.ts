@@ -24,6 +24,7 @@ import {
   movePanelOnDesignSurface,
   movePanelInLocalPlane,
   rotatePanelAroundLocalZ,
+  setPanelWorldPose,
   sculptureJson,
 } from "../../src/sculpture/SculptureEditor";
 import {
@@ -82,6 +83,21 @@ import {
   createWiringReview,
 } from "./AssemblyPackage.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
+import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
+import {
+  getGeneratedStructuralState,
+  normalizeStructuralDesign,
+  STRUCTURAL_CONNECTOR_DEFAULTS,
+  STRUCTURAL_PREVIEW_DEFAULTS,
+  type StructuralConnectorSurfaceStyle,
+  type StructuralConnectorizationDefinition,
+} from "../../src/sculpture/StructuralDesign.ts";
+import { createCandidateTruss } from "../../src/structure/CandidateTruss.ts";
+import {
+  createGeneratedStructureZip,
+  loadVerifiedGeneratedStructure,
+  type VerifiedGeneratedStructure,
+} from "./GeneratedStructuralAssets.ts";
 
 const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
 const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
@@ -323,6 +339,32 @@ app.innerHTML = `
                 <span>GLB units to millimetres</span>
                 <input id="surface-scale" type="number" min="0.000001" step="any" value="1000" />
               </label>
+              <div id="structural-connector-settings" class="connector-settings">
+                <strong>Modular connector settings</strong>
+                <label class="field">
+                  <span>Maximum automatic neighbor distance (mm)</span>
+                  <input id="connector-neighbor-distance" type="number" min="1" step="1" value="140" />
+                </label>
+                <label class="field">
+                  <span>Maximum automatic neighbors per panel</span>
+                  <input id="connector-neighbor-degree" type="number" min="1" step="1" value="2" />
+                </label>
+                <div class="connector-bed-grid">
+                  <label class="field"><span>Bed X (mm)</span><input id="connector-bed-x" type="number" min="1" step="1" value="250" /></label>
+                  <label class="field"><span>Bed Y (mm)</span><input id="connector-bed-y" type="number" min="1" step="1" value="250" /></label>
+                  <label class="field"><span>Bed Z (mm)</span><input id="connector-bed-z" type="number" min="1" step="1" value="250" /></label>
+                </div>
+                <label class="field">
+                  <span>Reserved keyed-split length (not active)</span>
+                  <input id="connector-segment-length" type="number" min="1" step="1" value="220" disabled title="Oversize loft bodies currently fail the print-envelope check." />
+                </label>
+                <div class="connector-pair-add">
+                  <select id="connector-pair-first" aria-label="First panel"></select>
+                  <select id="connector-pair-second" aria-label="Second panel"></select>
+                  <button id="include-connector-pair" class="editor-button" type="button">Include panel pair</button>
+                </div>
+                <div id="connector-pair-list" class="connector-pair-list"></div>
+              </div>
               <label class="field">
                 <span>Custom sculpture JSON URL</span>
                 <div class="input-action">
@@ -357,6 +399,13 @@ app.innerHTML = `
           <button id="load-design-surface" class="editor-button" type="button">
             Load watertight GLB
           </button>
+          <label class="field">
+            <span>Panel transform</span>
+            <select id="panel-transform-mode">
+              <option value="surface">Move along surface</option>
+              <option value="free-3d">Free 6DOF</option>
+            </select>
+          </label>
           <div id="automatic-panel-placement-controls">
             <label class="field">
               <span>Target panel count</span>
@@ -378,6 +427,15 @@ app.innerHTML = `
           <div class="pipeline-actions">
             <button id="assembly-package" class="pipeline-button" type="button">
               Build assembly package
+            </button>
+            <button id="generate-structure" class="pipeline-button" type="button">
+              Generate connector ribbons
+            </button>
+            <button id="generate-surface-structure" class="pipeline-button" type="button">
+              Generate LED-surface bridges
+            </button>
+            <button id="download-structure" class="pipeline-button" type="button" disabled>
+              Download displayed connectors ZIP
             </button>
           </div>
           <div id="pipeline-status" class="pipeline-status" role="log" aria-live="polite" aria-label="Activity log">
@@ -446,6 +504,26 @@ const addPanelFaceSelect = query<HTMLSelectElement>("#add-panel-face");
 const addPanelButton = query<HTMLButtonElement>("#add-panel");
 const addPanelControls = query<HTMLElement>("#add-panel-controls");
 const assemblyPackageButton = query<HTMLButtonElement>("#assembly-package");
+const generateStructureButton =
+  query<HTMLButtonElement>("#generate-structure");
+const generateSurfaceStructureButton =
+  query<HTMLButtonElement>("#generate-surface-structure");
+const downloadStructureButton =
+  query<HTMLButtonElement>("#download-structure");
+const connectorSettings = query<HTMLElement>("#structural-connector-settings");
+const connectorNeighborDistanceInput = query<HTMLInputElement>("#connector-neighbor-distance");
+const connectorNeighborDegreeInput = query<HTMLInputElement>("#connector-neighbor-degree");
+const connectorBedInputs = [
+  query<HTMLInputElement>("#connector-bed-x"),
+  query<HTMLInputElement>("#connector-bed-y"),
+  query<HTMLInputElement>("#connector-bed-z"),
+] as const;
+const connectorSegmentLengthInput = query<HTMLInputElement>("#connector-segment-length");
+const connectorPairFirstSelect = query<HTMLSelectElement>("#connector-pair-first");
+const connectorPairSecondSelect = query<HTMLSelectElement>("#connector-pair-second");
+const includeConnectorPairButton = query<HTMLButtonElement>("#include-connector-pair");
+const connectorPairList = query<HTMLElement>("#connector-pair-list");
+const panelTransformMode = query<HTMLSelectElement>("#panel-transform-mode");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 const setLogMessage = (message: string, error = false): void => {
   pipelineStatus.classList.toggle("pipeline-status--error", error);
@@ -527,6 +605,7 @@ async function start(): Promise<void> {
       attachmentSurface: "design-surface" | "mechanical-shell";
     } | undefined;
     let verifiedGeneratedMechanics: VerifiedGeneratedMechanics | undefined;
+    let verifiedGeneratedStructure: VerifiedGeneratedStructure | undefined;
     let generatedAssetLoadRevision = 0;
     let activePortableBundle: PortableProjectBundle | undefined;
     let availableProjectAssets = new Map<string, Uint8Array>();
@@ -537,6 +616,8 @@ async function start(): Promise<void> {
       bundle?: PortableProjectBundle,
     ): void => {
       activePortableBundle?.dispose();
+      generatedMemoryUrls.forEach((url) => URL.revokeObjectURL(url));
+      generatedMemoryUrls = new Map();
       activePortableBundle = bundle;
       availableProjectAssets = new Map(
         bundle
@@ -580,6 +661,13 @@ async function start(): Promise<void> {
       assemblyPackageButton.title = packageIsCurrent
         ? "Download the current project, verified geometry, manual, and guarded deployment export."
         : "Build current boundary and part STLs. The button changes to Download when they are verified.";
+      generateStructureButton.disabled =
+        editorDefinition.panels.length === 0;
+      generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
+      generateStructureButton.title =
+        "Generate nearest-hole connector ribbons, STL, 3MF, and an optional load-path report.";
+      generateSurfaceStructureButton.title =
+        "Generate 2 mm full-edge bridges at the panel LED planes, STL, 3MF, and an optional load-path report.";
       automaticPanelPlacementControls.hidden = false;
       automaticallyPlacePanelsButton.disabled =
         !capabilities.canAutomaticallySeed;
@@ -835,11 +923,14 @@ async function start(): Promise<void> {
       panelLabelsToggle.disabled = !isPanelized;
       const hasPrintableClosures =
         isPanelized && (verifiedGeneratedMechanics !== undefined ||
+          verifiedGeneratedStructure !== undefined ||
           (mechanicalShellIsCurrent() &&
             (mapping.printableClosures?.length ?? 0) > 0));
       printableLayerToggle.disabled = !hasPrintableClosures;
       connectorLayerToggle.disabled = !isPanelized;
       wiringLayerToggle.disabled = !isPanelized;
+      downloadStructureButton.disabled =
+        verifiedGeneratedStructure === undefined;
       wiringLayerControls.classList.toggle(
         "layer-controls--disabled",
         !isPanelized,
@@ -865,7 +956,49 @@ async function start(): Promise<void> {
     ): Promise<void> => {
       const revision = ++generatedAssetLoadRevision;
       verifiedGeneratedMechanics = undefined;
+      verifiedGeneratedStructure = undefined;
       renderer?.setExactGeneratedMechanics(null);
+      renderer?.setExactGeneratedStructure();
+      downloadStructureButton.disabled = true;
+      const structuralState = getGeneratedStructuralState(
+        selected.definition,
+        selected.project.panelProfile,
+      );
+      if (structuralState === "stale") {
+        updateMappingStatus();
+        return;
+      }
+      if (structuralState === "current") {
+        try {
+          const assets = await loadVerifiedGeneratedStructure(
+            selected.definition,
+            selected.project.panelProfile,
+            selected.project.source,
+            fetch,
+            document.baseURI,
+            selected.project.source.startsWith("local:") || generatedMemoryUrls.size > 0
+              ? new Map([
+                ...(activePortableBundle?.assetUrls ?? []),
+                ...generatedMemoryUrls,
+              ])
+              : undefined,
+          );
+          if (revision !== generatedAssetLoadRevision || !assets) return;
+          for (const artifact of assets.artifacts) {
+            rememberProjectAsset(artifact.source, artifact.bytes);
+          }
+          renderer?.setExactGeneratedStructure(assets);
+          verifiedGeneratedStructure = assets;
+          updateMappingStatus();
+          return;
+        } catch (error) {
+          if (revision !== generatedAssetLoadRevision) return;
+          const message = error instanceof Error ? error.message : String(error);
+          setLogMessage(message, true);
+          updateMappingStatus();
+          return;
+        }
+      }
       const state = getGeneratedMechanicsState(
         selected.definition,
         selected.project.panelProfile,
@@ -972,8 +1105,142 @@ async function start(): Promise<void> {
       renderRouteEditor();
       resetTimeline();
       updateMappingStatus();
+      renderConnectorControls();
       return restoreGeneratedMechanics(selected);
     };
+
+    const connectorPairKey = (left: string, right: string): string =>
+      [left, right].sort().join("\u0000");
+
+    const resolvedConnectorization = (): StructuralConnectorizationDefinition => ({
+      ...structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS),
+      ...structuredClone(editorDefinition.structuralDesign?.connectorization ?? {}),
+      panelPairOverrides: structuredClone(
+        editorDefinition.structuralDesign?.connectorization?.panelPairOverrides ?? [],
+      ),
+    });
+
+    const applyConnectorization = async (
+      connectorization: StructuralConnectorizationDefinition,
+    ): Promise<void> => {
+      const nextDefinition = structuredClone(editorDefinition);
+      nextDefinition.structuralDesign ??= structuredClone(STRUCTURAL_PREVIEW_DEFAULTS);
+      nextDefinition.structuralDesign.connectorization = connectorization;
+      const project = createPanelAssemblyProject(
+        nextDefinition,
+        editorProject.source,
+        editorProject.panelProfile,
+      );
+      await applyLoadedSculpture(createLoadedSculpture(project));
+      renderConnectorControls();
+      pipelineStatus.classList.remove("pipeline-status--error");
+      pipelineStatus.textContent =
+        "Modular connector settings changed. Generate connector ribbons to refresh printable parts.";
+    };
+
+    const renderConnectorControls = (): void => {
+      connectorSettings.hidden = editorDefinition.panels.length === 0;
+      const settings = resolvedConnectorization();
+      connectorNeighborDistanceInput.value = String(settings.maximumNeighborDistanceMm);
+      connectorNeighborDegreeInput.value = String(settings.maximumAutomaticNeighborsPerPanel);
+      connectorBedInputs.forEach((input, axis) => {
+        input.value = String(settings.printBedSizeMm[axis]);
+      });
+      connectorSegmentLengthInput.value = String(settings.maximumStrutSegmentLengthMm);
+      const panelIds = editorDefinition.panels.map(({ id }) => id).sort();
+      const options = panelIds.map((id) => new Option(id, id));
+      connectorPairFirstSelect.replaceChildren(...options.map((option) => option.cloneNode(true)));
+      connectorPairSecondSelect.replaceChildren(...options.map((option) => option.cloneNode(true)));
+      if (panelIds.length > 1) connectorPairSecondSelect.value = panelIds[1]!;
+      includeConnectorPairButton.disabled = panelIds.length < 2;
+      try {
+        const normalized = normalizeStructuralDesign(editorProject);
+        const candidate = createCandidateTruss(normalized);
+        const rows = candidate.connectorCells.map((cell) => ({
+          panelIds: cell.panelIds,
+          checked: true,
+          detail: `${cell.panelDistanceMm.toFixed(1)} mm; ${cell.source === "automatic" ? "automatic" : "included"}`,
+        }));
+        for (const override of settings.panelPairOverrides.filter(
+          ({ action }) => action === "exclude",
+        )) {
+          if (!rows.some(({ panelIds: ids }) =>
+            connectorPairKey(...ids) === connectorPairKey(...override.panelIds)
+          )) rows.push({
+            panelIds: override.panelIds,
+            checked: false,
+            detail: "excluded",
+          });
+        }
+        rows.sort((left, right) =>
+          connectorPairKey(...left.panelIds).localeCompare(connectorPairKey(...right.panelIds))
+        );
+        connectorPairList.replaceChildren(...rows.map((row) => {
+          const label = document.createElement("label");
+          const input = document.createElement("input");
+          input.type = "checkbox";
+          input.checked = row.checked;
+          input.addEventListener("change", () => {
+            const next = resolvedConnectorization();
+            const key = connectorPairKey(...row.panelIds);
+            next.panelPairOverrides = next.panelPairOverrides.filter(
+              ({ panelIds: ids }) => connectorPairKey(...ids) !== key,
+            );
+            next.panelPairOverrides.push({
+              panelIds: [...row.panelIds],
+              action: input.checked ? "include" : "exclude",
+            });
+            void applyConnectorization(next).catch((error) => {
+              pipelineStatus.classList.add("pipeline-status--error");
+              pipelineStatus.textContent = error instanceof Error ? error.message : String(error);
+            });
+          });
+          label.append(input, `${row.panelIds[0]} ↔ ${row.panelIds[1]} (${row.detail})`);
+          return label;
+        }));
+      } catch (error) {
+        const message = document.createElement("span");
+        message.textContent = error instanceof Error ? error.message : String(error);
+        connectorPairList.replaceChildren(message);
+      }
+    };
+
+    const applyConnectorInputs = (): void => {
+      const next = resolvedConnectorization();
+      next.maximumNeighborDistanceMm = Number(connectorNeighborDistanceInput.value);
+      next.maximumAutomaticNeighborsPerPanel = Number(connectorNeighborDegreeInput.value);
+      next.printBedSizeMm = connectorBedInputs.map((input) => Number(input.value)) as [number, number, number];
+      next.maximumStrutSegmentLengthMm = Number(connectorSegmentLengthInput.value);
+      void applyConnectorization(next).catch((error) => {
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = error instanceof Error ? error.message : String(error);
+      });
+    };
+    for (const input of [
+      connectorNeighborDistanceInput,
+      connectorNeighborDegreeInput,
+      ...connectorBedInputs,
+      connectorSegmentLengthInput,
+    ]) input.addEventListener("change", applyConnectorInputs);
+    includeConnectorPairButton.addEventListener("click", () => {
+      const first = connectorPairFirstSelect.value;
+      const second = connectorPairSecondSelect.value;
+      if (!first || !second || first === second) {
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = "Select two different panels for a connector.";
+        return;
+      }
+      const next = resolvedConnectorization();
+      const key = connectorPairKey(first, second);
+      next.panelPairOverrides = next.panelPairOverrides.filter(
+        ({ panelIds }) => connectorPairKey(...panelIds) !== key,
+      );
+      next.panelPairOverrides.push({ panelIds: [first, second].sort() as [string, string], action: "include" });
+      void applyConnectorization(next).catch((error) => {
+        pipelineStatus.classList.add("pipeline-status--error");
+        pipelineStatus.textContent = error instanceof Error ? error.message : String(error);
+      });
+    });
 
     const clearDesignSurface = (message: string): void => {
       activePlacementSurface = undefined;
@@ -1085,6 +1352,18 @@ async function start(): Promise<void> {
       }
     };
 
+    const applyPanelTransformMode = (): void => {
+      const mode = panelTransformMode.value === "free-3d"
+        ? "free-3d"
+        : "surface";
+      renderer?.setPanelTransformMode(mode);
+      setLogMessage(mode === "free-3d"
+        ? "Free 6DOF panel transforms are active. A completed move detaches that panel from its placement surface."
+        : "Surface move mode is active. Panels stay on the active surface, or move in their saved local plane when no surface is loaded.");
+    };
+    panelTransformMode.addEventListener("change", applyPanelTransformMode);
+    renderer?.setPanelTransformMode("surface");
+
     renderer?.setSurfaceEditorCallbacks({
       onSelectionChange: (panelId) => {
         selectedEditorPanelId = panelId;
@@ -1098,14 +1377,14 @@ async function start(): Promise<void> {
           editorDefinition, activePlacementSurface !== undefined, pipelineAvailable,
         );
         if (panelId) {
-          const moveMode = capabilities.canTranslateOnActiveSurface
-            ? "move across the active surface"
-            : capabilities.canTranslateInPanelPlane
-              ? "move in its saved local plane"
-              : "";
+          const free3d = panelTransformMode.value === "free-3d";
           const actions = [
-            moveMode,
-            capabilities.canRotateSelectedPanel ? "rotate around local Z" : "",
+            capabilities.canTranslateOnActiveSurface || capabilities.canTranslateInPanelPlane
+              ? free3d ? "move on local X/Y/Z" : "move along the surface"
+              : "",
+            capabilities.canRotateSelectedPanel
+              ? free3d ? "rotate on local X/Y/Z" : "rotate around local Z"
+              : "",
             capabilities.canDeleteSelectedPanel ? "delete" : "",
           ].filter(Boolean);
           setLogMessage(
@@ -1179,6 +1458,29 @@ async function start(): Promise<void> {
           const message = error instanceof Error ? error.message : String(error);
           pipelineStatus.classList.add("pipeline-status--error");
           pipelineStatus.textContent = message;
+        }
+      },
+      onFreeTransformCommit: (transform) => {
+        try {
+          const edited = setPanelWorldPose(
+            editorDefinition,
+            transform.panelId,
+            transform,
+          );
+          const project = createPanelAssemblyProject(
+            edited,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          applyLoadedSculpture(createLoadedSculpture(project));
+          renderer?.selectEditorPanel(transform.panelId);
+          pipelineStatus.classList.remove("pipeline-status--error");
+          pipelineStatus.textContent = edited.mechanicalShell
+            ? `Transformed ${transform.panelId} freely in 3D. Its surface attachment was removed and generated mechanics require regeneration.`
+            : `Transformed ${transform.panelId} freely in 3D. Mapping and wiring refreshed; no printable mechanics exist yet.`;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          setLogMessage(message, true);
         }
       },
       onAddPanelCommit: (placement) => {
@@ -1677,6 +1979,117 @@ async function start(): Promise<void> {
           : `Downloaded ${link.download} with the project, verified geometry, assembly manual, and diagnostic-only mapping files.`;
     };
 
+    downloadStructureButton.addEventListener("click", () => {
+      if (!verifiedGeneratedStructure) return;
+      const surfaceStyle = editorDefinition.structuralDesign?.connectorization
+        ?.surfaceStyle ?? "screw-shoe-ribbon";
+      const label = surfaceStyle === "led-surface-bridge"
+        ? "led-surface-bridges"
+        : "connector-ribbons";
+      const bytes = createGeneratedStructureZip(verifiedGeneratedStructure);
+      const objectUrl = URL.createObjectURL(new Blob(
+        [Uint8Array.from(bytes)],
+        { type: "application/zip" },
+      ));
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `${editorDefinition.id}-${label}.zip`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      setLogMessage(`Downloaded ${link.download} from the connectors displayed in the viewport.`);
+    });
+
+    const generateStructuralStyle = async (
+      surfaceStyle: StructuralConnectorSurfaceStyle,
+    ): Promise<void> => {
+      generateStructureButton.disabled = true;
+      generateSurfaceStructureButton.disabled = true;
+      assemblyPackageButton.disabled = true;
+      addPanelButton.disabled = true;
+      pipelineStatus.classList.remove("pipeline-status--error");
+      pipelineStatus.textContent = surfaceStyle === "led-surface-bridge"
+          ? "Generating full-edge bridges at the LED planes and running optional load-path analysis…"
+          : "Generating nearest-hole ribbon geometry and running optional load-path analysis…";
+        try {
+          const structuralDefinition = structuredClone(editorDefinition);
+          delete structuralDefinition.generatedMechanics;
+          delete structuralDefinition.mechanicalShell;
+          delete structuralDefinition.closures;
+          structuralDefinition.structuralDesign ??= structuredClone(STRUCTURAL_PREVIEW_DEFAULTS);
+          structuralDefinition.structuralDesign.connectorization = {
+            ...resolvedConnectorization(),
+            surfaceStyle,
+          };
+          const structuralProject = createPanelAssemblyProject(
+            structuralDefinition,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          const designSurfaceBytes = structuralDefinition.designSurface
+            ? availableProjectAssets.get(structuralDefinition.designSurface.source)
+            : undefined;
+          const result = await runStructuralPipeline(structuralProject, {
+            ...(designSurfaceBytes ? { designSurfaceBytes } : {}),
+          });
+          const previousAssets = new Map(availableProjectAssets);
+          const previousUrls = generatedMemoryUrls;
+          const nextUrls = new Map<string, string>();
+          try {
+            for (const file of result.bundle.files) {
+              rememberProjectAsset(file.source, file.bytes);
+              if (result.generatedStructure.artifacts.some(({ source }) => source === file.source)) {
+                nextUrls.set(file.source, URL.createObjectURL(new Blob(
+                  [Uint8Array.from(file.bytes)],
+                )));
+              }
+            }
+            generatedMemoryUrls = nextUrls;
+            const generatedProject = createPanelAssemblyProject(
+              result.definition,
+              "local:in-process-structural",
+              editorProject.panelProfile,
+            );
+            await applyLoadedSculpture(createLoadedSculpture(generatedProject));
+            previousUrls.forEach((url) => URL.revokeObjectURL(url));
+          } catch (error) {
+            nextUrls.forEach((url) => URL.revokeObjectURL(url));
+            generatedMemoryUrls = previousUrls;
+            availableProjectAssets = previousAssets;
+            throw error;
+          }
+          const loftBodyCount = result.analysis.printable.organicConnectors;
+          const junctionCount = result.analysis.printable.multiPanelJunctions;
+          const surfaceBridgeCount = result.analysis.printable.surfaceBridges;
+          const surfaceJunctionCount = result.analysis.printable.surfaceBridgeJunctions;
+          const generatedShape = surfaceStyle === "led-surface-bridge"
+            ? `${surfaceBridgeCount} full-edge ${surfaceBridgeCount === 1 ? "bridge" : "bridges"} and ${surfaceJunctionCount} multi-panel surface ${surfaceJunctionCount === 1 ? "junction" : "junctions"}`
+            : `${loftBodyCount} cap-surface loft ${loftBodyCount === 1 ? "body" : "bodies"} and ${junctionCount} multi-panel ribbon ${junctionCount === 1 ? "junction" : "junctions"}`;
+          pipelineStatus.classList.remove("pipeline-status--error");
+          pipelineStatus.textContent =
+            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${generatedShape}. ` +
+            (result.analysis.printable.splitMembers > 0
+              ? `PRINT SPLIT WARNING: ${result.analysis.printable.splitMembers} member(s) require numbered segments and splice sleeves. `
+              : "") +
+            (result.analysis.optimization.status !== "converged"
+              ? `Advisory truss analysis: ${result.analysis.optimization.status}; ${surfaceStyle === "led-surface-bridge" ? "surface-bridge" : "ribbon"} generation is unaffected. `
+              : "") +
+            `The package also contains 3MF, preview, analysis, and report. ${result.analysis.disclaimer}`;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          setLogMessage(message, true);
+        } finally {
+          renderEditorFaces();
+          updatePipelineAvailability();
+        }
+    };
+
+    generateStructureButton.addEventListener("click", () => {
+      void generateStructuralStyle("screw-shoe-ribbon");
+    });
+    generateSurfaceStructureButton.addEventListener("click", () => {
+      void generateStructuralStyle("led-surface-bridge");
+    });
+
     const buildAssemblyPackage = async (): Promise<void> => {
         assemblyPackageButton.disabled = true;
         addPanelButton.disabled = true;
@@ -1688,9 +2101,16 @@ async function start(): Promise<void> {
             : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…";
         try {
           try {
+            const planarDefinition = structuredClone(editorDefinition);
+            delete planarDefinition.generatedStructure;
+            const planarProject = createPanelAssemblyProject(
+              planarDefinition,
+              editorProject.source,
+              editorProject.panelProfile,
+            );
             const bundle = await compilePanelBoundaryBundle(
-              editorProject,
-              editorDefinition.panelProfile.source,
+              planarProject,
+              planarDefinition.panelProfile.source,
             );
             generatedMemoryUrls.forEach((url) => URL.revokeObjectURL(url));
             generatedMemoryUrls = new Map();
@@ -1789,6 +2209,7 @@ async function start(): Promise<void> {
     });
     ledCountInput.value = String(mapping.entries.length);
     renderEditorFaces();
+    renderConnectorControls();
     renderOutputLayerControls();
     renderRouteEditor();
     updateMappingStatus();

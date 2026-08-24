@@ -117,6 +117,16 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator("#advanced-tools #panel-labels")).toBeVisible();
   await expect(page.locator("#advanced-tools #printable-layer")).toBeVisible();
   await expect(page.locator("#advanced-tools #surface-scale")).toBeVisible();
+  await expect(page.locator("#advanced-tools #structural-connector-settings")).toBeVisible();
+  await expect(page.locator("#panel-transform-mode")).toHaveValue("surface");
+  await page.locator("#panel-transform-mode").selectOption("free-3d");
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Free 6DOF panel transforms are active",
+  );
+  await page.locator("#panel-transform-mode").selectOption("surface");
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Surface move mode is active",
+  );
   await page.locator("#surface-scale").fill("1");
   await chooseFile(page, "#load-design-surface", {
     name: "tetrahedron.glb",
@@ -143,6 +153,9 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(selectedLabel).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#pipeline-status")).toContainText(
     `Selected ${deletedPanelId}.`,
+  );
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Available: move along the surface, rotate around local Z, delete",
   );
   await page.getByRole("button", {
     name: `Delete selected panel ${deletedPanelId}`,
