@@ -805,14 +805,16 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Cause:** `npm run verify` runs the staging script, which removes and copies
   `web/public/sculptures`. A live page can reload during that short replacement
   interval and request `sculptures/manifest.json` before it is restored.
-- **Correction:** Finish staging and verification before handing off or
-  refreshing a live review page. After verification, check the manifest,
-  selected sculpture JSON, generator-status JSON, JavaScript, and WASM routes
-  on the actual review server; reload a page that failed during staging.
+- **Correction:** Finish staging and verification before starting the review
+  server. If staging ran while Vite was live, restart Vite; its static-file
+  middleware can keep returning the HTML fallback even after the files exist
+  again. Then check the manifest, default sculpture, panel profile,
+  generator-status, JavaScript, and WASM routes on the actual review port.
 - **Prevention:** Do not treat a live Vite server as stable while asset staging
   is active. Start it after verification when practical, or validate all review
   endpoints again before telling the operator to test.
-- **Evidence:** Host requests to the active port showed valid JSON for the
-  restored manifest, selected sculpture, and generator-status routes after the
-  staging step completed.
+- **Evidence:** Before restart, the restored default sculpture and panel-profile
+  files existed on disk but returned `text/html`. After restart, host requests
+  to all six review endpoints returned HTTP 200 with their correct content
+  types.
 - **Status:** Mitigated.
