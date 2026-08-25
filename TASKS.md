@@ -87,7 +87,11 @@ No tasks.
 
 ## Human Review
 
-### `FIRM-012` Verify guarded one-button ESP32 setup on the physical controller
+No tasks.
+
+## Ready to Merge
+
+### `FIRM-012` Add guarded one-button ESP32 setup to Advanced Tools
 
 - Implemented: Advanced Tools verifies and flashes the receipt-bound complete
   WLED image, provisions Wi-Fi over USB without storing the password, assigns
@@ -96,14 +100,9 @@ No tasks.
   and state by read-back. Full-install mode stays unavailable.
 - Verified in software: independent review; 356 unit tests; focused browser
   journey; TypeScript; production Vite build; receipt and firmware-byte gates.
-- Needed from operator: run the button once with the known CP2102 ESP32 and
-  receipt-matching complete image, then confirm that the device reconnects and
-  the connected panel matches the simulator. Do not record the Wi-Fi password.
+- Physical review: approved 2026-08-25 with the ESP32 connected directly to
+  the laptop running Chrome; the split-machine SSH tunnel was development-only.
 - Owner: `codex/firm-012-ui-setup` in `/tmp/led-rhombo-firm-012`.
-
-## Ready to Merge
-
-No tasks.
 
 ## Done
 
