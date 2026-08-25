@@ -158,6 +158,19 @@ describe("Schema 2 portable generated-mechanics assets", () => {
     expect(getGeneratedMechanicsState(definition, changedProfile)).toBe("stale");
   });
 
+  it("marks pre-outward-coordinate planar parts stale", async () => {
+    const definition = await loadPoseOnly();
+    const profile = await loadProfile();
+    definition.generatedMechanics = manifest(
+      "bd96ffef5c292681991cdc6b91aa50066b4697e30c5f75f725117e8856a97860",
+    );
+
+    expect(createGeneratedMechanicsFingerprint(definition, profile)).not.toBe(
+      definition.generatedMechanics.sourceFingerprint.value,
+    );
+    expect(getGeneratedMechanicsState(definition, profile)).toBe("stale");
+  });
+
   it("loads the flagship project without a second mechanics authority", async () => {
     const flagship = parsePanelAssemblyDefinition(JSON.parse(await readFile(
       "sculptures/rhombicosidodecahedron/sculpture.json",

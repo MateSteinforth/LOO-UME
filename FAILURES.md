@@ -648,3 +648,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   and rebuild loop.
 - **Evidence:** `FAB-023` records the exact missing optimizer boundary.
 - **Status:** Open.
+
+### F-035 — Fabrication convention changed without invalidating old parts
+
+- **Date:** 2026-08-25
+- **Context:** FAB-022 shared PCB back-view to outward-pose coordinate repair.
+- **Symptom:** A pre-repair planar mechanics manifest could remain `current`
+  although regeneration moved its screw holes to the correct physical side.
+- **Cause:** The generated-mechanics fingerprint covered authored geometry and
+  profile values but did not cover the fabrication coordinate convention.
+- **Correction:** Add the coordinate-contract token to the fingerprint, bump
+  the planar-parts generator version, and pin the old fixture fingerprint in a
+  stale-state regression.
+- **Prevention:** A derived-geometry algorithm or coordinate convention change
+  must update both its generator version and the source fingerprint policy.
+- **Evidence:** `tests/generated-mechanics-contract.test.ts`.
+- **Status:** Resolved.

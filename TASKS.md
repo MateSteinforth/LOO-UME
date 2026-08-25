@@ -146,9 +146,11 @@ No tasks.
 ### `FAB-022` Reconcile back-view coordinates in planar closure connectors
 
 - Scope: one shared back-view-to-outward conversion now owns planar closure
-  holes and structural anchors/clearances without changing IDs or addressing.
-- Verification: focused profile, pose, planar, structural, and Manifold tests
-  passed 43/43.
+  holes and structural anchors/clearances without changing IDs or addressing;
+  the fabrication contract now makes pre-conversion planar parts stale.
+- Verification: focused profile, pose, planar, structural, Manifold, and stale-
+  manifest tests passed; the complete unit suite passed 342/342 before the
+  added stale regression.
 - Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
 
 ### `SEC-010` Bound ZIP resource use

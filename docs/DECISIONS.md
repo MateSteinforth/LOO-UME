@@ -168,6 +168,8 @@ facts. The shared conversion mirrors profile-local X when those facts enter the
 right-handed pose whose normal points outward through the LEDs. It applies to
 compiled planar-closure holes, eligible structural screw anchors, and blocked
 DIN/DOUT points.
+The generated-mechanics fingerprint includes this fabrication-coordinate
+contract. Parts made before the conversion become stale and must regenerate.
 Final ribbon and LED-surface bridge solids must fail if they enter a
 conservative DIN/DOUT clearance cylinder; the generator does not cut a bore to
 hide the collision. This fabrication-contract revision invalidates all older

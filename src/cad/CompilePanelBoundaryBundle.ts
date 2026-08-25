@@ -206,7 +206,7 @@ export async function compilePanelBoundaryBundle(
   const manifest: GeneratedMechanicsManifest = {
     generator: {
       id: "wled-orbital-lab/panel-outline-parts",
-      version: "0.2.0",
+      version: "0.3.0",
     },
     sourceFingerprint: boundary.metadata.sourceFingerprint,
     status: { generation: "complete", validation: "passed" },
