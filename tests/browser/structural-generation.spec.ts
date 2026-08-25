@@ -233,7 +233,7 @@ test("generates one local printable junction for three co-located panels", async
   );
   await page.locator("#advanced-tools > summary").click();
   await expect(page.locator("#connector-pair-list")).toContainText("P-01 ↔ P-02");
-  await expect(page.locator("#connector-pair-list")).toContainText("P-02 ↔ P-03");
+  await expect(page.locator("#connector-pair-list")).toContainText("P-01 ↔ P-03");
 
   await page.locator("#generate-structure").click();
   await expect(page.locator("#pipeline-status")).toContainText(

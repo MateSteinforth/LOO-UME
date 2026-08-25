@@ -42,10 +42,10 @@ function sha256(bytes: Uint8Array): string {
 
 function tetrahedronGlb(): Buffer {
   const positions = [
-    50, 50, 50,
-    -50, -50, 50,
-    -50, 50, -50,
-    50, -50, -50,
+    200, 200, 200,
+    -200, -200, 200,
+    -200, 200, -200,
+    200, -200, -200,
   ];
   const indices = [0, 2, 1, 0, 1, 3, 0, 3, 2, 1, 2, 3];
   const binary = Buffer.alloc(positions.length * 4 + indices.length * 2);
@@ -80,8 +80,8 @@ function tetrahedronGlb(): Buffer {
         componentType: 5126,
         count: 4,
         type: "VEC3",
-        min: [-50, -50, -50],
-        max: [50, 50, 50],
+        min: [-200, -200, -200],
+        max: [200, 200, 200],
       },
       { bufferView: 1, componentType: 5123, count: 12, type: "SCALAR" },
     ],
