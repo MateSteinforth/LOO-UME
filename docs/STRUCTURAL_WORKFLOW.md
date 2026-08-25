@@ -1,5 +1,9 @@
 # Structural truss workflow
 
+For a visual reconstruction of the connector methodology and its iterations,
+see [*Between Panels*](CONNECTOR_DESIGN_PROCESS.html) or the
+[print-ready PDF](CONNECTOR_DESIGN_PROCESS.pdf).
+
 This page defines the implemented structural input and candidate-graph
 contracts and the ordered work that will extend them. The structural route uses
 the existing Schema 2 sculpture JSON. It does not add a second panel format or
