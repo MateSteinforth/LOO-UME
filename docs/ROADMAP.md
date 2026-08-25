@@ -36,7 +36,6 @@ blocked by `PWR-010`.
 
 - Derive LED dimensions from the selected panel profile throughout validation,
   export, reload, and display.
-- Preflight panel footprints during automatic placement.
 - Add correction tools only when a real ambiguous gap arrangement provides a
   concrete fixture.
 - Split `web/src/main.ts` only along covered behavior boundaries.

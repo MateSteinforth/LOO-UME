@@ -36,15 +36,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Acceptance: project, placement, mechanics, mapping, wiring, package, and
   rendering journeys remain covered; no new manager or state authority.
 
-### `PLACE-010` Preflight automatic-placement footprints
-
-- Acceptance: return non-overlapping poses or identify panels that cannot fit.
-
-### `CAD-020` Apply one fit preflight to every authored generation entry
-
-- Acceptance: browser and CLI reject the same invalid PCB envelope or boundary
-  before asset publication.
-
 ### `FIRM-011` Build and deploy the minimum pinned WLED target
 
 - Acceptance: reproducible pinned firmware, exact bus fragment and ledmap,
@@ -69,11 +60,10 @@ No tasks.
 
 ## In Progress
 
-### `FAB-023` Route automatic structural connectors around DIN/DOUT
+### `CAD-020` Apply one fit preflight to every authored generation entry
 
 - Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-- Conflict risk: structural neighbor selection, connector geometry, and
-  Manifold keep-out tests.
+- Conflict risk: browser/CLI fabrication adapters and shared geometry checks.
 
 ## Blocked
 
@@ -90,6 +80,14 @@ No tasks.
   LED-surface bridges, or planar closures.
 - Needed: the affected project, failed physical result, and required fit or
   fabrication outcome.
+
+### `FAB-023` Route automatic structural connectors around DIN/DOUT
+
+- Blocked by: the 30-panel bridge path contains exact-zero Manifold triangles;
+  naive post-CAD pair exclusion disconnects the degree-2 graph or causes an
+  unbounded search.
+- Needed: a bounded pre-CAD path optimizer that treats keep-out and printable-
+  mesh feasibility as edge costs while preserving the strict final mesh gate.
 
 ### `PWR-010` Approve power and protection
 
@@ -111,6 +109,14 @@ No tasks.
 No tasks.
 
 ## Ready to Merge
+
+### `PLACE-010` Preflight automatic-placement footprints
+
+- Scope: deterministic separating-axis preflight selects only non-overlapping
+  oriented panel footprints and fails before mutation when the count cannot fit.
+- Verification: six automatic-placement cases and twelve editor regressions
+  passed; TypeScript passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
 
 ### `FAB-022` Reconcile back-view coordinates in planar closure connectors
 

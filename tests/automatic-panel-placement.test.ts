@@ -277,4 +277,21 @@ describe("automatic panel placement", () => {
     expect(new Set(axes).size).toBe(6);
   });
 
+  it("fails before mutation when requested footprints cannot fit", async () => {
+    const source = parsePanelAssemblyDefinition(JSON.parse(
+      await readFile("sculptures/pose-only-empty/sculpture.json", "utf8"),
+    ));
+    const original = structuredClone(source);
+    expect(() => automaticallySeedPanelsOnSurface(
+      source,
+      {
+        positions: [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0],
+        indices: [0, 1, 2, 0, 2, 3],
+      },
+      { width: 66, height: 65 },
+      { targetPanelCount: 2, surface: "design-surface" },
+    )).toThrow(/Only 1 of 2 requested new panels fit/);
+    expect(source).toEqual(original);
+  });
+
 });

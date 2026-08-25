@@ -616,6 +616,50 @@ interface SurfaceCandidate {
   vertices: [Vector3Tuple, Vector3Tuple, Vector3Tuple];
   barycentric: Vector3Tuple;
 }
+interface PanelFootprint {
+  center: Vector3Tuple;
+  axes: [Vector3Tuple, Vector3Tuple, Vector3Tuple];
+  halfExtents: Vector3Tuple;
+}
+
+function panelFootprintsOverlap(
+  first: PanelFootprint,
+  second: PanelFootprint,
+): boolean {
+  const axes = [
+    ...first.axes,
+    ...second.axes,
+    ...first.axes.flatMap((left) => second.axes.map((right) => cross(left, right))),
+  ];
+  const centerDelta = subtract(second.center, first.center);
+  for (const rawAxis of axes) {
+    const length = Math.hypot(...rawAxis);
+    if (length < 1e-9) continue;
+    const axis = scale(rawAxis, 1 / length);
+    const firstRadius = first.axes.reduce((sum, value, index) =>
+      sum + Math.abs(dot(axis, value)) * first.halfExtents[index]!, 0
+    );
+    const secondRadius = second.axes.reduce((sum, value, index) =>
+      sum + Math.abs(dot(axis, value)) * second.halfExtents[index]!, 0
+    );
+    if (Math.abs(dot(centerDelta, axis)) > firstRadius + secondRadius + 0.1) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function panelFootprint(
+  center: Vector3Tuple,
+  orientation: PanelAssemblyDefinition["panels"][number]["pose"]["orientation"],
+  dimensions: AddPanelDimensions,
+): PanelFootprint {
+  return {
+    center,
+    axes: [orientation.xAxis, orientation.yAxis, orientation.normal],
+    halfExtents: [dimensions.width / 2, dimensions.height / 2, 0.01],
+  };
+}
 function meshPoint(values: readonly number[], index: number): Vector3Tuple {
   return [values[index * 3]!, values[index * 3 + 1]!, values[index * 3 + 2]!];
 }
@@ -955,13 +999,32 @@ export function automaticallySeedPanelsOnSurface(
   }
   const available = [...candidates];
   const occupied = definition.panels.map((panel) => panel.pose.position);
+  const occupiedFootprints = definition.panels.map((panel) =>
+    panelFootprint(panel.pose.position, panel.pose.orientation, panelDimensions)
+  );
   const center = mean(candidates.map((candidate) => candidate.position));
   const selected: SurfaceCandidate[] = [];
+  const selectedFootprints: PanelFootprint[] = [];
+  const normalOffset = options.normalOffset ?? 0;
   while (selected.length < newCount) {
-    let bestIndex = 0;
+    let bestIndex = -1;
     let bestDistance = -Infinity;
+    let bestFootprint: PanelFootprint | undefined;
     for (let index = 0; index < available.length; index += 1) {
-      const point = available[index]!.position;
+      const candidate = available[index]!;
+      const point = candidate.position;
+      const orientation = createMechanicalSurfaceOrientation(
+        candidate.normal,
+        candidate.vertices,
+      );
+      const footprint = panelFootprint(
+        add(point, scale(candidate.normal, normalOffset)),
+        orientation,
+        panelDimensions,
+      );
+      if ([...occupiedFootprints, ...selectedFootprints].some((existing) =>
+        panelFootprintsOverlap(footprint, existing)
+      )) continue;
       const seeds = [...occupied, ...selected.map((item) => item.position)];
       const distance = seeds.length === 0
         ? -distanceSquared(point, center)
@@ -969,11 +1032,17 @@ export function automaticallySeedPanelsOnSurface(
       if (distance > bestDistance + 1e-9) {
         bestIndex = index;
         bestDistance = distance;
+        bestFootprint = footprint;
       }
     }
+    if (bestIndex < 0 || !bestFootprint) {
+      throw new Error(
+        `Only ${selected.length} of ${newCount} requested new panels fit without overlapping another panel footprint.`,
+      );
+    }
     selected.push(available.splice(bestIndex, 1)[0]!);
+    selectedFootprints.push(bestFootprint);
   }
-  const normalOffset = options.normalOffset ?? 0;
   const placedPanelIds: string[] = [];
   for (const candidate of selected) {
     const panelId = nextPanelId(definition);

@@ -632,3 +632,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/structural-design.test.ts` and
   `tests/structural-solids.test.ts`.
 - **Status:** Resolved.
+
+### F-034 — Post-CAD connector retries created an unbounded route search
+
+- **Date:** 2026-08-25
+- **Context:** Automatic 30-panel ribbon and LED-surface bridge routing.
+- **Symptom:** Excluding a connector only after Manifold rejected it either
+  disconnected the degree-2 graph or repeatedly rebuilt many candidate paths.
+- **Cause:** Printable feasibility entered after graph selection, so the route
+  algorithm had no bounded edge cost for connector keep-outs or mesh failure.
+- **Correction:** The failed retry implementation was removed. Existing final-
+  solid checks remain strict and fail closed.
+- **Prevention:** Put conservative hardware and printable-mesh feasibility into
+  bounded pre-CAD candidate scoring. Do not use an open-ended generate, reject,
+  and rebuild loop.
+- **Evidence:** `FAB-023` records the exact missing optimizer boundary.
+- **Status:** Open.
