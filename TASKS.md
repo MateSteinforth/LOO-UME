@@ -60,10 +60,11 @@ No tasks.
 
 ## In Progress
 
-### `ARCH-010` Split browser orchestration along covered behavior boundaries
+### `FIRM-011` Build and deploy the minimum pinned WLED target
 
 - Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-- Conflict risk: browser event orchestration and focused UI modules.
+- Integration source: reviewed software commit `ee759e2` on
+  `codex/firm-011-esp32-deployment`; physical smoke evidence remains separate.
 
 ## Blocked
 
@@ -109,6 +110,15 @@ No tasks.
 No tasks.
 
 ## Ready to Merge
+
+### `ARCH-010` Split browser orchestration along covered behavior boundaries
+
+- Scope: registry, remote/local Schema 2 loading, profile resolution, and
+  mapping/wiring contract derivation moved to one stateless project-loader
+  adapter; `main.ts` retains orchestration and application state.
+- Verification: focused project-loader, portable-project, and package tests
+  passed 16/16; TypeScript and the Vite production build passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
 
 ### `CAD-020` Apply one fit preflight to every authored generation entry
 

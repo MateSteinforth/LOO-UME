@@ -4,17 +4,11 @@ import {
   validateMapping,
 } from "./LedMapping";
 import {
-  createHardwareMappingContract,
   validateLedmapEquivalence,
-  type HardwareMappingContract,
 } from "./HardwareMapping";
 import {
   createPanelAssemblyProject,
-  createPanelAssemblyMapping,
   getGeneratedMechanicsState,
-  loadPanelAssemblyProject,
-  type PanelAssemblyDefinition,
-  type PanelAssemblyProject,
 } from "../../src/sculpture/PanelAssembly";
 import {
   addPanelOnDesignSurface,
@@ -77,7 +71,6 @@ import {
   readEditorPipelineResult,
   shouldUseEditorPipelineFallback,
 } from "./EditorPipelineResponse.ts";
-import { readJsonResponse } from "./JsonResponse.ts";
 import {
   createAssemblyPackageZip,
   createWiringReview,
@@ -98,133 +91,22 @@ import {
   loadVerifiedGeneratedStructure,
   type VerifiedGeneratedStructure,
 } from "./GeneratedStructuralAssets.ts";
+import {
+  createLoadedSculpture,
+  DEFAULT_SCULPTURE_JSON,
+  loadLocalSculpture,
+  loadSculptureContract,
+  loadSculptureRegistry,
+  loadStagedPanelProfile,
+  type LoadedSculpture,
+} from "./ProjectLoader.ts";
 
-const DEFAULT_SCULPTURE_JSON = "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
-const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
 const DEFAULT_PRIMARY_COLOR = "#ff7a18";
 const DEFAULT_SECONDARY_COLOR = "#050816";
 const DEFAULT_SHELL_TRANSPARENCY = 0.35;
 const initialSculptureSource =
   new URLSearchParams(window.location.search).get("sculptureJson") ??
   DEFAULT_SCULPTURE_JSON;
-
-interface SculptureRegistryEntry {
-  id: string;
-  name: string;
-  source: string;
-}
-
-interface SculptureRegistry {
-  schemaVersion: "1.0.0";
-  defaultSource: string;
-  sculptures: SculptureRegistryEntry[];
-}
-
-interface LoadedSculpture {
-  definition: PanelAssemblyDefinition;
-  project: PanelAssemblyProject;
-  contract: HardwareMappingContract;
-}
-
-async function loadSculptureRegistry(): Promise<SculptureRegistry> {
-  const response = await fetch(SCULPTURE_REGISTRY_URL);
-  if (!response.ok) {
-    throw new Error(
-      "Unable to load sculpture registry: HTTP " + response.status + ".",
-    );
-  }
-  const registry = (await readJsonResponse(
-    response,
-    "Sculpture registry",
-  )) as Partial<SculptureRegistry>;
-  if (
-    registry.schemaVersion !== "1.0.0" ||
-    !Array.isArray(registry.sculptures) ||
-    registry.sculptures.length === 0 ||
-    registry.sculptures.some(
-      (entry) =>
-        typeof entry.id !== "string" ||
-        typeof entry.name !== "string" ||
-        typeof entry.source !== "string",
-    )
-  ) {
-    throw new Error("Sculpture registry is invalid.");
-  }
-  return registry as SculptureRegistry;
-}
-
-function createLoadedSculpture(project: PanelAssemblyProject): LoadedSculpture {
-  const geometry = createPanelAssemblyMapping(project);
-  const wiring = createProvisionalWiringPreview(
-    geometry,
-    project.sculpture,
-    project.panelProfile,
-  );
-  return {
-    definition: project.sculpture,
-    project,
-    contract: createHardwareMappingContract(
-      geometry,
-      wiring,
-      project.panelProfile,
-    ),
-  };
-}
-
-async function loadSculptureContract(
-  source: string,
-): Promise<LoadedSculpture> {
-  const response = await fetch(source);
-  if (!response.ok) {
-    throw new Error(
-      "Unable to load sculpture JSON " + source + ": HTTP " + response.status + ".",
-    );
-  }
-  const sculptureInput = await readJsonResponse(response, "Sculpture JSON");
-  const project = await loadPanelAssemblyProject(
-    sculptureInput,
-    source,
-    async (reference) => {
-      const profileUrl = new URL(reference.source, response.url);
-      const profileResponse = await fetch(profileUrl);
-      if (!profileResponse.ok) {
-        throw new Error(
-          "Unable to load panel profile " +
-            reference.id +
-            ": HTTP " +
-            profileResponse.status +
-            ".",
-        );
-      }
-      return readJsonResponse(profileResponse, "Panel profile");
-    },
-  );
-  return createLoadedSculpture(project);
-}
-
-async function loadLocalSculpture(file: File): Promise<LoadedSculpture> {
-  const input: unknown = JSON.parse(await file.text());
-  const project = await loadPanelAssemblyProject(
-    input,
-    `local:${file.name}`,
-    loadStagedPanelProfile,
-  );
-  return createLoadedSculpture(project);
-}
-
-async function loadStagedPanelProfile(
-  reference: PanelAssemblyDefinition["panelProfile"],
-): Promise<unknown> {
-  const profileResponse = await fetch(
-    new URL(`./catalog/panels/${reference.id}.json`, document.baseURI),
-  );
-  if (!profileResponse.ok) {
-    throw new Error(
-      `Unable to find panel profile ${reference.id} in the staged catalog.`,
-    );
-  }
-  return readJsonResponse(profileResponse, "Panel profile");
-}
 
 const app = document.querySelector<HTMLDivElement>("#app");
 

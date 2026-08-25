@@ -38,7 +38,6 @@ blocked by `PWR-010`.
   export, reload, and display.
 - Add correction tools only when a real ambiguous gap arrangement provides a
   concrete fixture.
-- Split `web/src/main.ts` only along covered behavior boundaries.
 - Keep Schema 2 as the only authored sculpture and mapping input. Historical
   Schema 1 files remain available through Git history only.
 

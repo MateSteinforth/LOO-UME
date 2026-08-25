@@ -98,9 +98,12 @@ print-envelope checks. See `docs/STRUCTURAL_WORKFLOW.md`.
 
 ## Browser and local host
 
-`web/src/main.ts` coordinates loading, editing, rendering, mapping, wiring,
-generation, and export. Focused modules own portable projects, assembly-package
-bytes, renderer state, route editing, mapping, and Manifold runtime handling.
+`web/src/main.ts` coordinates editing, rendering, mapping, wiring, generation,
+and export. `ProjectLoader.ts` owns the stateless registry and Schema 2 loading
+adapter; it returns the existing project and mapping/wiring contract without
+owning application state. Other focused modules own portable projects,
+assembly-package bytes, renderer state, route editing, mapping, and Manifold
+runtime handling.
 Surface mode keeps the established constrained move and local-Z rotation.
 Free 6DOF mode uses local translation and rotation controls, writes one
 right-handed pose, and removes the old surface attachment. Structural downloads
