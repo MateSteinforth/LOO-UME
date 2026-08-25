@@ -19,6 +19,7 @@ import type { EditorCapabilities } from "./EditorCapabilities.ts";
 import type { ClosedPanelBoundary } from "../../src/sculpture/PanelOutlineBoundary.ts";
 import type { VerifiedGeneratedMechanics } from "./GeneratedMechanicsAssets.ts";
 import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts";
+import { createPrintedPlaMaterial } from "./PrintedPlaMaterial.ts";
 import {
   SurfacePlacementController,
   type FreePanelTransform,
@@ -439,10 +440,7 @@ export class SphereRenderer {
       const inwardAxis = normal.clone().multiplyScalar(-1);
       const exact = new THREE.Mesh(
         geometryFrom(asset.bytes),
-        this.markShellMaterial(new THREE.MeshBasicMaterial({
-          color: index % 2 === 0 ? 0x2f939c : 0x287d89,
-          side: THREE.DoubleSide,
-        })),
+        createPrintedPlaMaterial(),
       );
       exact.matrix.set(
         xAxis.x, yAxis.x, inwardAxis.x, origin.x,
@@ -473,10 +471,7 @@ export class SphereRenderer {
     geometry.computeBoundingSphere();
     const preview = new THREE.Mesh(
       geometry,
-      this.markShellMaterial(new THREE.MeshBasicMaterial({
-        color: 0x2f939c,
-        side: THREE.DoubleSide,
-      })),
+      createPrintedPlaMaterial(),
     );
     preview.name = "exact-generated-structural-preview";
     preview.userData.source = assets.preview.source;
@@ -818,16 +813,8 @@ export class SphereRenderer {
       closureGroup.userData.cadMeshAsset = closure.cadMeshAsset;
       this.printableLayer.add(closureGroup);
 
-      const coverMaterial = this.markShellMaterial(new THREE.MeshBasicMaterial({
-        color: 0x247c87,
-        side: THREE.DoubleSide,
-        clippingPlanes,
-      }));
-      const connectorMaterial = this.markShellMaterial(new THREE.MeshBasicMaterial({
-        color: 0x45a6ad,
-        side: THREE.DoubleSide,
-        clippingPlanes,
-      }));
+      const coverMaterial = createPrintedPlaMaterial({ clippingPlanes });
+      const connectorMaterial = createPrintedPlaMaterial({ clippingPlanes });
       const vertexCount = closure.vertices.length;
       const positions: number[] = [];
       const indices: number[] = [];
@@ -912,10 +899,7 @@ export class SphereRenderer {
           }
           this.disposeGroup(closureGroup);
           stlGeometry.computeVertexNormals();
-          const exactMaterial = this.markShellMaterial(new THREE.MeshBasicMaterial({
-            color: 0x2f939c,
-            side: THREE.DoubleSide,
-          }));
+          const exactMaterial = createPrintedPlaMaterial();
           const exact = new THREE.Mesh(stlGeometry, exactMaterial);
           const origin = this.toThree(closure.frame.origin);
           const xAxis = this.toThree(closure.frame.xAxis);
