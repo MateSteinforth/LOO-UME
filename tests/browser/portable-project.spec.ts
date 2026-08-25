@@ -54,7 +54,7 @@ function tetrahedronGlb(): Buffer {
     binary.writeUInt16LE(value, positions.length * 4 + index * 2);
   });
   const document = {
-    asset: { version: "2.0", generator: "WLED Orbital Lab browser test" },
+    asset: { version: "2.0", generator: "LOO/UME browser test" },
     scene: 0,
     scenes: [{ nodes: [0] }],
     nodes: [{ mesh: 0 }],

@@ -11,7 +11,7 @@ describe("JSON response reader", () => {
 
   it("turns an HTML history fallback into one bounded operator error", async () => {
     await expect(readJsonResponse(
-      new Response("<!doctype html><title>WLED Orbital Lab</title>"),
+      new Response("<!doctype html><title>LOO/UME</title>"),
       "Sculpture JSON",
     )).rejects.toThrow(
       "Sculpture JSON returned an HTML page from the requested URL instead of JSON. " +

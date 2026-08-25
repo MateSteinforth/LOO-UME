@@ -16,7 +16,7 @@ function tetrahedronGlb(): Buffer {
   });
 
   const document = {
-    asset: { version: "2.0", generator: "WLED Orbital Lab browser test" },
+    asset: { version: "2.0", generator: "LOO/UME browser test" },
     scene: 0,
     scenes: [{ nodes: [0] }],
     nodes: [{ mesh: 0 }],

@@ -236,8 +236,8 @@ app.innerHTML = `
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"></span>
         <div>
-          <p class="eyebrow">LED sculpture simulator</p>
-          <h1>WLED Orbital Lab</h1>
+          <p class="eyebrow">generative sculpture compiler</p>
+          <h1>LOO/UME</h1>
         </div>
       </div>
     </header>

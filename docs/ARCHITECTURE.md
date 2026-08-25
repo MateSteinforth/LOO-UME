@@ -2,7 +2,8 @@
 
 ## System shape
 
-WLED Orbital Lab is a browser editor for pose-first, panel-based LED sculptures.
+LOO/UME is a generative sculpture compiler and browser editor for pose-first,
+panel-based LED sculptures.
 Schema 2 sculpture JSON and the selected panel profile are the authorities.
 
 ```text

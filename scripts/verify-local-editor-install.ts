@@ -24,9 +24,9 @@ try {
   });
 
   const page = await fetch(server.url);
-  if (!page.ok || !(await page.text()).includes("WLED Orbital Lab")) {
+  if (!page.ok || !(await page.text()).includes("LOO/UME")) {
     throw new Error(
-      "The production local server did not serve WLED Orbital Lab.",
+      "The production local server did not serve LOO/UME.",
     );
   }
 

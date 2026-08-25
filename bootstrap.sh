@@ -67,7 +67,7 @@ case "${1-}" in
     "$node_executable" "$npm_cli" ci
     "$node_executable" "$npm_cli" run build:desktop
     "$node_executable" "$npm_cli" run verify:desktop-install
-    echo "WLED Orbital Lab is ready. Start it with ./bootstrap.sh desktop"
+    echo "LOO/UME is ready. Start it with ./bootstrap.sh desktop"
     exit 0
     ;;
   desktop)

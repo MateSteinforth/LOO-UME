@@ -192,7 +192,7 @@ export function serializeManifoldMeshBinaryStl(
   }
   const triangles = triVerts.length / 3;
   const bytes = new Uint8Array(84 + triangles * 50);
-  const header = new TextEncoder().encode(`WLED Orbital Lab ${name}`.slice(0, 80));
+  const header = new TextEncoder().encode(`LOO/UME ${name}`.slice(0, 80));
   bytes.set(header, 0);
   const view = new DataView(bytes.buffer);
   view.setUint32(80, triangles, true);

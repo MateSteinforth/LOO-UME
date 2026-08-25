@@ -1,6 +1,6 @@
 # Browser application
 
-`web/src/main.ts` orchestrates the WLED Orbital Lab editor. Focused modules own
+`web/src/main.ts` orchestrates the LOO/UME editor. Focused modules own
 portable projects, mapping, wiring, Manifold generation, rendering, and the
 assembly package.
 

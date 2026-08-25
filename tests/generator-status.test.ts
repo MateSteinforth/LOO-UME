@@ -51,7 +51,7 @@ describe("local generator status discovery", () => {
       ...READY,
       available: false,
       detectedVersion: undefined,
-      message: "Manifold WASM could not be loaded. Restart WLED Orbital Lab.",
+      message: "Manifold WASM could not be loaded. Restart LOO/UME.",
     };
 
     await expect(loadGeneratorStatus(async () => Response.json(status)))
@@ -77,7 +77,7 @@ describe("local generator status discovery", () => {
 
   it("bounds an HTML history fallback without exposing parser text", async () => {
     const result = await loadGeneratorStatus(async () =>
-      new Response("<!doctype html><title>WLED Orbital Lab</title>", {
+      new Response("<!doctype html><title>LOO/UME</title>", {
         status: 200,
         headers: { "Content-Type": "text/html" },
       })

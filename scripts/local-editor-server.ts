@@ -243,7 +243,7 @@ async function main(): Promise<void> {
   const localServer = await startLocalEditorServer({
     port: parsePort(process.env.ORBITAL_LAB_PORT),
   });
-  console.log(`WLED Orbital Lab is available at ${localServer.url}`);
+  console.log(`LOO/UME is available at ${localServer.url}`);
   const status = localServer.pipelineHandler.generatorStatus;
   const writeStatus = status.available ? console.log : console.warn;
   writeStatus(status.message);

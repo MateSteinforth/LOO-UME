@@ -1,7 +1,8 @@
 # Codex project guide
 
 This repository is a pose-first editor and fabrication toolkit for panel-based
-LED sculptures. The browser application is **WLED Orbital Lab**. Start with
+LED sculptures. The browser application is **LOO/UME**, a generative sculpture
+compiler. Start with
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); use
 [`docs/PANEL_SYSTEM.md`](docs/PANEL_SYSTEM.md) for geometry work and
 [`docs/LED_MAPPING.md`](docs/LED_MAPPING.md) for addressing or wiring work.

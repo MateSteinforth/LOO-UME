@@ -205,7 +205,7 @@ function serializeThreeMf(meshes: StructuralSolidMesh[], transformMm: Structural
   const model = TEXT.encode([
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">',
-    '  <metadata name="Application">WLED Orbital Lab</metadata>',
+    '  <metadata name="Application">LOO/UME</metadata>',
     "  <resources>",
     objects,
     "  </resources>",
