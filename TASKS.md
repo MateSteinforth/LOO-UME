@@ -68,6 +68,13 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
   physical correction tests are reviewed before any output changes.
 - Depends on: `FAB-021`; do not broaden the structural ribbon safety fix.
 
+### `FAB-023` Route automatic structural connectors around DIN/DOUT
+
+- Acceptance: intended 30-panel ribbon and LED-surface-bridge presets generate
+  collision-free parts without weakening the all-panel final-solid keep-out,
+  cutting connector bores, or changing authorized panel poses.
+- Depends on: `FAB-021`; preserve its fail-closed clearance contract.
+
 ### `MAP-020` Version and strengthen ledmap fingerprints
 
 - Acceptance: indices that differ above bit 15 produce different identities;
