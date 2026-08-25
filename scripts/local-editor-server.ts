@@ -14,6 +14,10 @@ import {
   isLoopbackHost,
   type EditorPipelineHandler,
 } from "./editor-pipeline-handler.ts";
+import {
+  createEsp32FirmwareHandler,
+  type Esp32FirmwareHandler,
+} from "./esp32-firmware-handler.ts";
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = Object.freeze({
   ".css": "text/css; charset=utf-8",
@@ -39,6 +43,7 @@ export interface LocalEditorServerOptions {
   host?: "127.0.0.1";
   port?: number;
   pipelineHandler?: EditorPipelineHandler;
+  firmwareHandler?: Esp32FirmwareHandler;
 }
 
 export interface LocalEditorServer {
@@ -170,6 +175,8 @@ export async function startLocalEditorServer(
       rootDirectory,
       generatedPublicDirectory,
     });
+  const firmwareHandler = options.firmwareHandler ??
+    createEsp32FirmwareHandler({ rootDirectory });
   const sockets = new Set<Socket>();
   const server = createServer((request, response) => {
     void (async () => {
@@ -177,6 +184,7 @@ export async function startLocalEditorServer(
         sendText(response, 403, "The local server accepts only loopback Host values.");
         return;
       }
+      if (await firmwareHandler.handle(request, response)) return;
       if (await pipelineHandler.handle(request, response)) return;
       await serveStatic(request, response, distDirectory, generatedPublicDirectory);
     })().catch((error) => {

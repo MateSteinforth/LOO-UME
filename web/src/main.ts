@@ -92,6 +92,13 @@ import {
   type VerifiedGeneratedStructure,
 } from "./GeneratedStructuralAssets.ts";
 import {
+  createEsp32SetupController,
+  type Esp32SetupMode,
+  type Esp32SetupPayload,
+} from "./Esp32Setup.ts";
+import { createWledDeploymentBundle } from "../../src/wled/DeploymentContract.ts";
+import smokeConfig from "../../firmware/one-panel-smoke-cfg.json" with { type: "json" };
+import {
   createLoadedSculpture,
   DEFAULT_SCULPTURE_JSON,
   loadLocalSculpture,
@@ -263,6 +270,7 @@ app.innerHTML = `
               </label>
               <button id="save-sculpture-file" class="editor-button" type="button">Export raw JSON</button>
               <button id="export-project-folder" class="editor-button" type="button">Export project folder</button>
+              <button id="open-esp32-setup" class="editor-button" type="button">Set up ESP32</button>
             </div>
           </details>
           <section id="route-editor-section" class="route-editor-section" hidden>
@@ -326,6 +334,42 @@ app.innerHTML = `
         </section>
       </aside>
     </main>
+    <dialog id="esp32-setup-dialog" class="esp32-setup-dialog">
+      <form method="dialog" class="esp32-setup-form">
+        <div class="section-heading"><span>Set up ESP32</span><small>USB + Wi-Fi</small></div>
+        <label class="field">
+          <span>Configuration</span>
+          <select id="esp32-setup-mode">
+            <option value="smoke">One-panel smoke test</option>
+            <option value="installation" disabled>Current sculpture installation (after PWR-010)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>2.4 GHz Wi-Fi name</span>
+          <input id="esp32-wifi-ssid" type="text" maxlength="32" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>Wi-Fi password</span>
+          <input id="esp32-wifi-password" type="password" maxlength="64" autocomplete="new-password" />
+        </label>
+        <label class="field">
+          <span>Approved full-flash image (only if not staged locally)</span>
+          <input id="esp32-firmware-file" type="file" accept=".bin,application/octet-stream" />
+        </label>
+        <label class="toggle-field">
+          <input id="esp32-confirm-erase" type="checkbox" />
+          <span>Erase this ESP32 and replace its current firmware and settings.</span>
+        </label>
+        <label class="toggle-field">
+          <input id="esp32-confirm-power" type="checkbox" />
+          <span>LED panel power is disconnected during the USB flash.</span>
+        </label>
+        <div class="dialog-actions">
+          <button id="run-esp32-setup" class="pipeline-button" type="button">Flash and configure</button>
+          <button id="close-esp32-setup" class="editor-button" type="button">Cancel</button>
+        </div>
+      </form>
+    </dialog>
   </div>
 `;
 
@@ -407,6 +451,16 @@ const includeConnectorPairButton = query<HTMLButtonElement>("#include-connector-
 const connectorPairList = query<HTMLElement>("#connector-pair-list");
 const panelTransformMode = query<HTMLSelectElement>("#panel-transform-mode");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
+const esp32SetupDialog = query<HTMLDialogElement>("#esp32-setup-dialog");
+const openEsp32SetupButton = query<HTMLButtonElement>("#open-esp32-setup");
+const runEsp32SetupButton = query<HTMLButtonElement>("#run-esp32-setup");
+const closeEsp32SetupButton = query<HTMLButtonElement>("#close-esp32-setup");
+const esp32WifiSsidInput = query<HTMLInputElement>("#esp32-wifi-ssid");
+const esp32WifiPasswordInput = query<HTMLInputElement>("#esp32-wifi-password");
+const esp32FirmwareInput = query<HTMLInputElement>("#esp32-firmware-file");
+const esp32SetupModeSelect = query<HTMLSelectElement>("#esp32-setup-mode");
+const esp32ConfirmErase = query<HTMLInputElement>("#esp32-confirm-erase");
+const esp32ConfirmPower = query<HTMLInputElement>("#esp32-confirm-power");
 const setLogMessage = (message: string, error = false): void => {
   pipelineStatus.classList.toggle("pipeline-status--error", error);
   pipelineStatus.textContent = message;
@@ -493,6 +547,80 @@ async function start(): Promise<void> {
     let availableProjectAssets = new Map<string, Uint8Array>();
     let generatedMemoryUrls = new Map<string, string>();
     let selectedEditorPanelId: string | null = null;
+
+    const rgbFromPacked = (packed: number): [number, number, number] => [
+      (packed >> 16) & 0xff,
+      (packed >> 8) & 0xff,
+      packed & 0xff,
+    ];
+    const setupPayload = (mode: Esp32SetupMode): Esp32SetupPayload => {
+      if (mode === "smoke") {
+        const individual: Array<number | [number, number, number]> = [];
+        for (let index = 0; index < 64; index += 1) {
+          individual.push(index, rgbFromPacked(engine.pixels[index] ?? 0));
+        }
+        return {
+          mode,
+          config: structuredClone(smokeConfig) as Record<string, unknown>,
+          expectedLedCount: 64,
+          state: {
+            on: true,
+            bri: 128,
+            tt: 0,
+            seg: { id: 0, start: 0, stop: 64, fx: 0, i: individual },
+          },
+        };
+      }
+      const sculptureBytes = sculptureJson(editorDefinition);
+      const deployment = createWledDeploymentBundle(
+        hardwareContract,
+        sculptureBytes,
+        "installation",
+      );
+      const configBytes = deployment.files.get("wled/cfg.json");
+      const ledmapBytes = deployment.files.get("wled/ledmap.json");
+      if (!configBytes || !ledmapBytes) {
+        throw new Error("The current project has no verified installation deployment.");
+      }
+      return {
+        mode,
+        config: JSON.parse(configBytes) as Record<string, unknown>,
+        expectedLedCount: hardwareContract.mapping.entries.length,
+        ledmapBytes,
+        expectedEffectName: effectSelect.selectedOptions[0]?.text,
+        expectedPaletteName: paletteSelect.selectedOptions[0]?.text,
+        state: {
+          on: true,
+          bri: 128,
+          tt: 0,
+          seg: {
+            id: 0,
+            start: 0,
+            stop: hardwareContract.mapping.entries.length,
+            fx: Number(effectSelect.value),
+            pal: Number(paletteSelect.value),
+            sx: Number(speedInput.value),
+            ix: Number(intensityInput.value),
+            col: [[255, 122, 24], [5, 8, 22], [0, 0, 0]],
+          },
+        },
+      };
+    };
+
+    createEsp32SetupController({
+      dialog: esp32SetupDialog,
+      openButton: openEsp32SetupButton,
+      runButton: runEsp32SetupButton,
+      closeButton: closeEsp32SetupButton,
+      ssidInput: esp32WifiSsidInput,
+      passwordInput: esp32WifiPasswordInput,
+      firmwareInput: esp32FirmwareInput,
+      modeSelect: esp32SetupModeSelect,
+      eraseConfirmation: esp32ConfirmErase,
+      powerConfirmation: esp32ConfirmPower,
+      setLogMessage,
+      getPayload: setupPayload,
+    });
 
     const replacePortableBundle = (
       bundle?: PortableProjectBundle,

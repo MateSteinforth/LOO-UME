@@ -5,12 +5,38 @@ firmware is WLED commit `d9b9a846561227351ad929e3109781daadb7bed2`, built as
 `orbital_esp32dev` from upstream `esp32dev`. The binary is generated only on
 the `generate/wled-firmware` branch. It is not committed to `main`.
 
-`build-receipt.json` records the exact tool versions, build-input hashes,
-binary size, and binary SHA-256. The guarded installation package includes
-that receipt. Verify that the obtained binary has the same size and SHA-256
-before flashing it.
+`build-receipt.json` records the exact tool versions, build-input hashes, and
+the size and SHA-256 of the application and complete USB-installer images. The
+complete image contains the bootloader, partition table, boot application, and
+WLED application at their reviewed ESP32 offsets. Compiled images stay off
+`main`.
 
-## Flash with the LED power disconnected
+## Set up from the local editor
+
+Open **Advanced tools**, then select **Set up ESP32** in Chrome or Edge on the
+loopback desktop page. The staged complete image must match
+`build-receipt.json`; otherwise select the matching full-flash `.bin` file.
+The workflow:
+
+1. requests the operator-selected CP2102 serial device;
+2. detects a classic ESP32, erases it, flashes the complete image, and verifies
+   the written bytes;
+3. provisions the entered Wi-Fi credentials over Improv Serial without saving
+   or logging them;
+4. sets `loo-ume.local`, applies the 64-pixel smoke configuration, and sends
+   the current simulator state; and
+5. reads the live WLED target, LED count, buses, mDNS name, and ledmap back.
+
+The local production server serves a complete image only from the ignored
+`build/firmware/` directory and only when its bytes match the tracked receipt.
+The generation branch creates that file as
+`build/firmware/wled-orbital-esp32dev-full-flash.bin`.
+
+The same setup path contains receipt and read-back support for the complete
+installation configuration. Its UI option stays unavailable until the full
+sculpture power gate is complete.
+
+## Command-line fallback
 
 Use the generation branch and an explicit serial port. The build does not
 store a Wi-Fi name, password, hostname, or device secret.

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "status": "built-not-flashed",
   "target": {
     "board": "ESP32-DevKitC V4",
@@ -26,5 +26,15 @@
     "name": "wled-orbital-esp32dev.bin",
     "byteLength": 1107920,
     "sha256": "0468ee34c8b9578504c3f4a708421eaa7b70663b691d5df430f46ea009fdabd7"
+  },
+  "fullFlashArtifact": {
+    "name": "wled-orbital-esp32dev-full-flash.bin",
+    "byteLength": 1173456,
+    "sha256": "d9c9f2f56f9b1c84931447c7bab6fef91d01df24954c523b8a1eeafa786d010e",
+    "flashAddress": 0,
+    "eraseAll": true,
+    "flashMode": "dio",
+    "flashFrequency": "40m",
+    "flashSize": "4MB"
   }
 }

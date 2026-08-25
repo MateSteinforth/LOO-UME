@@ -7,6 +7,8 @@ import smokeConfig from "../../firmware/one-panel-smoke-cfg.json" with {
   type: "json",
 };
 
+export const WLED_FIRMWARE_BUILD_RECEIPT = firmwareReceipt;
+
 const WLED_COMMIT = "d9b9a846561227351ad929e3109781daadb7bed2";
 const EXPECTED_GPIOS = [16, 17, 18, 19];
 const EXPECTED_STARTS = [0, 704, 1344, 1984];
@@ -51,7 +53,7 @@ function utf8ByteLength(value: string): number {
 
 function assertFirmwareReceipt(): void {
   if (
-    firmwareReceipt.schemaVersion !== "1.0.0" ||
+    firmwareReceipt.schemaVersion !== "1.1.0" ||
     firmwareReceipt.status !== "built-not-flashed" ||
     firmwareReceipt.target.board !== "ESP32-DevKitC V4" ||
     firmwareReceipt.target.module !== "ESP32-WROOM-32E-N4" ||
@@ -62,7 +64,16 @@ function assertFirmwareReceipt(): void {
     firmwareReceipt.artifact.name !== "wled-orbital-esp32dev.bin" ||
     !Number.isInteger(firmwareReceipt.artifact.byteLength) ||
     firmwareReceipt.artifact.byteLength <= 0 ||
-    !/^[0-9a-f]{64}$/.test(firmwareReceipt.artifact.sha256)
+    !/^[0-9a-f]{64}$/.test(firmwareReceipt.artifact.sha256) ||
+    firmwareReceipt.fullFlashArtifact.name !==
+      "wled-orbital-esp32dev-full-flash.bin" ||
+    firmwareReceipt.fullFlashArtifact.byteLength !== 1_173_456 ||
+    !/^[0-9a-f]{64}$/.test(firmwareReceipt.fullFlashArtifact.sha256) ||
+    firmwareReceipt.fullFlashArtifact.flashAddress !== 0 ||
+    firmwareReceipt.fullFlashArtifact.eraseAll !== true ||
+    firmwareReceipt.fullFlashArtifact.flashMode !== "dio" ||
+    firmwareReceipt.fullFlashArtifact.flashFrequency !== "40m" ||
+    firmwareReceipt.fullFlashArtifact.flashSize !== "4MB"
   ) {
     throw new Error("The pinned WLED firmware build receipt is invalid.");
   }
@@ -201,6 +212,7 @@ export function createWledDeploymentBundle(
           receiptPath: INSTALLATION_PATHS.firmwareReceipt,
           receiptSha256: sha256ExactBytes(firmwareReceiptBytes),
           artifact: firmwareReceipt.artifact,
+          fullFlashArtifact: firmwareReceipt.fullFlashArtifact,
         },
       }
       : {}),
@@ -237,6 +249,13 @@ export function validateWledDeploymentBundle(
       receiptPath?: string;
       receiptSha256?: string;
       artifact?: { name?: string; byteLength?: number; sha256?: string };
+      fullFlashArtifact?: {
+        name?: string;
+        byteLength?: number;
+        sha256?: string;
+        flashAddress?: number;
+        eraseAll?: boolean;
+      };
     };
     sourceProject?: { path?: string; byteLength?: number; sha256?: string };
     mappingFingerprint?: string;
@@ -272,7 +291,15 @@ export function validateWledDeploymentBundle(
       !/^[0-9a-f]{64}$/.test(manifest.firmware.receiptSha256 ?? "") ||
       manifest.firmware.artifact?.name !== firmwareReceipt.artifact.name ||
       manifest.firmware.artifact?.byteLength !== firmwareReceipt.artifact.byteLength ||
-      manifest.firmware.artifact?.sha256 !== firmwareReceipt.artifact.sha256
+      manifest.firmware.artifact?.sha256 !== firmwareReceipt.artifact.sha256 ||
+      manifest.firmware.fullFlashArtifact?.name !==
+        firmwareReceipt.fullFlashArtifact.name ||
+      manifest.firmware.fullFlashArtifact.byteLength !==
+        firmwareReceipt.fullFlashArtifact.byteLength ||
+      manifest.firmware.fullFlashArtifact.sha256 !==
+        firmwareReceipt.fullFlashArtifact.sha256 ||
+      manifest.firmware.fullFlashArtifact.flashAddress !== 0 ||
+      manifest.firmware.fullFlashArtifact.eraseAll !== true
     )) ||
     manifest.sourceProject?.path !== "sculpture.json" ||
     !Number.isInteger(manifest.sourceProject.byteLength) ||

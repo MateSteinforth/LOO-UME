@@ -9,7 +9,7 @@
     "esModuleInterop": true,
     "strict": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node", "w3c-web-serial"]
   },
   "include": [
     "scripts",
@@ -26,6 +26,7 @@
     "web/src/ManualHandshake.ts",
     "web/src/EditorCapabilities.ts",
     "web/src/EditorPipelineResponse.ts",
+    "web/src/Esp32Setup.ts",
     "web/src/AssemblyPackage.ts",
     "web/src/DesignSurfaceLoader.ts",
     "web/src/EditorPipelineRequest.ts",

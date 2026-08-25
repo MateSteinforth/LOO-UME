@@ -36,14 +36,19 @@
     "verify:clean": "sh scripts/verify-clean.sh"
   },
   "dependencies": {
+    "esptool-js": "0.6.0",
     "fflate": "^0.8.3",
+    "improv-wifi-serial-sdk": "2.8.1",
     "manifold-3d": "3.5.1",
+    "spark-md5": "3.0.2",
     "three": "^0.179.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@types/node": "^22.15.30",
+    "@types/spark-md5": "3.0.5",
     "@types/three": "^0.179.0",
+    "@types/w3c-web-serial": "1.0.8",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vite": "^7.1.2",

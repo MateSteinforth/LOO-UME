@@ -33,30 +33,7 @@ static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `FIRM-012` Add guarded end-to-end ESP32 setup to Advanced Tools
-
-- Acceptance: one staged local-desktop action can select a supported serial
-  device, optionally erase settings after an explicit destructive confirmation,
-  flash the exact receipt-verified pinned WLED binary without an unnecessary
-  rebuild, guide or perform Wi-Fi provisioning without storing credentials, and
-  apply the guarded 64-LED GPIO16/1,000 mA smoke configuration through the WLED
-  JSON API `/json/cfg` endpoint without replacing network settings. Use
-  `loo-ume.local` as the
-  intended discovery name, but discover and display the current DHCP address
-  rather than treating it as fixed. Verify the live firmware identity and exact
-  LED configuration before reporting success. After the physical gates pass,
-  the same workflow can install and verify the exact deployment cfg, ledmap,
-  manifest, and artifact hashes; it must not enable the complete sculpture
-  before `PWR-010`. One activity log shows each stage, progress, recovery, and
-  actionable errors.
-- Safety: require confirmation that panel power is disconnected before erase or
-  flash. Refuse non-loopback requests, stale or unknown binaries and targets,
-  missing serial permission, unsupported devices, unverified API responses, and
-  deployment artifacts that do not match the current project. Never invoke
-  `sudo`, persist or log Wi-Fi credentials, bypass operating-system device
-  permissions, or weaken WLED/guest-network isolation automatically.
-- Depends on: the pinned firmware artifact and receipt from `FIRM-011`; full
-  deployment remains gated by `PWR-010` and the existing deployment contract.
+No tasks.
 
 ## In Progress
 
@@ -110,7 +87,19 @@ No tasks.
 
 ## Human Review
 
-No tasks.
+### `FIRM-012` Verify guarded one-button ESP32 setup on the physical controller
+
+- Implemented: Advanced Tools verifies and flashes the receipt-bound complete
+  WLED image, provisions Wi-Fi over USB without storing the password, assigns
+  `loo-ume.local`, applies the 64-pixel GPIO 16 GRB smoke configuration and
+  simulator frame, then verifies mDNS, current DHCP address, identity, config,
+  and state by read-back. Full-install mode stays unavailable.
+- Verified in software: independent review; 356 unit tests; focused browser
+  journey; TypeScript; production Vite build; receipt and firmware-byte gates.
+- Needed from operator: run the button once with the known CP2102 ESP32 and
+  receipt-matching complete image, then confirm that the device reconnects and
+  the connected panel matches the simulator. Do not record the Wi-Fi password.
+- Owner: `codex/firm-012-ui-setup` in `/tmp/led-rhombo-firm-012`.
 
 ## Ready to Merge
 

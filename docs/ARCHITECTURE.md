@@ -163,9 +163,10 @@ and current-limit plan. Software brightness limiting is secondary protection.
 | `src/cad/CompileStructuralArtifacts.ts` | Exact structural STL, preview, and 3MF bundle |
 | `web/src/` | Browser editor, renderer, mapping, wiring, project and package export |
 | `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
+| `scripts/esp32-firmware-handler.ts` | Loopback-only, receipt-gated complete ESP32 image endpoint |
 | `tests/browser/` | Real Chromium operator journeys |
 | `wasm/` | Deterministic subset of WLED 1D effects, not firmware |
-| `firmware/` | Minimum ESP32 deployment metadata, safety procedure, and smoke configuration; WLED build tooling stays off-main and binaries stay untracked |
+| `firmware/` | ESP32 receipt, setup procedure, and smoke configuration; WLED build tooling and binaries stay off-main |
 | `src/wled/` | Guarded deployment identity and deterministic diagnostic frame transport |
 
 ## Verification boundaries

@@ -699,3 +699,25 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/hardware-mapping.test.ts` and
   `INSTALLED_ADDRESS_COORDINATE_CONTRACT`.
 - **Status:** Resolved.
+
+### F-038 — An application-only receipt cannot support a destructive web flash
+
+- **Date:** 2026-08-25
+- **Context:** FIRM-012 one-action ESP32 setup.
+- **Symptom:** The approved receipt covered only the application at `0x10000`.
+  Erasing the chip and writing that file would remove the bootloader and
+  partition table and leave the controller unable to boot.
+- **Cause:** The command-line PlatformIO upload supplied the other images from
+  its build environment, but the browser workflow had no receipt-bound complete
+  image.
+- **Correction:** The firmware-generation branch now merges the bootloader,
+  partition table, boot application, and WLED application into one image at
+  offset zero. The receipt binds its size, SHA-256, flash parameters, and
+  destructive erase policy. The local endpoint and browser verify those exact
+  bytes before serial access.
+- **Prevention:** A destructive firmware action must bind every flash region it
+  needs. Never infer missing offsets or enable erase for a partial image.
+- **Evidence:** `firmware/build-receipt.json`,
+  `scripts/esp32-firmware-handler.ts`, and
+  `tests/esp32-firmware-handler.test.ts`.
+- **Status:** Resolved.
