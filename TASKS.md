@@ -115,7 +115,18 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `DOC-010` Document the connector design process
+
+- Scope: editable ten-page visual essay and PDF reconstructing the TRUSS work
+  through its artistic method, iterations, failures, ribbons, LED-surface
+  bridges, presets, and 6DOF editor.
+- Verification: claims traced across 24 source commits; five current UI images
+  captured from `main`; all image references resolve; PDF is tagged, A4, and
+  contains exactly ten visually inspected pages.
+- Owner: `codex/docs-connector-design-process` in
+  `/tmp/led-rhombo-connector-process`.
+- Dependency: preserve `/tmp/led-rhombo-truss-011` and its branches until the
+  operator approves the document and explicitly authorizes cleanup.
 
 ## Done
 

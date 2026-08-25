@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Between Panels — An artistic process study</title>
+  <style>
+    :root {
+      --ink: #09131d;
+      --paper: #f1eee6;
+      --quiet: #6f756f;
+      --cyan: #28d7cf;
+      --pink: #ff587c;
+      --yellow: #e9d456;
+      --night: #03101b;
+      --grid: rgba(18, 70, 83, 0.16);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #b8b6b0; color: var(--ink); }
+    body { font-family: "Inter", "Aptos", "Helvetica Neue", Arial, sans-serif; }
+    @page { size: A4; margin: 0; }
+    .page {
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto;
+      padding: 17mm 18mm 15mm;
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        var(--paper);
+      background-size: 12mm 12mm;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
+    .night { color: #edf9f7; background: var(--night); }
+    .night::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(130deg, rgba(40,215,207,.12), transparent 45%, rgba(255,88,124,.09));
+      pointer-events: none;
+    }
+    .page > * { position: relative; z-index: 1; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 34pt; line-height: .93; letter-spacing: -1.8px; font-weight: 760; }
+    h2 { font-size: 24pt; line-height: 1.02; letter-spacing: -1px; margin-bottom: 7mm; }
+    h3 { font-size: 11pt; line-height: 1.1; text-transform: uppercase; letter-spacing: 1.4px; }
+    p, li { font-size: 10.5pt; line-height: 1.48; }
+    .lead { font-size: 15pt; line-height: 1.35; max-width: 150mm; }
+    .small, figcaption, .source { font-size: 8pt; line-height: 1.4; color: var(--quiet); }
+    .night .small, .night figcaption, .night .source { color: #a7c0c2; }
+    .kicker { font-size: 9pt; text-transform: uppercase; letter-spacing: 2.2px; color: var(--pink); font-weight: 700; }
+    .folio { position: absolute; bottom: 8mm; right: 18mm; font-size: 7pt; letter-spacing: 1.4px; color: var(--quiet); }
+    .night .folio { color: #7fa3a6; }
+    .rule { height: 2px; width: 36mm; background: var(--cyan); margin: 6mm 0; }
+    .accent { color: #007e7a; }
+    .pink { color: var(--pink); }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; }
+    .columns.wide-left { grid-template-columns: 1.35fr .85fr; }
+    .columns.wide-right { grid-template-columns: .82fr 1.38fr; }
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+    .card {
+      padding: 5mm;
+      border: 1px solid rgba(9,19,29,.18);
+      background: rgba(255,255,255,.56);
+      min-height: 39mm;
+    }
+    .card strong { display: block; font-size: 12pt; margin-bottom: 2mm; }
+    .night .card { border-color: rgba(40,215,207,.28); background: rgba(4,31,43,.74); }
+    figure { margin: 0; }
+    figure img { width: 100%; display: block; border: 1px solid rgba(40,215,207,.38); }
+    figcaption { margin-top: 2.5mm; }
+    .hero-image {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; object-position: 58% 45%; opacity: .55; z-index: 0;
+      filter: saturate(.9) contrast(1.08);
+    }
+    .cover-wash { position: absolute; inset: 0; z-index: 0; background: linear-gradient(90deg, #03101b 0%, rgba(3,16,27,.92) 42%, rgba(3,16,27,.24)); }
+    .cover-copy { width: 120mm; margin-top: 45mm; }
+    .cover h1 { font-size: 52pt; }
+    .cover .subtitle { font-size: 16pt; line-height: 1.3; width: 105mm; }
+    .cover .meta { margin-top: 28mm; font-size: 9pt; line-height: 1.6; color: #a7c0c2; }
+    blockquote { margin: 8mm 0; padding-left: 6mm; border-left: 3px solid var(--pink); font-size: 17pt; line-height: 1.3; font-weight: 540; }
+    .timeline { margin: 5mm 0 0; padding: 0; list-style: none; }
+    .timeline li { display: grid; grid-template-columns: 22mm 1fr; gap: 4mm; padding: 2.4mm 0; border-top: 1px solid rgba(9,19,29,.16); }
+    .timeline code { font-size: 7.5pt; color: #007e7a; }
+    .metric { display: flex; align-items: baseline; gap: 3mm; margin: 4mm 0; }
+    .metric b { font-size: 22pt; color: #007e7a; }
+    .metric span { font-size: 9pt; line-height: 1.25; }
+    .image-crop { height: 128mm; object-fit: cover; object-position: center 45%; }
+    .image-crop.tall { height: 173mm; object-position: center 42%; }
+    .image-crop.interface { height: 100mm; object-position: top; }
+    .diagram {
+      display: grid; grid-template-columns: 1fr 12mm 1fr 12mm 1fr; align-items: center;
+      margin: 8mm 0; text-align: center;
+    }
+    .diagram .node { padding: 5mm 2mm; border: 1px solid rgba(9,19,29,.25); background: rgba(255,255,255,.66); font-size: 9pt; }
+    .diagram .arrow { color: var(--pink); font-size: 18pt; }
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+    .comparison figure img { height: 114mm; object-fit: cover; object-position: center 44%; }
+    .caption-title { display: block; color: #007e7a; font-weight: 700; font-size: 9pt; }
+    .manifesto { margin: 16mm 0 0; padding: 0; list-style: none; }
+    .manifesto li { font-size: 15pt; line-height: 1.25; padding: 4mm 0; border-top: 1px solid rgba(237,249,247,.25); }
+    .manifesto b { color: var(--cyan); }
+    .commit { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8pt; color: #007e7a; }
+    .endnote { position: absolute; left: 18mm; right: 18mm; bottom: 18mm; }
+    @media screen {
+      .page { margin: 12px auto; box-shadow: 0 8px 28px rgba(0,0,0,.22); }
+    }
+    @media print {
+      html, body { background: none; }
+      .page { margin: 0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page night cover">
+    <img class="hero-image" src="assets/connector-design/03-led-surface-bridge.png" alt="LED-surface bridge between two panels" />
+    <div class="cover-wash"></div>
+    <div class="cover-copy">
+      <div class="kicker">WLED Orbital Lab · Process study</div>
+      <div class="rule"></div>
+      <h1>Between<br />Panels</h1>
+      <p class="subtitle">An artistic study of connector ribbons, LED-surface bridges, and the editor that made them movable.</p>
+      <p class="meta">A reconstruction from 24 design commits<br />22–24 August 2026<br />Pose-first geometry · Manifold solids · Schema 2</p>
+    </div>
+    <div class="folio">01 / 10</div>
+  </section>
+
+  <section class="page">
+    <div class="kicker">The premise</div>
+    <h2>The connector began as empty space.</h2>
+    <p class="lead">A panel sculpture is often described by its visible faces. This process began somewhere less stable: in the changing interval between one panel and the next.</p>
+    <div class="columns wide-left">
+      <div>
+        <blockquote>The gap was not treated as leftover space. It became the site where structure, wiring, print logic, and visual rhythm had to agree.</blockquote>
+        <p>Every panel already had a pose. Each pose carried a position, a local frame, and a field of LEDs. The connector could not replace that authority. It had to respond to it.</p>
+        <p>This changed the design question. The work was not “How do we model one universal bracket?” It was “What form can pass between two independent planes while respecting their screws, their electronic edges, and their light?”</p>
+        <p>The answer developed through analysis, graph logic, failed solids, local ribbons, and finally a second language that rises to the LED surface.</p>
+      </div>
+      <figure>
+        <img class="image-crop tall" src="assets/connector-design/01-connector-ribbons.png" alt="Connector ribbons spanning a spatial panel gap" />
+        <figcaption>Two local ribbons pass through a three-panel trail. The cyan line below them is wiring, not structure. Keeping these systems visibly separate was part of the method.</figcaption>
+      </figure>
+    </div>
+    <div class="folio">02 / 10</div>
+  </section>
+
+  <section class="page">
+    <div class="kicker">Method</div>
+    <h2>Constraint became a palette.</h2>
+    <p class="lead">The process did not use freedom as the absence of limits. It used exact limits as a way to make form legible.</p>
+    <div class="card-grid">
+      <div class="card"><strong>Pose</strong>Panels remain the geometry authority. A connector follows their six degrees of freedom; it does not silently pull them into a new arrangement.</div>
+      <div class="card"><strong>Hardware</strong>Four eligible mounting holes become anchors. DIN- and DOUT-blocked holes remain unavailable. The screw axis is both a fastening fact and a visual origin.</div>
+      <div class="card"><strong>Measured corrections</strong>The printed pilot moves 0.20 mm inward from the panel edge. Material begins 0.50 mm beyond the PCB rear surface. These small facts shape the whole object.</div>
+      <div class="card"><strong>Print</strong>Every body must stay watertight, connected, finite, outside PCB envelopes, and inside the selected print bed after margin and rotation.</div>
+    </div>
+    <div class="diagram">
+      <div class="node">authored<br /><b>panel poses</b></div><div class="arrow">→</div>
+      <div class="node">eligible<br /><b>local pairs</b></div><div class="arrow">→</div>
+      <div class="node">verified<br /><b>print surfaces</b></div>
+    </div>
+    <div class="columns">
+      <div>
+        <h3>Artistic method</h3>
+        <p>Stable IDs, deterministic ordering, and exact hashes sound administrative. Here they act like registration marks in printmaking. They let an iteration change without losing its identity.</p>
+      </div>
+      <div>
+        <h3>Technical method</h3>
+        <p>The same Schema 2 project feeds analysis, Manifold geometry, viewport display, portable ZIP output, and later physical inspection. No parallel model is allowed to become the hidden original.</p>
+      </div>
+    </div>
+    <p class="source">Primary sources: panel hardware profile; <span class="commit">77ec854</span> structural input contract; decisions D20–D23.</p>
+    <div class="folio">03 / 10</div>
+  </section>
+
+  <section class="page night">
+    <div class="kicker">Movement I · the analytical skeleton</div>
+    <h2>First, the gap was drawn as force.</h2>
+    <div class="columns wide-right">
+      <div>
+        <p>The first phase built a normalized structural model, a candidate graph, a linear 3D truss solver, and a bounded optimizer. The gap appeared as nodes, axial members, supports, gravity cases, reactions, stress, displacement, and buckling.</p>
+        <p>This was useful but incomplete. A solved line is not yet a printable surface. The analysis could suggest load paths, but it could not decide the final language of touch, thickness, label, edge, or light.</p>
+        <div class="metric"><b>4</b><span>steps from structural input<br />to optimized member field</span></div>
+        <div class="metric"><b>6</b><span>possible transport gravity<br />directions plus installed gravity</span></div>
+        <div class="metric"><b>0</b><span>claims of engineering<br />certification</span></div>
+      </div>
+      <div>
+        <ol class="timeline">
+          <li><code>77ec854</code><span>Define material, mass, supports, loads, safety, and fabrication limits.</span></li>
+          <li><code>6c47f47</code><span>Build a deterministic local candidate graph from eligible panel anchors.</span></li>
+          <li><code>413feb7</code><span>Solve load cases and expose force, reaction, displacement, stress, and buckling.</span></li>
+          <li><code>20e0e6c</code><span>Remove or resize members only when connectivity and hard limits survive.</span></li>
+          <li><code>b3c49a6</code><span>Cross the boundary from abstract members to printable Manifold solids.</span></li>
+          <li><code>52070e2</code><span>Turn exact meshes into STL, 3MF, preview, and a checked artifact set.</span></li>
+        </ol>
+      </div>
+    </div>
+    <blockquote>Analysis became a critic inside the studio, not the author of the final shape.</blockquote>
+    <p class="source">The later pipeline deliberately allows valid ribbon generation when advisory analysis is singular or infeasible. Geometry and analysis report their own evidence.</p>
+    <div class="folio">04 / 10</div>
+  </section>
+
+  <section class="page">
+    <div class="kicker">Movement II · from members to surfaces</div>
+    <h2>The line thickened, then learned to bend.</h2>
+    <div class="columns">
+      <div>
+        <ol class="timeline">
+          <li><code>bb060ab</code><span>Replace a sculpture-wide member field with modular, local panel-pair connectors.</span></li>
+          <li><code>4bfe97c</code><span>Grow organic webs around the screw anchors.</span></li>
+          <li><code>ec27f76</code><span>Replace the web with a continuous loft between panel-facing shoe profiles.</span></li>
+          <li><code>e4e04cb</code><span>Separate printable ribbon success from truss convergence.</span></li>
+          <li><code>8cb481c</code><span>Unite nearby paths into one local multi-panel junction.</span></li>
+          <li><code>f8b464c</code><span>Remove sub-micron Boolean slivers without weakening the strict mesh gate.</span></li>
+          <li><code>c9bb4b1</code><span>Remove speculative transverse voids; keep only screw-axis pilots and lead-ins.</span></li>
+          <li><code>d03e66f</code><span>Engrave the destination panel identity into the flat mounting face.</span></li>
+        </ol>
+      </div>
+      <figure>
+        <img class="image-crop tall" src="assets/connector-design/02-local-ribbon-junction.png" alt="Local three-panel ribbon junction" />
+        <figcaption>A local junction forms only when connection regions meet closely enough on a shared panel. A trail with distant regions remains two parts. Locality became both a structural and compositional rule.</figcaption>
+      </figure>
+    </div>
+    <p class="lead" style="margin-top:7mm">Nine cap-shaped stations now guide each ribbon. A cubic path leaves each PCB only 6 mm along its rear normal, then turns into the gap.</p>
+    <div class="folio">05 / 10</div>
+  </section>
+
+  <section class="page">
+    <div class="kicker">Failure as material</div>
+    <h2>Each rejected form clarified the object.</h2>
+    <div class="card-grid">
+      <div class="card"><strong>The global cage</strong>A connected graph can be structurally meaningful and visually totalizing. The design moved toward local cells so the sculpture remains assembled from readable encounters.</div>
+      <div class="card"><strong>The thick wedge</strong>A direct hull between distant profiles can become one blunt convex mass. Intermediate stations and a cubic path let the connector turn without filling the whole gap.</div>
+      <div class="card"><strong>The speculative hole</strong>Cable bores and transverse access tunnels looked helpful but lacked measured keep-out authority. They were removed. Unknown space stays protected, not decorated.</div>
+      <div class="card"><strong>The invisible sliver</strong>Boolean overlap created tiny faces that were mathematically present but physically meaningless. A 0.001 mm simplification removes them before the strict triangle gate.</div>
+      <div class="card"><strong>The false dependency</strong>Early geometry could fail because an advisory truss did not converge. The process separated these claims: analysis can remain uncertain while verified connector geometry still prints.</div>
+      <div class="card"><strong>The stale twin</strong>A valid preview could once differ from valid downloadable parts. The final loader now proves that the displayed triangle records exactly assemble the referenced part STLs.</div>
+    </div>
+    <blockquote>Failure did not merely remove defects. It reduced the design to the claims the object could honestly make.</blockquote>
+    <p class="source">Repository evidence: failure-learning entries and commits <span class="commit">e4e04cb</span>, <span class="commit">f8b464c</span>, <span class="commit">c9bb4b1</span>, plus integration review at <span class="commit">641cf6b</span>.</p>
+    <div class="folio">06 / 10</div>
+  </section>
+
+  <section class="page">
+    <div class="kicker">Two connector languages</div>
+    <h2>One fastens behind. One rises toward light.</h2>
+    <div class="comparison">
+      <figure>
+        <img src="assets/connector-design/01-connector-ribbons.png" alt="Rear connector ribbon" />
+        <figcaption><span class="caption-title">Connector ribbon</span>Broad 13 mm screw shoes form the ends of a twisted rear surface. The body stays close to the fastening logic and keeps a flat, labeled panel-facing region.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/connector-design/03-led-surface-bridge.png" alt="LED-surface bridge" />
+        <figcaption><span class="caption-title">LED-surface bridge</span>The same eligible anchors support a complete-edge sheet. Its ridge reaches the LED-emitter plane and turns the gap into a continuous luminous edge condition.</figcaption>
+      </figure>
+    </div>
+    <div class="columns" style="margin-top:8mm">
+      <div>
+        <h3>Shared grammar</h3>
+        <p>Both use the same poses, screw anchors, measured corrections, labels, local junction groups, PCB exclusions, Manifold checks, and print-bed limits.</p>
+      </div>
+      <div>
+        <h3>Different gesture</h3>
+        <p>The ribbon connects mounting faces. The bridge selects complete panel edges, samples each edge 17 times, and crosses the gap through nine cubic stations.</p>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:7mm">The second design did not replace the first. It revealed that “connection” can have more than one spatial voice.</p>
+    <div class="folio">07 / 10</div>
+  </section>
+
+  <section class="page night">
+    <div class="kicker">The editor as studio instrument</div>
+    <h2>The sculpture learned to move without losing its surface.</h2>
+    <div class="columns wide-right">
+      <div>
+        <p><b>Surface mode</b> keeps the original design relation. A panel moves along the active surface, or in its saved local plane when no surface exists. Rotation stays on local Z.</p>
+        <p><b>Free 6DOF mode</b> exposes local XYZ translation and rotation. A completed move saves one normalized, right-handed pose and removes the old surface attachment.</p>
+        <p>The switch matters artistically. It lets one mode preserve belonging while the other permits rupture, tilt, offset, and re-composition.</p>
+        <p class="commit">f66554c → 6bb5742</p>
+      </div>
+      <figure>
+        <img class="image-crop tall" src="assets/connector-design/04-free-6dof-gizmo.png" alt="Free 6DOF transform gizmo on an LED panel" />
+        <figcaption>Translation arrows and rotation rings surround the selected panel. The connector preview remains visible as context, but any committed pose change makes derived geometry stale until regeneration.</figcaption>
+      </figure>
+    </div>
+    <blockquote>The gizmo is not only a control. It is a way to ask the connector a new question.</blockquote>
+    <div class="folio">08 / 10</div>
+  </section>
+
+  <section class="page">
+    <div class="kicker">Iteration field</div>
+    <h2>Four presets act as spatial sketches.</h2>
+    <div class="card-grid">
+      <div class="card"><strong>Two-panel spatial trial</strong>One arbitrary gap. It is the smallest complete study of twist, edge choice, PCB clearance, and the difference between ribbon and LED-surface bridge.</div>
+      <div class="card"><strong>Three-panel trail</strong>Two local relationships: P-01↔P-02 and P-02↔P-03. It proves that a chain does not need a first-to-last shortcut or one global body.</div>
+      <div class="card"><strong>Local junction</strong>Two paths meet near one shared panel region and become one watertight part. The design tests when multiplicity can become a single object.</div>
+      <div class="card"><strong>Twelve-panel spiral</strong>Eleven adjacent connectors follow panels that rise and rotate. It tests repetition without erasing difference, and scale without a sculpture-sized union.</div>
+    </div>
+    <figure style="margin-top:8mm">
+      <img class="image-crop interface" src="assets/connector-design/00-orbital-lab-interface.png" alt="WLED Orbital Lab interface" />
+      <figcaption>The four sketches remain ordinary Schema 2 projects in the same editor. Advanced Tools holds neighbor, pair, and print-bed controls. The two generation actions remain visible as primary choices.</figcaption>
+    </figure>
+    <div class="diagram">
+      <div class="node">select a<br /><b>spatial sketch</b></div><div class="arrow">→</div>
+      <div class="node">generate and inspect<br /><b>one surface language</b></div><div class="arrow">→</div>
+      <div class="node">move a panel<br /><b>ask again</b></div>
+    </div>
+    <p class="source">Preset commits: <span class="commit">cda981b</span>, <span class="commit">bb060ab</span>, <span class="commit">8cb481c</span>, <span class="commit">48c4aff</span>.</p>
+    <div class="folio">09 / 10</div>
+  </section>
+
+  <section class="page night">
+    <div class="kicker">The present form</div>
+    <h2>What the process has made.</h2>
+    <ul class="manifesto">
+      <li><b>Connection is local.</b> The whole sculpture does not need one structural gesture.</li>
+      <li><b>Exactness is expressive.</b> A screw correction, edge plane, or protected void can generate form.</li>
+      <li><b>Analysis advises.</b> It does not impersonate physical proof or engineering certification.</li>
+      <li><b>Display and download are one claim.</b> The ZIP is enabled only for the exact verified connector set visible in the viewport.</li>
+      <li><b>Movement remains reversible.</b> Surface guidance and free 6DOF composition coexist behind one explicit switch.</li>
+      <li><b>The object is not finished at the mesh.</b> Print, fit, flex, fastening, cable clearance, and light still have to answer.</li>
+    </ul>
+    <div class="endnote">
+      <div class="rule"></div>
+      <p class="lead">The next iteration is physical. A representative Manifold part must be printed, handled, mounted, and observed. The digital process has made its proposal. Material now gets a vote.</p>
+      <p class="source">Current open review: HR-006. Source reconstruction: commits <span class="commit">77ec854..6bb5742</span>, integrated through <span class="commit">641cf6b</span>. Document created 25 August 2026.</p>
+    </div>
+    <div class="folio">10 / 10</div>
+  </section>
+</body>
+</html>
