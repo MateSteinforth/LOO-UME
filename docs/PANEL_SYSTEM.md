@@ -186,10 +186,11 @@ the interval `(0, 1]`. An infeasible terminal trace cannot be labeled as
 converged, and reaching the iteration bound while values still change reports
 `iteration-limit`.
 
-The profile names mounting holes in PCB back view. Before structural anchor or
-DIN/DOUT clearance positions enter the outward-facing right-handed pose frame,
-the normalizer mirrors profile-local X and preserves Y. Hole IDs remain the
-measured back-view identities. The normalizer also derives a cable-load axis at
+The profile names mounting holes in PCB back view. Before planar or structural
+fabrication positions enter the outward-facing right-handed pose frame, the
+shared conversion mirrors profile-local X and preserves Y. Hole IDs remain the
+measured back-view identities. Structural normalization also derives a cable-
+load axis at
 each blocked hole. Ribbon CAD does not cut a cable bore there. Instead, every
 final ribbon and bridge must stay outside a fail-closed axial clearance cylinder
 whose diameter and length equal the configured conservative cable clearance.

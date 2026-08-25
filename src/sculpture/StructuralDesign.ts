@@ -1,4 +1,8 @@
-import type { PanelHardwareProfile, PanelMountingHoleId } from "./Definition.ts";
+import {
+  panelBackViewPointToOutwardPoseLocal,
+  type PanelHardwareProfile,
+  type PanelMountingHoleId,
+} from "./Definition.ts";
 import {
   assertProjectAssetReference,
   sha256Text,
@@ -633,12 +637,6 @@ function panelPoint(
  * LEDs. Preserve vertical direction and mirror horizontal direction when the
  * back-view coordinate enters that outward-facing frame.
  */
-function backViewPointInOutwardPose(
-  localPosition: readonly [number, number],
-): [number, number] {
-  return [-localPosition[0], localPosition[1]];
-}
-
 function panelCorners(
   center: StructuralVector,
   xAxis: StructuralVector,
@@ -789,7 +787,9 @@ export function normalizeStructuralDesign(
       .filter((hole) => hole.mechanicalUse === "eligible")
       .sort((left, right) => compareText(left.id, right.id))
       .map((hole): NormalizedStructuralAnchor => {
-        const localPositionMm = backViewPointInOutwardPose(hole.localPosition);
+        const localPositionMm = panelBackViewPointToOutwardPoseLocal(
+          hole.localPosition,
+        );
         return {
           id: `${panel.id}:${hole.id}`,
           panelId: panel.id,
@@ -819,7 +819,9 @@ export function normalizeStructuralDesign(
       if (!hole.blockedBy) {
         throw new Error(`Blocked mounting hole ${hole.id} requires a connector reason.`);
       }
-      const localPositionMm = backViewPointInOutwardPose(hole.localPosition);
+      const localPositionMm = panelBackViewPointToOutwardPoseLocal(
+        hole.localPosition,
+      );
       cableClearances.push({
         id: `${panel.id}:cable-clearance:${hole.blockedBy.toLowerCase()}`,
         panelId: panel.id,

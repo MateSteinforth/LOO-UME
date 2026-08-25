@@ -45,13 +45,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Acceptance: browser and CLI reject the same invalid PCB envelope or boundary
   before asset publication.
 
-### `FAB-023` Route automatic structural connectors around DIN/DOUT
-
-- Acceptance: intended 30-panel ribbon and LED-surface-bridge presets generate
-  collision-free parts without weakening the all-panel final-solid keep-out,
-  cutting connector bores, or changing authorized panel poses.
-- Depends on: `FAB-021`; preserve its fail-closed clearance contract.
-
 ### `FIRM-011` Build and deploy the minimum pinned WLED target
 
 - Acceptance: reproducible pinned firmware, exact bus fragment and ledmap,
@@ -76,11 +69,11 @@ No tasks.
 
 ## In Progress
 
-### `FAB-022` Reconcile back-view coordinates in planar closure connectors
+### `FAB-023` Route automatic structural connectors around DIN/DOUT
 
 - Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-- Conflict risk: panel-profile normalization, planar closure geometry, and
-  physical correction tests.
+- Conflict risk: structural neighbor selection, connector geometry, and
+  Manifold keep-out tests.
 
 ## Blocked
 
@@ -118,6 +111,14 @@ No tasks.
 No tasks.
 
 ## Ready to Merge
+
+### `FAB-022` Reconcile back-view coordinates in planar closure connectors
+
+- Scope: one shared back-view-to-outward conversion now owns planar closure
+  holes and structural anchors/clearances without changing IDs or addressing.
+- Verification: focused profile, pose, planar, structural, and Manifold tests
+  passed 43/43.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
 
 ### `SEC-010` Bound ZIP resource use
 

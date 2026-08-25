@@ -300,6 +300,13 @@ describe("empty 66 mm cuboctahedron authoring project", () => {
     });
 
     for (const hole of rotatedPanel.mountingHoles) {
+      const profileHole = rotatedProject.panelProfile.mounting.holes.find(
+        ({ id }) => id === hole.id,
+      )!;
+      expect(hole.localPosition).toEqual([
+        -profileHole.localPosition[0],
+        profileHole.localPosition[1],
+      ]);
       expectPointClose(hole.position, [
         rotatedPanel.position.x + rotatedPanel.xAxis.x * hole.localPosition[0] +
           rotatedPanel.yAxis.x * hole.localPosition[1],

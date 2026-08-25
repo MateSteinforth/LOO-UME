@@ -123,6 +123,13 @@ export interface PanelHardwareProfile {
   };
 }
 
+/** Convert measured PCB back-view XY into the outward-facing panel pose XY. */
+export function panelBackViewPointToOutwardPoseLocal(
+  localPosition: readonly [number, number],
+): [number, number] {
+  return [-localPosition[0], localPosition[1]];
+}
+
 export type WiringLifecycleStatus =
   | "draft"
   | "authored"

@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parsePanelHardwareProfile } from "../src/sculpture/Definition.ts";
+import {
+  panelBackViewPointToOutwardPoseLocal,
+  parsePanelHardwareProfile,
+} from "../src/sculpture/Definition.ts";
 
 function loadProfile() {
   return parsePanelHardwareProfile(JSON.parse(readFileSync(
@@ -10,6 +13,13 @@ function loadProfile() {
 }
 
 describe("panel hardware profile", () => {
+  it("mirrors only back-view X when hardware enters the outward pose", () => {
+    expect(panelBackViewPointToOutwardPoseLocal([-25, -24.5]))
+      .toEqual([25, -24.5]);
+    expect(panelBackViewPointToOutwardPoseLocal([25, 24.5]))
+      .toEqual([-25, 24.5]);
+  });
+
   it("preserves the approved mechanical, connector, and power facts", () => {
     const profile = loadProfile();
 
