@@ -31,17 +31,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
-### `MECH-020` Add correction tools for a proven ambiguous gap case
-
-- Acceptance: accept, reject, reorder, or redraw a candidate cycle; persist the
-  confirmed topology; preserve panel poses and geometry authority.
-- Depends on: a concrete unsupported project.
-
-### `FAB-020` Add one evidence-backed fabrication enhancement
-
-- Acceptance: one real model defines the need; Manifold output preserves PCB
-  envelopes and connector access; mesh and physical review pass.
-
 ### `ARCH-010` Split browser orchestration along covered behavior boundaries
 
 - Acceptance: project, placement, mechanics, mapping, wiring, package, and
@@ -108,6 +97,20 @@ No tasks.
 
 ## Blocked
 
+### `MECH-020` Add correction tools for a proven ambiguous gap case
+
+- Blocked by: a concrete project whose boundary gap cannot be represented or
+  corrected by the current editor.
+- Needed: the smallest failing Schema 2 project and the intended corrected
+  corner cycle.
+
+### `FAB-020` Add one evidence-backed fabrication enhancement
+
+- Blocked by: a real printed-model need that is not covered by current ribbons,
+  LED-surface bridges, or planar closures.
+- Needed: the affected project, failed physical result, and required fit or
+  fabrication outcome.
+
 ### `PWR-010` Approve power and protection
 
 - Blocked by: available hardware, electrical calculation, and physical review.
@@ -125,7 +128,7 @@ No tasks.
 
 ## Human Review
 
-### `HR-006` Physically review representative Manifold parts
+No tasks.
 
 ## Ready to Merge
 
@@ -133,6 +136,8 @@ No tasks.
 
 ## Done
 
+- `HR-006`: operator printed representative Manifold parts and confirmed on
+  2026-08-25 that they work.
 - `FAB-021`: corrected structural PCB back-view coordinates and added
   fail-closed DIN/DOUT keep-outs for ribbons, LED-surface bridges, and merged
   junctions in `main` at `4961f4d`; unsafe automatic paths now stop instead of
