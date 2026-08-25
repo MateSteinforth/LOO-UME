@@ -129,19 +129,14 @@ No tasks.
 
 ## Ready to Merge
 
-### `FAB-021` Correct connector-side coordinates and keep-outs
-
-- Scope: mirror measured PCB back-view X into the outward pose frame for
-  structural anchors and DIN/DOUT clearances; reject final ribbon, bridge, and
-  merged-junction solids that enter conservative connector keep-outs.
-- Verification: 50 Vitest files and 328 tests passed; post-review structural
-  tests passed 16/16; TypeScript, Vite build, diff checks, and independent
-  geometry review passed.
-- Owner: `codex/fab-021-connector-side-fix` in
-  `/tmp/led-rhombo-fab-021`.
+No tasks.
 
 ## Done
 
+- `FAB-021`: corrected structural PCB back-view coordinates and added
+  fail-closed DIN/DOUT keep-outs for ribbons, LED-surface bridges, and merged
+  junctions in `main` at `4961f4d`; unsafe automatic paths now stop instead of
+  exporting overlapping parts.
 - `DOC-010`: integrated the ten-page connector design-process HTML/PDF and five
   current UI images in `main` at `4c8c82c`; its task worktree and branches were
   removed after the verified push.
