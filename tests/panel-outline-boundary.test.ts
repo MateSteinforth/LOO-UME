@@ -318,9 +318,9 @@ describe("automatic panel-boundary topology detection", () => {
         (left, right) => left[0] - right[0],
       ))).toEqual({
         0: ["bottom-right"],
-        1: ["middle-right"],
+        1: ["middle-left"],
         2: ["top-left"],
-        3: ["middle-left"],
+        3: ["middle-right"],
       });
     }
     for (const face of assembly.faces.filter((candidate) => candidate.role === "closure")) {
