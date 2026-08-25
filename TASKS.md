@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-24
+Last reconciled: 2026-08-25
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -61,6 +61,13 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Acceptance: browser and CLI reject the same invalid PCB envelope or boundary
   before asset publication.
 
+### `FAB-022` Reconcile back-view coordinates in planar closure connectors
+
+- Acceptance: the planar closure route uses the same explicit hardware-view
+  conversion as structural fabrication; existing cap-allocation geometry and
+  physical correction tests are reviewed before any output changes.
+- Depends on: `FAB-021`; do not broaden the structural ribbon safety fix.
+
 ### `MAP-020` Version and strengthen ledmap fingerprints
 
 - Acceptance: indices that differ above bit 15 produce different identities;
@@ -115,26 +122,27 @@ No tasks.
 
 ## Ready to Merge
 
-### `DOC-010` Document the connector design process
+### `FAB-021` Correct connector-side coordinates and keep-outs
 
-- Scope: editable ten-page visual essay and PDF reconstructing the TRUSS work
-  through its artistic method, iterations, failures, ribbons, LED-surface
-  bridges, presets, and 6DOF editor.
-- Verification: claims traced across 24 source commits; five current UI images
-  captured from `main`; all image references resolve; PDF is tagged, A4, and
-  contains exactly ten visually inspected pages.
-- Owner: `codex/docs-connector-design-process` in
-  `/tmp/led-rhombo-connector-process`.
-- Dependency: preserve `/tmp/led-rhombo-truss-011` and its branches until the
-  operator approves the document and explicitly authorizes cleanup.
+- Scope: mirror measured PCB back-view X into the outward pose frame for
+  structural anchors and DIN/DOUT clearances; reject final ribbon, bridge, and
+  merged-junction solids that enter conservative connector keep-outs.
+- Verification: 50 Vitest files and 328 tests passed; post-review structural
+  tests passed 16/16; TypeScript, Vite build, diff checks, and independent
+  geometry review passed.
+- Owner: `codex/fab-021-connector-side-fix` in
+  `/tmp/led-rhombo-fab-021`.
 
 ## Done
 
+- `DOC-010`: integrated the ten-page connector design-process HTML/PDF and five
+  current UI images in `main` at `4c8c82c`; its task worktree and branches were
+  removed after the verified push.
 - `TRUSS-011`: integrated connector ribbons, LED-surface bridges, four JSON
   presets, switchable surface/free-6DOF editing, Advanced Tools settings, and
-  exact displayed-connector ZIP export in `main` at `641cf6b`. The original
-  source branch and `/tmp/led-rhombo-truss-011` remain preserved by operator
-  request.
+  exact displayed-connector ZIP export in `main` at `641cf6b`; its source and
+  integration worktrees and branches were removed after documentation and
+  integration completed.
 - `INSTALL-012`: the restricted-PATH one-command setup passed on Linux x86-64
   and native macOS arm64/x86-64 in integration run `32656402016`; no global
   Node/npm installation or administrator command is required.

@@ -80,8 +80,10 @@ N-gon. Ambiguous junctions, invalid caps, intersections, or non-manifold
 boundaries fail before asset publication. Printable material must stay outside
 PCB envelopes and keep DIN, DOUT, V+, V-, and blocked mounting holes clear.
 
-The structural route does not use GLB triangles. It derives eligible mounting
-holes from panel poses and the selected profile. Its axial truss results guide
+The structural route does not use GLB triangles. It converts measured back-view
+hardware coordinates into the outward pose frame, then derives eligible
+mounting holes and DIN/DOUT clearance volumes from panel poses and the selected
+profile. Its axial truss results guide
 load paths but are not engineering certification. Printable ribbon and bridge
 solids still require exact hardware-clearance, PCB-envelope, Manifold, and
 print-envelope checks. See `docs/STRUCTURAL_WORKFLOW.md`.

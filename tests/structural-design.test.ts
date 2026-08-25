@@ -149,7 +149,7 @@ describe("Schema 2 structural design normalization", () => {
       panelId: "P-01",
       holeId: "bottom-left",
       blockedBy: "DIN",
-      positionMm: [-25, 50, 24.5],
+      positionMm: [25, 50, 24.5],
       diameterMm: 12,
     });
     expect(normalized.anchors.filter(({ panelId }) => panelId === "P-01").map(
@@ -159,7 +159,12 @@ describe("Schema 2 structural design normalization", () => {
       holeId === "bottom-left" || holeId === "top-right"
     )).toBe(false);
     expect(normalized.anchors.find(({ id }) => id === "P-01:top-left")?.positionMm)
-      .toEqual([-25, 50, -24.5]);
+      .toEqual([25, 50, -24.5]);
+    expect(normalized.anchors.find(({ id }) => id === "P-01:bottom-right"))
+      .toMatchObject({
+        localPositionMm: [-25, -24.5],
+        positionMm: [-25, 50, 24.5],
+      });
     expect(normalized.supports).toHaveLength(4);
     expect(normalized.supports.every(({ source }) => source === "preview-reference-panel"))
       .toBe(true);
@@ -181,6 +186,42 @@ describe("Schema 2 structural design normalization", () => {
       /preview only.*requires real mounting conditions/,
     );
     expect(normalized.sourceFingerprint.value).toMatch(/^[0-9a-f]{64}$/);
+    expect(normalized.sourceFingerprint.value).not.toBe(
+      "d4261e242511c6e65c53b22889a4abf141098022ec4e17154c11627b8e9e599e",
+    );
+  });
+
+  it("maps back-view connector sides into a rotated outward-facing pose", async () => {
+    const source = await definition();
+    source.panels[0]!.pose = {
+      position: [0, 0, 0],
+      orientation: {
+        xAxis: [0, 1, 0],
+        yAxis: [-1, 0, 0],
+        normal: [0, 0, 1],
+      },
+    };
+    const normalized = normalizeStructuralDesign(createPanelAssemblyProject(
+      source,
+      "rotated-back-view/sculpture.json",
+    ));
+
+    expect(normalized.cableClearances.find(({ blockedBy, panelId }) =>
+      blockedBy === "DIN" && panelId === "P-01"
+    )).toMatchObject({
+      holeId: "bottom-left",
+      positionMm: [24.5, 25, 0],
+    });
+    expect(normalized.cableClearances.find(({ blockedBy, panelId }) =>
+      blockedBy === "DOUT" && panelId === "P-01"
+    )).toMatchObject({
+      holeId: "top-right",
+      positionMm: [-24.5, -25, 0],
+    });
+    expect(normalized.anchors.find(({ id }) => id === "P-01:bottom-right")?.positionMm)
+      .toEqual([24.5, -25, 0]);
+    expect(normalized.anchors.find(({ id }) => id === "P-01:top-left")?.positionMm)
+      .toEqual([-24.5, 25, 0]);
   });
 
   it("keeps preview provenance when only connector policy is stored", async () => {
@@ -414,6 +455,20 @@ describe("Schema 2 structural design normalization", () => {
     const edited = rotatePanelAroundLocalZ(reopened.sculpture, "P-01", 15);
     expect(getGeneratedStructuralState(edited, reopened.panelProfile)).toBe("stale");
     expect(edited.generatedStructure).toEqual(source.generatedStructure);
+  });
+
+  it("makes pre-conversion structural artifacts stale", async () => {
+    const source = await definition();
+    source.generatedStructure = manifest(
+      "d4261e242511c6e65c53b22889a4abf141098022ec4e17154c11627b8e9e599e",
+    );
+    const project = createPanelAssemblyProject(
+      source,
+      "pre-back-view-conversion/sculpture.json",
+    );
+
+    expect(getGeneratedStructuralState(project.sculpture, project.panelProfile))
+      .toBe("stale");
   });
 
   it("keeps structural artifacts separate from planar mechanics", async () => {

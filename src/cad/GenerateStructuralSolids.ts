@@ -47,6 +47,8 @@ export interface StructuralGeometryPolicy {
   surfaceOrganicCrownMm: number;
   surfaceMeshSimplificationToleranceMm: number;
   meshSimplificationToleranceMm: number;
+  connectorClearanceCylinderSegments: number;
+  connectorClearanceRadialScale: number;
 }
 
 export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
@@ -72,6 +74,9 @@ export const STRUCTURAL_GEOMETRY_POLICY: StructuralGeometryPolicy = {
   surfaceOrganicCrownMm: 0.02,
   surfaceMeshSimplificationToleranceMm: 0.0001,
   meshSimplificationToleranceMm: 0.001,
+  connectorClearanceCylinderSegments: CIRCULAR_SEGMENTS,
+  connectorClearanceRadialScale:
+    1 / Math.cos(Math.PI / CIRCULAR_SEGMENTS),
 };
 
 export interface StructuralSolidProbe {
@@ -429,6 +434,80 @@ function assertAvoidsPanelEnvelopes(
     } finally {
       localEnvelope.delete();
       envelope?.delete();
+      collision?.delete();
+    }
+  }
+}
+
+function connectorClearanceProbes(
+  normalized: NormalizedStructuralDesign,
+  panelIds: readonly string[],
+): StructuralSolidProbe[] {
+  const included = new Set(panelIds);
+  return normalized.cableClearances
+    .filter(({ panelId }) => included.has(panelId))
+    .map(({ positionMm }) => probe(positionMm));
+}
+
+function assertAvoidsConnectorClearances(
+  wasm: ManifoldToplevel,
+  solid: Manifold,
+  normalized: NormalizedStructuralDesign,
+  partId: string,
+): void {
+  const bounds = solid.boundingBox();
+  const solidBounds = {
+    min: [bounds.min[0], bounds.min[1], bounds.min[2]] as StructuralVector,
+    max: [bounds.max[0], bounds.max[1], bounds.max[2]] as StructuralVector,
+  };
+  for (const clearance of normalized.cableClearances) {
+    const axis = normalize(clearance.outwardNormal);
+    const nominalRadiusMm = clearance.diameterMm / 2;
+    // Manifold's segmented cylinder is inscribed. Enlarge only this keep-out
+    // mesh so every side is tangent to the specified nominal clearance circle.
+    const meshRadiusMm = nominalRadiusMm *
+      STRUCTURAL_GEOMETRY_POLICY.connectorClearanceRadialScale;
+    const halfLengthMm = clearance.diameterMm / 2;
+    const keepoutExtent = axis.map((component) =>
+      halfLengthMm * Math.abs(component) +
+      meshRadiusMm * Math.sqrt(Math.max(0, 1 - component * component))
+    ) as StructuralVector;
+    const keepoutBounds = {
+      min: subtract(clearance.positionMm, keepoutExtent),
+      max: add(clearance.positionMm, keepoutExtent),
+    };
+    if (!boxesOverlap(solidBounds, keepoutBounds)) continue;
+    const start = add(
+      clearance.positionMm,
+      scale(axis, -halfLengthMm),
+    );
+    const end = add(
+      clearance.positionMm,
+      scale(axis, halfLengthMm),
+    );
+    const keepout = cylinderAlong(
+      wasm,
+      start,
+      end,
+      meshRadiusMm,
+      meshRadiusMm,
+      STRUCTURAL_GEOMETRY_POLICY.connectorClearanceCylinderSegments,
+    );
+    let collision: Manifold | undefined;
+    try {
+      collision = solid.intersect(keepout);
+      if (!collision.isEmpty() && collision.volume() > 1e-7) {
+        const collisionBounds = collision.boundingBox();
+        throw new Error(
+          `Structural part ${partId} intersects ${clearance.blockedBy} ` +
+          `connector clearance ${clearance.id} by ` +
+          `${collision.volume().toFixed(6)} mm3 at ` +
+          `[${collisionBounds.min.map((value) => value.toFixed(3)).join(", ")}] to ` +
+          `[${collisionBounds.max.map((value) => value.toFixed(3)).join(", ")}].`,
+        );
+      }
+    } finally {
+      keepout.delete();
       collision?.delete();
     }
   }
@@ -1582,7 +1661,9 @@ function buildOrganicConnector(
         surfaceFlushCorrectionMm: normalized.anchors[0]?.surfaceFlushCorrectionMm,
         screwHoleCentersMm,
         nutTrapCentersMm: [],
-        cableClearanceCentersMm: [],
+        cableClearanceCentersMm: connectorClearanceProbes(
+          normalized, cell.panelIds,
+        ),
         socketCentersMm: [],
         orientationMarkCenterMm,
         loftStationCentersMm: loft.stationCentersMm,
@@ -1780,7 +1861,9 @@ function buildSurfaceBridgeConnector(
         surfaceFlushCorrectionMm: normalized.anchors[0]?.surfaceFlushCorrectionMm,
         screwHoleCentersMm,
         nutTrapCentersMm: [],
-        cableClearanceCentersMm: [],
+        cableClearanceCentersMm: connectorClearanceProbes(
+          normalized, cell.panelIds,
+        ),
         socketCentersMm: [],
         orientationMarkCenterMm,
         loftStationCentersMm: sheet.stationCentersMm,
@@ -1841,9 +1924,19 @@ function mergeRibbonJunction(
   })));
   const unioned = unionAll(wasm, solids);
   let solid: Manifold;
+  let toleranceSolid: Manifold | undefined;
+  let simplifiedSolid: Manifold | undefined;
   try {
-    solid = wasm.Manifold.ofMesh(unioned.getMesh());
+    toleranceSolid = unioned.setTolerance(
+      STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm,
+    );
+    simplifiedSolid = toleranceSolid.simplify(
+      STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm,
+    );
+    solid = wasm.Manifold.ofMesh(simplifiedSolid.getMesh());
   } finally {
+    simplifiedSolid?.delete();
+    toleranceSolid?.delete();
     unioned.delete();
   }
   const panelIds = [...new Set(meshes.flatMap(({ panelIds: ids }) => ids ?? []))]
@@ -1911,7 +2004,7 @@ function assertFitsPrintBed(
   }
 }
 
-function assertMeshAvoidsPanelEnvelopes(
+function assertMeshAvoidsFabricationKeepouts(
   wasm: ManifoldToplevel,
   mesh: StructuralSolidMesh,
   normalized: NormalizedStructuralDesign,
@@ -1923,6 +2016,7 @@ function assertMeshAvoidsPanelEnvelopes(
   }));
   try {
     assertAvoidsPanelEnvelopes(wasm, solid, normalized, mesh.partId);
+    assertAvoidsConnectorClearances(wasm, solid, normalized, mesh.partId);
   } finally {
     solid.delete();
   }
@@ -1975,7 +2069,7 @@ export async function buildStructuralRibbonSolids(
   }
   parts.sort((left, right) => compareText(left.partId, right.partId));
   for (const part of parts) {
-    assertMeshAvoidsPanelEnvelopes(wasm, part, normalized);
+    assertMeshAvoidsFabricationKeepouts(wasm, part, normalized);
     assertFitsPrintBed(part, normalized);
   }
   return parts;

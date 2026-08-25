@@ -98,6 +98,10 @@ describe("headless structural system pipeline", () => {
     expect(result.bundle.files).toHaveLength(result.solids.length + 6);
     expect(() => validateStructuralArtifactBundle(result.bundle)).not.toThrow();
     expect(result.generatedStructure.artifacts).toHaveLength(result.solids.length + 4);
+    expect(result.generatedStructure.generator).toEqual({
+      id: "wled-orbital-lab/structural-pipeline",
+      version: "1.1.0",
+    });
     expect(new Set(result.generatedStructure.artifacts.map(({ role }) => role))).toEqual(
       new Set(["part", "preview", "package", "analysis", "report"]),
     );

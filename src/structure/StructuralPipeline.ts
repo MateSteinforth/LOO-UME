@@ -17,6 +17,7 @@ import {
 import { verifyProjectAssetBytes } from "../sculpture/GeneratedMechanics.ts";
 import {
   normalizeStructuralDesign,
+  STRUCTURAL_FABRICATION_CONTRACT_VERSION,
   validateGeneratedStructuralManifest,
   type GeneratedStructuralManifest,
   type NormalizedStructuralDesign,
@@ -452,7 +453,10 @@ function generatedManifest(
     }));
   const manifest: GeneratedStructuralManifest = {
     schemaVersion: "1.0.0",
-    generator: { id: "wled-orbital-lab/structural-pipeline", version: "1.0.0" },
+    generator: {
+      id: "wled-orbital-lab/structural-pipeline",
+      version: STRUCTURAL_FABRICATION_CONTRACT_VERSION,
+    },
     sourceFingerprint: { ...fingerprint },
     status: { generation: "complete", validation: "passed" },
     artifacts: artifacts as GeneratedStructuralManifest["artifacts"],

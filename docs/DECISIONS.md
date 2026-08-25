@@ -160,3 +160,14 @@ Only one structural download action is shown. It creates a deterministic ZIP
 from the current hash-verified structural artifact set displayed in Three.js.
 Generating the other style replaces the current set; stale assets stay hidden
 and cannot be downloaded.
+
+## D24 — Convert back-view hardware coordinates before structural fabrication
+
+Panel-profile mounting-hole IDs and coordinates remain measured PCB back-view
+facts. Structural generation mirrors profile-local X when it maps those facts
+into the right-handed pose whose normal points outward through the LEDs. The
+same conversion applies to eligible screw anchors and blocked DIN/DOUT points.
+Final ribbon and LED-surface bridge solids must fail if they enter a
+conservative DIN/DOUT clearance cylinder; the generator does not cut a bore to
+hide the collision. This fabrication-contract revision invalidates all older
+generated structural artifacts without changing panel poses or addressing.

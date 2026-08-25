@@ -186,10 +186,15 @@ the interval `(0, 1]`. An infeasible terminal trace cannot be labeled as
 converged, and reaching the iteration bound while values still change reports
 `iteration-limit`.
 
-The normalizer also derives a cable-load axis at each profile hole blocked by
-DIN or DOUT. It is an analysis input only. Ribbon CAD does not cut a cable bore
-at that location because the printable connector must contain no opening other
-than its screw-axis pilots and lead-ins.
+The profile names mounting holes in PCB back view. Before structural anchor or
+DIN/DOUT clearance positions enter the outward-facing right-handed pose frame,
+the normalizer mirrors profile-local X and preserves Y. Hole IDs remain the
+measured back-view identities. The normalizer also derives a cable-load axis at
+each blocked hole. Ribbon CAD does not cut a cable bore there. Instead, every
+final ribbon and bridge must stay outside a fail-closed axial clearance cylinder
+whose diameter and length equal the configured conservative cable clearance.
+The segmented collision mesh circumscribes that nominal cylinder, so polygon
+facets cannot reduce the specified radial clearance.
 
 Each independent panel-pair connector is one printable loft body. Each side starts with
 broad 13 mm rounded screw shoes derived from the canonical triangle and

@@ -51,6 +51,8 @@ export type StructuralConnectorSurfaceStyle =
   | "screw-shoe-ribbon"
   | "led-surface-bridge";
 
+export const STRUCTURAL_FABRICATION_CONTRACT_VERSION = "1.1.0";
+
 export interface StructuralConnectorizationDefinition {
   surfaceStyle?: StructuralConnectorSurfaceStyle;
   maximumNeighborDistanceMm: number;
@@ -625,6 +627,18 @@ function panelPoint(
   return add(add(center, scale(xAxis, localX)), scale(yAxis, localY));
 }
 
+/**
+ * Hardware-profile hole names and coordinates use the measured PCB back view.
+ * A saved pose uses a right-handed frame whose normal points out through the
+ * LEDs. Preserve vertical direction and mirror horizontal direction when the
+ * back-view coordinate enters that outward-facing frame.
+ */
+function backViewPointInOutwardPose(
+  localPosition: readonly [number, number],
+): [number, number] {
+  return [-localPosition[0], localPosition[1]];
+}
+
 function panelCorners(
   center: StructuralVector,
   xAxis: StructuralVector,
@@ -689,6 +703,9 @@ export function createStructuralFingerprint(
 ): string {
   const { design } = effectiveDesign(definition);
   const input = {
+    fabricationContractVersion: STRUCTURAL_FABRICATION_CONTRACT_VERSION,
+    hardwareCoordinateConvention: "back-view-x-mirrored-to-outward-pose",
+    connectorClearancePolicy: "reject-axial-cylinder",
     panels: definition.panels
       .map(({ id, pose }) => ({ id, pose }))
       .sort((left, right) => compareText(left.id, right.id)),
@@ -771,19 +788,24 @@ export function normalizeStructuralDesign(
     const panelAnchors = profile.mounting.holes
       .filter((hole) => hole.mechanicalUse === "eligible")
       .sort((left, right) => compareText(left.id, right.id))
-      .map((hole): NormalizedStructuralAnchor => ({
-        id: `${panel.id}:${hole.id}`,
-        panelId: panel.id,
-        holeId: hole.id,
-        localPositionMm: [...hole.localPosition],
-        positionMm: panelPoint(center, xAxis, yAxis, hole.localPosition[0], hole.localPosition[1]),
-        outwardNormal: normal,
-        printedPilotDiameterMm: profile.mounting.printedPilotDiameter,
-        screwLeadInDiameterMm: profile.mounting.screwLeadIn.diameter,
-        screwLeadInDepthMm: profile.mounting.screwLeadIn.depth,
-        holeEdgeCorrectionMm: profile.mounting.physicalCorrections.holeEdge,
-        surfaceFlushCorrectionMm: profile.mounting.physicalCorrections.surfaceFlush,
-      }));
+      .map((hole): NormalizedStructuralAnchor => {
+        const localPositionMm = backViewPointInOutwardPose(hole.localPosition);
+        return {
+          id: `${panel.id}:${hole.id}`,
+          panelId: panel.id,
+          holeId: hole.id,
+          localPositionMm,
+          positionMm: panelPoint(
+            center, xAxis, yAxis, localPositionMm[0], localPositionMm[1],
+          ),
+          outwardNormal: normal,
+          printedPilotDiameterMm: profile.mounting.printedPilotDiameter,
+          screwLeadInDiameterMm: profile.mounting.screwLeadIn.diameter,
+          screwLeadInDepthMm: profile.mounting.screwLeadIn.depth,
+          holeEdgeCorrectionMm: profile.mounting.physicalCorrections.holeEdge,
+          surfaceFlushCorrectionMm: profile.mounting.physicalCorrections.surfaceFlush,
+        };
+      });
     if (panelAnchors.length === 0) {
       throw new Error(`Panel ${panel.id} profile has no eligible structural mounting holes.`);
     }
@@ -797,6 +819,7 @@ export function normalizeStructuralDesign(
       if (!hole.blockedBy) {
         throw new Error(`Blocked mounting hole ${hole.id} requires a connector reason.`);
       }
+      const localPositionMm = backViewPointInOutwardPose(hole.localPosition);
       cableClearances.push({
         id: `${panel.id}:cable-clearance:${hole.blockedBy.toLowerCase()}`,
         panelId: panel.id,
@@ -806,8 +829,8 @@ export function normalizeStructuralDesign(
           center,
           xAxis,
           yAxis,
-          hole.localPosition[0],
-          hole.localPosition[1],
+          localPositionMm[0],
+          localPositionMm[1],
         ),
         outwardNormal: normal,
         diameterMm: design.fabrication.cableClearanceMm,

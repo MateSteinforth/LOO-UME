@@ -51,6 +51,12 @@ eligible mounting-hole positions in world millimetres. The profile owns the
 PCB size, M2 pilot and lead-in dimensions, blocked holes, and the measured 0.20
 mm hole-edge and 0.50 mm surface-flush corrections.
 
+Mounting-hole names and coordinates use PCB back view, while the saved pose
+normal points outward through the LEDs. Structural normalization therefore
+maps profile `(x, y)` to pose-local `(-x, y)`. It applies this conversion to
+eligible anchors and blocked DIN/DOUT locations only; panel outlines, pixels,
+poses, labels, and addressing do not change.
+
 Each eligible anchor ID is `<panel-id>:<hole-id>`. A panel support expands to
 all eligible anchors. An individual support must name an eligible hole. The
 normalizer does not create an anchor at a DIN/DOUT-blocked hole.
@@ -195,7 +201,13 @@ hole-edge correction. Printed material starts at the rear PCB surface plus the
 measured 0.50 mm flush correction. Boolean cutters create the profile's 1.60 mm
 pilots and 3.20 × 0.70 mm lead-ins. These screw-axis openings are the only
 voids in a ribbon: there are no nut or insert pockets, transverse access
-tunnels, or DIN/DOUT cable bores. Cable locations remain load-case inputs only.
+tunnels, or DIN/DOUT cable bores. Cable locations remain load-case inputs. The
+final reconstructed Manifold part must not intersect any conservative DIN/DOUT
+clearance cylinder. Each cylinder is aligned to the panel normal and uses the
+configured cable-clearance value as both diameter and length. An intersection
+fails generation; the generator does not hide it by cutting a bore.
+The segmented collision mesh circumscribes this nominal cylinder. It never
+under-approximates the specified radial clearance between polygon vertices.
 The same 5×7 glyphs as the flat caps recess the destination panel ID 0.55 mm
 into the guaranteed-flat panel-facing surface between each screw pair. A
 triangular rear mark identifies the first stable side.

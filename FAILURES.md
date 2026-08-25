@@ -613,3 +613,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   `node_modules/manifold-3d/manifold.wasm` and generated two SHA-256-verified
   connector parts.
 - **Status:** Resolved.
+
+### F-033 — Back-view PCB coordinates placed structural anchors on the wrong side
+
+- **Date:** 2026-08-25
+- **Context:** Printable connector ribbons and LED-surface bridges.
+- **Symptom:** Screw shoes and holes appeared on the opposite physical PCB side
+  and could overlap DIN or DOUT hardware.
+- **Cause:** The panel profile records mounting-hole coordinates in PCB back
+  view, but structural normalization applied them directly in the outward-facing
+  panel pose frame.
+- **Correction:** Mirror profile-local X before structural anchor and connector
+  clearance placement. Keep measured hole IDs unchanged. Reject every final
+  part that intersects a finite DIN/DOUT clearance cylinder.
+- **Prevention:** Every hardware coordinate contract must name its viewing side
+  and its conversion into the pose frame. Geometry tests must include a rotated
+  pose and final-solid connector keep-outs for each structural style.
+- **Evidence:** `tests/structural-design.test.ts` and
+  `tests/structural-solids.test.ts`.
+- **Status:** Resolved.

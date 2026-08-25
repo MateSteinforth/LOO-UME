@@ -94,7 +94,7 @@ describe("Manifold structural solids", () => {
     expect(parts[0]!.anchorIds).toHaveLength(6);
     expect(parts[0]!.genus).toBe(parts[0]!.anchorIds.length);
     expect(parts[0]!.nutTrapCentersMm).toEqual([]);
-    expect(parts[0]!.cableClearanceCentersMm).toEqual([]);
+    expect(parts[0]!.cableClearanceCentersMm).toHaveLength(6);
     expect(parts[0]!.labelCentersMm?.map(({ panelId }) => panelId).sort()).toEqual([
       "P-01",
       "P-02",
@@ -103,19 +103,30 @@ describe("Manifold structural solids", () => {
     for (const point of parts[0]!.screwHoleCentersMm) {
       expect(await structuralMeshContainsPoint(parts[0]!, point)).toBe(false);
     }
+    for (const point of parts[0]!.cableClearanceCentersMm) {
+      expect(await structuralMeshContainsPoint(parts[0]!, point)).toBe(false);
+    }
     for (const point of parts[0]!.labelCentersMm ?? []) {
       expect(await structuralMeshContainsPoint(parts[0]!, point, 0.1)).toBe(false);
     }
   });
 
-  it("removes Boolean sliver faces from the complex arbitrary-pose connector set", async () => {
+  it("rejects a third-panel DIN collision and keeps the isolated mesh kernel clean", async () => {
     const path = "sculptures/rhombicosidodecahedron/sculpture.json";
     const source = parsePanelAssemblyDefinition(JSON.parse(await readFile(path, "utf8")));
     const normalized = normalizeStructuralDesign(createPanelAssemblyProject(source, path));
     const candidate = createCandidateTruss(normalized);
-    const parts = await buildStructuralRibbonSolids(normalized, candidate);
 
     expect(candidate.connectorCells).toHaveLength(40);
+    await expect(buildStructuralRibbonSolids(normalized, candidate)).rejects.toThrow(
+      /SQ-26--SQ-27 intersects DIN connector clearance PC-11.*[0-9]+\.[0-9]+ mm3/,
+    );
+    for (const clearance of normalized.cableClearances) {
+      clearance.positionMm = clearance.positionMm.map(
+        (value) => value + 1000,
+      ) as [number, number, number];
+    }
+    const parts = await buildStructuralRibbonSolids(normalized, candidate);
     expect(parts).toHaveLength(37);
     expect(STRUCTURAL_GEOMETRY_POLICY.meshSimplificationToleranceMm).toBe(0.001);
     expect(parts.every(({ status }) => status === "NoError")).toBe(true);
@@ -183,7 +194,7 @@ describe("Manifold structural solids", () => {
     expect(bracket.screwHoleCentersMm).toHaveLength(4);
     expect(bracket.nutTrapCentersMm).toEqual([]);
     expect(bracket.nutTrapDepthMm).toBeUndefined();
-    expect(bracket.cableClearanceCentersMm).toEqual([]);
+    expect(bracket.cableClearanceCentersMm).toHaveLength(4);
     expect(bracket.socketCentersMm).toHaveLength(0);
     expect(bracket.genus).toBe(bracket.screwHoleCentersMm.length);
     expect(bracket.labelDepthMm).toBe(0.55);
@@ -192,6 +203,9 @@ describe("Manifold structural solids", () => {
       "P-02",
     ]);
     for (const point of bracket.screwHoleCentersMm) {
+      expect(await structuralMeshContainsPoint(bracket, point)).toBe(false);
+    }
+    for (const point of bracket.cableClearanceCentersMm) {
       expect(await structuralMeshContainsPoint(bracket, point)).toBe(false);
     }
     for (const point of bracket.labelCentersMm ?? []) {
@@ -210,6 +224,15 @@ describe("Manifold structural solids", () => {
     expect(STRUCTURAL_GEOMETRY_POLICY.minimumWallMm).toBeGreaterThanOrEqual(1.2);
     expect(STRUCTURAL_GEOMETRY_POLICY.panelLabelPixelMm).toBe(0.62);
     expect(STRUCTURAL_GEOMETRY_POLICY.panelLabelDepthMm).toBe(0.55);
+    const nominalClearanceRadiusMm = 6;
+    const clearanceMeshRadiusMm = nominalClearanceRadiusMm *
+      STRUCTURAL_GEOMETRY_POLICY.connectorClearanceRadialScale;
+    expect(clearanceMeshRadiusMm).toBeGreaterThan(nominalClearanceRadiusMm);
+    expect(
+      clearanceMeshRadiusMm * Math.cos(
+        Math.PI / STRUCTURAL_GEOMETRY_POLICY.connectorClearanceCylinderSegments,
+      ),
+    ).toBeCloseTo(nominalClearanceRadiusMm, 12);
   });
 
   it("extends each cap shoe through a continuous print-bed-bounded loft", async () => {
@@ -286,7 +309,37 @@ describe("Manifold structural solids", () => {
       expect(await structuralMeshContainsPoint(bridge, point)).toBe(false);
     }
     expect(bridge.nutTrapCentersMm).toEqual([]);
-    expect(bridge.cableClearanceCentersMm).toEqual([]);
+    expect(bridge.cableClearanceCentersMm).toHaveLength(4);
+    for (const point of bridge.cableClearanceCentersMm) {
+      expect(await structuralMeshContainsPoint(bridge, point)).toBe(false);
+    }
+  });
+
+  it("rejects ribbon and surface-bridge solids at a DIN/DOUT clearance", async () => {
+    for (const surfaceStyle of [
+      "screw-shoe-ribbon",
+      "led-surface-bridge",
+    ] as const) {
+      const path = "sculptures/pose-only-two-panel/sculpture.json";
+      const source = parsePanelAssemblyDefinition(JSON.parse(await readFile(path, "utf8")));
+      source.structuralDesign ??= structuredClone(STRUCTURAL_PREVIEW_DEFAULTS);
+      source.structuralDesign.connectorization ??=
+        structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS);
+      source.structuralDesign.connectorization.surfaceStyle = surfaceStyle;
+      const normalized = normalizeStructuralDesign(createPanelAssemblyProject(source, path));
+      const candidate = createCandidateTruss(normalized);
+      const anchorId = candidate.connectorCells[0]!.panelAnchorIds[0][0]!;
+      const anchor = normalized.anchors.find(({ id }) => id === anchorId)!;
+      const clearance = normalized.cableClearances.find(({ panelId }) =>
+        panelId === anchor.panelId
+      )!;
+      clearance.positionMm = [...anchor.positionMm];
+      clearance.outwardNormal = [...anchor.outwardNormal];
+
+      await expect(buildStructuralRibbonSolids(normalized, candidate)).rejects.toThrow(
+        /intersects (DIN|DOUT) connector clearance.*mm3/,
+      );
+    }
   });
 
   it("builds full-edge bridges for parallel and reversed coplanar panels", async () => {
@@ -325,7 +378,7 @@ describe("Manifold structural solids", () => {
     }
   });
 
-  it("handles close arbitrary poses without rejecting a trimmable sheet or emitting collapsed faces", async () => {
+  it("handles a close arbitrary pose and rejects one without a redundant screw path", async () => {
     const firstPose = {
       position: [0, 0, 0] as [number, number, number],
       orientation: {
@@ -334,30 +387,29 @@ describe("Manifold structural solids", () => {
         normal: [0, 0, 1] as [number, number, number],
       },
     };
-    const poses: Array<typeof firstPose> = [
-      {
+    const validPose: typeof firstPose = {
         position: [75.2558927897503, 2.2381484330708985, 2.6799052012472373],
         orientation: {
           xAxis: [0.9993902495596424, 0, 0.03491602905709132],
           yAxis: [-0.015147494706778746, 0.9009964853563837, 0.4335618603839044],
           normal: [-0.031459219463040644, -0.43382638621393704, 0.900447102352677],
         },
-      },
-      {
+      };
+    const unsafePose: typeof firstPose = {
         position: [65.70741665599652, -6.2314638494002095, -7.969316870686725],
         orientation: {
           xAxis: [-0.9865851128188459, 0.16324771105355565, 0],
           yAxis: [0.06793501852849916, 0.4105642736840683, 0.9092974268256817],
           normal: [0.14844072359618055, 0.8970993044307014, -0.4161468365471424],
         },
-      },
-    ];
+      };
 
-    for (const pose of poses) {
-      const parts = await surfaceBridgeForPoses(firstPose, structuredClone(pose));
-      expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({ status: "NoError", surfaceThicknessMm: 2 });
-    }
+    const parts = await surfaceBridgeForPoses(firstPose, validPose);
+    expect(parts).toHaveLength(1);
+    expect(parts[0]).toMatchObject({ status: "NoError", surfaceThicknessMm: 2 });
+    await expect(surfaceBridgeForPoses(firstPose, unsafePose)).rejects.toThrow(
+      /no redundant local load path/,
+    );
   });
 
   it("keeps surface junctions local and long trails as separate printable sheets", async () => {

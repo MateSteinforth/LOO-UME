@@ -59,13 +59,13 @@ describe("deterministic candidate truss", () => {
     expect(candidate.anchors.some(({ holeId }) =>
       holeId === "bottom-left" || holeId === "top-right"
     )).toBe(false);
-    expect(candidate.brackets.find(({ id }) => id === "bracket:P-01:bottom-right"))
+    expect(candidate.brackets.find(({ id }) => id === "bracket:P-01:top-left"))
       .toMatchObject({
         panelId: "P-01",
-        anchorId: "P-01:bottom-right",
-        hubNodeId: "hub:P-01:bottom-right",
-        anchorPositionMm: [25, 50, 24.5],
-        hubPositionMm: [25, 42, 24.5],
+        anchorId: "P-01:top-left",
+        hubNodeId: "hub:P-01:top-left",
+        anchorPositionMm: [25, 50, -24.5],
+        hubPositionMm: [25, 42, -24.5],
         lengthMm: 8,
       });
     expect(candidate.validation).toEqual({
@@ -131,8 +131,11 @@ describe("deterministic candidate truss", () => {
     const junctionIds = new Set(junction.connectorCells.map(({ junctionId }) => junctionId));
     expect(junction.connectorCells).toHaveLength(2);
     expect(junctionIds).toEqual(new Set(["junction:P-01--P-02--P-03"]));
+    const sharedPanelId = junction.connectorCells[0]!.panelIds.find((panelId) =>
+      junction.connectorCells.every(({ panelIds }) => panelIds.includes(panelId))
+    )!;
     const sharedPanelAnchors = junction.connectorCells.map((cell) => {
-      const sideIndex = cell.panelIds.indexOf("P-02");
+      const sideIndex = cell.panelIds.indexOf(sharedPanelId);
       return cell.panelAnchorIds[sideIndex]!.slice().sort();
     });
     expect(sharedPanelAnchors[0]).toEqual(sharedPanelAnchors[1]);
