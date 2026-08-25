@@ -137,6 +137,7 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
     "4 triangles, 100 × 100 × 100 mm, watertight",
   );
   await expect(page.locator("#automatically-place-panels")).toBeEnabled();
+  await expect(page.locator("#automatic-panel-count")).toHaveValue("30");
 
   await page.locator("#automatic-panel-count").fill("4");
   await page.locator("#automatically-place-panels").click();

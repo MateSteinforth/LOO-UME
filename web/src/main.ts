@@ -409,7 +409,7 @@ app.innerHTML = `
           <div id="automatic-panel-placement-controls">
             <label class="field">
               <span>Target panel count</span>
-              <input id="automatic-panel-count" type="number" min="1" step="1" value="6" />
+              <input id="automatic-panel-count" type="number" min="1" step="1" value="30" />
             </label>
             <button id="automatically-place-panels" class="editor-button" type="button" disabled>
               Automatically place panels
