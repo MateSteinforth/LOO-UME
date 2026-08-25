@@ -592,3 +592,24 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `TRUSS-011`, `docs/DECISIONS.md`, and the integrated retired-
   reference scan.
 - **Status:** Resolved.
+
+### F-032 — Cross-worktree dependencies blocked Manifold WASM
+
+- **Date:** 2026-08-25
+- **Context:** LAN review server in an isolated task worktree.
+- **Symptom:** Connector generation reported that Manifold WASM could not be
+  loaded because both asynchronous and synchronous fetches failed.
+- **Cause:** The task worktree used a `node_modules` symlink to another
+  worktree. Vite resolved `manifold.wasm` through that external real path and
+  rejected the request with HTTP 403 because it was outside the server file
+  allowlist.
+- **Correction:** Remove the cross-worktree symlink, run locked `npm ci` in the
+  task worktree, and restart Vite. Verify the exact `manifold.wasm` request and
+  one browser generation action.
+- **Prevention:** Do not use cross-worktree dependency symlinks for a Vite
+  preview that loads package-relative WASM. Install dependencies locally in the
+  active preview worktree.
+- **Evidence:** Browser verification returned HTTP 200 for the task-local
+  `node_modules/manifold-3d/manifold.wasm` and generated two SHA-256-verified
+  connector parts.
+- **Status:** Resolved.
