@@ -45,13 +45,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Acceptance: browser and CLI reject the same invalid PCB envelope or boundary
   before asset publication.
 
-### `FAB-022` Reconcile back-view coordinates in planar closure connectors
-
-- Acceptance: the planar closure route uses the same explicit hardware-view
-  conversion as structural fabrication; existing cap-allocation geometry and
-  physical correction tests are reviewed before any output changes.
-- Depends on: `FAB-021`; do not broaden the structural ribbon safety fix.
-
 ### `FAB-023` Route automatic structural connectors around DIN/DOUT
 
 - Acceptance: intended 30-panel ribbon and LED-surface-bridge presets generate
@@ -83,10 +76,11 @@ No tasks.
 
 ## In Progress
 
-### `SEC-010` Bound ZIP resource use
+### `FAB-022` Reconcile back-view coordinates in planar closure connectors
 
 - Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-- Conflict risk: portable ZIP import and browser import tests.
+- Conflict risk: panel-profile normalization, planar closure geometry, and
+  physical correction tests.
 
 ## Blocked
 
@@ -124,6 +118,14 @@ No tasks.
 No tasks.
 
 ## Ready to Merge
+
+### `SEC-010` Bound ZIP resource use
+
+- Scope: preflight central-directory archive, entry, expansion, and ratio
+  limits; require streamed local entries to match before buffering.
+- Verification: focused resource-limit, portable round-trip, and complete
+  boundary-package tests passed 19/19; TypeScript passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
 
 ### `MAP-020` Version and strengthen ledmap fingerprints
 

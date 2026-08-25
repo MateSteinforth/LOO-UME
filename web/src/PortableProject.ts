@@ -13,6 +13,7 @@ import {
 } from "../../src/sculpture/GeneratedMechanics.ts";
 import { generatedStructuralAssetReferences } from "../../src/sculpture/StructuralDesign.ts";
 import { sculptureJson } from "../../src/sculpture/SculptureEditor.ts";
+import { inspectZipResources } from "./ZipResourceLimits.ts";
 
 export interface PortableProjectFile {
   path: string;
@@ -238,11 +239,21 @@ export async function openPortableProjectFiles(
 }
 
 function unzipProjectFiles(zipBytes: Uint8Array): PortableProjectFile[] {
+  const expectedEntries = new Map(inspectZipResources(zipBytes));
   const files: PortableProjectFile[] = [];
   const seen = new Set<string>();
   let extractionError: unknown;
   const unzipper = new Unzip((file) => {
     try {
+      const expected = expectedEntries.get(file.name);
+      if (!expected) throw new Error(`ZIP local entry ${file.name} is not in its central directory.`);
+      expectedEntries.delete(file.name);
+      if (
+        (file.size !== undefined && file.size !== expected.compressedBytes) ||
+        (file.originalSize !== undefined && file.originalSize !== expected.expandedBytes)
+      ) {
+        throw new Error(`ZIP entry ${file.name} disagrees with its central directory.`);
+      }
       const path = safeContainerPath(file.name, "ZIP entry");
       if (seen.has(path)) throw new Error(`ZIP contains duplicate file ${path}.`);
       seen.add(path);
@@ -254,15 +265,25 @@ function unzipProjectFiles(zipBytes: Uint8Array): PortableProjectFile[] {
         return;
       }
       const chunks: Uint8Array[] = [];
+      let expandedBytes = 0;
       file.ondata = (error, chunk, final) => {
         if (error) {
           extractionError = error;
           return;
         }
+        expandedBytes += chunk.length;
+        if (expandedBytes > expected.expandedBytes) {
+          extractionError = new Error(`ZIP entry ${path} exceeds its declared expansion size.`);
+          file.terminate();
+          return;
+        }
         chunks.push(Uint8Array.from(chunk));
         if (!final) return;
-        const size = chunks.reduce((total, item) => total + item.length, 0);
-        const bytes = new Uint8Array(size);
+        if (expandedBytes !== expected.expandedBytes) {
+          extractionError = new Error(`ZIP entry ${path} did not match its declared expansion size.`);
+          return;
+        }
+        const bytes = new Uint8Array(expandedBytes);
         let offset = 0;
         for (const item of chunks) {
           bytes.set(item, offset);
@@ -285,6 +306,9 @@ function unzipProjectFiles(zipBytes: Uint8Array): PortableProjectFile[] {
     throw extractionError instanceof Error
       ? extractionError
       : new Error(String(extractionError));
+  }
+  if (expectedEntries.size > 0) {
+    throw new Error("ZIP central directory contains entries that were not extracted.");
   }
   return files;
 }

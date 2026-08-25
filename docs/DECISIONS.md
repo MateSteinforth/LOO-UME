@@ -171,3 +171,10 @@ Final ribbon and LED-surface bridge solids must fail if they enter a
 conservative DIN/DOUT clearance cylinder; the generator does not cut a bore to
 hide the collision. This fabrication-contract revision invalidates all older
 generated structural artifacts without changing panel poses or addressing.
+
+## D25 — Preflight ZIP resource use before extraction
+
+Portable ZIP import has fixed limits for archive bytes, entry count, individual
+and total expansion, and compression ratio. It rejects unsupported or
+inconsistent central-directory contracts before decompression. Streaming local
+entries must match that inspected directory before bytes enter project buffers.

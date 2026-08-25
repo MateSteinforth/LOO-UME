@@ -36,7 +36,6 @@ blocked by `PWR-010`.
 
 - Derive LED dimensions from the selected panel profile throughout validation,
   export, reload, and display.
-- Bound ZIP entry count, size, total expansion, and compression ratio.
 - Preflight panel footprints during automatic placement.
 - Add correction tools only when a real ambiguous gap arrangement provides a
   concrete fixture.

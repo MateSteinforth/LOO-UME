@@ -278,6 +278,18 @@ describe("portable project folder and ZIP validation", () => {
     )).rejects.toThrow(/duplicate file/);
   });
 
+  it("rejects a suspiciously compressed ZIP before project parsing", async () => {
+    const { profile } = await portableFixture();
+    const compressedBomb = zipSync({
+      "project/sculpture.json": new Uint8Array(1024 * 1024),
+    });
+    await expect(openPortableProjectZip(
+      compressedBomb,
+      "compressed-bomb.zip",
+      async () => profile,
+    )).rejects.toThrow(/suspicious compression ratio/);
+  });
+
   it("rejects URL-escaped asset paths before direct folder reopen", async () => {
     const { definition, profile, files } = await portableFixture();
     definition.designSurface!.source = "%2e%2e/secret.glb";

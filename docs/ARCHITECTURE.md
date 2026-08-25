@@ -45,6 +45,11 @@ edit marks derived mechanics stale but does not stop those functions.
 
 There is no database or browser local storage. Persistence uses project JSON,
 safe relative asset references, SHA-256 values, downloaded folders, and ZIPs.
+Before extraction, ZIP import reads the bounded central directory and rejects
+excessive archive bytes, entry count, per-entry expansion, total expansion,
+suspicious compression ratios, ZIP64, multi-disk, encrypted, or inconsistent
+entries. Streaming extraction checks local entries against that preflight
+before it buffers their bytes.
 
 `bootstrap.sh` selects a reviewed native stage-zero executable. The strict
 install manifest pins official Node.js archives by target, byte size, SHA-256,

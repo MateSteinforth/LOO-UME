@@ -35,6 +35,7 @@
     "web/src/GeneratorStatus.ts",
     "web/src/JsonResponse.ts",
     "web/src/PortableProject.ts",
+    "web/src/ZipResourceLimits.ts",
     "web/src/SelectionFocus.ts",
     "web/src/SurfacePlacementController.ts"
   ]
