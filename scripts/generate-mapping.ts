@@ -62,11 +62,12 @@ const panelMap = {
   mappingReady: contract.readiness.mappingReady,
   ledmapFingerprint: contract.fingerprint,
   ledmapFingerprintVersion: contract.fingerprintVersion,
+  wledColorOrder: contract.wledColorOrder,
   readinessBlockers: contract.readiness.blockers,
   wiringLifecycle: contract.readiness.wiringLifecycle,
   assumptions: {
     withinPanelOrder: project.panelProfile.pixelGrid.provisionalOrder,
-    note: "The panel JSON drives addressing; retain provisional status until a numbered bench test confirms it.",
+    note: "The measured panel order comes from the numbered one-panel bench test; route, GPIO, and installed turns remain authored assumptions.",
   },
   outputs: contract.outputs,
   wiring,

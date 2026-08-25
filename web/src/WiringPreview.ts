@@ -366,7 +366,7 @@ export function createProvisionalWiringPreview(
         : usesAuthoredRoutes
           ? "Panel route order is authored and persists exactly as saved."
           : "Draft route suggestion begins near the sculpture top according to the provisional controller placement.",
-      "DIN is bottom-left and DOUT is top-right in the measured back-view panel convention.",
+      "DIN is top-right and DOUT is bottom-left in the measured back-view panel convention.",
       "The connector marker inset remains schematic until exact pad centres are measured.",
       lifecycle === "measured"
         ? "Route and controller facts are measured. Hardware verification still requires the separate PROOF-010 evidence record."

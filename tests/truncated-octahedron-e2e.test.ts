@@ -124,7 +124,7 @@ describe("truncated octahedron end-to-end compiler", () => {
     });
     expect(contract.ledmap.map).toHaveLength(384);
     expect(new Set(contract.ledmap.map).size).toBe(384);
-    expect(contract.fingerprint).toBe("a82275e5");
+    expect(contract.fingerprint).toBe("794a9cb5");
 
   });
 });

@@ -77,6 +77,42 @@
         "emitterOffset": {
           "type": "number"
         },
+        "colorOrder": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "channelSequence",
+            "wledValue",
+            "note"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "provisional",
+                "measured"
+              ]
+            },
+            "channelSequence": {
+              "enum": [
+                "GRB",
+                "RGB",
+                "BRG",
+                "RBG",
+                "BGR",
+                "GBR"
+              ]
+            },
+            "wledValue": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5
+            },
+            "note": {
+              "type": "string"
+            }
+          }
+        },
         "provisionalOrder": {
           "$ref": "#/$defs/pixelOrder"
         }

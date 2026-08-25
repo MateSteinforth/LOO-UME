@@ -664,3 +664,38 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   must update both its generator version and the source fingerprint policy.
 - **Evidence:** `tests/generated-mechanics-contract.test.ts`.
 - **Status:** Resolved.
+
+### F-036 — Restoring a partial WLED configuration can remove network settings
+
+- **Date:** 2026-08-25
+- **Context:** FIRM-011 one-panel ESP32 smoke setup.
+- **Symptom:** The controller worked after initial Wi-Fi setup but became hard
+  to find after a partial smoke configuration was restored as `cfg.json`.
+- **Cause:** The partial hardware file was treated as a complete WLED backup.
+- **Correction:** Apply partial hardware configuration with `POST /json/cfg`,
+  then read it back and confirm that Wi-Fi and mDNS identity still work after a
+  reboot.
+- **Prevention:** Never restore a repository partial configuration as the full
+  device `cfg.json`. The future guarded UI setup must preserve network fields.
+- **Evidence:** `firmware/README.md` and the successful live configuration at
+  `192.168.68.51` on 2026-08-25.
+- **Status:** Resolved.
+
+### F-037 — Front-view LED coordinates need one explicit back-view reflection
+
+- **Date:** 2026-08-25
+- **Context:** CAL-011 measured 8×8 panel address order.
+- **Symptom:** Profile text placed front-view pixel 0 at top-left, but the
+  identity address transform still mapped that coordinate to pixel 63.
+- **Cause:** The profile and installed transform use PCB back view while pose-
+  local LED coordinates use outward/front view; the fixed X reflection was
+  missing from the address transform.
+- **Correction:** Reflect X once before the optional installed mirror and
+  quarter turn. Apply the same rule in mapping and orientation optimization,
+  and version the optimization fingerprint contract.
+- **Prevention:** Test identity and all eight installed transforms with known
+  pixel 0, pixel 7, and pixel 8 front-view coordinates. Include coordinate-
+  convention tokens in derived fingerprints.
+- **Evidence:** `tests/hardware-mapping.test.ts` and
+  `INSTALLED_ADDRESS_COORDINATE_CONTRACT`.
+- **Status:** Resolved.

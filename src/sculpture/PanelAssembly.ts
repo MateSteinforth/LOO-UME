@@ -217,6 +217,8 @@ export interface PanelAssemblyProject {
 const FNV64_OFFSET_BASIS = 0xcbf29ce484222325n;
 const FNV64_PRIME = 0x100000001b3n;
 const FNV64_MASK = 0xffffffffffffffffn;
+export const INSTALLED_ADDRESS_COORDINATE_CONTRACT =
+  "pose-front-to-pcb-back-x-reflection-v2";
 
 /**
  * Fingerprint the exact route inputs used by the installed-address optimizer.
@@ -230,6 +232,7 @@ export function createInstalledAddressOptimizationFingerprint(
   >,
 ): string {
   const source = JSON.stringify({
+    coordinateContract: INSTALLED_ADDRESS_COORDINATE_CONTRACT,
     panelProfileReference: definition.panelProfile,
     panelProfile: {
       id: panelProfile.id,

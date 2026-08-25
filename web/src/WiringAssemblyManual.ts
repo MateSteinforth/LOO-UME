@@ -1,4 +1,8 @@
-import type { PanelHardwareProfile, PanelCorner } from "../../src/sculpture/Definition.ts";
+import type {
+  LedChannelSequence,
+  PanelHardwareProfile,
+  PanelCorner,
+} from "../../src/sculpture/Definition.ts";
 import type { PanelAssemblyDefinition } from "../../src/sculpture/PanelAssembly.ts";
 import type { HardwareMappingContract } from "./HardwareMapping.ts";
 import { transformInstalledPanelCoordinate } from "./HardwareMapping.ts";
@@ -54,7 +58,7 @@ export interface WiringAssemblyManualModel {
   mappingFingerprint: string;
   optimizationFingerprint: string | null;
   totalPixels: number;
-  colorOrder: "RGB";
+  colorOrder: LedChannelSequence;
   pixelOrder: string;
   outputs: WiringManualOutput[];
 }
@@ -196,8 +200,10 @@ export function createWiringAssemblyManualModel(
     mappingFingerprint: contract.fingerprint,
     optimizationFingerprint,
     totalPixels: contract.mapping.entries.length,
-    colorOrder: "RGB",
-    pixelOrder: `${profile.pixelGrid.columns} × ${profile.pixelGrid.rows} snake`,
+    colorOrder: contract.wledColorOrder.channelSequence,
+    pixelOrder: `${profile.pixelGrid.columns} × ${profile.pixelGrid.rows} ${
+      profile.pixelGrid.provisionalOrder.serpentine ? "snake" : "straight rows"
+    }`,
     outputs,
   };
 }

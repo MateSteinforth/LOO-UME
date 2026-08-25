@@ -9,21 +9,27 @@
   },
   "sourceProject": {
     "path": "sculpture.json",
-    "byteLength": 45330,
-    "sha256": "8e1189f97fbb03e42ff4374ac67fdd2c831c046ff36893577eddd96929f4ebcb"
+    "byteLength": 45383,
+    "sha256": "c6d097626d74550aef0c27924dff6e37f47b39a4a8849ab165c0661e2fd0fc0d"
   },
-  "mappingFingerprint": "54823909",
+  "mappingFingerprint": "73b36d49",
   "mappingFingerprintVersion": "fnv1a32-u32le-v2",
+  "wledColorOrder": {
+    "status": "measured",
+    "channelSequence": "GRB",
+    "wledValue": 0,
+    "note": "One fused physical panel test on 2026-08-25 showed RGB order 1 swaps red and green; WLED GRB order 0 displays red, green, and blue correctly."
+  },
   "files": [
     {
       "path": "wled/diagnostic/ledmap.diagnostic.json",
       "byteLength": 12020,
-      "sha256": "6fb7ff93ba9ec263f4dd1433a99b812c51bd3668a13bfbb34a693803a22a2bd5"
+      "sha256": "4b85d6434021714bf4e7b0db94c60178b87122cb39a3997b5ceb9f5f401ff278"
     },
     {
       "path": "wled/diagnostic/route-mapping.diagnostic.json",
-      "byteLength": 1674,
-      "sha256": "65e1f7001273cfa81cc39fc6d4a5e07ba643b59026fd7a055d8f6f04f33ed3bf"
+      "byteLength": 1933,
+      "sha256": "627d3d8f2179ea30734f866834bdb5bce489ff8b4235eabd50c9746ec8ab5be2"
     }
   ]
 }

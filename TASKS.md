@@ -33,7 +33,23 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-No tasks.
+### `FIRM-012` Add guarded end-to-end ESP32 setup to Advanced Tools
+
+- Acceptance: one staged local-desktop action selects a supported serial
+  device, optionally erases settings after explicit destructive confirmation,
+  flashes the receipt-verified pinned WLED binary without an unnecessary
+  rebuild, guides Wi-Fi provisioning without storing credentials, applies the
+  64-LED GPIO16/1,000 mA smoke configuration through `/json/cfg` without
+  replacing network settings, and verifies the live result. Use `loo-ume.local`
+  as the intended name, discover the current DHCP address, and show all stages
+  and recovery actions in the one activity log. Later full deployment must
+  verify cfg, ledmap, manifest, target, and hashes and remain gated by `PWR-010`.
+- Safety: require disconnected panel power before erase or flash; allow only
+  loopback control; reject unknown devices, stale binaries, serial permission
+  failures, and mismatched artifacts. Never use `sudo`, persist or log Wi-Fi
+  credentials, or weaken network isolation.
+- Depends on: the pinned FIRM-011 firmware artifact and receipt. Full-sculpture
+  installation remains blocked by `PWR-010`.
 
 ## In Progress
 
@@ -70,11 +86,12 @@ No tasks.
   `0468ee34c8b9578504c3f4a708421eaa7b70663b691d5df430f46ea009fdabd7`.
   The binary remains off `main`; its receipt and guarded deployment identity
   are included in the installation package.
-- Blocked by: access to the selected real ESP32, one fused 64-pixel panel,
-  level shifter, and current-limited 5 V supply.
-- Needed: flash the exact binary, run off/red/green/blue/moving-pixel checks at
-  the 1,000 mA limit, and record board, panel, fuse, supply limit, colors, and
-  result. Do not energize the complete sculpture.
+- Physical evidence: the exact binary flashed successfully to an ESP-WROOM-32
+  controller. One 64-pixel panel on GPIO16 accepted the 1,000 mA smoke config;
+  GRB order 0 showed correct red, green, and blue and persisted after reboot.
+- Blocked by: completing and recording the low-brightness moving-pixel test and
+  the exact board label, panel ID, fuse rating, supply limit, and observed
+  voltage/current. Do not energize the complete sculpture.
 
 ### `PWR-010` Approve power and protection
 
@@ -104,6 +121,24 @@ No tasks.
 
 ## Ready to Merge
 
+### `CAL-011` Promote measured panel color and address order
+
+- Scope: replace provisional RGB/order-1 and serpentine connector assumptions
+  with measured GRB/order-0 and straight row-major panel facts. Front view is
+  DIN/pixel 0 at top-left, rows left-to-right and downward, and pixel 63/DOUT at
+  bottom-right. The back-view profile reflects X exactly once.
+- Evidence: the one-panel color result persisted after reboot; direct mapping
+  regressions cover 0, 7, 8, 15, 16, 56, and 63; all 41 installed turns and
+  artifacts regenerated. Mapping fingerprint is `73b36d49`, installed-turn
+  fingerprint is `b2148e665f6ca16b`, diagnostic plan fingerprint is
+  `843a0a39d4913ba3299870131d18ef18db1b2fbbd732bb04419ee7a379df9b3d`.
+  Full Vitest passed 348/348; TypeScript, Vite, and diff checks passed; the
+  independent review found no remaining blockers.
+- Owner: `codex/cal-011-grb` in `/tmp/led-rhombo-cal-011`; based on the unmerged
+  `codex/unblocked-batch` deployment work and must integrate after it.
+- Conflict risk: panel profile/schema, WLED deployment files, mapping artifacts,
+  wiring manual, and shared documentation/task state.
+
 ### `DIAG-010` Deliver deterministic hardware diagnostic frames
 
 - Scope: an identity-bound plan supplies 7,872 deterministic low-brightness,
@@ -113,7 +148,8 @@ No tasks.
   before sending a selected bounded range.
 - Verification: deterministic coverage, exact request bytes, 1,024-byte limit,
   transient retry, permanent failure, and oversize refusal passed 3/3; the full
-  plan generated with fingerprint `9b8322885dd1fd5bb30f8cfb2ad6f6d56c21defb5cd1d54c6169ab94d59c63ee`;
+  plan regenerated from the measured panel contract with fingerprint
+  `843a0a39d4913ba3299870131d18ef18db1b2fbbd732bb04419ee7a379df9b3d`;
   TypeScript passed.
 - Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
 

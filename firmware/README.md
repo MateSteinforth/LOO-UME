@@ -35,8 +35,16 @@ LED power rail during the initial flash.
    through the selected 3.3 V to 5 V level shifter.
 3. Start WLED and set its Wi-Fi details locally. Do not add them to this
    repository.
-4. Upload `one-panel-smoke-cfg.json` as `cfg.json` in the WLED file upload
-   page. This limits the target to 64 pixels and 1,000 mA.
+4. Apply the partial smoke configuration through the WLED JSON API. Replace
+   `<device-ip>` with the current device address:
+
+   ```bash
+   curl -fS -H 'Content-Type: application/json' --data-binary \
+     @firmware/one-panel-smoke-cfg.json http://<device-ip>/json/cfg
+   ```
+
+   This keeps the existing Wi-Fi and mDNS settings while it limits the target
+   to 64 pixels and 1,000 mA. Do not restore this partial file as `cfg.json`.
 5. Set a low brightness. Check off, red, green, blue, and a slow moving pixel.
    Record the board label, panel ID, fuse, supply limit, observed colors, and
    result before the full deployment files are installed.
@@ -70,10 +78,11 @@ npm run generate:mapping:hardware
 ```
 
 Confirm that the deployment manifest, firmware receipt, and actual binary
-hashes agree. With all LED power rails disconnected, upload
-`wled/ledmap.json` as `ledmap.json`, then upload `wled/cfg.json` as `cfg.json`.
-The configuration selects GPIO 16, 17, 18, and 19 with lengths 704, 640, 640,
-and 640. The generated package also contains the exact route/mapping manifest,
+hashes agree. With all LED power rails disconnected, install the ledmap through
+the WLED mapping page. Apply `wled/cfg.json` through `/json/cfg`, as shown for
+the smoke configuration, so network settings are not replaced. The
+configuration selects GPIO 16, 17, 18, and 19 with lengths 704, 640, 640, and
+640. The generated package also contains the exact route/mapping manifest,
 one-panel smoke configuration, and firmware receipt.
 
 Do not energize the complete 41-panel sculpture until `PWR-010` passes.

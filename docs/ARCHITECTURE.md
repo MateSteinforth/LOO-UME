@@ -123,8 +123,9 @@ and publishes the completed directory atomically.
 
 The browser proves a logical-to-physical permutation in memory. It does not yet
 prove an installed ESP32 sculpture. The 41-panel project stores an authored
-assumed route with chain lengths `11/10/10/10`, GPIOs 16–19, RGB order, snake
-pixel order, and route-optimized installed quarter turns.
+assumed route with chain lengths `11/10/10/10`, GPIOs 16–19, measured GRB
+order, measured straight row-major pixel order, and route-optimized installed
+quarter turns.
 
 Installed address calibration is separate from pose. Poses own LED world
 positions. A back-view quarter-turn/mirror transform changes only local wire

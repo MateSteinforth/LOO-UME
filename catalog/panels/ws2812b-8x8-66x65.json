@@ -13,14 +13,20 @@
     "columns": 8,
     "rows": 8,
     "emitterOffset": 1.2,
+    "colorOrder": {
+      "status": "measured",
+      "channelSequence": "GRB",
+      "wledValue": 0,
+      "note": "One fused physical panel test on 2026-08-25 showed RGB order 1 swaps red and green; WLED GRB order 0 displays red, green, and blue correctly."
+    },
     "provisionalOrder": {
-      "status": "provisional",
-      "pixelZeroCorner": "bottom-left",
+      "status": "measured",
+      "pixelZeroCorner": "top-right",
       "traversalAxis": "rows",
-      "lineProgression": "bottom-to-top",
-      "serpentine": true,
-      "firstLineDirection": "left-to-right",
-      "description": "Back-view row snake: pixel 0 at bottom-left by DIN, first row left-to-right, alternating upward; this traversal derives pixel 63 at top-left while DOUT remains at top-right."
+      "lineProgression": "top-to-bottom",
+      "serpentine": false,
+      "firstLineDirection": "right-to-left",
+      "description": "Measured row-major order: front view starts at DIN/pixel 0 at top-left, each row runs left-to-right, rows progress downward, and pixel 63/DOUT is bottom-right. In the stored back view this is top-right to bottom-left with every row right-to-left."
     }
   },
   "mounting": {
@@ -56,7 +62,7 @@
           -24.5
         ],
         "mechanicalUse": "blocked",
-        "blockedBy": "DIN"
+        "blockedBy": "DOUT"
       },
       {
         "id": "top-right",
@@ -65,7 +71,7 @@
           24.5
         ],
         "mechanicalUse": "blocked",
-        "blockedBy": "DOUT"
+        "blockedBy": "DIN"
       },
       {
         "id": "middle-right",
@@ -100,10 +106,10 @@
     "referenceView": "back",
     "orientationReference": "three-mounting-holes-vertical",
     "cornerAssignmentStatus": "measured",
-    "dinCorner": "bottom-left",
-    "doutCorner": "top-right",
+    "dinCorner": "top-right",
+    "doutCorner": "bottom-left",
     "padPositionStatus": "unknown",
-    "note": "DIN is bottom-left and DOUT is top-right when viewed from the back with the three mounting holes vertical; exact pad centres remain to be measured."
+    "note": "Measured from the front with the three mounting holes vertical: DIN/pixel 0 is top-left and DOUT/pixel 63 is bottom-right. Stored back-view corners are DIN top-right and DOUT bottom-left; exact pad centres remain to be measured."
   },
   "power": {
     "status": "provisional",

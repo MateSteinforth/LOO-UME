@@ -1,15 +1,33 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 import {
   calculateAuthoredRouteCableLength,
   optimizeInstalledAddressTransforms,
+  prepareInstalledAddressTransformsForReoptimization,
 } from "../src/sculpture/InstalledAddressTransformOptimizer.ts";
+import {
+  createPanelAssemblyProject,
+  parsePanelAssemblyDefinition,
+} from "../src/sculpture/PanelAssembly.ts";
 
 const source = "sculptures/rhombicosidodecahedron/sculpture.json";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const project = await loadPanelAssemblyProjectFromFile(source, repoRoot);
+const sourcePath = path.join(repoRoot, source);
+const rawDefinition = parsePanelAssemblyDefinition(
+  JSON.parse(readFileSync(sourcePath, "utf8")),
+);
+const profileSource = rawDefinition.panelProfile?.source;
+if (typeof profileSource !== "string" || profileSource.length === 0) {
+  throw new Error("The assembly must reference a panel profile source.");
+}
+const profilePath = path.resolve(path.dirname(sourcePath), profileSource);
+const profileInput = JSON.parse(readFileSync(profilePath, "utf8"));
+const project = createPanelAssemblyProject(
+  prepareInstalledAddressTransformsForReoptimization(rawDefinition),
+  source,
+  profileInput,
+);
 const before = calculateAuthoredRouteCableLength(
   project.sculpture,
   project.panelProfile,
@@ -21,7 +39,7 @@ const optimized = optimizeInstalledAddressTransforms(
 const after = calculateAuthoredRouteCableLength(optimized, project.panelProfile);
 
 writeFileSync(
-  path.join(repoRoot, source),
+  sourcePath,
   JSON.stringify(optimized, null, 2) + "\n",
 );
 console.log(

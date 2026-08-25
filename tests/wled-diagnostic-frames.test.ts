@@ -42,7 +42,7 @@ describe("deterministic WLED hardware diagnostics", () => {
 
     expect(first.planFingerprint).toBe(second.planFingerprint);
     expect(first.frames).toHaveLength(2_624 * 3);
-    expect(first.mappingFingerprint).toBe("54823909");
+    expect(first.mappingFingerprint).toBe("73b36d49");
     expect(first.mappingFingerprintVersion).toBe("fnv1a32-u32le-v2");
     expect(new Set(first.frames.map((frame) => frame.sequence)).size)
       .toBe(first.frames.length);

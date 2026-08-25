@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateAuthoredRouteCableLength,
   optimizeInstalledAddressTransforms,
+  prepareInstalledAddressTransformsForReoptimization,
 } from "../src/sculpture/InstalledAddressTransformOptimizer.ts";
 import {
   createInstalledAddressOptimizationFingerprint,
@@ -36,6 +37,22 @@ function withIdentityTransforms<T extends ReturnType<typeof loadManual>>(definit
 }
 
 describe("installed address transform optimizer", () => {
+  it("prepares stale route-optimized transforms only for explicit reoptimization", () => {
+    const source = loadManual();
+    const original = structuredClone(source);
+    const prepared = prepareInstalledAddressTransformsForReoptimization(source);
+
+    expect(source).toEqual(original);
+    expect(prepared.panels.map((panel) => panel.pose)).toEqual(
+      source.panels.map((panel) => panel.pose),
+    );
+    expect(prepared.wiring).toEqual(source.wiring);
+    expect(prepared.panels.every((panel) =>
+      panel.installedAddressTransform?.selectionMethod === "manual" &&
+      panel.installedAddressTransform.optimizationFingerprint === undefined
+    )).toBe(true);
+  });
+
   it("uses only dimension-preserving turns for a rectangular pixel grid", () => {
     const definition = withIdentityTransforms(loadManual());
     const profile = structuredClone(PANEL_PROFILE);
@@ -199,7 +216,7 @@ describe("installed address transform optimizer", () => {
     );
     expect(optimized.panels.map((panel) =>
       panel.installedAddressTransform!.quarterTurnsClockwise
-    )).toEqual([0, 1]);
+    )).toEqual([2, 3]);
   });
 
   it("matches exhaustive search on a three-panel chain", () => {

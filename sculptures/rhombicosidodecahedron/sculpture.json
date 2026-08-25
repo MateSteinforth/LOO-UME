@@ -45,10 +45,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 1,
+        "quarterTurnsClockwise": 2,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -86,10 +86,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 1,
+        "quarterTurnsClockwise": 2,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -127,10 +127,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 3,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -168,10 +168,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 0,
+        "quarterTurnsClockwise": 3,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -209,10 +209,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 0,
+        "quarterTurnsClockwise": 3,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -251,10 +251,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -293,10 +293,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -335,10 +335,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -377,10 +377,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 1,
+        "quarterTurnsClockwise": 2,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -419,10 +419,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 0,
+        "quarterTurnsClockwise": 3,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -461,10 +461,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -503,10 +503,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 1,
+        "quarterTurnsClockwise": 2,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -545,10 +545,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -587,10 +587,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 0,
+        "quarterTurnsClockwise": 3,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -629,10 +629,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 1,
+        "quarterTurnsClockwise": 2,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -671,10 +671,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 1,
+        "quarterTurnsClockwise": 2,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -713,10 +713,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -755,10 +755,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 0,
+        "quarterTurnsClockwise": 3,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -797,10 +797,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 0,
+        "quarterTurnsClockwise": 3,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -839,10 +839,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 3,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -884,7 +884,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -923,10 +923,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 3,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -965,10 +965,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1007,10 +1007,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 3,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1049,10 +1049,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 0,
+        "quarterTurnsClockwise": 3,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1091,10 +1091,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 0,
+        "quarterTurnsClockwise": 3,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1133,10 +1133,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1175,10 +1175,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 1,
+        "quarterTurnsClockwise": 2,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1217,10 +1217,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 3,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1259,10 +1259,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 3,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1304,10 +1304,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1349,10 +1349,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1394,10 +1394,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1439,10 +1439,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 3,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1484,10 +1484,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 3,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1529,10 +1529,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1574,10 +1574,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1619,10 +1619,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 2,
+        "quarterTurnsClockwise": 1,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1664,10 +1664,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 3,
+        "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1709,10 +1709,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 0,
+        "quarterTurnsClockwise": 3,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     },
     {
@@ -1754,10 +1754,10 @@
       "installedAddressTransform": {
         "status": "assumed",
         "referenceView": "back",
-        "quarterTurnsClockwise": 1,
+        "quarterTurnsClockwise": 2,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "2771611b3264c1da"
+        "optimizationFingerprint": "b2148e665f6ca16b"
       }
     }
   ],
@@ -1768,7 +1768,7 @@
       "The north-pole pentagon is intentionally unpopulated: 30 square panels plus 11 pentagon-centre panels.",
       "Northern centre panels present their top edge toward the pole; southern centre panels present their bottom edge toward the pole.",
       "Logical effect indices run from global north to south; physical indices remain synthetic panel-major preview order.",
-      "Pixel-zero corner and serpentine order use the assumed prototype convention until a numbered panel test replaces them.",
+      "The measured panel contract uses front-view pixel 0/DIN at top-left, straight left-to-right rows progressing downward, pixel 63/DOUT at bottom-right, and WLED GRB order 0.",
       "The saved output route and GPIOs are the assumed prototype assembly contract; they are authored but not measured."
     ]
   },

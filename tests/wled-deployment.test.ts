@@ -71,15 +71,15 @@ describe("guarded WLED deployment contract", () => {
       maxpwr: bus.maxpwr,
       ledma: bus.ledma,
     }))).toEqual([
-      { start: 0, len: 704, pin: [16], order: 1, rev: false, maxpwr: 14000, ledma: 60 },
-      { start: 704, len: 640, pin: [17], order: 1, rev: false, maxpwr: 14000, ledma: 60 },
-      { start: 1344, len: 640, pin: [18], order: 1, rev: false, maxpwr: 14000, ledma: 60 },
-      { start: 1984, len: 640, pin: [19], order: 1, rev: false, maxpwr: 14000, ledma: 60 },
+      { start: 0, len: 704, pin: [16], order: 0, rev: false, maxpwr: 14000, ledma: 60 },
+      { start: 704, len: 640, pin: [17], order: 0, rev: false, maxpwr: 14000, ledma: 60 },
+      { start: 1344, len: 640, pin: [18], order: 0, rev: false, maxpwr: 14000, ledma: 60 },
+      { start: 1984, len: 640, pin: [19], order: 0, rev: false, maxpwr: 14000, ledma: 60 },
     ]);
     expect(bundle.deploymentIdentity).toBe(sha256ExactBytes(bundle.manifestBytes));
     expect(JSON.parse(bundle.manifestBytes)).toMatchObject({
       status: "mapping-ready-installation",
-      mappingFingerprint: "54823909",
+      mappingFingerprint: "73b36d49",
       mappingFingerprintVersion: "fnv1a32-u32le-v2",
       target: {
         platformioEnvironment: "orbital_esp32dev",
@@ -97,7 +97,9 @@ describe("guarded WLED deployment contract", () => {
       sourceProject: { path: "sculpture.json" },
     });
     expect(JSON.parse(bundle.files.get("wled/one-panel-smoke-cfg.json")!))
-      .toMatchObject({ hw: { led: { total: 64, maxpwr: 1000 } } });
+      .toMatchObject({
+        hw: { led: { total: 64, maxpwr: 1000, ins: [{ order: 0 }] } },
+      });
     expect(() => validateWledDeploymentBundle(
       bundle.manifestBytes,
       fileRecord(bundle.files, sculptureBytes),

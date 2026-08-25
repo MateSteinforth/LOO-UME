@@ -59,11 +59,11 @@ describe("printable wiring assembly manual", () => {
       wiringStatus: "authored",
       routeSource: "authored-route",
       mappingReady: true,
-      mappingFingerprint: "54823909",
-      optimizationFingerprint: "2771611b3264c1da",
+      mappingFingerprint: "73b36d49",
+      optimizationFingerprint: "b2148e665f6ca16b",
       totalPixels: 2_624,
-      colorOrder: "RGB",
-      pixelOrder: "8 × 8 snake",
+      colorOrder: "GRB",
+      pixelOrder: "8 × 8 straight rows",
     });
     expect(model.outputs.map((output) => output.gpio)).toEqual([16, 17, 18, 19]);
     expect(model.outputs.map((output) => output.color)).toEqual([
@@ -81,13 +81,13 @@ describe("printable wiring assembly manual", () => {
       physicalEnd: 63,
       dataIn: "Controller GPIO 16",
       dataOut: "SQ-04 DIN",
-      turnDegrees: 90,
+      turnDegrees: 0,
       mirrored: false,
       dinCorner: "top-left",
       doutCorner: "bottom-right",
     });
     const physicalQuarterTurns = model.outputs[0]!.panels[0]!.turnDegrees / 90;
-    let dinCoordinate = { x: 0, y: 7 };
+    let dinCoordinate = { x: 0, y: 0 };
     for (let turn = 0; turn < physicalQuarterTurns; turn += 1) {
       dinCoordinate = { x: 7 - dinCoordinate.y, y: dinCoordinate.x };
     }

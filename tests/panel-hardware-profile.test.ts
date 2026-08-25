@@ -32,15 +32,21 @@ describe("panel hardware profile", () => {
       referenceView: "back",
       orientationReference: "three-mounting-holes-vertical",
       cornerAssignmentStatus: "measured",
-      dinCorner: "bottom-left",
-      doutCorner: "top-right",
+      dinCorner: "top-right",
+      doutCorner: "bottom-left",
       padPositionStatus: "unknown",
+    });
+    expect(profile.pixelGrid.colorOrder).toEqual({
+      status: "measured",
+      channelSequence: "GRB",
+      wledValue: 0,
+      note: expect.stringContaining("2026-08-25"),
     });
     expect(profile.mounting.holes).toMatchObject([
       { id: "top-left", mechanicalUse: "eligible" },
       { id: "middle-left", mechanicalUse: "eligible" },
-      { id: "bottom-left", mechanicalUse: "blocked", blockedBy: "DIN" },
-      { id: "top-right", mechanicalUse: "blocked", blockedBy: "DOUT" },
+      { id: "bottom-left", mechanicalUse: "blocked", blockedBy: "DOUT" },
+      { id: "top-right", mechanicalUse: "blocked", blockedBy: "DIN" },
       { id: "middle-right", mechanicalUse: "eligible" },
       { id: "bottom-right", mechanicalUse: "eligible" },
     ]);
@@ -53,6 +59,49 @@ describe("panel hardware profile", () => {
       worstCaseCurrentPerPixel: 0.06,
       worstCaseCurrentPerPanel: 3.84,
     });
+    expect(profile.pixelGrid.provisionalOrder).toMatchObject({
+      status: "measured",
+      pixelZeroCorner: "top-right",
+      traversalAxis: "rows",
+      lineProgression: "top-to-bottom",
+      serpentine: false,
+      firstLineDirection: "right-to-left",
+    });
+  });
+
+  it("rejects a WLED value that contradicts the channel sequence", () => {
+    const profile = loadProfile();
+    profile.pixelGrid.colorOrder.wledValue = 1;
+
+    expect(() => parsePanelHardwareProfile(profile)).toThrow(
+      "color order and WLED value are inconsistent",
+    );
+  });
+
+  it("normalizes a historical 1.0.0 profile without color evidence", () => {
+    const profile = structuredClone(loadProfile());
+    delete (profile.pixelGrid as Partial<typeof profile.pixelGrid>).colorOrder;
+
+    expect(parsePanelHardwareProfile(profile).pixelGrid.colorOrder).toEqual({
+      status: "provisional",
+      channelSequence: "RGB",
+      wledValue: 1,
+      note: expect.stringContaining("Legacy schema 1.0.0"),
+    });
+  });
+
+  it("requires measured pixel zero at DIN and the final pixel at DOUT", () => {
+    const wrongDin = structuredClone(loadProfile());
+    wrongDin.dataConnectors.dinCorner = "bottom-right";
+    expect(() => parsePanelHardwareProfile(wrongDin)).toThrow(
+      "pixel zero must be at DIN",
+    );
+
+    const wrongDout = structuredClone(loadProfile());
+    wrongDout.dataConnectors.doutCorner = "top-left";
+    expect(() => parsePanelHardwareProfile(wrongDout)).toThrow(
+      "final pixel must be at DOUT",
+    );
   });
 
   it("rejects loss of the measured physical corrections", () => {

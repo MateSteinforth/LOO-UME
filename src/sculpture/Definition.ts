@@ -39,6 +39,15 @@ export interface PixelOrderDefinition {
   description: string;
 }
 
+export type LedChannelSequence = "GRB" | "RGB" | "BRG" | "RBG" | "BGR" | "GBR";
+
+export interface PanelColorOrderDefinition {
+  status: "provisional" | "measured";
+  channelSequence: LedChannelSequence;
+  wledValue: 0 | 1 | 2 | 3 | 4 | 5;
+  note: string;
+}
+
 export interface PanelHardwareProfile {
   schemaVersion: "1.0.0";
   id: string;
@@ -53,6 +62,7 @@ export interface PanelHardwareProfile {
     columns: number;
     rows: number;
     emitterOffset: number;
+    colorOrder: PanelColorOrderDefinition;
     provisionalOrder: PixelOrderDefinition;
   };
   mounting: {
@@ -257,24 +267,53 @@ export function parsePanelHardwareProfile(
   input: unknown,
 ): PanelHardwareProfile {
   if (!isRecord(input)) throw new Error("Panel profile must be a JSON object.");
-  if (input.schemaVersion !== "1.0.0") {
+  const profileInput: Record<string, unknown> = structuredClone(input);
+  const legacyPixelGrid = isRecord(profileInput.pixelGrid)
+    ? profileInput.pixelGrid
+    : null;
+  if (legacyPixelGrid && legacyPixelGrid.colorOrder === undefined) {
+    legacyPixelGrid.colorOrder = {
+      status: "provisional",
+      channelSequence: "RGB",
+      wledValue: 1,
+      note: "Legacy schema 1.0.0 profile without recorded color-order evidence.",
+    };
+  }
+  if (profileInput.schemaVersion !== "1.0.0") {
     throw new Error("Unsupported panel-profile schema version.");
   }
-  if (input.kind !== "led-panel" || input.units !== "mm") {
+  if (profileInput.kind !== "led-panel" || profileInput.units !== "mm") {
     throw new Error("Panel profile must describe an LED panel in millimetres.");
   }
 
-  const dimensions = requireRecord(input, "dimensions");
+  const dimensions = requireRecord(profileInput, "dimensions");
   requirePositiveNumber(dimensions, "width");
   requirePositiveNumber(dimensions, "height");
   requirePositiveNumber(dimensions, "thickness");
-  const pixelGrid = requireRecord(input, "pixelGrid");
+  const pixelGrid = requireRecord(profileInput, "pixelGrid");
   const columns = requirePositiveNumber(pixelGrid, "columns");
   const rows = requirePositiveNumber(pixelGrid, "rows");
   if (!Number.isInteger(columns) || !Number.isInteger(rows)) {
     throw new Error("Pixel grid dimensions must be integers.");
   }
   requireFiniteNumber(pixelGrid, "emitterOffset");
+  const colorOrder = requireRecord(pixelGrid, "colorOrder");
+  requireOneOf(colorOrder, "status", ["provisional", "measured"]);
+  const channelSequence = requireOneOf(colorOrder, "channelSequence", [
+    "GRB",
+    "RGB",
+    "BRG",
+    "RBG",
+    "BGR",
+    "GBR",
+  ]);
+  const wledValue = requireFiniteNumber(colorOrder, "wledValue");
+  const expectedWledValue = ["GRB", "RGB", "BRG", "RBG", "BGR", "GBR"]
+    .indexOf(channelSequence);
+  if (!Number.isInteger(wledValue) || wledValue !== expectedWledValue) {
+    throw new Error("Panel color order and WLED value are inconsistent.");
+  }
+  requireString(colorOrder, "note");
   const order = requireRecord(pixelGrid, "provisionalOrder");
   requireOneOf(order, "status", ["provisional", "measured"]);
   requireOneOf(order, "pixelZeroCorner", [
@@ -301,7 +340,7 @@ export function parsePanelHardwareProfile(
   }
   requireString(order, "description");
 
-  const mounting = requireRecord(input, "mounting");
+  const mounting = requireRecord(profileInput, "mounting");
   for (const key of [
     "cornerHoleInset",
     "middleHoleOffsetFromOuter",
@@ -396,7 +435,7 @@ export function parsePanelHardwareProfile(
   }
   requireString(corrections, "note");
 
-  const dataConnectors = requireRecord(input, "dataConnectors");
+  const dataConnectors = requireRecord(profileInput, "dataConnectors");
   if (
     dataConnectors.referenceView !== "back" ||
     dataConnectors.orientationReference !== "three-mounting-holes-vertical" ||
@@ -421,6 +460,42 @@ export function parsePanelHardwareProfile(
   if (dinCorner === doutCorner) {
     throw new Error("DIN and DOUT must use different panel corners.");
   }
+  const cornerCoordinate = (corner: PanelCorner): [number, number] => [
+    corner.endsWith("left") ? 0 : columns - 1,
+    corner.startsWith("top") ? 0 : rows - 1,
+  ];
+  const wireIndex = (corner: PanelCorner): number => {
+    const [x, y] = cornerCoordinate(corner);
+    const line = order.traversalAxis === "rows"
+      ? order.lineProgression === "bottom-to-top" ? rows - 1 - y : y
+      : order.lineProgression === "right-to-left" ? columns - 1 - x : x;
+    let offset = order.traversalAxis === "rows"
+      ? order.firstLineDirection === "right-to-left" ? columns - 1 - x : x
+      : order.firstLineDirection === "bottom-to-top" ? rows - 1 - y : y;
+    if (order.serpentine && line % 2 === 1) {
+      offset = (order.traversalAxis === "rows" ? columns : rows) - 1 - offset;
+    }
+    return line * (order.traversalAxis === "rows" ? columns : rows) + offset;
+  };
+  const corners: PanelCorner[] = [
+    "top-left", "top-right", "bottom-left", "bottom-right",
+  ];
+  if (order.status === "measured") {
+    if (wireIndex(order.pixelZeroCorner as PanelCorner) !== 0) {
+      throw new Error(
+        "Measured panel pixel-zero corner contradicts its traversal directions.",
+      );
+    }
+    if (order.pixelZeroCorner !== dinCorner) {
+      throw new Error("Measured panel pixel zero must be at DIN.");
+    }
+    const terminalCorner = corners.find(
+      (corner) => wireIndex(corner) === columns * rows - 1,
+    );
+    if (terminalCorner !== doutCorner) {
+      throw new Error("Measured panel final pixel must be at DOUT.");
+    }
+  }
   const holeById = new Map(
     mounting.holes.map((hole) => [
       (hole as Record<string, unknown>).id,
@@ -442,7 +517,7 @@ export function parsePanelHardwareProfile(
   ]);
   requireString(dataConnectors, "note");
 
-  const power = requireRecord(input, "power");
+  const power = requireRecord(profileInput, "power");
   if (
     power.status !== "provisional" ||
     power.basis !== "panel-photo-and-conservative-worst-case"
@@ -520,12 +595,12 @@ export function parsePanelHardwareProfile(
   }
   requireString(power, "note");
 
-  const keepouts = requireRecord(input, "electricalKeepouts");
+  const keepouts = requireRecord(profileInput, "electricalKeepouts");
   requireOneOf(keepouts, "status", ["unknown", "provisional", "measured"]);
   if (!Array.isArray(keepouts.regions)) {
     throw new Error("Electrical keep-out regions must be an array.");
   }
   requireString(keepouts, "note");
-  requireString(input, "id");
-  return input as unknown as PanelHardwareProfile;
+  requireString(profileInput, "id");
+  return profileInput as unknown as PanelHardwareProfile;
 }

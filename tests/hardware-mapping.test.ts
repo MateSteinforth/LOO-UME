@@ -152,21 +152,21 @@ describe("hardware mapping contract", () => {
       8,
       8,
     );
-    expect(transform(0, 0, 1, false)).toEqual({ x: 7, y: 0 });
-    expect(transform(0, 0, 2, false)).toEqual({ x: 7, y: 7 });
-    expect(transform(0, 0, 1, true)).toEqual({ x: 7, y: 7 });
+    expect(transform(0, 0, 1, false)).toEqual({ x: 7, y: 7 });
+    expect(transform(0, 0, 2, false)).toEqual({ x: 0, y: 7 });
+    expect(transform(0, 0, 1, true)).toEqual({ x: 7, y: 0 });
   });
 
   it("uses the documented back-view corner and row-transition vectors", () => {
     const pixelZeroByTransform = [
-      { turns: 0, mirrored: false, local: [0, 7] },
-      { turns: 0, mirrored: true, local: [7, 7] },
-      { turns: 1, mirrored: false, local: [7, 7] },
-      { turns: 1, mirrored: true, local: [0, 7] },
-      { turns: 2, mirrored: false, local: [7, 0] },
-      { turns: 2, mirrored: true, local: [0, 0] },
-      { turns: 3, mirrored: false, local: [0, 0] },
-      { turns: 3, mirrored: true, local: [7, 0] },
+      { turns: 0, mirrored: false, local: [0, 0] },
+      { turns: 0, mirrored: true, local: [7, 0] },
+      { turns: 1, mirrored: false, local: [7, 0] },
+      { turns: 1, mirrored: true, local: [0, 0] },
+      { turns: 2, mirrored: false, local: [7, 7] },
+      { turns: 2, mirrored: true, local: [0, 7] },
+      { turns: 3, mirrored: false, local: [0, 7] },
+      { turns: 3, mirrored: true, local: [7, 7] },
     ] as const;
     for (const vector of pixelZeroByTransform) {
       const geometry = createFixtureMapping();
@@ -186,8 +186,16 @@ describe("hardware mapping contract", () => {
           entry.panelPixelY === y
         )!.physicalIndex;
       expect(physicalAt(vector.local[0], vector.local[1])).toBe(0);
+      if (vector.turns === 0 && !vector.mirrored) {
+        expect(physicalAt(7, 0)).toBe(7);
+        expect(physicalAt(0, 1)).toBe(8);
+        expect(physicalAt(7, 1)).toBe(15);
+        expect(physicalAt(0, 2)).toBe(16);
+        expect(physicalAt(0, 7)).toBe(56);
+        expect(physicalAt(7, 7)).toBe(63);
+      }
       if (vector.turns === 3 && vector.mirrored) {
-        expect(physicalAt(7, 7)).toBe(7);
+        expect(physicalAt(7, 0)).toBe(7);
         expect(physicalAt(6, 7)).toBe(8);
       }
     }
@@ -206,7 +214,8 @@ describe("hardware mapping contract", () => {
       turns: 0 | 1 | 2 | 3,
       mirrored: boolean,
     ): [number, number] => {
-      let transformedX = mirrored ? 7 - x : x;
+      let transformedX = 7 - x;
+      if (mirrored) transformedX = 7 - transformedX;
       let transformedY = y;
       if (turns === 1) [transformedX, transformedY] = [7 - transformedY, transformedX];
       if (turns === 2) [transformedX, transformedY] = [7 - transformedX, 7 - transformedY];
@@ -379,9 +388,9 @@ describe("hardware mapping contract", () => {
           entry.panelPixelY === y,
       )!.physicalIndex;
 
-    expect(findPhysical(7, 7)).toBe(0);
-    expect(findPhysical(7, 6)).toBe(1);
-    expect(findPhysical(6, 7)).toBe(8);
+    expect(findPhysical(0, 7)).toBe(0);
+    expect(findPhysical(0, 6)).toBe(1);
+    expect(findPhysical(1, 7)).toBe(8);
   });
 
   it("replays the exported ledmap exactly like the renderer", () => {

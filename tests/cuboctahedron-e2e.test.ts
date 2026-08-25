@@ -71,12 +71,12 @@ describe("panel-driven cuboctahedron end-to-end compiler", () => {
       expect(blockedHoles).toMatchObject([
         {
           id: "bottom-left",
-          blockedBy: "DIN",
+          blockedBy: "DOUT",
           assignedClosureId: null,
         },
         {
           id: "top-right",
-          blockedBy: "DOUT",
+          blockedBy: "DIN",
           assignedClosureId: null,
         },
       ]);
@@ -158,11 +158,11 @@ describe("panel-driven cuboctahedron end-to-end compiler", () => {
       ]),
     );
     expect(mapping.panels[0]?.pixelOrder).toMatchObject({
-      pixelZeroCorner: "bottom-left",
+      pixelZeroCorner: "top-right",
       traversalAxis: "rows",
-      lineProgression: "bottom-to-top",
-      serpentine: true,
-      firstLineDirection: "left-to-right",
+      lineProgression: "top-to-bottom",
+      serpentine: false,
+      firstLineDirection: "right-to-left",
     });
 
     const firstPanelId = contract.outputs[0]!.panelIds[0]!;
@@ -173,12 +173,12 @@ describe("panel-driven cuboctahedron end-to-end compiler", () => {
           entry.panelPixelX === x &&
           entry.panelPixelY === y,
       )!.physicalIndex;
-    expect(physicalAt(0, 7)).toBe(0);
-    expect(physicalAt(7, 7)).toBe(7);
-    expect(physicalAt(7, 6)).toBe(8);
-    expect(physicalAt(0, 6)).toBe(15);
-    expect(physicalAt(7, 0)).toBe(56);
-    expect(physicalAt(0, 0)).toBe(63);
+    expect(physicalAt(0, 0)).toBe(0);
+    expect(physicalAt(7, 0)).toBe(7);
+    expect(physicalAt(0, 1)).toBe(8);
+    expect(physicalAt(7, 1)).toBe(15);
+    expect(physicalAt(0, 7)).toBe(56);
+    expect(physicalAt(7, 7)).toBe(63);
   });
 
   it("propagates GPIO assignments from each sculpture JSON", () => {
