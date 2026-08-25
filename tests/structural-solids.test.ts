@@ -119,7 +119,7 @@ describe("Manifold structural solids", () => {
 
     expect(candidate.connectorCells).toHaveLength(40);
     await expect(buildStructuralRibbonSolids(normalized, candidate)).rejects.toThrow(
-      /SQ-26--SQ-27 intersects DIN connector clearance PC-11.*[0-9]+\.[0-9]+ mm3/,
+      /SQ-26--SQ-27 intersects DOUT connector clearance PC-11.*[0-9]+\.[0-9]+ mm3/,
     );
     for (const clearance of normalized.cableClearances) {
       clearance.positionMm = clearance.positionMm.map(

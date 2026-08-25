@@ -90,6 +90,9 @@ function assertInstallationContract(contract: HardwareMappingContract): void {
   if (contract.outputs.length !== 4) {
     throw new Error("The selected installation target requires exactly four outputs.");
   }
+  if (contract.wledColorOrder.status !== "measured") {
+    throw new Error("An installation bundle requires a measured panel color order.");
+  }
   contract.outputs.forEach((output, index) => {
     if (
       output.outputIndex !== index ||
@@ -107,7 +110,7 @@ function createConfigBytes(contract: HardwareMappingContract): string {
     start: output.startIndex,
     len: output.pixelCount,
     pin: [output.gpio],
-    order: 1,
+    order: contract.wledColorOrder.wledValue,
     rev: false,
     skip: 0,
     type: 22,
@@ -131,6 +134,7 @@ function createRouteMappingBytes(contract: HardwareMappingContract): string {
     routeSource: contract.wiring.routeSource,
     mappingFingerprint: contract.fingerprint,
     mappingFingerprintVersion: contract.fingerprintVersion,
+    wledColorOrder: contract.wledColorOrder,
     ledCount: contract.ledmap.map.length,
     outputs: contract.outputs,
     readiness: contract.readiness,
@@ -207,6 +211,7 @@ export function createWledDeploymentBundle(
     },
     mappingFingerprint: contract.fingerprint,
     mappingFingerprintVersion: contract.fingerprintVersion,
+    wledColorOrder: contract.wledColorOrder,
     files: [...files].map(([path, bytes]) => fileEntry(path, bytes)),
   });
   files.set(manifestPath, manifestBytes);
@@ -236,6 +241,7 @@ export function validateWledDeploymentBundle(
     sourceProject?: { path?: string; byteLength?: number; sha256?: string };
     mappingFingerprint?: string;
     mappingFingerprintVersion?: string;
+    wledColorOrder?: HardwareMappingContract["wledColorOrder"];
     files?: DeploymentFileEntry[];
   };
   const installation = manifest.status === "mapping-ready-installation";
@@ -273,6 +279,9 @@ export function validateWledDeploymentBundle(
     !/^[0-9a-f]{64}$/.test(manifest.sourceProject.sha256 ?? "") ||
     !/^[0-9a-f]{8}$/.test(manifest.mappingFingerprint ?? "") ||
     manifest.mappingFingerprintVersion !== "fnv1a32-u32le-v2" ||
+    manifest.wledColorOrder?.status !== "measured" ||
+    manifest.wledColorOrder.channelSequence !== "GRB" ||
+    manifest.wledColorOrder.wledValue !== 0 ||
     !Array.isArray(manifest.files) ||
     manifest.files.length !== expectedPaths.length
   ) {
@@ -320,6 +329,7 @@ export function validateWledDeploymentBundle(
     !Array.isArray(smokeLed.ins) || smokeLed.ins.length !== 1 ||
     smokeLed.ins[0]?.start !== 0 || smokeLed.ins[0]?.len !== 64 ||
     !Array.isArray(smokeLed.ins[0]?.pin) || smokeLed.ins[0]?.pin[0] !== 16 ||
+    smokeLed.ins[0]?.order !== manifest.wledColorOrder.wledValue ||
     smokeLed.ins[0]?.maxpwr !== 1000
   ) {
     throw new Error("The one-panel smoke configuration contradicts FIRM-011.");
@@ -337,7 +347,8 @@ export function validateWledDeploymentBundle(
       bus.start !== EXPECTED_STARTS[index] ||
       bus.len !== EXPECTED_LENGTHS[index] ||
       !Array.isArray(bus.pin) || bus.pin.length !== 1 || bus.pin[0] !== EXPECTED_GPIOS[index] ||
-      bus.order !== 1 || bus.rev !== false || bus.skip !== 0 || bus.type !== 22 ||
+      bus.order !== manifest.wledColorOrder!.wledValue ||
+      bus.rev !== false || bus.skip !== 0 || bus.type !== 22 ||
       bus.ref !== false || bus.rgbwm !== 0 || bus.freq !== 0 ||
       bus.maxpwr !== 14000 || bus.ledma !== 60 || bus.drv !== 0 ||
       bus.text !== `Output ${index} / domain ${index < 2 ? "A" : "B"}`

@@ -147,9 +147,9 @@ describe("Schema 2 structural design normalization", () => {
       id === "P-01:cable-clearance:din"
     )).toMatchObject({
       panelId: "P-01",
-      holeId: "bottom-left",
+      holeId: "top-right",
       blockedBy: "DIN",
-      positionMm: [25, 50, 24.5],
+      positionMm: [-25, 50, -24.5],
       diameterMm: 12,
     });
     expect(normalized.anchors.filter(({ panelId }) => panelId === "P-01").map(
@@ -209,14 +209,14 @@ describe("Schema 2 structural design normalization", () => {
     expect(normalized.cableClearances.find(({ blockedBy, panelId }) =>
       blockedBy === "DIN" && panelId === "P-01"
     )).toMatchObject({
-      holeId: "bottom-left",
-      positionMm: [24.5, 25, 0],
+      holeId: "top-right",
+      positionMm: [-24.5, -25, 0],
     });
     expect(normalized.cableClearances.find(({ blockedBy, panelId }) =>
       blockedBy === "DOUT" && panelId === "P-01"
     )).toMatchObject({
-      holeId: "top-right",
-      positionMm: [-24.5, -25, 0],
+      holeId: "bottom-left",
+      positionMm: [24.5, 25, 0],
     });
     expect(normalized.anchors.find(({ id }) => id === "P-01:bottom-right")?.positionMm)
       .toEqual([24.5, -25, 0]);
@@ -267,7 +267,7 @@ describe("Schema 2 structural design normalization", () => {
     expect(normalized.loadCases.find(({ id }) => id === "force:corner-push"))
       .toMatchObject({ applicationPointMm: [-33, 50, -32.5] });
     expect(normalized.loadCases.find(({ id }) => id === "force:din-pull"))
-      .toMatchObject({ applicationPointMm: [-33, 50, 32.5] });
+      .toMatchObject({ applicationPointMm: [33, 50, -32.5] });
     expect(normalized.warnings.map(({ code }) => code)).toEqual([
       "ELECTRICAL_KEEPOUTS_UNMEASURED",
     ]);

@@ -197,6 +197,42 @@ describe("portable project folder and ZIP validation", () => {
     }
   });
 
+  it("loads a bundled historical 1.0.0 profile without color-order evidence", async () => {
+    const { definition, profile } = await portableFixture();
+    delete definition.designSurface;
+    definition.panelProfile.source = "catalog/legacy-panel-profile.json";
+    const legacyProfile = structuredClone(profile);
+    delete (legacyProfile.pixelGrid as Partial<typeof legacyProfile.pixelGrid>)
+      .colorOrder;
+    const files: PortableProjectFile[] = [
+      {
+        path: "project/sculpture.json",
+        bytes: new TextEncoder().encode(sculptureJson(definition)),
+      },
+      {
+        path: `project/${definition.panelProfile.source}`,
+        bytes: new TextEncoder().encode(JSON.stringify(legacyProfile)),
+      },
+    ];
+
+    const reopened = await openPortableProjectFiles(
+      files,
+      "historical-profile",
+      async () => {
+        throw new Error("Bundled historical profile was not used.");
+      },
+    );
+    try {
+      expect(reopened.project.panelProfile.pixelGrid.colorOrder).toMatchObject({
+        status: "provisional",
+        channelSequence: "RGB",
+        wledValue: 1,
+      });
+    } finally {
+      reopened.dispose();
+    }
+  });
+
   it("rejects a missing referenced file", async () => {
     const { profile, files } = await portableFixture();
     await expect(openPortableProjectFiles(

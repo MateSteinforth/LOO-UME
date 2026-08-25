@@ -59,7 +59,7 @@ values in physical wire order. The browser and generator now share the same
 `map[logicalIndex] = physicalIndex` contract. The generated provisional map is
 round-trip tested against the renderer for all 2,624 LEDs.
 
-Mapping readiness accepts the selected snake and RGB assumptions. It requires
+Mapping readiness accepts the measured straight-row and GRB panel contract. It requires
 the authored route, GPIOs, complete panel pixel order, and route-optimized
 installed orientations. Voltage, temperature, and device read-back are not
 mapping inputs. Electrical protection remains separate. The current route
@@ -75,12 +75,11 @@ and ledmap are the only direction authorities. Deployment identity hashes the
 exact bytes of each emitted file and a versioned canonical manifest of paths,
 sizes, and file hashes.
 
-The panel JSON carries the provisional back-view addressing rule: pixel 0 at
-bottom-left, left-to-right first row, then alternating rows upward. It derives
-pixel 56 at top-right and pixel 63 at top-left. Keep the status provisional
-until a numbered diagnostic test confirms the rule and RGB color order. Panel
-placement, orientation, output assignment, and chain position also remain data
-rather than effect-code constants.
+The panel profile carries the measured addressing rule: front-view pixel 0/DIN
+at top-left, straight left-to-right rows progressing downward, and pixel
+63/DOUT at bottom-right. The stored back-view rule mirrors X. WLED uses measured
+GRB order 0. Panel placement, orientation, output assignment, and chain position
+remain data rather than effect-code constants.
 
 ## Build and CI
 

@@ -31,6 +31,7 @@ export function createWiringReview(
     savedOutputPanelIds: preview.savedOutputPanelIds,
     fingerprint: contract.fingerprint,
     fingerprintVersion: contract.fingerprintVersion,
+    wledColorOrder: contract.wledColorOrder,
     outputs: contract.outputs,
     wiring: preview,
     readiness: contract.readiness,

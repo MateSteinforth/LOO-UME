@@ -19,7 +19,7 @@ They can be corrected directly in the project as assembly continues.
 | Output 3 | GPIO 19 |
 | Level shifter | SN74AHCT125, powered from 5 V |
 | LED type | WLED WS281x RGB, type 22 |
-| Color order | RGB, WLED order 1 — **assumed** |
+| Color order | GRB, WLED order 0 — **measured on one panel** |
 | Bus reversal | `false` on all four outputs |
 | Driver | RMT, WLED driver 0 |
 
@@ -43,7 +43,7 @@ only one DevKitC power input at a time.
 | 3 | 19 | 10 | 1,984 | 640 | B | 14,000 mA |
 
 Set the global `hw.led.maxpwr` value to `0` so the pinned WLED build uses its
-per-bus limits. Each bus uses `type: 22`, `order: 1`, `rev: false`,
+per-bus limits. Each bus uses `type: 22`, `order: 0`, `rev: false`,
 `ledma: 60`, `maxpwr: 14000`, and `drv: 0`. The four per-bus limits give a
 56 A aggregate software ceiling and a 28 A ceiling for each two-output domain.
 The fuse and wire plan is still the primary protection. A nonzero global
@@ -62,19 +62,19 @@ orientation.
 
 ## Panel address convention
 
-Until a test corrects it, use this back-view convention:
+The one-panel test on 2026-08-25 measured this convention:
 
-- DIN and pixel 0 are at bottom-left.
-- The first row runs left-to-right.
-- Rows progress upward and alternate direction.
-- Pixel 56 is at top-right.
-- Pixel 63 is at top-left.
-- DOUT is at top-right.
+- Front view: DIN and pixel 0 are at top-left.
+- Front view: every row runs left-to-right without serpentine reversal.
+- Front view: rows progress downward; pixel 56 is bottom-left and pixel 63/DOUT
+  is bottom-right.
+- Back view: DIN/pixel 0 is top-right, each row runs right-to-left, and
+  DOUT/pixel 63 is bottom-left.
 - The tool selects each panel's quarter turn to minimize routed data-wire
   length. Mirroring remains false.
 
 The selected turns reduce the estimated inter-panel connector distance from
-3,429.5 mm for identity orientation to 1,245.8 mm. This estimate uses named
+2,795.8 mm for identity orientation to 1,245.8 mm. This estimate uses named
 connector corners because exact pad centres are not in the profile.
 
 Install each PCB with the saved tool-selected quarter turn. If a frame or

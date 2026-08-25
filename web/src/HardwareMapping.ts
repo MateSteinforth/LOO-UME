@@ -8,7 +8,10 @@ import type {
 } from "./LedMapping.ts";
 import { validateMapping } from "./LedMapping.ts";
 import type { WiringPreview } from "./WiringPreview.ts";
-import type { PanelHardwareProfile } from "../../src/sculpture/Definition.ts";
+import type {
+  PanelColorOrderDefinition,
+  PanelHardwareProfile,
+} from "../../src/sculpture/Definition.ts";
 
 export interface WledLedmap {
   map: number[];
@@ -46,6 +49,7 @@ export interface HardwareMappingContract {
   readiness: HardwareReadiness;
   fingerprint: string;
   fingerprintVersion: LedmapFingerprintVersion;
+  wledColorOrder: PanelColorOrderDefinition;
 }
 
 function panelPixelKey(
@@ -161,6 +165,10 @@ export function transformInstalledPanelCoordinate(
   if (columns !== rows && transform.quarterTurnsClockwise % 2 === 1) {
     throw new Error("Quarter-turn installed transforms require a square pixel grid.");
   }
+  // Pose-local LED coordinates are viewed from the outward/front face. The
+  // profile and installed transform are defined in PCB back view, so reflect X
+  // exactly once before applying any explicit installed mirror or turn.
+  x = columns - 1 - x;
   x = transform.mirrored ? columns - 1 - x : x;
   switch (transform.quarterTurnsClockwise) {
     case 1:
@@ -388,6 +396,7 @@ export function createHardwareMappingContract(
     readiness,
     fingerprint: fingerprintLedmap(ledmap),
     fingerprintVersion: LEDMAP_FINGERPRINT_VERSION,
+    wledColorOrder: panelProfile.pixelGrid.colorOrder,
   };
 }
 
@@ -402,6 +411,7 @@ interface GeneratedPanelMap {
   mappingReady?: boolean;
   ledmapFingerprint: string;
   ledmapFingerprintVersion?: LedmapFingerprintVersion;
+  wledColorOrder?: PanelColorOrderDefinition;
   readinessBlockers: string[];
   wiringLifecycle?: string;
   outputs: OutputAddressRange[];
@@ -564,6 +574,12 @@ export function loadGeneratedHardwareMappingContract(
     readiness,
     fingerprint,
     fingerprintVersion,
+    wledColorOrder: panelMap.wledColorOrder ?? {
+      status: "provisional",
+      channelSequence: "RGB",
+      wledValue: 1,
+      note: "Legacy panel-map artifact without explicit WLED color order.",
+    },
   };
 }
 

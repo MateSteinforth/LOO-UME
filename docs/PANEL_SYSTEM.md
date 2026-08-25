@@ -28,13 +28,14 @@ coordinates, offset), `mountFaceId` (current generated mechanics),
 | PCB | 66 × 65 × 0.8 mm |
 | LED grid | 8 × 8, 64 emitters |
 | Mounting holes | six total; four mechanically eligible |
-| Blocked holes | bottom-left by DIN; top-right by DOUT (back view) |
+| Blocked holes | top-right by DIN; bottom-left by DOUT (back view) |
 | Fastener / printed pilot | M2 / 1.6 mm |
 | Screw lead-in | 3.2 mm diameter × 0.7 mm deep |
 | Proven corrections | 0.20 mm hole-edge; 0.50 mm surface-flush |
 
 Treat these as working physical facts. Exact electrical pad/keep-out geometry,
-power topology, and numbered-test pixel-order confirmation remain incomplete.
+power topology, and exact electrical pad centres remain incomplete. The
+front-view straight row-major pixel order and GRB color order are measured.
 Never use a blocked hole for a structural tab.
 
 ## Placement and editing

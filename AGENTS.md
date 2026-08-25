@@ -93,10 +93,11 @@ Historical Schema 1 inputs are available only through Git history.
 - Keep both panel edit modes. Surface mode constrains translation to the active
   surface, or to saved local XY without a surface. Free 6DOF mode writes one
   independent right-handed pose and removes its stale surface attachment.
-- The saved route, GPIOs, snake pixel order, RGB color order, and optimized
-  installed quarter turns are authorized assumptions. They make the current
-  simulator-to-controller mapping ready, but they are not measured facts and
-  do not make the complete sculpture electrically ready.
+- The saved route, GPIOs, and optimized installed quarter turns are authorized
+  assumptions. The straight row-major pixel order and GRB color order are
+  measured panel facts. Together these facts and assumptions make the current
+  simulator-to-controller mapping ready. The route, GPIOs, and installed turns
+  are not measured, and the complete sculpture is not electrically ready.
 - Use the saved route and generated mapping artifacts for staged physical
   assembly only when their fingerprints match the current project. A pose,
   route, panel-set, profile, or bus edit requires regeneration.
@@ -105,7 +106,7 @@ Historical Schema 1 inputs are available only through Git history.
   unknown GPIOs as unassigned, describe current non-optimized panel turns as
   assumptions, and never claim mapping readiness.
 - Address parity requires the same authored route, panel addressing, WLED bus
-  configuration, RGB order, GPIOs, and deployment identity. Optional device
+  configuration, GRB order, GPIOs, and deployment identity. Optional device
   evidence is separate from mapping readiness.
 - Keep installed address calibration separate from the pose. The pose owns LED
   world positions; a measured back-view quarter-turn/mirror transform may change

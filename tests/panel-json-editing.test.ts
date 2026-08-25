@@ -382,7 +382,7 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(mapping.entries).toHaveLength(2_624);
     expect(source.wiring.chainLengths).toEqual([11, 10, 10, 10]);
     expect(createHardwareMappingContract(mapping, wiring, project.panelProfile).fingerprint)
-      .toBe("54823909");
+      .toBe("73b36d49");
   });
 
   it("exposes pose-first editing and Manifold generation capabilities", async () => {

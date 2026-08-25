@@ -8,6 +8,7 @@ import { createWledDeploymentBundle } from "../src/wled/DeploymentContract.ts";
 import {
   createAssemblyPackageFiles,
   createAssemblyPackageZip,
+  createWiringReview,
 } from "../web/src/AssemblyPackage.ts";
 import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
@@ -132,7 +133,7 @@ describe("assembly package", () => {
     const files = createAssemblyPackageFiles(project.sculpture, new Map(), {
       assemblyManualHtml: "<!doctype html><title>Assembly</title>",
       hardwareContract,
-      wiringReview: { status: wiring.status },
+      wiringReview: createWiringReview(project.sculpture, hardwareContract, wiring),
     });
     const expected = createWledDeploymentBundle(
       hardwareContract,
@@ -141,6 +142,14 @@ describe("assembly package", () => {
     );
     expect(hardwareContract.readiness.mappingReady).toBe(true);
     expect(files.has("wiring-review.json")).toBe(true);
+    expect(JSON.parse(new TextDecoder().decode(files.get("wiring-review.json"))))
+      .toMatchObject({
+        wledColorOrder: {
+          status: "measured",
+          channelSequence: "GRB",
+          wledValue: 0,
+        },
+      });
     expect([...files.keys()].some((path) => path.includes("diagnostic")))
       .toBe(false);
     for (const [path, bytes] of expected.files) {

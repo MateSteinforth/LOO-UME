@@ -1,7 +1,7 @@
 # LED mapping and wiring
 
 > **Assembly baseline:** the current authored 11/10/10/10 route and generated
-> ledmap are mapping-ready under the saved snake, RGB, GPIO, and optimized-turn
+> ledmap are mapping-ready under the saved straight-row, GRB, GPIO, and optimized-turn
 > assumptions. They can guide staged assembly while their fingerprints match
 > the project. Start with one fused panel, then one output. Do not describe the
 > build as measured, electrically approved, or hardware-verified.
@@ -45,18 +45,16 @@ not a prerequisite.
 
 ## Panel-local wire order
 
-The active profile's working order is, viewed from the back:
+The active profile's measured order is:
 
-- pixel 0 at bottom-left beside DIN;
-- first row left-to-right;
-- rows progress upward and alternate direction;
-- pixel 56 at top-right, pixel 63 at top-left;
-- DOUT at top-right.
+- front view: pixel 0/DIN at top-left, every row left-to-right, rows downward;
+- front view: pixel 56 at bottom-left and pixel 63/DOUT at bottom-right;
+- back view: pixel 0/DIN at top-right, every row right-to-left, rows downward;
+- back view: pixel 56 at bottom-right and pixel 63/DOUT at bottom-left.
 
-The code/profile still mark this order `provisional` pending a numbered physical
-panel test. DIN/DOUT corner assignment itself is measured, but exact pad centres
-are unknown. Changing this convention changes every physical index and the
-ledmap fingerprint.
+The code/profile mark this order `measured` from the numbered one-panel test on
+2026-08-25. Exact pad centres remain unknown. This correction changes every
+physical index, connector-dependent installed turn, and deployment identity.
 
 ## Draft and authored wiring routes
 
@@ -140,7 +138,7 @@ views because an orthographic view can contain normal overlaps.
 In the manual, green marks DIN and orange marks DOUT. Connector corners are
 profile facts; exact pad centres in the small PCB diagrams are schematic. Use
 **Print / Save PDF**, then print with A4 landscape, background graphics enabled,
-and browser headers and footers disabled. The page labels the saved snake, RGB,
+and browser headers and footers disabled. The page labels the saved pixel and color order,
 GPIO, route, mapping fingerprint, and orientation fingerprint. It is a mapping
 assembly aid. It is not an electrical approval or a power-distribution plan.
 
@@ -176,21 +174,22 @@ The production mapping must join these facts without an implicit transform:
 6. exact source and generated-artifact identities.
 
 The installed address transform compiles before `panelWireIndex()`. The WLED
-deployment contract fixes RGB order 1. The Schema and types define measured and
+deployment contract fixes measured GRB order 0. The Schema and types define measured and
 hardware-verified wiring lifecycle states. The parser accepts measured wiring, but rejects
 hardware-verified activation until `PROOF-010` supplies an acceptance validator.
 No authored sculpture contains measured route, controller, or proof facts yet.
 
 `installedAddressTransform` does not reuse the geometry/mechanical rotation as
 a hidden address transform. The pose remains the world-space authority. The
-separate back-view transform maps pose-local display coordinates to PCB wire
-coordinates. It applies optional horizontal mirroring first, then zero to three
-clockwise quarter turns. Existing projects without this field use an assumed
+separate back-view transform maps pose-local front-view coordinates to PCB wire
+coordinates. It first applies the fixed front-to-back X reflection, then an
+optional installed horizontal mirror, then zero to three clockwise quarter
+turns. Existing projects without this field use an assumed
 identity transform; legacy `rotationDegrees` and `mirrored` values are never
 inferred. A measured calibration requires an explicit measured transform on
 every panel. Color order is a WLED bus fact. Bus reversal stays false because
 the authored route and ledmap already own direction. The assumed WLED fragment
-records type 22, RGB order 1, RMT driver 0, GPIO, global start, length, current
+records type 22, measured GRB order 0, RMT driver 0, GPIO, global start, length, current
 limits, and power-domain labels for all four outputs.
 
 A panel pose or panel-set edit keeps the quarter-turn and mirror values, but
@@ -202,7 +201,7 @@ measurement status from silently passing readiness.
 per panel and uses dynamic programming to minimize the complete set of
 DOUT-to-next-DIN distances on each saved output. Equal-distance solutions use
 the lexicographically lowest turn sequence. The current route estimate changes
-from 3,429.5 mm at identity to 1,245.8 mm after optimization. The estimate uses
+from 2,795.8 mm at identity to 1,245.8 mm after optimization. The estimate uses
 profile connector corners, not unknown pad-centre offsets.
 
 The implementation sequence is:
@@ -238,11 +237,12 @@ artifact.
 `assessHardwareReadiness()` exposes `currentChecksPass` for the existing
 transforms/UVs, chains, GPIOs, pixel order, and installed-address checks. It is
 not electrical approval. `mappingReady` depends only on a complete authored
-route, assigned GPIOs, complete snake order, and route-optimized transforms.
+route, assigned GPIOs, complete panel order, and route-optimized transforms.
 Draft, requires-review, and inactive hardware-verified routes report a
 lifecycle blocker. The flagship route, GPIOs, and optimized address transforms
-are authored assumptions. Pixel traversal is snake, color order is RGB, and the
-tool selects installed quarter turns. Voltage, temperature, and device
+are authored assumptions. Pixel traversal is measured straight row-major,
+color order is measured GRB, and the tool selects installed quarter turns.
+Voltage, temperature, and device
 read-back do not participate in mapping readiness.
 
 The JSON Schema requires `panelIds` for explicit non-draft lifecycle states and
@@ -257,7 +257,7 @@ route, target, and current-limit artifacts from the same project state.
 
 The selected policy for `WIRE-012` is to keep assumption-labelled artifacts
 available with unmistakable names. Mapping-ready output requires current route,
-orientation, snake, RGB, GPIO, and target identities. Electrical protection and
+orientation, pixel order, color order, GPIO, and target identities. Electrical protection and
 the optional hardware-verified evidence lifecycle are separate.
 
 `layout/panel-map.json` and the files under `wled/diagnostic/` are generated
@@ -302,7 +302,7 @@ native WLED effect.
 - Regenerate/compare fingerprints after pose, route, pixel-order, rotation, or
   mirroring changes.
 - Never upgrade provisional facts to measured without hardware evidence.
-- Regenerate the exact-byte manifest after a route, orientation, snake, RGB, or
+- Regenerate the exact-byte manifest after a route, orientation, pixel order, color order, or
   bus change.
 - Test one fused, current-limited panel before mass wiring. Record all 64
   addresses and red/green/blue output. Test one representative from every known

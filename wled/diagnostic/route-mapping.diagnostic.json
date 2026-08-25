@@ -2,8 +2,14 @@
   "schemaVersion": "1.0.0",
   "status": "authored",
   "routeSource": "authored-route",
-  "mappingFingerprint": "54823909",
+  "mappingFingerprint": "73b36d49",
   "mappingFingerprintVersion": "fnv1a32-u32le-v2",
+  "wledColorOrder": {
+    "status": "measured",
+    "channelSequence": "GRB",
+    "wledValue": 0,
+    "note": "One fused physical panel test on 2026-08-25 showed RGB order 1 swaps red and green; WLED GRB order 0 displays red, green, and blue correctly."
+  },
   "ledCount": 2624,
   "outputs": [
     {

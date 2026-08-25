@@ -21,6 +21,25 @@ interface DynamicState {
 const TURN_CHOICES: Array<0 | 1 | 2 | 3> = [0, 1, 2, 3];
 const DISTANCE_EPSILON = 1e-9;
 
+/**
+ * Remove only derived route-optimization provenance before an explicit
+ * reoptimization. This lets the dedicated maintenance command migrate stale
+ * optimized transforms after a profile or route authority changes while all
+ * normal project loaders continue to reject stale fingerprints.
+ */
+export function prepareInstalledAddressTransformsForReoptimization(
+  definition: PanelAssemblyDefinition,
+): PanelAssemblyDefinition {
+  const prepared = structuredClone(definition);
+  for (const panel of prepared.panels) {
+    const transform = panel.installedAddressTransform;
+    if (transform?.selectionMethod !== "route-optimized") continue;
+    transform.selectionMethod = "manual";
+    delete transform.optimizationFingerprint;
+  }
+  return prepared;
+}
+
 function effectiveTransform(
   panel: PanelAssemblyDefinition["panels"][number],
 ): InstalledAddressTransform {
@@ -40,6 +59,7 @@ function transformDisplayToPcb(
   columns: number,
   rows: number,
 ): [number, number] {
+  x = columns - 1 - x;
   x = transform.mirrored ? columns - 1 - x : x;
   switch (transform.quarterTurnsClockwise) {
     case 1:
