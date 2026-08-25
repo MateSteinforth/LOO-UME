@@ -127,11 +127,20 @@ export interface CompiledPanelBoundaryBundle {
   files: CompiledPanelBoundaryFile[];
 }
 
-/** Compiles topology, boundary STL, and Manifold part STLs in memory. */
-export async function compilePanelBoundaryBundle(
+export interface PanelBoundaryPartsPreflight {
+  workingProject: PanelAssemblyProject;
+  boundary: ClosedPanelBoundary;
+  printableProject: PanelAssemblyProject;
+}
+
+/**
+ * Runs the shared browser/CLI fit gate before Manifold or file publication.
+ * It validates the panel-outline boundary, PCB envelopes, and compiled closure
+ * topology from the same project and profile facts used by generation.
+ */
+export function preflightPanelBoundaryParts(
   project: PanelAssemblyProject,
-  panelProfileSource?: string,
-): Promise<CompiledPanelBoundaryBundle> {
+): PanelBoundaryPartsPreflight {
   const workingDefinition = structuredClone(project.sculpture);
   delete workingDefinition.mechanicalShell;
   delete workingDefinition.closures;
@@ -152,6 +161,16 @@ export async function compilePanelBoundaryBundle(
   );
   const printableProject = createPrintableBoundaryProject(workingProject, boundary);
   compilePanelAssembly(printableProject);
+  return { workingProject, boundary, printableProject };
+}
+
+/** Compiles topology, boundary STL, and Manifold part STLs in memory. */
+export async function compilePanelBoundaryBundle(
+  project: PanelAssemblyProject,
+  panelProfileSource?: string,
+): Promise<CompiledPanelBoundaryBundle> {
+  const { workingProject, boundary, printableProject } =
+    preflightPanelBoundaryParts(project);
 
   const files: CompiledPanelBoundaryFile[] = [];
   const boundaryBytes = serializeAsciiStl(

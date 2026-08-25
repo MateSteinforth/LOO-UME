@@ -60,10 +60,10 @@ No tasks.
 
 ## In Progress
 
-### `CAD-020` Apply one fit preflight to every authored generation entry
+### `ARCH-010` Split browser orchestration along covered behavior boundaries
 
 - Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-- Conflict risk: browser/CLI fabrication adapters and shared geometry checks.
+- Conflict risk: browser event orchestration and focused UI modules.
 
 ## Blocked
 
@@ -109,6 +109,15 @@ No tasks.
 No tasks.
 
 ## Ready to Merge
+
+### `CAD-020` Apply one fit preflight to every authored generation entry
+
+- Scope: the browser in-memory path and CLI publisher now enter one named
+  boundary, PCB-envelope, and compiled-topology preflight before Manifold or
+  filesystem staging.
+- Verification: browser/CLI invalid-envelope parity and atomic-publication
+  regression passed with the complete boundary-parts journey; TypeScript passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
 
 ### `PLACE-010` Preflight automatic-placement footprints
 

@@ -35,8 +35,10 @@ edit marks derived mechanics stale but does not stop those functions.
    draft suggestion. Confirming a route writes exact ordered panel IDs.
 4. `createHardwareMappingContract()` compiles physical indices and the WLED
    ledmap from the same current project.
-5. `compilePanelBoundaryBundle()` derives or reuses corner-only gap cycles,
-   validates the closed boundary, and compiles exact STL bytes with Manifold.
+5. `preflightPanelBoundaryParts()` is the shared browser/CLI fit gate. It
+   derives or reuses corner-only gap cycles and validates the closed boundary,
+   PCB envelopes, and compiled closure topology before Manifold or publication.
+   `compilePanelBoundaryBundle()` then compiles the exact STL bytes.
 6. `runStructuralPipeline()` derives eligible anchors from the same poses and
    profile, runs advisory load-path analysis, and compiles either modular
    connector ribbons or LED-surface bridges into exact STL/3MF assets.
