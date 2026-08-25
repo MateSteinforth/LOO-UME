@@ -4,8 +4,8 @@ Last reconciled: 2026-08-25
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: produce one guarded simulator-to-ESP32 deployment contract,
-then prove static address and RGB parity on the physical 41-panel sculpture.
+Current milestone: automate the now-proven one-panel ESP32 setup, then prove
+static address and RGB parity on the physical 41-panel sculpture.
 
 ## Control rules
 
@@ -86,20 +86,6 @@ No tasks.
 - Needed: a bounded pre-CAD path optimizer that treats keep-out and printable-
   mesh feasibility as edge costs while preserving the strict final mesh gate.
 
-### `FIRM-011` Flash and smoke-test the minimum pinned WLED target
-
-- Software ready: off-main build branch `generate/wled-firmware` at `8089c79`
-  reproducibly emits the 1,107,920-byte binary with SHA-256
-  `0468ee34c8b9578504c3f4a708421eaa7b70663b691d5df430f46ea009fdabd7`.
-  The binary remains off `main`; its receipt and guarded deployment identity
-  are included in the installation package.
-- Physical evidence: the exact binary flashed successfully to an ESP-WROOM-32
-  controller. One 64-pixel panel on GPIO16 accepted the 1,000 mA smoke config;
-  GRB order 0 showed correct red, green, and blue and persisted after reboot.
-- Blocked by: completing and recording the low-brightness moving-pixel test and
-  the exact board label, panel ID, fuse rating, supply limit, and observed
-  voltage/current. Do not energize the complete sculpture.
-
 ### `PWR-010` Approve power and protection
 
 - Blocked by: available hardware, electrical calculation, and physical review.
@@ -108,7 +94,7 @@ No tasks.
 
 ### `HW-012` Record the installed 41-panel route
 
-- Blocked by: `PWR-010`, `FIRM-011`, and physical assembly.
+- Blocked by: `PWR-010` and physical assembly.
 
 ### `FIRM-010` Add later transport or audio behavior
 
@@ -117,8 +103,8 @@ No tasks.
 
 ### `PROOF-010` Prove simulator-to-device address and RGB parity
 
-- Blocked by: `HW-012`, the physical FIRM-011 smoke result, and an approved
-  powered test setup. DIAG-010 supplies the exact offline frame plan.
+- Blocked by: `HW-012` and an approved powered test setup. DIAG-010 supplies
+  the exact offline frame plan.
 - Needed: observe and record all 2,624 addresses, row transitions, corners,
   four outputs, and RGB channels against the exact deployment identity.
 
@@ -128,92 +114,18 @@ No tasks.
 
 ## Ready to Merge
 
-### `CAL-011` Promote measured panel color and address order
-
-- Scope: replace provisional RGB/order-1 and serpentine connector assumptions
-  with measured GRB/order-0 and straight row-major panel facts. Front view is
-  DIN/pixel 0 at top-left, rows left-to-right and downward, and pixel 63/DOUT at
-  bottom-right. The back-view profile reflects X exactly once.
-- Evidence: the one-panel color result persisted after reboot; direct mapping
-  regressions cover 0, 7, 8, 15, 16, 56, and 63; all 41 installed turns and
-  artifacts regenerated. Mapping fingerprint is `73b36d49`, installed-turn
-  fingerprint is `b2148e665f6ca16b`, diagnostic plan fingerprint is
-  `843a0a39d4913ba3299870131d18ef18db1b2fbbd732bb04419ee7a379df9b3d`.
-  Full Vitest passed 348/348; TypeScript, Vite, and diff checks passed; the
-  independent review found no remaining blockers.
-- Owner: `codex/cal-011-grb` in `/tmp/led-rhombo-cal-011`; based on the unmerged
-  `codex/unblocked-batch` deployment work and must integrate after it.
-- Conflict risk: panel profile/schema, WLED deployment files, mapping artifacts,
-  wiring manual, and shared documentation/task state.
-
-### `DIAG-010` Deliver deterministic hardware diagnostic frames
-
-- Scope: an identity-bound plan supplies 7,872 deterministic low-brightness,
-  one-pixel WLED JSON frames covering every address and RGB channel. Each frame
-  records output/GPIO, panel, local coordinate, logical index, and physical
-  index. The CLI writes the complete plan and requires an explicit confirmation
-  before sending a selected bounded range.
-- Verification: deterministic coverage, exact request bytes, 1,024-byte limit,
-  transient retry, permanent failure, and oversize refusal passed 3/3; the full
-  plan regenerated from the measured panel contract with fingerprint
-  `843a0a39d4913ba3299870131d18ef18db1b2fbbd732bb04419ee7a379df9b3d`;
-  TypeScript passed.
-- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-
-### `ARCH-010` Split browser orchestration along covered behavior boundaries
-
-- Scope: registry, remote/local Schema 2 loading, profile resolution, and
-  mapping/wiring contract derivation moved to one stateless project-loader
-  adapter; `main.ts` retains orchestration and application state.
-- Verification: focused project-loader, portable-project, and package tests
-  passed 16/16; TypeScript and the Vite production build passed.
-- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-
-### `CAD-020` Apply one fit preflight to every authored generation entry
-
-- Scope: the browser in-memory path and CLI publisher now enter one named
-  boundary, PCB-envelope, and compiled-topology preflight before Manifold or
-  filesystem staging.
-- Verification: browser/CLI invalid-envelope parity and atomic-publication
-  regression passed with the complete boundary-parts journey; TypeScript passed.
-- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-
-### `PLACE-010` Preflight automatic-placement footprints
-
-- Scope: deterministic separating-axis preflight selects only non-overlapping
-  oriented panel footprints and fails before mutation when the count cannot fit.
-- Verification: six automatic-placement cases and twelve editor regressions
-  passed; TypeScript passed.
-- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-
-### `FAB-022` Reconcile back-view coordinates in planar closure connectors
-
-- Scope: one shared back-view-to-outward conversion now owns planar closure
-  holes and structural anchors/clearances without changing IDs or addressing;
-  the fabrication contract now makes pre-conversion planar parts stale.
-- Verification: focused profile, pose, planar, structural, Manifold, and stale-
-  manifest tests passed; the complete unit suite passed 342/342 before the
-  added stale regression.
-- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-
-### `SEC-010` Bound ZIP resource use
-
-- Scope: preflight central-directory archive, entry, expansion, and ratio
-  limits; require streamed local entries to match before buffering.
-- Verification: focused resource-limit, portable round-trip, and complete
-  boundary-package tests passed 19/19; TypeScript passed.
-- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-
-### `MAP-020` Version and strengthen ledmap fingerprints
-
-- Scope: new mapping artifacts use labeled full-width 32-bit index hashing;
-  unlabeled historical artifacts retain the low-16-bit reload rule.
-- Verification: focused mapping, deployment, fixture, and compatibility tests
-  passed 45/45; generated diagnostic artifacts are synchronized.
-- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
+No tasks.
 
 ## Done
 
+- `FIRM-011`: the pinned WLED binary flashed successfully to the ESP-WROOM-32;
+  the operator confirmed the 64-pixel GPIO16 smoke configuration, GRB colors,
+  straight 0–63 row-major address walk, reboot persistence, and stable operation.
+- `CAL-011`: measured GRB/order-0 and front-view straight row-major addressing
+  are integrated in `main` at `80a1225`; mapping fingerprint is `73b36d49`.
+- `DIAG-010`, `ARCH-010`, `CAD-020`, `PLACE-010`, `FAB-022`, `SEC-010`, and
+  `MAP-020`: the reviewed unblocked implementation batch is integrated in
+  `main` at `d51e8bb`; integrated Vitest passed 348/348 with TypeScript and Vite.
 - `HR-006`: operator printed representative Manifold parts and confirmed on
   2026-08-25 that they work.
 - `FAB-021`: corrected structural PCB back-view coordinates and added
