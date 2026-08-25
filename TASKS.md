@@ -91,21 +91,14 @@ No tasks.
 
 ## Ready to Merge
 
-### `FIRM-012` Add guarded one-button ESP32 setup to Advanced Tools
-
-- Implemented: Advanced Tools verifies and flashes the receipt-bound complete
-  WLED image, provisions Wi-Fi over USB without storing the password, assigns
-  `loo-ume.local`, applies the 64-pixel GPIO 16 GRB smoke configuration and
-  simulator frame, then verifies mDNS, current DHCP address, identity, config,
-  and state by read-back. Full-install mode stays unavailable.
-- Verified in software: independent review; 356 unit tests; focused browser
-  journey; TypeScript; production Vite build; receipt and firmware-byte gates.
-- Physical review: approved 2026-08-25 with the ESP32 connected directly to
-  the laptop running Chrome; the split-machine SSH tunnel was development-only.
-- Owner: `codex/firm-012-ui-setup` in `/tmp/led-rhombo-firm-012`.
+No tasks.
 
 ## Done
 
+- `FIRM-012`: integrated the receipt-verified Advanced Tools ESP32 flash,
+  private Wi-Fi provisioning, `loo-ume.local` identity, one-panel simulator
+  state transfer, and device read-back; physical browser/USB review passed on
+  2026-08-25. Full-install mode remains unavailable.
 - `FIRM-011`: the pinned WLED binary flashed successfully to the ESP-WROOM-32;
   the operator confirmed the 64-pixel GPIO16 smoke configuration, GRB colors,
   straight 0–63 row-major address walk, reboot persistence, and stable operation.
