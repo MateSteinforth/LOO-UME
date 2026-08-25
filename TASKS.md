@@ -36,11 +36,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Acceptance: project, placement, mechanics, mapping, wiring, package, and
   rendering journeys remain covered; no new manager or state authority.
 
-### `SEC-010` Bound ZIP resource use
-
-- Acceptance: reject excessive entry count, individual size, total expansion,
-  and suspicious ratios before buffering; normal packages round-trip.
-
 ### `PLACE-010` Preflight automatic-placement footprints
 
 - Acceptance: return non-overlapping poses or identify panels that cannot fit.
@@ -63,11 +58,6 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
   collision-free parts without weakening the all-panel final-solid keep-out,
   cutting connector bores, or changing authorized panel poses.
 - Depends on: `FAB-021`; preserve its fail-closed clearance contract.
-
-### `MAP-020` Version and strengthen ledmap fingerprints
-
-- Acceptance: indices that differ above bit 15 produce different identities;
-  compatibility behavior is tested and documented.
 
 ### `FIRM-011` Build and deploy the minimum pinned WLED target
 
@@ -93,7 +83,10 @@ No tasks.
 
 ## In Progress
 
-No tasks.
+### `SEC-010` Bound ZIP resource use
+
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
+- Conflict risk: portable ZIP import and browser import tests.
 
 ## Blocked
 
@@ -132,7 +125,13 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `MAP-020` Version and strengthen ledmap fingerprints
+
+- Scope: new mapping artifacts use labeled full-width 32-bit index hashing;
+  unlabeled historical artifacts retain the low-16-bit reload rule.
+- Verification: focused mapping, deployment, fixture, and compatibility tests
+  passed 45/45; generated diagnostic artifacts are synchronized.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
 
 ## Done
 

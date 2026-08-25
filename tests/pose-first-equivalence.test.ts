@@ -21,19 +21,19 @@ const fixtures = [
   {
     source: "sculptures/cuboctahedron/sculpture.json",
     input: cuboctahedron,
-    fingerprint: "2ffe135d",
+    fingerprint: "c454e33d",
     wledHash: "d0e9a27b3cf5c430cf2728cf504486380c7d7676326db97655cd5358ccd52bca",
   },
   {
     source: "sculptures/rhombicosidodecahedron-auto/sculpture.json",
     input: rhombicosidodecahedron,
-    fingerprint: "93987755",
+    fingerprint: "ef09eb05",
     wledHash: "9e2741adfdcc1eb600f133cea8a7bca52aa99f82be89c095e37c1344515ae6db",
   },
   {
     source: "sculptures/truncated-octahedron/sculpture.json",
     input: truncatedOctahedron,
-    fingerprint: "b7169f35",
+    fingerprint: "a82275e5",
     wledHash: "b170b5e5affbc1f59681752cc72f77b7710f0b8fbfebe3f243d18f4028e274ee",
   },
 ] as const;

@@ -38,7 +38,6 @@ blocked by `PWR-010`.
   export, reload, and display.
 - Bound ZIP entry count, size, total expansion, and compression ratio.
 - Preflight panel footprints during automatic placement.
-- Strengthen ledmap fingerprints beyond the low 16 bits of each index.
 - Add correction tools only when a real ambiguous gap arrangement provides a
   concrete fixture.
 - Split `web/src/main.ts` only along covered behavior boundaries.

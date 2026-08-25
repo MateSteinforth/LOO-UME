@@ -103,6 +103,7 @@ function createRouteMappingBytes(contract: HardwareMappingContract): string {
     status: contract.wiring.status,
     routeSource: contract.wiring.routeSource,
     mappingFingerprint: contract.fingerprint,
+    mappingFingerprintVersion: contract.fingerprintVersion,
     ledCount: contract.ledmap.map.length,
     outputs: contract.outputs,
     readiness: contract.readiness,
@@ -159,6 +160,7 @@ export function createWledDeploymentBundle(
       sha256: sha256ExactBytes(sculptureBytes),
     },
     mappingFingerprint: contract.fingerprint,
+    mappingFingerprintVersion: contract.fingerprintVersion,
     files: [...files].map(([path, bytes]) => fileEntry(path, bytes)),
   });
   files.set(manifestPath, manifestBytes);
@@ -182,6 +184,7 @@ export function validateWledDeploymentBundle(
     target?: Record<string, unknown>;
     sourceProject?: { path?: string; byteLength?: number; sha256?: string };
     mappingFingerprint?: string;
+    mappingFingerprintVersion?: string;
     files?: DeploymentFileEntry[];
   };
   const installation = manifest.status === "mapping-ready-installation";
@@ -204,6 +207,7 @@ export function validateWledDeploymentBundle(
     !Number.isInteger(manifest.sourceProject.byteLength) ||
     !/^[0-9a-f]{64}$/.test(manifest.sourceProject.sha256 ?? "") ||
     !/^[0-9a-f]{8}$/.test(manifest.mappingFingerprint ?? "") ||
+    manifest.mappingFingerprintVersion !== "fnv1a32-u32le-v2" ||
     !Array.isArray(manifest.files) ||
     manifest.files.length !== expectedPaths.length
   ) {

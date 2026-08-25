@@ -61,6 +61,7 @@ const panelMap = {
   hardwareReady: contract.readiness.ready,
   mappingReady: contract.readiness.mappingReady,
   ledmapFingerprint: contract.fingerprint,
+  ledmapFingerprintVersion: contract.fingerprintVersion,
   readinessBlockers: contract.readiness.blockers,
   wiringLifecycle: contract.readiness.wiringLifecycle,
   assumptions: {

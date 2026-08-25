@@ -156,9 +156,12 @@ The manual 41-panel snapshot currently resolves to:
 This is the saved route revision 1. The route and GPIO assignments are
 prototype assumptions. They are authored, but they are not measured.
 
-The route-optimized fingerprint is `bc5054d1`. It is FNV-style over only the low 16
-bits of each physical index: useful for current artifact drift, not a
-cryptographic identity.
+New artifacts label their fingerprint as `fnv1a32-u32le-v2`. The FNV-style
+input includes all four little-endian bytes of each physical index, so indices
+that differ above bit 15 cannot alias for that reason. A panel map without a
+version label loads through the historical `fnv1a32-u16le-v1` rule; new exports
+always write the v2 label. This remains a drift identity, not a cryptographic
+identity.
 
 ## Required production contract
 

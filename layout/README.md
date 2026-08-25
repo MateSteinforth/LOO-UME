@@ -13,7 +13,9 @@ loader rejects a fingerprint or per-LED mismatch. Together these files record:
 - four output routes and global WLED address ranges;
 - panel-local pixel coordinates;
 - logical and physical indices;
-- readiness blockers and a deterministic ledmap fingerprint.
+- readiness blockers and a versioned deterministic ledmap fingerprint. New
+  exports use all 32 index bits; an unlabeled historical map keeps the legacy
+  low-16-bit reload rule.
 
 The diagnostic ledmap is not an installation file. Do not upload a file below
 `wled/diagnostic/` to production hardware.

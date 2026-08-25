@@ -18,7 +18,8 @@
   "status": "provisional",
   "hardwareReady": false,
   "mappingReady": true,
-  "ledmapFingerprint": "bc5054d1",
+  "ledmapFingerprint": "54823909",
+  "ledmapFingerprintVersion": "fnv1a32-u32le-v2",
   "readinessBlockers": [
     "Electrical protection approval is separate from mapping readiness."
   ],

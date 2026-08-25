@@ -30,6 +30,7 @@ export function createWiringReview(
     routeSource: preview.routeSource,
     savedOutputPanelIds: preview.savedOutputPanelIds,
     fingerprint: contract.fingerprint,
+    fingerprintVersion: contract.fingerprintVersion,
     outputs: contract.outputs,
     wiring: preview,
     readiness: contract.readiness,
