@@ -136,6 +136,11 @@ must bind the current project, route, ledmap, WLED bus fragment, target identity
 and exact file hashes. Hardware-verified state remains blocked until accepted
 `PROOF-010` evidence exists.
 
+`src/wled/DiagnosticFrames.ts` derives deterministic low-brightness, one-pixel
+frames from the same deployment identity and mapping contract. Its bounded HTTP
+adapter transports exact WLED JSON requests; it does not create observation
+evidence or a second mapping authority.
+
 At 60 mA per pixel, 2,624 pixels can require 157.44 A at 5 V. Full-sculpture
 operation waits for the `PWR-010` supply, injection, wire, fuse, voltage-drop,
 and current-limit plan. Software brightness limiting is secondary protection.
@@ -160,6 +165,7 @@ and current-limit plan. Software brightness limiting is secondary protection.
 | `tests/browser/` | Real Chromium operator journeys |
 | `wasm/` | Deterministic subset of WLED 1D effects, not firmware |
 | `firmware/` | Minimum ESP32 deployment metadata, safety procedure, and smoke configuration; WLED build tooling stays off-main and binaries stay untracked |
+| `src/wled/` | Guarded deployment identity and deterministic diagnostic frame transport |
 
 ## Verification boundaries
 

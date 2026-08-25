@@ -31,29 +31,13 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
-### `DIAG-010` Deliver deterministic hardware diagnostic frames
-
-- Acceptance: frames identify output, panel, local coordinate, logical and
-  physical index, and RGB channel; retry and request-size behavior is tested.
-- Depends on: `FIRM-011`.
-
-### `PROOF-010` Prove simulator-to-device address and RGB parity
-
-- Acceptance: all 2,624 addresses, row transitions, corners, outputs, and RGB
-  channels agree with the exact deployment manifest and recorded bench result.
-- Depends on: `DIAG-010`, `HW-012`, and `WIRE-012`.
-
 ## Ready
 
 No tasks.
 
 ## In Progress
 
-### `DIAG-010` Deliver deterministic hardware diagnostic frames
-
-- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
-- Uses the pinned FIRM-011 software and deployment identity. Physical output
-  observation remains a later proof boundary.
+No tasks.
 
 ## Blocked
 
@@ -107,11 +91,31 @@ No tasks.
 - Blocked by: `PROOF-010` plus explicit board, network, microphone, and
   transport decisions.
 
+### `PROOF-010` Prove simulator-to-device address and RGB parity
+
+- Blocked by: `HW-012`, the physical FIRM-011 smoke result, and an approved
+  powered test setup. DIAG-010 supplies the exact offline frame plan.
+- Needed: observe and record all 2,624 addresses, row transitions, corners,
+  four outputs, and RGB channels against the exact deployment identity.
+
 ## Human Review
 
 No tasks.
 
 ## Ready to Merge
+
+### `DIAG-010` Deliver deterministic hardware diagnostic frames
+
+- Scope: an identity-bound plan supplies 7,872 deterministic low-brightness,
+  one-pixel WLED JSON frames covering every address and RGB channel. Each frame
+  records output/GPIO, panel, local coordinate, logical index, and physical
+  index. The CLI writes the complete plan and requires an explicit confirmation
+  before sending a selected bounded range.
+- Verification: deterministic coverage, exact request bytes, 1,024-byte limit,
+  transient retry, permanent failure, and oversize refusal passed 3/3; the full
+  plan generated with fingerprint `9b8322885dd1fd5bb30f8cfb2ad6f6d56c21defb5cd1d54c6169ab94d59c63ee`;
+  TypeScript passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
 
 ### `ARCH-010` Split browser orchestration along covered behavior boundaries
 

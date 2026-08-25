@@ -44,6 +44,23 @@ LED power rail during the initial flash.
 This smoke test does not approve the full sculpture power system and does not
 prove all 2,624 addresses. Those results belong to `PWR-010` and `PROOF-010`.
 
+After this smoke test passes, generate the deterministic one-pixel diagnostic
+plan without contacting the device:
+
+```bash
+npm run diagnostics:hardware
+```
+
+To send a small reviewed range, give the device URL, start frame, count, and
+the explicit safety confirmation. For example:
+
+```bash
+npm run diagnostics:hardware -- --host http://wled.local --start 0 --count 3 --confirm-one-pixel-output
+```
+
+Each frame uses brightness 32 and lights one pixel in one RGB channel. The
+command does not record the observation and does not complete `PROOF-010`.
+
 ## Install the exact mapping with all LED rails disconnected
 
 From `main`, generate the guarded installation files:

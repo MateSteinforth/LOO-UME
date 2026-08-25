@@ -179,3 +179,13 @@ Portable ZIP import has fixed limits for archive bytes, entry count, individual
 and total expansion, and compression ratio. It rejects unsupported or
 inconsistent central-directory contracts before decompression. Streaming local
 entries must match that inspected directory before bytes enter project buffers.
+
+## D26 — Hardware diagnostics light one pixel at a time
+
+The diagnostic plan is bound to the exact deployment identity and mapping
+fingerprint. Each frame records output, GPIO, panel, local coordinate, logical
+index, physical index, and one RGB channel. Requests use the pinned WLED JSON
+individual-LED contract, stay below 1,024 bytes, use brightness 32, and change
+only one visible pixel. The sender retries only transient transport or HTTP
+failures and requires an explicit confirmation flag. Generated frames are test
+instructions, not hardware evidence.

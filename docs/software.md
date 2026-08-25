@@ -104,6 +104,8 @@ controller behavior.
 `FIRM-011` has built the minimum pinned target and prepared its guarded flash,
 one-panel smoke, and powered-off mapping installation procedure. It remains
 open until a real controller and fused panel produce a smoke-test record.
-`DIAG-010` then supplies deterministic local test frames, and `PROOF-010`
-checks every address and RGB channel. DDP, Art-Net, Ethernet, microphone,
-audio, presets, and custom effects remain under later `FIRM-010` work.
+`DIAG-010` supplies deterministic low-brightness, one-pixel JSON test frames
+bound to the exact deployment identity. Each frame labels the expected address,
+panel coordinate, output, and RGB channel. `PROOF-010` remains the physical
+observation and evidence gate. DDP, Art-Net, Ethernet, microphone, audio,
+presets, and custom effects remain under later `FIRM-010` work.

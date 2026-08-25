@@ -277,11 +277,17 @@ physical wiring. The host contains 30 selected 1D effects, eight palettes, one
 Segment-like state, explicit time, and seeded randomness. WLED is pinned at
 `d9b9a846561227351ad929e3109781daadb7bed2`.
 
-No current code sends pixels to hardware. DDP, Art-Net, Wi-Fi, Ethernet, ESP32
-drivers, presets, multiple/2D segments, audio-reactive effects, and firmware
-configuration are absent. A C++ audio setter exists, but JS does not expose it
-and selected effects do not use it. `firmware/` contains guidance only; board,
-GPIO, network, microphone, usermod, and binary build decisions are open.
+`npm run diagnostics:hardware` writes an identity-bound plan of 7,872 WLED
+JSON frames. Each low-brightness frame lights only one logical pixel and one
+RGB channel, while its record names the expected output, GPIO, panel, local
+coordinate, and physical index. Supplying `--host`, a bounded frame range, and
+`--confirm-one-pixel-output` sends those exact bytes to `/json/state` with
+bounded transient retries. Do this only after the fused-panel FIRM-011 smoke
+test passes. A generated or sent frame is not observed hardware evidence.
+
+DDP, Art-Net, Ethernet, audio-reactive effects, custom firmware behavior, and
+automatic device read-back remain absent. The WLED build target and receipt are
+pinned, but the controller has not yet passed the physical smoke gate.
 
 The mapping claim is static address and RGB parity for the selected pinned WLED
 target. Matching effect names or WASM frames does not prove
