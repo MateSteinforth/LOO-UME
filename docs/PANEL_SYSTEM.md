@@ -49,8 +49,12 @@ The editor creates panels in three ways:
    into closure regions.
 3. Automatic placement samples indexed mesh triangles by area and uses
    deterministic farthest-point selection until the target count is reached.
-   Existing panels remain; new panels go to the currently shortest provisional
-   output. This is placement only and does not promise CAD fit.
+   A separating-axis preflight treats existing and proposed panels as oriented
+   rectangular footprints and selects only non-overlapping candidates. If the
+   requested count cannot fit, placement fails before mutation and reports the
+   fitted count. Existing panels remain; new panels go to the currently
+   shortest provisional output. This is placement only and does not promise
+   CAD fit.
 
 Selected panels have two explicit transform modes. Surface mode keeps the
 existing constrained surface move, saved local-XY move without a surface, and
@@ -186,10 +190,11 @@ the interval `(0, 1]`. An infeasible terminal trace cannot be labeled as
 converged, and reaching the iteration bound while values still change reports
 `iteration-limit`.
 
-The profile names mounting holes in PCB back view. Before structural anchor or
-DIN/DOUT clearance positions enter the outward-facing right-handed pose frame,
-the normalizer mirrors profile-local X and preserves Y. Hole IDs remain the
-measured back-view identities. The normalizer also derives a cable-load axis at
+The profile names mounting holes in PCB back view. Before planar or structural
+fabrication positions enter the outward-facing right-handed pose frame, the
+shared conversion mirrors profile-local X and preserves Y. Hole IDs remain the
+measured back-view identities. Structural normalization also derives a cable-
+load axis at
 each blocked hole. Ribbon CAD does not cut a cable bore there. Instead, every
 final ribbon and bridge must stay outside a fail-closed axial clearance cylinder
 whose diameter and length equal the configured conservative cable clearance.

@@ -6,6 +6,9 @@ import type { PanelHardwareProfile } from "./Definition.ts";
 
 export type GeneratedMechanicsState = "absent" | "current" | "stale";
 
+export const GENERATED_MECHANICS_FABRICATION_CONTRACT =
+  "pcb-back-view-to-outward-pose-local-v2";
+
 const SHA256_CONSTANTS = [
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
   0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -189,6 +192,7 @@ export function createGeneratedMechanicsFingerprint(
   profile: PanelHardwareProfile,
 ): string {
   const input = {
+    fabricationContract: GENERATED_MECHANICS_FABRICATION_CONTRACT,
     panels: definition.panels
       .map(({ id, pose }) => ({ id, pose }))
       .sort((left, right) => compareText(left.id, right.id)),

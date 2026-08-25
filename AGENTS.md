@@ -114,9 +114,12 @@ Historical Schema 1 inputs are available only through Git history.
 - Do not energize the complete 41-panel sculpture before the power domains,
   injection branches, wire sizes, fuses, voltage drop, and maximum operating
   current pass `PWR-010`. WLED current limiting is secondary protection.
-- Do not claim firmware, DDP, Art-Net, networking, Ethernet, or audio-reactive
-  behavior: `firmware/` contains instructions only and the browser runs a small
-  WLED effect simulator.
+- `firmware/` contains the selected minimum ESP32 target, its exact build
+  receipt, and a one-panel smoke configuration. WLED build tooling stays on
+  `generate/wled-firmware`; its binary is an ignored build/release artifact.
+  Do not claim a flashed controller, DDP, Art-Net, Ethernet, audio, or address
+  parity before its physical task records that evidence. The browser simulator
+  remains a separate subset.
 
 ## Working safely
 

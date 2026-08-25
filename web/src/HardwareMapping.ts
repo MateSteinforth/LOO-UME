@@ -14,6 +14,12 @@ export interface WledLedmap {
   map: number[];
 }
 
+export const LEDMAP_FINGERPRINT_VERSION = "fnv1a32-u32le-v2";
+export const LEGACY_LEDMAP_FINGERPRINT_VERSION = "fnv1a32-u16le-v1";
+export type LedmapFingerprintVersion =
+  | typeof LEDMAP_FINGERPRINT_VERSION
+  | typeof LEGACY_LEDMAP_FINGERPRINT_VERSION;
+
 export interface OutputAddressRange {
   outputIndex: number;
   gpio: number | null;
@@ -39,6 +45,7 @@ export interface HardwareMappingContract {
   outputs: OutputAddressRange[];
   readiness: HardwareReadiness;
   fingerprint: string;
+  fingerprintVersion: LedmapFingerprintVersion;
 }
 
 function panelPixelKey(
@@ -380,6 +387,7 @@ export function createHardwareMappingContract(
     outputs,
     readiness,
     fingerprint: fingerprintLedmap(ledmap),
+    fingerprintVersion: LEDMAP_FINGERPRINT_VERSION,
   };
 }
 
@@ -393,6 +401,7 @@ interface GeneratedPanelMap {
   hardwareReady: boolean;
   mappingReady?: boolean;
   ledmapFingerprint: string;
+  ledmapFingerprintVersion?: LedmapFingerprintVersion;
   readinessBlockers: string[];
   wiringLifecycle?: string;
   outputs: OutputAddressRange[];
@@ -524,7 +533,15 @@ export function loadGeneratedHardwareMappingContract(
   if (equivalenceErrors.length > 0) {
     throw new Error(equivalenceErrors[0]);
   }
-  const fingerprint = fingerprintLedmap(ledmap);
+  const fingerprintVersion = panelMap.ledmapFingerprintVersion ??
+    LEGACY_LEDMAP_FINGERPRINT_VERSION;
+  if (
+    fingerprintVersion !== LEDMAP_FINGERPRINT_VERSION &&
+    fingerprintVersion !== LEGACY_LEDMAP_FINGERPRINT_VERSION
+  ) {
+    throw new Error("Panel map has an unsupported ledmap fingerprint version.");
+  }
+  const fingerprint = fingerprintLedmap(ledmap, fingerprintVersion);
   if (fingerprint !== panelMap.ledmapFingerprint) {
     throw new Error("Panel map and WLED ledmap fingerprints differ.");
   }
@@ -546,6 +563,7 @@ export function loadGeneratedHardwareMappingContract(
     outputs: panelMap.outputs,
     readiness,
     fingerprint,
+    fingerprintVersion,
   };
 }
 
@@ -659,13 +677,22 @@ export function assessHardwareReadiness(
   };
 }
 
-export function fingerprintLedmap(ledmap: WledLedmap): string {
+export function fingerprintLedmap(
+  ledmap: WledLedmap,
+  version: LedmapFingerprintVersion = LEDMAP_FINGERPRINT_VERSION,
+): string {
   let hash = 0x811c9dc5;
   for (const value of ledmap.map) {
     hash ^= value & 0xff;
     hash = Math.imul(hash, 0x01000193);
     hash ^= (value >> 8) & 0xff;
     hash = Math.imul(hash, 0x01000193);
+    if (version === LEDMAP_FINGERPRINT_VERSION) {
+      hash ^= (value >>> 16) & 0xff;
+      hash = Math.imul(hash, 0x01000193);
+      hash ^= (value >>> 24) & 0xff;
+      hash = Math.imul(hash, 0x01000193);
+    }
   }
   return (hash >>> 0).toString(16).padStart(8, "0");
 }

@@ -131,7 +131,7 @@ describe("automatic rhombicosidodecahedron end-to-end compiler", () => {
     });
     expect(contract.ledmap.map).toHaveLength(1_920);
     expect(new Set(contract.ledmap.map).size).toBe(1_920);
-    expect(contract.fingerprint).toBe("93987755");
+    expect(contract.fingerprint).toBe("ef09eb05");
 
   });
 });

@@ -36,12 +36,8 @@ blocked by `PWR-010`.
 
 - Derive LED dimensions from the selected panel profile throughout validation,
   export, reload, and display.
-- Bound ZIP entry count, size, total expansion, and compression ratio.
-- Preflight panel footprints during automatic placement.
-- Strengthen ledmap fingerprints beyond the low 16 bits of each index.
 - Add correction tools only when a real ambiguous gap arrangement provides a
   concrete fixture.
-- Split `web/src/main.ts` only along covered behavior boundaries.
 - Keep Schema 2 as the only authored sculpture and mapping input. Historical
   Schema 1 files remain available through Git history only.
 

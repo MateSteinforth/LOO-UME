@@ -2,7 +2,8 @@
   "schemaVersion": "1.0.0",
   "status": "authored",
   "routeSource": "authored-route",
-  "mappingFingerprint": "bc5054d1",
+  "mappingFingerprint": "54823909",
+  "mappingFingerprintVersion": "fnv1a32-u32le-v2",
   "ledCount": 2624,
   "outputs": [
     {

@@ -161,13 +161,33 @@ from the current hash-verified structural artifact set displayed in Three.js.
 Generating the other style replaces the current set; stale assets stay hidden
 and cannot be downloaded.
 
-## D24 — Convert back-view hardware coordinates before structural fabrication
+## D24 — Convert back-view hardware coordinates before fabrication
 
 Panel-profile mounting-hole IDs and coordinates remain measured PCB back-view
-facts. Structural generation mirrors profile-local X when it maps those facts
-into the right-handed pose whose normal points outward through the LEDs. The
-same conversion applies to eligible screw anchors and blocked DIN/DOUT points.
+facts. The shared conversion mirrors profile-local X when those facts enter the
+right-handed pose whose normal points outward through the LEDs. It applies to
+compiled planar-closure holes, eligible structural screw anchors, and blocked
+DIN/DOUT points.
+The generated-mechanics fingerprint includes this fabrication-coordinate
+contract. Parts made before the conversion become stale and must regenerate.
 Final ribbon and LED-surface bridge solids must fail if they enter a
 conservative DIN/DOUT clearance cylinder; the generator does not cut a bore to
 hide the collision. This fabrication-contract revision invalidates all older
 generated structural artifacts without changing panel poses or addressing.
+
+## D25 — Preflight ZIP resource use before extraction
+
+Portable ZIP import has fixed limits for archive bytes, entry count, individual
+and total expansion, and compression ratio. It rejects unsupported or
+inconsistent central-directory contracts before decompression. Streaming local
+entries must match that inspected directory before bytes enter project buffers.
+
+## D26 — Hardware diagnostics light one pixel at a time
+
+The diagnostic plan is bound to the exact deployment identity and mapping
+fingerprint. Each frame records output, GPIO, panel, local coordinate, logical
+index, physical index, and one RGB channel. Requests use the pinned WLED JSON
+individual-LED contract, stay below 1,024 bytes, use brightness 32, and change
+only one visible pixel. The sender retries only transient transport or HTTP
+failures and requires an explicit confirmation flag. Generated frames are test
+instructions, not hardware evidence.

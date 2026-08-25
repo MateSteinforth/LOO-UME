@@ -35,8 +35,10 @@ edit marks derived mechanics stale but does not stop those functions.
    draft suggestion. Confirming a route writes exact ordered panel IDs.
 4. `createHardwareMappingContract()` compiles physical indices and the WLED
    ledmap from the same current project.
-5. `compilePanelBoundaryBundle()` derives or reuses corner-only gap cycles,
-   validates the closed boundary, and compiles exact STL bytes with Manifold.
+5. `preflightPanelBoundaryParts()` is the shared browser/CLI fit gate. It
+   derives or reuses corner-only gap cycles and validates the closed boundary,
+   PCB envelopes, and compiled closure topology before Manifold or publication.
+   `compilePanelBoundaryBundle()` then compiles the exact STL bytes.
 6. `runStructuralPipeline()` derives eligible anchors from the same poses and
    profile, runs advisory load-path analysis, and compiles either modular
    connector ribbons or LED-surface bridges into exact STL/3MF assets.
@@ -45,6 +47,11 @@ edit marks derived mechanics stale but does not stop those functions.
 
 There is no database or browser local storage. Persistence uses project JSON,
 safe relative asset references, SHA-256 values, downloaded folders, and ZIPs.
+Before extraction, ZIP import reads the bounded central directory and rejects
+excessive archive bytes, entry count, per-entry expansion, total expansion,
+suspicious compression ratios, ZIP64, multi-disk, encrypted, or inconsistent
+entries. Streaming extraction checks local entries against that preflight
+before it buffers their bytes.
 
 `bootstrap.sh` selects a reviewed native stage-zero executable. The strict
 install manifest pins official Node.js archives by target, byte size, SHA-256,
@@ -80,19 +87,23 @@ N-gon. Ambiguous junctions, invalid caps, intersections, or non-manifold
 boundaries fail before asset publication. Printable material must stay outside
 PCB envelopes and keep DIN, DOUT, V+, V-, and blocked mounting holes clear.
 
-The structural route does not use GLB triangles. It converts measured back-view
-hardware coordinates into the outward pose frame, then derives eligible
-mounting holes and DIN/DOUT clearance volumes from panel poses and the selected
-profile. Its axial truss results guide
+Fabrication converts measured back-view hardware coordinates into the outward
+pose frame before planar or structural hole allocation. The structural route
+does not use GLB triangles. It derives eligible mounting holes and DIN/DOUT
+clearance volumes from panel poses and the selected profile. Its axial truss
+results guide
 load paths but are not engineering certification. Printable ribbon and bridge
 solids still require exact hardware-clearance, PCB-envelope, Manifold, and
 print-envelope checks. See `docs/STRUCTURAL_WORKFLOW.md`.
 
 ## Browser and local host
 
-`web/src/main.ts` coordinates loading, editing, rendering, mapping, wiring,
-generation, and export. Focused modules own portable projects, assembly-package
-bytes, renderer state, route editing, mapping, and Manifold runtime handling.
+`web/src/main.ts` coordinates editing, rendering, mapping, wiring, generation,
+and export. `ProjectLoader.ts` owns the stateless registry and Schema 2 loading
+adapter; it returns the existing project and mapping/wiring contract without
+owning application state. Other focused modules own portable projects,
+assembly-package bytes, renderer state, route editing, mapping, and Manifold
+runtime handling.
 Surface mode keeps the established constrained move and local-Z rotation.
 Free 6DOF mode uses local translation and rotation controls, writes one
 right-handed pose, and removes the old surface attachment. Structural downloads
@@ -125,6 +136,11 @@ must bind the current project, route, ledmap, WLED bus fragment, target identity
 and exact file hashes. Hardware-verified state remains blocked until accepted
 `PROOF-010` evidence exists.
 
+`src/wled/DiagnosticFrames.ts` derives deterministic low-brightness, one-pixel
+frames from the same deployment identity and mapping contract. Its bounded HTTP
+adapter transports exact WLED JSON requests; it does not create observation
+evidence or a second mapping authority.
+
 At 60 mA per pixel, 2,624 pixels can require 157.44 A at 5 V. Full-sculpture
 operation waits for the `PWR-010` supply, injection, wire, fuse, voltage-drop,
 and current-limit plan. Software brightness limiting is secondary protection.
@@ -148,7 +164,8 @@ and current-limit plan. Software brightness limiting is secondary protection.
 | `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
 | `tests/browser/` | Real Chromium operator journeys |
 | `wasm/` | Deterministic subset of WLED 1D effects, not firmware |
-| `firmware/` | Future constraints only; no buildable firmware |
+| `firmware/` | Minimum ESP32 deployment metadata, safety procedure, and smoke configuration; WLED build tooling stays off-main and binaries stay untracked |
+| `src/wled/` | Guarded deployment identity and deterministic diagnostic frame transport |
 
 ## Verification boundaries
 

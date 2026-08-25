@@ -31,60 +31,7 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
-### `MECH-020` Add correction tools for a proven ambiguous gap case
-
-- Acceptance: accept, reject, reorder, or redraw a candidate cycle; persist the
-  confirmed topology; preserve panel poses and geometry authority.
-- Depends on: a concrete unsupported project.
-
-### `FAB-020` Add one evidence-backed fabrication enhancement
-
-- Acceptance: one real model defines the need; Manifold output preserves PCB
-  envelopes and connector access; mesh and physical review pass.
-
-### `ARCH-010` Split browser orchestration along covered behavior boundaries
-
-- Acceptance: project, placement, mechanics, mapping, wiring, package, and
-  rendering journeys remain covered; no new manager or state authority.
-
-### `SEC-010` Bound ZIP resource use
-
-- Acceptance: reject excessive entry count, individual size, total expansion,
-  and suspicious ratios before buffering; normal packages round-trip.
-
-### `PLACE-010` Preflight automatic-placement footprints
-
-- Acceptance: return non-overlapping poses or identify panels that cannot fit.
-
-### `CAD-020` Apply one fit preflight to every authored generation entry
-
-- Acceptance: browser and CLI reject the same invalid PCB envelope or boundary
-  before asset publication.
-
-### `FAB-022` Reconcile back-view coordinates in planar closure connectors
-
-- Acceptance: the planar closure route uses the same explicit hardware-view
-  conversion as structural fabrication; existing cap-allocation geometry and
-  physical correction tests are reviewed before any output changes.
-- Depends on: `FAB-021`; do not broaden the structural ribbon safety fix.
-
-### `FAB-023` Route automatic structural connectors around DIN/DOUT
-
-- Acceptance: intended 30-panel ribbon and LED-surface-bridge presets generate
-  collision-free parts without weakening the all-panel final-solid keep-out,
-  cutting connector bores, or changing authorized panel poses.
-- Depends on: `FAB-021`; preserve its fail-closed clearance contract.
-
-### `MAP-020` Version and strengthen ledmap fingerprints
-
-- Acceptance: indices that differ above bit 15 produce different identities;
-  compatibility behavior is tested and documented.
-
-### `FIRM-011` Build and deploy the minimum pinned WLED target
-
-- Acceptance: reproducible pinned firmware, exact bus fragment and ledmap,
-  non-secret procedure, and one fused-panel smoke test.
-- Depends on: `WIRE-012` and the operator-approved `CAL-010` profile facts.
+## Ready
 
 ### `FIRM-012` Add guarded end-to-end ESP32 setup to Advanced Tools
 
@@ -110,27 +57,46 @@ then prove static address and RGB parity on the physical 41-panel sculpture.
 - Depends on: the pinned firmware artifact and receipt from `FIRM-011`; full
   deployment remains gated by `PWR-010` and the existing deployment contract.
 
-### `DIAG-010` Deliver deterministic hardware diagnostic frames
-
-- Acceptance: frames identify output, panel, local coordinate, logical and
-  physical index, and RGB channel; retry and request-size behavior is tested.
-- Depends on: `FIRM-011`.
-
-### `PROOF-010` Prove simulator-to-device address and RGB parity
-
-- Acceptance: all 2,624 addresses, row transitions, corners, outputs, and RGB
-  channels agree with the exact deployment manifest and recorded bench result.
-- Depends on: `DIAG-010`, `HW-012`, and `WIRE-012`.
-
-## Ready
-
-No tasks.
-
 ## In Progress
 
 No tasks.
 
 ## Blocked
+
+### `MECH-020` Add correction tools for a proven ambiguous gap case
+
+- Blocked by: a concrete project whose boundary gap cannot be represented or
+  corrected by the current editor.
+- Needed: the smallest failing Schema 2 project and the intended corrected
+  corner cycle.
+
+### `FAB-020` Add one evidence-backed fabrication enhancement
+
+- Blocked by: a real printed-model need that is not covered by current ribbons,
+  LED-surface bridges, or planar closures.
+- Needed: the affected project, failed physical result, and required fit or
+  fabrication outcome.
+
+### `FAB-023` Route automatic structural connectors around DIN/DOUT
+
+- Blocked by: the 30-panel bridge path contains exact-zero Manifold triangles;
+  naive post-CAD pair exclusion disconnects the degree-2 graph or causes an
+  unbounded search.
+- Needed: a bounded pre-CAD path optimizer that treats keep-out and printable-
+  mesh feasibility as edge costs while preserving the strict final mesh gate.
+
+### `FIRM-011` Flash and smoke-test the minimum pinned WLED target
+
+- Software ready: off-main build branch `generate/wled-firmware` at `8089c79`
+  reproducibly emits the 1,107,920-byte binary with SHA-256
+  `0468ee34c8b9578504c3f4a708421eaa7b70663b691d5df430f46ea009fdabd7`.
+  The binary remains off `main`; its receipt and guarded deployment identity
+  are included in the installation package.
+- Blocked by: access to the selected real ESP32, one fused 64-pixel panel,
+  level shifter, and current-limited 5 V supply.
+- Needed: flash the exact binary, run off/red/green/blue/moving-pixel checks at
+  the 1,000 mA limit, and record board, panel, fuse, supply limit, colors, and
+  result. Do not energize the complete sculpture.
 
 ### `PWR-010` Approve power and protection
 
@@ -147,16 +113,88 @@ No tasks.
 - Blocked by: `PROOF-010` plus explicit board, network, microphone, and
   transport decisions.
 
+### `PROOF-010` Prove simulator-to-device address and RGB parity
+
+- Blocked by: `HW-012`, the physical FIRM-011 smoke result, and an approved
+  powered test setup. DIAG-010 supplies the exact offline frame plan.
+- Needed: observe and record all 2,624 addresses, row transitions, corners,
+  four outputs, and RGB channels against the exact deployment identity.
+
 ## Human Review
-
-### `HR-006` Physically review representative Manifold parts
-
-## Ready to Merge
 
 No tasks.
 
+## Ready to Merge
+
+### `DIAG-010` Deliver deterministic hardware diagnostic frames
+
+- Scope: an identity-bound plan supplies 7,872 deterministic low-brightness,
+  one-pixel WLED JSON frames covering every address and RGB channel. Each frame
+  records output/GPIO, panel, local coordinate, logical index, and physical
+  index. The CLI writes the complete plan and requires an explicit confirmation
+  before sending a selected bounded range.
+- Verification: deterministic coverage, exact request bytes, 1,024-byte limit,
+  transient retry, permanent failure, and oversize refusal passed 3/3; the full
+  plan generated with fingerprint `9b8322885dd1fd5bb30f8cfb2ad6f6d56c21defb5cd1d54c6169ab94d59c63ee`;
+  TypeScript passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
+
+### `ARCH-010` Split browser orchestration along covered behavior boundaries
+
+- Scope: registry, remote/local Schema 2 loading, profile resolution, and
+  mapping/wiring contract derivation moved to one stateless project-loader
+  adapter; `main.ts` retains orchestration and application state.
+- Verification: focused project-loader, portable-project, and package tests
+  passed 16/16; TypeScript and the Vite production build passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
+
+### `CAD-020` Apply one fit preflight to every authored generation entry
+
+- Scope: the browser in-memory path and CLI publisher now enter one named
+  boundary, PCB-envelope, and compiled-topology preflight before Manifold or
+  filesystem staging.
+- Verification: browser/CLI invalid-envelope parity and atomic-publication
+  regression passed with the complete boundary-parts journey; TypeScript passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
+
+### `PLACE-010` Preflight automatic-placement footprints
+
+- Scope: deterministic separating-axis preflight selects only non-overlapping
+  oriented panel footprints and fails before mutation when the count cannot fit.
+- Verification: six automatic-placement cases and twelve editor regressions
+  passed; TypeScript passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
+
+### `FAB-022` Reconcile back-view coordinates in planar closure connectors
+
+- Scope: one shared back-view-to-outward conversion now owns planar closure
+  holes and structural anchors/clearances without changing IDs or addressing;
+  the fabrication contract now makes pre-conversion planar parts stale.
+- Verification: focused profile, pose, planar, structural, Manifold, and stale-
+  manifest tests passed; the complete unit suite passed 342/342 before the
+  added stale regression.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
+
+### `SEC-010` Bound ZIP resource use
+
+- Scope: preflight central-directory archive, entry, expansion, and ratio
+  limits; require streamed local entries to match before buffering.
+- Verification: focused resource-limit, portable round-trip, and complete
+  boundary-package tests passed 19/19; TypeScript passed.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
+
+### `MAP-020` Version and strengthen ledmap fingerprints
+
+- Scope: new mapping artifacts use labeled full-width 32-bit index hashing;
+  unlabeled historical artifacts retain the low-16-bit reload rule.
+- Verification: focused mapping, deployment, fixture, and compatibility tests
+  passed 45/45; generated diagnostic artifacts are synchronized.
+- Owner: `codex/unblocked-batch` in `/tmp/led-rhombo-unblocked-batch`.
+
 ## Done
 
+- `HR-006`: operator printed representative Manifold parts and confirmed on
+  2026-08-25 that they work.
 - `FAB-021`: corrected structural PCB back-view coordinates and added
   fail-closed DIN/DOUT keep-outs for ribbons, LED-surface bridges, and merged
   junctions in `main` at `4961f4d`; unsafe automatic paths now stop instead of

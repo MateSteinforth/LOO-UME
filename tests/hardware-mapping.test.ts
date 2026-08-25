@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   createHardwareMappingContract as createContract,
+  fingerprintLedmap,
+  LEDMAP_FINGERPRINT_VERSION,
+  LEGACY_LEDMAP_FINGERPRINT_VERSION,
   loadGeneratedHardwareMappingContract,
   transformInstalledPanelCoordinate,
   validateLedmapEquivalence,
@@ -47,6 +50,15 @@ function createHardwareMappingContract(
 }
 
 describe("hardware mapping contract", () => {
+  it("versions full-width ledmap fingerprints without breaking legacy reload", () => {
+    const low = { map: [1] };
+    const high = { map: [65_537] };
+
+    expect(fingerprintLedmap(low)).not.toBe(fingerprintLedmap(high));
+    expect(fingerprintLedmap(low, LEGACY_LEDMAP_FINGERPRINT_VERSION)).toBe(
+      fingerprintLedmap(high, LEGACY_LEDMAP_FINGERPRINT_VERSION),
+    );
+  });
   it("parses, maps, validates, exports, and reloads a 4x3 panel profile", () => {
     const definition = structuredClone(PROJECT.sculpture);
     const profile = structuredClone(PANEL_PROFILE_INPUT);
@@ -107,6 +119,7 @@ describe("hardware mapping contract", () => {
       hardwareReady: contract.readiness.ready,
       mappingReady: contract.readiness.mappingReady,
       ledmapFingerprint: contract.fingerprint,
+      ledmapFingerprintVersion: contract.fingerprintVersion,
       readinessBlockers: contract.readiness.blockers,
       wiringLifecycle: contract.readiness.wiringLifecycle,
       outputs: contract.outputs,
@@ -417,6 +430,7 @@ describe("hardware mapping contract", () => {
       readFileSync("layout/panel-map.json", "utf8"),
     ) as {
       ledmapFingerprint: string;
+      ledmapFingerprintVersion: string;
       leds: Array<{ logicalIndex: number; physicalIndex: number }>;
     };
     const generatedLedmap = JSON.parse(
@@ -424,6 +438,9 @@ describe("hardware mapping contract", () => {
     ) as { map: number[] };
 
     expect(generatedLayout.ledmapFingerprint).toBe(contract.fingerprint);
+    expect(generatedLayout.ledmapFingerprintVersion).toBe(
+      LEDMAP_FINGERPRINT_VERSION,
+    );
     expect(generatedLedmap).toEqual(contract.ledmap);
     for (const led of generatedLayout.leds) {
       expect(generatedLedmap.map[led.logicalIndex]).toBe(led.physicalIndex);
@@ -439,7 +456,7 @@ describe("hardware mapping contract", () => {
     ) as { map: number[] };
     const loaded = loadGeneratedHardwareMappingContract(panelMap, ledmap);
 
-    expect(loaded.fingerprint).toBe("bc5054d1");
+    expect(loaded.fingerprintVersion).toBe(LEDMAP_FINGERPRINT_VERSION);
     expect(loaded.wiring.status).toBe("authored");
     expect(loaded.wiring.outputs.map((output) => output.gpio)).toEqual([
       16, 17, 18, 19,
@@ -447,6 +464,29 @@ describe("hardware mapping contract", () => {
     expect(loaded.mapping.entries).toHaveLength(2624);
     expect(loaded.wiring.outputs).toHaveLength(4);
     expect(loaded.readiness.mappingReady).toBe(true);
+
+    const legacyFingerprintMap = structuredClone(panelMap) as {
+      ledmapFingerprint: string;
+      ledmapFingerprintVersion?: string;
+    };
+    delete legacyFingerprintMap.ledmapFingerprintVersion;
+    legacyFingerprintMap.ledmapFingerprint = fingerprintLedmap(
+      ledmap,
+      LEGACY_LEDMAP_FINGERPRINT_VERSION,
+    );
+    expect(loadGeneratedHardwareMappingContract(
+      legacyFingerprintMap,
+      ledmap,
+    ).fingerprintVersion).toBe(LEGACY_LEDMAP_FINGERPRINT_VERSION);
+
+    const unsupportedFingerprintMap = structuredClone(panelMap) as {
+      ledmapFingerprintVersion?: string;
+    };
+    unsupportedFingerprintMap.ledmapFingerprintVersion = "unknown-v3";
+    expect(() => loadGeneratedHardwareMappingContract(
+      unsupportedFingerprintMap,
+      ledmap,
+    )).toThrow(/unsupported ledmap fingerprint version/);
 
     const legacyGridMap = structuredClone(panelMap) as {
       panelPixelGrid?: unknown;

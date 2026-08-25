@@ -3,6 +3,7 @@ import panelProfileJson from "../../catalog/panels/ws2812b-8x8-66x65.json" with 
 };
 import {
   getWiringLifecycleStatus,
+  panelBackViewPointToOutwardPoseLocal,
   parsePanelHardwareProfile,
   type FactStatus,
   type PanelHardwareProfile,
@@ -1381,17 +1382,22 @@ function panelHoles(
   profile: PanelHardwareProfile,
 ): CompiledMountingHole[] {
   return profile.mounting.holes.map(
-    ({ id, localPosition, mechanicalUse, blockedBy }) => ({
-      id,
-      localPosition: [...localPosition],
-      position: add(
-        add(panel.position, scale(panel.xAxis, localPosition[0])),
-        scale(panel.yAxis, localPosition[1]),
-      ),
-      mechanicalUse,
-      blockedBy: blockedBy ?? null,
-      assignedClosureId: null,
-    }),
+    ({ id, localPosition: profileLocalPosition, mechanicalUse, blockedBy }) => {
+      const localPosition = panelBackViewPointToOutwardPoseLocal(
+        profileLocalPosition,
+      );
+      return {
+        id,
+        localPosition,
+        position: add(
+          add(panel.position, scale(panel.xAxis, localPosition[0])),
+          scale(panel.yAxis, localPosition[1]),
+        ),
+        mechanicalUse,
+        blockedBy: blockedBy ?? null,
+        assignedClosureId: null,
+      };
+    },
   );
 }
 

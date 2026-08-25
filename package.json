@@ -10,6 +10,7 @@
     "generate:mapping": "tsx scripts/generate-mapping.ts",
     "optimize:wiring-orientation": "tsx scripts/optimize-installed-orientations.ts",
     "generate:mapping:hardware": "tsx scripts/generate-mapping.ts --hardware",
+    "diagnostics:hardware": "tsx scripts/run-hardware-diagnostics.ts",
     "generate:panel-boundary": "tsx scripts/generate-panel-boundary-parts.ts",
     "generate:structure": "tsx scripts/generate-structural-system.ts",
     "generate:assets": "npm run stage:sculptures && npm run generate:mapping",

@@ -632,3 +632,35 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/structural-design.test.ts` and
   `tests/structural-solids.test.ts`.
 - **Status:** Resolved.
+
+### F-034 — Post-CAD connector retries created an unbounded route search
+
+- **Date:** 2026-08-25
+- **Context:** Automatic 30-panel ribbon and LED-surface bridge routing.
+- **Symptom:** Excluding a connector only after Manifold rejected it either
+  disconnected the degree-2 graph or repeatedly rebuilt many candidate paths.
+- **Cause:** Printable feasibility entered after graph selection, so the route
+  algorithm had no bounded edge cost for connector keep-outs or mesh failure.
+- **Correction:** The failed retry implementation was removed. Existing final-
+  solid checks remain strict and fail closed.
+- **Prevention:** Put conservative hardware and printable-mesh feasibility into
+  bounded pre-CAD candidate scoring. Do not use an open-ended generate, reject,
+  and rebuild loop.
+- **Evidence:** `FAB-023` records the exact missing optimizer boundary.
+- **Status:** Open.
+
+### F-035 — Fabrication convention changed without invalidating old parts
+
+- **Date:** 2026-08-25
+- **Context:** FAB-022 shared PCB back-view to outward-pose coordinate repair.
+- **Symptom:** A pre-repair planar mechanics manifest could remain `current`
+  although regeneration moved its screw holes to the correct physical side.
+- **Cause:** The generated-mechanics fingerprint covered authored geometry and
+  profile values but did not cover the fabrication coordinate convention.
+- **Correction:** Add the coordinate-contract token to the fingerprint, bump
+  the planar-parts generator version, and pin the old fixture fingerprint in a
+  stale-state regression.
+- **Prevention:** A derived-geometry algorithm or coordinate convention change
+  must update both its generator version and the source fingerprint policy.
+- **Evidence:** `tests/generated-mechanics-contract.test.ts`.
+- **Status:** Resolved.

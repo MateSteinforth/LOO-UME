@@ -9,6 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { compilePanelBoundaryBundle } from "../src/cad/CompilePanelBoundaryBundle.ts";
 import {
   createPrintableBoundaryProject,
   generatePanelBoundaryParts,
@@ -56,10 +57,10 @@ async function loadProject() {
 
 function tetrahedronGlb(): Uint8Array {
   const positions = new Float32Array([
-    50, 50, 50,
-    -50, -50, 50,
-    -50, 50, -50,
-    50, -50, -50,
+    75, 75, 75,
+    -75, -75, 75,
+    -75, 75, -75,
+    75, -75, -75,
   ]);
   const indices = new Uint16Array([
     0, 2, 1,
@@ -91,8 +92,8 @@ function tetrahedronGlb(): Uint8Array {
         componentType: 5126,
         count: 4,
         type: "VEC3",
-        min: [-50, -50, -50],
-        max: [50, 50, 50],
+        min: [-75, -75, -75],
+        max: [75, 75, 75],
       },
       { bufferView: 1, componentType: 5123, count: 12, type: "SCALAR" },
     ],
@@ -294,6 +295,46 @@ describe("validated panel boundary printable asset pipeline", () => {
     )).rejects.toThrow(/Boundary|boundary|Gap|gap/);
     expect(await readFile(join(outputDirectory, "sculpture.json"), "utf8"))
       .toBe(successfulManifest);
+  });
+
+  it("uses the same PCB-envelope fit gate for browser memory and CLI publication", async () => {
+    const source = await loadProject();
+    const invalid = structuredClone(source.sculpture);
+    invalid.boundaryTopology = {
+      kind: "panel-outline-gap-cycles",
+      gaps: [{
+        id: "gap-inside-front-pcb",
+        vertices: [
+          { panelId: "P-FRONT", corner: "bottom-left" },
+          { panelId: "P-FRONT", corner: "bottom-right" },
+          { panelId: "P-FRONT", corner: "top-right" },
+          { panelId: "P-FRONT", corner: "top-left" },
+        ],
+      }],
+    };
+    const project = createPanelAssemblyProject(
+      invalid,
+      FIXTURE,
+      source.panelProfile,
+    );
+    const parent = await mkdtemp(join(tmpdir(), "panel-fit-preflight-"));
+    temporaryDirectories.push(parent);
+    const outputDirectory = join(parent, "must-not-publish");
+
+    const browserError = await compilePanelBoundaryBundle(project).then(
+      () => "unexpected success",
+      (error: unknown) => error instanceof Error ? error.message : String(error),
+    );
+    const cliError = await generatePanelBoundaryParts(project, {
+      outputDirectory,
+    }).then(
+      () => "unexpected success",
+      (error: unknown) => error instanceof Error ? error.message : String(error),
+    );
+
+    expect(browserError).toMatch(/intersects the open interior of PCB envelope P-FRONT/);
+    expect(cliError).toBe(browserError);
+    await expect(stat(outputDirectory)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("rejects missing, tampered, and reserved design assets before staging or rendering", async () => {
