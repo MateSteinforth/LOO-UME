@@ -559,15 +559,57 @@ export async function resolveVerifiedWledAddress(expectedMac: string): Promise<U
   return currentUrl;
 }
 
+interface ExistingSimulatorConnectOptions {
+  discoveryAttempts?: number;
+  delay?: Wait;
+  shouldContinue?: () => boolean;
+  update?: (message: string) => void;
+  persist?: typeof persistStandaloneAnimation;
+}
+
+export async function retryExistingSimulatorDiscovery<T>(
+  discover: () => Promise<T>,
+  attempts = 12,
+  delay: Wait = wait,
+  shouldContinue: () => boolean = () => true,
+  update?: (message: string) => void,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
+    try {
+      return await discover();
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) {
+        update?.("Waiting for the configured ESP32 to become available.");
+      }
+      if (attempt < attempts) {
+        if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
+        await delay(2_000);
+      }
+    }
+  }
+  throw new Error(`Automatic ESP32 discovery failed: ${errorMessage(lastError)}`);
+}
+
 export async function connectExistingSimulatorDevice(
   payload: Esp32SetupPayload,
+  options: ExistingSimulatorConnectOptions = {},
 ): Promise<URL> {
   assertBoundedSimulatorPayload(payload);
+  const shouldContinue = options.shouldContinue ?? (() => true);
   const mdnsUrl = new URL(`http://${SETUP_HOSTNAME}.local/`);
-  const mdnsInfo = await readJsonResponse(
-    await deviceFetch(mdnsUrl, "/json/info", undefined, 12_000),
-    "WLED mDNS discovery",
-  ) as { arch?: unknown; ip?: unknown; leds?: { count?: unknown }; mac?: unknown };
+  const mdnsInfo = await retryExistingSimulatorDiscovery(
+    async () => readJsonResponse(
+      await deviceFetch(mdnsUrl, "/json/info", undefined, 12_000),
+      "WLED mDNS discovery",
+    ) as Promise<{ arch?: unknown; ip?: unknown; leds?: { count?: unknown }; mac?: unknown }>,
+    options.discoveryAttempts,
+    options.delay,
+    shouldContinue,
+    options.update,
+  );
   if (
     mdnsInfo.arch !== "esp32" ||
     typeof mdnsInfo.ip !== "string" ||
@@ -603,7 +645,8 @@ export async function connectExistingSimulatorDevice(
       "The existing WLED ledmap does not match the loaded simulator.",
     );
   }
-  await persistStandaloneAnimation(currentUrl, payload);
+  if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
+  await (options.persist ?? persistStandaloneAnimation)(currentUrl, payload);
   return currentUrl;
 }
 

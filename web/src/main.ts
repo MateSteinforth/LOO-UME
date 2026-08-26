@@ -712,7 +712,16 @@ async function start(): Promise<void> {
       const requestedRevision = simulatorProjectRevision;
       const pendingSave = standaloneSaveRequest?.catch(() => undefined) ?? Promise.resolve();
       simulatorReconnectRequest = pendingSave
-        .then(() => connectExistingSimulatorDevice(reconnectPayload))
+        .then(() => connectExistingSimulatorDevice(reconnectPayload, {
+          discoveryAttempts: 12,
+          shouldContinue: () => canEnableReconnectedSimulator(
+            reconnectPayload,
+            simulatorProjectRevision,
+            hardwareContract.fingerprint,
+            simulatorSetupActive,
+          ),
+          update: setLogMessage,
+        }))
         .then((deviceUrl) => {
           if (canEnableReconnectedSimulator(
             reconnectPayload,

@@ -26,6 +26,7 @@ import {
   provisionVisibleWifi,
   remapStateToLiveTables,
   resolveVerifiedWledAddress,
+  retryExistingSimulatorDiscovery,
   reopenApprovedSerialPort,
   runCombinedClassicReset,
   runCombinedHardReset,
@@ -227,6 +228,44 @@ describe("guarded ESP32 setup contracts", () => {
     resolveFrame();
     await draining;
     expect(settled).toBe(true);
+  });
+
+  it("retries automatic reconnect after transient mDNS failure", async () => {
+    const discover = vi.fn()
+      .mockRejectedValueOnce(new Error("mDNS not ready"))
+      .mockRejectedValueOnce(new Error("proxy still resolving"))
+      .mockResolvedValueOnce("ready");
+    const delays: number[] = [];
+    const updates: string[] = [];
+    await expect(retryExistingSimulatorDiscovery(
+      discover,
+      3,
+      async (milliseconds) => {
+        delays.push(milliseconds);
+      },
+      () => true,
+      (message) => updates.push(message),
+    )).resolves.toBe("ready");
+    expect(discover).toHaveBeenCalledTimes(3);
+    expect(delays).toEqual([2_000, 2_000]);
+    expect(updates).toEqual(["Waiting for the configured ESP32 to become available."]);
+  });
+
+  it("cancels automatic discovery before another stale-project attempt", async () => {
+    let current = true;
+    const discover = vi.fn().mockImplementation(async () => {
+      current = false;
+      throw new Error("mDNS not ready");
+    });
+    const delay = vi.fn();
+    await expect(retryExistingSimulatorDiscovery(
+      discover,
+      12,
+      delay,
+      () => current,
+    )).rejects.toThrow(/cancelled/);
+    expect(discover).toHaveBeenCalledOnce();
+    expect(delay).not.toHaveBeenCalled();
   });
 
   it("sets DTR and RTS together for bootloader entry and hard reset", async () => {
@@ -623,6 +662,22 @@ describe("guarded ESP32 setup contracts", () => {
       /ledmap does not match the loaded simulator/,
     );
     expect(fetchMock).toHaveBeenCalledTimes(4);
+
+    const persist = vi.fn().mockRejectedValue(new Error("preset write failed"));
+    fetchMock.mockReset()
+      .mockRejectedValueOnce(new Error("mDNS not ready"))
+      .mockRejectedValueOnce(new Error("proxy still resolving"))
+      .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(config)))
+      .mockResolvedValueOnce(new Response(value.ledmapBytes));
+    await expect(connectExistingSimulatorDevice(value, {
+      discoveryAttempts: 3,
+      delay: async () => undefined,
+      persist,
+    })).rejects.toThrow(/preset write failed/);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(persist).toHaveBeenCalledOnce();
   });
 
   it("retries the complete restarted snapshot and keeps exact ledmap checks", async () => {

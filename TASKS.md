@@ -81,32 +81,18 @@ No tasks.
 
 ## Human Review
 
-No tasks.
+### `FIRM-014` Copy complete loaded-project playback to ESP32
+
+- Software, physical standalone playback, DDP exit, and power-cycle playback
+  passed on the 192-LED three-panel project.
+- Current review: reload the page and confirm bounded mDNS recovery reconnects
+  DDP so LOO/UME effect changes reach the panels.
+- Owner: `codex/firm-014-standalone-playback` in
+  `/tmp/led-rhombo-firm-014`.
 
 ## Ready to Merge
 
-### `FIRM-014` Copy complete loaded-project playback to ESP32
-
-- Implemented: setup copies one to 41 loaded panels, up to four contiguous
-  GPIO outputs, measured color order, exact ledmap, native boot animation, and
-  segmented DDP preview. The 41-panel authority uses GPIO 16–19, ranges
-  704/640/640/640, and the established 14,000 mA bus values.
-- Fixed from physical review: WLED preset publication is retried for a bounded
-  three seconds, and the complete post-restart snapshot is retried for a
-  strict 45-second deadline while keeping exact comparisons and non-overlapping
-  attempts. Live DDP is suspended during this proof so it cannot freeze the
-  restored native preset before verification.
-- Passed: 378/378 Vitest, TypeScript, desktop build, focused Playwright, diff
-  check, official/pinned WLED DDP contract inspection, and independent review.
-- Physical pass: the operator completed the 192-LED three-panel setup, closed
-  the preview, and confirmed WLED left DDP realtime mode with the native effect
-  active. After a USB power cycle, the same saved animation started and ran
-  without the simulator. Complete 41-panel observation remains under HW-012
-  and PROOF-010 when the sculpture is assembled.
-- Assumption: electrical design, protection, and power approval are external
-  operator responsibilities.
-- Owner: `codex/firm-014-standalone-playback` in
-  `/tmp/led-rhombo-firm-014`.
+No tasks.
 
 ## Done
 

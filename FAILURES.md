@@ -1009,3 +1009,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The operator saw HTTP 502 during verification; the same direct
   and proxied ledmap request later returned the exact 192-pixel artifact.
 - **Status:** Resolved; physical ledmap recovery and restart proof passed.
+
+### F-055 — One transient mDNS failure disabled live preview after reload
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 page reload after successful three-panel setup.
+- **Symptom:** Simulator effect changes did not reach the physical panels, and
+  WLED reported that DDP realtime mode was inactive.
+- **Cause:** Automatic reconnect tried `loo-ume.local` once. The loopback proxy
+  returned a transient resolution error, and the page silently stopped trying.
+- **Correction:** Retry the complete exact reconnect up to 12 times with a
+  two-second delay. Keep device identity, config, ledmap, and preset checks.
+- **Prevention:** Do not treat one transient local-name failure as proof that a
+  previously configured controller is absent.
+- **Evidence:** Physical WLED status reported `live:false`; the browser console
+  recorded HTTP 400 for the single mDNS request.
+- **Status:** Resolved in software; physical page-reload retry remains.
