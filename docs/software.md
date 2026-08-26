@@ -32,7 +32,8 @@ electrical plan or software gate.
 
 The WLED path uses native effects for autonomous playback. FIRM-014 adds a
 segmented 1-to-2,624-pixel DDP preview with a finite fallback to the saved boot
-preset; physical timeout and resume review is still required. Art-Net,
+preset. The operator physically confirmed fallback and power-cycle playback on
+the 192-LED three-panel project. Art-Net,
 Ethernet, microphones, audio-reactive presets, and custom effects remain
 deferred. A future custom effect belongs in a WLED
 usermod, not in patched WLED core files.
@@ -94,8 +95,8 @@ controller behavior.
 `FIRM-011` passed its real-controller and fused one-panel smoke test. FIRM-013
 then proved the guarded browser flash, serial Wi-Fi setup, exact config/state
 read-back, and mapped live-panel link. FIRM-014 adds native preset 1 as the
-standalone boot state and a segmented 1-to-2,624-pixel DDP preview; physical
-timeout/resume review remains open.
+standalone boot state and a segmented 1-to-2,624-pixel DDP preview. The
+three-panel physical timeout and autonomous restart review passed.
 `DIAG-010` supplies deterministic low-brightness, one-pixel JSON test frames
 bound to the exact deployment identity. Each frame labels the expected address,
 panel coordinate, output, and RGB channel. `PROOF-010` remains the physical

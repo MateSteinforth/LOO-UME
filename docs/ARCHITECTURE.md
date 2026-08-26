@@ -169,8 +169,9 @@ link for the loaded sculpture.
 After a page reload, the link reconnects only if the fixed mDNS name, private
 IP, MAC, ESP32 identity, LED count, and complete persisted loaded bus set still
 match.
-Physical DDP timeout and autonomous-resume behavior remains a Human Review
-gate; source and automated tests do not establish that hardware result.
+The operator physically confirmed on the 192-LED three-panel project that WLED
+leaves DDP realtime mode and runs the saved native animation. A USB power cycle
+also restored the same animation without the simulator.
 
 `src/wled/DiagnosticFrames.ts` derives deterministic low-brightness, one-pixel
 frames from the same deployment identity and mapping contract. Its bounded HTTP

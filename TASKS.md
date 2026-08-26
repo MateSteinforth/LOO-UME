@@ -81,7 +81,11 @@ No tasks.
 
 ## Human Review
 
-### `FIRM-014` Confirm complete loaded-project playback on ESP32
+No tasks.
+
+## Ready to Merge
+
+### `FIRM-014` Copy complete loaded-project playback to ESP32
 
 - Implemented: setup copies one to 41 loaded panels, up to four contiguous
   GPIO outputs, measured color order, exact ledmap, native boot animation, and
@@ -94,18 +98,15 @@ No tasks.
   restored native preset before verification.
 - Passed: 378/378 Vitest, TypeScript, desktop build, focused Playwright, diff
   check, official/pinned WLED DDP contract inspection, and independent review.
-- Needed: rerun the loaded three-panel setup and confirm setup completes; stop
-  preview and confirm native playback resumes after approximately 2.5 seconds;
-  power-cycle and confirm autonomous playback. Confirm the complete sculpture
-  when its panels are assembled.
+- Physical pass: the operator completed the 192-LED three-panel setup, closed
+  the preview, and confirmed WLED left DDP realtime mode with the native effect
+  active. After a USB power cycle, the same saved animation started and ran
+  without the simulator. Complete 41-panel observation remains under HW-012
+  and PROOF-010 when the sculpture is assembled.
 - Assumption: electrical design, protection, and power approval are external
   operator responsibilities.
 - Owner: `codex/firm-014-standalone-playback` in
   `/tmp/led-rhombo-firm-014`.
-
-## Ready to Merge
-
-No tasks.
 
 ## Done
 

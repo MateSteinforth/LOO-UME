@@ -921,8 +921,8 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   disappears.
 - **Evidence:** Pinned WLED `json.cpp`, `e131.cpp`, `udp.cpp`, and the focused
   FIRM-014 setup and device-handler tests.
-- **Status:** Human review; the software correction is complete, but physical
-  timeout and autonomous resume are not yet observed.
+- **Status:** Resolved. The operator confirmed physical timeout exit and
+  autonomous power-cycle playback on the 192-LED project.
 
 ### F-050 — A setup mode dropdown did not represent the loaded simulator
 
@@ -939,8 +939,8 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   not ask the operator to select a second configuration authority.
 - **Evidence:** `createSimulatorSetupConfig()`, dynamic framebuffer tests, and
   the FIRM-014 browser setup journey.
-- **Status:** Human review; physical complete-project copy and standalone
-  fallback are not yet observed.
+- **Status:** Resolved for the three-panel physical project. Complete
+  41-panel observation remains under HW-012 and PROOF-010.
 
 ### F-051 — WLED preset storage is eventually consistent
 
@@ -957,7 +957,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   consistent and verify the final exact value with a bounded retry.
 - **Evidence:** Live `/presets.json`, `/json/state`, `/json/info`, and
   `/json/cfg` from `192.168.68.53`, plus the focused persistence retry test.
-- **Status:** Resolved in software; physical setup retry remains.
+- **Status:** Resolved; physical three-panel setup and power-cycle passed.
 
 ### F-052 — WLED HTTP can drop requests just after restart discovery
 
@@ -975,7 +975,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   application readiness after a controller restart.
 - **Evidence:** Operator log at 12:37 on 2026-08-26 and the focused transient
   restarted-snapshot regression.
-- **Status:** Resolved in software; physical setup retry remains.
+- **Status:** Resolved; physical three-panel restart verification passed.
 
 ### F-053 — DDP preview can invalidate standalone restart verification
 
@@ -992,7 +992,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   fallback is under restart or persistence verification.
 - **Evidence:** Live `/json/state` showed preset 1 with DDP live mode and
   `frz:true`; `/presets.json` retained the intended `frz:false` value.
-- **Status:** Resolved in software; physical setup retry remains.
+- **Status:** Resolved; physical DDP exit and power-cycle playback passed.
 
 ### F-054 — WLED file reads can recover after its JSON API
 
@@ -1008,4 +1008,4 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   verification and allow a separate bounded recovery period.
 - **Evidence:** The operator saw HTTP 502 during verification; the same direct
   and proxied ledmap request later returned the exact 192-pixel artifact.
-- **Status:** Resolved in software; physical setup retry remains.
+- **Status:** Resolved; physical ledmap recovery and restart proof passed.
