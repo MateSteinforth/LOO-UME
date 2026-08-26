@@ -250,7 +250,13 @@ describe("guarded ESP32 setup contracts", () => {
     )).resolves.toBe("ready");
     expect(discover).toHaveBeenCalledTimes(3);
     expect(delays).toEqual([2_000, 2_000]);
-    expect(updates).toEqual(["Waiting for the configured ESP32 to become available."]);
+    expect(updates).toEqual([
+      "Checking loo-ume.local for the configured ESP32 (1/3).",
+      "ESP32 discovery failed (1/3): mDNS not ready Retrying in 2 seconds.",
+      "Checking loo-ume.local for the configured ESP32 (2/3).",
+      "ESP32 discovery failed (2/3): proxy still resolving Retrying in 2 seconds.",
+      "Checking loo-ume.local for the configured ESP32 (3/3).",
+    ]);
   });
 
   it("cancels automatic discovery before another stale-project attempt", async () => {
@@ -527,6 +533,22 @@ describe("guarded ESP32 setup contracts", () => {
         n: "LOO/UME standalone",
         on: true,
         bri: 128,
+        seg: [value.state.seg, { stop: 0 }, { stop: 0 }],
+      },
+    }, value)).not.toThrow();
+    expect(() => assertStandalonePresetReadback({
+      "1": {
+        n: "LOO/UME standalone",
+        on: true,
+        bri: 128,
+        seg: [value.state.seg, { start: 64, stop: 128 }],
+      },
+    }, value)).toThrow(/does not match/);
+    expect(() => assertStandalonePresetReadback({
+      "1": {
+        n: "LOO/UME standalone",
+        on: true,
+        bri: 128,
         seg: { ...(value.state.seg as object), fx: 7 },
       },
     }, value)).toThrow(/does not match/);
@@ -543,6 +565,9 @@ describe("guarded ESP32 setup contracts", () => {
 
   it("writes and verifies the native standalone boot preset", async () => {
     const value = payload();
+    value.state.o = true;
+    value.state.bootps = 99;
+    value.state.live = true;
     const presetSegment = { ...(value.state.seg as object), fx: 2, pal: 1 };
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(["Solid", "Blink", "Rainbow"])))
@@ -561,13 +586,51 @@ describe("guarded ESP32 setup contracts", () => {
     await persistStandaloneAnimation(new URL("http://192.168.68.53/"), value);
     const saveRequest = fetchMock.mock.calls[2]!;
     expect(String(saveRequest[0])).toContain("path=%2Fjson%2Fstate");
-    expect(JSON.parse(String(saveRequest[1].body))).toMatchObject({
+    const saveBody = JSON.parse(String(saveRequest[1].body)) as Record<string, unknown>;
+    expect(saveBody).toMatchObject({
       psave: 1,
-      bootps: 1,
       n: "LOO/UME standalone",
-      o: true,
+      live: false,
       seg: { fx: 2, pal: 1, sx: 120, ix: 90 },
     });
+    expect(saveBody).not.toHaveProperty("o");
+    expect(saveBody).not.toHaveProperty("bootps");
+  });
+
+  it("reconciles a lost state-write response without repeating the mutation", async () => {
+    const value = payload();
+    const presetSegment = { ...(value.state.seg as object), fx: 2, pal: 1 };
+    const updates: string[] = [];
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Solid", "Blink", "Rainbow"])))
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Default", "Forest"])))
+      .mockRejectedValueOnce(new DOMException(
+        "The operation was aborted due to timeout",
+        "TimeoutError",
+      ))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        "1": {
+          n: "LOO/UME standalone",
+          on: true,
+          bri: 128,
+          seg: presetSegment,
+        },
+      })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ leds: { bootps: 1 } })));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(persistStandaloneAnimation(
+      new URL("http://192.168.68.53/"),
+      value,
+      () => true,
+      (message) => updates.push(message),
+    )).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock.mock.calls.filter((call) =>
+      String(call[0]).includes("path=%2Fjson%2Fstate")
+    )).toHaveLength(1);
+    expect(updates).toEqual([
+      expect.stringMatching(/state-write response was lost.*Verifying the exact saved state/),
+    ]);
   });
 
   it("waits for WLED to finish storing the standalone preset", async () => {

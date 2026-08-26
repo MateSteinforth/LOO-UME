@@ -484,6 +484,10 @@ const setLogMessage = (message: string, error = false): void => {
   appendLogEntry(pipelineStatus, timestampedMessage, error);
   appendLogEntry(esp32SetupConsole, timestampedMessage, error);
 };
+const browserBundleName = decodeURIComponent(
+  new URL(import.meta.url).pathname.split("/").pop() ?? import.meta.url,
+);
+console.info(`[LOO/UME] Browser bundle: ${browserBundleName}`);
 let pipelineAvailable = false;
 let pipelineAvailabilityMessage =
   "Checking local Manifold availability. Mapping and wiring remain available.";
@@ -687,7 +691,10 @@ async function start(): Promise<void> {
           return;
         }
         const payload = setupPayload();
-        standaloneSaveRequest = persistStandaloneAnimation(simulatorDeviceUrl, payload)
+        const deviceUrl = simulatorDeviceUrl;
+        const pendingFrame = simulatorFrameRequest?.catch(() => undefined) ?? Promise.resolve();
+        standaloneSaveRequest = pendingFrame
+          .then(() => persistStandaloneAnimation(deviceUrl, payload))
           .then(() => setLogMessage(
             "Saved the current animation as the ESP32 standalone boot preset.",
           ))
@@ -711,8 +718,11 @@ async function start(): Promise<void> {
       }
       const requestedRevision = simulatorProjectRevision;
       setLogMessage("Looking for loo-ume.local to reconnect the physical live preview.");
-      const pendingSave = standaloneSaveRequest?.catch(() => undefined) ?? Promise.resolve();
-      simulatorReconnectRequest = pendingSave
+      const pendingDeviceWork = settleSimulatorDeviceWork([
+        standaloneSaveRequest,
+        simulatorFrameRequest,
+      ]);
+      simulatorReconnectRequest = pendingDeviceWork
         .then(() => connectExistingSimulatorDevice(reconnectPayload, {
           discoveryAttempts: 12,
           shouldContinue: () => canEnableReconnectedSimulator(
@@ -2397,6 +2407,7 @@ async function start(): Promise<void> {
       !generatorStatus.available,
     );
     updatePipelineAvailability();
+    setLogMessage(`Browser bundle: ${browserBundleName}.`);
 
     await restoreGeneratedMechanics(loadedSculpture);
     await loadReferencedDesignSurface();
@@ -2412,6 +2423,7 @@ async function start(): Promise<void> {
 
       if (
         !simulatorSetupActive &&
+        !standaloneSaveRequest &&
         simulatorDeviceUrl &&
         !simulatorFrameRequest &&
         now >= nextSimulatorFrameAt

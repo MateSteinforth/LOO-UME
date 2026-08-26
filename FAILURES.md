@@ -1025,7 +1025,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   previously configured controller is absent.
 - **Evidence:** Physical WLED status reported `live:false`; the browser console
   recorded HTTP 400 for the single mDNS request.
-- **Status:** Resolved in software; physical page-reload retry remains.
+- **Status:** Resolved; physical page reload and reconnect passed.
 
 ### F-056 — Temporary invalid preset JSON escaped its retry
 
@@ -1044,7 +1044,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   parsing, not only the final semantic assertion.
 - **Evidence:** Operator console after hard reload and the focused invalid-JSON
   first-read regression.
-- **Status:** Resolved in software; physical page-reload retry remains.
+- **Status:** Resolved; physical page reload and reconnect passed.
 
 ### F-057 — Ungamma-corrected DDP made dark simulator pixels visibly blue
 
@@ -1062,4 +1062,122 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   correction and test representative dark and bright channel values.
 - **Evidence:** Pinned WLED `colors.cpp`, `FX_fcn.cpp`, `wled.h`, `cfg.cpp`, and
   the focused DDP byte regression.
-- **Status:** Resolved in software; physical DDP color parity remains.
+- **Status:** Resolved; physical DDP color parity passed.
+
+### F-058 — A lost WLED state-write response stopped a valid reconnect
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 automatic reconnect after loading the three-panel JSON.
+- **Symptom:** The panels briefly followed the simulator, then returned to the
+  local preset. The log ended with `WLED /json/state: The operation was aborted
+  due to timeout`.
+- **Cause:** Preset persistence treated a missing HTTP response as proof that
+  WLED rejected the write. A controller can complete the flash-backed preset
+  mutation after the proxy or browser loses its response.
+- **Correction:** Send the state mutation once. If its response is lost, do not
+  repeat it. Reconcile the ambiguous result through the existing exact preset
+  and boot-preset read-back deadline, and enable DDP only if both match.
+- **Prevention:** Do not automatically repeat a non-idempotent or flash-backed
+  controller mutation after an ambiguous transport failure. Verify resulting
+  state first.
+- **Evidence:** Operator log at 14:06 and the focused lost-response regression.
+- **Status:** Resolved; physical reconnect passed.
+
+### F-059 — Reconnect logging hid repeated mDNS failures
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 automatic reconnect review.
+- **Symptom:** The page showed one generic waiting message after an mDNS HTTP
+  400, so the operator could not tell whether retries continued or which build
+  was loaded.
+- **Cause:** Discovery logged only the first failure, and the hashed Vite bundle
+  name was visible only in DevTools request details.
+- **Correction:** Log the exact current module filename in the activity log and
+  DevTools console. Log every bounded mDNS attempt and its failure before the
+  next delay.
+- **Prevention:** A bounded hardware recovery loop must expose its current
+  attempt, final cause, and executing build identity.
+- **Evidence:** Operator log at 14:10 and focused discovery-log regression.
+- **Status:** Resolved.
+
+### F-060 — Immediate API-call preset writes blocked WLED and dropped Wi-Fi
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 automatic reconnect after WLED rejoined AZIOT.
+- **Symptom:** WLED accepted a live frame for about one second, then returned to
+  native playback. `/json/state`, `/presets.json`, and `/json/info` timed out,
+  and the controller disappeared from the LAN.
+- **Cause:** The preset-save payload included `o:true`. Pinned WLED treats a
+  non-null `o` as an immediate API-call preset and writes it synchronously. Its
+  source warns that this path often corrupts `presets.json`; on the measured
+  ESP32 it also blocked HTTP long enough to lose Wi-Fi.
+- **Correction:** Omit `o`. Keep `psave`, `ib`, and `sb` so WLED uses its
+  asynchronous current-state preset path. Configure `bootps` once through the
+  setup config, as corrected by F-062, then require exact eventual preset and
+  boot-state read-back before DDP starts.
+- **Prevention:** Use the native asynchronous WLED preset contract for normal
+  state snapshots. Pin the absence of `o` in the request regression.
+- **Evidence:** Pinned WLED `json.cpp` and `presets.cpp`, operator log at 14:21,
+  and the exact preset request test.
+- **Status:** Resolved; physical reconnect passed.
+
+### F-061 — Exact read-back rejected WLED's native asynchronous segment array
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 reconnect after the asynchronous preset-save correction.
+- **Symptom:** Rainbow saved and survived a power cycle, but reconnect rejected
+  the preset 29 times and never enabled DDP.
+- **Cause:** The old synchronous API-call preset stored `seg` as one object.
+  WLED's correct asynchronous state snapshot stores an array: the active segment
+  first, followed by disabled `{stop:0}` slots. The verifier accepted only the
+  obsolete object shape.
+- **Correction:** Accept the exact active first segment in either historical
+  object form or native array form. For the array form, require every trailing
+  segment slot to be disabled.
+- **Prevention:** Verify WLED storage formats against bytes produced by the
+  selected persistence path, not only against mocked request-shaped fixtures.
+- **Evidence:** Live preset 1 from `192.168.68.53` and focused object/array/
+  additional-active-segment regressions.
+- **Status:** Resolved; physical DDP reconnect passed.
+
+### F-062 — Rewriting the boot preset on every effect save dropped Wi-Fi
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 reopened-page and consecutive-effect review.
+- **Symptom:** One effect reached the panels and persisted, then WLED returned
+  to local playback and disappeared from the LAN. The same failure reproduced
+  after one direct, otherwise valid asynchronous preset request.
+- **Cause:** Every state save included `bootps:1`. Pinned WLED removes that field
+  from the preset and sets `configNeedsWrite`, so every effect change also wrote
+  the controller configuration file. This repeated configuration mutation was
+  unnecessary because setup had already set `def.ps=1`.
+- **Correction:** Configure boot preset 1 only through the setup config. Remove
+  `bootps` from every later state-save payload, including imported state, while
+  continuing to require `bootps=1` in device read-back.
+- **Prevention:** Separate one-time device configuration from frequent effect
+  state persistence. Never attach configuration mutations to a debounced live
+  control save.
+- **Evidence:** Pinned WLED `presets.cpp`, operator logs at 14:49, the exact
+  direct request reproduction, and the request-body regression.
+- **Status:** Resolved; physical consecutive effect saves passed.
+
+### F-063 — DDP realtime freeze saved the previous native effect
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 project reload after live, close-tab, and power-cycle
+  behavior passed independently.
+- **Symptom:** The new simulator frame appeared for about one second, then WLED
+  returned to the earlier native effect. Preset 1 remained `Theater Rainbow`
+  although the reopened simulator requested `Rainbow`.
+- **Cause:** A prior DDP frame left WLED in realtime mode with `mso:true`, which
+  freezes the main segment. The asynchronous state snapshot then captured the
+  previous native segment instead of the requested simulator state. Project
+  changes also did not wait for an already in-flight DDP request.
+- **Correction:** Pause DDP while a preset save is active, drain an in-flight
+  frame before save or reconnect, and force `live:false` in every save request
+  before applying and snapshotting the native segment.
+- **Prevention:** Never snapshot autonomous fallback state while its target
+  segment is frozen by realtime transport.
+- **Evidence:** Live state/preset comparison after the 14:50 and 14:56 failures,
+  pinned WLED `json.cpp`/`udp.cpp`, and the forced-live request regression.
+- **Status:** Resolved; physical reopen, mirror, and native fallback passed.

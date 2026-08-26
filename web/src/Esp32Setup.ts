@@ -613,13 +613,16 @@ export async function retryExistingSimulatorDiscovery<T>(
   let lastError: unknown;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
+    update?.(`Checking loo-ume.local for the configured ESP32 (${attempt}/${attempts}).`);
     try {
       return await discover();
     } catch (error) {
       lastError = error;
-      if (attempt === 1) {
-        update?.("Waiting for the configured ESP32 to become available.");
-      }
+      update?.(
+        `ESP32 discovery failed (${attempt}/${attempts}): ${errorMessage(error)}${
+          attempt < attempts ? " Retrying in 2 seconds." : ""
+        }`,
+      );
       if (attempt < attempts) {
         if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
         await delay(2_000);
@@ -809,12 +812,14 @@ export function assertConfigReadback(input: unknown, payload: Esp32SetupPayload)
 }
 
 function standalonePresetState(payload: Esp32SetupPayload): Record<string, unknown> {
+  const state = structuredClone(payload.state);
+  delete state.o;
+  delete state.bootps;
   return {
-    ...structuredClone(payload.state),
+    ...state,
+    live: false,
     psave: STANDALONE_PRESET_ID,
-    bootps: STANDALONE_PRESET_ID,
     n: "LOO/UME standalone",
-    o: true,
     ib: true,
     sb: true,
   };
@@ -830,13 +835,21 @@ export function assertStandalonePresetReadback(
   const preset = (input as Record<string, unknown>)[String(STANDALONE_PRESET_ID)] as
     Record<string, unknown> | undefined;
   const expectedSegment = payload.state.seg as Record<string, unknown> | undefined;
-  const actualSegment = preset?.seg as Record<string, unknown> | undefined;
+  const storedSegments = Array.isArray(preset?.seg)
+    ? preset.seg
+    : [preset?.seg];
+  const actualSegment = storedSegments[0] as Record<string, unknown> | undefined;
+  const inactiveTrailingSegments = storedSegments.slice(1).every((segment) =>
+    typeof segment === "object" && segment !== null &&
+    (segment as Record<string, unknown>).stop === 0
+  );
   const keys = ["start", "stop", "fx", "pal", "sx", "ix", "frz", "col"] as const;
   if (
     preset?.n !== "LOO/UME standalone" ||
     preset.on !== payload.state.on ||
     preset.bri !== payload.state.bri ||
     !actualSegment ||
+    !inactiveTrailingSegments ||
     keys.some((key) =>
       JSON.stringify(actualSegment[key]) !== JSON.stringify(expectedSegment?.[key])
     )
@@ -859,9 +872,17 @@ export async function persistStandaloneAnimation(
   ]);
   remapStateToLiveTables(payload, effects, palettes);
   if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
-  await postDeviceJson(baseUrl, "/json/state", standalonePresetState(payload));
+  let stateWriteError: unknown;
+  try {
+    await postDeviceJson(baseUrl, "/json/state", standalonePresetState(payload));
+  } catch (error) {
+    stateWriteError = error;
+    update?.(
+      `WLED state-write response was lost: ${errorMessage(error)} Verifying the exact saved state before retrying any mutation.`,
+    );
+  }
   const deadline = Date.now() + PRESET_PERSISTENCE_DEADLINE_MS;
-  let lastError: unknown;
+  let lastError: unknown = stateWriteError;
   let attempt = 0;
   while (deadline - Date.now() >= RESTART_VERIFICATION_MINIMUM_WINDOW_MS) {
     if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
@@ -884,7 +905,7 @@ export async function persistStandaloneAnimation(
       const presets = presetResult.value;
       const information = informationResult.value;
       assertStandalonePresetReadback(presets, payload);
-      const info = information as { leds?: { bootps?: unknown } };
+    const info = information as { leds?: { bootps?: unknown } };
       if (info.leds?.bootps !== STANDALONE_PRESET_ID) {
         throw new Error("WLED did not select the standalone animation as its boot preset.");
       }
