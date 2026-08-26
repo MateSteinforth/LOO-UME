@@ -149,7 +149,13 @@ the editor derives LED count, GPIOs, ledmap, current values, and animation direc
 from the current simulator. There is no separate configuration choice. It saves
 the selected native WLED
 effect, palette, speed, intensity, colors, and brightness as preset 1 and makes
-it the boot preset. It restarts WLED and verifies the config, preset, state,
+it the boot preset. The setup config writes the boot-preset selection once.
+Later preset writes omit both WLED's immediate API-call flag and the boot-preset
+field, so they use only its asynchronous state-save path; exact eventual read-
+back still requires boot preset 1. The editor pauses DDP, drains an in-flight
+frame, and sends `live:false` before the snapshot so WLED cannot save a frozen
+realtime segment instead of the selected native effect.
+It restarts WLED and verifies the config, preset, state,
 device identity, and boot-preset selection before setup succeeds. Because HTTP
 can recover after discovery, this complete snapshot has a bounded retry. Later
 control changes update the same standalone preset.

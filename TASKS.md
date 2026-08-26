@@ -81,18 +81,7 @@ No tasks.
 
 ## Human Review
 
-### `FIRM-014` Copy complete loaded-project playback to ESP32
-
-- Software, physical standalone playback, DDP exit, and power-cycle playback
-  passed on the 192-LED three-panel project.
-- Current review: reload the page and confirm bounded mDNS recovery reconnects
-  DDP so LOO/UME effect changes reach the panels with the same dark levels and
-  bright colors as native WLED. The sender now applies WLED's pinned 2.2 gamma
-  curve before `no-gc` realtime input. Reconnect stages are visible in the main
-  log, and exact preset publication has a strict 20-second deadline with stale-
-  project and setup cancellation.
-- Owner: `codex/firm-014-standalone-playback` in
-  `/tmp/led-rhombo-firm-014`.
+No tasks.
 
 ## Ready to Merge
 
@@ -100,6 +89,12 @@ No tasks.
 
 ## Done
 
+- `FIRM-014`: copied loaded 1–41-panel simulator playback to WLED with exact
+  config, ledmap, preset, and boot-state read-back; gamma-corrected DDP live
+  mirroring; bounded reconnect; and persistent native fallback. On 2026-08-26,
+  the operator confirmed connection, effect changes, tab-close fallback, page
+  reload reconnect, and power-cycle restoration on the 192-LED three-panel
+  sculpture.
 - `PWR-010`: removed from repository scope by operator decision. External
   electrical design and protection are operator responsibilities; generated
   WLED current values are operating assumptions, not an electrical approval.
