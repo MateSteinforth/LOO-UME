@@ -958,3 +958,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Live `/presets.json`, `/json/state`, `/json/info`, and
   `/json/cfg` from `192.168.68.53`, plus the focused persistence retry test.
 - **Status:** Resolved in software; physical setup retry remains.
+
+### F-052 — WLED HTTP can drop requests just after restart discovery
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 three-panel restart verification.
+- **Symptom:** mDNS and IP identity discovery succeeded, then the immediate
+  `/json/info` verification request failed while WLED was still recovering.
+- **Cause:** Network discovery can succeed before every WLED HTTP endpoint is
+  stable after restart.
+- **Correction:** Retry the complete exact post-restart snapshot—config,
+  firmware identity, state, preset, and ledmap—within a strict 20-second
+  deadline. Fully settle one attempt before another starts, and keep the
+  browser request timeout longer than the loopback proxy's upstream timeout.
+- **Prevention:** Do not treat one successful discovery response as complete
+  application readiness after a controller restart.
+- **Evidence:** Operator log at 12:37 on 2026-08-26 and the focused transient
+  restarted-snapshot regression.
+- **Status:** Resolved in software; physical setup retry remains.

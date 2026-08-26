@@ -5,7 +5,7 @@ import { isLoopbackHost } from "./editor-pipeline-handler.ts";
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const RESOLVE_TIMEOUT_MS = 2_000;
-const UPSTREAM_TIMEOUT_MS = 8_000;
+export const ESP32_UPSTREAM_TIMEOUT_MS = 8_000;
 const DDP_PORT = 4048;
 const MAX_DDP_PIXEL_BYTES = 2_624 * 3;
 const DDP_CHANNELS_PER_PACKET = 1_440;
@@ -285,7 +285,7 @@ export function createEsp32DeviceHandler(
           headers,
           body: upstreamBody,
           redirect: "error",
-          signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+          signal: AbortSignal.timeout(ESP32_UPSTREAM_TIMEOUT_MS),
         });
         const bytes = await responseBody(upstream);
         response.statusCode = upstream.status;

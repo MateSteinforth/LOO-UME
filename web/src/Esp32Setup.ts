@@ -7,6 +7,8 @@ const SETUP_HOSTNAME = "loo-ume";
 const REQUEST_TIMEOUT_MS = 10_000;
 export const STANDALONE_PRESET_ID = 1;
 export const ESP32_FLASH_BAUD_RATE = 115200;
+export const RESTART_VERIFICATION_REQUEST_TIMEOUT_MS = 10_000;
+const RESTART_VERIFICATION_MINIMUM_WINDOW_MS = 8_500;
 const APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS = new Set([
   4, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33,
 ]);
@@ -406,7 +408,7 @@ async function deviceFetch(
   return fetch(proxy, {
     ...init,
     headers,
-    signal: AbortSignal.timeout(Math.max(timeoutMs, 12_000)),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 }
 
@@ -607,8 +609,14 @@ async function readAndAssertLedmap(
   baseUrl: URL,
   expectedBytes: string,
   mismatchMessage?: string,
+  timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<void> {
-  const readback = await deviceFetch(baseUrl, "/edit?func=edit&path=/ledmap.json");
+  const readback = await deviceFetch(
+    baseUrl,
+    "/edit?func=edit&path=/ledmap.json",
+    undefined,
+    timeoutMs,
+  );
   if (!readback.ok) {
     throw new Error(`WLED ledmap read-back failed with HTTP ${readback.status}.`);
   }
@@ -840,6 +848,84 @@ export function assertStandaloneStateReadback(
   }
 }
 
+export async function verifyRestartedDevice(
+  baseUrl: URL,
+  payload: Esp32SetupPayload,
+  expectedMac: string,
+  update: (message: string) => void,
+): Promise<void> {
+  const deadline = Date.now() + 20_000;
+  let lastError: unknown;
+  let attempt = 0;
+  while (deadline - Date.now() >= RESTART_VERIFICATION_MINIMUM_WINDOW_MS) {
+    attempt += 1;
+    try {
+      const requestTimeoutMs = Math.min(
+        RESTART_VERIFICATION_REQUEST_TIMEOUT_MS,
+        deadline - Date.now(),
+      );
+      const restartedConfigRequest = deviceFetch(
+        baseUrl, "/json/cfg", undefined, requestTimeoutMs,
+      )
+        .then((response) => readJsonResponse(response, "WLED restarted config read-back"));
+      const restartedInfoRequest = deviceFetch(
+        baseUrl, "/json/info", undefined, requestTimeoutMs,
+      )
+        .then((response) => readJsonResponse(response, "WLED restarted firmware read-back"));
+      const restartedStateRequest = deviceFetch(
+        baseUrl, "/json/state", undefined, requestTimeoutMs,
+      )
+        .then((response) => readJsonResponse(response, "WLED restarted state read-back"));
+      const restartedPresetRequest = deviceFetch(
+        baseUrl, "/presets.json", undefined, requestTimeoutMs,
+      )
+        .then((response) => readJsonResponse(response, "WLED restarted preset read-back"));
+      const restartedLedmapRequest = payload.ledmapBytes === undefined
+        ? Promise.resolve()
+        : readAndAssertLedmap(baseUrl, payload.ledmapBytes, undefined, requestTimeoutMs);
+      const results = await Promise.allSettled([
+        restartedConfigRequest,
+        restartedInfoRequest,
+        restartedStateRequest,
+        restartedPresetRequest,
+        restartedLedmapRequest,
+      ]);
+      const rejection = results.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (rejection) throw rejection.reason;
+      const [configuration, information, state, presets] = results.map((result) =>
+        (result as PromiseFulfilledResult<unknown>).value
+      );
+      assertConfigReadback(configuration, payload);
+      assertStandaloneStateReadback(state, payload);
+      assertStandalonePresetReadback(presets, payload);
+      const restarted = information as {
+        arch?: unknown;
+        leds?: { bootps?: unknown; count?: unknown };
+        mac?: unknown;
+      };
+      if (
+        restarted.arch !== "esp32" ||
+        restarted.mac !== expectedMac ||
+        restarted.leds?.count !== payload.expectedLedCount ||
+        restarted.leds?.bootps !== STANDALONE_PRESET_ID
+      ) {
+        throw new Error("WLED standalone playback did not survive restart.");
+      }
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) {
+        update("WLED HTTP is still restarting. Retrying the complete read-back.");
+      }
+      const remainingMs = deadline - Date.now();
+      if (remainingMs > 0) await wait(Math.min(500, remainingMs));
+    }
+  }
+  throw new Error(`WLED restarted verification did not stabilize: ${errorMessage(lastError)}`);
+}
+
 export async function applyAndVerifyDevice(
   baseUrl: URL,
   payload: Esp32SetupPayload,
@@ -878,44 +964,7 @@ export async function applyAndVerifyDevice(
   const reset = await deviceFetch(baseUrl, "/reset");
   if (!reset.ok) throw new Error(`WLED restart failed with HTTP ${reset.status}.`);
   const restartedUrl = await discoverRestartedDevice(info.mac);
-  const [restartedConfig, restartedInfo, restartedState, restartedPresets] =
-    await Promise.all([
-      readJsonResponse(
-        await deviceFetch(restartedUrl, "/json/cfg"),
-        "WLED restarted config read-back",
-      ),
-      readJsonResponse(
-        await deviceFetch(restartedUrl, "/json/info"),
-        "WLED restarted firmware read-back",
-      ),
-      readJsonResponse(
-        await deviceFetch(restartedUrl, "/json/state"),
-        "WLED restarted state read-back",
-      ),
-      readJsonResponse(
-        await deviceFetch(restartedUrl, "/presets.json"),
-        "WLED restarted preset read-back",
-      ),
-    ]);
-  if (payload.ledmapBytes !== undefined) {
-    await readAndAssertLedmap(restartedUrl, payload.ledmapBytes);
-  }
-  assertConfigReadback(restartedConfig, payload);
-  assertStandaloneStateReadback(restartedState, payload);
-  assertStandalonePresetReadback(restartedPresets, payload);
-  const restarted = restartedInfo as {
-    arch?: unknown;
-    leds?: { bootps?: unknown; count?: unknown };
-    mac?: unknown;
-  };
-  if (
-    restarted.arch !== "esp32" ||
-    restarted.mac !== info.mac ||
-    restarted.leds?.count !== payload.expectedLedCount ||
-    restarted.leds?.bootps !== STANDALONE_PRESET_ID
-  ) {
-    throw new Error("WLED standalone playback did not survive restart.");
-  }
+  await verifyRestartedDevice(restartedUrl, payload, info.mac, update);
   return restartedUrl;
 }
 

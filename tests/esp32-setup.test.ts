@@ -15,6 +15,7 @@ import {
   createSimulatorSetupConfig,
   createEsp32FlashOptions,
   ESP32_FLASH_BAUD_RATE,
+  RESTART_VERIFICATION_REQUEST_TIMEOUT_MS,
   isCurrentSimulatorSetup,
   mappedPanelFramebuffer,
   persistStandaloneAnimation,
@@ -26,8 +27,10 @@ import {
   runCombinedClassicReset,
   runCombinedHardReset,
   sendSimulatorFramebuffer,
+  verifyRestartedDevice,
   type Esp32SetupPayload,
 } from "../web/src/Esp32Setup.ts";
+import { ESP32_UPSTREAM_TIMEOUT_MS } from "../scripts/esp32-device-handler.ts";
 
 function payload(): Esp32SetupPayload {
   return {
@@ -56,7 +59,10 @@ function payload(): Esp32SetupPayload {
 }
 
 describe("guarded ESP32 setup contracts", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it("accepts only the measured CP2102 and classic ESP32/WLED identity", () => {
     expect(() => assertApprovedSerialDevice({
@@ -95,6 +101,9 @@ describe("guarded ESP32 setup contracts", () => {
       createHash("md5").update(bytes).digest("hex"),
     );
     expect(ESP32_FLASH_BAUD_RATE).toBe(115200);
+    expect(RESTART_VERIFICATION_REQUEST_TIMEOUT_MS).toBeGreaterThan(
+      ESP32_UPSTREAM_TIMEOUT_MS,
+    );
   });
 
   it("derives bounded buses through the complete loaded 41-panel simulator", () => {
@@ -577,7 +586,7 @@ describe("guarded ESP32 setup contracts", () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
-  it("verifies the exact ledmap before reset and again after restart", async () => {
+  it("retries the complete restarted snapshot and keeps exact ledmap checks", async () => {
     const value = payload();
     value.ledmapBytes = '{"map":[0,1,2]}\n';
     const info = {
@@ -610,6 +619,10 @@ describe("guarded ESP32 setup contracts", () => {
     };
     const response = (body: unknown): Response =>
       new Response(typeof body === "string" ? body : JSON.stringify(body));
+    let resolvePendingState!: (response: Response) => void;
+    const pendingState = new Promise<Response>((resolve) => {
+      resolvePendingState = resolve;
+    });
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(response({ success: true })) // config write
       .mockResolvedValueOnce(response("uploaded"))
@@ -632,25 +645,59 @@ describe("guarded ESP32 setup contracts", () => {
       .mockResolvedValueOnce(response(info)) // mDNS lookup
       .mockResolvedValueOnce(response(info)) // IP lookup
       .mockResolvedValueOnce(response(config))
+      .mockRejectedValueOnce(new Error("fetch failed"))
+      .mockImplementationOnce(() => pendingState)
+      .mockResolvedValueOnce(response(presets))
+      .mockResolvedValueOnce(response(value.ledmapBytes))
+      .mockResolvedValueOnce(response(config))
       .mockResolvedValueOnce(response(info))
       .mockResolvedValueOnce(response(state))
       .mockResolvedValueOnce(response(presets))
       .mockResolvedValueOnce(response(value.ledmapBytes));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(applyAndVerifyDevice(
+    const verification = applyAndVerifyDevice(
       new URL("http://192.168.68.53/"),
       value,
       () => undefined,
-    )).resolves.toEqual(new URL("http://192.168.68.53/"));
+    );
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(19));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(fetchMock).toHaveBeenCalledTimes(19);
+    resolvePendingState(response(state));
+    await expect(verification).resolves.toEqual(new URL("http://192.168.68.53/"));
     const paths = fetchMock.mock.calls.map(([request]) =>
       new URL(String(request)).searchParams.get("path")
     );
     const ledmapReads = paths
       .map((path, index) => path === "/edit?func=edit&path=/ledmap.json" ? index : -1)
       .filter((index) => index >= 0);
-    expect(ledmapReads).toHaveLength(2);
+    expect(ledmapReads).toHaveLength(3);
     expect(ledmapReads[0]).toBeLessThan(paths.indexOf("/reset"));
     expect(ledmapReads[1]).toBeGreaterThan(paths.indexOf("/reset"));
+    expect(ledmapReads[2]).toBeGreaterThan(paths.indexOf("/reset"));
+  });
+
+  it("stops restarted snapshot retries at the strict wall-clock deadline", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockRejectedValue(new Error("device still restarting"));
+    vi.stubGlobal("fetch", fetchMock);
+    const value = payload();
+    value.ledmapBytes = '{"map":[0]}\n';
+    const verification = verifyRestartedDevice(
+      new URL("http://192.168.68.53/"),
+      value,
+      "aa:bb:cc:dd:ee:ff",
+      () => undefined,
+    );
+    const rejection = expect(verification).rejects.toThrow(
+      /did not stabilize: device still restarting/,
+    );
+    await vi.advanceTimersByTimeAsync(12_000);
+    const callsAtMinimumWindow = fetchMock.mock.calls.length;
+    expect(callsAtMinimumWindow).toBeGreaterThan(0);
+    await vi.advanceTimersByTimeAsync(8_000);
+    await rejection;
+    expect(fetchMock).toHaveBeenCalledTimes(callsAtMinimumWindow);
   });
 });

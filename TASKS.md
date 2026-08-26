@@ -88,7 +88,9 @@ No tasks.
   segmented DDP preview. The 41-panel authority uses GPIO 16–19, ranges
   704/640/640/640, and the established 14,000 mA bus values.
 - Fixed from physical review: WLED preset publication is retried for a bounded
-  three seconds while keeping exact preset comparison.
+  three seconds, and the complete post-restart snapshot is retried for a
+  strict 20-second deadline while keeping exact comparisons and non-overlapping
+  attempts.
 - Passed: 378/378 Vitest, TypeScript, desktop build, focused Playwright, diff
   check, official/pinned WLED DDP contract inspection, and independent review.
 - Needed: rerun the loaded three-panel setup and confirm setup completes; stop

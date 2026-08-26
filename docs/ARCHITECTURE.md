@@ -150,8 +150,9 @@ from the current simulator. There is no separate configuration choice. It saves
 the selected native WLED
 effect, palette, speed, intensity, colors, and brightness as preset 1 and makes
 it the boot preset. It restarts WLED and verifies the config, preset, state,
-device identity, and boot-preset selection before setup succeeds. Later control
-changes update the same standalone preset.
+device identity, and boot-preset selection before setup succeeds. Because HTTP
+can recover after discovery, this complete snapshot has a bounded retry. Later
+control changes update the same standalone preset.
 
 FIRM-014 implements the exact loaded framebuffer as a separate DDP preview. The
 loopback host accepts only 1 to 2,624 RGB pixels, splits frames into WLED's
