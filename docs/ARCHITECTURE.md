@@ -164,8 +164,10 @@ fixed DDP port 4048. WLED is
 configured with a 2.5-second realtime timeout so it can resume the saved native
 animation if the browser, host, network, or laptop stops sending frames. The
 editor keeps one request in flight, updates at no more than 10 frames per
-second, and backs off after a network error. This is a bounded test-sculpture
-link for the loaded sculpture.
+second, and backs off after a network error. The sender applies the pinned WLED
+2.2 color-gamma curve because realtime input is configured with `no-gc: true`;
+native and DDP pixels therefore use the same output color pipeline. This is a
+bounded test-sculpture link for the loaded sculpture.
 After a page reload, the link reconnects only if the fixed mDNS name, private
 IP, MAC, ESP32 identity, LED count, and complete persisted loaded bus set still
 match.

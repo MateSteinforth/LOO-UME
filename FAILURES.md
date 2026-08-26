@@ -952,7 +952,8 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Cause:** The preset file was read before WLED finished publishing the saved
   preset.
 - **Correction:** After the state write, retry the exact preset and boot-preset
-  read-back for a bounded three seconds. Do not weaken the field comparison.
+  read-back within a strict 20-second deadline. Do not weaken the field
+  comparison.
 - **Prevention:** Treat WLED file-backed preset publication as eventually
   consistent and verify the final exact value with a bounded retry.
 - **Evidence:** Live `/presets.json`, `/json/state`, `/json/info`, and
@@ -1018,8 +1019,8 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   WLED reported that DDP realtime mode was inactive.
 - **Cause:** Automatic reconnect tried `loo-ume.local` once. The loopback proxy
   returned a transient resolution error, and the page silently stopped trying.
-- **Correction:** Retry the complete exact reconnect up to 12 times with a
-  two-second delay. Keep device identity, config, ledmap, and preset checks.
+- **Correction:** Retry read-only mDNS discovery up to 12 times with a
+  two-second delay. Run identity, config, ledmap, and preset checks once.
 - **Prevention:** Do not treat one transient local-name failure as proof that a
   previously configured controller is absent.
 - **Evidence:** Physical WLED status reported `live:false`; the browser console
@@ -1032,12 +1033,33 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Context:** FIRM-014 automatic reconnect after a hard page reload.
 - **Symptom:** The simulator worked, but physical panels did not update. The
   browser reported `WLED preset read-back returned invalid JSON`.
-- **Cause:** Preset and boot-state reads ran outside the existing persistence
-  retry `try` block. A partial file response rejected before retry handling.
-- **Correction:** Put both reads, JSON parsing, and exact value checks inside
-  the bounded 12-attempt persistence loop.
+- **Cause:** Preset and boot-state reads first ran outside the persistence retry.
+  Physical follow-up also found WLED's sparse file form `{ ,"1":...}`, which
+  its firmware accepts but standard `JSON.parse` rejects.
+- **Correction:** Put both reads, parsing, and exact checks inside a strict
+  20-second loop. Normalize only one leading comma after the root brace, then
+  require valid JSON and the same exact preset values. Cancel stale project or
+  setup work and report each reconnect stage.
 - **Prevention:** An eventual-consistency retry must include acquisition and
   parsing, not only the final semantic assertion.
 - **Evidence:** Operator console after hard reload and the focused invalid-JSON
   first-read regression.
 - **Status:** Resolved in software; physical page-reload retry remains.
+
+### F-057 — Ungamma-corrected DDP made dark simulator pixels visibly blue
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 physical three-panel live preview.
+- **Symptom:** Theater effects looked mostly black in the simulator and during
+  native WLED playback, but DDP preview showed every dark LED as dim blue.
+- **Cause:** WLED realtime input used its default `no-gc: true` contract, but
+  the browser sent the simulator's pre-gamma RGB bytes unchanged. The Theater
+  background `#050816` was therefore much brighter than native WLED output.
+- **Correction:** Apply WLED's pinned 2.2 color-gamma curve to every DDP channel
+  and bind `no-gc: true` in generated/read-back configuration. Keep the saved
+  native preset colors unchanged.
+- **Prevention:** A realtime framebuffer must state which side owns gamma
+  correction and test representative dark and bright channel values.
+- **Evidence:** Pinned WLED `colors.cpp`, `FX_fcn.cpp`, `wled.h`, `cfg.cpp`, and
+  the focused DDP byte regression.
+- **Status:** Resolved in software; physical DDP color parity remains.

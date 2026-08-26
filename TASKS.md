@@ -86,7 +86,11 @@ No tasks.
 - Software, physical standalone playback, DDP exit, and power-cycle playback
   passed on the 192-LED three-panel project.
 - Current review: reload the page and confirm bounded mDNS recovery reconnects
-  DDP so LOO/UME effect changes reach the panels.
+  DDP so LOO/UME effect changes reach the panels with the same dark levels and
+  bright colors as native WLED. The sender now applies WLED's pinned 2.2 gamma
+  curve before `no-gc` realtime input. Reconnect stages are visible in the main
+  log, and exact preset publication has a strict 20-second deadline with stale-
+  project and setup cancellation.
 - Owner: `codex/firm-014-standalone-playback` in
   `/tmp/led-rhombo-firm-014`.
 

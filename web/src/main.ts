@@ -710,6 +710,7 @@ async function start(): Promise<void> {
         return;
       }
       const requestedRevision = simulatorProjectRevision;
+      setLogMessage("Looking for loo-ume.local to reconnect the physical live preview.");
       const pendingSave = standaloneSaveRequest?.catch(() => undefined) ?? Promise.resolve();
       simulatorReconnectRequest = pendingSave
         .then(() => connectExistingSimulatorDevice(reconnectPayload, {
@@ -732,7 +733,19 @@ async function start(): Promise<void> {
             enableSimulatorLink(deviceUrl, true);
           }
         })
-        .catch(() => undefined)
+        .catch((error) => {
+          if (canEnableReconnectedSimulator(
+            reconnectPayload,
+            simulatorProjectRevision,
+            hardwareContract.fingerprint,
+            simulatorSetupActive,
+          )) {
+            setLogMessage(
+              `Automatic ESP32 reconnect stopped: ${error instanceof Error ? error.message : String(error)}`,
+              true,
+            );
+          }
+        })
         .finally(() => {
           simulatorReconnectRequest = undefined;
           if (requestedRevision !== simulatorProjectRevision) {

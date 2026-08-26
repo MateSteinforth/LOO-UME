@@ -5,11 +5,13 @@ import { WLED_FIRMWARE_BUILD_RECEIPT as firmwareReceipt } from "../../src/wled/D
 const CP2102_FILTER = { usbVendorId: 0x10c4, usbProductId: 0xea60 };
 const SETUP_HOSTNAME = "loo-ume";
 const REQUEST_TIMEOUT_MS = 10_000;
+const WLED_COLOR_GAMMA = 2.2;
 export const STANDALONE_PRESET_ID = 1;
 export const ESP32_FLASH_BAUD_RATE = 115200;
 export const RESTART_VERIFICATION_REQUEST_TIMEOUT_MS = 10_000;
 export const RESTART_VERIFICATION_DEADLINE_MS = 45_000;
 export const RESTART_VERIFICATION_MINIMUM_WINDOW_MS = 8_500;
+export const PRESET_PERSISTENCE_DEADLINE_MS = 20_000;
 const APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS = new Set([
   4, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33,
 ]);
@@ -193,7 +195,9 @@ export function createSimulatorSetupConfig(
     maxpwr: completeAuthority ? 14_000 : output.pixelCount / 64 * 1_000,
   }));
   config.def = { ps: STANDALONE_PRESET_ID, on: true, bri: 128 };
-  config.if = { live: { en: true, mso: true, rlm: false, timeout: 25 } };
+  config.if = {
+    live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true },
+  };
   return config;
 }
 
@@ -313,6 +317,34 @@ async function readJsonResponse(response: Response, context: string): Promise<un
   } catch {
     throw new Error(`${context} returned invalid JSON.`);
   }
+  if (!response.ok) {
+    const detail = typeof value === "object" && value !== null &&
+        "error" in value && typeof value.error === "string"
+      ? value.error
+      : `HTTP ${response.status}`;
+    throw new Error(`${context}: ${detail}`);
+  }
+  return value;
+}
+
+export function parseWledPresetJson(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    const normalized = text.replace(/^(\{\s*),/, "$1");
+    if (normalized === text) {
+      throw new Error("WLED preset read-back returned invalid JSON.");
+    }
+    try {
+      return JSON.parse(normalized) as unknown;
+    } catch {
+      throw new Error("WLED preset read-back returned invalid JSON.");
+    }
+  }
+}
+
+async function readWledPresetResponse(response: Response, context: string): Promise<unknown> {
+  const value = parseWledPresetJson(await response.text());
   if (!response.ok) {
     const detail = typeof value === "object" && value !== null &&
         "error" in value && typeof value.error === "string"
@@ -477,7 +509,11 @@ function rgbFramebufferBytes(
   )) {
     throw new Error("The simulator hardware preview must contain from 1 through 2,624 RGB pixels.");
   }
-  return Uint8Array.from(pixels.flat());
+  return Uint8Array.from(
+    pixels.flatMap((pixel) => pixel.map((channel) =>
+      Math.floor((channel / 255) ** WLED_COLOR_GAMMA * 255 + 0.5)
+    )),
+  );
 }
 
 export function mappedPanelFramebuffer(
@@ -619,6 +655,7 @@ export async function connectExistingSimulatorDevice(
     throw new Error("The existing WLED device does not match the loaded simulator setup.");
   }
   const currentUrl = privateDeviceUrl(`http://${mdnsInfo.ip}/`);
+  options.update?.(`Found the configured ESP32 at ${currentUrl.hostname}. Verifying its loaded-project contract.`);
   const [currentInfo, configuration] = await Promise.all([
     readJsonResponse(
       await deviceFetch(currentUrl, "/json/info", undefined, 12_000),
@@ -646,7 +683,13 @@ export async function connectExistingSimulatorDevice(
     );
   }
   if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
-  await (options.persist ?? persistStandaloneAnimation)(currentUrl, payload);
+  options.update?.("ESP32 contract matched. Syncing the current animation preset.");
+  await (options.persist ?? persistStandaloneAnimation)(
+    currentUrl,
+    payload,
+    shouldContinue,
+    options.update,
+  );
   return currentUrl;
 }
 
@@ -805,25 +848,41 @@ export function assertStandalonePresetReadback(
 export async function persistStandaloneAnimation(
   baseUrl: URL,
   payload: Esp32SetupPayload,
+  shouldContinue: () => boolean = () => true,
+  update?: (message: string) => void,
 ): Promise<void> {
   assertBoundedSimulatorPayload(payload);
+  if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
   const [effects, palettes] = await Promise.all([
     readJsonResponse(await deviceFetch(baseUrl, "/json/eff"), "WLED effect list"),
     readJsonResponse(await deviceFetch(baseUrl, "/json/pal"), "WLED palette list"),
   ]);
   remapStateToLiveTables(payload, effects, palettes);
+  if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
   await postDeviceJson(baseUrl, "/json/state", standalonePresetState(payload));
+  const deadline = Date.now() + PRESET_PERSISTENCE_DEADLINE_MS;
   let lastError: unknown;
-  for (let attempt = 1; attempt <= 12; attempt += 1) {
+  let attempt = 0;
+  while (deadline - Date.now() >= RESTART_VERIFICATION_MINIMUM_WINDOW_MS) {
+    if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
+    attempt += 1;
     try {
-      const presetRequest = deviceFetch(baseUrl, "/presets.json")
-        .then((response) => readJsonResponse(response, "WLED preset read-back"));
-      const informationRequest = deviceFetch(baseUrl, "/json/info")
+      const timeoutMs = Math.min(
+        RESTART_VERIFICATION_REQUEST_TIMEOUT_MS,
+        deadline - Date.now(),
+      );
+      const presetRequest = deviceFetch(baseUrl, "/presets.json", undefined, timeoutMs)
+        .then((response) => readWledPresetResponse(response, "WLED preset read-back"));
+      const informationRequest = deviceFetch(baseUrl, "/json/info", undefined, timeoutMs)
         .then((response) => readJsonResponse(response, "WLED boot preset read-back"));
-      const [presets, information] = await Promise.all([
+      const [presetResult, informationResult] = await Promise.allSettled([
         presetRequest,
         informationRequest,
       ]);
+      if (presetResult.status === "rejected") throw presetResult.reason;
+      if (informationResult.status === "rejected") throw informationResult.reason;
+      const presets = presetResult.value;
+      const information = informationResult.value;
       assertStandalonePresetReadback(presets, payload);
       const info = information as { leds?: { bootps?: unknown } };
       if (info.leds?.bootps !== STANDALONE_PRESET_ID) {
@@ -832,10 +891,19 @@ export async function persistStandaloneAnimation(
       return;
     } catch (error) {
       lastError = error;
-      if (attempt < 12) await wait(250);
+      update?.(
+        `Standalone preset is not ready (${attempt}): ${errorMessage(error)} Retrying.`,
+      );
+      if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
+      const remainingMs = deadline - Date.now();
+      if (remainingMs >= RESTART_VERIFICATION_MINIMUM_WINDOW_MS) {
+        await wait(Math.min(250, remainingMs));
+      }
     }
   }
-  throw lastError;
+  throw new Error(
+    `WLED standalone preset did not stabilize within ${PRESET_PERSISTENCE_DEADLINE_MS / 1_000} seconds: ${errorMessage(lastError)}`,
+  );
 }
 
 function assertBoundedSimulatorPayload(payload: Esp32SetupPayload): void {
@@ -946,7 +1014,9 @@ export async function verifyRestartedDevice(
       const restartedPresetRequest = deviceFetch(
         baseUrl, "/presets.json", undefined, requestTimeoutMs,
       )
-        .then((response) => readJsonResponse(response, "WLED restarted preset read-back"));
+        .then((response) =>
+          readWledPresetResponse(response, "WLED restarted preset read-back")
+        );
       const restartedLedmapRequest = payload.ledmapBytes === undefined
         ? Promise.resolve()
         : readAndAssertLedmap(baseUrl, payload.ledmapBytes, undefined, requestTimeoutMs);

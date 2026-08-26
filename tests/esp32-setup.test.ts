@@ -16,11 +16,13 @@ import {
   createSimulatorSetupConfig,
   createEsp32FlashOptions,
   ESP32_FLASH_BAUD_RATE,
+  PRESET_PERSISTENCE_DEADLINE_MS,
   RESTART_VERIFICATION_DEADLINE_MS,
   RESTART_VERIFICATION_MINIMUM_WINDOW_MS,
   RESTART_VERIFICATION_REQUEST_TIMEOUT_MS,
   isCurrentSimulatorSetup,
   mappedPanelFramebuffer,
+  parseWledPresetJson,
   persistStandaloneAnimation,
   privateDeviceUrl,
   provisionVisibleWifi,
@@ -51,7 +53,7 @@ function payload(): Esp32SetupPayload {
           ins: [{ start: 0, len: 64, pin: [16], order: 0, type: 22 }],
         },
       },
-      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true } },
     },
     expectedEffectName: "Rainbow",
     expectedPaletteName: "Forest",
@@ -127,7 +129,7 @@ describe("guarded ESP32 setup contracts", () => {
         maxpwr: 3000,
         ins: [{ start: 0, len: 192, pin: [16], order: 3, maxpwr: 3000 }],
       } },
-      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true } },
     });
     const fullConfig = createSimulatorSetupConfig(template, [
       { startIndex: 0, pixelCount: 704, gpio: 16 },
@@ -423,7 +425,7 @@ describe("guarded ESP32 setup contracts", () => {
       hw: { led: { total: 64, maxpwr: 1000, ins: [
         { start: 0, len: 64, pin: [16], order: 0, type: 22, extra: true },
       ] } },
-      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true } },
     };
     const state = {
       on: true,
@@ -484,11 +486,30 @@ describe("guarded ESP32 setup contracts", () => {
         "X-LOO-UME-ESP32": "1",
       }),
     });
-    expect(Array.from(new Uint8Array(init.body as ArrayBuffer))).toEqual(pixels.flat());
+    const expected = pixels.flatMap((pixel) => pixel.map((channel) =>
+      Math.floor((channel / 255) ** 2.2 * 255 + 0.5)
+    ));
+    expect(Array.from(new Uint8Array(init.body as ArrayBuffer))).toEqual(expected);
+    expect(expected.slice(0, 3)).toEqual([0, 255, 0]);
     await expect(sendSimulatorFramebuffer(
       new URL("http://192.168.68.53/"),
       [],
     )).rejects.toThrow(/1 through 2,624/);
+  });
+
+  it("gamma-corrects dim DDP colors like native WLED rendering", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await sendSimulatorFramebuffer(
+      new URL("http://192.168.68.53/"),
+      [[5, 8, 22], [255, 122, 24]],
+    );
+    const body = fetchMock.mock.calls[0]![1].body as ArrayBuffer;
+    expect(Array.from(new Uint8Array(body))).toEqual([0, 0, 1, 255, 50, 1]);
   });
 
   it("requires the saved standalone preset to match the simulator settings", () => {
@@ -509,6 +530,15 @@ describe("guarded ESP32 setup contracts", () => {
         seg: { ...(value.state.seg as object), fx: 7 },
       },
     }, value)).toThrow(/does not match/);
+  });
+
+  it("accepts only WLED's sparse leading-comma preset representation", () => {
+    expect(parseWledPresetJson('{   ,"1":{"n":"LOO/UME standalone"}}')).toEqual({
+      "1": { n: "LOO/UME standalone" },
+    });
+    expect(parseWledPresetJson('{"1":{}}')).toEqual({ "1": {} });
+    expect(() => parseWledPresetJson('{"1":,}')).toThrow(/invalid JSON/);
+    expect(() => parseWledPresetJson('{ ,,"1":{}}')).toThrow(/invalid JSON/);
   });
 
   it("writes and verifies the native standalone boot preset", async () => {
@@ -541,6 +571,7 @@ describe("guarded ESP32 setup contracts", () => {
   });
 
   it("waits for WLED to finish storing the standalone preset", async () => {
+    expect(PRESET_PERSISTENCE_DEADLINE_MS).toBe(20_000);
     const value = payload();
     const savedPreset = {
       "1": {
@@ -568,9 +599,49 @@ describe("guarded ESP32 setup contracts", () => {
       value,
     );
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(fetchMock).toHaveBeenCalledTimes(5);
     resolveDelayedInfo(new Response(JSON.stringify({ leds: { bootps: 1 } })));
     await expect(persistence).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledTimes(7);
+  });
+
+  it("bounds preset verification by elapsed time and cancels stale saves", async () => {
+    vi.useFakeTimers();
+    const value = payload();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Rainbow"])))
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Forest"])))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+      .mockResolvedValue(new Response("{incomplete"));
+    vi.stubGlobal("fetch", fetchMock);
+    const startedAt = Date.now();
+    const persistence = persistStandaloneAnimation(
+      new URL("http://192.168.68.53/"),
+      value,
+    );
+    const rejection = expect(persistence).rejects.toThrow(/within 20 seconds/);
+    await vi.runAllTimersAsync();
+    await rejection;
+    expect(Date.now() - startedAt).toBeLessThanOrEqual(PRESET_PERSISTENCE_DEADLINE_MS);
+
+    vi.useRealTimers();
+    let current = true;
+    fetchMock.mockReset()
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Rainbow"])))
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Forest"])))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+      .mockImplementationOnce(async () => {
+        current = false;
+        return new Response("{incomplete");
+      })
+      .mockResolvedValueOnce(new Response(JSON.stringify({ leds: { bootps: 1 } })));
+    await expect(persistStandaloneAnimation(
+      new URL("http://192.168.68.53/"),
+      value,
+      () => current,
+    )).rejects.toThrow(/cancelled/);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
   });
 
   it("orders simulator pixels by the first panel's physical addresses", () => {
@@ -618,7 +689,7 @@ describe("guarded ESP32 setup contracts", () => {
       hw: { led: { total: 64, maxpwr: 1000, ins: [
         { start: 0, len: 64, pin: [16], order: 0, type: 22 },
       ] } },
-      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true } },
     };
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
@@ -702,7 +773,7 @@ describe("guarded ESP32 setup contracts", () => {
       hw: { led: { total: 64, maxpwr: 1000, ins: [
         { start: 0, len: 64, pin: [16], order: 0, type: 22 },
       ] } },
-      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true } },
     };
     const state = {
       on: true,
