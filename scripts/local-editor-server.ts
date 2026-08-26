@@ -15,6 +15,10 @@ import {
   type EditorPipelineHandler,
 } from "./editor-pipeline-handler.ts";
 import {
+  createEsp32DeviceHandler,
+  type Esp32DeviceHandler,
+} from "./esp32-device-handler.ts";
+import {
   createEsp32FirmwareHandler,
   type Esp32FirmwareHandler,
 } from "./esp32-firmware-handler.ts";
@@ -44,6 +48,7 @@ export interface LocalEditorServerOptions {
   port?: number;
   pipelineHandler?: EditorPipelineHandler;
   firmwareHandler?: Esp32FirmwareHandler;
+  deviceHandler?: Esp32DeviceHandler;
 }
 
 export interface LocalEditorServer {
@@ -177,6 +182,7 @@ export async function startLocalEditorServer(
     });
   const firmwareHandler = options.firmwareHandler ??
     createEsp32FirmwareHandler({ rootDirectory });
+  const deviceHandler = options.deviceHandler ?? createEsp32DeviceHandler();
   const sockets = new Set<Socket>();
   const server = createServer((request, response) => {
     void (async () => {
@@ -185,6 +191,7 @@ export async function startLocalEditorServer(
         return;
       }
       if (await firmwareHandler.handle(request, response)) return;
+      if (await deviceHandler.handle(request, response)) return;
       if (await pipelineHandler.handle(request, response)) return;
       await serveStatic(request, response, distDirectory, generatedPublicDirectory);
     })().catch((error) => {

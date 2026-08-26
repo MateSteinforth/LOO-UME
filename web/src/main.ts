@@ -92,7 +92,10 @@ import {
   type VerifiedGeneratedStructure,
 } from "./GeneratedStructuralAssets.ts";
 import {
+  connectExistingSimulatorDevice,
   createEsp32SetupController,
+  mappedPanelFramebuffer,
+  sendSimulatorFramebuffer,
   type Esp32SetupMode,
   type Esp32SetupPayload,
 } from "./Esp32Setup.ts";
@@ -328,7 +331,7 @@ app.innerHTML = `
               Download displayed connectors ZIP
             </button>
           </div>
-          <div id="pipeline-status" class="pipeline-status" role="log" aria-live="polite" aria-label="Activity log">
+          <div id="pipeline-status" class="pipeline-status pipeline-status--history" role="log" aria-live="polite" aria-label="Activity log">
             Local Vite pipeline is ready.
           </div>
         </section>
@@ -356,14 +359,17 @@ app.innerHTML = `
           <span>Approved full-flash image (only if not staged locally)</span>
           <input id="esp32-firmware-file" type="file" accept=".bin,application/octet-stream" />
         </label>
-        <label class="toggle-field">
-          <input id="esp32-confirm-erase" type="checkbox" />
-          <span>Erase this ESP32 and replace its current firmware and settings.</span>
-        </label>
-        <label class="toggle-field">
-          <input id="esp32-confirm-power" type="checkbox" />
-          <span>LED panel power is disconnected during the USB flash.</span>
-        </label>
+        <div class="esp32-boot-instruction">
+          <output id="esp32-boot-instruction" data-state="hold">HOLD BOOT</output>
+          <small>Keep only this ESP32/CP2102 connected. Hold before selection; release when this instruction changes.</small>
+        </div>
+        <div class="esp32-progress" aria-label="ESP32 flash progress">
+          <div><span>Flash progress</span><output id="esp32-setup-progress-label">Ready</output></div>
+          <progress id="esp32-setup-progress" max="100" value="0"></progress>
+        </div>
+        <div id="esp32-setup-console" class="pipeline-status esp32-setup-console" role="log" aria-live="polite" aria-label="ESP32 setup console">
+          Local editor is ready.
+        </div>
         <div class="dialog-actions">
           <button id="run-esp32-setup" class="pipeline-button" type="button">Flash and configure</button>
           <button id="close-esp32-setup" class="editor-button" type="button">Cancel</button>
@@ -451,6 +457,7 @@ const includeConnectorPairButton = query<HTMLButtonElement>("#include-connector-
 const connectorPairList = query<HTMLElement>("#connector-pair-list");
 const panelTransformMode = query<HTMLSelectElement>("#panel-transform-mode");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
+const esp32SetupConsole = query<HTMLElement>("#esp32-setup-console");
 const esp32SetupDialog = query<HTMLDialogElement>("#esp32-setup-dialog");
 const openEsp32SetupButton = query<HTMLButtonElement>("#open-esp32-setup");
 const runEsp32SetupButton = query<HTMLButtonElement>("#run-esp32-setup");
@@ -459,11 +466,27 @@ const esp32WifiSsidInput = query<HTMLInputElement>("#esp32-wifi-ssid");
 const esp32WifiPasswordInput = query<HTMLInputElement>("#esp32-wifi-password");
 const esp32FirmwareInput = query<HTMLInputElement>("#esp32-firmware-file");
 const esp32SetupModeSelect = query<HTMLSelectElement>("#esp32-setup-mode");
-const esp32ConfirmErase = query<HTMLInputElement>("#esp32-confirm-erase");
-const esp32ConfirmPower = query<HTMLInputElement>("#esp32-confirm-power");
+const esp32SetupProgress = query<HTMLProgressElement>("#esp32-setup-progress");
+const esp32SetupProgressLabel = query<HTMLOutputElement>("#esp32-setup-progress-label");
+const esp32BootInstruction = query<HTMLOutputElement>("#esp32-boot-instruction");
+const appendLogEntry = (
+  target: HTMLElement,
+  message: string,
+  error: boolean,
+): void => {
+  const entry = document.createElement("div");
+  entry.className = error ? "esp32-console-entry esp32-console-entry--error" : "esp32-console-entry";
+  entry.textContent = message;
+  target.append(entry);
+  while (target.childElementCount > 240) target.firstElementChild?.remove();
+  target.scrollTop = target.scrollHeight;
+};
 const setLogMessage = (message: string, error = false): void => {
+  const timestamp = new Date().toLocaleTimeString("en-GB", { hour12: false });
+  const timestampedMessage = `[${timestamp}] ${message}`;
   pipelineStatus.classList.toggle("pipeline-status--error", error);
-  pipelineStatus.textContent = message;
+  appendLogEntry(pipelineStatus, timestampedMessage, error);
+  appendLogEntry(esp32SetupConsole, timestampedMessage, error);
 };
 let pipelineAvailable = false;
 let pipelineAvailabilityMessage =
@@ -547,18 +570,54 @@ async function start(): Promise<void> {
     let availableProjectAssets = new Map<string, Uint8Array>();
     let generatedMemoryUrls = new Map<string, string>();
     let selectedEditorPanelId: string | null = null;
+    let simulatorDeviceUrl: URL | undefined;
+    let simulatorFrameRequest: Promise<void> | undefined;
+    let simulatorReconnectRequest: Promise<void> | undefined;
+    let nextSimulatorFrameAt = 0;
+    let simulatorLinkFailed = false;
 
     const rgbFromPacked = (packed: number): [number, number, number] => [
       (packed >> 16) & 0xff,
       (packed >> 8) & 0xff,
       packed & 0xff,
     ];
+    const physicalSmokeFramebuffer = (): Array<[number, number, number]> => {
+      if (mapping.topology !== "panelized-sculpture") {
+        if (engine.pixels.length !== 64) {
+          throw new Error("The virtual one-panel preview must contain exactly 64 LEDs.");
+        }
+        return Array.from(
+          { length: 64 },
+          (_, index) => rgbFromPacked(engine.pixels[index] ?? 0),
+        );
+      }
+      if (
+        mapping.panelPixelGrid?.columns !== 8 ||
+        mapping.panelPixelGrid.rows !== 8
+      ) {
+        throw new Error("The one-panel hardware link requires an 8 by 8 panel profile.");
+      }
+      const firstOutput = hardwareContract.outputs[0];
+      const firstPanelId = firstOutput?.panelIds[0];
+      if (!firstOutput || !firstPanelId) {
+        throw new Error("The current mapping has no first hardware panel.");
+      }
+      const firstPanelEntries = hardwareContract.mapping.entries.filter(
+        (entry) => entry.panelId === firstPanelId,
+      );
+      if (firstPanelEntries.length !== 64) {
+        throw new Error("The first hardware route entry is not one complete 8 by 8 panel.");
+      }
+      return mappedPanelFramebuffer(
+        engine.pixels,
+        firstPanelEntries,
+        firstOutput.startIndex,
+      );
+    };
     const setupPayload = (mode: Esp32SetupMode): Esp32SetupPayload => {
       if (mode === "smoke") {
         const individual: Array<number | [number, number, number]> = [];
-        for (let index = 0; index < 64; index += 1) {
-          individual.push(index, rgbFromPacked(engine.pixels[index] ?? 0));
-        }
+        physicalSmokeFramebuffer().forEach((pixel, index) => individual.push(index, pixel));
         return {
           mode,
           config: structuredClone(smokeConfig) as Record<string, unknown>,
@@ -607,6 +666,31 @@ async function start(): Promise<void> {
       };
     };
 
+    const enableSimulatorLink = (deviceUrl: URL, reconnected = false): void => {
+      simulatorDeviceUrl = deviceUrl;
+      nextSimulatorFrameAt = 0;
+      simulatorLinkFailed = false;
+      setLogMessage(
+        `${reconnected ? "Reconnected" : "Live one-panel simulator link started"} at ${deviceUrl.host}. Connect the panel to GPIO16 DIN.`,
+      );
+    };
+
+    const tryReconnectSimulatorLink = (): void => {
+      if (simulatorDeviceUrl || simulatorReconnectRequest) return;
+      let reconnectPayload: Esp32SetupPayload;
+      try {
+        reconnectPayload = setupPayload("smoke");
+      } catch {
+        return;
+      }
+      simulatorReconnectRequest = connectExistingSimulatorDevice(reconnectPayload)
+        .then((deviceUrl) => enableSimulatorLink(deviceUrl, true))
+        .catch(() => undefined)
+        .finally(() => {
+          simulatorReconnectRequest = undefined;
+        });
+    };
+
     createEsp32SetupController({
       dialog: esp32SetupDialog,
       openButton: openEsp32SetupButton,
@@ -616,11 +700,15 @@ async function start(): Promise<void> {
       passwordInput: esp32WifiPasswordInput,
       firmwareInput: esp32FirmwareInput,
       modeSelect: esp32SetupModeSelect,
-      eraseConfirmation: esp32ConfirmErase,
-      powerConfirmation: esp32ConfirmPower,
+      progressElement: esp32SetupProgress,
+      progressLabel: esp32SetupProgressLabel,
+      bootInstruction: esp32BootInstruction,
+      clearSetupLog: () => esp32SetupConsole.replaceChildren(),
       setLogMessage,
       getPayload: setupPayload,
+      onSetupComplete: (deviceUrl) => enableSimulatorLink(deviceUrl),
     });
+    tryReconnectSimulatorLink();
 
     const replacePortableBundle = (
       bundle?: PortableProjectBundle,
@@ -1051,8 +1139,7 @@ async function start(): Promise<void> {
       } catch (error) {
         if (revision !== generatedAssetLoadRevision) return;
         const message = error instanceof Error ? error.message : String(error);
-        pipelineStatus.classList.add("pipeline-status--error");
-        pipelineStatus.textContent = message;
+        setLogMessage(message, true);
         updateMappingStatus();
       }
     };
@@ -1105,6 +1192,7 @@ async function start(): Promise<void> {
         wiringPreview,
       );
       engine.resize(mapping.entries.length);
+      tryReconnectSimulatorLink();
       ledCountInput.value = String(mapping.entries.length);
       renderer?.setPanelProfileThickness(
         selected.project.panelProfile.dimensions.thickness,
@@ -1143,9 +1231,9 @@ async function start(): Promise<void> {
       );
       await applyLoadedSculpture(createLoadedSculpture(project));
       renderConnectorControls();
-      pipelineStatus.classList.remove("pipeline-status--error");
-      pipelineStatus.textContent =
-        "Modular connector settings changed. Generate connector ribbons to refresh printable parts.";
+      setLogMessage(
+        "Modular connector settings changed. Generate connector ribbons to refresh printable parts.",
+      );
     };
 
     const renderConnectorControls = (): void => {
@@ -1201,8 +1289,7 @@ async function start(): Promise<void> {
               action: input.checked ? "include" : "exclude",
             });
             void applyConnectorization(next).catch((error) => {
-              pipelineStatus.classList.add("pipeline-status--error");
-              pipelineStatus.textContent = error instanceof Error ? error.message : String(error);
+              setLogMessage(error instanceof Error ? error.message : String(error), true);
             });
           });
           label.append(input, `${row.panelIds[0]} ↔ ${row.panelIds[1]} (${row.detail})`);
@@ -1222,8 +1309,7 @@ async function start(): Promise<void> {
       next.printBedSizeMm = connectorBedInputs.map((input) => Number(input.value)) as [number, number, number];
       next.maximumStrutSegmentLengthMm = Number(connectorSegmentLengthInput.value);
       void applyConnectorization(next).catch((error) => {
-        pipelineStatus.classList.add("pipeline-status--error");
-        pipelineStatus.textContent = error instanceof Error ? error.message : String(error);
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
       });
     };
     for (const input of [
@@ -1236,8 +1322,7 @@ async function start(): Promise<void> {
       const first = connectorPairFirstSelect.value;
       const second = connectorPairSecondSelect.value;
       if (!first || !second || first === second) {
-        pipelineStatus.classList.add("pipeline-status--error");
-        pipelineStatus.textContent = "Select two different panels for a connector.";
+        setLogMessage("Select two different panels for a connector.", true);
         return;
       }
       const next = resolvedConnectorization();
@@ -1247,8 +1332,7 @@ async function start(): Promise<void> {
       );
       next.panelPairOverrides.push({ panelIds: [first, second].sort() as [string, string], action: "include" });
       void applyConnectorization(next).catch((error) => {
-        pipelineStatus.classList.add("pipeline-status--error");
-        pipelineStatus.textContent = error instanceof Error ? error.message : String(error);
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
       });
     });
 
@@ -1415,14 +1499,12 @@ async function start(): Promise<void> {
             editorProject.panelProfile,
           );
           applyLoadedSculpture(createLoadedSculpture(project));
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = edited.mechanicalShell
+          setLogMessage(edited.mechanicalShell
               ? "Moved " + placement.panelId + ". Pose is saved; 3D generation will validate it against the JSON boundary and regenerate printable mechanics."
-              : "Moved " + placement.panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.";
+              : "Moved " + placement.panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.");
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent = message;
+          setLogMessage(message, true);
         }
       },
       onLocalTranslationCommit: (panelId, deltaX, deltaY) => {
@@ -1435,14 +1517,12 @@ async function start(): Promise<void> {
           );
           applyLoadedSculpture(createLoadedSculpture(project));
           renderer?.selectEditorPanel(panelId);
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = edited.mechanicalShell
+          setLogMessage(edited.mechanicalShell
               ? "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; generated mechanics require regeneration."
-              : "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; no printable mechanics exist yet.";
+              : "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; no printable mechanics exist yet.");
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent = message;
+          setLogMessage(message, true);
         }
       },
       onRotationCommit: (panelId, degrees) => {
@@ -1460,14 +1540,12 @@ async function start(): Promise<void> {
           applyLoadedSculpture(createLoadedSculpture(project));
           renderer?.selectEditorPanel(panelId);
           const direction = degrees >= 0 ? "counter-clockwise" : "clockwise";
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = edited.mechanicalShell
+          setLogMessage(edited.mechanicalShell
               ? "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + " as viewed from outside. 3D generation will revalidate its full PCB envelope."
-              : "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + " as viewed from outside. Mapping and wiring refreshed; no printable mechanics exist yet.";
+              : "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + " as viewed from outside. Mapping and wiring refreshed; no printable mechanics exist yet.");
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent = message;
+          setLogMessage(message, true);
         }
       },
       onFreeTransformCommit: (transform) => {
@@ -1484,10 +1562,9 @@ async function start(): Promise<void> {
           );
           applyLoadedSculpture(createLoadedSculpture(project));
           renderer?.selectEditorPanel(transform.panelId);
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = edited.mechanicalShell
+          setLogMessage(edited.mechanicalShell
             ? `Transformed ${transform.panelId} freely in 3D. Its surface attachment was removed and generated mechanics require regeneration.`
-            : `Transformed ${transform.panelId} freely in 3D. Mapping and wiring refreshed; no printable mechanics exist yet.`;
+            : `Transformed ${transform.panelId} freely in 3D. Mapping and wiring refreshed; no printable mechanics exist yet.`);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
@@ -1504,14 +1581,12 @@ async function start(): Promise<void> {
           applyLoadedSculpture(createLoadedSculpture(project));
           const panelId = edited.panels.at(-1)!.id;
           renderer?.selectEditorPanel(panelId);
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = editorDefinition.mechanicalShell
+          setLogMessage(editorDefinition.mechanicalShell
             ? `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. 3D generation will regenerate from the JSON mechanical boundary.`
-            : `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. Mapping and wiring refreshed; no printable mechanics exist yet.`;
+            : `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. Mapping and wiring refreshed; no printable mechanics exist yet.`);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent = message;
+          setLogMessage(message, true);
         }
       },
       onDeletePanelRequest: (panelId) => {
@@ -1523,14 +1598,12 @@ async function start(): Promise<void> {
             editorProject.panelProfile,
           );
           applyLoadedSculpture(createLoadedSculpture(project));
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent = edited.mechanicalShell
+          setLogMessage(edited.mechanicalShell
               ? "Deleted " + panelId + ". 3D generation will regenerate the closed JSON mechanical boundary."
-              : "Deleted " + panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.";
+              : "Deleted " + panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.");
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent = message;
+          setLogMessage(message, true);
         }
       },
     });
@@ -1591,13 +1664,12 @@ async function start(): Promise<void> {
             editorProject.panelProfile,
           );
           await applyLoadedSculpture(createLoadedSculpture(project));
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent =
-            `Saved wiring route revision ${edited.wiring.routeRevision}. Save the project ZIP to keep it.`;
+          setLogMessage(
+            `Saved wiring route revision ${edited.wiring.routeRevision}. Save the project ZIP to keep it.`,
+          );
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent = message;
+          setLogMessage(message, true);
         }
       })();
     });
@@ -1674,6 +1746,7 @@ async function start(): Promise<void> {
       renderRouteEditor();
       resetTimeline();
       updateMappingStatus();
+      tryReconnectSimulatorLink();
     });
     const applyPortableBundle = async (
       bundle: PortableProjectBundle,
@@ -1685,15 +1758,14 @@ async function start(): Promise<void> {
       await loadReferencedDesignSurface();
       sculptureSelect.value = "";
       sculptureJsonInput.value = label;
-      pipelineStatus.classList.remove("pipeline-status--error");
-      pipelineStatus.textContent =
-        `Loaded complete project ${label} with ${bundle.assets.size} verified assets.`;
+      setLogMessage(
+        `Loaded complete project ${label} with ${bundle.assets.size} verified assets.`,
+      );
     };
 
     const reportPortableError = (error: unknown): void => {
       const message = error instanceof Error ? error.message : String(error);
-      pipelineStatus.classList.add("pipeline-status--error");
-      pipelineStatus.textContent = message;
+      setLogMessage(message, true);
     };
 
     openProjectFileButton.addEventListener("click", () => {
@@ -1719,8 +1791,7 @@ async function start(): Promise<void> {
             await loadReferencedDesignSurface();
             sculptureSelect.value = "";
             sculptureJsonInput.value = file.name;
-            pipelineStatus.classList.remove("pipeline-status--error");
-            pipelineStatus.textContent = `Loaded ${file.name}.`;
+            setLogMessage(`Loaded ${file.name}.`);
           }
         } catch (error) {
           reportPortableError(error);
@@ -1780,9 +1851,9 @@ async function start(): Promise<void> {
         link.download = `${folderName}.zip`;
         link.click();
         URL.revokeObjectURL(objectUrl);
-        pipelineStatus.classList.remove("pipeline-status--error");
-        pipelineStatus.textContent =
-          `Exported ${link.download} from verified in-memory project assets.`;
+        setLogMessage(
+          `Exported ${link.download} from verified in-memory project assets.`,
+        );
       } catch (error) {
         reportPortableError(error);
       }
@@ -1808,9 +1879,7 @@ async function start(): Promise<void> {
             availableProjectAssets,
             folderName,
           );
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent =
-            `Exported complete project folder ${folderName}.`;
+          setLogMessage(`Exported complete project folder ${folderName}.`);
         } catch (error) {
           reportPortableError(error);
         } finally {
@@ -1853,8 +1922,7 @@ async function start(): Promise<void> {
           showDesignSurface(surface, file.name);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent = message;
+          setLogMessage(message, true);
         } finally {
           designSurfaceFileInput.value = "";
           loadDesignSurfaceButton.disabled = false;
@@ -1871,7 +1939,7 @@ async function start(): Promise<void> {
       link.download = `${editorDefinition.id}.sculpture.json`;
       link.click();
       URL.revokeObjectURL(objectUrl);
-      pipelineStatus.textContent = `Saved ${link.download}.`;
+      setLogMessage(`Saved ${link.download}.`);
     });
 
     automaticallyPlacePanelsButton.addEventListener("click", () => {
@@ -1897,8 +1965,7 @@ async function start(): Promise<void> {
           editorProject.panelProfile,
         );
         applyLoadedSculpture(createLoadedSculpture(project));
-        pipelineStatus.classList.remove("pipeline-status--error");
-        pipelineStatus.textContent = result.placedPanelIds.length === 0
+        setLogMessage(result.placedPanelIds.length === 0
           ? `The sculpture already has ${targetPanelCount} panels; nothing changed.`
           : `Placed ${result.placedPanelIds.join(", ")} across the active ${
             attachmentSurface === "design-surface" ? "GLB" : "JSON shell"
@@ -1906,11 +1973,10 @@ async function start(): Promise<void> {
             editorDefinition.mechanicalShell
               ? " before separate 3D generation"
               : "; 3D generation remains unavailable until boundary input exists"
-          }.`;
+          }.`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        pipelineStatus.classList.add("pipeline-status--error");
-        pipelineStatus.textContent = message;
+        setLogMessage(message, true);
       }
     });
     addPanelButton.addEventListener("click", () => {
@@ -1928,8 +1994,9 @@ async function start(): Promise<void> {
           editorProject.panelProfile,
         );
         applyLoadedSculpture(createLoadedSculpture(project));
-        pipelineStatus.textContent =
-          `Added ${edited.panels.at(-1)!.id} to ${faceId}. Save the project ZIP or build the assembly package.`;
+        setLogMessage(
+          `Added ${edited.panels.at(-1)!.id} to ${faceId}. Save the project ZIP or build the assembly package.`,
+        );
       } catch (error) {
         setLogMessage(
           error instanceof Error ? error.message : String(error),
@@ -1982,11 +2049,9 @@ async function start(): Promise<void> {
         `${portableProjectFolderName(editorDefinition)}-assembly-package.zip`;
       link.click();
       URL.revokeObjectURL(objectUrl);
-      pipelineStatus.classList.remove("pipeline-status--error");
-      pipelineStatus.textContent =
-        hardwareContract.readiness.mappingReady
+      setLogMessage(hardwareContract.readiness.mappingReady
           ? `Downloaded ${link.download} with the project, verified geometry, assembly manual, and guarded WLED installation bundle.`
-          : `Downloaded ${link.download} with the project, verified geometry, assembly manual, and diagnostic-only mapping files.`;
+          : `Downloaded ${link.download} with the project, verified geometry, assembly manual, and diagnostic-only mapping files.`);
     };
 
     downloadStructureButton.addEventListener("click", () => {
@@ -2016,10 +2081,9 @@ async function start(): Promise<void> {
       generateSurfaceStructureButton.disabled = true;
       assemblyPackageButton.disabled = true;
       addPanelButton.disabled = true;
-      pipelineStatus.classList.remove("pipeline-status--error");
-      pipelineStatus.textContent = surfaceStyle === "led-surface-bridge"
+      setLogMessage(surfaceStyle === "led-surface-bridge"
           ? "Generating full-edge bridges at the LED planes and running optional load-path analysis…"
-          : "Generating nearest-hole ribbon geometry and running optional load-path analysis…";
+          : "Generating nearest-hole ribbon geometry and running optional load-path analysis…");
         try {
           const structuralDefinition = structuredClone(editorDefinition);
           delete structuralDefinition.generatedMechanics;
@@ -2074,8 +2138,7 @@ async function start(): Promise<void> {
           const generatedShape = surfaceStyle === "led-surface-bridge"
             ? `${surfaceBridgeCount} full-edge ${surfaceBridgeCount === 1 ? "bridge" : "bridges"} and ${surfaceJunctionCount} multi-panel surface ${surfaceJunctionCount === 1 ? "junction" : "junctions"}`
             : `${loftBodyCount} cap-surface loft ${loftBodyCount === 1 ? "body" : "bodies"} and ${junctionCount} multi-panel ribbon ${junctionCount === 1 ? "junction" : "junctions"}`;
-          pipelineStatus.classList.remove("pipeline-status--error");
-          pipelineStatus.textContent =
+          setLogMessage(
             `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${generatedShape}. ` +
             (result.analysis.printable.splitMembers > 0
               ? `PRINT SPLIT WARNING: ${result.analysis.printable.splitMembers} member(s) require numbered segments and splice sleeves. `
@@ -2083,7 +2146,8 @@ async function start(): Promise<void> {
             (result.analysis.optimization.status !== "converged"
               ? `Advisory truss analysis: ${result.analysis.optimization.status}; ${surfaceStyle === "led-surface-bridge" ? "surface-bridge" : "ribbon"} generation is unaffected. `
               : "") +
-            `The package also contains 3MF, preview, analysis, and report. ${result.analysis.disclaimer}`;
+            `The package also contains 3MF, preview, analysis, and report. ${result.analysis.disclaimer}`,
+          );
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
@@ -2103,12 +2167,11 @@ async function start(): Promise<void> {
     const buildAssemblyPackage = async (): Promise<void> => {
         assemblyPackageButton.disabled = true;
         addPanelButton.disabled = true;
-        pipelineStatus.classList.remove("pipeline-status--error");
-        pipelineStatus.textContent = editorDefinition.boundaryTopology
+        setLogMessage(editorDefinition.boundaryTopology
           ? "Deriving exact panel outlines and validating flat gap caps…"
           : editorDefinition.mechanicalShell && editorDefinition.closures
             ? "Regenerating mechanical topology, then generating Manifold STLs and printable previews…"
-            : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…";
+            : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…");
         try {
           try {
             const planarDefinition = structuredClone(editorDefinition);
@@ -2144,8 +2207,9 @@ async function start(): Promise<void> {
             const partCount = bundle.files.filter((file) =>
               file.source.startsWith("mechanics/parts/")
             ).length;
-            pipelineStatus.textContent =
-              `Built and SHA-256 verified ${partCount} printable parts. The assembly package is ready to download.`;
+            setLogMessage(
+              `Built and SHA-256 verified ${partCount} printable parts. The assembly package is ready to download.`,
+            );
           } catch (inProcessError) {
             if (!shouldUseEditorPipelineFallback(inProcessError)) {
               throw inProcessError;
@@ -2188,13 +2252,13 @@ async function start(): Promise<void> {
             );
           }
           const lastLogLine = result.log?.trim().split("\n").at(-1);
-          pipelineStatus.textContent =
-            lastLogLine ?? "Pipeline complete; exact STL meshes are now loaded.";
+          setLogMessage(
+            lastLogLine ?? "Pipeline complete; exact STL meshes are now loaded.",
+          );
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent = message;
+          setLogMessage(message, true);
         } finally {
           renderEditorFaces();
           updatePipelineAvailability();
@@ -2211,8 +2275,7 @@ async function start(): Promise<void> {
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          pipelineStatus.classList.add("pipeline-status--error");
-          pipelineStatus.textContent = message;
+          setLogMessage(message, true);
           updatePipelineAvailability();
         }
       })();
@@ -2244,6 +2307,36 @@ async function start(): Promise<void> {
 
       renderer?.updateColors(engine.pixels, currentDisplayMode);
       renderer?.render();
+
+      if (
+        simulatorDeviceUrl &&
+        !simulatorFrameRequest &&
+        now >= nextSimulatorFrameAt
+      ) {
+        nextSimulatorFrameAt = now + 100;
+        simulatorFrameRequest = Promise.resolve().then(() =>
+          sendSimulatorFramebuffer(
+            simulatorDeviceUrl!,
+            physicalSmokeFramebuffer(),
+          )
+        ).then(() => {
+          if (simulatorLinkFailed) {
+            simulatorLinkFailed = false;
+            setLogMessage("Live one-panel simulator link reconnected.");
+          }
+        }).catch((error) => {
+          if (!simulatorLinkFailed) {
+            simulatorLinkFailed = true;
+            setLogMessage(
+              `Live one-panel simulator link paused: ${error instanceof Error ? error.message : String(error)}`,
+              true,
+            );
+          }
+          nextSimulatorFrameAt = performance.now() + 5_000;
+        }).finally(() => {
+          simulatorFrameRequest = undefined;
+        });
+      }
 
       if (engine.outOfBoundsWriteCount > 0) {
         setLogMessage(

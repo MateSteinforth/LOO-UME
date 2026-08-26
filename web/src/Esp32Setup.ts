@@ -5,6 +5,83 @@ import { WLED_FIRMWARE_BUILD_RECEIPT as firmwareReceipt } from "../../src/wled/D
 const CP2102_FILTER = { usbVendorId: 0x10c4, usbProductId: 0xea60 };
 const SETUP_HOSTNAME = "loo-ume";
 const REQUEST_TIMEOUT_MS = 10_000;
+export const ESP32_FLASH_BAUD_RATE = 115200;
+
+type SerialSignalDevice = Pick<SerialPort, "setSignals">;
+type Wait = (milliseconds: number) => Promise<void>;
+
+const wait: Wait = (milliseconds) =>
+  new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds));
+
+export async function runCombinedClassicReset(
+  device: SerialSignalDevice,
+  resetDelayMs: number,
+  delay: Wait = wait,
+): Promise<void> {
+  await device.setSignals({ dataTerminalReady: false, requestToSend: true });
+  await delay(100);
+  await device.setSignals({ dataTerminalReady: true, requestToSend: false });
+  await delay(resetDelayMs);
+  await device.setSignals({ dataTerminalReady: false, requestToSend: false });
+}
+
+export async function runCombinedHardReset(
+  device: SerialSignalDevice,
+  usingUsbOtg: boolean,
+  delay: Wait = wait,
+): Promise<void> {
+  await device.setSignals({ dataTerminalReady: false, requestToSend: true });
+  await delay(usingUsbOtg ? 200 : 100);
+  await device.setSignals({ dataTerminalReady: false, requestToSend: false });
+  if (usingUsbOtg) await delay(200);
+}
+
+interface AuthorizedSerialPorts {
+  getPorts(): Promise<SerialPort[]>;
+}
+
+function isApprovedCp2102(port: SerialPort): boolean {
+  const info = port.getInfo();
+  return info.usbVendorId === CP2102_FILTER.usbVendorId &&
+    info.usbProductId === CP2102_FILTER.usbProductId;
+}
+
+export async function assertSingleAuthorizedCp2102(
+  serial: AuthorizedSerialPorts,
+): Promise<void> {
+  const approvedPorts = (await serial.getPorts()).filter(isApprovedCp2102);
+  if (approvedPorts.length !== 1) {
+    throw new Error(
+      "Keep exactly one authorized CP2102 ESP32 connected until setup completes.",
+    );
+  }
+}
+
+export async function reopenApprovedSerialPort(
+  serial: AuthorizedSerialPorts,
+  selectedPort: SerialPort,
+  options: SerialOptions,
+  attempts = 120,
+  delay: Wait = wait,
+  update?: (message: string) => void,
+): Promise<SerialPort> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const approvedPorts = (await serial.getPorts()).filter(isApprovedCp2102);
+    const candidate = approvedPorts.length === 1 ? approvedPorts[0]! : selectedPort;
+    try {
+      await candidate.open(options);
+      return candidate;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 20) {
+        update?.("Waiting for the CP2102 after reset. If needed, unplug and reconnect its USB cable once.");
+      }
+      if (attempt < attempts) await delay(500);
+    }
+  }
+  throw new Error(`WLED serial port did not reopen after reset: ${errorMessage(lastError)}`);
+}
 
 export type Esp32SetupMode = "smoke" | "installation";
 
@@ -27,10 +104,13 @@ export interface Esp32SetupControllerOptions {
   passwordInput: HTMLInputElement;
   firmwareInput: HTMLInputElement;
   modeSelect: HTMLSelectElement;
-  eraseConfirmation: HTMLInputElement;
-  powerConfirmation: HTMLInputElement;
+  progressElement: HTMLProgressElement;
+  progressLabel: HTMLOutputElement;
+  bootInstruction: HTMLOutputElement;
+  clearSetupLog(): void;
   setLogMessage(message: string, error?: boolean): void;
   getPayload(mode: Esp32SetupMode): Esp32SetupPayload;
+  onSetupComplete?(deviceUrl: URL): void;
 }
 
 interface FirmwareStatus {
@@ -38,8 +118,65 @@ interface FirmwareStatus {
   artifact: typeof firmwareReceipt.fullFlashArtifact;
 }
 
+interface ImprovWifiProvisioner {
+  scan(timeout?: number): Promise<Array<{ name: string; rssi: number }>>;
+  provision(ssid: string, password: string, timeout?: number): Promise<void>;
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+export async function provisionVisibleWifi(
+  improv: ImprovWifiProvisioner,
+  ssid: string,
+  password: string,
+  update: (message: string) => void,
+  scanAttempts = 6,
+  delay: Wait = wait,
+): Promise<void> {
+  let network: { name: string; rssi: number } | undefined;
+  let lastScanError: unknown;
+  let completedScan = false;
+  for (let attempt = 1; attempt <= scanAttempts; attempt += 1) {
+    update(`Scanning for the 2.4 GHz network ${ssid} (${attempt}/${scanAttempts}).`);
+    try {
+      const networks = await improv.scan(15_000);
+      completedScan = true;
+      network = networks.find((candidate) => candidate.name === ssid);
+      if (network) break;
+      if (attempt < scanAttempts) {
+        update(
+          `${ssid} was not visible; the ESP32 found ${networks.length} other network${networks.length === 1 ? "" : "s"}. Retrying.`,
+        );
+      }
+    } catch (error) {
+      lastScanError = error;
+      if (attempt < scanAttempts) {
+        update(`The ESP32 Wi-Fi scan did not answer. Retrying (${attempt}/${scanAttempts}).`);
+      }
+    }
+    if (attempt < scanAttempts) await delay(2_000);
+  }
+  if (!network) {
+    if (!completedScan) {
+      throw new Error(`ESP32 Wi-Fi scan failed: ${errorMessage(lastScanError)}`);
+    }
+    throw new Error(`The ESP32 cannot see the 2.4 GHz network ${ssid}.`);
+  }
+  update(`Wi-Fi network ${ssid} is visible at ${network.rssi} dBm.`);
+  update("Sending Wi-Fi credentials to WLED. Waiting up to 60 seconds.");
+  try {
+    await improv.provision(ssid, password, 60_000);
+  } catch (error) {
+    const detail = errorMessage(error);
+    if (detail === "TIMEOUT") {
+      throw new Error(
+        `WLED did not connect to ${ssid} within 60 seconds. Check the 2.4 GHz password and signal.`,
+      );
+    }
+    throw new Error(`WLED Wi-Fi provisioning failed: ${detail}`);
+  }
 }
 
 function isLoopbackPage(): boolean {
@@ -141,7 +278,9 @@ export function assertApprovedSerialDevice(info: SerialPortInfo): void {
 }
 
 export function assertApprovedEsp32Chip(chipName: string): void {
-  if (chipName !== "ESP32") throw new Error(`Expected ESP32, but detected ${chipName}.`);
+  if (!/^(?:ESP32|ESP32-D0WDQ6(?: \(revision \d+\))?)$/.test(chipName)) {
+    throw new Error(`Expected the approved classic ESP32, but detected ${chipName}.`);
+  }
 }
 
 export function assertApprovedImprovIdentity(input: unknown): void {
@@ -175,10 +314,40 @@ async function deviceFetch(
   init?: RequestInit,
   timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<Response> {
-  return fetch(new URL(path, baseUrl), {
+  const target = new URL(path, baseUrl);
+  const proxy = new URL(
+    "/api/esp32-device",
+    globalThis.location?.origin ?? "http://localhost",
+  );
+  proxy.searchParams.set("address", target.hostname);
+  proxy.searchParams.set("path", `${target.pathname}${target.search}`);
+  const headers = new Headers(init?.headers);
+  headers.set("X-LOO-UME-ESP32", "1");
+  return fetch(proxy, {
     ...init,
-    signal: AbortSignal.timeout(timeoutMs),
+    headers,
+    signal: AbortSignal.timeout(Math.max(timeoutMs, 12_000)),
   });
+}
+
+async function waitForWledInfo(
+  baseUrl: URL,
+  timeoutMs = 45_000,
+): Promise<{ mac?: unknown }> {
+  const deadline = Date.now() + timeoutMs;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      return await readJsonResponse(
+        await deviceFetch(baseUrl, "/json/info", undefined, 12_000),
+        "WLED identity",
+      ) as { mac?: unknown };
+    } catch (error) {
+      lastError = error;
+    }
+    await wait(1_000);
+  }
+  throw new Error(`WLED HTTP did not become ready: ${errorMessage(lastError)}`);
 }
 
 async function postDeviceJson(
@@ -196,10 +365,69 @@ async function postDeviceJson(
   );
 }
 
+export function simulatorFramebufferState(
+  pixels: readonly [number, number, number][],
+): Record<string, unknown> {
+  if (pixels.length !== 64 || pixels.some((pixel) =>
+    pixel.length !== 3 || pixel.some((channel) =>
+      !Number.isInteger(channel) || channel < 0 || channel > 255
+    )
+  )) {
+    throw new Error("The one-panel simulator framebuffer must contain exactly 64 RGB pixels.");
+  }
+  const individual: Array<number | [number, number, number]> = [];
+  pixels.forEach((pixel, index) => individual.push(index, pixel));
+  return {
+    on: true,
+    bri: 128,
+    tt: 0,
+    seg: { id: 0, start: 0, stop: 64, fx: 0, i: individual },
+  };
+}
+
+export function mappedPanelFramebuffer(
+  pixels: Uint32Array,
+  entries: readonly { logicalIndex: number; physicalIndex: number }[],
+  physicalStartIndex: number,
+): Array<[number, number, number]> {
+  const panelEntries = entries
+    .filter((entry) =>
+      entry.physicalIndex >= physicalStartIndex &&
+      entry.physicalIndex < physicalStartIndex + 64
+    )
+    .sort((first, second) => first.physicalIndex - second.physicalIndex);
+  if (
+    panelEntries.length !== 64 ||
+    panelEntries.some((entry, offset) =>
+      entry.physicalIndex !== physicalStartIndex + offset ||
+      !Number.isInteger(entry.logicalIndex) ||
+      entry.logicalIndex < 0 ||
+      entry.logicalIndex >= pixels.length
+    )
+  ) {
+    throw new Error("The first hardware panel does not contain exactly 64 mapped pixels.");
+  }
+  return panelEntries.map((entry) => {
+    const packed = pixels[entry.logicalIndex] ?? 0;
+    return [
+      (packed >> 16) & 0xff,
+      (packed >> 8) & 0xff,
+      packed & 0xff,
+    ];
+  });
+}
+
+export async function sendSimulatorFramebuffer(
+  baseUrl: URL,
+  pixels: readonly [number, number, number][],
+): Promise<void> {
+  await postDeviceJson(baseUrl, "/json/state", simulatorFramebufferState(pixels));
+}
+
 export async function resolveVerifiedWledAddress(expectedMac: string): Promise<URL> {
   const mdnsUrl = new URL(`http://${SETUP_HOSTNAME}.local/`);
   const mdnsInfo = await readJsonResponse(
-    await deviceFetch(mdnsUrl, "/json/info", undefined, 3_000),
+    await deviceFetch(mdnsUrl, "/json/info", undefined, 12_000),
     "WLED mDNS discovery",
   ) as { ip?: unknown; mac?: unknown };
   if (mdnsInfo.mac !== expectedMac) {
@@ -210,12 +438,54 @@ export async function resolveVerifiedWledAddress(expectedMac: string): Promise<U
   }
   const currentUrl = privateDeviceUrl(`http://${mdnsInfo.ip}/`);
   const currentInfo = await readJsonResponse(
-    await deviceFetch(currentUrl, "/json/info", undefined, 3_000),
+    await deviceFetch(currentUrl, "/json/info", undefined, 12_000),
     "WLED IP discovery",
   ) as { ip?: unknown; mac?: unknown };
   if (currentInfo.mac !== expectedMac || currentInfo.ip !== currentUrl.hostname) {
     throw new Error("The current WLED IP address does not match the expected device.");
   }
+  return currentUrl;
+}
+
+export async function connectExistingSimulatorDevice(
+  payload: Esp32SetupPayload,
+): Promise<URL> {
+  if (payload.mode !== "smoke") {
+    throw new Error("Only the verified one-panel setup can reconnect automatically.");
+  }
+  const mdnsUrl = new URL(`http://${SETUP_HOSTNAME}.local/`);
+  const mdnsInfo = await readJsonResponse(
+    await deviceFetch(mdnsUrl, "/json/info", undefined, 12_000),
+    "WLED mDNS discovery",
+  ) as { arch?: unknown; ip?: unknown; leds?: { count?: unknown }; mac?: unknown };
+  if (
+    mdnsInfo.arch !== "esp32" ||
+    typeof mdnsInfo.ip !== "string" ||
+    typeof mdnsInfo.mac !== "string" ||
+    mdnsInfo.leds?.count !== payload.expectedLedCount
+  ) {
+    throw new Error("The existing WLED device does not match the one-panel setup.");
+  }
+  const currentUrl = privateDeviceUrl(`http://${mdnsInfo.ip}/`);
+  const [currentInfo, configuration] = await Promise.all([
+    readJsonResponse(
+      await deviceFetch(currentUrl, "/json/info", undefined, 12_000),
+      "WLED IP discovery",
+    ) as Promise<{ arch?: unknown; ip?: unknown; leds?: { count?: unknown }; mac?: unknown }>,
+    readJsonResponse(
+      await deviceFetch(currentUrl, "/json/cfg", undefined, 12_000),
+      "WLED config read-back",
+    ),
+  ]);
+  if (
+    currentInfo.arch !== "esp32" ||
+    currentInfo.ip !== currentUrl.hostname ||
+    currentInfo.mac !== mdnsInfo.mac ||
+    currentInfo.leds?.count !== payload.expectedLedCount
+  ) {
+    throw new Error("The existing WLED address does not match the verified device.");
+  }
+  assertConfigReadback(configuration, payload);
   return currentUrl;
 }
 
@@ -237,10 +507,7 @@ async function discoverRestartedDevice(
 }
 
 async function setAndVerifyDeviceIdentity(baseUrl: URL): Promise<URL> {
-  const initialInfo = await readJsonResponse(
-    await deviceFetch(baseUrl, "/json/info"),
-    "WLED identity",
-  ) as { mac?: unknown };
+  const initialInfo = await waitForWledInfo(baseUrl);
   if (typeof initialInfo.mac !== "string") {
     throw new Error("WLED did not report a device MAC address.");
   }
@@ -264,8 +531,11 @@ export function assertConfigReadback(input: unknown, payload: Esp32SetupPayload)
   }
   const config = input as {
     id?: { mdns?: unknown };
-    hw?: { led?: { total?: unknown; ins?: unknown[] } };
+    hw?: { led?: { total?: unknown; maxpwr?: unknown; ins?: unknown[] } };
   };
+  const expectedLed = (payload.config.hw as {
+    led?: { maxpwr?: unknown };
+  } | undefined)?.led;
   const expected = expectedBuses(payload.config) as Array<Record<string, unknown>>;
   const actual = config.hw?.led?.ins;
   const busesMatch = Array.isArray(actual) && actual.length === expected.length &&
@@ -280,6 +550,8 @@ export function assertConfigReadback(input: unknown, payload: Esp32SetupPayload)
   if (
     config.id?.mdns !== SETUP_HOSTNAME ||
     config.hw?.led?.total !== payload.expectedLedCount ||
+    (expectedLed?.maxpwr !== undefined &&
+      config.hw?.led?.maxpwr !== expectedLed.maxpwr) ||
     !busesMatch
   ) {
     throw new Error("WLED configuration read-back does not match the selected setup.");
@@ -376,27 +648,48 @@ async function applyAndVerifyDevice(
   }
 }
 
-async function openImprov(port: SerialPort): Promise<InstanceType<
-  typeof import("improv-wifi-serial-sdk/dist/serial.js")["ImprovSerial"]
->> {
-  await new Promise((resolvePromise) => setTimeout(resolvePromise, 2_000));
-  await port.open({ baudRate: 115200 });
-  const { ImprovSerial } = await import("improv-wifi-serial-sdk/dist/serial.js");
-  const improv = new ImprovSerial(port, { log() {}, error() {}, debug() {} });
-  await improv.initialize(15_000);
+async function openImprov(
+  port: SerialPort,
+  serial: AuthorizedSerialPorts,
+  update: (message: string) => void,
+): Promise<{
+  improv: InstanceType<
+    typeof import("improv-wifi-serial-sdk/dist/serial.js")["ImprovSerial"]
+  >;
+  port: SerialPort;
+}> {
+  await wait(2_000);
+  const activePort = await reopenApprovedSerialPort(
+    serial,
+    port,
+    { baudRate: 115200 },
+    120,
+    wait,
+    update,
+  );
+  let improv: InstanceType<
+    typeof import("improv-wifi-serial-sdk/dist/serial.js")["ImprovSerial"]
+  > | undefined;
   try {
+    const { ImprovSerial } = await import("improv-wifi-serial-sdk/dist/serial.js");
+    improv = new ImprovSerial(activePort, { log() {}, error() {}, debug() {} });
+    await improv.initialize(15_000);
     assertApprovedImprovIdentity(improv.info);
+    update("Improv verified WLED on the approved ESP32.");
+    return { improv, port: activePort };
   } catch (error) {
-    await improv.close();
+    if (improv) await improv.close().catch(() => undefined);
+    if (activePort.readable || activePort.writable) {
+      await activePort.close().catch(() => undefined);
+    }
     throw error;
   }
-  return improv;
 }
 
 async function runSetup(
   options: Esp32SetupControllerOptions,
-  payload: Esp32SetupPayload,
-): Promise<void> {
+  mode: Esp32SetupMode,
+): Promise<URL> {
   if (!isLoopbackPage()) {
     throw new Error("ESP32 setup is available only from the local desktop page in Chrome or Edge.");
   }
@@ -407,24 +700,43 @@ async function runSetup(
   if (options.passwordInput.value.length > 64) {
     throw new Error("The Wi-Fi password must be at most 64 characters.");
   }
-  if (!options.eraseConfirmation.checked || !options.powerConfirmation.checked) {
-    throw new Error("Confirm the full erase and disconnected LED power before setup.");
-  }
   options.setLogMessage("Verifying the approved complete ESP32 image.");
+  options.progressLabel.value = "Verifying image";
   const firmware = await loadFirmware(options.firmwareInput.files?.[0]);
+  const payload = options.getPayload(mode);
   if (!("serial" in navigator)) {
     throw new Error("This browser does not support Web Serial. Use Chrome or Edge.");
   }
   const serial = navigator.serial;
   options.setLogMessage("Select the Silicon Labs CP2102 USB serial device.");
+  options.setLogMessage("Keep only this ESP32/CP2102 connected until setup completes.");
+  options.progressLabel.value = "Select CP2102";
+  options.bootInstruction.value = "HOLD BOOT";
+  options.bootInstruction.dataset.state = "hold";
   const port = await serial.requestPort({ filters: [CP2102_FILTER] });
+  let activePort = port;
   assertApprovedSerialDevice(port.getInfo());
+  await assertSingleAuthorizedCp2102(serial);
 
-  const { ESPLoader, Transport } = await import("esptool-js");
+  const { ClassicReset, ESPLoader, HardReset, Transport } = await import("esptool-js");
   const transport = new Transport(port, false);
   const loader = new ESPLoader({
     transport,
-    baudrate: 460800,
+    baudrate: ESP32_FLASH_BAUD_RATE,
+    resetConstructors: {
+      classicReset(resetTransport, resetDelayMs) {
+        const strategy = new ClassicReset(resetTransport, resetDelayMs);
+        strategy.reset = () =>
+          runCombinedClassicReset(resetTransport.device, resetDelayMs);
+        return strategy;
+      },
+      hardReset(resetTransport, usingUsbOtg = false) {
+        const strategy = new HardReset(resetTransport, usingUsbOtg);
+        strategy.reset = () =>
+          runCombinedHardReset(resetTransport.device, usingUsbOtg);
+        return strategy;
+      },
+    },
     terminal: {
       clean() {},
       write() {},
@@ -435,40 +747,69 @@ async function runSetup(
       },
     },
   });
-  let improv: Awaited<ReturnType<typeof openImprov>> | undefined;
+  let improv: InstanceType<
+    typeof import("improv-wifi-serial-sdk/dist/serial.js")["ImprovSerial"]
+  > | undefined;
   try {
     const chipName = await loader.main();
     assertApprovedEsp32Chip(chipName);
+    options.bootInstruction.value = "RELEASE BOOT";
+    options.bootInstruction.dataset.state = "release";
+    options.setLogMessage("ESP32 synchronized. Release BOOT now.");
+    let lastLoggedPercent = -5;
     await loader.writeFlash(createEsp32FlashOptions(
       firmware,
       (_fileIndex, written, total) => {
         const percent = total === 0 ? 0 : Math.floor(written / total * 100);
-        options.setLogMessage(`Flashing approved WLED image: ${percent}%.`);
+        options.progressElement.value = percent;
+        options.progressLabel.value = `${percent}%`;
+        if (percent === 100 || percent >= lastLoggedPercent + 5) {
+          lastLoggedPercent = percent;
+          options.setLogMessage(`Flashing approved WLED image: ${percent}%.`);
+        }
       },
     ));
+    options.progressElement.value = 100;
+    options.progressLabel.value = "Flash verified";
     await loader.after("hard_reset");
     await transport.disconnect();
 
     options.setLogMessage("Provisioning Wi-Fi over USB. Credentials stay only in this page.");
-    improv = await openImprov(port);
-    await improv.provision(ssid, options.passwordInput.value, 60_000);
+    options.progressLabel.value = "Provisioning Wi-Fi";
+    const improvConnection = await openImprov(port, serial, options.setLogMessage);
+    activePort = improvConnection.port;
+    improv = improvConnection.improv;
+    await provisionVisibleWifi(
+      improv,
+      ssid,
+      options.passwordInput.value,
+      options.setLogMessage,
+    );
     if (!improv.nextUrl) throw new Error("WLED did not return its local network address.");
     let deviceUrl = privateDeviceUrl(improv.nextUrl);
+    options.setLogMessage(`WLED joined Wi-Fi at ${deviceUrl.host}. Waiting for HTTP.`);
     await improv.close();
     improv = undefined;
-    await port.close();
+    await activePort.close();
 
     options.setLogMessage(`Verifying ${SETUP_HOSTNAME}.local after restart.`);
+    options.progressLabel.value = "Verifying WLED";
     deviceUrl = await setAndVerifyDeviceIdentity(deviceUrl);
     await applyAndVerifyDevice(deviceUrl, payload, options.setLogMessage);
     options.setLogMessage(
       `ESP32 setup verified at ${deviceUrl.host}. ${SETUP_HOSTNAME}.local resolves to this device.`,
     );
+    options.progressLabel.value = "Setup complete";
+    options.bootInstruction.value = "BOOT RELEASED";
+    options.bootInstruction.dataset.state = "complete";
+    return deviceUrl;
   } finally {
     options.passwordInput.value = "";
     if (improv) await improv.close().catch(() => undefined);
     await transport.disconnect().catch(() => undefined);
-    if (port.readable || port.writable) await port.close().catch(() => undefined);
+    if (activePort.readable || activePort.writable) {
+      await activePort.close().catch(() => undefined);
+    }
   }
 }
 
@@ -484,22 +825,33 @@ export function createEsp32SetupController(options: Esp32SetupControllerOptions)
   options.dialog.addEventListener("close", clearPassword);
   options.dialog.addEventListener("cancel", clearPassword);
   options.runButton.addEventListener("click", () => {
+    options.clearSetupLog();
     options.runButton.disabled = true;
+    options.progressElement.value = 0;
+    options.progressLabel.value = "Preparing";
+    options.bootInstruction.value = "HOLD BOOT";
+    options.bootInstruction.dataset.state = "hold";
     try {
       const mode = options.modeSelect.value as Esp32SetupMode;
       if (mode !== "smoke") {
         throw new Error("Full installation setup is unavailable until its hardware power gate passes.");
       }
-      const payload = options.getPayload(mode);
-      void runSetup(options, payload)
-        .then(() => options.dialog.close())
-        .catch((error) => options.setLogMessage(errorMessage(error), true))
+      void runSetup(options, mode)
+        .then((deviceUrl) => {
+          options.onSetupComplete?.(deviceUrl);
+          options.dialog.close();
+        })
+        .catch((error) => {
+          options.progressLabel.value = "Setup stopped";
+          options.setLogMessage(errorMessage(error), true);
+        })
         .finally(() => {
           clearPassword();
           options.runButton.disabled = false;
         });
     } catch (error) {
       clearPassword();
+      options.progressLabel.value = "Setup stopped";
       options.setLogMessage(errorMessage(error), true);
       options.runButton.disabled = false;
     }

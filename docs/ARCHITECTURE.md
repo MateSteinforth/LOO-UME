@@ -137,6 +137,21 @@ must bind the current project, route, ledmap, WLED bus fragment, target identity
 and exact file hashes. Hardware-verified state remains blocked until accepted
 `PROOF-010` evidence exists.
 
+The local editor serves the receipt-bound flash image and brokers the later
+WLED HTTP configuration/read-back calls. The browser supplies only the private
+IPv4 address returned by the verified Improv session and a fixed WLED operation.
+The loopback handler rejects public targets, arbitrary paths, redirects, and
+oversized request or response bodies. This same-origin boundary avoids browser
+cross-origin/private-network restrictions without making a general LAN proxy.
+
+After a verified one-panel setup, the editor keeps one bounded HTTP request in
+flight and sends the first panel's current simulator framebuffer through the
+authoritative logical-to-physical mapping. It updates at no more than 10 frames
+per second and backs off after a network error. This is a 64-pixel review link,
+not approval to energize or stream the full sculpture. After a page reload, the
+link reconnects only if the fixed mDNS name, private IP, MAC, ESP32 identity,
+LED count, and complete persisted smoke bus still match.
+
 `src/wled/DiagnosticFrames.ts` derives deterministic low-brightness, one-pixel
 frames from the same deployment identity and mapping contract. Its bounded HTTP
 adapter transports exact WLED JSON requests; it does not create observation
@@ -164,6 +179,7 @@ and current-limit plan. Software brightness limiting is secondary protection.
 | `web/src/` | Browser editor, renderer, mapping, wiring, project and package export |
 | `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
 | `scripts/esp32-firmware-handler.ts` | Loopback-only, receipt-gated complete ESP32 image endpoint |
+| `scripts/esp32-device-handler.ts` | Loopback-only, bounded private WLED HTTP broker |
 | `tests/browser/` | Real Chromium operator journeys |
 | `wasm/` | Deterministic subset of WLED 1D effects, not firmware |
 | `firmware/` | ESP32 receipt, setup procedure, and smoke configuration; WLED build tooling and binaries stay off-main |

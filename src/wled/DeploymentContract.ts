@@ -53,7 +53,7 @@ function utf8ByteLength(value: string): number {
 
 function assertFirmwareReceipt(): void {
   if (
-    firmwareReceipt.schemaVersion !== "1.1.0" ||
+    firmwareReceipt.schemaVersion !== "1.2.0" ||
     firmwareReceipt.status !== "built-not-flashed" ||
     firmwareReceipt.target.board !== "ESP32-DevKitC V4" ||
     firmwareReceipt.target.module !== "ESP32-WROOM-32E-N4" ||
@@ -61,13 +61,14 @@ function assertFirmwareReceipt(): void {
     firmwareReceipt.target.upstreamEnvironment !== "esp32dev" ||
     firmwareReceipt.target.wledCommit !== WLED_COMMIT ||
     firmwareReceipt.target.platformioVersion !== "6.1.18" ||
+    firmwareReceipt.target.capabilities.serialProvisioning !== "improv-v1" ||
     firmwareReceipt.artifact.name !== "wled-orbital-esp32dev.bin" ||
     !Number.isInteger(firmwareReceipt.artifact.byteLength) ||
     firmwareReceipt.artifact.byteLength <= 0 ||
     !/^[0-9a-f]{64}$/.test(firmwareReceipt.artifact.sha256) ||
     firmwareReceipt.fullFlashArtifact.name !==
       "wled-orbital-esp32dev-full-flash.bin" ||
-    firmwareReceipt.fullFlashArtifact.byteLength !== 1_173_456 ||
+    firmwareReceipt.fullFlashArtifact.byteLength !== 1_177_456 ||
     !/^[0-9a-f]{64}$/.test(firmwareReceipt.fullFlashArtifact.sha256) ||
     firmwareReceipt.fullFlashArtifact.flashAddress !== 0 ||
     firmwareReceipt.fullFlashArtifact.eraseAll !== true ||

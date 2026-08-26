@@ -90,13 +90,13 @@ describe("guarded WLED deployment contract", () => {
         receiptPath: "wled/firmware-build-receipt.json",
         artifact: {
           name: "wled-orbital-esp32dev.bin",
-          byteLength: 1107920,
-          sha256: "0468ee34c8b9578504c3f4a708421eaa7b70663b691d5df430f46ea009fdabd7",
+          byteLength: 1111920,
+          sha256: "6bf3cec1ab1865dc6b03e0ddd5dd03198c39851343e7e1ed99660b1dc5bf5975",
         },
         fullFlashArtifact: {
           name: "wled-orbital-esp32dev-full-flash.bin",
-          byteLength: 1173456,
-          sha256: "d9c9f2f56f9b1c84931447c7bab6fef91d01df24954c523b8a1eeafa786d010e",
+          byteLength: 1177456,
+          sha256: "d245f7b0502c5734a3aa17027e60a2f3d5936a3397210cf867385f7cf74e81af",
           flashAddress: 0,
           eraseAll: true,
         },
