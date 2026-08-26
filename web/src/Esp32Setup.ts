@@ -815,11 +815,15 @@ export async function persistStandaloneAnimation(
   await postDeviceJson(baseUrl, "/json/state", standalonePresetState(payload));
   let lastError: unknown;
   for (let attempt = 1; attempt <= 12; attempt += 1) {
-    const [presets, information] = await Promise.all([
-      readJsonResponse(await deviceFetch(baseUrl, "/presets.json"), "WLED preset read-back"),
-      readJsonResponse(await deviceFetch(baseUrl, "/json/info"), "WLED boot preset read-back"),
-    ]);
     try {
+      const presetRequest = deviceFetch(baseUrl, "/presets.json")
+        .then((response) => readJsonResponse(response, "WLED preset read-back"));
+      const informationRequest = deviceFetch(baseUrl, "/json/info")
+        .then((response) => readJsonResponse(response, "WLED boot preset read-back"));
+      const [presets, information] = await Promise.all([
+        presetRequest,
+        informationRequest,
+      ]);
       assertStandalonePresetReadback(presets, payload);
       const info = information as { leds?: { bootps?: unknown } };
       if (info.leds?.bootps !== STANDALONE_PRESET_ID) {

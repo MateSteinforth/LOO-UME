@@ -1025,3 +1025,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Physical WLED status reported `live:false`; the browser console
   recorded HTTP 400 for the single mDNS request.
 - **Status:** Resolved in software; physical page-reload retry remains.
+
+### F-056 — Temporary invalid preset JSON escaped its retry
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 automatic reconnect after a hard page reload.
+- **Symptom:** The simulator worked, but physical panels did not update. The
+  browser reported `WLED preset read-back returned invalid JSON`.
+- **Cause:** Preset and boot-state reads ran outside the existing persistence
+  retry `try` block. A partial file response rejected before retry handling.
+- **Correction:** Put both reads, JSON parsing, and exact value checks inside
+  the bounded 12-attempt persistence loop.
+- **Prevention:** An eventual-consistency retry must include acquisition and
+  parsing, not only the final semantic assertion.
+- **Evidence:** Operator console after hard reload and the focused invalid-JSON
+  first-read regression.
+- **Status:** Resolved in software; physical page-reload retry remains.

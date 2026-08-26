@@ -550,19 +550,26 @@ describe("guarded ESP32 setup contracts", () => {
         seg: { ...(value.state.seg as object), fx: 2, pal: 1 },
       },
     };
+    let resolveDelayedInfo!: (response: Response) => void;
+    const delayedInfo = new Promise<Response>((resolve) => {
+      resolveDelayedInfo = resolve;
+    });
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(["Solid", "Blink", "Rainbow"])))
       .mockResolvedValueOnce(new Response(JSON.stringify(["Default", "Forest"])))
       .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ "0": {} })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ leds: { bootps: 1 } })))
+      .mockResolvedValueOnce(new Response("{incomplete"))
+      .mockImplementationOnce(() => delayedInfo)
       .mockResolvedValueOnce(new Response(JSON.stringify(savedPreset)))
       .mockResolvedValueOnce(new Response(JSON.stringify({ leds: { bootps: 1 } })));
     vi.stubGlobal("fetch", fetchMock);
-    await expect(persistStandaloneAnimation(
+    const persistence = persistStandaloneAnimation(
       new URL("http://192.168.68.53/"),
       value,
-    )).resolves.toBeUndefined();
+    );
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
+    resolveDelayedInfo(new Response(JSON.stringify({ leds: { bootps: 1 } })));
+    await expect(persistence).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledTimes(7);
   });
 
