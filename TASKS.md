@@ -91,22 +91,14 @@ No tasks.
 
 ## Ready to Merge
 
-### `FIRM-013` Stabilize browser flashing and live one-panel preview
-
-- Scope: receipt-bound 115200 browser flash, combined ESP32 reset signals,
-  serial Improv Wi-Fi setup, exact private-device configuration read-back,
-  automatic verified reconnect, physically mapped 8x8 simulator framebuffer,
-  and retained scrollable activity history.
-- Acceptance: the operator completed the physical CP2102 flash and setup flow;
-  all FIRM-012 gates remain, the device verified at `192.168.68.53`, and the
-  reviewed live link is bounded to the 64-pixel smoke configuration.
-- Owner: `codex/firm-013-webserial-reliability` in
-  `/tmp/led-rhombo-firm-013`.
-- Verification: 366/366 Vitest tests, TypeScript, Vite, focused browser
-  journeys, physical setup, and independent review passed.
+No tasks.
 
 ## Done
 
+- `FIRM-013`: stabilized physical CP2102 flashing, serial Improv setup,
+  private-device read-back and reconnect, and the physically mapped live 8x8
+  simulator link. The operator completed setup at `192.168.68.53`; 366/366
+  tests, TypeScript, Vite, focused browser journeys, and review passed.
 - `FIRM-012`: integrated the receipt-verified Advanced Tools ESP32 flash,
   private Wi-Fi provisioning, `loo-ume.local` identity, one-panel simulator
   state transfer, and device read-back; physical browser/USB review passed on
