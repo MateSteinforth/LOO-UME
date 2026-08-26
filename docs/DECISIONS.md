@@ -67,8 +67,8 @@ The assumed first target is ESP32-DevKitC V4 with ESP32-WROOM-32E-N4, pinned
 WLED commit `d9b9a846561227351ad929e3109781daadb7bed2`, GPIOs 16–19, four RGB
 WS281x buses, no bus reversal, and route-optimized panel quarter turns.
 
-The two-domain fused power baseline is an authorized design assumption, not an
-approval. Full operation still waits for `PWR-010`.
+Electrical design is an external operator responsibility. The saved WLED
+current values are operating assumptions and do not constitute approval.
 
 ## D11 — Hash exact deployment bytes
 
@@ -195,12 +195,17 @@ instructions, not hardware evidence.
 ## D27 — Standalone playback and live preview are separate contracts
 
 The setup derives one configuration from the loaded simulator; it does not ask
-the operator to choose an internal deployment mode. A bounded test sculpture
-can contain one to three complete 8x8 panels on one output. Larger or
-multi-output projects remain unavailable until their hardware gates pass.
+the operator to choose an internal deployment mode. It supports the complete
+41-panel authority as four contiguous outputs and 2,624 mapped pixels.
 The setup saves the selected native WLED animation as preset 1 and selects it
 for boot. Exact simulator pixels are temporary DDP realtime
 data, not persisted state. WLED must use a finite 2.5-second realtime timeout so
 loss of the editor, host, network, or laptop returns the panel to the saved
 native animation. Setup must restart the device and verify its preset, boot
 selection, state, bus, and identity before it succeeds.
+
+## D28 — Electrical approval is external to the compiler
+
+The operator owns power-system design and approval outside this repository.
+The compiler copies authored GPIO, bus, LED-count, and WLED current values and
+does not treat them as electrical safety evidence or a software blocker.

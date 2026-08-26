@@ -24,29 +24,17 @@ networking, audio, and custom effects remain later work.
 - Two independent 5 V / 40 A power domains each feed two outputs. Grounds are
   common; positive rails remain separate.
 
-The two-domain statement is an assumed limited-current prototype design, not an
-approved full-brightness design.
-At the conservative 60 mA profile value, 2,624 pixels can require 157.44 A and
-the draft 11-panel output alone can require 42.24 A. Two 40 A supplies cannot
-support conservative unrestricted full white. Global `hw.led.maxpwr` is zero so
-four 14 A per-bus WLED limits apply, which limits each two-output domain to
-28 A. `PWR-010` still requires
-separate electrical current, fuse, and fault checks before the
-complete sculpture is energized.
-
-The selected prototype power system uses fused parallel branches. Panel `V+` and
-`V-` pass-through pads must not carry the accumulated current of a long chain.
-The WLED per-output brightness limit is a secondary safeguard, not
-a substitute for correct wiring and fusing.
+Electrical design and approval are external operator responsibilities. The
+repository copies authored WLED current values but does not treat them as an
+electrical plan or software gate.
 
 ## Operating modes
 
-The verified small-sculpture path uses native WLED effects for autonomous
-playback. FIRM-014 adds a provisional 1-to-192-pixel DDP preview with a finite
-fallback to the saved boot preset; physical timeout and resume review is still
-required.
-Full-sculpture DDP, Art-Net, Ethernet, microphones, audio-reactive presets, and
-custom effects remain deferred. A future custom effect belongs in a WLED
+The WLED path uses native effects for autonomous playback. FIRM-014 adds a
+segmented 1-to-2,624-pixel DDP preview with a finite fallback to the saved boot
+preset; physical timeout and resume review is still required. Art-Net,
+Ethernet, microphones, audio-reactive presets, and custom effects remain
+deferred. A future custom effect belongs in a WLED
 usermod, not in patched WLED core files.
 
 ## Mapping
@@ -106,10 +94,10 @@ controller behavior.
 `FIRM-011` passed its real-controller and fused one-panel smoke test. FIRM-013
 then proved the guarded browser flash, serial Wi-Fi setup, exact config/state
 read-back, and mapped live-panel link. FIRM-014 adds native preset 1 as the
-standalone boot state and a provisional 1-to-192-pixel DDP preview; physical
+standalone boot state and a segmented 1-to-2,624-pixel DDP preview; physical
 timeout/resume review remains open.
 `DIAG-010` supplies deterministic low-brightness, one-pixel JSON test frames
 bound to the exact deployment identity. Each frame labels the expected address,
 panel coordinate, output, and RGB channel. `PROOF-010` remains the physical
-observation and evidence gate. Full-sculpture DDP, Art-Net, Ethernet,
-microphone, audio, and custom effects remain under later `FIRM-010` work.
+observation and evidence gate. Art-Net, Ethernet, microphone, audio, and custom
+effects remain under later `FIRM-010` work.

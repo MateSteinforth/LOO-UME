@@ -573,8 +573,8 @@ async function start(): Promise<void> {
     let standaloneSaveRequest: Promise<void> | undefined;
     let simulatorProjectRevision = 0;
 
-    const boundedSimulatorOutput = (): {
-      gpio: number;
+    const loadedSimulatorDeployment = (): {
+      outputs: Array<{ startIndex: number; pixelCount: number; gpio: number }>;
       ledCount: number;
       panelCount: number;
     } => {
@@ -587,28 +587,41 @@ async function start(): Promise<void> {
       }
       const ledCount = mapping.entries.length;
       const panelCount = ledCount / 64;
-      const output = hardwareContract.outputs[0];
       if (
         !Number.isInteger(panelCount) ||
         panelCount < 1 ||
-        panelCount > 3 ||
-        hardwareContract.outputs.length !== 1 ||
-        !output ||
-        output.startIndex !== 0 ||
-        output.pixelCount !== ledCount
+        panelCount > 41 ||
+        hardwareContract.outputs.length < 1 ||
+        hardwareContract.outputs.length > 4
       ) {
         throw new Error(
-          "ESP32 setup currently supports one loaded GPIO output with one to three complete panels.",
+          "ESP32 setup supports 1 through 41 complete panels on one through four outputs.",
         );
       }
-      const gpio = output.gpio ?? 16;
-      if (!isApprovedEsp32OutputGpio(gpio)) {
-        throw new Error("The loaded simulator has no usable ESP32 GPIO output.");
+      const defaultGpios = [16, 17, 18, 19];
+      const outputs = hardwareContract.outputs.map((output, index) => ({
+        startIndex: output.startIndex,
+        pixelCount: output.pixelCount,
+        gpio: output.gpio ?? defaultGpios[index]!,
+      }));
+      if (
+        outputs.some((output, index) =>
+          !isApprovedEsp32OutputGpio(output.gpio) ||
+          output.startIndex !== outputs
+            .slice(0, index)
+            .reduce((sum, prior) => sum + prior.pixelCount, 0) ||
+          output.pixelCount < 64 ||
+          output.pixelCount % 64 !== 0
+        ) ||
+        new Set(outputs.map((output) => output.gpio)).size !== outputs.length ||
+        outputs.reduce((sum, output) => sum + output.pixelCount, 0) !== ledCount
+      ) {
+        throw new Error("The loaded simulator does not have a contiguous approved ESP32 output layout.");
       }
-      return { gpio, ledCount, panelCount };
+      return { outputs, ledCount, panelCount };
     };
     const physicalSimulatorFramebuffer = (): Array<[number, number, number]> => {
-      const { ledCount } = boundedSimulatorOutput();
+      const { ledCount } = loadedSimulatorDeployment();
       return mappedPanelFramebuffer(
         engine.pixels,
         hardwareContract.mapping.entries,
@@ -617,11 +630,10 @@ async function start(): Promise<void> {
       );
     };
     const setupPayload = (): Esp32SetupPayload => {
-      const { gpio, ledCount } = boundedSimulatorOutput();
+      const { outputs, ledCount } = loadedSimulatorDeployment();
       const config = createSimulatorSetupConfig(
         smokeConfig as Record<string, unknown>,
-        ledCount,
-        gpio,
+        outputs,
         hardwareContract.wledColorOrder.wledValue,
       );
       return {
@@ -652,12 +664,12 @@ async function start(): Promise<void> {
     };
 
     const enableSimulatorLink = (deviceUrl: URL, reconnected = false): void => {
-      const { gpio, ledCount, panelCount } = boundedSimulatorOutput();
+      const { outputs, ledCount, panelCount } = loadedSimulatorDeployment();
       simulatorDeviceUrl = deviceUrl;
       nextSimulatorFrameAt = 0;
       simulatorLinkFailed = false;
       setLogMessage(
-        `${reconnected ? "Reconnected" : "Standalone animation saved and live preview started"} at ${deviceUrl.host} for ${panelCount} panel${panelCount === 1 ? "" : "s"} (${ledCount} LEDs) on GPIO${gpio}.`,
+        `${reconnected ? "Reconnected" : "Standalone animation saved and live preview started"} at ${deviceUrl.host} for ${panelCount} panel${panelCount === 1 ? "" : "s"} (${ledCount} LEDs) on GPIO ${outputs.map((output) => output.gpio).join(", ")}.`,
       );
     };
 

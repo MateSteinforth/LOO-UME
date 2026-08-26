@@ -144,8 +144,8 @@ The loopback handler rejects public targets, arbitrary paths, redirects, and
 oversized request or response bodies. This same-origin boundary avoids browser
 cross-origin/private-network restrictions without making a general LAN proxy.
 
-For a loaded test sculpture of one to three complete 8x8 panels on one output,
-the editor derives LED count, GPIO, ledmap, current limit, and animation directly
+For a loaded sculpture of one to 41 complete 8x8 panels on up to four outputs,
+the editor derives LED count, GPIOs, ledmap, current values, and animation directly
 from the current simulator. There is no separate configuration choice. It saves
 the selected native WLED
 effect, palette, speed, intensity, colors, and brightness as preset 1 and makes
@@ -153,16 +153,17 @@ it the boot preset. It restarts WLED and verifies the config, preset, state,
 device identity, and boot-preset selection before setup succeeds. Later control
 changes update the same standalone preset.
 
-FIRM-014 implements the exact loaded test-sculpture framebuffer as a separate
-provisional DDP preview. The loopback host accepts only 1 to 192 RGB pixels
-and sends those pixels only to a private IPv4 address on fixed DDP port 4048. WLED is
+FIRM-014 implements the exact loaded framebuffer as a separate DDP preview. The
+loopback host accepts only 1 to 2,624 RGB pixels, splits frames into WLED's
+1,440-channel DDP packets, and sends them only to a private IPv4 address on
+fixed DDP port 4048. WLED is
 configured with a 2.5-second realtime timeout so it can resume the saved native
 animation if the browser, host, network, or laptop stops sending frames. The
 editor keeps one request in flight, updates at no more than 10 frames per
 second, and backs off after a network error. This is a bounded test-sculpture
-link, not approval to energize or stream the full sculpture.
+link for the loaded sculpture.
 After a page reload, the link reconnects only if the fixed mDNS name, private
-IP, MAC, ESP32 identity, LED count, and complete persisted smoke bus still
+IP, MAC, ESP32 identity, LED count, and complete persisted loaded bus set still
 match.
 Physical DDP timeout and autonomous-resume behavior remains a Human Review
 gate; source and automated tests do not establish that hardware result.
@@ -172,9 +173,8 @@ frames from the same deployment identity and mapping contract. Its bounded HTTP
 adapter transports exact WLED JSON requests; it does not create observation
 evidence or a second mapping authority.
 
-At 60 mA per pixel, 2,624 pixels can require 157.44 A at 5 V. Full-sculpture
-operation waits for the `PWR-010` supply, injection, wire, fuse, voltage-drop,
-and current-limit plan. Software brightness limiting is secondary protection.
+Electrical design and protection are external operator responsibilities. WLED
+current values are copied operating assumptions, not electrical approval.
 
 ## Subsystems
 
@@ -194,7 +194,7 @@ and current-limit plan. Software brightness limiting is secondary protection.
 | `web/src/` | Browser editor, renderer, mapping, wiring, project and package export |
 | `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
 | `scripts/esp32-firmware-handler.ts` | Loopback-only, receipt-gated complete ESP32 image endpoint |
-| `scripts/esp32-device-handler.ts` | Loopback-only, bounded private WLED HTTP and 1-to-192-pixel DDP broker |
+| `scripts/esp32-device-handler.ts` | Loopback-only, bounded private WLED HTTP and 1-to-2,624-pixel segmented DDP broker |
 | `tests/browser/` | Real Chromium operator journeys |
 | `wasm/` | Deterministic subset of WLED 1D effects, not firmware |
 | `firmware/` | ESP32 receipt, setup procedure, and smoke configuration; WLED build tooling and binaries stay off-main |

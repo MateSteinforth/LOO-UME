@@ -102,6 +102,12 @@ export interface Esp32SetupPayload {
   expectedPaletteName?: string;
 }
 
+export interface SimulatorSetupOutput {
+  startIndex: number;
+  pixelCount: number;
+  gpio: number;
+}
+
 export function isCurrentSimulatorSetup(
   payload: Esp32SetupPayload,
   currentRevision: number,
@@ -113,22 +119,34 @@ export function isCurrentSimulatorSetup(
 
 export function createSimulatorSetupConfig(
   source: Record<string, unknown>,
-  ledCount: number,
-  gpio: number,
+  outputs: readonly SimulatorSetupOutput[],
   colorOrder: number,
 ): Record<string, unknown> {
+  const ledCount = outputs.reduce((sum, output) => sum + output.pixelCount, 0);
+  const gpioSet = new Set(outputs.map((output) => output.gpio));
   if (
-    !Number.isInteger(ledCount) ||
+    outputs.length < 1 ||
+    outputs.length > 4 ||
     ledCount < 64 ||
-    ledCount > 192 ||
+    ledCount > 2_624 ||
     ledCount % 64 !== 0 ||
-    !isApprovedEsp32OutputGpio(gpio) ||
+    gpioSet.size !== outputs.length ||
+    outputs.some((output, index) =>
+      !Number.isInteger(output.startIndex) ||
+      !Number.isInteger(output.pixelCount) ||
+      output.pixelCount < 64 ||
+      output.pixelCount % 64 !== 0 ||
+      output.startIndex !== outputs
+        .slice(0, index)
+        .reduce((sum, prior) => sum + prior.pixelCount, 0) ||
+      !isApprovedEsp32OutputGpio(output.gpio)
+    ) ||
     !Number.isInteger(colorOrder) ||
     colorOrder < 0 ||
     colorOrder > 5
   ) {
     throw new Error(
-      "ESP32 setup requires one to three complete 64-LED panels, an approved output GPIO, and a WLED color order.",
+      "ESP32 setup requires 1 through 41 complete 64-LED panels on one through four contiguous approved GPIO outputs and a WLED color order.",
     );
   }
   const config = structuredClone(source);
@@ -141,17 +159,18 @@ export function createSimulatorSetupConfig(
   if (!led || !template) {
     throw new Error("The approved ESP32 setup template has no LED bus.");
   }
-  const maximumCurrentMa = ledCount / 64 * 1_000;
+  const completeAuthority = ledCount === 2_624 && outputs.length === 4;
+  const maximumCurrentMa = completeAuthority ? 0 : ledCount / 64 * 1_000;
   led.total = ledCount;
   led.maxpwr = maximumCurrentMa;
-  led.ins = [{
+  led.ins = outputs.map((output) => ({
     ...template,
-    start: 0,
-    len: ledCount,
-    pin: [gpio],
+    start: output.startIndex,
+    len: output.pixelCount,
+    pin: [output.gpio],
     order: colorOrder,
-    maxpwr: maximumCurrentMa,
-  }];
+    maxpwr: completeAuthority ? 14_000 : output.pixelCount / 64 * 1_000,
+  }));
   config.def = { ps: STANDALONE_PRESET_ID, on: true, bri: 128 };
   config.if = { live: { en: true, mso: true, rlm: false, timeout: 25 } };
   return config;
@@ -429,12 +448,12 @@ async function postDeviceJson(
 function rgbFramebufferBytes(
   pixels: readonly [number, number, number][],
 ): Uint8Array {
-  if (pixels.length < 1 || pixels.length > 192 || pixels.some((pixel) =>
+  if (pixels.length < 1 || pixels.length > 2_624 || pixels.some((pixel) =>
     pixel.length !== 3 || pixel.some((channel) =>
       !Number.isInteger(channel) || channel < 0 || channel > 255
     )
   )) {
-    throw new Error("The simulator hardware preview must contain from 1 through 192 RGB pixels.");
+    throw new Error("The simulator hardware preview must contain from 1 through 2,624 RGB pixels.");
   }
   return Uint8Array.from(pixels.flat());
 }
@@ -723,15 +742,25 @@ export async function persistStandaloneAnimation(
   ]);
   remapStateToLiveTables(payload, effects, palettes);
   await postDeviceJson(baseUrl, "/json/state", standalonePresetState(payload));
-  const [presets, information] = await Promise.all([
-    readJsonResponse(await deviceFetch(baseUrl, "/presets.json"), "WLED preset read-back"),
-    readJsonResponse(await deviceFetch(baseUrl, "/json/info"), "WLED boot preset read-back"),
-  ]);
-  assertStandalonePresetReadback(presets, payload);
-  const info = information as { leds?: { bootps?: unknown } };
-  if (info.leds?.bootps !== STANDALONE_PRESET_ID) {
-    throw new Error("WLED did not select the standalone animation as its boot preset.");
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 12; attempt += 1) {
+    const [presets, information] = await Promise.all([
+      readJsonResponse(await deviceFetch(baseUrl, "/presets.json"), "WLED preset read-back"),
+      readJsonResponse(await deviceFetch(baseUrl, "/json/info"), "WLED boot preset read-back"),
+    ]);
+    try {
+      assertStandalonePresetReadback(presets, payload);
+      const info = information as { leds?: { bootps?: unknown } };
+      if (info.leds?.bootps !== STANDALONE_PRESET_ID) {
+        throw new Error("WLED did not select the standalone animation as its boot preset.");
+      }
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 12) await wait(250);
+    }
   }
+  throw lastError;
 }
 
 function assertBoundedSimulatorPayload(payload: Esp32SetupPayload): void {
@@ -741,9 +770,9 @@ function assertBoundedSimulatorPayload(payload: Esp32SetupPayload): void {
     !Number.isInteger(payload.sourceRevision) ||
     !Number.isInteger(payload.expectedLedCount) ||
     payload.expectedLedCount < 1 ||
-    payload.expectedLedCount > 192
+    payload.expectedLedCount > 2_624
   ) {
-    throw new Error("ESP32 setup supports the loaded simulator only from 1 through 192 LEDs.");
+    throw new Error("ESP32 setup supports the loaded simulator only from 1 through 2,624 LEDs.");
   }
 }
 

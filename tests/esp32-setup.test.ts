@@ -97,9 +97,11 @@ describe("guarded ESP32 setup contracts", () => {
     expect(ESP32_FLASH_BAUD_RATE).toBe(115200);
   });
 
-  it("derives one bounded GPIO bus from the loaded one-to-three-panel simulator", () => {
+  it("derives bounded buses through the complete loaded 41-panel simulator", () => {
     const template = payload().config;
-    const config = createSimulatorSetupConfig(template, 192, 16, 3) as {
+    const config = createSimulatorSetupConfig(template, [
+      { startIndex: 0, pixelCount: 192, gpio: 16 },
+    ], 3) as {
       def: unknown;
       hw: { led: { total: number; maxpwr: number; ins: unknown[] } };
       if: unknown;
@@ -113,12 +115,33 @@ describe("guarded ESP32 setup contracts", () => {
       } },
       if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
     });
-    expect(() => createSimulatorSetupConfig(template, 256, 16, 0)).toThrow(/one to three/);
+    const fullConfig = createSimulatorSetupConfig(template, [
+      { startIndex: 0, pixelCount: 704, gpio: 16 },
+      { startIndex: 704, pixelCount: 640, gpio: 17 },
+      { startIndex: 1_344, pixelCount: 640, gpio: 18 },
+      { startIndex: 1_984, pixelCount: 640, gpio: 19 },
+    ], 0) as { hw: { led: { total: number; maxpwr: number; ins: unknown[] } } };
+    expect(fullConfig.hw.led).toMatchObject({
+      total: 2_624,
+      maxpwr: 0,
+      ins: [
+        { start: 0, len: 704, pin: [16], maxpwr: 14_000 },
+        { start: 704, len: 640, pin: [17], maxpwr: 14_000 },
+        { start: 1_344, len: 640, pin: [18], maxpwr: 14_000 },
+        { start: 1_984, len: 640, pin: [19], maxpwr: 14_000 },
+      ],
+    });
+    expect(() => createSimulatorSetupConfig(template, [
+      { startIndex: 0, pixelCount: 2_688, gpio: 16 },
+    ], 0)).toThrow(/1 through 41/);
     for (const gpio of [6, 10, 20, 24, 30, 34, 39]) {
-      expect(() => createSimulatorSetupConfig(template, 192, gpio, 0))
-        .toThrow(/approved output GPIO/);
+      expect(() => createSimulatorSetupConfig(template, [
+        { startIndex: 0, pixelCount: 192, gpio },
+      ], 0)).toThrow(/approved GPIO/);
     }
-    expect(() => createSimulatorSetupConfig(template, 192, 16, 6))
+    expect(() => createSimulatorSetupConfig(template, [
+      { startIndex: 0, pixelCount: 192, gpio: 16 },
+    ], 6))
       .toThrow(/WLED color order/);
   });
 
@@ -352,7 +375,7 @@ describe("guarded ESP32 setup contracts", () => {
     }, value)).toThrow(/complete standalone preset/);
   });
 
-  it("sends one complete physical panel framebuffer through the fixed device broker", async () => {
+  it("sends a mapped physical framebuffer through the fixed device broker", async () => {
     const pixels = Array.from({ length: 64 }, (_, index) =>
       [index, 255 - index, index % 3] as [number, number, number]
     );
@@ -378,7 +401,7 @@ describe("guarded ESP32 setup contracts", () => {
     await expect(sendSimulatorFramebuffer(
       new URL("http://192.168.68.53/"),
       [],
-    )).rejects.toThrow(/1 through 192/);
+    )).rejects.toThrow(/1 through 2,624/);
   });
 
   it("requires the saved standalone preset to match the simulator settings", () => {
@@ -428,6 +451,32 @@ describe("guarded ESP32 setup contracts", () => {
       o: true,
       seg: { fx: 2, pal: 1, sx: 120, ix: 90 },
     });
+  });
+
+  it("waits for WLED to finish storing the standalone preset", async () => {
+    const value = payload();
+    const savedPreset = {
+      "1": {
+        n: "LOO/UME standalone",
+        on: true,
+        bri: 128,
+        seg: { ...(value.state.seg as object), fx: 2, pal: 1 },
+      },
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Solid", "Blink", "Rainbow"])))
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Default", "Forest"])))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ "0": {} })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ leds: { bootps: 1 } })))
+      .mockResolvedValueOnce(new Response(JSON.stringify(savedPreset)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ leds: { bootps: 1 } })));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(persistStandaloneAnimation(
+      new URL("http://192.168.68.53/"),
+      value,
+    )).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(7);
   });
 
   it("orders simulator pixels by the first panel's physical addresses", () => {

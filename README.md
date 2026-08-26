@@ -96,5 +96,5 @@ Read `docs/ARCHITECTURE.md` before changing subsystem boundaries,
 `docs/PANEL_SYSTEM.md` for geometry, and `docs/LED_MAPPING.md` for addressing or
 wiring. Multi-agent rules and execution modes are in `AGENTS.md`.
 
-Do not energize the complete 41-panel sculpture until `PWR-010` has approved
-power domains, injection, wire sizes, fuses, voltage drop, and maximum current.
+Electrical design, protection, and approval are external operator
+responsibilities. Repository WLED current values are operating assumptions.

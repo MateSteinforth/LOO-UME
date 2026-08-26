@@ -83,6 +83,10 @@ mapping before connecting its data cable.
 
 ## Power distribution
 
+The following values are operator-supplied external installation assumptions.
+The repository records them for WLED configuration; it does not own or approve
+the electrical plan.
+
 - Use two regulated 5 V / 40 A supplies.
 - Keep the two positive rails separate.
 - Join negative rails at one star-ground point near the controller.

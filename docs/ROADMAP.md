@@ -29,8 +29,9 @@ shared guarded export policy
   -> all-address parity proof
 ```
 
-Mapping assumptions do not replace electrical approval. Full operation remains
-blocked by `PWR-010`.
+Electrical design and approval are external operator responsibilities. The
+repository records WLED operating values but does not gate software work on an
+electrical plan.
 
 ## Known technical seams
 

@@ -4,7 +4,7 @@ Last reconciled: 2026-08-26
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: copy a loaded bounded simulator to one ESP32, then prove
+Current milestone: copy the complete loaded simulator to one ESP32, then prove
 static address and RGB parity on the physical 41-panel sculpture.
 
 ## Control rules
@@ -63,15 +63,9 @@ No tasks.
 - Needed: a bounded pre-CAD path optimizer that treats keep-out and printable-
   mesh feasibility as edge costs while preserving the strict final mesh gate.
 
-### `PWR-010` Approve power and protection
-
-- Blocked by: available hardware, electrical calculation, and physical review.
-- Acceptance: supply, domains, injection, wire, connector, fuse, voltage-drop,
-  derating, inrush, backfeed, and current-limit plan passes before full power.
-
 ### `HW-012` Record the installed 41-panel route
 
-- Blocked by: `PWR-010` and physical assembly.
+- Blocked by: physical assembly.
 
 ### `FIRM-010` Add later transport or audio behavior
 
@@ -87,19 +81,22 @@ No tasks.
 
 ## Human Review
 
-### `FIRM-014` Confirm loaded three-panel transfer and standalone playback
+### `FIRM-014` Confirm complete loaded-project playback on ESP32
 
-- Implemented: the ESP32 dialog has no configuration choice. Setup derives the
-  one-output LED count, safe GPIO, measured color order, exact ledmap, current
-  animation, and boot preset from the loaded one-to-three-panel simulator.
-- Passed: 375/375 full Vitest before the final orchestration regression; focused
-  19/19 after it, TypeScript, desktop build, focused Playwright, diff check, and
-  independent review.
-- Needed: load the three-panel project, run ESP32 setup, confirm all 192 LEDs
-  follow the simulator, stop preview and confirm native playback resumes after
-  approximately 2.5 seconds, then power-cycle the ESP32 and confirm it starts
-  the saved animation. Larger or multi-output projects remain fail-closed until
-  `PWR-010`.
+- Implemented: setup copies one to 41 loaded panels, up to four contiguous
+  GPIO outputs, measured color order, exact ledmap, native boot animation, and
+  segmented DDP preview. The 41-panel authority uses GPIO 16–19, ranges
+  704/640/640/640, and the established 14,000 mA bus values.
+- Fixed from physical review: WLED preset publication is retried for a bounded
+  three seconds while keeping exact preset comparison.
+- Passed: 378/378 Vitest, TypeScript, desktop build, focused Playwright, diff
+  check, official/pinned WLED DDP contract inspection, and independent review.
+- Needed: rerun the loaded three-panel setup and confirm setup completes; stop
+  preview and confirm native playback resumes after approximately 2.5 seconds;
+  power-cycle and confirm autonomous playback. Confirm the complete sculpture
+  when its panels are assembled.
+- Assumption: electrical design, protection, and power approval are external
+  operator responsibilities.
 - Owner: `codex/firm-014-standalone-playback` in
   `/tmp/led-rhombo-firm-014`.
 
@@ -109,6 +106,9 @@ No tasks.
 
 ## Done
 
+- `PWR-010`: removed from repository scope by operator decision. External
+  electrical design and protection are operator responsibilities; generated
+  WLED current values are operating assumptions, not an electrical approval.
 - `FIRM-013`: stabilized physical CP2102 flashing, serial Improv setup,
   private-device read-back and reconnect, and the physically mapped live 8x8
   simulator link. The operator completed setup at `192.168.68.53`; 366/366
@@ -164,7 +164,7 @@ No tasks.
 - `CAL-010`: operator approved the existing panel profile for the current
   41-panel build. Existing measured values stay measured; provisional or
   unknown electrical, pad, and address facts are not relabelled as measurements
-  and remain subject to `PWR-010` and `PROOF-010`.
+  and remain subject to `PROOF-010`.
 - `HR-013`: normal `main` will use the checked-in WLED simulator and will not
   require Python or Emscripten; reproducible generation moves to a dedicated
   branch under `BUILD-010`.

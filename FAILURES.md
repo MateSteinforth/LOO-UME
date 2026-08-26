@@ -932,12 +932,29 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   visible simulator contained three panels.
 - **Cause:** An internal one-panel/full-install safety distinction was exposed
   as an operator setting, and the setup payload remained hard-coded to 64 LEDs.
-- **Correction:** Remove the dropdown. Derive one GPIO output, LED count,
-  ledmap, animation state, and DDP framebuffer from the loaded simulator. Keep
-  the unapproved boundary explicit at three panels and one output.
+- **Correction:** Remove the dropdown. Derive all GPIO outputs, LED count,
+  ledmap, animation state, and segmented DDP framebuffer from the loaded
+  simulator through the complete 41-panel authority.
 - **Prevention:** Hardware setup must copy the authoritative loaded project. Do
   not ask the operator to select a second configuration authority.
 - **Evidence:** `createSimulatorSetupConfig()`, dynamic framebuffer tests, and
   the FIRM-014 browser setup journey.
-- **Status:** Human review; physical three-panel copy and standalone fallback
-  are not yet observed.
+- **Status:** Human review; physical complete-project copy and standalone
+  fallback are not yet observed.
+
+### F-051 — WLED preset storage is eventually consistent
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 physical three-panel setup.
+- **Symptom:** WLED accepted the 192-LED configuration and preset write, but the
+  immediate preset read reported that the standalone preset did not match. A
+  later `/presets.json` read contained the exact expected preset.
+- **Cause:** The preset file was read before WLED finished publishing the saved
+  preset.
+- **Correction:** After the state write, retry the exact preset and boot-preset
+  read-back for a bounded three seconds. Do not weaken the field comparison.
+- **Prevention:** Treat WLED file-backed preset publication as eventually
+  consistent and verify the final exact value with a bounded retry.
+- **Evidence:** Live `/presets.json`, `/json/state`, `/json/info`, and
+  `/json/cfg` from `192.168.68.53`, plus the focused persistence retry test.
+- **Status:** Resolved in software; physical setup retry remains.

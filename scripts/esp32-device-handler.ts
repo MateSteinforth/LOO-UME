@@ -7,7 +7,8 @@ const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const RESOLVE_TIMEOUT_MS = 2_000;
 const UPSTREAM_TIMEOUT_MS = 8_000;
 const DDP_PORT = 4048;
-const MAX_DDP_PIXEL_BYTES = 192 * 3;
+const MAX_DDP_PIXEL_BYTES = 2_624 * 3;
+const DDP_CHANNELS_PER_PACKET = 1_440;
 const ALLOWED_REQUESTS = new Set([
   "GET /json/info",
   "GET /json/cfg",
@@ -28,25 +29,61 @@ export interface Esp32DeviceHandler {
 
 type SendDdp = (address: string, bytes: Uint8Array) => Promise<void>;
 
-export function createDdpPacket(pixels: Uint8Array, sequence: number): Uint8Array {
+export function createDdpPacket(
+  pixels: Uint8Array,
+  sequence: number,
+  channelOffset = 0,
+  push = true,
+): Uint8Array {
+  if (
+    pixels.byteLength < 3 ||
+    pixels.byteLength > DDP_CHANNELS_PER_PACKET ||
+    pixels.byteLength % 3 !== 0
+  ) {
+    throw new Error("A DDP packet requires from 1 through 480 RGB pixels.");
+  }
+  if (!Number.isInteger(sequence) || sequence < 1 || sequence > 15) {
+    throw new Error("The DDP sequence must be from 1 through 15.");
+  }
+  if (!Number.isInteger(channelOffset) || channelOffset < 0 || channelOffset > 0xffffffff) {
+    throw new Error("The DDP channel offset is invalid.");
+  }
+  const packet = new Uint8Array(10 + pixels.byteLength);
+  packet.set([
+    push ? 0x41 : 0x40, sequence, 0x0b, 0x01,
+    channelOffset >>> 24,
+    channelOffset >>> 16,
+    channelOffset >>> 8,
+    channelOffset,
+    pixels.byteLength >> 8, pixels.byteLength & 0xff,
+  ]);
+  packet.set(pixels, 10);
+  return packet;
+}
+
+export function createDdpPackets(
+  pixels: Uint8Array,
+  firstSequence: number,
+): Uint8Array[] {
   if (
     pixels.byteLength < 3 ||
     pixels.byteLength > MAX_DDP_PIXEL_BYTES ||
     pixels.byteLength % 3 !== 0
   ) {
-    throw new Error("The DDP preview requires from 1 through 192 RGB pixels.");
+    throw new Error("The DDP preview requires from 1 through 2,624 RGB pixels.");
   }
-  if (!Number.isInteger(sequence) || sequence < 1 || sequence > 15) {
-    throw new Error("The DDP sequence must be from 1 through 15.");
+  const packets: Uint8Array[] = [];
+  for (let offset = 0; offset < pixels.byteLength; offset += DDP_CHANNELS_PER_PACKET) {
+    const packetIndex = packets.length;
+    const end = Math.min(offset + DDP_CHANNELS_PER_PACKET, pixels.byteLength);
+    packets.push(createDdpPacket(
+      pixels.slice(offset, end),
+      (firstSequence - 1 + packetIndex) % 15 + 1,
+      offset,
+      end === pixels.byteLength,
+    ));
   }
-  const packet = new Uint8Array(10 + pixels.byteLength);
-  packet.set([
-    0x41, sequence, 0x0b, 0x01,
-    0x00, 0x00, 0x00, 0x00,
-    pixels.byteLength >> 8, pixels.byteLength & 0xff,
-  ]);
-  packet.set(pixels, 10);
-  return packet;
+  return packets;
 }
 
 const sendDdp: SendDdp = (address, bytes) =>
@@ -203,12 +240,12 @@ export function createEsp32DeviceHandler(
         }
         try {
           const body = await requestBody(request);
-          const packet = createDdpPacket(
+          const packets = createDdpPackets(
             Uint8Array.from(body ?? Buffer.alloc(0)),
             ddpSequence,
           );
-          ddpSequence = ddpSequence === 15 ? 1 : ddpSequence + 1;
-          await sendRealtime(address, packet);
+          ddpSequence = (ddpSequence - 1 + packets.length) % 15 + 1;
+          for (const packet of packets) await sendRealtime(address, packet);
           response.statusCode = 204;
           response.setHeader("Cache-Control", "no-store");
           response.end();
