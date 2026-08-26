@@ -211,7 +211,7 @@ WIRE-010 explicit route
     -> WIRE-013 lifecycle/invalidation
     -> WIRE-011 route editor and confirmation
 MAP-021 installed address transform -> CAL-010 physical measurement
-HR-014 controller choice + PWR-010 approved power plan
+HR-014 controller choice + operator-owned external power plan
     -> MAP-030 WLED bus/deployment contract (assumed review files exist)
     -> WIRE-012 guarded production bundle
     -> FIRM-011 device deployment
@@ -285,9 +285,12 @@ coordinate, and physical index. Supplying `--host`, a bounded frame range, and
 bounded transient retries. Do this only after the fused-panel FIRM-011 smoke
 test passes. A generated or sent frame is not observed hardware evidence.
 
-DDP, Art-Net, Ethernet, audio-reactive effects, custom firmware behavior, and
-automatic device read-back remain absent. The WLED build target and receipt are
-pinned, but the controller has not yet passed the physical smoke gate.
+The local editor now has receipt-bound setup for a loaded one-to-41-panel
+sculpture and exact HTTP read-back. FIRM-014 adds a segmented
+1-to-2,624-pixel DDP preview and saves a native WLED boot preset as its fallback.
+The operator physically confirmed the DDP-to-native fallback and autonomous
+power-cycle playback on the 192-LED three-panel project. Art-Net, Ethernet,
+audio-reactive effects, and custom firmware behavior remain absent.
 
 The mapping claim is static address and RGB parity for the selected pinned WLED
 target. Matching effect names or WASM frames does not prove
@@ -308,6 +311,6 @@ native WLED effect.
   addresses and red/green/blue output. Test one representative from every known
   panel batch; divergent or unidentifiable batches need per-panel evidence or
   explicit overrides.
-- Do not energize all 2,624 pixels until `PWR-010` is approved. At the current
-  conservative 60 mA value, the full-white design load is 157.44 A at 5 V.
+- Treat electrical design and approval as an external operator responsibility;
+  WLED current values are not electrical approval evidence.
 - Do not claim DDP/WLED device behavior from the browser simulator.

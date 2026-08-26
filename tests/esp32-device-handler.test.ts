@@ -3,11 +3,42 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { describe, expect, it, vi } from "vitest";
 import {
   createEsp32DeviceHandler,
+  createDdpPacket,
+  createDdpPackets,
   esp32TargetUrl,
   resolvedEsp32Target,
 } from "../scripts/esp32-device-handler.ts";
 
 describe("ESP32 loopback device proxy policy", () => {
+  it("creates bounded RGB DDP packets and splits the complete sculpture", () => {
+    const pixels = Uint8Array.from({ length: 192 }, (_, index) => index & 0xff);
+    const packet = createDdpPacket(pixels, 7);
+    expect(Array.from(packet.slice(0, 10))).toEqual([
+      0x41, 7, 0x0b, 1, 0, 0, 0, 0, 0, 192,
+    ]);
+    expect(packet.slice(10)).toEqual(pixels);
+    const threePanels = createDdpPacket(new Uint8Array(576), 8);
+    expect(Array.from(threePanels.slice(0, 10))).toEqual([
+      0x41, 8, 0x0b, 1, 0, 0, 0, 0, 2, 64,
+    ]);
+    expect(() => createDdpPacket(pixels.slice(1), 7)).toThrow(/1 through 480/);
+    expect(() => createDdpPacket(new Uint8Array(1_443), 7)).toThrow(/1 through 480/);
+    expect(() => createDdpPacket(pixels, 0)).toThrow(/1 through 15/);
+
+    const full = createDdpPackets(new Uint8Array(2_624 * 3), 13);
+    expect(full).toHaveLength(6);
+    expect(full.map((packet) => Array.from(packet.slice(0, 10)))).toEqual([
+      [0x40, 13, 0x0b, 1, 0, 0, 0, 0, 5, 160],
+      [0x40, 14, 0x0b, 1, 0, 0, 5, 160, 5, 160],
+      [0x40, 15, 0x0b, 1, 0, 0, 11, 64, 5, 160],
+      [0x40, 1, 0x0b, 1, 0, 0, 16, 224, 5, 160],
+      [0x40, 2, 0x0b, 1, 0, 0, 22, 128, 5, 160],
+      [0x41, 3, 0x0b, 1, 0, 0, 28, 32, 2, 160],
+    ]);
+    expect(() => createDdpPackets(new Uint8Array(2_625 * 3), 1))
+      .toThrow(/2,624/);
+  });
+
   it("allows only fixed WLED operations on private addresses", () => {
     expect(esp32TargetUrl("192.168.68.72", "/json/info", "GET").href).toBe(
       "http://192.168.68.72/json/info",
@@ -100,5 +131,60 @@ describe("ESP32 loopback device proxy policy", () => {
     await expect(handler.handle(request, response)).resolves.toBe(true);
     expect(response.statusCode).toBe(400);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sends a bounded private-address DDP frame through the loopback endpoint", async () => {
+    const sent = vi.fn().mockResolvedValue(undefined);
+    const handler = createEsp32DeviceHandler(fetch, undefined, undefined, sent);
+    const response = {
+      statusCode: 0,
+      setHeader: vi.fn(),
+      end: vi.fn(),
+    } as unknown as ServerResponse;
+    const pixels = Buffer.alloc(192, 23);
+    const request = Readable.from([pixels]) as unknown as IncomingMessage;
+    Object.assign(request, {
+      method: "POST",
+      url: "/api/esp32-frame?address=192.168.68.53",
+      headers: {
+        host: "localhost:4173",
+        "content-type": "application/octet-stream",
+        "x-loo-ume-esp32": "1",
+      },
+    });
+    await expect(handler.handle(request, response)).resolves.toBe(true);
+    expect(response.statusCode).toBe(204);
+    expect(sent).toHaveBeenCalledWith(
+      "192.168.68.53",
+      expect.objectContaining({ byteLength: 202 }),
+    );
+  });
+
+  it("sends the complete 2,624-pixel frame as six ordered DDP datagrams", async () => {
+    const sent = vi.fn().mockResolvedValue(undefined);
+    const handler = createEsp32DeviceHandler(fetch, undefined, undefined, sent);
+    const response = {
+      statusCode: 0,
+      setHeader: vi.fn(),
+      end: vi.fn(),
+    } as unknown as ServerResponse;
+    const request = Readable.from([Buffer.alloc(2_624 * 3, 42)]) as unknown as IncomingMessage;
+    Object.assign(request, {
+      method: "POST",
+      url: "/api/esp32-frame?address=192.168.68.53",
+      headers: {
+        host: "localhost:4173",
+        "content-type": "application/octet-stream",
+        "x-loo-ume-esp32": "1",
+      },
+    });
+    await expect(handler.handle(request, response)).resolves.toBe(true);
+    expect(response.statusCode).toBe(204);
+    expect(sent).toHaveBeenCalledTimes(6);
+    const packets = sent.mock.calls.map((call) => call[1] as Uint8Array);
+    expect(packets.slice(0, -1).every((packet) => packet[0] === 0x40)).toBe(true);
+    expect(packets.at(-1)?.[0]).toBe(0x41);
+    expect(packets.reduce((sum, packet) => sum + packet.byteLength - 10, 0))
+      .toBe(2_624 * 3);
   });
 });

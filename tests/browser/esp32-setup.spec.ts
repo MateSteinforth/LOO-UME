@@ -12,13 +12,13 @@ test("keeps guarded ESP32 setup in Advanced Tools and the shared activity log", 
   await expect(page.locator("#esp32-setup-progress-label")).toHaveText("Ready");
   await expect(page.locator("#esp32-setup-console")).toBeVisible();
   await expect(page.locator("#esp32-boot-instruction")).toHaveText("HOLD BOOT");
-  await expect(page.locator("#esp32-setup-mode")).toHaveValue("smoke");
-  await expect(
-    page.locator("#esp32-setup-mode option[value=installation]"),
-  ).toHaveAttribute("disabled", "");
+  await expect(page.locator("#esp32-setup-mode")).toHaveCount(0);
   await expect(page.locator("#esp32-confirm-erase")).toHaveCount(0);
   await expect(page.locator("#esp32-confirm-power")).toHaveCount(0);
   await page.locator("#run-esp32-setup").click();
+  await expect(page.locator("#esp32-setup-console")).toContainText(
+    "Live preview paused while standalone playback is verified",
+  );
   await expect(page.locator("#pipeline-status")).toContainText(
     "Enter the 2.4 GHz Wi-Fi network name",
   );
@@ -34,15 +34,6 @@ test("keeps guarded ESP32 setup in Advanced Tools and the shared activity log", 
   )).toBeGreaterThan(150);
   await expect(page.locator("#pipeline-status")).toHaveClass(/pipeline-status--error/);
   await expect(page.locator("#esp32-wifi-password")).toHaveValue("");
-
-  await page.locator("#esp32-setup-mode").evaluate((select) => {
-    (select as HTMLSelectElement).value = "installation";
-  });
-  await page.locator("#run-esp32-setup").click();
-  await expect(page.locator("#pipeline-status")).toContainText(
-    "Full installation setup is unavailable",
-  );
-  await page.locator("#esp32-setup-mode").selectOption("smoke");
 
   await page.route("**/api/esp32-firmware-status", async (route) => {
     await route.fulfill({

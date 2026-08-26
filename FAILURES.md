@@ -904,3 +904,162 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Live WLED state/config/info at `192.168.68.53` on 2026-08-26 and
   `tests/esp32-setup.test.ts`.
 - **Status:** Resolved.
+
+### F-049 — JSON pixel preview freezes when its host disappears
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 one-panel operation after the live editor link passed.
+- **Symptom:** The panel followed the simulator while the laptop was connected,
+  but it stopped animating when the laptop was disconnected.
+- **Cause:** WLED treats JSON individual-pixel data as a frozen segment. It has
+  no finite realtime timeout and is not an autonomous boot animation.
+- **Correction:** Save the selected native WLED settings as preset 1 and select
+  it for boot. Send exact preview frames through DDP with WLED's bounded
+  2.5-second realtime timeout, then verify the preset across a restart.
+- **Prevention:** Keep autonomous state and live preview as separate contracts.
+  A preview transport must time out to a verified persisted state when its host
+  disappears.
+- **Evidence:** Pinned WLED `json.cpp`, `e131.cpp`, `udp.cpp`, and the focused
+  FIRM-014 setup and device-handler tests.
+- **Status:** Resolved. The operator confirmed physical timeout exit and
+  autonomous power-cycle playback on the 192-LED project.
+
+### F-050 — A setup mode dropdown did not represent the loaded simulator
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 physical review with a loaded three-panel project.
+- **Symptom:** The UI offered a one-panel configuration choice even though the
+  visible simulator contained three panels.
+- **Cause:** An internal one-panel/full-install safety distinction was exposed
+  as an operator setting, and the setup payload remained hard-coded to 64 LEDs.
+- **Correction:** Remove the dropdown. Derive all GPIO outputs, LED count,
+  ledmap, animation state, and segmented DDP framebuffer from the loaded
+  simulator through the complete 41-panel authority.
+- **Prevention:** Hardware setup must copy the authoritative loaded project. Do
+  not ask the operator to select a second configuration authority.
+- **Evidence:** `createSimulatorSetupConfig()`, dynamic framebuffer tests, and
+  the FIRM-014 browser setup journey.
+- **Status:** Resolved for the three-panel physical project. Complete
+  41-panel observation remains under HW-012 and PROOF-010.
+
+### F-051 — WLED preset storage is eventually consistent
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 physical three-panel setup.
+- **Symptom:** WLED accepted the 192-LED configuration and preset write, but the
+  immediate preset read reported that the standalone preset did not match. A
+  later `/presets.json` read contained the exact expected preset.
+- **Cause:** The preset file was read before WLED finished publishing the saved
+  preset.
+- **Correction:** After the state write, retry the exact preset and boot-preset
+  read-back within a strict 20-second deadline. Do not weaken the field
+  comparison.
+- **Prevention:** Treat WLED file-backed preset publication as eventually
+  consistent and verify the final exact value with a bounded retry.
+- **Evidence:** Live `/presets.json`, `/json/state`, `/json/info`, and
+  `/json/cfg` from `192.168.68.53`, plus the focused persistence retry test.
+- **Status:** Resolved; physical three-panel setup and power-cycle passed.
+
+### F-052 — WLED HTTP can drop requests just after restart discovery
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 three-panel restart verification.
+- **Symptom:** mDNS and IP identity discovery succeeded, then the immediate
+  `/json/info` verification request failed while WLED was still recovering.
+- **Cause:** Network discovery can succeed before every WLED HTTP endpoint is
+  stable after restart.
+- **Correction:** Retry the complete exact post-restart snapshot—config,
+  firmware identity, state, preset, and ledmap—within a strict 45-second
+  deadline. Fully settle one attempt before another starts, and keep the
+  browser request timeout longer than the loopback proxy's upstream timeout.
+- **Prevention:** Do not treat one successful discovery response as complete
+  application readiness after a controller restart.
+- **Evidence:** Operator log at 12:37 on 2026-08-26 and the focused transient
+  restarted-snapshot regression.
+- **Status:** Resolved; physical three-panel restart verification passed.
+
+### F-053 — DDP preview can invalidate standalone restart verification
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 three-panel standalone playback verification.
+- **Symptom:** WLED restored preset 1, but the exact state check found `frz:true`
+  instead of the saved `frz:false` state.
+- **Cause:** The browser continued to send DDP frames during setup. WLED entered
+  realtime mode after restart before the standalone state was verified.
+- **Correction:** Suspend the browser-to-WLED live link for the complete setup
+  operation. Drain any prior reconnect, preset save, and frame request before
+  device mutation. Enable the link only after exact restart verification passes.
+- **Prevention:** Do not run a realtime transport while a native controller
+  fallback is under restart or persistence verification.
+- **Evidence:** Live `/json/state` showed preset 1 with DDP live mode and
+  `frz:true`; `/presets.json` retained the intended `frz:false` value.
+- **Status:** Resolved; physical DDP exit and power-cycle playback passed.
+
+### F-054 — WLED file reads can recover after its JSON API
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 three-panel standalone playback verification.
+- **Symptom:** WLED identity and JSON endpoints recovered after restart, but
+  exact `/ledmap.json` read-back returned HTTP 502 until later.
+- **Cause:** WLED network discovery and JSON readiness do not prove that its
+  file-system HTTP endpoint is ready.
+- **Correction:** Keep the complete exact snapshot retry bounded to 45 seconds.
+  Do not weaken or skip ledmap comparison while the file endpoint recovers.
+- **Prevention:** Include referenced file readiness in post-restart controller
+  verification and allow a separate bounded recovery period.
+- **Evidence:** The operator saw HTTP 502 during verification; the same direct
+  and proxied ledmap request later returned the exact 192-pixel artifact.
+- **Status:** Resolved; physical ledmap recovery and restart proof passed.
+
+### F-055 — One transient mDNS failure disabled live preview after reload
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 page reload after successful three-panel setup.
+- **Symptom:** Simulator effect changes did not reach the physical panels, and
+  WLED reported that DDP realtime mode was inactive.
+- **Cause:** Automatic reconnect tried `loo-ume.local` once. The loopback proxy
+  returned a transient resolution error, and the page silently stopped trying.
+- **Correction:** Retry read-only mDNS discovery up to 12 times with a
+  two-second delay. Run identity, config, ledmap, and preset checks once.
+- **Prevention:** Do not treat one transient local-name failure as proof that a
+  previously configured controller is absent.
+- **Evidence:** Physical WLED status reported `live:false`; the browser console
+  recorded HTTP 400 for the single mDNS request.
+- **Status:** Resolved in software; physical page-reload retry remains.
+
+### F-056 — Temporary invalid preset JSON escaped its retry
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 automatic reconnect after a hard page reload.
+- **Symptom:** The simulator worked, but physical panels did not update. The
+  browser reported `WLED preset read-back returned invalid JSON`.
+- **Cause:** Preset and boot-state reads first ran outside the persistence retry.
+  Physical follow-up also found WLED's sparse file form `{ ,"1":...}`, which
+  its firmware accepts but standard `JSON.parse` rejects.
+- **Correction:** Put both reads, parsing, and exact checks inside a strict
+  20-second loop. Normalize only one leading comma after the root brace, then
+  require valid JSON and the same exact preset values. Cancel stale project or
+  setup work and report each reconnect stage.
+- **Prevention:** An eventual-consistency retry must include acquisition and
+  parsing, not only the final semantic assertion.
+- **Evidence:** Operator console after hard reload and the focused invalid-JSON
+  first-read regression.
+- **Status:** Resolved in software; physical page-reload retry remains.
+
+### F-057 — Ungamma-corrected DDP made dark simulator pixels visibly blue
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 physical three-panel live preview.
+- **Symptom:** Theater effects looked mostly black in the simulator and during
+  native WLED playback, but DDP preview showed every dark LED as dim blue.
+- **Cause:** WLED realtime input used its default `no-gc: true` contract, but
+  the browser sent the simulator's pre-gamma RGB bytes unchanged. The Theater
+  background `#050816` was therefore much brighter than native WLED output.
+- **Correction:** Apply WLED's pinned 2.2 color-gamma curve to every DDP channel
+  and bind `no-gc: true` in generated/read-back configuration. Keep the saved
+  native preset colors unchanged.
+- **Prevention:** A realtime framebuffer must state which side owns gamma
+  correction and test representative dark and bright channel values.
+- **Evidence:** Pinned WLED `colors.cpp`, `FX_fcn.cpp`, `wled.h`, `cfg.cpp`, and
+  the focused DDP byte regression.
+- **Status:** Resolved in software; physical DDP color parity remains.

@@ -5,7 +5,20 @@ import { WLED_FIRMWARE_BUILD_RECEIPT as firmwareReceipt } from "../../src/wled/D
 const CP2102_FILTER = { usbVendorId: 0x10c4, usbProductId: 0xea60 };
 const SETUP_HOSTNAME = "loo-ume";
 const REQUEST_TIMEOUT_MS = 10_000;
+const WLED_COLOR_GAMMA = 2.2;
+export const STANDALONE_PRESET_ID = 1;
 export const ESP32_FLASH_BAUD_RATE = 115200;
+export const RESTART_VERIFICATION_REQUEST_TIMEOUT_MS = 10_000;
+export const RESTART_VERIFICATION_DEADLINE_MS = 45_000;
+export const RESTART_VERIFICATION_MINIMUM_WINDOW_MS = 8_500;
+export const PRESET_PERSISTENCE_DEADLINE_MS = 20_000;
+const APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS = new Set([
+  4, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33,
+]);
+
+export function isApprovedEsp32OutputGpio(gpio: number): boolean {
+  return Number.isInteger(gpio) && APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS.has(gpio);
+}
 
 type SerialSignalDevice = Pick<SerialPort, "setSignals">;
 type Wait = (milliseconds: number) => Promise<void>;
@@ -83,16 +96,109 @@ export async function reopenApprovedSerialPort(
   throw new Error(`WLED serial port did not reopen after reset: ${errorMessage(lastError)}`);
 }
 
-export type Esp32SetupMode = "smoke" | "installation";
-
 export interface Esp32SetupPayload {
-  mode: Esp32SetupMode;
+  sourceFingerprint: string;
+  sourceRevision: number;
   config: Record<string, unknown>;
   expectedLedCount: number;
   ledmapBytes?: string;
   state: Record<string, unknown>;
   expectedEffectName?: string;
   expectedPaletteName?: string;
+}
+
+export interface SimulatorSetupOutput {
+  startIndex: number;
+  pixelCount: number;
+  gpio: number;
+}
+
+export function isCurrentSimulatorSetup(
+  payload: Esp32SetupPayload,
+  currentRevision: number,
+  currentFingerprint: string,
+): boolean {
+  return payload.sourceRevision === currentRevision &&
+    payload.sourceFingerprint === currentFingerprint;
+}
+
+export function canEnableReconnectedSimulator(
+  payload: Esp32SetupPayload,
+  currentRevision: number,
+  currentFingerprint: string,
+  setupActive: boolean,
+): boolean {
+  return !setupActive &&
+    isCurrentSimulatorSetup(payload, currentRevision, currentFingerprint);
+}
+
+export async function settleSimulatorDeviceWork(
+  requests: Array<Promise<unknown> | undefined>,
+): Promise<void> {
+  await Promise.allSettled(
+    requests.filter((request): request is Promise<unknown> => request !== undefined),
+  );
+}
+
+export function createSimulatorSetupConfig(
+  source: Record<string, unknown>,
+  outputs: readonly SimulatorSetupOutput[],
+  colorOrder: number,
+): Record<string, unknown> {
+  const ledCount = outputs.reduce((sum, output) => sum + output.pixelCount, 0);
+  const gpioSet = new Set(outputs.map((output) => output.gpio));
+  if (
+    outputs.length < 1 ||
+    outputs.length > 4 ||
+    ledCount < 64 ||
+    ledCount > 2_624 ||
+    ledCount % 64 !== 0 ||
+    gpioSet.size !== outputs.length ||
+    outputs.some((output, index) =>
+      !Number.isInteger(output.startIndex) ||
+      !Number.isInteger(output.pixelCount) ||
+      output.pixelCount < 64 ||
+      output.pixelCount % 64 !== 0 ||
+      output.startIndex !== outputs
+        .slice(0, index)
+        .reduce((sum, prior) => sum + prior.pixelCount, 0) ||
+      !isApprovedEsp32OutputGpio(output.gpio)
+    ) ||
+    !Number.isInteger(colorOrder) ||
+    colorOrder < 0 ||
+    colorOrder > 5
+  ) {
+    throw new Error(
+      "ESP32 setup requires 1 through 41 complete 64-LED panels on one through four contiguous approved GPIO outputs and a WLED color order.",
+    );
+  }
+  const config = structuredClone(source);
+  const led = (config.hw as { led?: {
+    total?: number;
+    maxpwr?: number;
+    ins?: Array<Record<string, unknown>>;
+  } } | undefined)?.led;
+  const template = led?.ins?.[0];
+  if (!led || !template) {
+    throw new Error("The approved ESP32 setup template has no LED bus.");
+  }
+  const completeAuthority = ledCount === 2_624 && outputs.length === 4;
+  const maximumCurrentMa = completeAuthority ? 0 : ledCount / 64 * 1_000;
+  led.total = ledCount;
+  led.maxpwr = maximumCurrentMa;
+  led.ins = outputs.map((output) => ({
+    ...template,
+    start: output.startIndex,
+    len: output.pixelCount,
+    pin: [output.gpio],
+    order: colorOrder,
+    maxpwr: completeAuthority ? 14_000 : output.pixelCount / 64 * 1_000,
+  }));
+  config.def = { ps: STANDALONE_PRESET_ID, on: true, bri: 128 };
+  config.if = {
+    live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true },
+  };
+  return config;
 }
 
 export interface Esp32SetupControllerOptions {
@@ -103,14 +209,14 @@ export interface Esp32SetupControllerOptions {
   ssidInput: HTMLInputElement;
   passwordInput: HTMLInputElement;
   firmwareInput: HTMLInputElement;
-  modeSelect: HTMLSelectElement;
   progressElement: HTMLProgressElement;
   progressLabel: HTMLOutputElement;
   bootInstruction: HTMLOutputElement;
   clearSetupLog(): void;
   setLogMessage(message: string, error?: boolean): void;
-  getPayload(mode: Esp32SetupMode): Esp32SetupPayload;
-  onSetupComplete?(deviceUrl: URL): void;
+  getPayload(): Esp32SetupPayload;
+  onSetupActiveChange?(active: boolean): void | Promise<void>;
+  onSetupComplete?(deviceUrl: URL, payload: Esp32SetupPayload): void;
 }
 
 interface FirmwareStatus {
@@ -211,6 +317,34 @@ async function readJsonResponse(response: Response, context: string): Promise<un
   } catch {
     throw new Error(`${context} returned invalid JSON.`);
   }
+  if (!response.ok) {
+    const detail = typeof value === "object" && value !== null &&
+        "error" in value && typeof value.error === "string"
+      ? value.error
+      : `HTTP ${response.status}`;
+    throw new Error(`${context}: ${detail}`);
+  }
+  return value;
+}
+
+export function parseWledPresetJson(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    const normalized = text.replace(/^(\{\s*),/, "$1");
+    if (normalized === text) {
+      throw new Error("WLED preset read-back returned invalid JSON.");
+    }
+    try {
+      return JSON.parse(normalized) as unknown;
+    } catch {
+      throw new Error("WLED preset read-back returned invalid JSON.");
+    }
+  }
+}
+
+async function readWledPresetResponse(response: Response, context: string): Promise<unknown> {
+  const value = parseWledPresetJson(await response.text());
   if (!response.ok) {
     const detail = typeof value === "object" && value !== null &&
         "error" in value && typeof value.error === "string"
@@ -326,7 +460,7 @@ async function deviceFetch(
   return fetch(proxy, {
     ...init,
     headers,
-    signal: AbortSignal.timeout(Math.max(timeoutMs, 12_000)),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 }
 
@@ -365,39 +499,37 @@ async function postDeviceJson(
   );
 }
 
-export function simulatorFramebufferState(
+function rgbFramebufferBytes(
   pixels: readonly [number, number, number][],
-): Record<string, unknown> {
-  if (pixels.length !== 64 || pixels.some((pixel) =>
+): Uint8Array {
+  if (pixels.length < 1 || pixels.length > 2_624 || pixels.some((pixel) =>
     pixel.length !== 3 || pixel.some((channel) =>
       !Number.isInteger(channel) || channel < 0 || channel > 255
     )
   )) {
-    throw new Error("The one-panel simulator framebuffer must contain exactly 64 RGB pixels.");
+    throw new Error("The simulator hardware preview must contain from 1 through 2,624 RGB pixels.");
   }
-  const individual: Array<number | [number, number, number]> = [];
-  pixels.forEach((pixel, index) => individual.push(index, pixel));
-  return {
-    on: true,
-    bri: 128,
-    tt: 0,
-    seg: { id: 0, start: 0, stop: 64, fx: 0, i: individual },
-  };
+  return Uint8Array.from(
+    pixels.flatMap((pixel) => pixel.map((channel) =>
+      Math.floor((channel / 255) ** WLED_COLOR_GAMMA * 255 + 0.5)
+    )),
+  );
 }
 
 export function mappedPanelFramebuffer(
   pixels: Uint32Array,
   entries: readonly { logicalIndex: number; physicalIndex: number }[],
   physicalStartIndex: number,
+  expectedLedCount = 64,
 ): Array<[number, number, number]> {
   const panelEntries = entries
     .filter((entry) =>
       entry.physicalIndex >= physicalStartIndex &&
-      entry.physicalIndex < physicalStartIndex + 64
+      entry.physicalIndex < physicalStartIndex + expectedLedCount
     )
     .sort((first, second) => first.physicalIndex - second.physicalIndex);
   if (
-    panelEntries.length !== 64 ||
+    panelEntries.length !== expectedLedCount ||
     panelEntries.some((entry, offset) =>
       entry.physicalIndex !== physicalStartIndex + offset ||
       !Number.isInteger(entry.logicalIndex) ||
@@ -405,7 +537,7 @@ export function mappedPanelFramebuffer(
       entry.logicalIndex >= pixels.length
     )
   ) {
-    throw new Error("The first hardware panel does not contain exactly 64 mapped pixels.");
+    throw new Error("The loaded simulator does not contain one contiguous mapped output.");
   }
   return panelEntries.map((entry) => {
     const packed = pixels[entry.logicalIndex] ?? 0;
@@ -421,7 +553,23 @@ export async function sendSimulatorFramebuffer(
   baseUrl: URL,
   pixels: readonly [number, number, number][],
 ): Promise<void> {
-  await postDeviceJson(baseUrl, "/json/state", simulatorFramebufferState(pixels));
+  const proxy = new URL(
+    "/api/esp32-frame",
+    globalThis.location?.origin ?? "http://localhost",
+  );
+  proxy.searchParams.set("address", baseUrl.hostname);
+  const response = await fetch(proxy, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "X-LOO-UME-ESP32": "1",
+    },
+    body: rgbFramebufferBytes(pixels).slice().buffer as ArrayBuffer,
+    signal: AbortSignal.timeout(2_000),
+  });
+  if (!response.ok) {
+    throw new Error(`WLED realtime preview failed with HTTP ${response.status}.`);
+  }
 }
 
 export async function resolveVerifiedWledAddress(expectedMac: string): Promise<URL> {
@@ -447,26 +595,67 @@ export async function resolveVerifiedWledAddress(expectedMac: string): Promise<U
   return currentUrl;
 }
 
+interface ExistingSimulatorConnectOptions {
+  discoveryAttempts?: number;
+  delay?: Wait;
+  shouldContinue?: () => boolean;
+  update?: (message: string) => void;
+  persist?: typeof persistStandaloneAnimation;
+}
+
+export async function retryExistingSimulatorDiscovery<T>(
+  discover: () => Promise<T>,
+  attempts = 12,
+  delay: Wait = wait,
+  shouldContinue: () => boolean = () => true,
+  update?: (message: string) => void,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
+    try {
+      return await discover();
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) {
+        update?.("Waiting for the configured ESP32 to become available.");
+      }
+      if (attempt < attempts) {
+        if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
+        await delay(2_000);
+      }
+    }
+  }
+  throw new Error(`Automatic ESP32 discovery failed: ${errorMessage(lastError)}`);
+}
+
 export async function connectExistingSimulatorDevice(
   payload: Esp32SetupPayload,
+  options: ExistingSimulatorConnectOptions = {},
 ): Promise<URL> {
-  if (payload.mode !== "smoke") {
-    throw new Error("Only the verified one-panel setup can reconnect automatically.");
-  }
+  assertBoundedSimulatorPayload(payload);
+  const shouldContinue = options.shouldContinue ?? (() => true);
   const mdnsUrl = new URL(`http://${SETUP_HOSTNAME}.local/`);
-  const mdnsInfo = await readJsonResponse(
-    await deviceFetch(mdnsUrl, "/json/info", undefined, 12_000),
-    "WLED mDNS discovery",
-  ) as { arch?: unknown; ip?: unknown; leds?: { count?: unknown }; mac?: unknown };
+  const mdnsInfo = await retryExistingSimulatorDiscovery(
+    async () => readJsonResponse(
+      await deviceFetch(mdnsUrl, "/json/info", undefined, 12_000),
+      "WLED mDNS discovery",
+    ) as Promise<{ arch?: unknown; ip?: unknown; leds?: { count?: unknown }; mac?: unknown }>,
+    options.discoveryAttempts,
+    options.delay,
+    shouldContinue,
+    options.update,
+  );
   if (
     mdnsInfo.arch !== "esp32" ||
     typeof mdnsInfo.ip !== "string" ||
     typeof mdnsInfo.mac !== "string" ||
     mdnsInfo.leds?.count !== payload.expectedLedCount
   ) {
-    throw new Error("The existing WLED device does not match the one-panel setup.");
+    throw new Error("The existing WLED device does not match the loaded simulator setup.");
   }
   const currentUrl = privateDeviceUrl(`http://${mdnsInfo.ip}/`);
+  options.update?.(`Found the configured ESP32 at ${currentUrl.hostname}. Verifying its loaded-project contract.`);
   const [currentInfo, configuration] = await Promise.all([
     readJsonResponse(
       await deviceFetch(currentUrl, "/json/info", undefined, 12_000),
@@ -486,7 +675,58 @@ export async function connectExistingSimulatorDevice(
     throw new Error("The existing WLED address does not match the verified device.");
   }
   assertConfigReadback(configuration, payload);
+  if (payload.ledmapBytes !== undefined) {
+    await readAndAssertLedmap(
+      currentUrl,
+      payload.ledmapBytes,
+      "The existing WLED ledmap does not match the loaded simulator.",
+    );
+  }
+  if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
+  options.update?.("ESP32 contract matched. Syncing the current animation preset.");
+  await (options.persist ?? persistStandaloneAnimation)(
+    currentUrl,
+    payload,
+    shouldContinue,
+    options.update,
+  );
   return currentUrl;
+}
+
+export function assertLedmapReadback(
+  actualBytes: string,
+  expectedBytes: string,
+  message = "WLED ledmap read-back does not match the deployment artifact.",
+): void {
+  let actual: unknown;
+  let expected: unknown;
+  try {
+    actual = JSON.parse(actualBytes) as unknown;
+    expected = JSON.parse(expectedBytes) as unknown;
+  } catch {
+    throw new Error("WLED ledmap read-back returned invalid JSON.");
+  }
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(message);
+  }
+}
+
+async function readAndAssertLedmap(
+  baseUrl: URL,
+  expectedBytes: string,
+  mismatchMessage?: string,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<void> {
+  const readback = await deviceFetch(
+    baseUrl,
+    "/edit?func=edit&path=/ledmap.json",
+    undefined,
+    timeoutMs,
+  );
+  if (!readback.ok) {
+    throw new Error(`WLED ledmap read-back failed with HTTP ${readback.status}.`);
+  }
+  assertLedmapReadback(await readback.text(), expectedBytes, mismatchMessage);
 }
 
 async function discoverRestartedDevice(
@@ -531,13 +771,17 @@ export function assertConfigReadback(input: unknown, payload: Esp32SetupPayload)
   }
   const config = input as {
     id?: { mdns?: unknown };
+    def?: Record<string, unknown>;
     hw?: { led?: { total?: unknown; maxpwr?: unknown; ins?: unknown[] } };
+    if?: { live?: Record<string, unknown> };
   };
   const expectedLed = (payload.config.hw as {
     led?: { maxpwr?: unknown };
   } | undefined)?.led;
   const expected = expectedBuses(payload.config) as Array<Record<string, unknown>>;
   const actual = config.hw?.led?.ins;
+  const expectedDefault = payload.config.def as Record<string, unknown> | undefined;
+  const expectedLive = (payload.config.if as { live?: Record<string, unknown> } | undefined)?.live;
   const busesMatch = Array.isArray(actual) && actual.length === expected.length &&
     expected.every((expectedBus, index) => {
       const actualBus = actual[index];
@@ -549,12 +793,129 @@ export function assertConfigReadback(input: unknown, payload: Esp32SetupPayload)
     });
   if (
     config.id?.mdns !== SETUP_HOSTNAME ||
+    (expectedDefault && Object.entries(expectedDefault).some(([key, value]) =>
+      config.def?.[key] !== value
+    )) ||
+    (expectedLive && Object.entries(expectedLive).some(([key, value]) =>
+      config.if?.live?.[key] !== value
+    )) ||
     config.hw?.led?.total !== payload.expectedLedCount ||
     (expectedLed?.maxpwr !== undefined &&
       config.hw?.led?.maxpwr !== expectedLed.maxpwr) ||
     !busesMatch
   ) {
     throw new Error("WLED configuration read-back does not match the selected setup.");
+  }
+}
+
+function standalonePresetState(payload: Esp32SetupPayload): Record<string, unknown> {
+  return {
+    ...structuredClone(payload.state),
+    psave: STANDALONE_PRESET_ID,
+    bootps: STANDALONE_PRESET_ID,
+    n: "LOO/UME standalone",
+    o: true,
+    ib: true,
+    sb: true,
+  };
+}
+
+export function assertStandalonePresetReadback(
+  input: unknown,
+  payload: Esp32SetupPayload,
+): void {
+  if (typeof input !== "object" || input === null) {
+    throw new Error("WLED preset read-back is invalid.");
+  }
+  const preset = (input as Record<string, unknown>)[String(STANDALONE_PRESET_ID)] as
+    Record<string, unknown> | undefined;
+  const expectedSegment = payload.state.seg as Record<string, unknown> | undefined;
+  const actualSegment = preset?.seg as Record<string, unknown> | undefined;
+  const keys = ["start", "stop", "fx", "pal", "sx", "ix", "frz", "col"] as const;
+  if (
+    preset?.n !== "LOO/UME standalone" ||
+    preset.on !== payload.state.on ||
+    preset.bri !== payload.state.bri ||
+    !actualSegment ||
+    keys.some((key) =>
+      JSON.stringify(actualSegment[key]) !== JSON.stringify(expectedSegment?.[key])
+    )
+  ) {
+    throw new Error("WLED standalone preset does not match the simulator settings.");
+  }
+}
+
+export async function persistStandaloneAnimation(
+  baseUrl: URL,
+  payload: Esp32SetupPayload,
+  shouldContinue: () => boolean = () => true,
+  update?: (message: string) => void,
+): Promise<void> {
+  assertBoundedSimulatorPayload(payload);
+  if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
+  const [effects, palettes] = await Promise.all([
+    readJsonResponse(await deviceFetch(baseUrl, "/json/eff"), "WLED effect list"),
+    readJsonResponse(await deviceFetch(baseUrl, "/json/pal"), "WLED palette list"),
+  ]);
+  remapStateToLiveTables(payload, effects, palettes);
+  if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
+  await postDeviceJson(baseUrl, "/json/state", standalonePresetState(payload));
+  const deadline = Date.now() + PRESET_PERSISTENCE_DEADLINE_MS;
+  let lastError: unknown;
+  let attempt = 0;
+  while (deadline - Date.now() >= RESTART_VERIFICATION_MINIMUM_WINDOW_MS) {
+    if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
+    attempt += 1;
+    try {
+      const timeoutMs = Math.min(
+        RESTART_VERIFICATION_REQUEST_TIMEOUT_MS,
+        deadline - Date.now(),
+      );
+      const presetRequest = deviceFetch(baseUrl, "/presets.json", undefined, timeoutMs)
+        .then((response) => readWledPresetResponse(response, "WLED preset read-back"));
+      const informationRequest = deviceFetch(baseUrl, "/json/info", undefined, timeoutMs)
+        .then((response) => readJsonResponse(response, "WLED boot preset read-back"));
+      const [presetResult, informationResult] = await Promise.allSettled([
+        presetRequest,
+        informationRequest,
+      ]);
+      if (presetResult.status === "rejected") throw presetResult.reason;
+      if (informationResult.status === "rejected") throw informationResult.reason;
+      const presets = presetResult.value;
+      const information = informationResult.value;
+      assertStandalonePresetReadback(presets, payload);
+      const info = information as { leds?: { bootps?: unknown } };
+      if (info.leds?.bootps !== STANDALONE_PRESET_ID) {
+        throw new Error("WLED did not select the standalone animation as its boot preset.");
+      }
+      return;
+    } catch (error) {
+      lastError = error;
+      update?.(
+        `Standalone preset is not ready (${attempt}): ${errorMessage(error)} Retrying.`,
+      );
+      if (!shouldContinue()) throw new Error("Standalone animation save was cancelled.");
+      const remainingMs = deadline - Date.now();
+      if (remainingMs >= RESTART_VERIFICATION_MINIMUM_WINDOW_MS) {
+        await wait(Math.min(250, remainingMs));
+      }
+    }
+  }
+  throw new Error(
+    `WLED standalone preset did not stabilize within ${PRESET_PERSISTENCE_DEADLINE_MS / 1_000} seconds: ${errorMessage(lastError)}`,
+  );
+}
+
+function assertBoundedSimulatorPayload(payload: Esp32SetupPayload): void {
+  if (
+    typeof payload.sourceFingerprint !== "string" ||
+    payload.sourceFingerprint.length === 0 ||
+    !Number.isInteger(payload.sourceRevision) ||
+    !Number.isInteger(payload.expectedLedCount) ||
+    payload.expectedLedCount < 1 ||
+    payload.expectedLedCount > 2_624
+  ) {
+    throw new Error("ESP32 setup supports the loaded simulator only from 1 through 2,624 LEDs.");
   }
 }
 
@@ -592,7 +953,7 @@ export function assertStateReadback(input: unknown, payload: Esp32SetupPayload):
     seg?: Array<Record<string, unknown>>;
   };
   const actualSegment = actual.seg?.[0];
-  const keys = ["start", "stop", "fx", "pal", "sx", "ix"] as const;
+  const keys = ["start", "stop", "fx", "pal", "sx", "ix", "frz"] as const;
   if (
     actual.on !== expected.on ||
     actual.bri !== expected.bri ||
@@ -604,12 +965,110 @@ export function assertStateReadback(input: unknown, payload: Esp32SetupPayload):
   }
 }
 
-async function applyAndVerifyDevice(
+export function assertStandaloneStateReadback(
+  input: unknown,
+  payload: Esp32SetupPayload,
+): void {
+  assertStateReadback(input, payload);
+  const expectedSegment = payload.state.seg as Record<string, unknown> | undefined;
+  const actual = input as {
+    ps?: unknown;
+    seg?: Array<Record<string, unknown>>;
+  };
+  if (
+    actual.ps !== STANDALONE_PRESET_ID ||
+    JSON.stringify(actual.seg?.[0]?.col) !== JSON.stringify(expectedSegment?.col)
+  ) {
+    throw new Error("WLED did not restore the complete standalone preset state.");
+  }
+}
+
+export async function verifyRestartedDevice(
+  baseUrl: URL,
+  payload: Esp32SetupPayload,
+  expectedMac: string,
+  update: (message: string) => void,
+): Promise<void> {
+  const deadline = Date.now() + RESTART_VERIFICATION_DEADLINE_MS;
+  let lastError: unknown;
+  let attempt = 0;
+  while (deadline - Date.now() >= RESTART_VERIFICATION_MINIMUM_WINDOW_MS) {
+    attempt += 1;
+    try {
+      const requestTimeoutMs = Math.min(
+        RESTART_VERIFICATION_REQUEST_TIMEOUT_MS,
+        deadline - Date.now(),
+      );
+      const restartedConfigRequest = deviceFetch(
+        baseUrl, "/json/cfg", undefined, requestTimeoutMs,
+      )
+        .then((response) => readJsonResponse(response, "WLED restarted config read-back"));
+      const restartedInfoRequest = deviceFetch(
+        baseUrl, "/json/info", undefined, requestTimeoutMs,
+      )
+        .then((response) => readJsonResponse(response, "WLED restarted firmware read-back"));
+      const restartedStateRequest = deviceFetch(
+        baseUrl, "/json/state", undefined, requestTimeoutMs,
+      )
+        .then((response) => readJsonResponse(response, "WLED restarted state read-back"));
+      const restartedPresetRequest = deviceFetch(
+        baseUrl, "/presets.json", undefined, requestTimeoutMs,
+      )
+        .then((response) =>
+          readWledPresetResponse(response, "WLED restarted preset read-back")
+        );
+      const restartedLedmapRequest = payload.ledmapBytes === undefined
+        ? Promise.resolve()
+        : readAndAssertLedmap(baseUrl, payload.ledmapBytes, undefined, requestTimeoutMs);
+      const results = await Promise.allSettled([
+        restartedConfigRequest,
+        restartedInfoRequest,
+        restartedStateRequest,
+        restartedPresetRequest,
+        restartedLedmapRequest,
+      ]);
+      const rejection = results.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (rejection) throw rejection.reason;
+      const [configuration, information, state, presets] = results.map((result) =>
+        (result as PromiseFulfilledResult<unknown>).value
+      );
+      assertConfigReadback(configuration, payload);
+      assertStandaloneStateReadback(state, payload);
+      assertStandalonePresetReadback(presets, payload);
+      const restarted = information as {
+        arch?: unknown;
+        leds?: { bootps?: unknown; count?: unknown };
+        mac?: unknown;
+      };
+      if (
+        restarted.arch !== "esp32" ||
+        restarted.mac !== expectedMac ||
+        restarted.leds?.count !== payload.expectedLedCount ||
+        restarted.leds?.bootps !== STANDALONE_PRESET_ID
+      ) {
+        throw new Error("WLED standalone playback did not survive restart.");
+      }
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) {
+        update("WLED HTTP is still restarting. Retrying the complete read-back.");
+      }
+      const remainingMs = deadline - Date.now();
+      if (remainingMs > 0) await wait(Math.min(500, remainingMs));
+    }
+  }
+  throw new Error(`WLED restarted verification did not stabilize: ${errorMessage(lastError)}`);
+}
+
+export async function applyAndVerifyDevice(
   baseUrl: URL,
   payload: Esp32SetupPayload,
   update: (message: string) => void,
-): Promise<void> {
-  update(`Applying ${payload.mode === "smoke" ? "one-panel" : "installation"} configuration.`);
+): Promise<URL> {
+  update(`Applying the loaded ${payload.expectedLedCount}-LED simulator configuration.`);
   const config = structuredClone(payload.config);
   config.id = { mdns: SETUP_HOSTNAME, name: "LOO/UME" };
   await postDeviceJson(baseUrl, "/json/cfg", config);
@@ -619,22 +1078,10 @@ async function applyAndVerifyDevice(
     data.append("data", new Blob([payload.ledmapBytes], { type: "application/json" }), "ledmap.json");
     const upload = await deviceFetch(baseUrl, "/upload", { method: "POST", body: data });
     if (!upload.ok) throw new Error(`WLED ledmap upload failed with HTTP ${upload.status}.`);
-    const readback = await deviceFetch(baseUrl, "/edit?func=edit&path=/ledmap.json");
-    if (!readback.ok || JSON.stringify(JSON.parse(await readback.text())) !==
-        JSON.stringify(JSON.parse(payload.ledmapBytes))) {
-      throw new Error("WLED ledmap read-back does not match the deployment artifact.");
-    }
+    await readAndAssertLedmap(baseUrl, payload.ledmapBytes);
   }
 
-  if (payload.expectedEffectName || payload.expectedPaletteName) {
-    const [effects, palettes] = await Promise.all([
-      readJsonResponse(await deviceFetch(baseUrl, "/json/eff"), "WLED effect list"),
-      readJsonResponse(await deviceFetch(baseUrl, "/json/pal"), "WLED palette list"),
-    ]);
-    remapStateToLiveTables(payload, effects, palettes);
-  }
-
-  await postDeviceJson(baseUrl, "/json/state", payload.state);
+  await persistStandaloneAnimation(baseUrl, payload);
   const [configuration, information, state] = await Promise.all([
     readJsonResponse(await deviceFetch(baseUrl, "/json/cfg"), "WLED config read-back"),
     readJsonResponse(await deviceFetch(baseUrl, "/json/info"), "WLED firmware read-back"),
@@ -642,10 +1089,20 @@ async function applyAndVerifyDevice(
   ]);
   assertConfigReadback(configuration, payload);
   assertStateReadback(state, payload);
-  const info = information as { arch?: unknown; leds?: { count?: unknown } };
+  const info = information as { arch?: unknown; leds?: { count?: unknown }; mac?: unknown };
   if (info.arch !== "esp32" || info.leds?.count !== payload.expectedLedCount) {
     throw new Error("The live WLED target or LED count does not match the setup.");
   }
+  if (typeof info.mac !== "string") {
+    throw new Error("WLED did not report a device MAC address before the boot-preset test.");
+  }
+
+  update("Restarting WLED to prove standalone playback.");
+  const reset = await deviceFetch(baseUrl, "/reset");
+  if (!reset.ok) throw new Error(`WLED restart failed with HTTP ${reset.status}.`);
+  const restartedUrl = await discoverRestartedDevice(info.mac);
+  await verifyRestartedDevice(restartedUrl, payload, info.mac, update);
+  return restartedUrl;
 }
 
 async function openImprov(
@@ -688,8 +1145,7 @@ async function openImprov(
 
 async function runSetup(
   options: Esp32SetupControllerOptions,
-  mode: Esp32SetupMode,
-): Promise<URL> {
+): Promise<{ deviceUrl: URL; payload: Esp32SetupPayload }> {
   if (!isLoopbackPage()) {
     throw new Error("ESP32 setup is available only from the local desktop page in Chrome or Edge.");
   }
@@ -703,7 +1159,8 @@ async function runSetup(
   options.setLogMessage("Verifying the approved complete ESP32 image.");
   options.progressLabel.value = "Verifying image";
   const firmware = await loadFirmware(options.firmwareInput.files?.[0]);
-  const payload = options.getPayload(mode);
+  const payload = options.getPayload();
+  assertBoundedSimulatorPayload(payload);
   if (!("serial" in navigator)) {
     throw new Error("This browser does not support Web Serial. Use Chrome or Edge.");
   }
@@ -795,14 +1252,14 @@ async function runSetup(
     options.setLogMessage(`Verifying ${SETUP_HOSTNAME}.local after restart.`);
     options.progressLabel.value = "Verifying WLED";
     deviceUrl = await setAndVerifyDeviceIdentity(deviceUrl);
-    await applyAndVerifyDevice(deviceUrl, payload, options.setLogMessage);
+    deviceUrl = await applyAndVerifyDevice(deviceUrl, payload, options.setLogMessage);
     options.setLogMessage(
       `ESP32 setup verified at ${deviceUrl.host}. ${SETUP_HOSTNAME}.local resolves to this device.`,
     );
     options.progressLabel.value = "Setup complete";
     options.bootInstruction.value = "BOOT RELEASED";
     options.bootInstruction.dataset.state = "complete";
-    return deviceUrl;
+    return { deviceUrl, payload };
   } finally {
     options.passwordInput.value = "";
     if (improv) await improv.close().catch(() => undefined);
@@ -831,29 +1288,20 @@ export function createEsp32SetupController(options: Esp32SetupControllerOptions)
     options.progressLabel.value = "Preparing";
     options.bootInstruction.value = "HOLD BOOT";
     options.bootInstruction.dataset.state = "hold";
-    try {
-      const mode = options.modeSelect.value as Esp32SetupMode;
-      if (mode !== "smoke") {
-        throw new Error("Full installation setup is unavailable until its hardware power gate passes.");
-      }
-      void runSetup(options, mode)
-        .then((deviceUrl) => {
-          options.onSetupComplete?.(deviceUrl);
-          options.dialog.close();
-        })
-        .catch((error) => {
-          options.progressLabel.value = "Setup stopped";
-          options.setLogMessage(errorMessage(error), true);
-        })
-        .finally(() => {
-          clearPassword();
-          options.runButton.disabled = false;
-        });
-    } catch (error) {
-      clearPassword();
-      options.progressLabel.value = "Setup stopped";
-      options.setLogMessage(errorMessage(error), true);
-      options.runButton.disabled = false;
-    }
+    void Promise.resolve(options.onSetupActiveChange?.(true))
+      .then(() => runSetup(options))
+      .then(({ deviceUrl, payload }) => {
+        options.onSetupComplete?.(deviceUrl, payload);
+        options.dialog.close();
+      })
+      .catch((error) => {
+        options.progressLabel.value = "Setup stopped";
+        options.setLogMessage(errorMessage(error), true);
+      })
+      .finally(async () => {
+        await options.onSetupActiveChange?.(false);
+        clearPassword();
+        options.runButton.disabled = false;
+      });
   });
 }

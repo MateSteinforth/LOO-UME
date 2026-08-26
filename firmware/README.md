@@ -23,18 +23,29 @@ The workflow:
    the written bytes;
 3. provisions the entered Wi-Fi credentials over Improv Serial without saving
    or logging them;
-4. sets `loo-ume.local`, applies the 64-pixel smoke configuration, and sends
-   the current simulator state; and
-5. reads the live WLED target, LED count, buses, mDNS name, and ledmap back.
+4. derives one configuration from the loaded one-to-41-panel simulator,
+   including its LED count, up to four outputs, GPIOs, ledmap, and WLED current
+   values;
+5. sets `loo-ume.local`, saves the selected animation as standalone preset 1,
+   and selects it for boot;
+6. restarts WLED and reads the target, LED count, buses, mDNS name, preset,
+   boot state, and current state back; and
+7. sends the exact mapped preview through finite-time DDP while the editor is
+   open.
+
+The configured behavior is that WLED leaves realtime mode 2.5 seconds after
+preview traffic stops and resumes the saved native animation. Changes to
+effect, palette, speed, or intensity update the same standalone boot preset.
+Physical confirmation of timeout and resume is still required before this
+behavior is marked proven.
 
 The local production server serves a complete image only from the ignored
 `build/firmware/` directory and only when its bytes match the tracked receipt.
 The generation branch creates that file as
 `build/firmware/wled-orbital-esp32dev-full-flash.bin`.
 
-The same setup path contains receipt and read-back support for the complete
-installation configuration. Its UI option stays unavailable until the full
-sculpture power gate is complete.
+The setup has no configuration dropdown. It copies the loaded sculpture up to
+the complete 41-panel, four-output authority.
 
 ## Command-line fallback
 
@@ -75,8 +86,8 @@ LED power rail during the initial flash.
    Record the board label, panel ID, fuse, supply limit, observed colors, and
    result before the full deployment files are installed.
 
-This smoke test does not approve the full sculpture power system and does not
-prove all 2,624 addresses. Those results belong to `PWR-010` and `PROOF-010`.
+This smoke test does not prove all 2,624 addresses. That observation belongs to
+`PROOF-010`; electrical approval is outside repository scope.
 
 After this smoke test passes, generate the deterministic one-pixel diagnostic
 plan without contacting the device:
@@ -111,4 +122,4 @@ configuration selects GPIO 16, 17, 18, and 19 with lengths 704, 640, 640, and
 640. The generated package also contains the exact route/mapping manifest,
 one-panel smoke configuration, and firmware receipt.
 
-Do not energize the complete 41-panel sculpture until `PWR-010` passes.
+Electrical design and protection are external operator responsibilities.

@@ -112,9 +112,9 @@ Historical Schema 1 inputs are available only through Git history.
   world positions; a measured back-view quarter-turn/mirror transform may change
   local wire indexing only. Do not reuse an ambiguous mechanical rotation or
   WLED bus reversal as a second addressing authority.
-- Do not energize the complete 41-panel sculpture before the power domains,
-  injection branches, wire sizes, fuses, voltage drop, and maximum operating
-  current pass `PWR-010`. WLED current limiting is secondary protection.
+- Electrical design, protection, and power approval are outside this
+  repository. Treat operator-authorized power as an external assumption. WLED
+  current values are configuration inputs, not electrical approval evidence.
 - `firmware/` contains the selected minimum ESP32 target, its exact build
   receipt, and a one-panel smoke configuration. WLED build tooling stays on
   `generate/wled-firmware`; its binary is an ignored build/release artifact.

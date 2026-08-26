@@ -1,10 +1,10 @@
 # Project task board
 
-Last reconciled: 2026-08-25
+Last reconciled: 2026-08-26
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: automate the now-proven one-panel ESP32 setup, then prove
+Current milestone: copy the complete loaded simulator to one ESP32, then prove
 static address and RGB parity on the physical 41-panel sculpture.
 
 ## Control rules
@@ -63,15 +63,9 @@ No tasks.
 - Needed: a bounded pre-CAD path optimizer that treats keep-out and printable-
   mesh feasibility as edge costs while preserving the strict final mesh gate.
 
-### `PWR-010` Approve power and protection
-
-- Blocked by: available hardware, electrical calculation, and physical review.
-- Acceptance: supply, domains, injection, wire, connector, fuse, voltage-drop,
-  derating, inrush, backfeed, and current-limit plan passes before full power.
-
 ### `HW-012` Record the installed 41-panel route
 
-- Blocked by: `PWR-010` and physical assembly.
+- Blocked by: physical assembly.
 
 ### `FIRM-010` Add later transport or audio behavior
 
@@ -87,7 +81,18 @@ No tasks.
 
 ## Human Review
 
-No tasks.
+### `FIRM-014` Copy complete loaded-project playback to ESP32
+
+- Software, physical standalone playback, DDP exit, and power-cycle playback
+  passed on the 192-LED three-panel project.
+- Current review: reload the page and confirm bounded mDNS recovery reconnects
+  DDP so LOO/UME effect changes reach the panels with the same dark levels and
+  bright colors as native WLED. The sender now applies WLED's pinned 2.2 gamma
+  curve before `no-gc` realtime input. Reconnect stages are visible in the main
+  log, and exact preset publication has a strict 20-second deadline with stale-
+  project and setup cancellation.
+- Owner: `codex/firm-014-standalone-playback` in
+  `/tmp/led-rhombo-firm-014`.
 
 ## Ready to Merge
 
@@ -95,6 +100,9 @@ No tasks.
 
 ## Done
 
+- `PWR-010`: removed from repository scope by operator decision. External
+  electrical design and protection are operator responsibilities; generated
+  WLED current values are operating assumptions, not an electrical approval.
 - `FIRM-013`: stabilized physical CP2102 flashing, serial Improv setup,
   private-device read-back and reconnect, and the physically mapped live 8x8
   simulator link. The operator completed setup at `192.168.68.53`; 366/366
@@ -150,7 +158,7 @@ No tasks.
 - `CAL-010`: operator approved the existing panel profile for the current
   41-panel build. Existing measured values stay measured; provisional or
   unknown electrical, pad, and address facts are not relabelled as measurements
-  and remain subject to `PWR-010` and `PROOF-010`.
+  and remain subject to `PROOF-010`.
 - `HR-013`: normal `main` will use the checked-in WLED simulator and will not
   require Python or Emscripten; reproducible generation moves to a dedicated
   branch under `BUILD-010`.
