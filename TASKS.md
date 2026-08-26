@@ -90,7 +90,8 @@ No tasks.
 - Fixed from physical review: WLED preset publication is retried for a bounded
   three seconds, and the complete post-restart snapshot is retried for a
   strict 20-second deadline while keeping exact comparisons and non-overlapping
-  attempts.
+  attempts. Live DDP is suspended during this proof so it cannot freeze the
+  restored native preset before verification.
 - Passed: 378/378 Vitest, TypeScript, desktop build, focused Playwright, diff
   check, official/pinned WLED DDP contract inspection, and independent review.
 - Needed: rerun the loaded three-panel setup and confirm setup completes; stop

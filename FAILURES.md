@@ -976,3 +976,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Operator log at 12:37 on 2026-08-26 and the focused transient
   restarted-snapshot regression.
 - **Status:** Resolved in software; physical setup retry remains.
+
+### F-053 — DDP preview can invalidate standalone restart verification
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 three-panel standalone playback verification.
+- **Symptom:** WLED restored preset 1, but the exact state check found `frz:true`
+  instead of the saved `frz:false` state.
+- **Cause:** The browser continued to send DDP frames during setup. WLED entered
+  realtime mode after restart before the standalone state was verified.
+- **Correction:** Suspend the browser-to-WLED live link for the complete setup
+  operation. Drain any prior reconnect, preset save, and frame request before
+  device mutation. Enable the link only after exact restart verification passes.
+- **Prevention:** Do not run a realtime transport while a native controller
+  fallback is under restart or persistence verification.
+- **Evidence:** Live `/json/state` showed preset 1 with DDP live mode and
+  `frz:true`; `/presets.json` retained the intended `frz:false` value.
+- **Status:** Resolved in software; physical setup retry remains.

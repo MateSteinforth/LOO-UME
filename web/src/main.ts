@@ -92,6 +92,7 @@ import {
   type VerifiedGeneratedStructure,
 } from "./GeneratedStructuralAssets.ts";
 import {
+  canEnableReconnectedSimulator,
   connectExistingSimulatorDevice,
   createSimulatorSetupConfig,
   isApprovedEsp32OutputGpio,
@@ -100,6 +101,7 @@ import {
   mappedPanelFramebuffer,
   persistStandaloneAnimation,
   sendSimulatorFramebuffer,
+  settleSimulatorDeviceWork,
   type Esp32SetupPayload,
 } from "./Esp32Setup.ts";
 import smokeConfig from "../../firmware/one-panel-smoke-cfg.json" with { type: "json" };
@@ -572,6 +574,7 @@ async function start(): Promise<void> {
     let standaloneSaveTimer: ReturnType<typeof setTimeout> | undefined;
     let standaloneSaveRequest: Promise<void> | undefined;
     let simulatorProjectRevision = 0;
+    let simulatorSetupActive = false;
 
     const loadedSimulatorDeployment = (): {
       outputs: Array<{ startIndex: number; pixelCount: number; gpio: number }>;
@@ -674,7 +677,7 @@ async function start(): Promise<void> {
     };
 
     const scheduleStandaloneSave = (): void => {
-      if (!simulatorDeviceUrl) return;
+      if (!simulatorDeviceUrl || simulatorSetupActive) return;
       if (standaloneSaveTimer) clearTimeout(standaloneSaveTimer);
       standaloneSaveTimer = setTimeout(() => {
         standaloneSaveTimer = undefined;
@@ -699,7 +702,7 @@ async function start(): Promise<void> {
     };
 
     const tryReconnectSimulatorLink = (): void => {
-      if (simulatorDeviceUrl || simulatorReconnectRequest) return;
+      if (simulatorSetupActive || simulatorDeviceUrl || simulatorReconnectRequest) return;
       let reconnectPayload: Esp32SetupPayload;
       try {
         reconnectPayload = setupPayload();
@@ -711,10 +714,11 @@ async function start(): Promise<void> {
       simulatorReconnectRequest = pendingSave
         .then(() => connectExistingSimulatorDevice(reconnectPayload))
         .then((deviceUrl) => {
-          if (isCurrentSimulatorSetup(
+          if (canEnableReconnectedSimulator(
             reconnectPayload,
             simulatorProjectRevision,
             hardwareContract.fingerprint,
+            simulatorSetupActive,
           )) {
             enableSimulatorLink(deviceUrl, true);
           }
@@ -742,6 +746,22 @@ async function start(): Promise<void> {
       clearSetupLog: () => esp32SetupConsole.replaceChildren(),
       setLogMessage,
       getPayload: setupPayload,
+      onSetupActiveChange: async (active) => {
+        simulatorSetupActive = active;
+        if (!active) return;
+        simulatorDeviceUrl = undefined;
+        simulatorLinkFailed = false;
+        if (standaloneSaveTimer) {
+          clearTimeout(standaloneSaveTimer);
+          standaloneSaveTimer = undefined;
+        }
+        setLogMessage("Live preview paused while standalone playback is verified.");
+        await settleSimulatorDeviceWork([
+          simulatorReconnectRequest,
+          standaloneSaveRequest,
+          simulatorFrameRequest,
+        ]);
+      },
       onSetupComplete: (deviceUrl, payload) => {
         if (!isCurrentSimulatorSetup(
           payload,
@@ -2369,6 +2389,7 @@ async function start(): Promise<void> {
       renderer?.render();
 
       if (
+        !simulatorSetupActive &&
         simulatorDeviceUrl &&
         !simulatorFrameRequest &&
         now >= nextSimulatorFrameAt

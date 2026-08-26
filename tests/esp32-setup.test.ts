@@ -11,6 +11,7 @@ import {
   assertStandalonePresetReadback,
   assertStandaloneStateReadback,
   assertStateReadback,
+  canEnableReconnectedSimulator,
   connectExistingSimulatorDevice,
   createSimulatorSetupConfig,
   createEsp32FlashOptions,
@@ -27,6 +28,7 @@ import {
   runCombinedClassicReset,
   runCombinedHardReset,
   sendSimulatorFramebuffer,
+  settleSimulatorDeviceWork,
   verifyRestartedDevice,
   type Esp32SetupPayload,
 } from "../web/src/Esp32Setup.ts";
@@ -188,6 +190,41 @@ describe("guarded ESP32 setup contracts", () => {
     resolveDevice(new URL("http://192.168.68.53/"));
     await completion;
     expect(accepted).toEqual([]);
+  });
+
+  it("drains prior device work and blocks reconnect while setup is active", async () => {
+    const value = payload();
+    expect(canEnableReconnectedSimulator(
+      value,
+      value.sourceRevision,
+      value.sourceFingerprint,
+      true,
+    )).toBe(false);
+
+    let resolveReconnect!: () => void;
+    let resolveFrame!: () => void;
+    const reconnect = new Promise<void>((resolve) => {
+      resolveReconnect = resolve;
+    });
+    const frame = new Promise<void>((resolve) => {
+      resolveFrame = resolve;
+    });
+    let settled = false;
+    const draining = settleSimulatorDeviceWork([
+      reconnect,
+      Promise.reject(new Error("old save failed")),
+      frame,
+    ]).then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    resolveReconnect();
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    resolveFrame();
+    await draining;
+    expect(settled).toBe(true);
   });
 
   it("sets DTR and RTS together for bootloader entry and hard reset", async () => {

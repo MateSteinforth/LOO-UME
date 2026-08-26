@@ -119,6 +119,24 @@ export function isCurrentSimulatorSetup(
     payload.sourceFingerprint === currentFingerprint;
 }
 
+export function canEnableReconnectedSimulator(
+  payload: Esp32SetupPayload,
+  currentRevision: number,
+  currentFingerprint: string,
+  setupActive: boolean,
+): boolean {
+  return !setupActive &&
+    isCurrentSimulatorSetup(payload, currentRevision, currentFingerprint);
+}
+
+export async function settleSimulatorDeviceWork(
+  requests: Array<Promise<unknown> | undefined>,
+): Promise<void> {
+  await Promise.allSettled(
+    requests.filter((request): request is Promise<unknown> => request !== undefined),
+  );
+}
+
 export function createSimulatorSetupConfig(
   source: Record<string, unknown>,
   outputs: readonly SimulatorSetupOutput[],
@@ -192,6 +210,7 @@ export interface Esp32SetupControllerOptions {
   clearSetupLog(): void;
   setLogMessage(message: string, error?: boolean): void;
   getPayload(): Esp32SetupPayload;
+  onSetupActiveChange?(active: boolean): void | Promise<void>;
   onSetupComplete?(deviceUrl: URL, payload: Esp32SetupPayload): void;
 }
 
@@ -1151,25 +1170,20 @@ export function createEsp32SetupController(options: Esp32SetupControllerOptions)
     options.progressLabel.value = "Preparing";
     options.bootInstruction.value = "HOLD BOOT";
     options.bootInstruction.dataset.state = "hold";
-    try {
-      void runSetup(options)
-        .then(({ deviceUrl, payload }) => {
-          options.onSetupComplete?.(deviceUrl, payload);
-          options.dialog.close();
-        })
-        .catch((error) => {
-          options.progressLabel.value = "Setup stopped";
-          options.setLogMessage(errorMessage(error), true);
-        })
-        .finally(() => {
-          clearPassword();
-          options.runButton.disabled = false;
-        });
-    } catch (error) {
-      clearPassword();
-      options.progressLabel.value = "Setup stopped";
-      options.setLogMessage(errorMessage(error), true);
-      options.runButton.disabled = false;
-    }
+    void Promise.resolve(options.onSetupActiveChange?.(true))
+      .then(() => runSetup(options))
+      .then(({ deviceUrl, payload }) => {
+        options.onSetupComplete?.(deviceUrl, payload);
+        options.dialog.close();
+      })
+      .catch((error) => {
+        options.progressLabel.value = "Setup stopped";
+        options.setLogMessage(errorMessage(error), true);
+      })
+      .finally(async () => {
+        await options.onSetupActiveChange?.(false);
+        clearPassword();
+        options.runButton.disabled = false;
+      });
   });
 }
