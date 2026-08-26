@@ -285,9 +285,12 @@ coordinate, and physical index. Supplying `--host`, a bounded frame range, and
 bounded transient retries. Do this only after the fused-panel FIRM-011 smoke
 test passes. A generated or sent frame is not observed hardware evidence.
 
-DDP, Art-Net, Ethernet, audio-reactive effects, custom firmware behavior, and
-automatic device read-back remain absent. The WLED build target and receipt are
-pinned, but the controller has not yet passed the physical smoke gate.
+The local editor now has receipt-bound one-panel device setup and exact HTTP
+read-back. FIRM-014 adds a bounded 64-pixel DDP preview in software and saves a
+native WLED boot preset as its fallback. This DDP timeout/resume path remains
+provisional until the operator disconnects the preview host and observes the
+saved effect resume. Full-sculpture DDP, Art-Net, Ethernet, audio-reactive
+effects, and custom firmware behavior remain absent.
 
 The mapping claim is static address and RGB parity for the selected pinned WLED
 target. Matching effect names or WASM frames does not prove

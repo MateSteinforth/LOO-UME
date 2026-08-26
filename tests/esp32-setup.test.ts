@@ -6,11 +6,14 @@ import {
   assertApprovedSerialDevice,
   assertSingleAuthorizedCp2102,
   assertConfigReadback,
+  assertStandalonePresetReadback,
+  assertStandaloneStateReadback,
   assertStateReadback,
   connectExistingSimulatorDevice,
   createEsp32FlashOptions,
   ESP32_FLASH_BAUD_RATE,
   mappedPanelFramebuffer,
+  persistStandaloneAnimation,
   privateDeviceUrl,
   provisionVisibleWifi,
   remapStateToLiveTables,
@@ -19,7 +22,6 @@ import {
   runCombinedClassicReset,
   runCombinedHardReset,
   sendSimulatorFramebuffer,
-  simulatorFramebufferState,
   type Esp32SetupPayload,
 } from "../web/src/Esp32Setup.ts";
 
@@ -28,6 +30,7 @@ function payload(): Esp32SetupPayload {
     mode: "smoke",
     expectedLedCount: 64,
     config: {
+      def: { ps: 1, on: true, bri: 128 },
       hw: {
         led: {
           total: 64,
@@ -35,13 +38,14 @@ function payload(): Esp32SetupPayload {
           ins: [{ start: 0, len: 64, pin: [16], order: 0, type: 22 }],
         },
       },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
     },
     expectedEffectName: "Rainbow",
     expectedPaletteName: "Forest",
     state: {
       on: true,
       bri: 128,
-      seg: { id: 0, start: 0, stop: 64, fx: 8, pal: 6, sx: 120, ix: 90 },
+      seg: { id: 0, start: 0, stop: 64, fx: 8, pal: 6, sx: 120, ix: 90, frz: false },
     },
   };
 }
@@ -239,14 +243,16 @@ describe("guarded ESP32 setup contracts", () => {
     const value = payload();
     const config = {
       id: { mdns: "loo-ume" },
+      def: { ps: 1, on: true, bri: 128 },
       hw: { led: { total: 64, maxpwr: 1000, ins: [
         { start: 0, len: 64, pin: [16], order: 0, type: 22, extra: true },
       ] } },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
     };
     const state = {
       on: true,
       bri: 128,
-      seg: [{ start: 0, stop: 64, fx: 8, pal: 6, sx: 120, ix: 90 }],
+      seg: [{ start: 0, stop: 64, fx: 8, pal: 6, sx: 120, ix: 90, frz: false }],
     };
     expect(() => assertConfigReadback(config, value)).not.toThrow();
     expect(() => assertStateReadback(state, value)).not.toThrow();
@@ -256,22 +262,33 @@ describe("guarded ESP32 setup contracts", () => {
       ...config,
       hw: { led: { ...config.hw.led, maxpwr: 2000 } },
     }, value)).toThrow(/configuration read-back/);
+    expect(() => assertConfigReadback({
+      ...config,
+      if: { live: { ...config.if.live, timeout: 650 } },
+    }, value)).toThrow(/configuration read-back/);
     expect(() => assertStateReadback({ ...state, bri: 127 }, value))
       .toThrow(/state read-back/);
+    const standaloneState = {
+      ...state,
+      ps: 1,
+      seg: [{ ...state.seg[0], col: [[255, 122, 24], [5, 8, 22], [0, 0, 0]] }],
+    };
+    value.state.seg = {
+      ...(value.state.seg as object),
+      col: [[255, 122, 24], [5, 8, 22], [0, 0, 0]],
+    };
+    expect(() => assertStandaloneStateReadback(standaloneState, value)).not.toThrow();
+    expect(() => assertStandaloneStateReadback({ ...standaloneState, ps: 0 }, value))
+      .toThrow(/complete standalone preset/);
+    expect(() => assertStandaloneStateReadback({
+      ...standaloneState,
+      seg: [{ ...standaloneState.seg[0], col: [[0, 0, 0]] }],
+    }, value)).toThrow(/complete standalone preset/);
   });
 
   it("sends one complete physical panel framebuffer through the fixed device broker", async () => {
     const pixels = Array.from({ length: 64 }, (_, index) =>
       [index, 255 - index, index % 3] as [number, number, number]
-    );
-    const state = simulatorFramebufferState(pixels);
-    expect(state).toMatchObject({
-      on: true,
-      bri: 128,
-      seg: { id: 0, start: 0, stop: 64, fx: 0 },
-    });
-    expect((state.seg as { i: unknown[] }).i).toEqual(
-      pixels.flatMap((pixel, index) => [index, pixel]),
     );
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ success: true }), {
@@ -283,10 +300,68 @@ describe("guarded ESP32 setup contracts", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain("address=192.168.68.53");
-    expect(String(url)).toContain("path=%2Fjson%2Fstate");
-    expect(init).toMatchObject({ method: "POST" });
-    expect(JSON.parse(String(init.body))).toEqual(state);
-    expect(() => simulatorFramebufferState(pixels.slice(1))).toThrow(/exactly 64/);
+    expect(String(url)).toContain("/api/esp32-frame");
+    expect(init).toMatchObject({
+      method: "POST",
+      headers: expect.objectContaining({
+        "Content-Type": "application/octet-stream",
+        "X-LOO-UME-ESP32": "1",
+      }),
+    });
+    expect(Array.from(new Uint8Array(init.body as ArrayBuffer))).toEqual(pixels.flat());
+    await expect(sendSimulatorFramebuffer(
+      new URL("http://192.168.68.53/"),
+      pixels.slice(1),
+    )).rejects.toThrow(/exactly 64/);
+  });
+
+  it("requires the saved standalone preset to match the simulator settings", () => {
+    const value = payload();
+    expect(() => assertStandalonePresetReadback({
+      "1": {
+        n: "LOO/UME standalone",
+        on: true,
+        bri: 128,
+        seg: value.state.seg,
+      },
+    }, value)).not.toThrow();
+    expect(() => assertStandalonePresetReadback({
+      "1": {
+        n: "LOO/UME standalone",
+        on: true,
+        bri: 128,
+        seg: { ...(value.state.seg as object), fx: 7 },
+      },
+    }, value)).toThrow(/does not match/);
+  });
+
+  it("writes and verifies the native standalone boot preset", async () => {
+    const value = payload();
+    const presetSegment = { ...(value.state.seg as object), fx: 2, pal: 1 };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Solid", "Blink", "Rainbow"])))
+      .mockResolvedValueOnce(new Response(JSON.stringify(["Default", "Forest"])))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        "1": {
+          n: "LOO/UME standalone",
+          on: true,
+          bri: 128,
+          seg: presetSegment,
+        },
+      })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ leds: { bootps: 1 } })));
+    vi.stubGlobal("fetch", fetchMock);
+    await persistStandaloneAnimation(new URL("http://192.168.68.53/"), value);
+    const saveRequest = fetchMock.mock.calls[2]!;
+    expect(String(saveRequest[0])).toContain("path=%2Fjson%2Fstate");
+    expect(JSON.parse(String(saveRequest[1].body))).toMatchObject({
+      psave: 1,
+      bootps: 1,
+      n: "LOO/UME standalone",
+      o: true,
+      seg: { fx: 2, pal: 1, sx: 120, ix: 90 },
+    });
   });
 
   it("orders simulator pixels by the first panel's physical addresses", () => {
@@ -314,19 +389,39 @@ describe("guarded ESP32 setup contracts", () => {
     };
     const config = {
       id: { mdns: "loo-ume" },
+      def: { ps: 1, on: true, bri: 128 },
       hw: { led: { total: 64, maxpwr: 1000, ins: [
         { start: 0, len: 64, pin: [16], order: 0, type: 22 },
       ] } },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
     };
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
-      .mockResolvedValueOnce(new Response(JSON.stringify(config)));
+      .mockResolvedValueOnce(new Response(JSON.stringify(config)))
+      .mockResolvedValueOnce(new Response(JSON.stringify([
+        "Solid", "Blink", "Breathe", "Wipe", "Wipe Random", "Random Colors",
+        "Sweep", "Dynamic", "Rainbow",
+      ])))
+      .mockResolvedValueOnce(new Response(JSON.stringify([
+        "Default", "Random Cycle", "Color 1", "Colors 1&2", "Color Gradient",
+        "Colors Only", "Forest",
+      ])))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        "1": {
+          n: "LOO/UME standalone",
+          on: true,
+          bri: 128,
+          seg: value.state.seg,
+        },
+      })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ leds: { bootps: 1 } })));
     vi.stubGlobal("fetch", fetchMock);
     await expect(connectExistingSimulatorDevice(value)).resolves.toEqual(
       new URL("http://192.168.68.53/"),
     );
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(8);
 
     fetchMock.mockReset()
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))

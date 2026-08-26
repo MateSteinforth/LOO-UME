@@ -904,3 +904,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Live WLED state/config/info at `192.168.68.53` on 2026-08-26 and
   `tests/esp32-setup.test.ts`.
 - **Status:** Resolved.
+
+### F-049 — JSON pixel preview freezes when its host disappears
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 one-panel operation after the live editor link passed.
+- **Symptom:** The panel followed the simulator while the laptop was connected,
+  but it stopped animating when the laptop was disconnected.
+- **Cause:** WLED treats JSON individual-pixel data as a frozen segment. It has
+  no finite realtime timeout and is not an autonomous boot animation.
+- **Correction:** Save the selected native WLED settings as preset 1 and select
+  it for boot. Send exact preview frames through DDP with WLED's bounded
+  2.5-second realtime timeout, then verify the preset across a restart.
+- **Prevention:** Keep autonomous state and live preview as separate contracts.
+  A preview transport must time out to a verified persisted state when its host
+  disappears.
+- **Evidence:** Pinned WLED `json.cpp`, `e131.cpp`, `udp.cpp`, and the focused
+  FIRM-014 setup and device-handler tests.
+- **Status:** Human review; the software correction is complete, but physical
+  timeout and autonomous resume are not yet observed.

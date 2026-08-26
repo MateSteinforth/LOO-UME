@@ -191,3 +191,12 @@ individual-LED contract, stay below 1,024 bytes, use brightness 32, and change
 only one visible pixel. The sender retries only transient transport or HTTP
 failures and requires an explicit confirmation flag. Generated frames are test
 instructions, not hardware evidence.
+
+## D27 — Standalone playback and live preview are separate contracts
+
+The verified one-panel setup saves the selected native WLED animation as preset
+1 and selects it for boot. Exact simulator pixels are temporary DDP realtime
+data, not persisted state. WLED must use a finite 2.5-second realtime timeout so
+loss of the editor, host, network, or laptop returns the panel to the saved
+native animation. Setup must restart the device and verify its preset, boot
+selection, state, bus, and identity before it succeeds.

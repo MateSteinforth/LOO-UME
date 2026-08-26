@@ -95,6 +95,7 @@ import {
   connectExistingSimulatorDevice,
   createEsp32SetupController,
   mappedPanelFramebuffer,
+  persistStandaloneAnimation,
   sendSimulatorFramebuffer,
   type Esp32SetupMode,
   type Esp32SetupPayload,
@@ -575,6 +576,8 @@ async function start(): Promise<void> {
     let simulatorReconnectRequest: Promise<void> | undefined;
     let nextSimulatorFrameAt = 0;
     let simulatorLinkFailed = false;
+    let standaloneSaveTimer: ReturnType<typeof setTimeout> | undefined;
+    let standaloneSaveRequest: Promise<void> | undefined;
 
     const rgbFromPacked = (packed: number): [number, number, number] => [
       (packed >> 16) & 0xff,
@@ -616,17 +619,30 @@ async function start(): Promise<void> {
     };
     const setupPayload = (mode: Esp32SetupMode): Esp32SetupPayload => {
       if (mode === "smoke") {
-        const individual: Array<number | [number, number, number]> = [];
-        physicalSmokeFramebuffer().forEach((pixel, index) => individual.push(index, pixel));
+        const config = structuredClone(smokeConfig) as Record<string, unknown>;
+        config.def = { ps: 1, on: true, bri: 128 };
+        config.if = { live: { en: true, mso: true, rlm: false, timeout: 25 } };
         return {
           mode,
-          config: structuredClone(smokeConfig) as Record<string, unknown>,
+          config,
           expectedLedCount: 64,
+          expectedEffectName: effectSelect.selectedOptions[0]?.text,
+          expectedPaletteName: paletteSelect.selectedOptions[0]?.text,
           state: {
             on: true,
             bri: 128,
             tt: 0,
-            seg: { id: 0, start: 0, stop: 64, fx: 0, i: individual },
+            seg: {
+              id: 0,
+              start: 0,
+              stop: 64,
+              fx: Number(effectSelect.value),
+              pal: Number(paletteSelect.value),
+              sx: Number(speedInput.value),
+              ix: Number(intensityInput.value),
+              frz: false,
+              col: [[255, 122, 24], [5, 8, 22], [0, 0, 0]],
+            },
           },
         };
       }
@@ -671,8 +687,33 @@ async function start(): Promise<void> {
       nextSimulatorFrameAt = 0;
       simulatorLinkFailed = false;
       setLogMessage(
-        `${reconnected ? "Reconnected" : "Live one-panel simulator link started"} at ${deviceUrl.host}. Connect the panel to GPIO16 DIN.`,
+        `${reconnected ? "Reconnected" : "Standalone animation saved and live one-panel preview started"} at ${deviceUrl.host}. Connect the panel to GPIO16 DIN.`,
       );
+    };
+
+    const scheduleStandaloneSave = (): void => {
+      if (!simulatorDeviceUrl) return;
+      if (standaloneSaveTimer) clearTimeout(standaloneSaveTimer);
+      standaloneSaveTimer = setTimeout(() => {
+        standaloneSaveTimer = undefined;
+        if (!simulatorDeviceUrl) return;
+        if (standaloneSaveRequest) {
+          standaloneSaveTimer = setTimeout(scheduleStandaloneSave, 500);
+          return;
+        }
+        const payload = setupPayload("smoke");
+        standaloneSaveRequest = persistStandaloneAnimation(simulatorDeviceUrl, payload)
+          .then(() => setLogMessage(
+            "Saved the current animation as the ESP32 standalone boot preset.",
+          ))
+          .catch((error) => setLogMessage(
+            `Standalone animation save failed: ${error instanceof Error ? error.message : String(error)}`,
+            true,
+          ))
+          .finally(() => {
+            standaloneSaveRequest = undefined;
+          });
+      }, 500);
     };
 
     const tryReconnectSimulatorLink = (): void => {
@@ -1611,17 +1652,21 @@ async function start(): Promise<void> {
     effectSelect.addEventListener("change", () => {
       engine.setEffect(Number(effectSelect.value));
       resetTimeline();
+      scheduleStandaloneSave();
     });
     paletteSelect.addEventListener("change", () => {
       engine.setPalette(Number(paletteSelect.value));
+      scheduleStandaloneSave();
     });
     speedInput.addEventListener("input", () => {
       speedValue.value = speedInput.value;
       engine.setSpeed(Number(speedInput.value));
+      scheduleStandaloneSave();
     });
     intensityInput.addEventListener("input", () => {
       intensityValue.value = intensityInput.value;
       engine.setIntensity(Number(intensityInput.value));
+      scheduleStandaloneSave();
     });
     displayMode.addEventListener("change", () => {
       currentDisplayMode = displayMode.value as DisplayMode;

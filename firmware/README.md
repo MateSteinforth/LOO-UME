@@ -23,9 +23,17 @@ The workflow:
    the written bytes;
 3. provisions the entered Wi-Fi credentials over Improv Serial without saving
    or logging them;
-4. sets `loo-ume.local`, applies the 64-pixel smoke configuration, and sends
-   the current simulator state; and
-5. reads the live WLED target, LED count, buses, mDNS name, and ledmap back.
+4. sets `loo-ume.local`, applies the 64-pixel smoke configuration, saves the
+   selected animation as standalone preset 1, and selects it for boot;
+5. restarts WLED and reads the target, LED count, buses, mDNS name, preset,
+   boot state, and current state back; and
+6. sends exact preview frames through finite-time DDP while the editor is open.
+
+The configured behavior is that WLED leaves realtime mode 2.5 seconds after
+preview traffic stops and resumes the saved native animation. Changes to
+effect, palette, speed, or intensity update the same standalone boot preset.
+Physical confirmation of timeout and resume is still required before this
+behavior is marked proven.
 
 The local production server serves a complete image only from the ignored
 `build/firmware/` directory and only when its bytes match the tracked receipt.

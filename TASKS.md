@@ -87,7 +87,20 @@ No tasks.
 
 ## Human Review
 
-No tasks.
+### `FIRM-014` Confirm autonomous one-panel playback after live preview
+
+- Implemented: preset 1 stores the selected native WLED effect, palette, speed,
+  intensity, colors, and brightness and is selected for boot. Setup verifies it
+  across a restart. Exact 64-pixel preview uses private DDP with a 2.5-second
+  fallback and cannot start before the preset is verified.
+- Passed: 370/370 Vitest, focused 20/20 after review fixes, TypeScript, Vite,
+  diff check, pinned WLED source review, and independent review.
+- Needed: run setup, observe the panel follow the simulator, stop the editor or
+  disconnect the laptop, and confirm the saved native animation resumes within
+  approximately 2.5 seconds and still runs after ESP32 power cycle.
+- Owner: `codex/firm-014-standalone-playback` in
+  `/tmp/led-rhombo-firm-014`. Full 41-panel installation remains blocked by
+  `PWR-010`.
 
 ## Ready to Merge
 

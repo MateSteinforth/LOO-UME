@@ -1,10 +1,13 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { lookup } from "node:dns/promises";
+import { createSocket } from "node:dgram";
 import { isLoopbackHost } from "./editor-pipeline-handler.ts";
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const RESOLVE_TIMEOUT_MS = 2_000;
 const UPSTREAM_TIMEOUT_MS = 8_000;
+const DDP_PORT = 4048;
+const DDP_PIXEL_BYTES = 64 * 3;
 const ALLOWED_REQUESTS = new Set([
   "GET /json/info",
   "GET /json/cfg",
@@ -13,6 +16,7 @@ const ALLOWED_REQUESTS = new Set([
   "POST /json/state",
   "GET /json/eff",
   "GET /json/pal",
+  "GET /presets.json",
   "GET /reset",
   "POST /upload",
   "GET /edit?func=edit&path=/ledmap.json",
@@ -21,6 +25,45 @@ const ALLOWED_REQUESTS = new Set([
 export interface Esp32DeviceHandler {
   handle(request: IncomingMessage, response: ServerResponse): Promise<boolean>;
 }
+
+type SendDdp = (address: string, bytes: Uint8Array) => Promise<void>;
+
+export function createDdpPacket(pixels: Uint8Array, sequence: number): Uint8Array {
+  if (pixels.byteLength !== DDP_PIXEL_BYTES) {
+    throw new Error("The DDP preview requires exactly 64 RGB pixels.");
+  }
+  if (!Number.isInteger(sequence) || sequence < 1 || sequence > 15) {
+    throw new Error("The DDP sequence must be from 1 through 15.");
+  }
+  const packet = new Uint8Array(10 + pixels.byteLength);
+  packet.set([
+    0x41, sequence, 0x0b, 0x01,
+    0x00, 0x00, 0x00, 0x00,
+    pixels.byteLength >> 8, pixels.byteLength & 0xff,
+  ]);
+  packet.set(pixels, 10);
+  return packet;
+}
+
+const sendDdp: SendDdp = (address, bytes) =>
+  new Promise((resolvePromise, reject) => {
+    const socket = createSocket("udp4");
+    let settled = false;
+    const finish = (error?: Error | null): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      socket.close();
+      if (error) reject(error);
+      else resolvePromise();
+    };
+    const timer = setTimeout(
+      () => finish(new Error("The WLED DDP send timed out.")),
+      1_000,
+    );
+    socket.once("error", finish);
+    socket.send(bytes, DDP_PORT, address, finish);
+  });
 
 function privateIpv4(value: string): boolean {
   const octets = value.split(".").map(Number);
@@ -126,17 +169,50 @@ export function createEsp32DeviceHandler(
   fetchImpl: typeof fetch = fetch,
   resolve: ResolveIpv4 = resolveIpv4,
   resolveTimeoutMs = RESOLVE_TIMEOUT_MS,
+  sendRealtime: SendDdp = sendDdp,
 ): Esp32DeviceHandler {
+  let ddpSequence = 1;
   return {
     async handle(request, response) {
       const requestUrl = new URL(request.url ?? "/", "http://localhost");
-      if (requestUrl.pathname !== "/api/esp32-device") return false;
+      if (
+        requestUrl.pathname !== "/api/esp32-device" &&
+        requestUrl.pathname !== "/api/esp32-frame"
+      ) return false;
       if (!isLoopbackHost(request.headers.host)) {
         sendJson(response, 403, { error: "ESP32 access accepts only a loopback Host." });
         return true;
       }
       if (request.headers["x-loo-ume-esp32"] !== "1") {
         sendJson(response, 403, { error: "ESP32 access requires the editor authorization header." });
+        return true;
+      }
+      if (requestUrl.pathname === "/api/esp32-frame") {
+        const address = requestUrl.searchParams.get("address") ?? "";
+        if (
+          request.method !== "POST" ||
+          !privateIpv4(address) ||
+          request.headers["content-type"] !== "application/octet-stream"
+        ) {
+          sendJson(response, 400, { error: "The ESP32 realtime request is not allowed." });
+          return true;
+        }
+        try {
+          const body = await requestBody(request);
+          const packet = createDdpPacket(
+            Uint8Array.from(body ?? Buffer.alloc(0)),
+            ddpSequence,
+          );
+          ddpSequence = ddpSequence === 15 ? 1 : ddpSequence + 1;
+          await sendRealtime(address, packet);
+          response.statusCode = 204;
+          response.setHeader("Cache-Control", "no-store");
+          response.end();
+        } catch (error) {
+          sendJson(response, 502, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
         return true;
       }
       const address = requestUrl.searchParams.get("address") ?? "";
