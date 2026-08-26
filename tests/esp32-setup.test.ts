@@ -16,6 +16,8 @@ import {
   createSimulatorSetupConfig,
   createEsp32FlashOptions,
   ESP32_FLASH_BAUD_RATE,
+  RESTART_VERIFICATION_DEADLINE_MS,
+  RESTART_VERIFICATION_MINIMUM_WINDOW_MS,
   RESTART_VERIFICATION_REQUEST_TIMEOUT_MS,
   isCurrentSimulatorSetup,
   mappedPanelFramebuffer,
@@ -730,10 +732,13 @@ describe("guarded ESP32 setup contracts", () => {
     const rejection = expect(verification).rejects.toThrow(
       /did not stabilize: device still restarting/,
     );
-    await vi.advanceTimersByTimeAsync(12_000);
+    await vi.advanceTimersByTimeAsync(
+      RESTART_VERIFICATION_DEADLINE_MS -
+        RESTART_VERIFICATION_MINIMUM_WINDOW_MS + 500,
+    );
     const callsAtMinimumWindow = fetchMock.mock.calls.length;
     expect(callsAtMinimumWindow).toBeGreaterThan(0);
-    await vi.advanceTimersByTimeAsync(8_000);
+    await vi.advanceTimersByTimeAsync(RESTART_VERIFICATION_MINIMUM_WINDOW_MS - 500);
     await rejection;
     expect(fetchMock).toHaveBeenCalledTimes(callsAtMinimumWindow);
   });

@@ -89,7 +89,7 @@ No tasks.
   704/640/640/640, and the established 14,000 mA bus values.
 - Fixed from physical review: WLED preset publication is retried for a bounded
   three seconds, and the complete post-restart snapshot is retried for a
-  strict 20-second deadline while keeping exact comparisons and non-overlapping
+  strict 45-second deadline while keeping exact comparisons and non-overlapping
   attempts. Live DDP is suspended during this proof so it cannot freeze the
   restored native preset before verification.
 - Passed: 378/378 Vitest, TypeScript, desktop build, focused Playwright, diff

@@ -968,7 +968,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Cause:** Network discovery can succeed before every WLED HTTP endpoint is
   stable after restart.
 - **Correction:** Retry the complete exact post-restart snapshot—config,
-  firmware identity, state, preset, and ledmap—within a strict 20-second
+  firmware identity, state, preset, and ledmap—within a strict 45-second
   deadline. Fully settle one attempt before another starts, and keep the
   browser request timeout longer than the loopback proxy's upstream timeout.
 - **Prevention:** Do not treat one successful discovery response as complete
@@ -992,4 +992,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   fallback is under restart or persistence verification.
 - **Evidence:** Live `/json/state` showed preset 1 with DDP live mode and
   `frz:true`; `/presets.json` retained the intended `frz:false` value.
+- **Status:** Resolved in software; physical setup retry remains.
+
+### F-054 — WLED file reads can recover after its JSON API
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 three-panel standalone playback verification.
+- **Symptom:** WLED identity and JSON endpoints recovered after restart, but
+  exact `/ledmap.json` read-back returned HTTP 502 until later.
+- **Cause:** WLED network discovery and JSON readiness do not prove that its
+  file-system HTTP endpoint is ready.
+- **Correction:** Keep the complete exact snapshot retry bounded to 45 seconds.
+  Do not weaken or skip ledmap comparison while the file endpoint recovers.
+- **Prevention:** Include referenced file readiness in post-restart controller
+  verification and allow a separate bounded recovery period.
+- **Evidence:** The operator saw HTTP 502 during verification; the same direct
+  and proxied ledmap request later returned the exact 192-pixel artifact.
 - **Status:** Resolved in software; physical setup retry remains.

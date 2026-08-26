@@ -8,7 +8,8 @@ const REQUEST_TIMEOUT_MS = 10_000;
 export const STANDALONE_PRESET_ID = 1;
 export const ESP32_FLASH_BAUD_RATE = 115200;
 export const RESTART_VERIFICATION_REQUEST_TIMEOUT_MS = 10_000;
-const RESTART_VERIFICATION_MINIMUM_WINDOW_MS = 8_500;
+export const RESTART_VERIFICATION_DEADLINE_MS = 45_000;
+export const RESTART_VERIFICATION_MINIMUM_WINDOW_MS = 8_500;
 const APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS = new Set([
   4, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33,
 ]);
@@ -873,7 +874,7 @@ export async function verifyRestartedDevice(
   expectedMac: string,
   update: (message: string) => void,
 ): Promise<void> {
-  const deadline = Date.now() + 20_000;
+  const deadline = Date.now() + RESTART_VERIFICATION_DEADLINE_MS;
   let lastError: unknown;
   let attempt = 0;
   while (deadline - Date.now() >= RESTART_VERIFICATION_MINIMUM_WINDOW_MS) {
