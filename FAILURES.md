@@ -721,3 +721,186 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   `scripts/esp32-firmware-handler.ts`, and
   `tests/esp32-firmware-handler.test.ts`.
 - **Status:** Resolved.
+
+### F-039 — Changing browser flash baud corrupted the physical CP2102 link
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-012 physical Chrome Web Serial setup on ESP-WROOM-32.
+- **Symptom:** The loader entered download mode but failed flash-chip detection
+  with `Invalid head of packet (0x65)` after selecting the CP2102 device.
+- **Cause:** The browser loader changed the working 115200-baud ROM connection
+  to 460800 baud before flash-chip verification. The same hardware had already
+  flashed successfully at the slower rate.
+- **Correction:** Keep the complete browser flash at 115200 baud. Do not change
+  baud after ROM synchronization on this approved target.
+- **Prevention:** Pin and test the browser loader baud as part of the physical
+  target contract. Increase it only after a separate physical result.
+- **Evidence:** Operator browser trace on 2026-08-26 and
+  `tests/esp32-setup.test.ts`.
+- **Status:** Human review.
+
+### F-040 — Separate DTR and RTS calls did not reliably enter download mode
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-013 Chrome Web Serial setup with a CP2102 ESP32 board.
+- **Symptom:** After the stale-port problem cleared, the same button sometimes
+  ended with `Failed to connect with the device` before chip detection.
+- **Cause:** The pinned esptool-js reset strategy sends DTR and RTS in separate
+  Web Serial calls. Chrome/macOS and some reset circuits can observe an
+  unintended intermediate signal state.
+- **Correction:** Override only the loader reset constructors so each required
+  DTR/RTS pair is sent in one `setSignals` call. Hard reset explicitly asserts
+  EN low before release. Retain the reviewed timings.
+- **Prevention:** Test the exact combined bootloader-entry and hard-reset signal
+  sequence. Remove the local override only after the pinned library implements
+  and physically verifies the same behavior.
+- **Evidence:** Operator browser trace on 2026-08-26, esptool-js issue 222, and
+  `tests/esp32-setup.test.ts`.
+- **Status:** Human review.
+
+### F-041 — The chip identity gate expected an abbreviated loader label
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-013 physical detection of the installed ESP-WROOM-32.
+- **Symptom:** The browser reached the ROM loader but refused the device with
+  `Expected ESP32, but detected ESP32-D0WDQ6 (revision 1)`.
+- **Cause:** The guard test used the abbreviated family label while esptool-js
+  returns the classic chip model and revision after successful detection.
+- **Correction:** Accept the measured `ESP32-D0WDQ6` description with a numeric
+  revision as well as the abbreviated classic label. Continue to reject S2,
+  S3, C-series, and other targets.
+- **Prevention:** Pin identity tests to the physical loader description, not
+  only a synthetic family name.
+- **Evidence:** Operator browser trace on 2026-08-26 and
+  `tests/esp32-setup.test.ts`.
+- **Status:** Human review.
+
+### F-042 — The first post-reset serial reopen can fail on macOS
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-013 transition from a verified browser flash to Improv.
+- **Symptom:** After flash-chip detection and writing, the workflow failed with
+  `Failed to execute 'open' on 'SerialPort': Failed to open serial port`.
+- **Cause:** The workflow made one reopen attempt two seconds after the EN
+  reset. macOS had not released the CP2102 path for Chrome at that instant.
+- **Correction:** Retry the same authorized port every 500 ms with a fixed
+  30-attempt bound, then fail with the last error. Do not request another USB
+  device or continue without a verified WLED Improv identity.
+- **Prevention:** Test retry success and bounded failure. Keep all receipt,
+  target, and identity gates after the reopen.
+- **Evidence:** Operator browser trace on 2026-08-26 and
+  `tests/esp32-setup.test.ts`.
+- **Status:** Human review.
+
+### F-043 — Disabling Adalight also removed serial Improv provisioning
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-013 one-action ESP32 setup after a verified browser flash.
+- **Symptom:** The complete image flashed and passed its SHA-256 check, but the
+  next stage stopped with `Improv Wi-Fi Serial not detected`.
+- **Cause:** The firmware override used `WLED_DISABLE_ADALIGHT`. In the pinned
+  WLED source, the same compile-time gate controls Adalight, serial JSON, and
+  Improv packet handling. The approved image therefore had no Improv listener.
+- **Correction:** Remove that disable flag, rebuild the complete image, and
+  record `improv-v1` as a required target capability in receipt schema 1.2.0.
+- **Prevention:** Firmware receipt generation and verification must reject an
+  override that disables this gate. The local endpoint and deployment contract
+  must also reject a receipt without the serial Improv capability.
+- **Evidence:** The operator trace on 2026-08-26,
+  `firmware/build-receipt.json`, `scripts/esp32-firmware-handler.ts`, and the
+  generation-branch receipt checks.
+- **Status:** Human review.
+
+### F-044 — A selected Web Serial port object can become stale after reset
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-013 handoff from verified browser flash to serial Improv on
+  macOS with a CP2102 adapter.
+- **Symptom:** The firmware flashed and verified, but all attempts to reopen the
+  selected `SerialPort` object failed after reset.
+- **Cause:** macOS and Chrome can re-enumerate the authorized CP2102 after the
+  flasher closes it. Retrying only the object returned by the original chooser
+  does not adopt the current authorized port object.
+- **Correction:** During the bounded handoff, query previously authorized
+  ports and use the sole CP2102 match. Continue retrying for one minute and
+  allow one USB reconnect without another chooser or another flash.
+- **Prevention:** Test that a refreshed authorized CP2102 replaces a stale
+  selected object. Do not select among multiple matching adapters.
+- **Evidence:** Operator browser trace on 2026-08-26 and
+  `tests/esp32-setup.test.ts`.
+- **Status:** Human review.
+
+### F-045 — A bare Improv TIMEOUT hides the Wi-Fi failure stage
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-013 reached serial Improv after a verified physical flash.
+- **Symptom:** The setup modal reported only `TIMEOUT`, with no evidence that
+  serial identity had passed or that the selected SSID was visible.
+- **Cause:** The controller sent credentials immediately after Improv
+  initialization and forwarded the SDK error without stage context.
+- **Correction:** Timestamp the activity log, report Improv identity, scan for
+  the selected 2.4 GHz SSID across six bounded attempts, report its RSSI, and
+  translate provisioning timeout into a network-specific action.
+- **Prevention:** Keep serial identity, SSID discovery, credential submission,
+  and device read-back as distinct logged gates. Never log the password.
+- **Evidence:** Operator browser trace on 2026-08-26 and
+  `tests/esp32-setup.test.ts`.
+- **Status:** Human review.
+
+### F-046 — Direct browser fetch cannot be the WLED read-back boundary
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-013 after Improv found `AZIOT` at -47 dBm and returned a
+  device URL four seconds after credentials were sent.
+- **Symptom:** The next browser request failed immediately with `Failed to
+  fetch`, before the configured HTTP timeout could expire.
+- **Cause:** The editor page directly fetched a different private HTTP origin.
+  Browser cross-origin and private-network policy can block that response even
+  when the local editor host can reach the ESP32.
+- **Correction:** Broker only fixed WLED operations through the loopback editor.
+  Accept only private IPv4 or the fixed `loo-ume.local` name, reject redirects,
+  and bound both request and response bytes and time.
+- **Prevention:** Keep Web Serial in the local browser, but perform WLED HTTP
+  configuration and exact read-back through the same-origin local service. Do
+  not add a general target URL proxy.
+- **Evidence:** Operator browser trace on 2026-08-26,
+  `scripts/esp32-device-handler.ts`, and its focused policy test.
+- **Status:** Human review.
+
+### F-047 — WLED does not persist the smoke bus text label
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-013 final one-panel configuration read-back.
+- **Symptom:** WLED persisted the correct 64-pixel GPIO16 GRB bus and 1,000 mA
+  limit, but the exact comparison failed.
+- **Cause:** The authored smoke JSON supplied `FIRM-011 one fused panel` in the
+  optional bus `text` field. This WLED build normalized that field to an empty
+  string while preserving all functional bus values.
+- **Correction:** Store the measured persisted empty string in the canonical
+  smoke configuration. Keep exact comparison for every bus field.
+- **Prevention:** Compare canonical deployment input with physical WLED
+  read-back and record device normalization instead of adding a broad ignored-
+  field list.
+- **Evidence:** Live `/json/cfg` from `192.168.68.53` on 2026-08-26 and
+  `firmware/one-panel-smoke-cfg.json`.
+- **Status:** Human review.
+
+### F-048 — A frozen one-shot framebuffer does not survive late panel power
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-013 one-panel simulator transfer after verified setup.
+- **Symptom:** WLED reported the correct active 64-pixel state, but a panel that
+  was connected after setup stayed off.
+- **Cause:** The JSON individual-pixel command was sent once. WLED froze that
+  segment after it latched the frame while the panel had no power, so the later
+  panel connection received no data transition.
+- **Correction:** Keep a bounded, single-request live link while the editor is
+  open. Send the current first-panel framebuffer through the authoritative
+  physical mapping at no more than 10 frames per second, and back off after a
+  network error.
+- **Prevention:** A hardware preview that permits late panel connection must
+  refresh the output. Do not describe one accepted JSON state as a continuing
+  framebuffer transport.
+- **Evidence:** Live WLED state/config/info at `192.168.68.53` on 2026-08-26 and
+  `tests/esp32-setup.test.ts`.
+- **Status:** Resolved.

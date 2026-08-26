@@ -85,7 +85,7 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
 
   await page.locator("#route-action").click();
   await expect(page.locator("#route-action")).toHaveText("Save route");
-  await expect(page.locator("#pipeline-status")).toHaveText(
+  await expect(page.locator("#pipeline-status")).toContainText(
     "Route is complete. Save route revision 1.",
   );
   const firstOutputSelect = page.locator(".route-panel select").first();
@@ -126,7 +126,7 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(saved)),
   });
-  await expect(page.locator("#pipeline-status")).toHaveText(
+  await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded reopened-authored-route.json.",
   );
   await expect(page.locator("#route-editor-note")).toContainText("saved authored route");

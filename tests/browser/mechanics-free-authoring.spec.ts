@@ -105,7 +105,7 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
     mimeType: "application/json",
     buffer: projectBytes,
   });
-  await expect(page.locator("#pipeline-status")).toHaveText(
+  await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded pose-only-two-panel.json.",
   );
   await expect(page.locator(".route-panel")).toHaveCount(2);

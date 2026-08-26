@@ -23,6 +23,9 @@ interface FirmwareReceipt {
     module: string;
     platformioEnvironment: string;
     wledCommit: string;
+    capabilities: {
+      serialProvisioning: "improv-v1";
+    };
   };
   fullFlashArtifact: FullFlashArtifact;
 }
@@ -51,12 +54,13 @@ function parseReceipt(input: unknown): FirmwareReceipt {
   const receipt = input as Partial<FirmwareReceipt>;
   const artifact = receipt.fullFlashArtifact;
   if (
-    receipt.schemaVersion !== "1.1.0" ||
+    receipt.schemaVersion !== "1.2.0" ||
     receipt.status !== "built-not-flashed" ||
     receipt.target?.board !== "ESP32-DevKitC V4" ||
     receipt.target.module !== "ESP32-WROOM-32E-N4" ||
     receipt.target.platformioEnvironment !== "orbital_esp32dev" ||
     !/^[0-9a-f]{40}$/.test(receipt.target.wledCommit) ||
+    receipt.target.capabilities?.serialProvisioning !== "improv-v1" ||
     artifact?.name !== "wled-orbital-esp32dev-full-flash.bin" ||
     !Number.isSafeInteger(artifact.byteLength) ||
     artifact.byteLength <= 0 ||

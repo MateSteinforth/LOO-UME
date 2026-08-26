@@ -655,6 +655,12 @@ input[type="range"] {
   background: rgba(255, 90, 107, 0.05);
 }
 
+.pipeline-status--history {
+  height: 12rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .esp32-setup-dialog {
   width: min(34rem, calc(100vw - 2rem));
   padding: 0;
@@ -673,6 +679,65 @@ input[type="range"] {
   display: grid;
   gap: 0.9rem;
   padding: 1.15rem;
+}
+
+.esp32-progress {
+  display: grid;
+  gap: 0.45rem;
+  color: #9ba9bd;
+  font-size: 11px;
+}
+
+.esp32-boot-instruction {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 139, 69, 0.38);
+  border-radius: 0.5rem;
+  background: rgba(255, 139, 69, 0.1);
+  text-align: center;
+}
+
+.esp32-boot-instruction output {
+  color: #fff0e7;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.esp32-boot-instruction output[data-state="release"] {
+  color: var(--cyan);
+}
+
+.esp32-boot-instruction small {
+  color: #9ba9bd;
+}
+
+.esp32-progress div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.esp32-progress progress {
+  width: 100%;
+  height: 0.75rem;
+  accent-color: var(--cyan);
+}
+
+.esp32-setup-console {
+  height: 8rem;
+  margin-top: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.esp32-console-entry + .esp32-console-entry {
+  margin-top: 0.35rem;
+}
+
+.esp32-console-entry--error {
+  color: #ff9eaa;
 }
 
 .dialog-actions {
