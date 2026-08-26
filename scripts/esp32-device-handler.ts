@@ -7,7 +7,7 @@ const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const RESOLVE_TIMEOUT_MS = 2_000;
 const UPSTREAM_TIMEOUT_MS = 8_000;
 const DDP_PORT = 4048;
-const DDP_PIXEL_BYTES = 64 * 3;
+const MAX_DDP_PIXEL_BYTES = 192 * 3;
 const ALLOWED_REQUESTS = new Set([
   "GET /json/info",
   "GET /json/cfg",
@@ -29,8 +29,12 @@ export interface Esp32DeviceHandler {
 type SendDdp = (address: string, bytes: Uint8Array) => Promise<void>;
 
 export function createDdpPacket(pixels: Uint8Array, sequence: number): Uint8Array {
-  if (pixels.byteLength !== DDP_PIXEL_BYTES) {
-    throw new Error("The DDP preview requires exactly 64 RGB pixels.");
+  if (
+    pixels.byteLength < 3 ||
+    pixels.byteLength > MAX_DDP_PIXEL_BYTES ||
+    pixels.byteLength % 3 !== 0
+  ) {
+    throw new Error("The DDP preview requires from 1 through 192 RGB pixels.");
   }
   if (!Number.isInteger(sequence) || sequence < 1 || sequence > 15) {
     throw new Error("The DDP sequence must be from 1 through 15.");

@@ -23,11 +23,14 @@ The workflow:
    the written bytes;
 3. provisions the entered Wi-Fi credentials over Improv Serial without saving
    or logging them;
-4. sets `loo-ume.local`, applies the 64-pixel smoke configuration, saves the
-   selected animation as standalone preset 1, and selects it for boot;
-5. restarts WLED and reads the target, LED count, buses, mDNS name, preset,
+4. derives one configuration from the loaded one-to-three-panel simulator,
+   including its LED count, one output, GPIO, ledmap, and bounded current limit;
+5. sets `loo-ume.local`, saves the selected animation as standalone preset 1,
+   and selects it for boot;
+6. restarts WLED and reads the target, LED count, buses, mDNS name, preset,
    boot state, and current state back; and
-6. sends exact preview frames through finite-time DDP while the editor is open.
+7. sends the exact mapped preview through finite-time DDP while the editor is
+   open.
 
 The configured behavior is that WLED leaves realtime mode 2.5 seconds after
 preview traffic stops and resumes the saved native animation. Changes to
@@ -40,9 +43,9 @@ The local production server serves a complete image only from the ignored
 The generation branch creates that file as
 `build/firmware/wled-orbital-esp32dev-full-flash.bin`.
 
-The same setup path contains receipt and read-back support for the complete
-installation configuration. Its UI option stays unavailable until the full
-sculpture power gate is complete.
+The setup has no configuration dropdown. It copies the loaded bounded test
+sculpture. More than three panels or more than one output remains unavailable
+until the full sculpture power gate is complete.
 
 ## Command-line fallback
 

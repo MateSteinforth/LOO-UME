@@ -5,13 +5,17 @@ import {
   assertApprovedImprovIdentity,
   assertApprovedSerialDevice,
   assertSingleAuthorizedCp2102,
+  applyAndVerifyDevice,
   assertConfigReadback,
+  assertLedmapReadback,
   assertStandalonePresetReadback,
   assertStandaloneStateReadback,
   assertStateReadback,
   connectExistingSimulatorDevice,
+  createSimulatorSetupConfig,
   createEsp32FlashOptions,
   ESP32_FLASH_BAUD_RATE,
+  isCurrentSimulatorSetup,
   mappedPanelFramebuffer,
   persistStandaloneAnimation,
   privateDeviceUrl,
@@ -27,7 +31,8 @@ import {
 
 function payload(): Esp32SetupPayload {
   return {
-    mode: "smoke",
+    sourceFingerprint: "test-mapping-fingerprint",
+    sourceRevision: 4,
     expectedLedCount: 64,
     config: {
       def: { ps: 1, on: true, bri: 128 },
@@ -90,6 +95,67 @@ describe("guarded ESP32 setup contracts", () => {
       createHash("md5").update(bytes).digest("hex"),
     );
     expect(ESP32_FLASH_BAUD_RATE).toBe(115200);
+  });
+
+  it("derives one bounded GPIO bus from the loaded one-to-three-panel simulator", () => {
+    const template = payload().config;
+    const config = createSimulatorSetupConfig(template, 192, 16, 3) as {
+      def: unknown;
+      hw: { led: { total: number; maxpwr: number; ins: unknown[] } };
+      if: unknown;
+    };
+    expect(config).toMatchObject({
+      def: { ps: 1, on: true, bri: 128 },
+      hw: { led: {
+        total: 192,
+        maxpwr: 3000,
+        ins: [{ start: 0, len: 192, pin: [16], order: 3, maxpwr: 3000 }],
+      } },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
+    });
+    expect(() => createSimulatorSetupConfig(template, 256, 16, 0)).toThrow(/one to three/);
+    for (const gpio of [6, 10, 20, 24, 30, 34, 39]) {
+      expect(() => createSimulatorSetupConfig(template, 192, gpio, 0))
+        .toThrow(/approved output GPIO/);
+    }
+    expect(() => createSimulatorSetupConfig(template, 192, 16, 6))
+      .toThrow(/WLED color order/);
+  });
+
+  it("requires the exact generated ledmap JSON", () => {
+    expect(() => assertLedmapReadback(
+      '{"map":[0,2,1]}\n',
+      '{"map":[0,2,1]}\n',
+    )).not.toThrow();
+    expect(() => assertLedmapReadback(
+      '{"map":[0,1,2]}',
+      '{"map":[0,2,1]}',
+    )).toThrow(/does not match/);
+    expect(() => assertLedmapReadback("not-json", '{"map":[0]}'))
+      .toThrow(/invalid JSON/);
+  });
+
+  it("rejects an async ESP32 result after the loaded project changes", async () => {
+    const oldPayload = payload();
+    let currentRevision = 4;
+    let currentFingerprint = oldPayload.sourceFingerprint;
+    let resolveDevice!: (value: URL) => void;
+    const oldRequest = new Promise<URL>((resolve) => {
+      resolveDevice = resolve;
+    });
+    const accepted: URL[] = [];
+    const completion = oldRequest.then((deviceUrl) => {
+      if (isCurrentSimulatorSetup(
+        oldPayload,
+        currentRevision,
+        currentFingerprint,
+      )) accepted.push(deviceUrl);
+    });
+    currentRevision = 5;
+    currentFingerprint = "new-project-fingerprint";
+    resolveDevice(new URL("http://192.168.68.53/"));
+    await completion;
+    expect(accepted).toEqual([]);
   });
 
   it("sets DTR and RTS together for bootloader entry and hard reset", async () => {
@@ -311,8 +377,8 @@ describe("guarded ESP32 setup contracts", () => {
     expect(Array.from(new Uint8Array(init.body as ArrayBuffer))).toEqual(pixels.flat());
     await expect(sendSimulatorFramebuffer(
       new URL("http://192.168.68.53/"),
-      pixels.slice(1),
-    )).rejects.toThrow(/exactly 64/);
+      [],
+    )).rejects.toThrow(/1 through 192/);
   });
 
   it("requires the saved standalone preset to match the simulator settings", () => {
@@ -376,11 +442,27 @@ describe("guarded ESP32 setup contracts", () => {
     expect(framebuffer[56]).toEqual([0xa1, 0xb2, 0xc3]);
     expect(framebuffer[60]).toEqual([0x12, 0x34, 0x56]);
     expect(() => mappedPanelFramebuffer(pixels, entries.slice(1), 0))
-      .toThrow(/exactly 64 mapped pixels/);
+      .toThrow(/contiguous mapped output/);
   });
 
-  it("reconnects only to the exact persisted one-panel device", async () => {
+  it("orders all three loaded panels into one contiguous physical framebuffer", () => {
+    const pixels = Uint32Array.from(
+      { length: 192 },
+      (_, index) => (index << 16) | ((191 - index) << 8) | (index % 7),
+    );
+    const entries = Array.from({ length: 192 }, (_, physicalIndex) => ({
+      physicalIndex,
+      logicalIndex: 191 - physicalIndex,
+    })).reverse();
+    const framebuffer = mappedPanelFramebuffer(pixels, entries, 0, 192);
+    expect(framebuffer).toHaveLength(192);
+    expect(framebuffer[0]).toEqual([191, 0, 2]);
+    expect(framebuffer[191]).toEqual([0, 191, 0]);
+  });
+
+  it("reconnects only to the exact persisted loaded simulator device and ledmap", async () => {
     const value = payload();
+    value.ledmapBytes = '{"map":[0,1,2]}\n';
     const info = {
       arch: "esp32",
       ip: "192.168.68.53",
@@ -399,6 +481,7 @@ describe("guarded ESP32 setup contracts", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
       .mockResolvedValueOnce(new Response(JSON.stringify(config)))
+      .mockResolvedValueOnce(new Response(value.ledmapBytes))
       .mockResolvedValueOnce(new Response(JSON.stringify([
         "Solid", "Blink", "Breathe", "Wipe", "Wipe Random", "Random Colors",
         "Sweep", "Dynamic", "Rainbow",
@@ -421,7 +504,7 @@ describe("guarded ESP32 setup contracts", () => {
     await expect(connectExistingSimulatorDevice(value)).resolves.toEqual(
       new URL("http://192.168.68.53/"),
     );
-    expect(fetchMock).toHaveBeenCalledTimes(8);
+    expect(fetchMock).toHaveBeenCalledTimes(9);
 
     fetchMock.mockReset()
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
@@ -433,5 +516,92 @@ describe("guarded ESP32 setup contracts", () => {
     await expect(connectExistingSimulatorDevice(value)).rejects.toThrow(
       /does not match the verified device/,
     );
+
+    fetchMock.mockReset()
+      .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(config)))
+      .mockResolvedValueOnce(new Response('{"map":[2,1,0]}'));
+    await expect(connectExistingSimulatorDevice(value)).rejects.toThrow(
+      /ledmap does not match the loaded simulator/,
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("verifies the exact ledmap before reset and again after restart", async () => {
+    const value = payload();
+    value.ledmapBytes = '{"map":[0,1,2]}\n';
+    const info = {
+      arch: "esp32",
+      ip: "192.168.68.53",
+      leds: { bootps: 1, count: 64 },
+      mac: "aa:bb:cc:dd:ee:ff",
+    };
+    const config = {
+      id: { mdns: "loo-ume" },
+      def: { ps: 1, on: true, bri: 128 },
+      hw: { led: { total: 64, maxpwr: 1000, ins: [
+        { start: 0, len: 64, pin: [16], order: 0, type: 22 },
+      ] } },
+      if: { live: { en: true, mso: true, rlm: false, timeout: 25 } },
+    };
+    const state = {
+      on: true,
+      bri: 128,
+      ps: 1,
+      seg: [value.state.seg],
+    };
+    const presets = {
+      "1": {
+        n: "LOO/UME standalone",
+        on: true,
+        bri: 128,
+        seg: value.state.seg,
+      },
+    };
+    const response = (body: unknown): Response =>
+      new Response(typeof body === "string" ? body : JSON.stringify(body));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response({ success: true })) // config write
+      .mockResolvedValueOnce(response("uploaded"))
+      .mockResolvedValueOnce(response(value.ledmapBytes))
+      .mockResolvedValueOnce(response([
+        "Solid", "Blink", "Breathe", "Wipe", "Wipe Random", "Random Colors",
+        "Sweep", "Dynamic", "Rainbow",
+      ]))
+      .mockResolvedValueOnce(response([
+        "Default", "Random Cycle", "Color 1", "Colors 1&2", "Color Gradient",
+        "Colors Only", "Forest",
+      ]))
+      .mockResolvedValueOnce(response({ success: true }))
+      .mockResolvedValueOnce(response(presets))
+      .mockResolvedValueOnce(response({ leds: { bootps: 1 } }))
+      .mockResolvedValueOnce(response(config))
+      .mockResolvedValueOnce(response(info))
+      .mockResolvedValueOnce(response(state))
+      .mockResolvedValueOnce(response("resetting"))
+      .mockResolvedValueOnce(response(info)) // mDNS lookup
+      .mockResolvedValueOnce(response(info)) // IP lookup
+      .mockResolvedValueOnce(response(config))
+      .mockResolvedValueOnce(response(info))
+      .mockResolvedValueOnce(response(state))
+      .mockResolvedValueOnce(response(presets))
+      .mockResolvedValueOnce(response(value.ledmapBytes));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(applyAndVerifyDevice(
+      new URL("http://192.168.68.53/"),
+      value,
+      () => undefined,
+    )).resolves.toEqual(new URL("http://192.168.68.53/"));
+    const paths = fetchMock.mock.calls.map(([request]) =>
+      new URL(String(request)).searchParams.get("path")
+    );
+    const ledmapReads = paths
+      .map((path, index) => path === "/edit?func=edit&path=/ledmap.json" ? index : -1)
+      .filter((index) => index >= 0);
+    expect(ledmapReads).toHaveLength(2);
+    expect(ledmapReads[0]).toBeLessThan(paths.indexOf("/reset"));
+    expect(ledmapReads[1]).toBeGreaterThan(paths.indexOf("/reset"));
   });
 });

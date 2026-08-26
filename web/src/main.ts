@@ -93,14 +93,15 @@ import {
 } from "./GeneratedStructuralAssets.ts";
 import {
   connectExistingSimulatorDevice,
+  createSimulatorSetupConfig,
+  isApprovedEsp32OutputGpio,
+  isCurrentSimulatorSetup,
   createEsp32SetupController,
   mappedPanelFramebuffer,
   persistStandaloneAnimation,
   sendSimulatorFramebuffer,
-  type Esp32SetupMode,
   type Esp32SetupPayload,
 } from "./Esp32Setup.ts";
-import { createWledDeploymentBundle } from "../../src/wled/DeploymentContract.ts";
 import smokeConfig from "../../firmware/one-panel-smoke-cfg.json" with { type: "json" };
 import {
   createLoadedSculpture,
@@ -342,13 +343,6 @@ app.innerHTML = `
       <form method="dialog" class="esp32-setup-form">
         <div class="section-heading"><span>Set up ESP32</span><small>USB + Wi-Fi</small></div>
         <label class="field">
-          <span>Configuration</span>
-          <select id="esp32-setup-mode">
-            <option value="smoke">One-panel smoke test</option>
-            <option value="installation" disabled>Current sculpture installation (after PWR-010)</option>
-          </select>
-        </label>
-        <label class="field">
           <span>2.4 GHz Wi-Fi name</span>
           <input id="esp32-wifi-ssid" type="text" maxlength="32" autocomplete="off" />
         </label>
@@ -466,7 +460,6 @@ const closeEsp32SetupButton = query<HTMLButtonElement>("#close-esp32-setup");
 const esp32WifiSsidInput = query<HTMLInputElement>("#esp32-wifi-ssid");
 const esp32WifiPasswordInput = query<HTMLInputElement>("#esp32-wifi-password");
 const esp32FirmwareInput = query<HTMLInputElement>("#esp32-firmware-file");
-const esp32SetupModeSelect = query<HTMLSelectElement>("#esp32-setup-mode");
 const esp32SetupProgress = query<HTMLProgressElement>("#esp32-setup-progress");
 const esp32SetupProgressLabel = query<HTMLOutputElement>("#esp32-setup-progress-label");
 const esp32BootInstruction = query<HTMLOutputElement>("#esp32-boot-instruction");
@@ -578,90 +571,65 @@ async function start(): Promise<void> {
     let simulatorLinkFailed = false;
     let standaloneSaveTimer: ReturnType<typeof setTimeout> | undefined;
     let standaloneSaveRequest: Promise<void> | undefined;
+    let simulatorProjectRevision = 0;
 
-    const rgbFromPacked = (packed: number): [number, number, number] => [
-      (packed >> 16) & 0xff,
-      (packed >> 8) & 0xff,
-      packed & 0xff,
-    ];
-    const physicalSmokeFramebuffer = (): Array<[number, number, number]> => {
-      if (mapping.topology !== "panelized-sculpture") {
-        if (engine.pixels.length !== 64) {
-          throw new Error("The virtual one-panel preview must contain exactly 64 LEDs.");
-        }
-        return Array.from(
-          { length: 64 },
-          (_, index) => rgbFromPacked(engine.pixels[index] ?? 0),
-        );
-      }
+    const boundedSimulatorOutput = (): {
+      gpio: number;
+      ledCount: number;
+      panelCount: number;
+    } => {
       if (
+        mapping.topology !== "panelized-sculpture" ||
         mapping.panelPixelGrid?.columns !== 8 ||
         mapping.panelPixelGrid.rows !== 8
       ) {
-        throw new Error("The one-panel hardware link requires an 8 by 8 panel profile.");
+        throw new Error("ESP32 setup requires the loaded 8 by 8 panel simulator.");
       }
-      const firstOutput = hardwareContract.outputs[0];
-      const firstPanelId = firstOutput?.panelIds[0];
-      if (!firstOutput || !firstPanelId) {
-        throw new Error("The current mapping has no first hardware panel.");
+      const ledCount = mapping.entries.length;
+      const panelCount = ledCount / 64;
+      const output = hardwareContract.outputs[0];
+      if (
+        !Number.isInteger(panelCount) ||
+        panelCount < 1 ||
+        panelCount > 3 ||
+        hardwareContract.outputs.length !== 1 ||
+        !output ||
+        output.startIndex !== 0 ||
+        output.pixelCount !== ledCount
+      ) {
+        throw new Error(
+          "ESP32 setup currently supports one loaded GPIO output with one to three complete panels.",
+        );
       }
-      const firstPanelEntries = hardwareContract.mapping.entries.filter(
-        (entry) => entry.panelId === firstPanelId,
-      );
-      if (firstPanelEntries.length !== 64) {
-        throw new Error("The first hardware route entry is not one complete 8 by 8 panel.");
+      const gpio = output.gpio ?? 16;
+      if (!isApprovedEsp32OutputGpio(gpio)) {
+        throw new Error("The loaded simulator has no usable ESP32 GPIO output.");
       }
+      return { gpio, ledCount, panelCount };
+    };
+    const physicalSimulatorFramebuffer = (): Array<[number, number, number]> => {
+      const { ledCount } = boundedSimulatorOutput();
       return mappedPanelFramebuffer(
         engine.pixels,
-        firstPanelEntries,
-        firstOutput.startIndex,
+        hardwareContract.mapping.entries,
+        0,
+        ledCount,
       );
     };
-    const setupPayload = (mode: Esp32SetupMode): Esp32SetupPayload => {
-      if (mode === "smoke") {
-        const config = structuredClone(smokeConfig) as Record<string, unknown>;
-        config.def = { ps: 1, on: true, bri: 128 };
-        config.if = { live: { en: true, mso: true, rlm: false, timeout: 25 } };
-        return {
-          mode,
-          config,
-          expectedLedCount: 64,
-          expectedEffectName: effectSelect.selectedOptions[0]?.text,
-          expectedPaletteName: paletteSelect.selectedOptions[0]?.text,
-          state: {
-            on: true,
-            bri: 128,
-            tt: 0,
-            seg: {
-              id: 0,
-              start: 0,
-              stop: 64,
-              fx: Number(effectSelect.value),
-              pal: Number(paletteSelect.value),
-              sx: Number(speedInput.value),
-              ix: Number(intensityInput.value),
-              frz: false,
-              col: [[255, 122, 24], [5, 8, 22], [0, 0, 0]],
-            },
-          },
-        };
-      }
-      const sculptureBytes = sculptureJson(editorDefinition);
-      const deployment = createWledDeploymentBundle(
-        hardwareContract,
-        sculptureBytes,
-        "installation",
+    const setupPayload = (): Esp32SetupPayload => {
+      const { gpio, ledCount } = boundedSimulatorOutput();
+      const config = createSimulatorSetupConfig(
+        smokeConfig as Record<string, unknown>,
+        ledCount,
+        gpio,
+        hardwareContract.wledColorOrder.wledValue,
       );
-      const configBytes = deployment.files.get("wled/cfg.json");
-      const ledmapBytes = deployment.files.get("wled/ledmap.json");
-      if (!configBytes || !ledmapBytes) {
-        throw new Error("The current project has no verified installation deployment.");
-      }
       return {
-        mode,
-        config: JSON.parse(configBytes) as Record<string, unknown>,
-        expectedLedCount: hardwareContract.mapping.entries.length,
-        ledmapBytes,
+        sourceFingerprint: hardwareContract.fingerprint,
+        sourceRevision: simulatorProjectRevision,
+        config,
+        expectedLedCount: ledCount,
+        ledmapBytes: JSON.stringify(hardwareContract.ledmap) + "\n",
         expectedEffectName: effectSelect.selectedOptions[0]?.text,
         expectedPaletteName: paletteSelect.selectedOptions[0]?.text,
         state: {
@@ -671,11 +639,12 @@ async function start(): Promise<void> {
           seg: {
             id: 0,
             start: 0,
-            stop: hardwareContract.mapping.entries.length,
+            stop: ledCount,
             fx: Number(effectSelect.value),
             pal: Number(paletteSelect.value),
             sx: Number(speedInput.value),
             ix: Number(intensityInput.value),
+            frz: false,
             col: [[255, 122, 24], [5, 8, 22], [0, 0, 0]],
           },
         },
@@ -683,11 +652,12 @@ async function start(): Promise<void> {
     };
 
     const enableSimulatorLink = (deviceUrl: URL, reconnected = false): void => {
+      const { gpio, ledCount, panelCount } = boundedSimulatorOutput();
       simulatorDeviceUrl = deviceUrl;
       nextSimulatorFrameAt = 0;
       simulatorLinkFailed = false;
       setLogMessage(
-        `${reconnected ? "Reconnected" : "Standalone animation saved and live one-panel preview started"} at ${deviceUrl.host}. Connect the panel to GPIO16 DIN.`,
+        `${reconnected ? "Reconnected" : "Standalone animation saved and live preview started"} at ${deviceUrl.host} for ${panelCount} panel${panelCount === 1 ? "" : "s"} (${ledCount} LEDs) on GPIO${gpio}.`,
       );
     };
 
@@ -701,7 +671,7 @@ async function start(): Promise<void> {
           standaloneSaveTimer = setTimeout(scheduleStandaloneSave, 500);
           return;
         }
-        const payload = setupPayload("smoke");
+        const payload = setupPayload();
         standaloneSaveRequest = persistStandaloneAnimation(simulatorDeviceUrl, payload)
           .then(() => setLogMessage(
             "Saved the current animation as the ESP32 standalone boot preset.",
@@ -720,15 +690,29 @@ async function start(): Promise<void> {
       if (simulatorDeviceUrl || simulatorReconnectRequest) return;
       let reconnectPayload: Esp32SetupPayload;
       try {
-        reconnectPayload = setupPayload("smoke");
+        reconnectPayload = setupPayload();
       } catch {
         return;
       }
-      simulatorReconnectRequest = connectExistingSimulatorDevice(reconnectPayload)
-        .then((deviceUrl) => enableSimulatorLink(deviceUrl, true))
+      const requestedRevision = simulatorProjectRevision;
+      const pendingSave = standaloneSaveRequest?.catch(() => undefined) ?? Promise.resolve();
+      simulatorReconnectRequest = pendingSave
+        .then(() => connectExistingSimulatorDevice(reconnectPayload))
+        .then((deviceUrl) => {
+          if (isCurrentSimulatorSetup(
+            reconnectPayload,
+            simulatorProjectRevision,
+            hardwareContract.fingerprint,
+          )) {
+            enableSimulatorLink(deviceUrl, true);
+          }
+        })
         .catch(() => undefined)
         .finally(() => {
           simulatorReconnectRequest = undefined;
+          if (requestedRevision !== simulatorProjectRevision) {
+            tryReconnectSimulatorLink();
+          }
         });
     };
 
@@ -740,14 +724,26 @@ async function start(): Promise<void> {
       ssidInput: esp32WifiSsidInput,
       passwordInput: esp32WifiPasswordInput,
       firmwareInput: esp32FirmwareInput,
-      modeSelect: esp32SetupModeSelect,
       progressElement: esp32SetupProgress,
       progressLabel: esp32SetupProgressLabel,
       bootInstruction: esp32BootInstruction,
       clearSetupLog: () => esp32SetupConsole.replaceChildren(),
       setLogMessage,
       getPayload: setupPayload,
-      onSetupComplete: (deviceUrl) => enableSimulatorLink(deviceUrl),
+      onSetupComplete: (deviceUrl, payload) => {
+        if (!isCurrentSimulatorSetup(
+          payload,
+          simulatorProjectRevision,
+          hardwareContract.fingerprint,
+        )) {
+          setLogMessage(
+            "ESP32 setup completed for an older project. Load the current project into the ESP32 before preview.",
+            true,
+          );
+          return;
+        }
+        enableSimulatorLink(deviceUrl);
+      },
     });
     tryReconnectSimulatorLink();
 
@@ -1214,6 +1210,13 @@ async function start(): Promise<void> {
       selected: LoadedSculpture,
       preserveEditorDefinition = false,
     ): Promise<void> => {
+      simulatorProjectRevision += 1;
+      simulatorDeviceUrl = undefined;
+      simulatorLinkFailed = false;
+      if (standaloneSaveTimer) {
+        clearTimeout(standaloneSaveTimer);
+        standaloneSaveTimer = undefined;
+      }
       loadedSculpture = selected;
       selectedHardwareContract = selected.contract;
       hardwareContract = selectedHardwareContract;
@@ -2362,18 +2365,18 @@ async function start(): Promise<void> {
         simulatorFrameRequest = Promise.resolve().then(() =>
           sendSimulatorFramebuffer(
             simulatorDeviceUrl!,
-            physicalSmokeFramebuffer(),
+            physicalSimulatorFramebuffer(),
           )
         ).then(() => {
           if (simulatorLinkFailed) {
             simulatorLinkFailed = false;
-            setLogMessage("Live one-panel simulator link reconnected.");
+            setLogMessage("Live simulator hardware link reconnected.");
           }
         }).catch((error) => {
           if (!simulatorLinkFailed) {
             simulatorLinkFailed = true;
             setLogMessage(
-              `Live one-panel simulator link paused: ${error instanceof Error ? error.message : String(error)}`,
+              `Live simulator hardware link paused: ${error instanceof Error ? error.message : String(error)}`,
               true,
             );
           }

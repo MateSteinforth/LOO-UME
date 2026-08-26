@@ -923,3 +923,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   FIRM-014 setup and device-handler tests.
 - **Status:** Human review; the software correction is complete, but physical
   timeout and autonomous resume are not yet observed.
+
+### F-050 — A setup mode dropdown did not represent the loaded simulator
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 physical review with a loaded three-panel project.
+- **Symptom:** The UI offered a one-panel configuration choice even though the
+  visible simulator contained three panels.
+- **Cause:** An internal one-panel/full-install safety distinction was exposed
+  as an operator setting, and the setup payload remained hard-coded to 64 LEDs.
+- **Correction:** Remove the dropdown. Derive one GPIO output, LED count,
+  ledmap, animation state, and DDP framebuffer from the loaded simulator. Keep
+  the unapproved boundary explicit at three panels and one output.
+- **Prevention:** Hardware setup must copy the authoritative loaded project. Do
+  not ask the operator to select a second configuration authority.
+- **Evidence:** `createSimulatorSetupConfig()`, dynamic framebuffer tests, and
+  the FIRM-014 browser setup journey.
+- **Status:** Human review; physical three-panel copy and standalone fallback
+  are not yet observed.

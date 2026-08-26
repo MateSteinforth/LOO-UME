@@ -194,8 +194,12 @@ instructions, not hardware evidence.
 
 ## D27 — Standalone playback and live preview are separate contracts
 
-The verified one-panel setup saves the selected native WLED animation as preset
-1 and selects it for boot. Exact simulator pixels are temporary DDP realtime
+The setup derives one configuration from the loaded simulator; it does not ask
+the operator to choose an internal deployment mode. A bounded test sculpture
+can contain one to three complete 8x8 panels on one output. Larger or
+multi-output projects remain unavailable until their hardware gates pass.
+The setup saves the selected native WLED animation as preset 1 and selects it
+for boot. Exact simulator pixels are temporary DDP realtime
 data, not persisted state. WLED must use a finite 2.5-second realtime timeout so
 loss of the editor, host, network, or laptop returns the panel to the saved
 native animation. Setup must restart the device and verify its preset, boot

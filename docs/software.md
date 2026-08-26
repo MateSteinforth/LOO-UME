@@ -41,9 +41,10 @@ a substitute for correct wiring and fusing.
 
 ## Operating modes
 
-The verified one-panel path uses native WLED effects for autonomous playback.
-FIRM-014 adds a provisional 64-pixel DDP preview with a finite fallback to the
-saved boot preset; physical timeout and resume review is still required.
+The verified small-sculpture path uses native WLED effects for autonomous
+playback. FIRM-014 adds a provisional 1-to-192-pixel DDP preview with a finite
+fallback to the saved boot preset; physical timeout and resume review is still
+required.
 Full-sculpture DDP, Art-Net, Ethernet, microphones, audio-reactive presets, and
 custom effects remain deferred. A future custom effect belongs in a WLED
 usermod, not in patched WLED core files.
@@ -105,7 +106,7 @@ controller behavior.
 `FIRM-011` passed its real-controller and fused one-panel smoke test. FIRM-013
 then proved the guarded browser flash, serial Wi-Fi setup, exact config/state
 read-back, and mapped live-panel link. FIRM-014 adds native preset 1 as the
-standalone boot state and a provisional 64-pixel DDP preview; physical
+standalone boot state and a provisional 1-to-192-pixel DDP preview; physical
 timeout/resume review remains open.
 `DIAG-010` supplies deterministic low-brightness, one-pixel JSON test frames
 bound to the exact deployment identity. Each frame labels the expected address,

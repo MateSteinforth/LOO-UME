@@ -9,14 +9,19 @@ import {
 } from "../scripts/esp32-device-handler.ts";
 
 describe("ESP32 loopback device proxy policy", () => {
-  it("creates one pushed RGB DDP frame for exactly 64 pixels", () => {
+  it("creates one pushed RGB DDP frame for one to three panels", () => {
     const pixels = Uint8Array.from({ length: 192 }, (_, index) => index & 0xff);
     const packet = createDdpPacket(pixels, 7);
     expect(Array.from(packet.slice(0, 10))).toEqual([
       0x41, 7, 0x0b, 1, 0, 0, 0, 0, 0, 192,
     ]);
     expect(packet.slice(10)).toEqual(pixels);
-    expect(() => createDdpPacket(pixels.slice(1), 7)).toThrow(/exactly 64/);
+    const threePanels = createDdpPacket(new Uint8Array(576), 8);
+    expect(Array.from(threePanels.slice(0, 10))).toEqual([
+      0x41, 8, 0x0b, 1, 0, 0, 0, 0, 2, 64,
+    ]);
+    expect(() => createDdpPacket(pixels.slice(1), 7)).toThrow(/1 through 192/);
+    expect(() => createDdpPacket(new Uint8Array(579), 7)).toThrow(/1 through 192/);
     expect(() => createDdpPacket(pixels, 0)).toThrow(/1 through 15/);
   });
 

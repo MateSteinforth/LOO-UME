@@ -1,10 +1,10 @@
 # Project task board
 
-Last reconciled: 2026-08-25
+Last reconciled: 2026-08-26
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: automate the now-proven one-panel ESP32 setup, then prove
+Current milestone: copy a loaded bounded simulator to one ESP32, then prove
 static address and RGB parity on the physical 41-panel sculpture.
 
 ## Control rules
@@ -87,20 +87,21 @@ No tasks.
 
 ## Human Review
 
-### `FIRM-014` Confirm autonomous one-panel playback after live preview
+### `FIRM-014` Confirm loaded three-panel transfer and standalone playback
 
-- Implemented: preset 1 stores the selected native WLED effect, palette, speed,
-  intensity, colors, and brightness and is selected for boot. Setup verifies it
-  across a restart. Exact 64-pixel preview uses private DDP with a 2.5-second
-  fallback and cannot start before the preset is verified.
-- Passed: 370/370 Vitest, focused 20/20 after review fixes, TypeScript, Vite,
-  diff check, pinned WLED source review, and independent review.
-- Needed: run setup, observe the panel follow the simulator, stop the editor or
-  disconnect the laptop, and confirm the saved native animation resumes within
-  approximately 2.5 seconds and still runs after ESP32 power cycle.
-- Owner: `codex/firm-014-standalone-playback` in
-  `/tmp/led-rhombo-firm-014`. Full 41-panel installation remains blocked by
+- Implemented: the ESP32 dialog has no configuration choice. Setup derives the
+  one-output LED count, safe GPIO, measured color order, exact ledmap, current
+  animation, and boot preset from the loaded one-to-three-panel simulator.
+- Passed: 375/375 full Vitest before the final orchestration regression; focused
+  19/19 after it, TypeScript, desktop build, focused Playwright, diff check, and
+  independent review.
+- Needed: load the three-panel project, run ESP32 setup, confirm all 192 LEDs
+  follow the simulator, stop preview and confirm native playback resumes after
+  approximately 2.5 seconds, then power-cycle the ESP32 and confirm it starts
+  the saved animation. Larger or multi-output projects remain fail-closed until
   `PWR-010`.
+- Owner: `codex/firm-014-standalone-playback` in
+  `/tmp/led-rhombo-firm-014`.
 
 ## Ready to Merge
 

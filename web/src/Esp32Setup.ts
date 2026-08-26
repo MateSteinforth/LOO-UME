@@ -7,6 +7,13 @@ const SETUP_HOSTNAME = "loo-ume";
 const REQUEST_TIMEOUT_MS = 10_000;
 export const STANDALONE_PRESET_ID = 1;
 export const ESP32_FLASH_BAUD_RATE = 115200;
+const APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS = new Set([
+  4, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33,
+]);
+
+export function isApprovedEsp32OutputGpio(gpio: number): boolean {
+  return Number.isInteger(gpio) && APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS.has(gpio);
+}
 
 type SerialSignalDevice = Pick<SerialPort, "setSignals">;
 type Wait = (milliseconds: number) => Promise<void>;
@@ -84,16 +91,70 @@ export async function reopenApprovedSerialPort(
   throw new Error(`WLED serial port did not reopen after reset: ${errorMessage(lastError)}`);
 }
 
-export type Esp32SetupMode = "smoke" | "installation";
-
 export interface Esp32SetupPayload {
-  mode: Esp32SetupMode;
+  sourceFingerprint: string;
+  sourceRevision: number;
   config: Record<string, unknown>;
   expectedLedCount: number;
   ledmapBytes?: string;
   state: Record<string, unknown>;
   expectedEffectName?: string;
   expectedPaletteName?: string;
+}
+
+export function isCurrentSimulatorSetup(
+  payload: Esp32SetupPayload,
+  currentRevision: number,
+  currentFingerprint: string,
+): boolean {
+  return payload.sourceRevision === currentRevision &&
+    payload.sourceFingerprint === currentFingerprint;
+}
+
+export function createSimulatorSetupConfig(
+  source: Record<string, unknown>,
+  ledCount: number,
+  gpio: number,
+  colorOrder: number,
+): Record<string, unknown> {
+  if (
+    !Number.isInteger(ledCount) ||
+    ledCount < 64 ||
+    ledCount > 192 ||
+    ledCount % 64 !== 0 ||
+    !isApprovedEsp32OutputGpio(gpio) ||
+    !Number.isInteger(colorOrder) ||
+    colorOrder < 0 ||
+    colorOrder > 5
+  ) {
+    throw new Error(
+      "ESP32 setup requires one to three complete 64-LED panels, an approved output GPIO, and a WLED color order.",
+    );
+  }
+  const config = structuredClone(source);
+  const led = (config.hw as { led?: {
+    total?: number;
+    maxpwr?: number;
+    ins?: Array<Record<string, unknown>>;
+  } } | undefined)?.led;
+  const template = led?.ins?.[0];
+  if (!led || !template) {
+    throw new Error("The approved ESP32 setup template has no LED bus.");
+  }
+  const maximumCurrentMa = ledCount / 64 * 1_000;
+  led.total = ledCount;
+  led.maxpwr = maximumCurrentMa;
+  led.ins = [{
+    ...template,
+    start: 0,
+    len: ledCount,
+    pin: [gpio],
+    order: colorOrder,
+    maxpwr: maximumCurrentMa,
+  }];
+  config.def = { ps: STANDALONE_PRESET_ID, on: true, bri: 128 };
+  config.if = { live: { en: true, mso: true, rlm: false, timeout: 25 } };
+  return config;
 }
 
 export interface Esp32SetupControllerOptions {
@@ -104,14 +165,13 @@ export interface Esp32SetupControllerOptions {
   ssidInput: HTMLInputElement;
   passwordInput: HTMLInputElement;
   firmwareInput: HTMLInputElement;
-  modeSelect: HTMLSelectElement;
   progressElement: HTMLProgressElement;
   progressLabel: HTMLOutputElement;
   bootInstruction: HTMLOutputElement;
   clearSetupLog(): void;
   setLogMessage(message: string, error?: boolean): void;
-  getPayload(mode: Esp32SetupMode): Esp32SetupPayload;
-  onSetupComplete?(deviceUrl: URL): void;
+  getPayload(): Esp32SetupPayload;
+  onSetupComplete?(deviceUrl: URL, payload: Esp32SetupPayload): void;
 }
 
 interface FirmwareStatus {
@@ -369,12 +429,12 @@ async function postDeviceJson(
 function rgbFramebufferBytes(
   pixels: readonly [number, number, number][],
 ): Uint8Array {
-  if (pixels.length !== 64 || pixels.some((pixel) =>
+  if (pixels.length < 1 || pixels.length > 192 || pixels.some((pixel) =>
     pixel.length !== 3 || pixel.some((channel) =>
       !Number.isInteger(channel) || channel < 0 || channel > 255
     )
   )) {
-    throw new Error("The one-panel simulator framebuffer must contain exactly 64 RGB pixels.");
+    throw new Error("The simulator hardware preview must contain from 1 through 192 RGB pixels.");
   }
   return Uint8Array.from(pixels.flat());
 }
@@ -383,15 +443,16 @@ export function mappedPanelFramebuffer(
   pixels: Uint32Array,
   entries: readonly { logicalIndex: number; physicalIndex: number }[],
   physicalStartIndex: number,
+  expectedLedCount = 64,
 ): Array<[number, number, number]> {
   const panelEntries = entries
     .filter((entry) =>
       entry.physicalIndex >= physicalStartIndex &&
-      entry.physicalIndex < physicalStartIndex + 64
+      entry.physicalIndex < physicalStartIndex + expectedLedCount
     )
     .sort((first, second) => first.physicalIndex - second.physicalIndex);
   if (
-    panelEntries.length !== 64 ||
+    panelEntries.length !== expectedLedCount ||
     panelEntries.some((entry, offset) =>
       entry.physicalIndex !== physicalStartIndex + offset ||
       !Number.isInteger(entry.logicalIndex) ||
@@ -399,7 +460,7 @@ export function mappedPanelFramebuffer(
       entry.logicalIndex >= pixels.length
     )
   ) {
-    throw new Error("The first hardware panel does not contain exactly 64 mapped pixels.");
+    throw new Error("The loaded simulator does not contain one contiguous mapped output.");
   }
   return panelEntries.map((entry) => {
     const packed = pixels[entry.logicalIndex] ?? 0;
@@ -460,9 +521,7 @@ export async function resolveVerifiedWledAddress(expectedMac: string): Promise<U
 export async function connectExistingSimulatorDevice(
   payload: Esp32SetupPayload,
 ): Promise<URL> {
-  if (payload.mode !== "smoke") {
-    throw new Error("Only the verified one-panel setup can reconnect automatically.");
-  }
+  assertBoundedSimulatorPayload(payload);
   const mdnsUrl = new URL(`http://${SETUP_HOSTNAME}.local/`);
   const mdnsInfo = await readJsonResponse(
     await deviceFetch(mdnsUrl, "/json/info", undefined, 12_000),
@@ -474,7 +533,7 @@ export async function connectExistingSimulatorDevice(
     typeof mdnsInfo.mac !== "string" ||
     mdnsInfo.leds?.count !== payload.expectedLedCount
   ) {
-    throw new Error("The existing WLED device does not match the one-panel setup.");
+    throw new Error("The existing WLED device does not match the loaded simulator setup.");
   }
   const currentUrl = privateDeviceUrl(`http://${mdnsInfo.ip}/`);
   const [currentInfo, configuration] = await Promise.all([
@@ -496,8 +555,45 @@ export async function connectExistingSimulatorDevice(
     throw new Error("The existing WLED address does not match the verified device.");
   }
   assertConfigReadback(configuration, payload);
+  if (payload.ledmapBytes !== undefined) {
+    await readAndAssertLedmap(
+      currentUrl,
+      payload.ledmapBytes,
+      "The existing WLED ledmap does not match the loaded simulator.",
+    );
+  }
   await persistStandaloneAnimation(currentUrl, payload);
   return currentUrl;
+}
+
+export function assertLedmapReadback(
+  actualBytes: string,
+  expectedBytes: string,
+  message = "WLED ledmap read-back does not match the deployment artifact.",
+): void {
+  let actual: unknown;
+  let expected: unknown;
+  try {
+    actual = JSON.parse(actualBytes) as unknown;
+    expected = JSON.parse(expectedBytes) as unknown;
+  } catch {
+    throw new Error("WLED ledmap read-back returned invalid JSON.");
+  }
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(message);
+  }
+}
+
+async function readAndAssertLedmap(
+  baseUrl: URL,
+  expectedBytes: string,
+  mismatchMessage?: string,
+): Promise<void> {
+  const readback = await deviceFetch(baseUrl, "/edit?func=edit&path=/ledmap.json");
+  if (!readback.ok) {
+    throw new Error(`WLED ledmap read-back failed with HTTP ${readback.status}.`);
+  }
+  assertLedmapReadback(await readback.text(), expectedBytes, mismatchMessage);
 }
 
 async function discoverRestartedDevice(
@@ -620,9 +716,7 @@ export async function persistStandaloneAnimation(
   baseUrl: URL,
   payload: Esp32SetupPayload,
 ): Promise<void> {
-  if (payload.mode !== "smoke") {
-    throw new Error("Standalone playback is limited to the verified one-panel setup.");
-  }
+  assertBoundedSimulatorPayload(payload);
   const [effects, palettes] = await Promise.all([
     readJsonResponse(await deviceFetch(baseUrl, "/json/eff"), "WLED effect list"),
     readJsonResponse(await deviceFetch(baseUrl, "/json/pal"), "WLED palette list"),
@@ -637,6 +731,19 @@ export async function persistStandaloneAnimation(
   const info = information as { leds?: { bootps?: unknown } };
   if (info.leds?.bootps !== STANDALONE_PRESET_ID) {
     throw new Error("WLED did not select the standalone animation as its boot preset.");
+  }
+}
+
+function assertBoundedSimulatorPayload(payload: Esp32SetupPayload): void {
+  if (
+    typeof payload.sourceFingerprint !== "string" ||
+    payload.sourceFingerprint.length === 0 ||
+    !Number.isInteger(payload.sourceRevision) ||
+    !Number.isInteger(payload.expectedLedCount) ||
+    payload.expectedLedCount < 1 ||
+    payload.expectedLedCount > 192
+  ) {
+    throw new Error("ESP32 setup supports the loaded simulator only from 1 through 192 LEDs.");
   }
 }
 
@@ -704,12 +811,12 @@ export function assertStandaloneStateReadback(
   }
 }
 
-async function applyAndVerifyDevice(
+export async function applyAndVerifyDevice(
   baseUrl: URL,
   payload: Esp32SetupPayload,
   update: (message: string) => void,
 ): Promise<URL> {
-  update(`Applying ${payload.mode === "smoke" ? "one-panel" : "installation"} configuration.`);
+  update(`Applying the loaded ${payload.expectedLedCount}-LED simulator configuration.`);
   const config = structuredClone(payload.config);
   config.id = { mdns: SETUP_HOSTNAME, name: "LOO/UME" };
   await postDeviceJson(baseUrl, "/json/cfg", config);
@@ -719,11 +826,7 @@ async function applyAndVerifyDevice(
     data.append("data", new Blob([payload.ledmapBytes], { type: "application/json" }), "ledmap.json");
     const upload = await deviceFetch(baseUrl, "/upload", { method: "POST", body: data });
     if (!upload.ok) throw new Error(`WLED ledmap upload failed with HTTP ${upload.status}.`);
-    const readback = await deviceFetch(baseUrl, "/edit?func=edit&path=/ledmap.json");
-    if (!readback.ok || JSON.stringify(JSON.parse(await readback.text())) !==
-        JSON.stringify(JSON.parse(payload.ledmapBytes))) {
-      throw new Error("WLED ledmap read-back does not match the deployment artifact.");
-    }
+    await readAndAssertLedmap(baseUrl, payload.ledmapBytes);
   }
 
   await persistStandaloneAnimation(baseUrl, payload);
@@ -765,6 +868,9 @@ async function applyAndVerifyDevice(
         "WLED restarted preset read-back",
       ),
     ]);
+  if (payload.ledmapBytes !== undefined) {
+    await readAndAssertLedmap(restartedUrl, payload.ledmapBytes);
+  }
   assertConfigReadback(restartedConfig, payload);
   assertStandaloneStateReadback(restartedState, payload);
   assertStandalonePresetReadback(restartedPresets, payload);
@@ -824,8 +930,7 @@ async function openImprov(
 
 async function runSetup(
   options: Esp32SetupControllerOptions,
-  mode: Esp32SetupMode,
-): Promise<URL> {
+): Promise<{ deviceUrl: URL; payload: Esp32SetupPayload }> {
   if (!isLoopbackPage()) {
     throw new Error("ESP32 setup is available only from the local desktop page in Chrome or Edge.");
   }
@@ -839,7 +944,8 @@ async function runSetup(
   options.setLogMessage("Verifying the approved complete ESP32 image.");
   options.progressLabel.value = "Verifying image";
   const firmware = await loadFirmware(options.firmwareInput.files?.[0]);
-  const payload = options.getPayload(mode);
+  const payload = options.getPayload();
+  assertBoundedSimulatorPayload(payload);
   if (!("serial" in navigator)) {
     throw new Error("This browser does not support Web Serial. Use Chrome or Edge.");
   }
@@ -938,7 +1044,7 @@ async function runSetup(
     options.progressLabel.value = "Setup complete";
     options.bootInstruction.value = "BOOT RELEASED";
     options.bootInstruction.dataset.state = "complete";
-    return deviceUrl;
+    return { deviceUrl, payload };
   } finally {
     options.passwordInput.value = "";
     if (improv) await improv.close().catch(() => undefined);
@@ -968,13 +1074,9 @@ export function createEsp32SetupController(options: Esp32SetupControllerOptions)
     options.bootInstruction.value = "HOLD BOOT";
     options.bootInstruction.dataset.state = "hold";
     try {
-      const mode = options.modeSelect.value as Esp32SetupMode;
-      if (mode !== "smoke") {
-        throw new Error("Full installation setup is unavailable until its hardware power gate passes.");
-      }
-      void runSetup(options, mode)
-        .then((deviceUrl) => {
-          options.onSetupComplete?.(deviceUrl);
+      void runSetup(options)
+        .then(({ deviceUrl, payload }) => {
+          options.onSetupComplete?.(deviceUrl, payload);
           options.dialog.close();
         })
         .catch((error) => {
