@@ -236,11 +236,13 @@ app.innerHTML = `
             <div><strong>Shape</strong><small>Load the sculpture surface</small></div>
           </div>
           <p class="workflow-step__hint">Start with a watertight GLB, or continue from saved panel poses without one.</p>
-          <button id="load-design-surface" class="editor-button workflow-step__primary" type="button">Load watertight GLB</button>
-          <label class="field">
-            <span>GLB units to millimetres</span>
-            <input id="surface-scale" type="number" min="0.000001" step="any" value="1000" />
-          </label>
+          <div class="shape-controls">
+            <label class="field">
+              <span>GLB units to millimetres</span>
+              <input id="surface-scale" type="number" min="0.000001" step="any" value="1000" />
+            </label>
+            <button id="load-design-surface" class="editor-button" type="button">GLB</button>
+          </div>
         </section>
 
         <section class="control-section workflow-step" data-workflow-step="2">

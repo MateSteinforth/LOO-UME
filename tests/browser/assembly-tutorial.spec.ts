@@ -35,6 +35,8 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
   ]);
   await expect(page.locator("[data-workflow-step='6'] #save-project"))
     .toHaveText("Export project ZIP");
+  await expect(page.locator("[data-workflow-step='1'] #load-design-surface"))
+    .toHaveText("GLB");
   const overflowingSteps = await page.locator(".workflow-step").evaluateAll((steps) =>
     steps
       .filter((step) => step.scrollWidth > step.clientWidth)

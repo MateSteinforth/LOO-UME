@@ -307,10 +307,29 @@ input[type="checkbox"] {
   margin-left: 42px;
 }
 
-.workflow-step__primary,
-.workflow-step__secondary,
-.workflow-export__primary {
+.workflow-step__primary {
   width: calc(100% - 42px);
+}
+
+.shape-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.shape-controls .field {
+  margin: 0;
+}
+
+.shape-controls .editor-button,
+.editor-button.workflow-step__secondary,
+.pipeline-button.workflow-export__primary {
+  width: auto;
+}
+
+.shape-controls .editor-button {
+  margin-top: 0;
 }
 
 .animation-controls {
