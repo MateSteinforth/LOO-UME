@@ -14,7 +14,7 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
   const viewSection = page.locator(".control-section").filter({
     has: page.locator("#wiring-layer-controls"),
   });
-  await expect(viewSection.locator(".section-heading")).toHaveText("View");
+  await expect(viewSection.locator(".section-heading > span")).toHaveText("View");
   await expect(viewSection.locator("#display-mode")).toBeVisible();
   await expect(viewSection.locator("#panel-transform-mode")).toHaveAttribute(
     "data-mode",
@@ -25,6 +25,28 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
   const placementColumns = await page.locator("#automatic-panel-placement-controls")
     .evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(placementColumns).toBe(2);
+  await expect(page.locator(".workflow-step__heading strong")).toHaveText([
+    "Shape",
+    "Panels",
+    "Mapping",
+    "Generate parts",
+    "BUILD HARDWARE",
+    "Export",
+  ]);
+  await expect(viewSection.locator("#effect")).toBeVisible();
+  await expect(viewSection.locator("#palette")).toBeVisible();
+  await expect(page.locator("[data-workflow-step='5'] #open-esp32-setup"))
+    .toBeVisible();
+  await expect(page.locator("[data-workflow-step='6'] #save-project"))
+    .toHaveText("Export project ZIP");
+  await expect(page.locator("[data-workflow-step='1'] #load-design-surface"))
+    .toHaveText("GLB");
+  const overflowingSteps = await page.locator(".workflow-step").evaluateAll((steps) =>
+    steps
+      .filter((step) => step.scrollWidth > step.clientWidth)
+      .map((step) => step.getAttribute("data-workflow-step")),
+  );
+  expect(overflowingSteps).toEqual([]);
 });
 
 test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
@@ -43,15 +65,11 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   );
   await expect(page.locator("#assembly-tutorial-chain")).toHaveCount(0);
   await expect(page.locator("#assembly-tutorial-overview")).toHaveCount(0);
-  await expect(
-    page.locator("#wiring-layer-controls #assembly-tutorial-section"),
-  ).toBeVisible();
-  await expect(
-    page.locator(".control-panel > .control-section").first()
-      .locator("#wiring-layer-controls"),
-  ).toBeVisible();
+  await expect(page.locator("[data-workflow-step='5'] #assembly-tutorial-section"))
+    .toBeVisible();
+  await expect(page.locator(".view-section #wiring-layer-controls")).toBeVisible();
   await expect(page.locator("#assembly-tutorial-warning")).toHaveText(
-    "DRAFT ROUTE — save the route before physical assembly.",
+    "DRAFT ROUTE — regenerate mapping/wiring before physical assembly.",
   );
 
   await page.locator("#assembly-tutorial-start").click();

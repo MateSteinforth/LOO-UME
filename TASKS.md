@@ -106,16 +106,18 @@ No tasks.
 
 ## Ready to Merge
 
-### `P2 · CI-012` Run broad verification overnight
-
-- Result: push and pull-request automation remains a small locked build gate;
-  the full Vitest, Chromium, Manifold, stage-zero, and clean host matrix runs
-  nightly at 02:17 UTC or through **Run workflow**.
-- Owner: `codex/ci-012-nightly` in `/tmp/led-rhombo-ci-012-nightly`.
-- Verification: YAML lint, diff check, static event-routing inspection, and
-  independent review passed. No test suite was run for this policy-only task.
+No tasks.
 
 ## Done
+
+- `UI-024`: integrated the always-editable six-step fabrication workflow,
+  persistent View animation controls, Build Hardware assembly/ESP32 controls,
+  compact action layout, and revised renderer lighting on 2026-08-27.
+- `UI-023`: integrated the compact View control layout and standard framebuffer
+  selector through UI-024 on 2026-08-27.
+- `CI-012`: integrated nightly broad Vitest, Chromium, Manifold, bootstrap, and
+  clean-host verification while keeping push/PR automation to the fast build
+  gate on 2026-08-27.
 
 - `UI-022`: integrated the full-height aspect-safe viewport, compact View
   controls, Plane/World transform toggle, plain tutorial panel IDs, button-only

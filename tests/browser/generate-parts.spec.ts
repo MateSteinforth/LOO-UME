@@ -50,7 +50,7 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   );
   await expect(page.locator(".route-panel")).toHaveCount(4);
   await expect(page.locator("#assembly-package")).toHaveText(
-    "Build assembly package",
+    "Generate panel closures",
   );
   await expect(page.locator("#assembly-package")).toBeEnabled();
   await expect(page.locator(".export-menu, #open-wiring-manual, #generate-mapping"))
@@ -58,7 +58,7 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
 
   await page.locator("#assembly-package").click();
   await expect(page.locator("#assembly-package")).toHaveText(
-    "Download assembly package",
+    "Download panel closures package",
     { timeout: 120_000 },
   );
 

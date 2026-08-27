@@ -84,9 +84,9 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   await expect(page.locator(".route-panel button")).toHaveCount(0);
 
   await page.locator("#route-action").click();
-  await expect(page.locator("#route-action")).toHaveText("Save route");
+  await expect(page.locator("#route-action")).toHaveText("Regenerate mapping/wiring");
   await expect(page.locator("#pipeline-status")).toContainText(
-    "Route is complete. Save route revision 1.",
+    "Route is complete. Regenerate mapping/wiring as revision 1.",
   );
   const firstOutputSelect = page.locator(".route-panel select").first();
   const nestedSpaceWasNotCancelled = await firstOutputSelect.evaluate((element) =>
@@ -103,11 +103,11 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   await expect(page.locator("#route-action")).toBeEnabled();
   await page.locator("#route-action").click();
   await expect(page.locator("#pipeline-status")).toContainText(
-    "Saved wiring route revision 1",
+    "Regenerated mapping and wiring from route revision 1",
   );
   await expect(page.locator("#route-editor-note")).toContainText("saved authored route");
 
-  await page.locator("#advanced-tools > summary").click();
+  await page.locator("#export-options > summary").click();
   const savedDownloadPromise = page.waitForEvent("download");
   await page.locator("#save-sculpture-file").click();
   const saved = await readJsonDownload(await savedDownloadPromise);

@@ -233,6 +233,169 @@ input[type="checkbox"] {
   border-bottom: 1px solid var(--line);
 }
 
+.project-toolbar {
+  background: rgba(57, 217, 208, 0.025);
+}
+
+.project-toolbar .field {
+  margin-top: 0;
+}
+
+.project-toolbar__open {
+  margin-top: 9px;
+}
+
+.workflow-step {
+  position: relative;
+}
+
+.workflow-step::before {
+  position: absolute;
+  top: 52px;
+  bottom: -1px;
+  left: 36px;
+  width: 1px;
+  content: "";
+  background: linear-gradient(rgba(57, 217, 208, 0.28), transparent);
+}
+
+.workflow-step__heading {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.workflow-step__heading > div {
+  display: grid;
+  gap: 2px;
+}
+
+.workflow-step__heading strong {
+  color: #e5eef9;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.workflow-step__heading small {
+  color: #718198;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.workflow-step__number {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(57, 217, 208, 0.42);
+  border-radius: 50%;
+  color: #bffbf6;
+  background: rgba(57, 217, 208, 0.1);
+  font: 750 11px/1 "SFMono-Regular", Consolas, monospace;
+}
+
+.workflow-step__hint {
+  margin: 12px 0 0 42px;
+  color: #7c8ca2;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.workflow-step > :not(.workflow-step__heading, .workflow-step__hint) {
+  margin-left: 42px;
+}
+
+.workflow-step__primary {
+  width: calc(100% - 42px);
+}
+
+.shape-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.shape-controls .field {
+  margin: 0;
+}
+
+.shape-controls .editor-button {
+  width: auto;
+}
+
+.editor-button.workflow-step__secondary,
+.pipeline-button.workflow-export__primary {
+  width: calc(100% - 42px);
+}
+
+.shape-controls .editor-button {
+  margin-top: 0;
+}
+
+.animation-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.view-section > .animation-controls {
+  margin-bottom: 18px;
+}
+
+.animation-select-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.animation-select-row .field {
+  margin: 0;
+}
+
+.animation-select-stepper {
+  display: grid;
+  grid-template-columns: repeat(2, 32px);
+  gap: 4px;
+}
+
+.animation-select-stepper button {
+  width: 32px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid rgba(57, 217, 208, 0.28);
+  border-radius: 5px;
+  color: #d9fffb;
+  background: rgba(57, 217, 208, 0.1);
+  font: 750 16px/1 "SFMono-Regular", Consolas, monospace;
+}
+
+.assembly-tutorial.assembly-tutorial--workflow {
+  margin-top: 12px;
+  padding-left: 0;
+  border-left: 0;
+}
+
+.workflow-export {
+  background: rgba(255, 139, 69, 0.025);
+}
+
+.pipeline-button.workflow-export__primary {
+  width: calc(100% - 42px);
+  min-height: 44px;
+  margin-top: 14px;
+  font-size: 11px;
+  font-weight: 780;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.utilities-section {
+  background: rgba(0, 0, 0, 0.08);
+}
+
 .assembly-tutorial {
   min-width: 0;
   padding-left: 12px;
@@ -868,12 +1031,11 @@ input[type="range"] {
 }
 
 .view-settings {
-  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
+  gap: 8px;
+  min-width: 0;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
 }
 
 .view-settings .toggle-field,
@@ -882,7 +1044,6 @@ input[type="range"] {
 }
 
 .view-settings__display,
-.view-settings__wide,
 .panel-transform-control {
   grid-column: 1 / -1;
 }

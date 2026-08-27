@@ -95,24 +95,26 @@ one-based chain position, predecessor, successor, and back-view DIN/DOUT
 direction. A route row selects the same panel in the viewer. Drag rows to change
 order; use
 the output selector to change an assignment. There are no per-row Select,
-Up, or Down buttons. The saved sculpture JSON does not change until **Save
-route**.
+Up, or Down buttons. The saved sculpture JSON does not change until
+**Regenerate mapping/wiring**.
 
 A draft or temporary draft suggestion must first enter **Edit suggested
 route**. This prevents the geographic heuristic from becoming an assembly route
 by accident.
-**Save route** stores exact `panelIds`, derives the output `chainLengths`,
-sets `status: authored`, clears stale proof evidence, resets physical-chain
-calibration to provisional, and increments `routeRevision` (first revision is
-`1`). It does not create GPIO, measured, optimized, or physical claims.
+**Regenerate mapping/wiring** stores exact `panelIds`, derives the output
+`chainLengths`, sets `status: authored`, clears stale proof evidence, resets
+physical-chain calibration to provisional, and increments `routeRevision`
+(first revision is `1`). It does not create GPIO, measured, optimized, or
+physical claims.
 
 When a panel-set edit makes a stored route stale, the editor shows the saved
 route evidence separately and starts with the temporary current-panel draft.
-The operator can use it only after Edit suggested route and Save route.
+The operator can use it only after **Edit suggested route** and **Regenerate
+mapping/wiring**.
 
 ## Interactive data-chain tutorial
 
-The browser **Wiring & assembly** control derives every connection label from
+The browser **Build Hardware** control derives every connection label from
 the same Schema 2 wiring preview used by the normal wiring layers. **Isolate
 chain** starts with the first output. Previous and Next move through its cables
 and then continue across the remaining outputs. The existing Output rows are

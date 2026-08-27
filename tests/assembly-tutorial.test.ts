@@ -68,7 +68,7 @@ describe("Schema 2 assembly tutorial", () => {
     expect(model.chains[0]).toMatchObject({
       gpio: null,
       routeStatus: "draft",
-      routeWarning: "DRAFT ROUTE — save the route before physical assembly.",
+      routeWarning: "DRAFT ROUTE — regenerate mapping/wiring before physical assembly.",
     });
     expect(model.chains[0]!.panels).toHaveLength(4);
     expect(model.chains[0]!.connections[0]!.instruction).toMatch(
@@ -128,7 +128,7 @@ describe("Schema 2 assembly tutorial", () => {
       expect(model.chains[0]).toMatchObject({
         routeStatus: "requires-review",
         routeWarning:
-          "ROUTE REQUIRES REVIEW — confirm and save it before physical assembly.",
+          "ROUTE REQUIRES REVIEW — regenerate mapping/wiring before physical assembly.",
       });
     }
   });
