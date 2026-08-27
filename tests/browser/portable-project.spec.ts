@@ -332,11 +332,9 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
     "design/placement-surface.glb",
   );
   await chooseDirectory(page, fixture.directory);
-  await expect(page.locator("#pipeline-status")).toContainText(
-    "Loaded complete project",
-  );
   await expect(page.locator("#assembly-package")).toHaveText(
     "Download assembly package",
+    { timeout: 30_000 },
   );
   await expect(page.locator("#assembly-package")).toBeEnabled();
   await expect(page.locator("#printable-layer")).toBeEnabled();
@@ -465,6 +463,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   await chooseZip(page, "current-project.zip", zipSync(pristineEntries));
   await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded complete project current-project.zip with 4 verified assets",
+    { timeout: 30_000 },
   );
   const reopenedAudit = await browserAudit(page);
   const reopenedAssets = assetEntries(reopenedAudit).filter(

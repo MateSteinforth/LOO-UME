@@ -3,9 +3,11 @@ import { expect, test } from "@playwright/test";
 test("keeps guarded ESP32 setup in Advanced Tools and the shared activity log", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto(
+    "/?sculptureJson=.%2Fsculptures%2Fstructural-three-panel-trail%2Fsculpture.json",
+  );
   await expect(page.locator("#pipeline-status")).not.toContainText("Checking");
-  await expect(page.locator(".output-layer-toggle")).toHaveCount(4);
+  await expect(page.locator(".output-layer-toggle")).toHaveCount(1);
   await page.locator("#advanced-tools").click();
   await page.locator("#open-esp32-setup").click();
   await expect(page.locator("#esp32-setup-dialog")).toBeVisible();

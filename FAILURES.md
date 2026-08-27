@@ -1318,3 +1318,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Registry and project-loader checks plus the focused browser
   tutorial journey.
 - **Status:** Resolved.
+
+### F-072 — Broad browser verification delayed every integration push
+
+- **Date:** 2026-08-27
+- **Context:** GitHub Actions run `33072431679` after the populated 41-panel
+  project became the default.
+- **Symptom:** The Chromium job failed after more than nine minutes. Three
+  journeys used an unnecessarily heavy default project or five-second waits
+  for real GLB and ZIP work.
+- **Cause:** Every push ran the complete browser suite. Some tests also relied
+  on an implicit default project and transient activity-log timing.
+- **Correction:** Keep one fast automatic type/build gate. Run the full browser,
+  Vitest, Manifold, bootstrap, and clean-host suite manually at milestones.
+  Give isolated journeys explicit fixtures and wait for the relevant domain
+  state or a bounded operation-specific completion message.
+- **Prevention:** Do not make a broad integration journey an automatic push
+  gate unless its cost and failure scope are proportionate to normal changes.
+- **Evidence:** Local reproduction found 10 passes and three scoped failures;
+  the ESP32 and wiring-route focused journeys passed after the test fixes.
+- **Status:** Resolved in CI policy; the full suite remains available manually.

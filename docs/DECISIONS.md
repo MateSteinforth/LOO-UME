@@ -209,3 +209,13 @@ selection, state, bus, and identity before it succeeds.
 The operator owns power-system design and approval outside this repository.
 The compiler copies authored GPIO, bus, LED-count, and WLED current values and
 does not treat them as electrical safety evidence or a software blocker.
+
+## D29 — Automatic CI is a fast build gate
+
+Normal pushes and pull requests install locked dependencies, verify the
+checked-in WLED runtime, type-check the application, and build the production
+browser bundle. Full Vitest, Chromium, Manifold-generation, stage-zero, and
+clean Linux/macOS setup checks run only from the GitHub Actions **Run workflow**
+action. Run the full suite before a milestone or release, and after a change to
+one of those verification boundaries. This keeps normal implementation fast
+without deleting the broader tests.

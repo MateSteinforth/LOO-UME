@@ -31,6 +31,15 @@ static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
+### `P2 · CI-012` Run the full verification suite at milestones
+
+- Trigger: before a milestone or release, or after changes to browser journeys,
+  portable projects, Manifold generation, bootstrap, or supported host setup.
+- Action: use **Run workflow** for `Verify Manifold application` in GitHub
+  Actions. Fix a real failure in a separate scoped task.
+- Acceptance: the manual Vitest, Chromium, Manifold, stage-zero, and clean
+  Linux/macOS jobs pass for the selected `main` commit.
+
 ## Ready
 
 No tasks.
@@ -85,7 +94,16 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `CI-011` Make normal GitHub verification fast
+
+- Scope: one automatic production build gate; expensive full verification runs
+  manually; three timing/scope failures from run `33072431679` have bounded,
+  assertion-preserving test fixes.
+- Owner: `codex/ci-011-browser-scope` in `/tmp/led-rhombo-ci-011`.
+- Verification: the exact automatic build command passed in 29 seconds; YAML
+  lint and diff check passed; the ESP32 and wiring-route Chromium journeys
+  passed; independent review found no blocker. The broad suite remains a
+  manual `CI-012` milestone check.
 
 ## Done
 

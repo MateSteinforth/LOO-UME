@@ -128,6 +128,7 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   });
   await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded reopened-authored-route.json.",
+    { timeout: 30_000 },
   );
   await expect(page.locator("#route-editor-note")).toContainText("saved authored route");
   await expect(page.locator(".route-panel").first()).toHaveAttribute(
