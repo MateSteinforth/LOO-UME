@@ -116,7 +116,7 @@ controller is a schematic near-top placement derived from the complete current
 route; it is not a second saved wiring authority.
 The populated 41-panel Schema 2 project is the browser default. Empty authoring
 projects remain explicit registry choices.
-The renderer offsets LED sprites 0.9 mm along each panel's outward normal. This
+The renderer offsets LED sprites 2.4 mm along each panel's outward normal. This
 is a display-only separation from the PCB plane; it does not change mapping or
 saved panel poses. The transparent WebGL canvas uses the viewer's radial and
 linear CSS gradient as its world backdrop.

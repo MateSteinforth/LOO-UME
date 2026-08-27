@@ -1296,7 +1296,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Symptom:** LEDs flickered against the PCB plane and remained visible from
   the rear because both surfaces used the same depth.
 - **Cause:** Rendered LED positions used the exact mapped PCB-plane positions.
-- **Correction:** Offset only the rendered LED sprites 0.9 mm along each
+- **Correction:** Offset only the rendered LED sprites 2.4 mm along each
   panel's outward normal. Keep mapping positions and saved poses unchanged.
 - **Prevention:** Use a small display-only normal offset for layered visual
   surfaces. Do not alter physical mapping coordinates to fix z-fighting.

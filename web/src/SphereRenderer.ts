@@ -67,7 +67,7 @@ function createLedSpriteTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas);
 }
 
-const LED_RENDER_OFFSET_MM = 0.9;
+const LED_RENDER_OFFSET_MM = 2.4;
 
 export class SphereRenderer {
   private readonly scene = new THREE.Scene();
@@ -848,8 +848,8 @@ export class SphereRenderer {
     const panelSurfaceMaterial = new THREE.MeshPhongMaterial({
       vertexColors: true,
       side: THREE.DoubleSide,
-      specular: 0x9ab3c4,
-      shininess: 92,
+      specular: 0x657585,
+      shininess: 46,
       transparent: false,
       opacity: 1,
       depthWrite: true,

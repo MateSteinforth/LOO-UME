@@ -92,7 +92,7 @@ No tasks.
   bright red, mutes its other wires, crosses chain boundaries through wire
   navigation, and restores the prior view on exit. The populated 41-panel
   project is the default, the floating cable label is removed, rendered LEDs
-  sit 0.9 mm above the PCB plane, and the viewer has a full-size gradient
+  sit 2.4 mm above the PCB plane, and the viewer has a full-size gradient
   backdrop.
 - Verification: 15 focused unit tests, `npx tsc -b`, diff check, and independent
   review passed. Broad browser tests were not repeated for this visual follow-up.
