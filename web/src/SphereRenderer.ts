@@ -1345,10 +1345,10 @@ export class SphereRenderer {
             material.color.setHex(
               active
                 ? this.tutorialPanelIds ? 0xff2435 : baseColor ?? 0xffffff
-                : 0x56606c,
+                : 0x8290a3,
             );
             material.transparent = !active;
-            material.opacity = active ? 1 : 0.28;
+            material.opacity = active ? 1 : 0.62;
             material.depthWrite = active;
             material.needsUpdate = true;
           }

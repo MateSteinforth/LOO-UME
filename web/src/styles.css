@@ -135,10 +135,10 @@ input[type="checkbox"] {
     linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
     radial-gradient(
       circle at 44% 34%,
-      rgba(82, 126, 158, 0.34),
+      rgba(94, 145, 182, 0.39),
       transparent 48%
     ),
-    linear-gradient(155deg, #172638 0%, #0a121e 48%, #02050a 100%);
+    linear-gradient(155deg, #1a2c40 0%, #0c1523 48%, #02060c 100%);
   background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%;
   background-repeat: repeat, repeat, no-repeat, no-repeat;
 }

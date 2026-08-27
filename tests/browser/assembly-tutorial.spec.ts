@@ -75,7 +75,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-tutorial-muted-material",
-    "56606c,0.28,true,false",
+    "8290a3,0.62,true,false",
   );
   await expect(page.locator(".output-layer-toggle")).toBeChecked();
   await expect(page.locator(".assembly-cable-label")).toHaveCount(0);
