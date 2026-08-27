@@ -163,12 +163,22 @@ export class SphereRenderer {
     );
 
     this.points.renderOrder = 4;
-    const pcbKeyLight = new THREE.DirectionalLight(0xd8efff, 2.1);
-    pcbKeyLight.position.set(180, 220, 260);
-    const pcbFillLight = new THREE.HemisphereLight(0x8aa7bd, 0x06080b, 1.2);
+    const pcbKeyLight = new THREE.DirectionalLight(0xfff1df, 1.75);
+    pcbKeyLight.name = "soft-key-light";
+    pcbKeyLight.position.set(220, 260, 320);
+    const pcbFillLight = new THREE.DirectionalLight(0xa9d5ff, 0.95);
+    pcbFillLight.name = "soft-fill-light";
+    pcbFillLight.position.set(-260, 80, 180);
+    const pcbRimLight = new THREE.DirectionalLight(0xdac8ff, 1.15);
+    pcbRimLight.name = "soft-rim-light";
+    pcbRimLight.position.set(-120, 190, -300);
+    const ambientLight = new THREE.HemisphereLight(0x7899b5, 0x070a0f, 0.72);
+    ambientLight.name = "ambient-world-light";
     this.scene.add(
       pcbKeyLight,
       pcbFillLight,
+      pcbRimLight,
+      ambientLight,
       this.panelLayer,
       this.boundaryPreviewLayer,
       this.printableLayer,
