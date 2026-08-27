@@ -334,12 +334,35 @@ input[type="checkbox"] {
 
 .animation-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0 8px;
+  gap: 8px;
 }
 
-.animation-controls .slider-field {
-  grid-column: 1 / -1;
+.animation-select-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.animation-select-row .field {
+  margin: 0;
+}
+
+.animation-select-stepper {
+  display: grid;
+  grid-template-columns: repeat(2, 32px);
+  gap: 4px;
+}
+
+.animation-select-stepper button {
+  width: 32px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid rgba(57, 217, 208, 0.28);
+  border-radius: 5px;
+  color: #d9fffb;
+  background: rgba(57, 217, 208, 0.1);
+  font: 750 16px/1 "SFMono-Regular", Consolas, monospace;
 }
 
 .assembly-tutorial--workflow {
@@ -352,7 +375,8 @@ input[type="checkbox"] {
   background: rgba(255, 139, 69, 0.025);
 }
 
-.workflow-export__primary {
+.pipeline-button.workflow-export__primary {
+  width: min(220px, calc(100% - 42px));
   min-height: 44px;
   margin-top: 14px;
   font-size: 11px;

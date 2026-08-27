@@ -279,8 +279,20 @@ app.innerHTML = `
             <button id="route-action" class="editor-button" type="button">Edit suggested route</button>
           </section>
           <div class="animation-controls">
-            <label class="field"><span>Effect</span><select id="effect"></select></label>
-            <label class="field"><span>Palette</span><select id="palette"></select></label>
+            <div class="animation-select-row">
+              <label class="field"><span>Effect</span><select id="effect"></select></label>
+              <div class="animation-select-stepper" aria-label="Cycle effects">
+                <button id="previous-effect" type="button" aria-label="Previous effect">−</button>
+                <button id="next-effect" type="button" aria-label="Next effect">+</button>
+              </div>
+            </div>
+            <div class="animation-select-row">
+              <label class="field"><span>Palette</span><select id="palette"></select></label>
+              <div class="animation-select-stepper" aria-label="Cycle palettes">
+                <button id="previous-palette" type="button" aria-label="Previous palette">−</button>
+                <button id="next-palette" type="button" aria-label="Next palette">+</button>
+              </div>
+            </div>
             <label class="field slider-field">
               <span>Speed <output id="speed-value">128</output></span>
               <input id="speed" type="range" min="0" max="255" value="128" />
@@ -456,6 +468,10 @@ const query = <T extends Element>(selector: string): T => {
 const viewerElement = query<HTMLDivElement>("#viewer");
 const effectSelect = query<HTMLSelectElement>("#effect");
 const paletteSelect = query<HTMLSelectElement>("#palette");
+const previousEffectButton = query<HTMLButtonElement>("#previous-effect");
+const nextEffectButton = query<HTMLButtonElement>("#next-effect");
+const previousPaletteButton = query<HTMLButtonElement>("#previous-palette");
+const nextPaletteButton = query<HTMLButtonElement>("#next-palette");
 const speedInput = query<HTMLInputElement>("#speed");
 const speedValue = query<HTMLOutputElement>("#speed-value");
 const intensityInput = query<HTMLInputElement>("#intensity");
@@ -1931,10 +1947,20 @@ async function start(): Promise<void> {
       resetTimeline();
       scheduleStandaloneSave();
     });
+    const cycleSelect = (select: HTMLSelectElement, direction: -1 | 1): void => {
+      const optionCount = select.options.length;
+      if (optionCount === 0) return;
+      select.selectedIndex = (select.selectedIndex + direction + optionCount) % optionCount;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    previousEffectButton.addEventListener("click", () => cycleSelect(effectSelect, -1));
+    nextEffectButton.addEventListener("click", () => cycleSelect(effectSelect, 1));
     paletteSelect.addEventListener("change", () => {
       engine.setPalette(Number(paletteSelect.value));
       scheduleStandaloneSave();
     });
+    previousPaletteButton.addEventListener("click", () => cycleSelect(paletteSelect, -1));
+    nextPaletteButton.addEventListener("click", () => cycleSelect(paletteSelect, 1));
     speedInput.addEventListener("input", () => {
       speedValue.value = speedInput.value;
       engine.setSpeed(Number(speedInput.value));
