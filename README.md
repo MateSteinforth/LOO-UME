@@ -28,6 +28,16 @@ commands with the managed runtime.
 The local production server listens on `127.0.0.1:4173` by default. Use
 `ORBITAL_LAB_PORT` to select another port.
 
+For a laptop or phone on the same local network, run:
+
+```bash
+npm run lan
+```
+
+This starts Vite on all network interfaces. It uses the first free port at or
+above 4175 and prints the LAN URL. Stop it with `Ctrl+C`. To start the search
+at another port, use `npm run lan -- 4180`.
+
 For a temporary phone review link:
 
 ```bash

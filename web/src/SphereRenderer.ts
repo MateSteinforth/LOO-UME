@@ -127,6 +127,7 @@ export class SphereRenderer {
   private tutorialPanelIds: Set<string> | null = null;
   private tutorialActivePanelIds = new Set<string>();
   private tutorialOutputIndex: number | null = null;
+  private tutorialConnectionIndex: number | null = null;
   private tutorialAutoRotate: boolean | null = null;
   private tutorialLayerState: TutorialLayerState | null = null;
 
@@ -550,12 +551,17 @@ export class SphereRenderer {
 
   setConnectorLayerVisible(visible: boolean): void {
     if (this.tutorialLayerState) this.tutorialLayerState.connector = visible;
-    this.connectorLayer.visible = this.tutorialPanelIds ? true : visible;
+    this.connectorLayer.visible = visible;
+    this.container.dataset.connectorLayerVisible = String(visible);
   }
 
   setWiringLayerVisible(visible: boolean): void {
     if (this.tutorialLayerState) this.tutorialLayerState.wiring = visible;
-    this.wiringLayer.visible = this.tutorialPanelIds ? true : visible;
+    this.wiringLayer.visible = visible;
+    this.container.dataset.wiringLayerVisible = String(visible);
+    if (this.tutorialPanelIds) {
+      this.applyTutorialConnectionVisibility(this.tutorialConnectionIndex);
+    }
   }
 
   setOutputVisible(outputIndex: number, visible: boolean): void {
@@ -591,6 +597,7 @@ export class SphereRenderer {
       };
     }
     this.tutorialOutputIndex = chain.outputIndex;
+    this.tutorialConnectionIndex = connectionIndex;
     this.tutorialPanelIds = new Set(chain.panels.map((panel) => panel.id));
     const connection = connectionIndex === null
       ? null
@@ -616,8 +623,6 @@ export class SphereRenderer {
     this.disposeTutorialLabels();
     this.boundaryPreviewLayer.visible = false;
     this.printableLayer.visible = true;
-    this.connectorLayer.visible = true;
-    this.wiringLayer.visible = true;
     this.surfacePlacement.setInteractionEnabled(false);
     this.controls.autoRotate = false;
     this.container.dataset.autoRotate = "false";
@@ -1398,8 +1403,15 @@ export class SphereRenderer {
         ) {
           restoredConnections += 1;
         }
-        if (group.visible && child.visible) visibleConnections += 1;
-        if (this.tutorialPanelIds && group.visible && !active) {
+        if (this.wiringLayer.visible && group.visible && child.visible) {
+          visibleConnections += 1;
+        }
+        if (
+          this.tutorialPanelIds &&
+          this.wiringLayer.visible &&
+          group.visible &&
+          !active
+        ) {
           mutedConnections += 1;
         }
       }
@@ -1435,6 +1447,7 @@ export class SphereRenderer {
     this.tutorialPanelIds = null;
     this.tutorialActivePanelIds.clear();
     this.tutorialOutputIndex = null;
+    this.tutorialConnectionIndex = null;
     for (const label of this.panelLabels) {
       label.element.textContent = label.element.dataset.panelId ?? "";
       label.element.classList.remove("panel-label--tutorial-active");

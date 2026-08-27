@@ -332,3 +332,8 @@ For a phone review link, run `npm run preview:phone` from the repository root.
 It creates a temporary Cloudflare quick-tunnel URL and verifies the public HTML,
 sculpture JSON, JavaScript, and WLED WASM endpoints. Call it a review link, not a
 deployment; do not substitute a `localhost` URL.
+
+For review from another device on the same LAN, run `npm run lan` from the
+repository root. It binds Vite to all interfaces, selects the first free port at
+or above 4175, and prints the LAN URL. Use this command directly; do not rebuild
+the host and port command by hand.

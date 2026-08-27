@@ -33,7 +33,26 @@ static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-No tasks.
+### `P1 · LIVE-010` Bridge MadMapper Art-Net into the mapped WLED DDP output
+
+- Scope: add a local Advanced Tools bridge that receives bounded Art-Net from
+  MadMapper, applies the active Schema 2 logical-to-physical mapping, and sends
+  the result through the existing verified DDP path while WLED remains in DDP
+  mode.
+- First slice: three panels / 192 RGB LEDs / two Art-Net universes, with an
+  exported MadMapper fixture-address plan, selected sender and LAN interface,
+  Start/Stop controls, universe/FPS/status diagnostics, and standalone-preset
+  fallback after input timeout.
+- Acceptance: reject wrong senders, universes, pixel counts, stale projects,
+  incomplete frames, and unsafe targets without forwarding; project changes
+  stop the bridge. Preserve exact color order and address parity. The protocol
+  contract must scale to 2,624 LEDs / 16 universes without using WLED's Art-Net
+  input.
+- Dependencies: existing local desktop server, Schema 2 mapping compiler, and
+  bounded DDP sender. No hardware or external API dependency blocks the
+  three-panel slice.
+- Conflict risk: local server lifecycle, `scripts/esp32-device-handler.ts`,
+  `web/src/Esp32Setup.ts`, `web/src/main.ts`, and Advanced Tools controls.
 
 ## In Progress
 
@@ -85,7 +104,15 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `UI-021` Keep wiring layer toggles active during chain isolation
+
+- Result: DIN/DOUT and panel-wiring switches immediately control their scene
+  layers during isolation, survive chain navigation, and remain selected after
+  tutorial exit.
+- Verification: focused Chromium journey, `npx tsc -b`, diff check, and
+  independent review passed.
+- Owner: `codex/ui-021-tutorial-layer-toggles` in
+  `/tmp/led-rhombo-ui-021`.
 
 ## Done
 

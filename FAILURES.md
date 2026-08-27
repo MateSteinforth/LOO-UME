@@ -1318,3 +1318,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Registry and project-loader checks plus the focused browser
   tutorial journey.
 - **Status:** Resolved.
+
+### F-072 — Assembly isolation ignored the wiring layer switches
+
+- **Date:** 2026-08-27
+- **Context:** UI-021 assembly tutorial controls.
+- **Symptom:** The DIN/DOUT and panel-wiring checkboxes changed state during
+  chain isolation, but the corresponding scene layers stayed visible.
+- **Cause:** Tutorial rendering forced both parent layers visible and treated
+  the checkbox values only as state to restore after exit.
+- **Correction:** Apply both switches immediately during isolation and update
+  the tutorial's stored exit state at the same time.
+- **Prevention:** Temporary view modes can constrain child content, but active
+  global visibility controls must remain authoritative.
+- **Evidence:** A focused browser regression toggles both layers during
+  isolation and checks effective wire visibility.
+- **Status:** Resolved.
