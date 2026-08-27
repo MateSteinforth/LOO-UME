@@ -3,9 +3,11 @@ import {
   mkdir,
   readdir,
   readFile,
+  rename,
   rm,
 } from "node:fs/promises";
 import { resolve } from "node:path";
+import { randomUUID } from "node:crypto";
 
 const rootDirectory = process.cwd();
 const sourceDirectory = resolve(rootDirectory, "sculptures");
@@ -41,10 +43,48 @@ async function copyTree(source, destination) {
       if (entry.isDirectory()) {
         await copyTree(sourcePath, destinationPath);
       } else if (entry.isFile()) {
-        await copyFile(sourcePath, destinationPath);
+        const temporaryPath = `${destinationPath}.stage-${process.pid}-${randomUUID()}`;
+        try {
+          await copyFile(sourcePath, temporaryPath);
+          await rename(temporaryPath, destinationPath);
+        } finally {
+          await rm(temporaryPath, { force: true });
+        }
       }
     }),
   );
+}
+
+function isStagingSibling(name) {
+  return /\.stage-\d+-[0-9a-f-]+$/i.test(name);
+}
+
+async function pruneTree(source, destination) {
+  const [sourceEntries, destinationEntries] = await Promise.all([
+    readdir(source, { withFileTypes: true }),
+    readdir(destination, { withFileTypes: true }),
+  ]);
+  const sourceByName = new Map(sourceEntries.map((entry) => [entry.name, entry]));
+  await Promise.all(destinationEntries.map(async (entry) => {
+    if (isStagingSibling(entry.name)) return;
+    const sourceEntry = sourceByName.get(entry.name);
+    const destinationPath = resolve(destination, entry.name);
+    if (!sourceEntry) {
+      await rm(destinationPath, { recursive: true, force: true });
+      return;
+    }
+    if (entry.isDirectory() && sourceEntry.isDirectory()) {
+      await pruneTree(resolve(source, entry.name), destinationPath);
+    }
+  }));
+}
+
+async function pruneTopLevelDirectories(destination, retainedNames) {
+  const entries = await readdir(destination, { withFileTypes: true });
+  await Promise.all(entries.map(async (entry) => {
+    if (isStagingSibling(entry.name) || retainedNames.has(entry.name)) return;
+    await rm(resolve(destination, entry.name), { recursive: true, force: true });
+  }));
 }
 
 const registry = JSON.parse(
@@ -59,16 +99,13 @@ if (
 }
 
 await Promise.all([
-  rm(publicCatalogDirectory, { recursive: true, force: true }),
-  rm(publicSculptureDirectory, { recursive: true, force: true }),
-  rm(publicCadDirectory, { recursive: true, force: true }),
-  rm(publicPreviewDirectory, { recursive: true, force: true }),
-]);
-await Promise.all([
   copyTree(sourceDirectory, publicSculptureDirectory),
   copyTree(catalogDirectory, publicCatalogDirectory),
+  mkdir(publicCadDirectory, { recursive: true }),
+  mkdir(publicPreviewDirectory, { recursive: true }),
 ]);
 
+const stagedArtifactIds = new Set();
 for (const sculpture of registry.sculptures) {
   if (
     typeof sculpture.id !== "string" ||
@@ -83,16 +120,28 @@ for (const sculpture of registry.sculptures) {
     sculpture.artifactStatus === "authoring-only" ||
     sculpture.artifactStatus === "manual-parts"
   ) continue;
+  stagedArtifactIds.add(sculpture.id);
   const sculptureArtifacts = resolve(artifactDirectory, sculpture.id);
-  await copyTree(
-    resolve(sculptureArtifacts, "3d"),
-    resolve(publicCadDirectory, sculpture.id),
-  );
-  await copyTree(
-    resolve(sculptureArtifacts, "previews"),
-    resolve(publicPreviewDirectory, sculpture.id),
-  );
+  const cadSource = resolve(sculptureArtifacts, "3d");
+  const cadDestination = resolve(publicCadDirectory, sculpture.id);
+  const previewSource = resolve(sculptureArtifacts, "previews");
+  const previewDestination = resolve(publicPreviewDirectory, sculpture.id);
+  await Promise.all([
+    copyTree(cadSource, cadDestination),
+    copyTree(previewSource, previewDestination),
+  ]);
+  await Promise.all([
+    pruneTree(cadSource, cadDestination),
+    pruneTree(previewSource, previewDestination),
+  ]);
 }
+
+await Promise.all([
+  pruneTree(sourceDirectory, publicSculptureDirectory),
+  pruneTree(catalogDirectory, publicCatalogDirectory),
+  pruneTopLevelDirectories(publicCadDirectory, stagedArtifactIds),
+  pruneTopLevelDirectories(publicPreviewDirectory, stagedArtifactIds),
+]);
 
 console.log(
   "Staged " +

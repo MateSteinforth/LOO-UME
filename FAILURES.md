@@ -1372,3 +1372,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Focused camera-policy tests, TypeScript, and the production Vite
   build.
 - **Status:** Resolved.
+
+### F-075 — Concurrent staging removed files from a running LAN preview
+
+- **Date:** 2026-08-27
+- **Context:** A focused browser run staged public project files while the
+  operator used `npm run lan` from the same checkout.
+- **Symptom:** The running Vite server returned its HTML fallback for an
+  existing panel-profile JSON URL, and project loading stopped.
+- **Cause:** The staging script deleted complete public directories before it
+  copied their replacements. Other repository processes could read during that
+  gap.
+- **Correction:** Keep live public directories in place. Copy each source file
+  to a unique sibling and atomically rename it over the destination.
+- **Prevention:** Shared-worktree staging must not remove a resource tree that
+  another local server can be serving.
+- **Evidence:** The authored and staged profile existed with identical sizes;
+  the failure occurred while a second staging process ran.
+- **Status:** Resolved.
