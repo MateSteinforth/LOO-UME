@@ -72,6 +72,7 @@ function createLedSpriteTexture(): THREE.CanvasTexture {
 }
 
 const LED_RENDER_OFFSET_MM = 2.4;
+const LED_DISPLAY_INTENSITY = 2;
 
 export class SphereRenderer {
   private readonly scene = new THREE.Scene();
@@ -226,9 +227,9 @@ export class SphereRenderer {
       this.baseLedPositions[offset] = x;
       this.baseLedPositions[offset + 1] = y;
       this.baseLedPositions[offset + 2] = z;
-      colors[offset] = 0.04;
-      colors[offset + 1] = 0.08;
-      colors[offset + 2] = 0.12;
+      colors[offset] = 0.04 * LED_DISPLAY_INTENSITY;
+      colors[offset + 1] = 0.08 * LED_DISPLAY_INTENSITY;
+      colors[offset + 2] = 0.12 * LED_DISPLAY_INTENSITY;
       this.baseLedColors[offset] = 0.04;
       this.baseLedColors[offset + 1] = 0.08;
       this.baseLedColors[offset + 2] = 0.12;
@@ -299,7 +300,12 @@ export class SphereRenderer {
         entry.panelId,
         this.tutorialPanelIds ? null : this.selectedPanelId,
       );
-      attribute.setXYZ(physical, display.r, display.g, display.b);
+      attribute.setXYZ(
+        physical,
+        display.r * LED_DISPLAY_INTENSITY,
+        display.g * LED_DISPLAY_INTENSITY,
+        display.b * LED_DISPLAY_INTENSITY,
+      );
     }
     attribute.needsUpdate = true;
   }
@@ -857,8 +863,8 @@ export class SphereRenderer {
     const panelSurfaceMaterial = new THREE.MeshPhongMaterial({
       vertexColors: true,
       side: THREE.DoubleSide,
-      specular: 0x657585,
-      shininess: 46,
+      specular: 0x4a5663,
+      shininess: 30,
       transparent: false,
       opacity: 1,
       depthWrite: true,
@@ -1529,7 +1535,12 @@ export class SphereRenderer {
         entry.panelId,
         this.tutorialPanelIds ? null : this.selectedPanelId,
       );
-      attribute.setXYZ(physical, display.r, display.g, display.b);
+      attribute.setXYZ(
+        physical,
+        display.r * LED_DISPLAY_INTENSITY,
+        display.g * LED_DISPLAY_INTENSITY,
+        display.b * LED_DISPLAY_INTENSITY,
+      );
     }
     attribute.needsUpdate = true;
   }
