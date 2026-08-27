@@ -1233,3 +1233,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The assembly-tutorial Chromium journey completes with no page or
   console errors.
 - **Status:** Resolved.
+
+### F-067 — Back-view connector labels used front-side geometry
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 physical assembly review.
+- **Symptom:** DIN and DOUT labels said `back view`, but the marker and cable
+  endpoints were offset along the outward panel normal and appeared in front
+  of the PCB.
+- **Cause:** `connectorPosition()` used the correct back-view X/Y corner
+  convention but applied a positive surface-normal offset.
+- **Correction:** Apply the connector surface offset opposite the outward
+  normal. Use that shared wiring preview for both normal wiring layers and the
+  interactive assembly steps.
+- **Prevention:** A connector reference-view label must agree with its signed
+  normal offset. Test both the local corner signs and the normal-side sign.
+- **Evidence:** The 41-panel wiring contract test now requires both DIN and
+  DOUT to have a negative local-normal component.
+- **Status:** Resolved.

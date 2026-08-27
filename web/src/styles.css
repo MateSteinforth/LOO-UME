@@ -256,6 +256,23 @@ input[type="checkbox"] {
   transform: translateY(-14px);
 }
 
+.wiring-controller-label,
+.wiring-controller-pin-label {
+  display: block;
+  padding: 4px 7px;
+  border: 1px solid rgba(57, 217, 208, 0.55);
+  border-radius: 4px;
+  color: #d9fffb;
+  background: rgba(7, 16, 22, 0.9);
+  font: 750 9px/1.2 "SFMono-Regular", Consolas, monospace;
+  white-space: nowrap;
+}
+
+.wiring-controller-pin-label {
+  color: #fff4a8;
+  border-color: rgba(255, 244, 168, 0.55);
+}
+
 .control-panel {
   z-index: 3;
   min-height: 0;
@@ -270,6 +287,12 @@ input[type="checkbox"] {
 .control-section {
   padding: 20px;
   border-bottom: 1px solid var(--line);
+}
+
+.assembly-tutorial {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(57, 217, 208, 0.18);
 }
 
 .assembly-tutorial__warning,

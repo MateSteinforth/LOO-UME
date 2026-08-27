@@ -1,8 +1,9 @@
-import type { Vector3Data } from "./LedMapping.ts";
+import type { PanelDefinition, Vector3Data } from "./LedMapping.ts";
 import type {
   WiringPanelNode,
   WiringPreview,
 } from "./WiringPreview.ts";
+import { createWiringControllerLayout } from "./WiringPreview.ts";
 
 export type AssemblyTutorialRouteStatus =
   | "exact"
@@ -30,10 +31,29 @@ export interface AssemblyTutorialChain {
   gpio: number | null;
   color: number;
   cssColor: string;
+  controllerPosition: Vector3Data | null;
   routeStatus: AssemblyTutorialRouteStatus;
   routeWarning: string;
   panels: AssemblyTutorialPanel[];
   connections: AssemblyTutorialConnection[];
+}
+
+export interface TutorialBackViewFrame {
+  cameraDirection: Vector3Data;
+  cameraUp: Vector3Data;
+}
+
+export function tutorialBackViewFrame(
+  panel: Pick<PanelDefinition, "normal" | "yAxis">,
+): TutorialBackViewFrame {
+  return {
+    cameraDirection: {
+      x: -panel.normal.x,
+      y: -panel.normal.y,
+      z: -panel.normal.z,
+    },
+    cameraUp: { ...panel.yAxis },
+  };
 }
 
 export interface AssemblyTutorialModel {
@@ -67,6 +87,10 @@ export function createAssemblyTutorialModel(
     preview.nodes.map((node) => [node.panelId, node]),
   );
   const status = routeStatus(preview);
+  const controllerLayout = createWiringControllerLayout(preview);
+  const controllerPins = new Map(
+    controllerLayout?.pins.map((pin) => [pin.outputIndex, pin.position]) ?? [],
+  );
 
   return {
     chains: preview.outputs.map((output) => {
@@ -96,7 +120,7 @@ export function createAssemblyTutorialModel(
             : `${controller} → ${connectorLabel(node, "DIN")}`,
           fromPanelId: previous?.panelId ?? null,
           toPanelId: node.panelId,
-          start: previous?.dout ?? null,
+          start: previous?.dout ?? controllerPins.get(output.outputIndex) ?? null,
           end: node.din,
         } satisfies AssemblyTutorialConnection;
       });
@@ -106,6 +130,7 @@ export function createAssemblyTutorialModel(
         gpio: output.gpio,
         color: output.color,
         cssColor: output.cssColor,
+        controllerPosition: controllerLayout?.position ?? null,
         routeStatus: status,
         routeWarning: routeWarning(status),
         panels,

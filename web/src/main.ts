@@ -187,7 +187,7 @@ app.innerHTML = `
             </select>
           </label>
           <div id="wiring-layer-controls" class="layer-controls">
-            <div class="layer-controls__heading">Wiring layers</div>
+            <div class="layer-controls__heading">Wiring &amp; assembly</div>
             <label class="toggle-field">
               <input id="connector-layer" type="checkbox" checked />
               <span>Panel DIN / DOUT + direction</span>
@@ -197,32 +197,27 @@ app.innerHTML = `
               <span>Panel-to-panel wiring</span>
             </label>
             <div id="output-layer-list" class="output-layer-list" aria-label="Controller output visibility"></div>
-          </div>
-        </section>
-
-        <section id="assembly-tutorial-section" class="control-section assembly-tutorial">
-          <div class="section-heading">
-            <span>Assembly tutorial</span>
-            <small>data chain</small>
-          </div>
-          <label class="field">
-            <span>Construction chain</span>
-            <select id="assembly-tutorial-chain"></select>
-          </label>
-          <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
-          <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
-            Select a chain to isolate its panels and data cables.
-          </p>
-          <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">
-            Isolate chain
-          </button>
-          <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
-            <output id="assembly-tutorial-step">Overview</output>
-            <div class="assembly-tutorial__actions">
-              <button id="assembly-tutorial-overview" type="button">Overview</button>
-              <button id="assembly-tutorial-previous" type="button">Previous</button>
-              <button id="assembly-tutorial-next" type="button">Next</button>
-              <button id="assembly-tutorial-exit" type="button">Exit tutorial</button>
+            <div id="assembly-tutorial-section" class="assembly-tutorial">
+              <label class="field">
+                <span>Construction chain</span>
+                <select id="assembly-tutorial-chain"></select>
+              </label>
+              <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
+              <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
+                Select a chain to isolate its panels, printed parts, and data cables.
+              </p>
+              <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">
+                Isolate chain
+              </button>
+              <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
+                <output id="assembly-tutorial-step">Overview</output>
+                <div class="assembly-tutorial__actions">
+                  <button id="assembly-tutorial-overview" type="button">Overview</button>
+                  <button id="assembly-tutorial-previous" type="button">Previous</button>
+                  <button id="assembly-tutorial-next" type="button">Next</button>
+                  <button id="assembly-tutorial-exit" type="button">Exit tutorial</button>
+                </div>
+              </div>
             </div>
           </div>
         </section>

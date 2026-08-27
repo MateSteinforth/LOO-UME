@@ -15,6 +15,9 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "No authoring surface is referenced",
   );
   await expect(page.locator("#assembly-tutorial-chain option")).toHaveCount(1);
+  await expect(
+    page.locator("#wiring-layer-controls #assembly-tutorial-section"),
+  ).toBeVisible();
   await expect(page.locator("#assembly-tutorial-warning")).toHaveText(
     "DRAFT ROUTE — save the route before physical assembly.",
   );
@@ -24,6 +27,16 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "Overview · 3 panels",
   );
   await expect(page.locator(".panel-label:visible")).toHaveCount(3);
+  await expect(page.locator(".wiring-controller-label:visible")).toHaveText(
+    "Controller",
+  );
+  await expect(page.locator(".wiring-controller-pin-label:visible")).toHaveText(
+    "Output 1",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-visible-connections",
+    "3",
+  );
   await expect(page.locator(".panel-label:visible").first()).toContainText(
     /\d+ \/ 3 · /,
   );
@@ -37,6 +50,34 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   await expect(page.locator(".assembly-cable-label")).toHaveText(
     "Controller output 1 (GPIO unassigned) → P-02 DIN (top-right, back view)",
   );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-visible-connections",
+    "1",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-view",
+    "back:P-02",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-camera-up",
+    "0.173648,0.000000,0.984808",
+  );
+
+  await page.locator("#assembly-tutorial-overview").evaluate((element) => {
+    (element as HTMLButtonElement).click();
+  });
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-view",
+    "chain-overview",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-visible-connections",
+    "3",
+  );
+
+  await page.locator("#assembly-tutorial-next").evaluate((element) => {
+    (element as HTMLButtonElement).click();
+  });
 
   await page.locator("#assembly-tutorial-next").evaluate((element) => {
     (element as HTMLButtonElement).click();

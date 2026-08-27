@@ -14,7 +14,10 @@ import type {
   SculptureSurfaceFace,
   Vector3Data,
 } from "./LedMapping";
-import type { WiringPreview } from "./WiringPreview";
+import {
+  createWiringControllerLayout,
+  type WiringPreview,
+} from "./WiringPreview";
 import type { EditorCapabilities } from "./EditorCapabilities.ts";
 import type { ClosedPanelBoundary } from "../../src/sculpture/PanelOutlineBoundary.ts";
 import type { VerifiedGeneratedMechanics } from "./GeneratedMechanicsAssets.ts";
@@ -22,6 +25,7 @@ import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts"
 import { createPrintedPlaMaterial } from "./PrintedPlaMaterial.ts";
 import {
   maskedPanelPositions,
+  tutorialBackViewFrame,
   type AssemblyTutorialChain,
 } from "./AssemblyTutorial.ts";
 import {
@@ -42,6 +46,7 @@ interface PanelLabel {
 
 interface TutorialCameraState {
   position: THREE.Vector3;
+  up: THREE.Vector3;
   target: THREE.Vector3;
   minDistance: number;
   maxDistance: number;
@@ -522,7 +527,7 @@ export class SphereRenderer {
 
   setPrintableLayerVisible(visible: boolean): void {
     if (this.tutorialLayerState) this.tutorialLayerState.printable = visible;
-    this.printableLayer.visible = this.tutorialPanelIds ? false : visible;
+    this.printableLayer.visible = this.tutorialPanelIds ? true : visible;
   }
 
   setConnectorLayerVisible(visible: boolean): void {
@@ -555,10 +560,10 @@ export class SphereRenderer {
       return;
     }
     const entering = this.tutorialPanelIds === null;
-    const changingChain = this.tutorialOutputIndex !== chain.outputIndex;
     if (entering) {
       this.tutorialCameraState = {
         position: this.camera.position.clone(),
+        up: this.camera.up.clone(),
         target: this.controls.target.clone(),
         minDistance: this.controls.minDistance,
         maxDistance: this.controls.maxDistance,
@@ -609,15 +614,17 @@ export class SphereRenderer {
       this.tutorialLayer.add(object);
     }
     this.boundaryPreviewLayer.visible = false;
-    this.printableLayer.visible = false;
+    this.printableLayer.visible = true;
     this.connectorLayer.visible = true;
     this.wiringLayer.visible = true;
     this.surfacePlacement.setInteractionEnabled(false);
     this.controls.autoRotate = false;
     this.applyTutorialPanelMask();
     this.applyTutorialOutputVisibility();
+    this.applyTutorialConnectionVisibility(connectionIndex);
     this.applySelectionFocus();
-    if (entering || changingChain) this.fitTutorialChain(chain);
+    if (connection) this.fitTutorialConnection(connection);
+    else this.fitTutorialChain(chain);
   }
 
   dispose(): void {
@@ -1078,6 +1085,66 @@ export class SphereRenderer {
       toneMapped: false,
     });
     const up = new THREE.Vector3(0, 1, 0);
+    const controllerLayout = createWiringControllerLayout(preview);
+    const controllerPins = new Map(
+      controllerLayout?.pins.map((pin) => [pin.outputIndex, pin.position]) ?? [],
+    );
+    if (controllerLayout) {
+      const controller = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          Math.max(38, preview.outputs.length * 9 + 12),
+          16,
+          24,
+        ),
+        createPrintedPlaMaterial(),
+      );
+      controller.name = "wiring-controller";
+      controller.position.copy(this.toThree(controllerLayout.position));
+      controller.renderOrder = 2;
+      this.connectorLayer.add(controller);
+      const label = document.createElement("span");
+      label.className = "wiring-controller-label";
+      label.textContent = "Controller";
+      const labelObject = new CSS2DObject(label);
+      labelObject.position.copy(controller.position).add(new THREE.Vector3(0, 13, 0));
+      this.connectorLayer.add(labelObject);
+    }
+
+    const addCable = (
+      group: THREE.Group,
+      start: THREE.Vector3,
+      end: THREE.Vector3,
+      color: number,
+      connectionIndex: number,
+    ): void => {
+      const connectionGroup = new THREE.Group();
+      connectionGroup.userData.tutorialConnectionIndex = connectionIndex;
+      const midpoint = start.clone().add(end).multiplyScalar(0.5);
+      const outward = midpoint.clone();
+      if (outward.lengthSq() < 1e-8) outward.set(0, 1, 0);
+      outward
+        .normalize()
+        .multiplyScalar(Math.max(start.length(), end.length()) + 16);
+      const curve = new THREE.QuadraticBezierCurve3(start, outward, end);
+      const tube = new THREE.Mesh(
+        new THREE.TubeGeometry(curve, 12, 0.72, 7, false),
+        new THREE.MeshBasicMaterial({ color, toneMapped: false }),
+      );
+      tube.renderOrder = 2;
+      connectionGroup.add(tube);
+      const arrowHead = new THREE.Mesh(
+        new THREE.ConeGeometry(1.8, 4.5, 8),
+        new THREE.MeshBasicMaterial({ color, toneMapped: false }),
+      );
+      arrowHead.position.copy(curve.getPoint(0.78));
+      arrowHead.quaternion.setFromUnitVectors(
+        up,
+        curve.getTangent(0.78).normalize(),
+      );
+      arrowHead.renderOrder = 3;
+      connectionGroup.add(arrowHead);
+      group.add(connectionGroup);
+    };
 
     for (const output of preview.outputs) {
       const connectorGroup = new THREE.Group();
@@ -1105,6 +1172,36 @@ export class SphereRenderer {
         nodes.length,
       );
       const matrix = new THREE.Matrix4();
+      const controllerPin = controllerPins.get(output.outputIndex);
+      if (controllerPin) {
+        const pinPosition = this.toThree(controllerPin);
+        const pin = new THREE.Mesh(
+          new THREE.SphereGeometry(2.4, 14, 10),
+          new THREE.MeshBasicMaterial({ color: output.color, toneMapped: false }),
+        );
+        pin.name = `controller-output-${output.outputIndex + 1}`;
+        pin.position.copy(pinPosition);
+        pin.renderOrder = 3;
+        connectorGroup.add(pin);
+        const pinLabel = document.createElement("span");
+        pinLabel.className = "wiring-controller-pin-label";
+        pinLabel.textContent = output.gpio === null
+          ? `Output ${output.outputIndex + 1}`
+          : `GPIO ${output.gpio}`;
+        const pinLabelObject = new CSS2DObject(pinLabel);
+        pinLabelObject.position.copy(pinPosition).add(new THREE.Vector3(0, -6, 0));
+        connectorGroup.add(pinLabelObject);
+        const firstNode = nodes[0];
+        if (firstNode) {
+          addCable(
+            wiringGroup,
+            pinPosition,
+            this.toThree(firstNode.din),
+            output.color,
+            0,
+          );
+        }
+      }
 
       for (let index = 0; index < nodes.length; index += 1) {
         const node = nodes[index]!;
@@ -1141,38 +1238,7 @@ export class SphereRenderer {
         const next = nodes[index + 1]!;
         const start = this.toThree(current.dout);
         const end = this.toThree(next.din);
-        const midpoint = start.clone().add(end).multiplyScalar(0.5);
-        const outward = midpoint.clone();
-        if (outward.lengthSq() < 1e-8) outward.set(0, 1, 0);
-        outward
-          .normalize()
-          .multiplyScalar(Math.max(start.length(), end.length()) + 16);
-        const curve = new THREE.QuadraticBezierCurve3(start, outward, end);
-        const tube = new THREE.Mesh(
-          new THREE.TubeGeometry(curve, 12, 0.72, 7, false),
-          new THREE.MeshBasicMaterial({
-            color: output.color,
-            toneMapped: false,
-          }),
-        );
-        tube.renderOrder = 2;
-        wiringGroup.add(tube);
-
-        const arrowPosition = curve.getPoint(0.78);
-        const arrowDirection = curve
-          .getTangent(0.78)
-          .normalize();
-        const arrowHead = new THREE.Mesh(
-          new THREE.ConeGeometry(1.8, 4.5, 8),
-          new THREE.MeshBasicMaterial({
-            color: output.color,
-            toneMapped: false,
-          }),
-        );
-        arrowHead.position.copy(arrowPosition);
-        arrowHead.quaternion.setFromUnitVectors(up, arrowDirection);
-        arrowHead.renderOrder = 3;
-        wiringGroup.add(arrowHead);
+        addCable(wiringGroup, start, end, output.color, index + 1);
       }
     }
   }
@@ -1241,6 +1307,25 @@ export class SphereRenderer {
     }
   }
 
+  private applyTutorialConnectionVisibility(
+    connectionIndex: number | null,
+  ): void {
+    let visibleConnections = 0;
+    for (const group of this.wiringOutputLayers.values()) {
+      for (const child of group.children) {
+        const index = child.userData.tutorialConnectionIndex as number | undefined;
+        if (index === undefined) continue;
+        child.visible = connectionIndex === null || index === connectionIndex;
+        if (group.visible && child.visible) visibleConnections += 1;
+      }
+    }
+    if (this.tutorialPanelIds) {
+      this.container.dataset.tutorialVisibleConnections = String(visibleConnections);
+    } else {
+      delete this.container.dataset.tutorialVisibleConnections;
+    }
+  }
+
   private disposeTutorialLabels(): void {
     for (const child of [...this.tutorialLayer.children]) {
       if (child instanceof CSS2DObject) child.element.remove();
@@ -1251,6 +1336,8 @@ export class SphereRenderer {
   private clearAssemblyTutorial(): void {
     if (this.tutorialPanelIds === null) return;
     this.tutorialPanelIds = null;
+    delete this.container.dataset.tutorialView;
+    delete this.container.dataset.tutorialCameraUp;
     this.tutorialActivePanelIds.clear();
     this.tutorialOutputIndex = null;
     for (const label of this.panelLabels) {
@@ -1260,6 +1347,7 @@ export class SphereRenderer {
     this.disposeTutorialLabels();
     this.applyTutorialPanelMask();
     this.applyTutorialOutputVisibility();
+    this.applyTutorialConnectionVisibility(null);
     this.surfacePlacement.setInteractionEnabled(true);
     if (this.tutorialLayerState) {
       this.boundaryPreviewLayer.visible = this.tutorialLayerState.boundary;
@@ -1270,6 +1358,7 @@ export class SphereRenderer {
     }
     if (this.tutorialCameraState) {
       this.camera.position.copy(this.tutorialCameraState.position);
+      this.camera.up.copy(this.tutorialCameraState.up);
       this.controls.target.copy(this.tutorialCameraState.target);
       this.controls.minDistance = this.tutorialCameraState.minDistance;
       this.controls.maxDistance = this.tutorialCameraState.maxDistance;
@@ -1290,16 +1379,56 @@ export class SphereRenderer {
       if (!selected.has(panel.id)) continue;
       for (const corner of this.panelCorners(panel, 0.35)) box.expandByPoint(corner);
     }
+    if (chain.controllerPosition) {
+      box.expandByPoint(this.toThree(chain.controllerPosition));
+    }
+    for (const connection of chain.connections) {
+      if (connection.start) box.expandByPoint(this.toThree(connection.start));
+      box.expandByPoint(this.toThree(connection.end));
+    }
     if (box.isEmpty()) return;
+    box.expandByScalar(16);
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
+    if (this.tutorialCameraState) this.camera.up.copy(this.tutorialCameraState.up);
+    this.fitSphere(sphere, false);
+    this.container.dataset.tutorialView = "chain-overview";
+    delete this.container.dataset.tutorialCameraUp;
+  }
+
+  private fitTutorialConnection(
+    connection: AssemblyTutorialChain["connections"][number],
+  ): void {
+    const panel = this.mapping.panels.find(({ id }) => id === connection.toPanelId);
+    if (!panel) return;
+    const box = new THREE.Box3();
+    for (const corner of this.panelCorners(panel, -0.35)) box.expandByPoint(corner);
+    box.expandByPoint(this.toThree(connection.end));
+    if (connection.start) box.expandByPoint(this.toThree(connection.start));
     const sphere = new THREE.Sphere();
     box.getBoundingSphere(sphere);
     this.fitSphere(sphere, false);
+    const distance = this.camera.position.distanceTo(this.controls.target);
+    this.controls.target.copy(sphere.center);
+    const frame = tutorialBackViewFrame(panel);
+    this.camera.up.copy(this.toThree(frame.cameraUp).normalize());
+    this.camera.position
+      .copy(sphere.center)
+      .addScaledVector(this.toThree(frame.cameraDirection).normalize(), distance);
+    this.controls.update();
+    this.container.dataset.tutorialView = `back:${panel.id}`;
+    this.container.dataset.tutorialCameraUp = [
+      this.camera.up.x,
+      this.camera.up.y,
+      this.camera.up.z,
+    ].map((value) => value.toFixed(6)).join(",");
   }
 
   private disposeGroup(group: THREE.Group): void {
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
     group.traverse((object) => {
+      if (object instanceof CSS2DObject) object.element.remove();
       if (
         object instanceof THREE.Mesh ||
         object instanceof THREE.Line ||

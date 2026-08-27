@@ -5,6 +5,7 @@ import {
 } from "../web/src/LedMapping.ts";
 import {
   createProvisionalWiringPreview,
+  createWiringControllerLayout,
   validateWiringPreview,
 } from "../web/src/WiringPreview.ts";
 import {
@@ -76,6 +77,11 @@ describe("provisional wiring preview", () => {
     expect(routedPanelIds).toHaveLength(41);
     expect(new Set(routedPanelIds).size).toBe(41);
     expect(preview.nodes).toHaveLength(41);
+    const controller = createWiringControllerLayout(preview)!;
+    expect(controller.pins).toHaveLength(4);
+    expect(controller.position.y).toBeGreaterThan(
+      Math.max(...preview.nodes.flatMap((node) => [node.din.y, node.dout.y])),
+    );
 
     for (const node of preview.nodes) {
       const panel = mapping.panels.find(
@@ -107,6 +113,8 @@ describe("provisional wiring preview", () => {
       expect(local(dinRelative, panel.yAxis)).toBeGreaterThan(0);
       expect(local(doutRelative, panel.xAxis)).toBeLessThan(0);
       expect(local(doutRelative, panel.yAxis)).toBeLessThan(0);
+      expect(local(dinRelative, panel.normal)).toBeLessThan(0);
+      expect(local(doutRelative, panel.normal)).toBeLessThan(0);
       expect(node.connectorReferenceView).toBe("back");
       expect(node.dinCorner).toBe("top-right");
       expect(node.doutCorner).toBe("bottom-left");

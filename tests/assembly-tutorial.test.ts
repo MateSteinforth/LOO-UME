@@ -5,6 +5,7 @@ import { createUniformSphereMapping } from "../web/src/LedMapping.ts";
 import {
   createAssemblyTutorialModel,
   maskedPanelPositions,
+  tutorialBackViewFrame,
 } from "../web/src/AssemblyTutorial.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
@@ -44,10 +45,33 @@ describe("Schema 2 assembly tutorial", () => {
     expect(model.chains[0]!.connections[0]!.instruction).toBe(
       "Controller GPIO 16 → SQ-03 DIN (top-right, back view)",
     );
+    expect(model.chains[0]!.connections[0]!.start).not.toBeNull();
     expect(model.chains[0]!.connections[1]!.instruction).toBe(
       "SQ-03 DOUT (bottom-left, back view) → SQ-04 DIN (top-right, back view)",
     );
     expect(model.chains.flatMap((chain) => chain.panels)).toHaveLength(41);
+    expect(new Set(
+      model.chains.map((chain) => JSON.stringify(chain.controllerPosition)),
+    ).size).toBe(1);
+    expect(new Set(
+      model.chains.map((chain) => JSON.stringify(chain.connections[0]!.start)),
+    ).size).toBe(4);
+  });
+
+  it("uses the saved panel frame for an arbitrary 6DOF back view", () => {
+    const frame = tutorialBackViewFrame({
+      normal: { x: 0.36, y: -0.48, z: 0.8 },
+      yAxis: { x: 0.8, y: 0.6, z: 0 },
+    });
+    expect(frame).toEqual({
+      cameraDirection: { x: -0.36, y: 0.48, z: -0.8 },
+      cameraUp: { x: 0.8, y: 0.6, z: 0 },
+    });
+    const dot =
+      frame.cameraDirection.x * frame.cameraUp.x +
+      frame.cameraDirection.y * frame.cameraUp.y +
+      frame.cameraDirection.z * frame.cameraUp.z;
+    expect(dot).toBeCloseTo(0, 12);
   });
 
   it("supports an arbitrary draft Schema 2 project without inventing a GPIO", async () => {

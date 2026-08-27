@@ -106,8 +106,11 @@ assembly-package bytes, renderer state, route editing, mapping, and Manifold
 runtime handling.
 `AssemblyTutorial.ts` is a stateless view model over `WiringPreview`; it adds no
 saved route or tutorial state. `SphereRenderer.ts` applies its temporary panel
-visibility mask, cable label, and camera fit, then restores the prior editor
-view when the tutorial exits.
+visibility mask, reuses the normal back-side connector and cable layers, shows
+one controller pin connection at a time, keeps referenced printable assets
+visible, and restores the prior editor view when the tutorial exits. The
+controller is a schematic near-top placement derived from the complete current
+route; it is not a second saved wiring authority.
 Surface mode keeps the established constrained move and local-Z rotation.
 Free 6DOF mode uses local translation and rotation controls, writes one
 right-handed pose, and removes the old surface attachment. Structural downloads

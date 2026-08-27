@@ -112,18 +112,26 @@ The operator can use it only after Edit suggested route and Save route.
 
 ## Interactive data-chain tutorial
 
-The browser assembly tutorial derives its chain selector and every connection
-label from the current Schema 2 wiring preview. It can isolate one output,
-fit the camera to those panels, show the complete data path, and step from the
-controller-to-DIN connection through each DOUT-to-DIN cable. Panel labels show
-their one-based position in the selected chain. The tutorial is view-only: it
-does not change poses, routes, mapping, mechanics, or saved project data.
+The browser **Wiring & assembly** control derives its chain selector and every
+connection label from the same Schema 2 wiring preview used by the normal
+wiring layers. It can isolate one output, fit the camera to those panels, show
+the complete data path, and then show one controller-to-DIN or DOUT-to-DIN
+cable at a time. A schematic controller sits above the sculpture and labels
+each output pin. DIN, DOUT, and cable endpoints are placed behind each PCB in
+the profile's back-view convention. Each cable step uses the destination
+panel's saved normal and local Y axis to show an upright back view. Panel labels show their one-based position
+in the selected chain. The tutorial is view-only: it does not change poses,
+routes, mapping, mechanics, or saved project data.
 
 Authored routes are shown as saved data routes. Draft and review-required
 routes remain inspectable but keep a visible warning that they must be saved or
 reviewed before physical assembly. Missing GPIOs remain explicitly unassigned.
 The tutorial describes data cables only; it does not infer a power-distribution
 route that is absent from Schema 2.
+Current referenced printable assets remain visible during chain isolation. A
+Schema 2 project with no `generatedMechanics` or `generatedStructure` references
+has no printable geometry for the tutorial to show. The 41-panel project is
+currently in that pose-and-wiring-only state.
 
 ## Printable assembly-manual export
 
