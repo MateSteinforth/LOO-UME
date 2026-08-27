@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  automaticEsp32ReconnectAvailable,
   assertApprovedEsp32Chip,
   assertApprovedImprovIdentity,
   assertApprovedSerialDevice,
@@ -30,6 +31,8 @@ import {
   resolveVerifiedWledAddress,
   retryExistingSimulatorDiscovery,
   reopenApprovedSerialPort,
+  rememberAutomaticEsp32Reconnect,
+  retainAutomaticReconnectEligibility,
   runCombinedClassicReset,
   runCombinedHardReset,
   sendSimulatorFramebuffer,
@@ -70,6 +73,54 @@ describe("guarded ESP32 setup contracts", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  it("enables automatic reconnect only after setup or prior CP2102 permission", async () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    };
+    const noPorts = { getPorts: async () => [] as SerialPort[] };
+    await expect(automaticEsp32ReconnectAvailable(storage, noPorts)).resolves.toBe(false);
+    await expect(automaticEsp32ReconnectAvailable(undefined, noPorts)).resolves.toBe(false);
+
+    const approvedPort = {
+      getInfo: () => ({ usbVendorId: 0x10c4, usbProductId: 0xea60 }),
+    } as SerialPort;
+    await expect(automaticEsp32ReconnectAvailable(storage, {
+      getPorts: async () => [approvedPort],
+    })).resolves.toBe(true);
+
+    rememberAutomaticEsp32Reconnect(storage);
+    await expect(automaticEsp32ReconnectAvailable(storage)).resolves.toBe(true);
+    await expect(automaticEsp32ReconnectAvailable({
+      getItem: () => {
+        throw new Error("storage blocked");
+      },
+      setItem: () => undefined,
+    }, {
+      getPorts: async () => {
+        throw new Error("serial blocked");
+      },
+    })).resolves.toBe(false);
+    expect(retainAutomaticReconnectEligibility(true, false)).toBe(true);
+    expect(retainAutomaticReconnectEligibility(false, false)).toBe(false);
+    expect(retainAutomaticReconnectEligibility(false, true)).toBe(true);
+
+    let resolvePorts!: (ports: SerialPort[]) => void;
+    const delayedEligibility = automaticEsp32ReconnectAvailable(undefined, {
+      getPorts: () => new Promise((resolve) => {
+        resolvePorts = resolve;
+      }),
+    });
+    let enabledByCompletedSetup = true;
+    resolvePorts([]);
+    enabledByCompletedSetup = retainAutomaticReconnectEligibility(
+      enabledByCompletedSetup,
+      await delayedEligibility,
+    );
+    expect(enabledByCompletedSetup).toBe(true);
   });
 
   it("accepts only the measured CP2102 and classic ESP32/WLED identity", () => {

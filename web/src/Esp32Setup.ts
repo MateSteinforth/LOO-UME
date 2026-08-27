@@ -3,6 +3,7 @@ import type { FlashOptions } from "esptool-js";
 import { WLED_FIRMWARE_BUILD_RECEIPT as firmwareReceipt } from "../../src/wled/DeploymentContract.ts";
 
 const CP2102_FILTER = { usbVendorId: 0x10c4, usbProductId: 0xea60 };
+export const AUTOMATIC_RECONNECT_STORAGE_KEY = "loo-ume:esp32-reconnect-enabled";
 const SETUP_HOSTNAME = "loo-ume";
 const REQUEST_TIMEOUT_MS = 10_000;
 const WLED_COLOR_GAMMA = 2.2;
@@ -53,10 +54,49 @@ interface AuthorizedSerialPorts {
   getPorts(): Promise<SerialPort[]>;
 }
 
+type ReconnectStorage = Pick<Storage, "getItem" | "setItem">;
+
 function isApprovedCp2102(port: SerialPort): boolean {
   const info = port.getInfo();
   return info.usbVendorId === CP2102_FILTER.usbVendorId &&
     info.usbProductId === CP2102_FILTER.usbProductId;
+}
+
+export async function automaticEsp32ReconnectAvailable(
+  storage?: ReconnectStorage,
+  serial?: AuthorizedSerialPorts,
+): Promise<boolean> {
+  if (storage) {
+    try {
+      if (storage.getItem(AUTOMATIC_RECONNECT_STORAGE_KEY) === "1") return true;
+    } catch {
+      // Storage can be unavailable in a private or restricted browser context.
+    }
+  }
+  if (!serial) return false;
+  try {
+    return (await serial.getPorts()).some(isApprovedCp2102);
+  } catch {
+    return false;
+  }
+}
+
+export function rememberAutomaticEsp32Reconnect(
+  storage?: ReconnectStorage,
+): void {
+  if (!storage) return;
+  try {
+    storage.setItem(AUTOMATIC_RECONNECT_STORAGE_KEY, "1");
+  } catch {
+    // A successful current link remains usable even when storage is blocked.
+  }
+}
+
+export function retainAutomaticReconnectEligibility(
+  current: boolean,
+  discovered: boolean,
+): boolean {
+  return current || discovered;
 }
 
 export async function assertSingleAuthorizedCp2102(

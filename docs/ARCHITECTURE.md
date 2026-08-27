@@ -176,7 +176,10 @@ native and DDP pixels therefore use the same output color pipeline. This is a
 bounded test-sculpture link for the loaded sculpture.
 After a page reload, the link reconnects only if the fixed mDNS name, private
 IP, MAC, ESP32 identity, LED count, and complete persisted loaded bus set still
-match. A panel pose edit intentionally changes the spatial ledmap but not the
+match. Automatic discovery starts only after this browser origin completed a
+successful setup/link or still has permission for the approved CP2102. A
+hardware-free browser does not probe `loo-ume.local`. A panel pose edit
+intentionally changes the spatial ledmap but not the
 physical route or bus layout. After identity and bus verification, reconnect
 uploads that valid changed map, activates map 0 through the WLED state API,
 verifies the active map and exact stored bytes, and only then updates the
