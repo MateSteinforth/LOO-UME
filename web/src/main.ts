@@ -141,16 +141,6 @@ if (!app) throw new Error("Missing #app");
 
 app.innerHTML = `
   <div class="app-shell">
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <div>
-          <p class="eyebrow">generative sculpture compiler</p>
-          <h1>LOO/UME</h1>
-        </div>
-      </div>
-    </header>
-
     <main class="workspace">
       <section class="viewer-panel" aria-label="3D LED sphere">
         <div id="viewer" class="viewer"></div>

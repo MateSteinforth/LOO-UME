@@ -40,6 +40,7 @@
     "web/src/PortableProject.ts",
     "web/src/ZipResourceLimits.ts",
     "web/src/SelectionFocus.ts",
-    "web/src/SurfacePlacementController.ts"
+    "web/src/SurfacePlacementController.ts",
+    "web/src/ViewportCamera.ts"
   ]
 }

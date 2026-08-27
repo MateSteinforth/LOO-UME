@@ -113,7 +113,14 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `UI-022` Use the full viewport and stable desktop camera depth
+
+- Result: removed the title header, filled the screen with the workspace, kept
+  the existing mobile fit, added aspect-safe desktop framing, and replaced the
+  extreme fixed clipping range with bounds-relative depth precision.
+- Owner: `codex/ui-022-full-viewport` in the root worktree.
+- Verification: camera policy 4/4, focused desktop/mobile Chromium 1/1,
+  TypeScript, Vite production build, diff check, and independent review passed.
 
 ## Done
 

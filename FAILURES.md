@@ -1354,3 +1354,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Local reproduction found 10 passes and three scoped failures;
   the ESP32 and wiring-route focused journeys passed after the test fixes.
 - **Status:** Resolved in CI policy; the full suite remains available manually.
+
+### F-074 — An extreme camera clipping range caused depth fighting
+
+- **Date:** 2026-08-27
+- **Context:** Desktop 3D viewport with the controls beside the sculpture.
+- **Symptom:** The desktop camera opened too close and nearby LED, PCB, and
+  printable surfaces flickered against each other.
+- **Cause:** The camera kept a fixed 0.01–1,000,000 clipping range. This spent
+  most depth-buffer precision on empty space, independent of the sculpture and
+  current zoom distance.
+- **Correction:** Give the side-panel layout more initial framing margin and
+  derive near/far clipping from the current camera distance and loaded bounds.
+  Keep the mobile margin and unlimited orbit distance.
+- **Prevention:** A viewport with unlimited zoom must update its clipping range;
+  do not use an extreme fixed near/far ratio as a substitute for zoom freedom.
+- **Evidence:** Focused camera-policy tests, TypeScript, and the production Vite
+  build.
+- **Status:** Resolved.
