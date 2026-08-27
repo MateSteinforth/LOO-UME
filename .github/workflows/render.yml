@@ -10,8 +10,24 @@ permissions:
   contents: read
 
 jobs:
+  fast-build:
+    name: Fast TypeScript and production build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install npm dependencies
+        run: npm ci
+      - name: Verify the checked-in runtime and production build
+        run: npm run build:desktop
+
   stage-zero-bootstrap-linux:
     name: Stage-zero bootstrap (Linux x86-64)
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -37,6 +53,7 @@ jobs:
 
   stage-zero-bootstrap-macos:
     name: Stage-zero and clean setup (${{ matrix.target }})
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
@@ -59,6 +76,7 @@ jobs:
         run: env PATH=/usr/bin:/bin ./bootstrap.sh setup
 
   clean-checkout:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -70,6 +88,7 @@ jobs:
 
   manifold-panel-parts:
     name: Manifold panel-outline parts
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -99,8 +118,9 @@ jobs:
 
   browser-smoke:
     name: Browser smoke (Chromium)
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6

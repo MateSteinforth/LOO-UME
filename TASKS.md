@@ -31,6 +31,15 @@ static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
+### `P2 · CI-012` Run the full verification suite at milestones
+
+- Trigger: before a milestone or release, or after changes to browser journeys,
+  portable projects, Manifold generation, bootstrap, or supported host setup.
+- Action: use **Run workflow** for `Verify Manifold application` in GitHub
+  Actions. Fix a real failure in a separate scoped task.
+- Acceptance: the manual Vitest, Chromium, Manifold, stage-zero, and clean
+  Linux/macOS jobs pass for the selected `main` commit.
+
 ## Ready
 
 ### `P1 · LIVE-010` Bridge MadMapper Art-Net into the mapped WLED DDP output
@@ -104,18 +113,18 @@ No tasks.
 
 ## Ready to Merge
 
-### `UI-021` Keep wiring layer toggles active during chain isolation
-
-- Result: DIN/DOUT and panel-wiring switches immediately control their scene
-  layers during isolation, survive chain navigation, and remain selected after
-  tutorial exit.
-- Verification: focused Chromium journey, `npx tsc -b`, diff check, and
-  independent review passed.
-- Owner: `codex/ui-021-tutorial-layer-toggles` in
-  `/tmp/led-rhombo-ui-021`.
+No tasks.
 
 ## Done
 
+- `CI-011`: normal pushes and pull requests now run only the locked install,
+  checked-in WLED runtime verification, TypeScript, and production build. The
+  full browser, Vitest, Manifold, bootstrap, and host matrix remains available
+  through **Run workflow**; integrated on 2026-08-27.
+- `UI-021`: DIN/DOUT and panel-wiring switches now control their scene layers
+  during chain isolation, survive navigation, and remain selected after exit.
+  The stable LAN preview command and P1 MadMapper bridge task are included;
+  integrated on 2026-08-27.
 - `UI-020`: integrated the interactive chain-by-chain wiring tutorial, compact
   two-column controls, red current-wire focus, muted selected-chain context,
   populated 41-panel default, improved LED depth separation, gradient backdrop,
