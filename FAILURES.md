@@ -1201,3 +1201,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   activation, exact-read-back, and malformed-map regressions.
 - **Status:** Resolved; the operator accepted physical pose-edit mirroring and
   requested integration on 2026-08-27.
+
+### F-065 — Hardware-free browser tests started ESP32 discovery
+
+- **Date:** 2026-08-27
+- **Context:** GitHub Actions Chromium smoke after FIRM-014/FIRM-015.
+- **Symptom:** Browser journeys logged repeated HTTP 400 errors from
+  `/api/esp32-device`, then failed their clean-console assertions and waited for
+  reconnect work that no CI controller could satisfy.
+- **Cause:** The editor probed `loo-ume.local` on every page load, even when the
+  browser origin had never completed ESP32 setup and had no serial permission.
+- **Correction:** Enable automatic reconnect only after a durable successful
+  setup/link marker or existing permission for the approved CP2102 serial port.
+- **Prevention:** Optional hardware discovery must be opt-in and must stay
+  inactive in a clean, hardware-free browser profile.
+- **Evidence:** GitHub Actions run `33049816046`, local Playwright reproduction,
+  and the reconnect-eligibility unit and browser suites.
+- **Status:** Resolved.

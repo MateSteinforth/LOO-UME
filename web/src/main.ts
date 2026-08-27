@@ -93,6 +93,7 @@ import {
   type VerifiedGeneratedStructure,
 } from "./GeneratedStructuralAssets.ts";
 import {
+  automaticEsp32ReconnectAvailable,
   canEnableReconnectedSimulator,
   connectExistingSimulatorDevice,
   createSimulatorSetupConfig,
@@ -101,6 +102,8 @@ import {
   createEsp32SetupController,
   mappedPanelFramebuffer,
   persistStandaloneAnimation,
+  rememberAutomaticEsp32Reconnect,
+  retainAutomaticReconnectEligibility,
   sendSimulatorFramebuffer,
   settleSimulatorDeviceWork,
   type Esp32SetupPayload,
@@ -581,6 +584,15 @@ async function start(): Promise<void> {
     let simulatorProjectRevision = 0;
     let simulatorSetupActive = false;
     let simulatorLedmapUpdateAuthorized = false;
+    let simulatorReconnectEnabled = false;
+
+    const reconnectStorage = (): Storage | undefined => {
+      try {
+        return window.localStorage;
+      } catch {
+        return undefined;
+      }
+    };
 
     const loadedSimulatorDeployment = (): {
       outputs: Array<{ startIndex: number; pixelCount: number; gpio: number }>;
@@ -676,6 +688,8 @@ async function start(): Promise<void> {
     const enableSimulatorLink = (deviceUrl: URL, reconnected = false): void => {
       const { outputs, ledCount, panelCount } = loadedSimulatorDeployment();
       simulatorDeviceUrl = deviceUrl;
+      simulatorReconnectEnabled = true;
+      rememberAutomaticEsp32Reconnect(reconnectStorage());
       simulatorLedmapUpdateAuthorized = false;
       nextSimulatorFrameAt = 0;
       simulatorLinkFailed = false;
@@ -713,7 +727,12 @@ async function start(): Promise<void> {
     };
 
     const tryReconnectSimulatorLink = (): void => {
-      if (simulatorSetupActive || simulatorDeviceUrl || simulatorReconnectRequest) return;
+      if (
+        !simulatorReconnectEnabled ||
+        simulatorSetupActive ||
+        simulatorDeviceUrl ||
+        simulatorReconnectRequest
+      ) return;
       let reconnectPayload: Esp32SetupPayload;
       try {
         reconnectPayload = setupPayload();
@@ -813,7 +832,16 @@ async function start(): Promise<void> {
         enableSimulatorLink(deviceUrl);
       },
     });
-    tryReconnectSimulatorLink();
+    void automaticEsp32ReconnectAvailable(
+      reconnectStorage(),
+      navigator.serial,
+    ).then((available) => {
+      simulatorReconnectEnabled = retainAutomaticReconnectEligibility(
+        simulatorReconnectEnabled,
+        available,
+      );
+      if (available) tryReconnectSimulatorLink();
+    });
 
     const replacePortableBundle = (
       bundle?: PortableProjectBundle,
