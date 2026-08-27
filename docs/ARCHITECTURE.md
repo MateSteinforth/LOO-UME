@@ -176,7 +176,12 @@ native and DDP pixels therefore use the same output color pipeline. This is a
 bounded test-sculpture link for the loaded sculpture.
 After a page reload, the link reconnects only if the fixed mDNS name, private
 IP, MAC, ESP32 identity, LED count, and complete persisted loaded bus set still
-match.
+match. A panel pose edit intentionally changes the spatial ledmap but not the
+physical route or bus layout. After identity and bus verification, reconnect
+uploads that valid changed map, activates map 0 through the WLED state API,
+verifies the active map and exact stored bytes, and only then updates the
+standalone preset and resumes DDP. Invalid map JSON and all other contract
+mismatches still stop without a controller mutation.
 The operator physically confirmed on the 192-LED three-panel project that WLED
 leaves DDP realtime mode and runs the saved native animation. A USB power cycle
 also restored the same animation without the simulator.

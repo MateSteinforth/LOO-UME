@@ -34,6 +34,7 @@ import {
   runCombinedHardReset,
   sendSimulatorFramebuffer,
   settleSimulatorDeviceWork,
+  synchronizeDeviceLedmap,
   verifyRestartedDevice,
   type Esp32SetupPayload,
 } from "../web/src/Esp32Setup.ts";
@@ -759,6 +760,7 @@ describe("guarded ESP32 setup contracts", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
       .mockResolvedValueOnce(new Response(JSON.stringify(config)))
       .mockResolvedValueOnce(new Response(value.ledmapBytes))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ledmap: 0 })))
       .mockResolvedValueOnce(new Response(JSON.stringify([
         "Solid", "Blink", "Breathe", "Wipe", "Wipe Random", "Random Colors",
         "Sweep", "Dynamic", "Rainbow",
@@ -781,7 +783,7 @@ describe("guarded ESP32 setup contracts", () => {
     await expect(connectExistingSimulatorDevice(value)).resolves.toEqual(
       new URL("http://192.168.68.53/"),
     );
-    expect(fetchMock).toHaveBeenCalledTimes(9);
+    expect(fetchMock).toHaveBeenCalledTimes(10);
 
     fetchMock.mockReset()
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
@@ -794,30 +796,135 @@ describe("guarded ESP32 setup contracts", () => {
       /does not match the verified device/,
     );
 
+    const unauthorizedPersist = vi.fn().mockResolvedValue(undefined);
     fetchMock.mockReset()
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
       .mockResolvedValueOnce(new Response(JSON.stringify(config)))
       .mockResolvedValueOnce(new Response('{"map":[2,1,0]}'));
-    await expect(connectExistingSimulatorDevice(value)).rejects.toThrow(
-      /ledmap does not match the loaded simulator/,
+    await expect(connectExistingSimulatorDevice(value, {
+      persist: unauthorizedPersist,
+    })).rejects.toThrow(/ledmap does not match the loaded simulator/);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(unauthorizedPersist).not.toHaveBeenCalled();
+
+    const persistAfterLedmapUpdate = vi.fn().mockResolvedValue(undefined);
+    value.allowLedmapUpdate = true;
+    fetchMock.mockReset()
+      .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(config)))
+      .mockResolvedValueOnce(new Response('{"map":[2,1,0]}'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ledmap: 0 })))
+      .mockResolvedValueOnce(new Response(value.ledmapBytes));
+    await expect(connectExistingSimulatorDevice(value, {
+      persist: persistAfterLedmapUpdate,
+    })).resolves.toEqual(
+      new URL("http://192.168.68.53/"),
     );
+    const ledmapUpdatePaths = fetchMock.mock.calls.map(([request]) =>
+      new URL(String(request)).searchParams.get("path")
+    );
+    expect(ledmapUpdatePaths).toEqual([
+      "/json/info",
+      "/json/info",
+      "/json/cfg",
+      "/edit?func=edit&path=/ledmap.json",
+      "/upload",
+      "/json/state",
+      "/json/state",
+      "/edit?func=edit&path=/ledmap.json",
+    ]);
+    expect(JSON.parse(String(fetchMock.mock.calls[5]![1]?.body))).toEqual({ ledmap: 0 });
+    expect(persistAfterLedmapUpdate).toHaveBeenCalledOnce();
+
+    for (const failureResponses of [
+      [new Response("upload failed", { status: 500 })],
+      [
+        new Response(JSON.stringify({ success: true })),
+        new Response("activation failed", { status: 500 }),
+      ],
+      [
+        new Response(JSON.stringify({ success: true })),
+        new Response(JSON.stringify({ success: true })),
+        new Response(JSON.stringify({ ledmap: 1 })),
+      ],
+    ]) {
+      const failedPersist = vi.fn().mockResolvedValue(undefined);
+      fetchMock.mockReset()
+        .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+        .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+        .mockResolvedValueOnce(new Response(JSON.stringify(config)))
+        .mockResolvedValueOnce(new Response('{"map":[2,1,0]}'));
+      for (const response of failureResponses) fetchMock.mockResolvedValueOnce(response);
+      await expect(connectExistingSimulatorDevice(value, {
+        persist: failedPersist,
+      })).rejects.toThrow();
+      expect(failedPersist).not.toHaveBeenCalled();
+    }
+
+    fetchMock.mockReset()
+      .mockResolvedValueOnce(new Response("not-json"));
+    await expect(synchronizeDeviceLedmap(
+      new URL("http://192.168.68.53/"),
+      value.ledmapBytes,
+    )).rejects.toThrow(/returned invalid JSON/);
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    fetchMock.mockReset()
+      .mockResolvedValueOnce(new Response('{"map":[2,1,0]}'));
+    await expect(synchronizeDeviceLedmap(
+      new URL("http://192.168.68.53/"),
+      value.ledmapBytes,
+      true,
+      () => false,
+    )).rejects.toThrow(/was cancelled/);
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    const interruptedContinuation = vi.fn()
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+    fetchMock.mockReset()
+      .mockResolvedValueOnce(new Response('{"map":[2,1,0]}'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })));
+    await expect(synchronizeDeviceLedmap(
+      new URL("http://192.168.68.53/"),
+      value.ledmapBytes,
+      true,
+      interruptedContinuation,
+    )).rejects.toThrow(/was cancelled/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    fetchMock.mockReset()
+      .mockResolvedValueOnce(new Response(value.ledmapBytes))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ledmap: 0 })))
+      .mockResolvedValueOnce(new Response(value.ledmapBytes));
+    await expect(synchronizeDeviceLedmap(
+      new URL("http://192.168.68.53/"),
+      value.ledmapBytes,
+      true,
+    )).resolves.toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(4);
 
     const persist = vi.fn().mockRejectedValue(new Error("preset write failed"));
+    value.allowLedmapUpdate = false;
     fetchMock.mockReset()
       .mockRejectedValueOnce(new Error("mDNS not ready"))
       .mockRejectedValueOnce(new Error("proxy still resolving"))
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
       .mockResolvedValueOnce(new Response(JSON.stringify(info)))
       .mockResolvedValueOnce(new Response(JSON.stringify(config)))
-      .mockResolvedValueOnce(new Response(value.ledmapBytes));
+      .mockResolvedValueOnce(new Response(value.ledmapBytes))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ledmap: 0 })));
     await expect(connectExistingSimulatorDevice(value, {
       discoveryAttempts: 3,
       delay: async () => undefined,
       persist,
     })).rejects.toThrow(/preset write failed/);
-    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(fetchMock).toHaveBeenCalledTimes(7);
     expect(persist).toHaveBeenCalledOnce();
   });
 

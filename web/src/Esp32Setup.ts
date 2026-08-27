@@ -99,6 +99,7 @@ export async function reopenApprovedSerialPort(
 export interface Esp32SetupPayload {
   sourceFingerprint: string;
   sourceRevision: number;
+  allowLedmapUpdate?: boolean;
   config: Record<string, unknown>;
   expectedLedCount: number;
   ledmapBytes?: string;
@@ -679,10 +680,13 @@ export async function connectExistingSimulatorDevice(
   }
   assertConfigReadback(configuration, payload);
   if (payload.ledmapBytes !== undefined) {
-    await readAndAssertLedmap(
+    if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
+    await synchronizeDeviceLedmap(
       currentUrl,
       payload.ledmapBytes,
-      "The existing WLED ledmap does not match the loaded simulator.",
+      payload.allowLedmapUpdate === true,
+      shouldContinue,
+      options.update,
     );
   }
   if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
@@ -730,6 +734,92 @@ async function readAndAssertLedmap(
     throw new Error(`WLED ledmap read-back failed with HTTP ${readback.status}.`);
   }
   assertLedmapReadback(await readback.text(), expectedBytes, mismatchMessage);
+}
+
+async function uploadLedmap(baseUrl: URL, ledmapBytes: string): Promise<void> {
+  const data = new FormData();
+  data.append(
+    "data",
+    new Blob([ledmapBytes], { type: "application/json" }),
+    "ledmap.json",
+  );
+  const upload = await deviceFetch(baseUrl, "/upload", {
+    method: "POST",
+    body: data,
+  });
+  if (!upload.ok) {
+    throw new Error(`WLED ledmap upload failed with HTTP ${upload.status}.`);
+  }
+}
+
+export async function synchronizeDeviceLedmap(
+  baseUrl: URL,
+  expectedBytes: string,
+  allowUpdate = false,
+  shouldContinue: () => boolean = () => true,
+  update?: (message: string) => void,
+): Promise<boolean> {
+  const current = await deviceFetch(
+    baseUrl,
+    "/edit?func=edit&path=/ledmap.json",
+  );
+  if (!current.ok) {
+    throw new Error(`WLED ledmap read-back failed with HTTP ${current.status}.`);
+  }
+  let storedMatches = true;
+  try {
+    assertLedmapReadback(
+      await current.text(),
+      expectedBytes,
+      "The existing WLED ledmap does not match the loaded simulator.",
+    );
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "WLED ledmap read-back returned invalid JSON."
+    ) {
+      throw error;
+    }
+    if (!allowUpdate) throw error;
+    storedMatches = false;
+  }
+
+  if (!shouldContinue()) {
+    throw new Error("Automatic ESP32 reconnect was cancelled.");
+  }
+  if (!storedMatches) {
+    update?.("Panel poses changed. Updating the ESP32 spatial ledmap.");
+    await uploadLedmap(baseUrl, expectedBytes);
+  }
+  if (!shouldContinue()) throw new Error("Automatic ESP32 reconnect was cancelled.");
+  let activeState: { ledmap?: unknown };
+  if (!storedMatches || allowUpdate) {
+    await postDeviceJson(baseUrl, "/json/state", { ledmap: 0 });
+    activeState = await readJsonResponse(
+      await deviceFetch(baseUrl, "/json/state"),
+      "WLED active ledmap read-back",
+    ) as { ledmap?: unknown };
+  } else {
+    activeState = await readJsonResponse(
+      await deviceFetch(baseUrl, "/json/state"),
+      "WLED active ledmap read-back",
+    ) as { ledmap?: unknown };
+    if (activeState.ledmap !== 0) {
+      await postDeviceJson(baseUrl, "/json/state", { ledmap: 0 });
+      activeState = await readJsonResponse(
+        await deviceFetch(baseUrl, "/json/state"),
+        "WLED active ledmap read-back",
+      ) as { ledmap?: unknown };
+    }
+  }
+  if (activeState.ledmap !== 0) {
+    throw new Error("WLED did not activate the updated spatial ledmap.");
+  }
+  if (!storedMatches || allowUpdate) {
+    await readAndAssertLedmap(baseUrl, expectedBytes);
+  }
+  if (!storedMatches) update?.("ESP32 spatial ledmap updated and activated.");
+  return !storedMatches;
 }
 
 async function discoverRestartedDevice(
@@ -1095,10 +1185,7 @@ export async function applyAndVerifyDevice(
   await postDeviceJson(baseUrl, "/json/cfg", config);
 
   if (payload.ledmapBytes !== undefined) {
-    const data = new FormData();
-    data.append("data", new Blob([payload.ledmapBytes], { type: "application/json" }), "ledmap.json");
-    const upload = await deviceFetch(baseUrl, "/upload", { method: "POST", body: data });
-    if (!upload.ok) throw new Error(`WLED ledmap upload failed with HTTP ${upload.status}.`);
+    await uploadLedmap(baseUrl, payload.ledmapBytes);
     await readAndAssertLedmap(baseUrl, payload.ledmapBytes);
   }
 

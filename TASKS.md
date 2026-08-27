@@ -89,6 +89,11 @@ No tasks.
 
 ## Done
 
+- `FIRM-015`: pose-only panel edits now update and activate the exact spatial
+  WLED ledmap before preset persistence and DDP resume. Route, calibration,
+  output, color-order, malformed-map, and identity changes remain fail-closed.
+  The operator accepted the physical result and requested integration on
+  2026-08-27; 387 tests, TypeScript, Vite, and independent review passed.
 - `FIRM-014`: copied loaded 1–41-panel simulator playback to WLED with exact
   config, ledmap, preset, and boot-state read-back; gamma-corrected DDP live
   mirroring; bounded reconnect; and persistent native fallback. On 2026-08-26,
