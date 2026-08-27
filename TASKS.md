@@ -113,20 +113,15 @@ No tasks.
 
 ## Ready to Merge
 
-### `UI-022` Use the full viewport and compact view controls
-
-- Result: kept the full-height, aspect-safe viewport; consolidated display,
-  wiring, printable, and transform controls in View; added the Plane/World
-  transform button; removed output-row toggles and the panel-crossing direction
-  line; kept tutorial labels as panel IDs; compacted automatic placement; and
-  made public-file staging atomic for concurrent LAN and browser processes.
-- Owner: `codex/ui-022-full-viewport` in the root worktree.
-- Verification: focused unit checks 11/11 and TypeScript passed before the final
-  output-row simplification; final diff check and independent review passed.
-  The broad browser suite was not rerun at operator request.
+No tasks.
 
 ## Done
 
+- `UI-022`: integrated the full-height aspect-safe viewport, compact View
+  controls, Plane/World transform toggle, plain tutorial panel IDs, button-only
+  chain navigation, two-column placement controls, and atomic LAN staging on
+  2026-08-27. Focused unit checks, TypeScript, diff checks, and independent
+  review passed; the broad browser suite was not rerun by operator request.
 - `CI-011`: normal pushes and pull requests now run only the locked install,
   checked-in WLED runtime verification, TypeScript, and production build. The
   full browser, Vitest, Manifold, bootstrap, and host matrix remains available
