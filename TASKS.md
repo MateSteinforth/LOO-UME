@@ -115,9 +115,9 @@ No tasks.
 
 ### `UI-024` Organize the editor around the fabrication workflow
 
-- Result: Project and View remain always available above an editable six-step
-  sequence for Shape, Panels, Mapping & animation, Generate parts, Wiring &
-  assembly, and the dominant project ZIP export.
+- Result: Project and View remain always available above an editable seven-step
+  sequence for Shape, Panels, Mapping, ESP32, Generate parts, Wiring & assembly,
+  and the dominant project ZIP export. Animation stays in persistent View.
 - Dependency: includes the unmerged `UI-023` View-layout refinement.
 - Owner: `codex/ui-024-guided-workflow` in the root worktree.
 - Verification: TypeScript, desktop production build, diff check, one focused

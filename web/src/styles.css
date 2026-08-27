@@ -322,10 +322,13 @@ input[type="checkbox"] {
   margin: 0;
 }
 
-.shape-controls .editor-button,
+.shape-controls .editor-button {
+  width: auto;
+}
+
 .editor-button.workflow-step__secondary,
 .pipeline-button.workflow-export__primary {
-  width: auto;
+  width: calc(100% - 42px);
 }
 
 .shape-controls .editor-button {
@@ -335,6 +338,10 @@ input[type="checkbox"] {
 .animation-controls {
   display: grid;
   gap: 8px;
+}
+
+.view-section > .animation-controls {
+  margin-bottom: 18px;
 }
 
 .animation-select-row {
@@ -376,7 +383,7 @@ input[type="checkbox"] {
 }
 
 .pipeline-button.workflow-export__primary {
-  width: min(220px, calc(100% - 42px));
+  width: calc(100% - 42px);
   min-height: 44px;
   margin-top: 14px;
   font-size: 11px;

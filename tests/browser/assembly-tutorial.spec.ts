@@ -28,12 +28,17 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
   await expect(page.locator(".workflow-step__heading strong")).toHaveText([
     "Shape",
     "Panels",
-    "Mapping & animation",
+    "Mapping",
+    "ESP32",
     "Generate parts",
     "Wiring & assembly",
     "Export",
   ]);
-  await expect(page.locator("[data-workflow-step='6'] #save-project"))
+  await expect(viewSection.locator("#effect")).toBeVisible();
+  await expect(viewSection.locator("#palette")).toBeVisible();
+  await expect(page.locator("[data-workflow-step='4'] #open-esp32-setup"))
+    .toBeVisible();
+  await expect(page.locator("[data-workflow-step='7'] #save-project"))
     .toHaveText("Export project ZIP");
   await expect(page.locator("[data-workflow-step='1'] #load-design-surface"))
     .toHaveText("GLB");
@@ -61,7 +66,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   );
   await expect(page.locator("#assembly-tutorial-chain")).toHaveCount(0);
   await expect(page.locator("#assembly-tutorial-overview")).toHaveCount(0);
-  await expect(page.locator("[data-workflow-step='5'] #assembly-tutorial-section"))
+  await expect(page.locator("[data-workflow-step='6'] #assembly-tutorial-section"))
     .toBeVisible();
   await expect(page.locator(".view-section #wiring-layer-controls")).toBeVisible();
   await expect(page.locator("#assembly-tutorial-warning")).toHaveText(
