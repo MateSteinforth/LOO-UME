@@ -17,6 +17,7 @@
     "verify:desktop-install": "tsx scripts/verify-local-editor-install.ts",
     "dev": "npm run generate:assets && npm run verify:wasm && vite",
     "dev:web": "npm run stage:sculptures && npm run verify:wasm && vite",
+    "lan": "sh scripts/start-lan-preview.sh",
     "preview:phone": "sh scripts/start-phone-preview.sh",
     "build": "npm run generate:assets && npm run verify:wasm && tsc -b && vite build",
     "build:web": "vite build",
