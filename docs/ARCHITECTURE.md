@@ -246,10 +246,11 @@ current values are copied operating assumptions, not electrical approval.
   in-browser part generation, package contents, and ZIP reopen.
 - Each push and pull request runs one fast gate: locked dependency install,
   checked-in WLED WASM verification, TypeScript, and the Vite production build.
-- The GitHub Actions **Run workflow** action runs the full suite on demand. It
-  adds Vitest, Chromium journeys, real Manifold STL output, stage-zero binary
-  checks, and restricted-PATH clean setup on Linux x86-64 and native macOS
-  arm64 and x86-64 runners.
+- A nightly GitHub Actions schedule runs the full suite at 02:17 UTC. The
+  **Run workflow** action can also start it on demand. It adds Vitest, Chromium
+  journeys, real Manifold STL output, stage-zero binary checks, and
+  restricted-PATH clean setup on Linux x86-64 and native macOS arm64 and
+  x86-64 runners.
 
 These checks do not prove physical fit, electrical safety, firmware behavior,
 network transport, or full native WLED effect parity.

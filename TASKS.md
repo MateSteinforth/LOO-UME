@@ -31,14 +31,7 @@ static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
-### `P2 · CI-012` Run the full verification suite at milestones
-
-- Trigger: before a milestone or release, or after changes to browser journeys,
-  portable projects, Manifold generation, bootstrap, or supported host setup.
-- Action: use **Run workflow** for `Verify Manifold application` in GitHub
-  Actions. Fix a real failure in a separate scoped task.
-- Acceptance: the manual Vitest, Chromium, Manifold, stage-zero, and clean
-  Linux/macOS jobs pass for the selected `main` commit.
+No tasks.
 
 ## Ready
 
@@ -113,7 +106,14 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `P2 · CI-012` Run broad verification overnight
+
+- Result: push and pull-request automation remains a small locked build gate;
+  the full Vitest, Chromium, Manifold, stage-zero, and clean host matrix runs
+  nightly at 02:17 UTC or through **Run workflow**.
+- Owner: `codex/ci-012-nightly` in `/tmp/led-rhombo-ci-012-nightly`.
+- Verification: YAML lint, diff check, static event-routing inspection, and
+  independent review passed. No test suite was run for this policy-only task.
 
 ## Done
 
