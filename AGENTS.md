@@ -93,6 +93,8 @@ Historical Schema 1 inputs are available only through Git history.
 - Keep both panel edit modes. Surface mode constrains translation to the active
   surface, or to saved local XY without a surface. Free 6DOF mode writes one
   independent right-handed pose and removes its stale surface attachment.
+- A successful panel selection stops slow auto-rotation and synchronizes the
+  View checkbox. Selection must leave the chosen panel stationary for editing.
 - The saved route, GPIOs, and optimized installed quarter turns are authorized
   assumptions. The straight row-major pixel order and GRB color order are
   measured panel facts. Together these facts and assumptions make the current
@@ -118,9 +120,11 @@ Historical Schema 1 inputs are available only through Git history.
 - `firmware/` contains the selected minimum ESP32 target, its exact build
   receipt, and a one-panel smoke configuration. WLED build tooling stays on
   `generate/wled-firmware`; its binary is an ignored build/release artifact.
-  Do not claim a flashed controller, DDP, Art-Net, Ethernet, audio, or address
-  parity before its physical task records that evidence. The browser simulator
-  remains a separate subset.
+  Browser flashing, Improv setup, native-preset persistence, bounded DDP, and
+  three-panel reconnect/power-cycle behavior have physical evidence. Do not
+  extend that evidence to complete 41-panel address parity, Art-Net, Ethernet,
+  audio, or another controller target. The browser effect engine remains a
+  separate deterministic subset.
 
 ## Working safely
 
@@ -150,6 +154,9 @@ Historical Schema 1 inputs are available only through Git history.
   task's branch or worktree, or the only copy of useful agent output. Respect
   required approval gates. Never force-push, overwrite unrelated work, or bypass
   a remote-write restriction.
+- `git worktree move` refuses a worktree with an initialized submodule. Do not
+  force-remove it or manually rewrite submodule Git paths. Preserve the dirty
+  worktree in place until its owner commits or discards the unique changes.
 - If a push is blocked because the destination is not verified, report the
   exact commit, ref, and remote URL. Get explicit operator approval, then repeat
   the same push. Do not use an indirect push method.

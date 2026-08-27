@@ -80,14 +80,17 @@ SHA-256 is the external deployment identity. Credentials never enter it.
 
 The checked-in WASM host supplies deterministic selected 1D effects for the
 editor. It does not implement firmware installation, networking, DDP, Art-Net,
-audio input, presets, or complete native WLED behavior.
+audio input, presets, or complete native WLED behavior. A separate local-host
+hardware path now performs receipt-verified ESP32 flashing, Improv provisioning,
+native preset persistence, exact read-back, and bounded DDP preview.
 
 ## D13 — One assembly package is the primary handoff
 
-The main operator path is Open project, edit panels and route, then Build or
-Download assembly package. The package joins the authoritative project,
-verified assets, printable manual, ledmap, and wiring review from one in-memory
-contract. Raw JSON and project-folder exports remain secondary tools.
+The main operator path remains fully editable through Shape, Panels, Mapping,
+Generate parts, BUILD HARDWARE, and Export. The panel-closure package joins the
+authoritative project, verified assets, printable manual, ledmap, and wiring
+review from one in-memory contract. The project ZIP is the primary editable
+handoff; raw files remain secondary tools.
 
 ## D14 — `main` is the integration baseline
 
@@ -145,7 +148,8 @@ Manifold, and print-envelope checks pass.
 Connector ribbons use eligible screw-shoe pairs and pose-derived lofts. LED-
 surface bridges use the same eligible anchors but span complete panel edges at
 the LED-emitter plane. The two primary generation buttons select the style.
-Detailed neighbor, bed, split, and pair controls stay under Advanced Tools.
+Detailed neighbor, bed, split, and pair controls stay under **Fabrication
+settings**.
 
 ## D22 — Surface and free-3D editing are separate modes
 
@@ -219,3 +223,10 @@ clean Linux/macOS setup checks run nightly at 02:17 UTC and remain available
 through the GitHub Actions **Run workflow** action. This keeps normal
 implementation fast without deleting the broader tests or depending on a
 person to remember the periodic run.
+
+## D30 — Panel selection stops automatic rotation
+
+Slow auto-rotation is a passive overview aid. A successful panel selection from
+the viewport, a label, or the route editor stops it and synchronizes the View
+checkbox. The application does not resume rotation automatically when selection
+clears. This keeps the editing target stationary without changing project data.

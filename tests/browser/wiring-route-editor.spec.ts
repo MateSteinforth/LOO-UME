@@ -74,10 +74,15 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   const selectedPanelId = await page.locator(".route-panel").first()
     .getAttribute("data-panel-id");
   if (!selectedPanelId) throw new Error("The first route row has no panel ID.");
+  await page.locator("#auto-rotate").check();
+  await expect(page.locator("#auto-rotate")).toBeChecked();
+  await expect(page.locator("#viewer")).toHaveAttribute("data-auto-rotate", "true");
   await page.locator(".route-panel").first().click();
   await expect(page.locator("#pipeline-status")).toContainText(
     `Selected ${selectedPanelId}`,
   );
+  await expect(page.locator("#auto-rotate")).not.toBeChecked();
+  await expect(page.locator("#viewer")).toHaveAttribute("data-auto-rotate", "false");
   await expect(page.getByRole("button", {
     name: `Delete selected panel ${selectedPanelId}`,
   })).toBeVisible();

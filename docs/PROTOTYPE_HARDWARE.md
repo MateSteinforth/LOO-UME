@@ -12,7 +12,7 @@ They can be corrected directly in the project as assembly continues.
 | Module | ESP32-WROOM-32E-N4, 4 MB flash, no PSRAM |
 | WLED source | `d9b9a846561227351ad929e3109781daadb7bed2` |
 | WLED environment | `esp32dev` |
-| Scope | Local WLED web UI and JSON configuration only |
+| Scope | Native WLED playback, browser setup/read-back, and bounded DDP preview |
 | Output 0 | GPIO 16 |
 | Output 1 | GPIO 17 |
 | Output 2 | GPIO 18 |

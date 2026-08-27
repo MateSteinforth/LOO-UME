@@ -526,9 +526,10 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   produced a complete current package.
 - **Cause:** Each subsystem added its own import or export control instead of
   joining verified outputs at the project handoff boundary.
-- **Correction:** Use one Open project menu, ZIP-first Save, one Build/Download
-  assembly action, one Edit/Save route action, and one complete assembly ZIP.
-  Keep raw and individual files in compact secondary menus.
+- **Correction:** Use one editable project ZIP, one generate/download
+  panel-closure action, one **Regenerate mapping/wiring** action, and one
+  complete assembly package. Keep specialized fabrication downloads beside
+  their corresponding generated viewport result.
 - **Prevention:** When several files describe one physical build, export them
   from one current in-memory contract and test exact package contents plus
   reopen. Prefer stateful actions over separate prerequisite/result buttons.
@@ -1345,15 +1346,17 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   for real GLB and ZIP work.
 - **Cause:** Every push ran the complete browser suite. Some tests also relied
   on an implicit default project and transient activity-log timing.
-- **Correction:** Keep one fast automatic type/build gate. Run the full browser,
-  Vitest, Manifold, bootstrap, and clean-host suite manually at milestones.
+- **Correction:** Keep one fast push/pull-request type/build gate. Run the full
+  browser, Vitest, Manifold, bootstrap, and clean-host suite nightly and on
+  explicit manual dispatch.
   Give isolated journeys explicit fixtures and wait for the relevant domain
   state or a bounded operation-specific completion message.
 - **Prevention:** Do not make a broad integration journey an automatic push
   gate unless its cost and failure scope are proportionate to normal changes.
 - **Evidence:** Local reproduction found 10 passes and three scoped failures;
   the ESP32 and wiring-route focused journeys passed after the test fixes.
-- **Status:** Resolved in CI policy; the full suite remains available manually.
+- **Status:** Resolved in CI policy; the full suite runs nightly and remains
+  available manually.
 
 ### F-074 — An extreme camera clipping range caused depth fighting
 
@@ -1390,3 +1393,37 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The authored and staged profile existed with identical sizes;
   the failure occurred while a second staging process ran.
 - **Status:** Resolved.
+
+### F-076 — Panel selection did not stop passive camera motion
+
+- **Date:** 2026-08-27
+- **Context:** Selecting a panel for pose, connector, or wiring inspection.
+- **Symptom:** Slow auto-rotation continued after selection, so the selected
+  panel moved while the operator tried to inspect or edit it.
+- **Cause:** Selection focus and passive overview motion were independent view
+  states.
+- **Correction:** Every successful non-null panel selection stops renderer
+  auto-rotation and clears the persistent View checkbox. Clearing selection
+  does not restart rotation.
+- **Prevention:** Direct manipulation or inspection selection must cancel
+  passive camera motion without changing saved project data.
+- **Evidence:** The focused wiring-route browser journey asserts both the
+  checkbox and renderer state after route-row selection.
+- **Status:** Resolved.
+
+### F-077 — An initialized submodule blocked automatic worktree relocation
+
+- **Date:** 2026-08-27
+- **Context:** Delivery cleanup after moving active work back to the Documents
+  repository.
+- **Symptom:** `git worktree move` refused a worktree that contained an
+  initialized WLED submodule.
+- **Cause:** Git does not support moving that worktree shape safely.
+- **Correction:** Preserve the worktree and its unique changes. Do not
+  force-remove it or manually rewrite submodule Git paths during cleanup.
+- **Prevention:** Move or finalize a temporary worktree before initializing a
+  submodule. If that is no longer possible, commit and integrate its useful
+  changes before any separate, explicit cleanup.
+- **Evidence:** Git returned the initialized-submodule worktree-move refusal;
+  the affected worktree was retained rather than damaged.
+- **Status:** Mitigated; cleanup requires its owner after the work is integrated.

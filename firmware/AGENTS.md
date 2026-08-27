@@ -30,9 +30,13 @@ These rules apply under `firmware/`.
   generate derived WLED and renderer files from it.
 - Never guess the panel color order, pixel-zero corner, or serpentine direction.
   Record them only after a numbered physical-panel test.
+- The measured panel contract is GRB/WLED order 0 with front-view pixel 0/DIN
+  at top-left and straight left-to-right rows progressing downward to pixel
+  63/DOUT at bottom-right. Do not restore the superseded serpentine assumption.
 - Validate that all 41 panels contribute exactly 64 unique pixels and all
   2,624 wire indices are unique and contiguous. Validate output lengths against
   the approved physical chain once assigned; do not reuse the obsolete
   42-panel split.
-- Compile the exact CI target and report the produced firmware artifact; do not
-  claim hardware validation without testing a real controller and panel.
+- Compile the exact reviewed target and report the produced firmware artifact.
+  One-panel smoke and three-panel native/DDP behavior are physically confirmed;
+  do not extend that evidence to all 2,624 addresses without `PROOF-010`.

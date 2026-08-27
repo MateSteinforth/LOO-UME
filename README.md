@@ -48,19 +48,30 @@ This is a review link, not a deployment.
 
 ## Main workflow
 
-1. Open a Schema 2 JSON, folder, or project ZIP.
-2. Load a referenced GLB when surface placement is needed.
-3. Place and edit panels. Saved poses remain authoritative.
-4. Edit or confirm the wiring route.
-5. Build the assembly package. The browser validates panel-gap topology and
-   compiles exact boundary and part STLs with Manifold.
-6. Download the package with project JSON, referenced assets, printable manual,
-   ledmap, and wiring review.
+Project and View remain available above six always-editable sections:
 
-The browser runs a deterministic subset of WLED effects. It does not contain
-production firmware, networking, DDP, Art-Net, or audio-reactive behavior.
+1. **Shape:** load an optional watertight GLB placement surface.
+2. **Panels:** place and edit pose-authoritative panels.
+3. **Mapping:** edit the data route, then **Regenerate mapping/wiring**.
+4. **Generate parts:** compile planar closures, connector ribbons, or
+   LED-surface bridges with Manifold.
+5. **Build Hardware:** isolate each data connection, flash/configure the
+   approved ESP32, and copy the loaded simulator contract.
+6. **Export:** download the editable project ZIP and referenced verified assets.
+
+The browser runs a deterministic subset of WLED effects. Through the local
+host it can flash the receipt-bound ESP32 image, configure WLED, persist the
+selected native animation, and mirror the mapped framebuffer through bounded
+DDP. The three-panel path is physically confirmed. Complete 41-panel address
+parity, Art-Net, Ethernet, and audio-reactive behavior remain unproved or
+unimplemented.
 
 ## Verification
+
+Pushes and pull requests run only the locked install, checked-in WLED runtime
+verification, TypeScript, and production build. The broad Vitest, Chromium,
+Manifold, bootstrap, and clean-host matrix runs nightly at 02:17 UTC and is
+also available through GitHub Actions **Run workflow**.
 
 ```bash
 npm test

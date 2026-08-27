@@ -37,7 +37,7 @@ No tasks.
 
 ### `P1 · LIVE-010` Bridge MadMapper Art-Net into the mapped WLED DDP output
 
-- Scope: add a local Advanced Tools bridge that receives bounded Art-Net from
+- Scope: add a local BUILD HARDWARE bridge that receives bounded Art-Net from
   MadMapper, applies the active Schema 2 logical-to-physical mapping, and sends
   the result through the existing verified DDP path while WLED remains in DDP
   mode.
@@ -54,7 +54,7 @@ No tasks.
   bounded DDP sender. No hardware or external API dependency blocks the
   three-panel slice.
 - Conflict risk: local server lifecycle, `scripts/esp32-device-handler.ts`,
-  `web/src/Esp32Setup.ts`, `web/src/main.ts`, and Advanced Tools controls.
+  `web/src/Esp32Setup.ts`, `web/src/main.ts`, and BUILD HARDWARE controls.
 
 ## In Progress
 
@@ -106,7 +106,16 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `UI-025` Stop automatic rotation when a panel is selected
+
+- Result: successful viewport, label, and route-row selection stops slow
+  auto-rotation and synchronizes the View checkbox without changing project
+  data. Operator, architecture, hardware, firmware, workflow, CI, mapping, and
+  failure-learning Markdown now describe the current product state.
+- Verification: `npx tsc -b`, `git diff --check`, focused stale-contract scan,
+  orchestrator inspection, and independent re-review passed. The focused
+  browser regression now proves rotation is on before selection and off after.
+- Owner: `codex/ui-025-selection-pauses-rotation` in the root worktree.
 
 ## Done
 
@@ -155,7 +164,7 @@ No tasks.
   private-device read-back and reconnect, and the physically mapped live 8x8
   simulator link. The operator completed setup at `192.168.68.53`; 366/366
   tests, TypeScript, Vite, focused browser journeys, and review passed.
-- `FIRM-012`: integrated the receipt-verified Advanced Tools ESP32 flash,
+- `FIRM-012`: integrated the receipt-verified BUILD HARDWARE ESP32 flash,
   private Wi-Fi provisioning, `loo-ume.local` identity, one-panel simulator
   state transfer, and device read-back; physical browser/USB review passed on
   2026-08-25. Full-install mode remains unavailable.

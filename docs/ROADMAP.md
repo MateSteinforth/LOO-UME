@@ -14,18 +14,23 @@ direction and major remaining seams.
   printable wiring manuals, and assumed WLED deployment identity.
 - Checked-in pinned WLED WASM with exact integrity verification; rebuild source
   and tools stay on `generate/wled-simulator`.
+- Receipt-bound browser flashing, Improv Wi-Fi setup, exact WLED read-back,
+  persisted native playback, and bounded mapped DDP preview.
+- Physical one-panel addressing/color proof and three-panel setup, reconnect,
+  live mirroring, fallback, and power-cycle proof.
+- An always-editable Shape → Panels → Mapping → Generate parts → Build
+  Hardware → Export operator workflow with connection-by-connection assembly.
 - Real Chromium authoring, generation, route, manual, and portability journeys.
 
 ## Current product milestone
 
-Make the manual 41-panel sculpture reproduce the simulator's static address and
-RGB output on the selected ESP32/WLED target:
+Finish the physical 41-panel assembly and record exact address/RGB parity on the
+selected ESP32/WLED target:
 
 ```text
-shared guarded export policy
-  -> pinned firmware build
+printed connectors + assembly tutorial
+  -> as-built route evidence
   -> deterministic diagnostic frames
-  -> measured panel and as-built route evidence
   -> all-address parity proof
 ```
 
@@ -35,10 +40,10 @@ electrical plan.
 
 ## Known technical seams
 
-- Derive LED dimensions from the selected panel profile throughout validation,
-  export, reload, and display.
-- Add correction tools only when a real ambiguous gap arrangement provides a
-  concrete fixture.
+- `LIVE-010` is the next software slice: bridge bounded MadMapper Art-Net input
+  into the existing mapped DDP output without adding another mapping authority.
+- Add geometry or fabrication work only after a concrete failed project or
+  printed result supplies acceptance evidence.
 - Keep Schema 2 as the only authored sculpture and mapping input. Historical
   Schema 1 files remain available through Git history only.
 

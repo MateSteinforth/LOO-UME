@@ -1795,6 +1795,10 @@ async function start(): Promise<void> {
     renderer?.setSurfaceEditorCallbacks({
       onSelectionChange: (panelId) => {
         selectedEditorPanelId = panelId;
+        if (panelId) {
+          autoRotate.checked = false;
+          renderer?.setAutoRotate(false);
+        }
         for (const row of routeEditor.querySelectorAll<HTMLElement>(".route-panel")) {
           row.classList.toggle(
             "route-panel--selected",
