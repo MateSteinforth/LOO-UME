@@ -362,7 +362,6 @@ app.innerHTML = `
             <span class="workflow-step__number">5</span>
             <div><strong>BUILD HARDWARE</strong><small>Flash, wire, and assemble</small></div>
           </div>
-          <button id="open-esp32-setup" class="editor-button workflow-step__secondary" type="button">Set up ESP32</button>
           <div id="assembly-tutorial-section" class="assembly-tutorial assembly-tutorial--workflow">
             <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
             <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
@@ -380,6 +379,7 @@ app.innerHTML = `
               </div>
             </div>
           </div>
+          <button id="open-esp32-setup" class="editor-button workflow-step__secondary" type="button">Set up ESP32</button>
         </section>
 
         <section class="control-section workflow-step workflow-export" data-workflow-step="6">
@@ -1127,22 +1127,22 @@ async function start(): Promise<void> {
         : model.source === "draft-suggestion"
           ? "The shown route is a draft suggestion. Choose Edit suggested route before changing it."
           : wiringPreview.status === "measured"
-            ? "This is the saved measured route. Saving a new authored revision removes the old measurement approval."
+            ? "This is the saved measured route. Regenerating mapping/wiring removes the old measurement approval."
             : editorDefinition.wiring.routeRevision === undefined
-              ? "This saved route has no revision. Review it, then choose Save route."
+              ? "This saved route has no revision. Review it, then regenerate mapping/wiring."
               : wiringPreview.status === "requires-review"
-                ? "This saved route requires review. Save it only after its order matches the sculpture."
-                : "This is the saved authored route. Edit it, then save a new route revision.";
+                ? "This saved route requires review. Regenerate mapping/wiring only after its order matches the sculpture."
+                : "This is the saved authored route. Edit it, then regenerate mapping/wiring as a new revision.";
       routeEditorNote.textContent = sourceLabel;
       routeActionButton.hidden = false;
       routeActionButton.textContent = isDraftSuggestion
         ? "Edit suggested route"
-        : "Save route";
+        : "Regenerate mapping/wiring";
       routeActionButton.disabled = !isDraftSuggestion && !validation.valid;
       setLogMessage(validation.valid
         ? isDraftSuggestion
           ? "Review the suggestion, then choose Edit suggested route."
-          : `Route is complete. Save route revision ${(editorDefinition.wiring.routeRevision ?? 0) + 1}.`
+          : `Route is complete. Regenerate mapping/wiring as revision ${(editorDefinition.wiring.routeRevision ?? 0) + 1}.`
         : validation.errors[0]!, !validation.valid);
 
       const nodeById = new Map(wiringPreview.nodes.map((node) => [node.panelId, node]));
@@ -2079,7 +2079,7 @@ async function start(): Promise<void> {
           );
           await applyLoadedSculpture(createLoadedSculpture(project));
           setLogMessage(
-            `Saved wiring route revision ${edited.wiring.routeRevision}. Save the project ZIP to keep it.`,
+            `Regenerated mapping and wiring from route revision ${edited.wiring.routeRevision}. Export the project ZIP to keep it.`,
           );
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);

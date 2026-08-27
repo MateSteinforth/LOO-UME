@@ -119,9 +119,9 @@ function routeStatus(preview: WiringPreview): AssemblyTutorialRouteStatus {
 function routeWarning(status: AssemblyTutorialRouteStatus): string {
   if (status === "exact") return "Saved data route";
   if (status === "requires-review") {
-    return "ROUTE REQUIRES REVIEW — confirm and save it before physical assembly.";
+    return "ROUTE REQUIRES REVIEW — regenerate mapping/wiring before physical assembly.";
   }
-  return "DRAFT ROUTE — save the route before physical assembly.";
+  return "DRAFT ROUTE — regenerate mapping/wiring before physical assembly.";
 }
 
 function connectorLabel(node: WiringPanelNode, connector: "DIN" | "DOUT"): string {

@@ -372,7 +372,7 @@ input[type="checkbox"] {
   font: 750 16px/1 "SFMono-Regular", Consolas, monospace;
 }
 
-.assembly-tutorial--workflow {
+.assembly-tutorial.assembly-tutorial--workflow {
   margin-top: 12px;
   padding-left: 0;
   border-left: 0;

@@ -69,7 +69,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     .toBeVisible();
   await expect(page.locator(".view-section #wiring-layer-controls")).toBeVisible();
   await expect(page.locator("#assembly-tutorial-warning")).toHaveText(
-    "DRAFT ROUTE — save the route before physical assembly.",
+    "DRAFT ROUTE — regenerate mapping/wiring before physical assembly.",
   );
 
   await page.locator("#assembly-tutorial-start").click();
