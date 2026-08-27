@@ -132,8 +132,15 @@ input[type="checkbox"] {
   overflow: hidden;
   background:
     linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 42px 42px;
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    radial-gradient(
+      circle at 44% 34%,
+      rgba(94, 145, 182, 0.39),
+      transparent 48%
+    ),
+    linear-gradient(155deg, #1a2c40 0%, #0c1523 48%, #02060c 100%);
+  background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
 }
 
 .viewer-panel::after {
@@ -232,6 +239,32 @@ input[type="checkbox"] {
   box-shadow: 0 0 0 2px rgba(255, 179, 92, 0.35);
 }
 
+.panel-label--tutorial-active {
+  color: #071016;
+  border-color: #fff4a8;
+  background: #fff4a8;
+  box-shadow:
+    0 0 0 2px rgba(255, 244, 168, 0.35),
+    0 0 18px rgba(255, 244, 168, 0.6);
+}
+
+.wiring-controller-label,
+.wiring-controller-pin-label {
+  display: block;
+  padding: 4px 7px;
+  border: 1px solid rgba(57, 217, 208, 0.55);
+  border-radius: 4px;
+  color: #d9fffb;
+  background: rgba(7, 16, 22, 0.9);
+  font: 750 9px/1.2 "SFMono-Regular", Consolas, monospace;
+  white-space: nowrap;
+}
+
+.wiring-controller-pin-label {
+  color: #fff4a8;
+  border-color: rgba(255, 244, 168, 0.55);
+}
+
 .control-panel {
   z-index: 3;
   min-height: 0;
@@ -246,6 +279,87 @@ input[type="checkbox"] {
 .control-section {
   padding: 20px;
   border-bottom: 1px solid var(--line);
+}
+
+.assembly-tutorial {
+  min-width: 0;
+  padding-left: 12px;
+  border-left: 1px solid rgba(57, 217, 208, 0.18);
+}
+
+.assembly-tutorial__warning,
+.assembly-tutorial__instruction {
+  margin: 12px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.assembly-tutorial__warning {
+  color: #8ca0bb;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.assembly-tutorial__warning[data-status="draft"],
+.assembly-tutorial__warning[data-status="requires-review"] {
+  color: #ffc36c;
+}
+
+.assembly-tutorial__warning[data-status="unavailable"] {
+  color: #ff8191;
+}
+
+.assembly-tutorial__instruction {
+  min-height: 45px;
+  color: #c2d0e3;
+}
+
+.assembly-tutorial__start {
+  width: 100%;
+  margin-top: 13px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.assembly-tutorial__controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 13px;
+}
+
+.assembly-tutorial__controls[hidden] {
+  display: none;
+}
+
+.assembly-tutorial__controls output {
+  color: #fff4a8;
+  font: 750 10px/1.4 "SFMono-Regular", Consolas, monospace;
+}
+
+.assembly-tutorial__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.assembly-tutorial__actions .assembly-tutorial__exit {
+  grid-column: 1 / -1;
+}
+
+.assembly-tutorial__actions button {
+  min-height: 34px;
+  padding: 6px;
+  border: 1px solid rgba(57, 217, 208, 0.25);
+  border-radius: 5px;
+  color: #d9fffb;
+  background: rgba(57, 217, 208, 0.08);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.assembly-tutorial__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
 }
 
 .input-action button,
@@ -794,6 +908,34 @@ input[type="range"] {
   margin-top: 13px;
 }
 
+.wiring-assembly {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.wiring-assembly > .layer-controls__heading {
+  grid-column: 1 / -1;
+}
+
+.wiring-assembly__layers {
+  min-width: 0;
+}
+
+.wiring-assembly .output-layer {
+  grid-template-columns: 12px 7px minmax(0, 1fr);
+}
+
+.wiring-assembly .output-layer small {
+  grid-column: 3;
+}
+
+.wiring-assembly__layers .toggle-field:first-child,
+.wiring-assembly .assembly-tutorial__warning,
+.wiring-assembly .assembly-tutorial__instruction {
+  margin-top: 0;
+}
+
 .output-layer {
   display: grid;
   grid-template-columns: 14px 8px 1fr auto;
@@ -819,6 +961,12 @@ input[type="range"] {
 .output-layer small {
   color: #64748b;
   font-size: 8px;
+}
+
+.output-layer--isolated {
+  border-color: color-mix(in srgb, var(--output-color), transparent 35%);
+  color: #f4fbff;
+  background: color-mix(in srgb, var(--output-color), transparent 88%);
 }
 
 .output-swatch {

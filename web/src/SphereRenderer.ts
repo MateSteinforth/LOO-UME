@@ -14,12 +14,20 @@ import type {
   SculptureSurfaceFace,
   Vector3Data,
 } from "./LedMapping";
-import type { WiringPreview } from "./WiringPreview";
+import {
+  createInwardCableControlPoint,
+  createWiringControllerLayout,
+  type WiringPreview,
+} from "./WiringPreview";
 import type { EditorCapabilities } from "./EditorCapabilities.ts";
 import type { ClosedPanelBoundary } from "../../src/sculpture/PanelOutlineBoundary.ts";
 import type { VerifiedGeneratedMechanics } from "./GeneratedMechanicsAssets.ts";
 import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts";
 import { createPrintedPlaMaterial } from "./PrintedPlaMaterial.ts";
+import {
+  maskedPanelPositions,
+  type AssemblyTutorialChain,
+} from "./AssemblyTutorial.ts";
 import {
   SurfacePlacementController,
   type FreePanelTransform,
@@ -34,6 +42,13 @@ interface PanelLabel {
   object: CSS2DObject;
   element: HTMLSpanElement;
   normal: THREE.Vector3;
+}
+
+interface TutorialLayerState {
+  boundary: boolean;
+  printable: boolean;
+  connector: boolean;
+  wiring: boolean;
 }
 
 function createLedSpriteTexture(): THREE.CanvasTexture {
@@ -52,6 +67,8 @@ function createLedSpriteTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas);
 }
 
+const LED_RENDER_OFFSET_MM = 2.4;
+
 export class SphereRenderer {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
@@ -66,6 +83,7 @@ export class SphereRenderer {
   private readonly printableLayer = new THREE.Group();
   private readonly connectorLayer = new THREE.Group();
   private readonly wiringLayer = new THREE.Group();
+  private readonly tutorialLayer = new THREE.Group();
   private readonly connectorOutputLayers = new Map<number, THREE.Group>();
   private readonly wiringOutputLayers = new Map<number, THREE.Group>();
   private readonly outputVisibility = new Map<number, boolean>([
@@ -99,12 +117,18 @@ export class SphereRenderer {
   private grid: THREE.GridHelper | undefined;
   private readonly color = new THREE.Color();
   private baseLedColors = new Float32Array();
+  private baseLedPositions = new Float32Array();
   private readonly cameraDirection = new THREE.Vector3();
   private readonly resizeObserver: ResizeObserver;
   private mapping: LedMapping;
   private panelLabelsVisible = true;
   private selectedPanelId: string | null = null;
   private panelThickness = 0.8;
+  private tutorialPanelIds: Set<string> | null = null;
+  private tutorialActivePanelIds = new Set<string>();
+  private tutorialOutputIndex: number | null = null;
+  private tutorialAutoRotate: boolean | null = null;
+  private tutorialLayerState: TutorialLayerState | null = null;
 
   constructor(
     private readonly container: HTMLElement,
@@ -123,9 +147,13 @@ export class SphereRenderer {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.06;
-    this.controls.minDistance = 145;
-    this.controls.maxDistance = 480;
+    this.controls.minDistance = 0.01;
+    this.controls.maxDistance = Infinity;
+    this.camera.near = 0.01;
+    this.camera.far = 1_000_000;
+    this.camera.updateProjectionMatrix();
     this.controls.autoRotate = true;
+    this.container.dataset.autoRotate = "true";
     this.controls.autoRotateSpeed = 0.35;
     this.surfacePlacement = new SurfacePlacementController(
       this.scene,
@@ -135,17 +163,28 @@ export class SphereRenderer {
     );
 
     this.points.renderOrder = 4;
-    const pcbKeyLight = new THREE.DirectionalLight(0xd8efff, 2.1);
-    pcbKeyLight.position.set(180, 220, 260);
-    const pcbFillLight = new THREE.HemisphereLight(0x8aa7bd, 0x06080b, 1.2);
+    const pcbKeyLight = new THREE.DirectionalLight(0xfff1df, 1.75);
+    pcbKeyLight.name = "soft-key-light";
+    pcbKeyLight.position.set(220, 260, 320);
+    const pcbFillLight = new THREE.DirectionalLight(0xa9d5ff, 0.95);
+    pcbFillLight.name = "soft-fill-light";
+    pcbFillLight.position.set(-260, 80, 180);
+    const pcbRimLight = new THREE.DirectionalLight(0xdac8ff, 1.15);
+    pcbRimLight.name = "soft-rim-light";
+    pcbRimLight.position.set(-120, 190, -300);
+    const ambientLight = new THREE.HemisphereLight(0x7899b5, 0x070a0f, 0.72);
+    ambientLight.name = "ambient-world-light";
     this.scene.add(
       pcbKeyLight,
       pcbFillLight,
+      pcbRimLight,
+      ambientLight,
       this.panelLayer,
       this.boundaryPreviewLayer,
       this.printableLayer,
       this.wiringLayer,
       this.connectorLayer,
+      this.tutorialLayer,
       this.points,
     );
     this.layoutGrid(new THREE.Sphere(new THREE.Vector3(0, 0, 0), 80));
@@ -157,6 +196,7 @@ export class SphereRenderer {
   }
 
   setMapping(mapping: LedMapping): void {
+    this.setAssemblyTutorial(null);
     this.mappingRevision += 1;
     this.mapping = mapping;
     this.clearBoundaryPreview();
@@ -164,13 +204,24 @@ export class SphereRenderer {
     const positions = new Float32Array(mapping.entries.length * 3);
     const colors = new Float32Array(mapping.entries.length * 3);
     this.baseLedColors = new Float32Array(mapping.entries.length * 3);
+    this.baseLedPositions = new Float32Array(mapping.entries.length * 3);
+    const panelNormals = new Map(
+      mapping.panels.map((panel) => [panel.id, panel.normal]),
+    );
     for (let physical = 0; physical < mapping.entries.length; physical += 1) {
       const entry = mapping.entries[physical];
       if (!entry) continue;
       const offset = physical * 3;
-      positions[offset] = entry.x;
-      positions[offset + 1] = entry.y;
-      positions[offset + 2] = entry.z;
+      const normal = entry.panelId ? panelNormals.get(entry.panelId) : undefined;
+      const x = entry.x + (normal?.x ?? 0) * LED_RENDER_OFFSET_MM;
+      const y = entry.y + (normal?.y ?? 0) * LED_RENDER_OFFSET_MM;
+      const z = entry.z + (normal?.z ?? 0) * LED_RENDER_OFFSET_MM;
+      positions[offset] = x;
+      positions[offset + 1] = y;
+      positions[offset + 2] = z;
+      this.baseLedPositions[offset] = x;
+      this.baseLedPositions[offset + 1] = y;
+      this.baseLedPositions[offset + 2] = z;
       colors[offset] = 0.04;
       colors[offset + 1] = 0.08;
       colors[offset + 2] = 0.12;
@@ -240,7 +291,9 @@ export class SphereRenderer {
       this.baseLedColors[offset + 1] = this.color.g;
       this.baseLedColors[offset + 2] = this.color.b;
       const display = selectionDisplayColor(
-        this.color, entry.panelId, this.selectedPanelId,
+        this.color,
+        entry.panelId,
+        this.tutorialPanelIds ? null : this.selectedPanelId,
       );
       attribute.setXYZ(physical, display.r, display.g, display.b);
     }
@@ -254,16 +307,25 @@ export class SphereRenderer {
       .sub(this.controls.target)
       .normalize();
     for (const label of this.panelLabels) {
+      const panelId = label.element.dataset.panelId ?? "";
       label.object.visible =
-        this.panelLabelsVisible &&
-        label.normal.dot(this.cameraDirection) > 0.08;
+        (this.panelLabelsVisible || this.tutorialPanelIds !== null) &&
+        (!this.tutorialPanelIds || this.tutorialPanelIds.has(panelId)) &&
+        (this.tutorialPanelIds !== null ||
+          label.normal.dot(this.cameraDirection) > 0.08);
     }
     this.renderer.render(this.scene, this.camera);
     this.labelRenderer.render(this.scene, this.camera);
   }
 
   setAutoRotate(enabled: boolean): void {
-    this.controls.autoRotate = enabled;
+    if (this.tutorialPanelIds) {
+      this.tutorialAutoRotate = enabled;
+      this.controls.autoRotate = false;
+    } else {
+      this.controls.autoRotate = enabled;
+    }
+    this.container.dataset.autoRotate = String(this.controls.autoRotate);
   }
 
   setPanelProfileThickness(thickness: number): void {
@@ -482,26 +544,91 @@ export class SphereRenderer {
   }
 
   setPrintableLayerVisible(visible: boolean): void {
-    this.printableLayer.visible = visible;
+    if (this.tutorialLayerState) this.tutorialLayerState.printable = visible;
+    this.printableLayer.visible = this.tutorialPanelIds ? true : visible;
   }
 
   setConnectorLayerVisible(visible: boolean): void {
-    this.connectorLayer.visible = visible;
+    if (this.tutorialLayerState) this.tutorialLayerState.connector = visible;
+    this.connectorLayer.visible = this.tutorialPanelIds ? true : visible;
   }
 
   setWiringLayerVisible(visible: boolean): void {
-    this.wiringLayer.visible = visible;
+    if (this.tutorialLayerState) this.tutorialLayerState.wiring = visible;
+    this.wiringLayer.visible = this.tutorialPanelIds ? true : visible;
   }
 
   setOutputVisible(outputIndex: number, visible: boolean): void {
     this.outputVisibility.set(outputIndex, visible);
     const connectorLayer = this.connectorOutputLayers.get(outputIndex);
     const wiringLayer = this.wiringOutputLayers.get(outputIndex);
-    if (connectorLayer) connectorLayer.visible = visible;
-    if (wiringLayer) wiringLayer.visible = visible;
+    const connectorDisplay = this.tutorialOutputIndex === null
+      ? visible
+      : outputIndex === this.tutorialOutputIndex;
+    const wiringDisplay = this.tutorialOutputIndex === null
+      ? visible
+      : outputIndex === this.tutorialOutputIndex;
+    if (connectorLayer) connectorLayer.visible = connectorDisplay;
+    if (wiringLayer) wiringLayer.visible = wiringDisplay;
+  }
+
+  setAssemblyTutorial(
+    chain: AssemblyTutorialChain | null,
+    connectionIndex: number | null = null,
+  ): void {
+    if (!chain) {
+      this.clearAssemblyTutorial();
+      return;
+    }
+    const entering = this.tutorialPanelIds === null;
+    if (entering) {
+      this.tutorialAutoRotate = this.controls.autoRotate;
+      this.tutorialLayerState = {
+        boundary: this.boundaryPreviewLayer.visible,
+        printable: this.printableLayer.visible,
+        connector: this.connectorLayer.visible,
+        wiring: this.wiringLayer.visible,
+      };
+    }
+    this.tutorialOutputIndex = chain.outputIndex;
+    this.tutorialPanelIds = new Set(chain.panels.map((panel) => panel.id));
+    const connection = connectionIndex === null
+      ? null
+      : chain.connections[connectionIndex] ?? null;
+    this.tutorialActivePanelIds = new Set(
+      connection
+        ? [connection.fromPanelId, connection.toPanelId].filter(
+          (panelId): panelId is string => panelId !== null,
+        )
+        : [],
+    );
+    const tutorialLabels = new Map(
+      chain.panels.map((panel) => [panel.id, panel.label]),
+    );
+    for (const label of this.panelLabels) {
+      const panelId = label.element.dataset.panelId ?? "";
+      label.element.textContent = tutorialLabels.get(panelId) ?? panelId;
+      label.element.classList.toggle(
+        "panel-label--tutorial-active",
+        this.tutorialActivePanelIds.has(panelId),
+      );
+    }
+    this.disposeTutorialLabels();
+    this.boundaryPreviewLayer.visible = false;
+    this.printableLayer.visible = true;
+    this.connectorLayer.visible = true;
+    this.wiringLayer.visible = true;
+    this.surfacePlacement.setInteractionEnabled(false);
+    this.controls.autoRotate = false;
+    this.container.dataset.autoRotate = "false";
+    this.applyTutorialPanelMask();
+    this.applyTutorialOutputVisibility();
+    this.applySelectionFocus();
+    this.applyTutorialConnectionVisibility(connectionIndex);
   }
 
   dispose(): void {
+    this.clearAssemblyTutorial();
     this.resizeObserver.disconnect();
     this.controls.dispose();
     this.surfacePlacement.dispose();
@@ -509,6 +636,7 @@ export class SphereRenderer {
     this.clearBoundaryPreview();
     this.disposeGroup(this.printableLayer);
     this.clearWiringPreview();
+    this.disposeTutorialLabels();
     this.geometry.dispose();
     this.ledTexture.dispose();
     this.material.dispose();
@@ -702,6 +830,8 @@ export class SphereRenderer {
     surfaces.userData.selectionFocusBaseColors =
       Float32Array.from(surfaceColors);
     surfaces.userData.selectionFocusPanelIds = surfacePanelIds;
+    surfaces.userData.tutorialBasePositions =
+      Float32Array.from(surfacePositions);
     surfaces.renderOrder = 0;
     this.panelLayer.add(surfaces);
 
@@ -718,8 +848,8 @@ export class SphereRenderer {
     const panelSurfaceMaterial = new THREE.MeshPhongMaterial({
       vertexColors: true,
       side: THREE.DoubleSide,
-      specular: 0x9ab3c4,
-      shininess: 92,
+      specular: 0x657585,
+      shininess: 46,
       transparent: false,
       opacity: 1,
       depthWrite: true,
@@ -734,6 +864,8 @@ export class SphereRenderer {
     panelSurfaces.userData.selectionFocusBaseColors =
       Float32Array.from(panelSurfaceColors);
     panelSurfaces.userData.selectionFocusPanelIds = panelSurfaceIds;
+    panelSurfaces.userData.tutorialBasePositions =
+      Float32Array.from(panelSurfacePositions);
     panelSurfaces.renderOrder = 0;
     this.panelLayer.add(panelSurfaces);
     this.buildPrintableClosures(printableClosures, surfaceFaces);
@@ -787,6 +919,7 @@ export class SphereRenderer {
     outlines.userData.selectionFocusBaseColors =
       Float32Array.from(colors);
     outlines.userData.selectionFocusPanelIds = outlinePanelIds;
+    outlines.userData.tutorialBasePositions = Float32Array.from(positions);
     outlines.renderOrder = 1;
     this.panelLayer.add(outlines);
   }
@@ -952,6 +1085,87 @@ export class SphereRenderer {
       toneMapped: false,
     });
     const up = new THREE.Vector3(0, 1, 0);
+    const controllerLayout = createWiringControllerLayout(preview);
+    const controllerPins = new Map(
+      controllerLayout?.pins.map((pin) => [pin.outputIndex, pin.position]) ?? [],
+    );
+    const sculptureBounds = new THREE.Box3();
+    for (const panel of this.mapping.panels) {
+      sculptureBounds.expandByPoint(this.toThree(panel.position));
+    }
+    const sculptureCenter = sculptureBounds.isEmpty()
+      ? new THREE.Vector3()
+      : sculptureBounds.getCenter(new THREE.Vector3());
+    if (controllerLayout) {
+      const controller = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          Math.max(38, preview.outputs.length * 9 + 12),
+          16,
+          24,
+        ),
+        createPrintedPlaMaterial(),
+      );
+      controller.name = "wiring-controller";
+      controller.position.copy(this.toThree(controllerLayout.position));
+      controller.renderOrder = 2;
+      this.connectorLayer.add(controller);
+      const label = document.createElement("span");
+      label.className = "wiring-controller-label";
+      label.textContent = "Controller";
+      const labelObject = new CSS2DObject(label);
+      labelObject.position.copy(controller.position).add(new THREE.Vector3(0, 13, 0));
+      this.connectorLayer.add(labelObject);
+    }
+
+    const addCable = (
+      group: THREE.Group,
+      start: THREE.Vector3,
+      end: THREE.Vector3,
+      color: number,
+      connectionIndex: number,
+    ): void => {
+      const connectionGroup = new THREE.Group();
+      connectionGroup.userData.tutorialConnectionIndex = connectionIndex;
+      connectionGroup.userData.tutorialBaseColor = color;
+      const control = createInwardCableControlPoint(
+        { x: start.x, y: start.y, z: start.z },
+        { x: end.x, y: end.y, z: end.z },
+        { x: sculptureCenter.x, y: sculptureCenter.y, z: sculptureCenter.z },
+      );
+      const curve = new THREE.QuadraticBezierCurve3(
+        start,
+        this.toThree(control),
+        end,
+      );
+      const tubeMaterial = new THREE.MeshBasicMaterial({
+        color,
+        toneMapped: false,
+      });
+      tubeMaterial.userData.tutorialCableMaterial = true;
+      const tube = new THREE.Mesh(
+        new THREE.TubeGeometry(curve, 12, 0.72, 7, false),
+        tubeMaterial,
+      );
+      tube.renderOrder = 2;
+      connectionGroup.add(tube);
+      const arrowMaterial = new THREE.MeshBasicMaterial({
+        color,
+        toneMapped: false,
+      });
+      arrowMaterial.userData.tutorialCableMaterial = true;
+      const arrowHead = new THREE.Mesh(
+        new THREE.ConeGeometry(1.8, 4.5, 8),
+        arrowMaterial,
+      );
+      arrowHead.position.copy(curve.getPoint(0.78));
+      arrowHead.quaternion.setFromUnitVectors(
+        up,
+        curve.getTangent(0.78).normalize(),
+      );
+      arrowHead.renderOrder = 3;
+      connectionGroup.add(arrowHead);
+      group.add(connectionGroup);
+    };
 
     for (const output of preview.outputs) {
       const connectorGroup = new THREE.Group();
@@ -979,6 +1193,36 @@ export class SphereRenderer {
         nodes.length,
       );
       const matrix = new THREE.Matrix4();
+      const controllerPin = controllerPins.get(output.outputIndex);
+      if (controllerPin) {
+        const pinPosition = this.toThree(controllerPin);
+        const pin = new THREE.Mesh(
+          new THREE.SphereGeometry(2.4, 14, 10),
+          new THREE.MeshBasicMaterial({ color: output.color, toneMapped: false }),
+        );
+        pin.name = `controller-output-${output.outputIndex + 1}`;
+        pin.position.copy(pinPosition);
+        pin.renderOrder = 3;
+        connectorGroup.add(pin);
+        const pinLabel = document.createElement("span");
+        pinLabel.className = "wiring-controller-pin-label";
+        pinLabel.textContent = output.gpio === null
+          ? `Output ${output.outputIndex + 1}`
+          : `GPIO ${output.gpio}`;
+        const pinLabelObject = new CSS2DObject(pinLabel);
+        pinLabelObject.position.copy(pinPosition).add(new THREE.Vector3(0, -6, 0));
+        connectorGroup.add(pinLabelObject);
+        const firstNode = nodes[0];
+        if (firstNode) {
+          addCable(
+            wiringGroup,
+            pinPosition,
+            this.toThree(firstNode.din),
+            output.color,
+            0,
+          );
+        }
+      }
 
       for (let index = 0; index < nodes.length; index += 1) {
         const node = nodes[index]!;
@@ -1015,38 +1259,7 @@ export class SphereRenderer {
         const next = nodes[index + 1]!;
         const start = this.toThree(current.dout);
         const end = this.toThree(next.din);
-        const midpoint = start.clone().add(end).multiplyScalar(0.5);
-        const outward = midpoint.clone();
-        if (outward.lengthSq() < 1e-8) outward.set(0, 1, 0);
-        outward
-          .normalize()
-          .multiplyScalar(Math.max(start.length(), end.length()) + 16);
-        const curve = new THREE.QuadraticBezierCurve3(start, outward, end);
-        const tube = new THREE.Mesh(
-          new THREE.TubeGeometry(curve, 12, 0.72, 7, false),
-          new THREE.MeshBasicMaterial({
-            color: output.color,
-            toneMapped: false,
-          }),
-        );
-        tube.renderOrder = 2;
-        wiringGroup.add(tube);
-
-        const arrowPosition = curve.getPoint(0.78);
-        const arrowDirection = curve
-          .getTangent(0.78)
-          .normalize();
-        const arrowHead = new THREE.Mesh(
-          new THREE.ConeGeometry(1.8, 4.5, 8),
-          new THREE.MeshBasicMaterial({
-            color: output.color,
-            toneMapped: false,
-          }),
-        );
-        arrowHead.position.copy(arrowPosition);
-        arrowHead.quaternion.setFromUnitVectors(up, arrowDirection);
-        arrowHead.renderOrder = 3;
-        wiringGroup.add(arrowHead);
+        addCable(wiringGroup, start, end, output.color, index + 1);
       }
     }
   }
@@ -1062,10 +1275,195 @@ export class SphereRenderer {
     this.wiringOutputLayers.clear();
   }
 
+  private applyTutorialPanelMask(): void {
+    const ledPosition = this.geometry.getAttribute("position") as
+      THREE.BufferAttribute | undefined;
+    if (ledPosition && this.baseLedPositions.length === ledPosition.count * 3) {
+      ledPosition.copyArray(maskedPanelPositions(
+        this.baseLedPositions,
+        this.mapping.entries.map((entry) => entry.panelId),
+        this.tutorialPanelIds,
+      ));
+      ledPosition.needsUpdate = true;
+    }
+    this.panelLayer.traverse((object) => {
+      if (!(object instanceof THREE.Mesh) && !(object instanceof THREE.LineSegments)) {
+        return;
+      }
+      const panelIds = object.userData.selectionFocusPanelIds as
+        Array<string | null> | undefined;
+      const basePositions = object.userData.tutorialBasePositions as
+        Float32Array | undefined;
+      if (!panelIds || !basePositions) {
+        if (this.tutorialPanelIds) {
+          object.userData.tutorialBaseVisible ??= object.visible;
+          object.visible = false;
+        } else if (typeof object.userData.tutorialBaseVisible === "boolean") {
+          object.visible = object.userData.tutorialBaseVisible;
+          delete object.userData.tutorialBaseVisible;
+        }
+        return;
+      }
+      const position = object.geometry.getAttribute("position") as
+        THREE.BufferAttribute;
+      position.copyArray(maskedPanelPositions(
+        basePositions,
+        panelIds,
+        this.tutorialPanelIds,
+      ));
+      position.needsUpdate = true;
+    });
+  }
+
+  private applyTutorialOutputVisibility(): void {
+    for (const [outputIndex, group] of this.connectorOutputLayers) {
+      group.visible = this.tutorialOutputIndex === null
+        ? this.outputVisibility.get(outputIndex) ?? true
+        : outputIndex === this.tutorialOutputIndex;
+    }
+    for (const [outputIndex, group] of this.wiringOutputLayers) {
+      group.visible = this.tutorialOutputIndex === null
+        ? this.outputVisibility.get(outputIndex) ?? true
+        : outputIndex === this.tutorialOutputIndex;
+    }
+  }
+
+  private applyTutorialConnectionVisibility(
+    connectionIndex: number | null,
+  ): void {
+    let visibleConnections = 0;
+    let mutedConnections = 0;
+    let restoredConnections = 0;
+    let activeMaterialState: string | null = null;
+    let mutedMaterialState: string | null = null;
+    for (const [outputIndex, group] of this.wiringOutputLayers) {
+      for (const child of group.children) {
+        const index = child.userData.tutorialConnectionIndex as number | undefined;
+        if (index === undefined) continue;
+        const baseColor = child.userData.tutorialBaseColor as number | undefined;
+        const active = connectionIndex === null || (
+          outputIndex === this.tutorialOutputIndex && index === connectionIndex
+        );
+        child.visible = true;
+        child.traverse((object) => {
+          if (!(object instanceof THREE.Mesh)) return;
+          const materials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+          for (const material of materials) {
+            if (!(material instanceof THREE.MeshBasicMaterial)) continue;
+            material.color.setHex(
+              active
+                ? this.tutorialPanelIds ? 0xff2435 : baseColor ?? 0xffffff
+                : 0x8290a3,
+            );
+            material.transparent = !active;
+            material.opacity = active ? 1 : 0.62;
+            material.depthWrite = active;
+            material.needsUpdate = true;
+          }
+        });
+        const materials: THREE.MeshBasicMaterial[] = [];
+        child.traverse((object) => {
+          if (!(object instanceof THREE.Mesh)) return;
+          const objectMaterials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+          for (const material of objectMaterials) {
+            if (material instanceof THREE.MeshBasicMaterial) {
+              materials.push(material);
+            }
+          }
+        });
+        const materialState = materials[0]
+          ? [
+            materials[0].color.getHexString(),
+            materials[0].opacity,
+            materials[0].transparent,
+            materials[0].depthWrite,
+          ].join(",")
+          : "missing";
+        if (this.tutorialPanelIds) {
+          if (active) activeMaterialState ??= materialState;
+          else mutedMaterialState ??= materialState;
+        } else if (
+          !this.tutorialPanelIds &&
+          materials.length > 0 &&
+          materials.every((material) =>
+            material.color.getHex() === (baseColor ?? 0xffffff) &&
+            material.opacity === 1 &&
+            !material.transparent &&
+            material.depthWrite
+          )
+        ) {
+          restoredConnections += 1;
+        }
+        if (group.visible && child.visible) visibleConnections += 1;
+        if (this.tutorialPanelIds && group.visible && !active) {
+          mutedConnections += 1;
+        }
+      }
+    }
+    if (this.tutorialPanelIds) {
+      this.container.dataset.tutorialVisibleConnections = String(visibleConnections);
+      this.container.dataset.tutorialActiveConnection = String(connectionIndex ?? 0);
+      this.container.dataset.tutorialMutedConnections = String(mutedConnections);
+      this.container.dataset.tutorialActiveMaterial = activeMaterialState ?? "missing";
+      this.container.dataset.tutorialMutedMaterial = mutedMaterialState ?? "missing";
+      delete this.container.dataset.wiringRestoredConnections;
+    } else {
+      delete this.container.dataset.tutorialVisibleConnections;
+      delete this.container.dataset.tutorialActiveConnection;
+      delete this.container.dataset.tutorialMutedConnections;
+      delete this.container.dataset.tutorialActiveMaterial;
+      delete this.container.dataset.tutorialMutedMaterial;
+      this.container.dataset.wiringRestoredConnections = String(
+        restoredConnections,
+      );
+    }
+  }
+
+  private disposeTutorialLabels(): void {
+    for (const child of [...this.tutorialLayer.children]) {
+      if (child instanceof CSS2DObject) child.element.remove();
+      this.tutorialLayer.remove(child);
+    }
+  }
+
+  private clearAssemblyTutorial(): void {
+    if (this.tutorialPanelIds === null) return;
+    this.tutorialPanelIds = null;
+    this.tutorialActivePanelIds.clear();
+    this.tutorialOutputIndex = null;
+    for (const label of this.panelLabels) {
+      label.element.textContent = label.element.dataset.panelId ?? "";
+      label.element.classList.remove("panel-label--tutorial-active");
+    }
+    this.disposeTutorialLabels();
+    this.applyTutorialPanelMask();
+    this.applyTutorialOutputVisibility();
+    this.applyTutorialConnectionVisibility(null);
+    this.surfacePlacement.setInteractionEnabled(true);
+    if (this.tutorialLayerState) {
+      this.boundaryPreviewLayer.visible = this.tutorialLayerState.boundary;
+      this.printableLayer.visible = this.tutorialLayerState.printable;
+      this.connectorLayer.visible = this.tutorialLayerState.connector;
+      this.wiringLayer.visible = this.tutorialLayerState.wiring;
+      this.tutorialLayerState = null;
+    }
+    if (this.tutorialAutoRotate !== null) {
+      this.controls.autoRotate = this.tutorialAutoRotate;
+      this.container.dataset.autoRotate = String(this.controls.autoRotate);
+      this.tutorialAutoRotate = null;
+    }
+    this.applySelectionFocus();
+  }
+
   private disposeGroup(group: THREE.Group): void {
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
     group.traverse((object) => {
+      if (object instanceof CSS2DObject) object.element.remove();
       if (
         object instanceof THREE.Mesh ||
         object instanceof THREE.Line ||
@@ -1124,7 +1522,9 @@ export class SphereRenderer {
       };
       const entry = this.mapping.entries[physical]!;
       const display = selectionDisplayColor(
-        base, entry.panelId, this.selectedPanelId,
+        base,
+        entry.panelId,
+        this.tutorialPanelIds ? null : this.selectedPanelId,
       );
       attribute.setXYZ(physical, display.r, display.g, display.b);
     }
@@ -1142,7 +1542,9 @@ export class SphereRenderer {
       const offset = index * 3;
       const color = { r: base[offset]!, g: base[offset + 1]!, b: base[offset + 2]! };
       const display = selectionDisplayColor(
-        color, panelIds[index] ?? null, this.selectedPanelId,
+        color,
+        panelIds[index] ?? null,
+        this.tutorialPanelIds ? null : this.selectedPanelId,
       );
       attribute.setXYZ(index, display.r, display.g, display.b);
     }
@@ -1150,6 +1552,7 @@ export class SphereRenderer {
   }
 
   private applyMaterialSelectionFocus(material: THREE.Material): void {
+    if (this.tutorialPanelIds && material.userData.tutorialCableMaterial) return;
     const colored = material as THREE.Material & { color?: THREE.Color };
     if (!colored.color) return;
     let base = material.userData.selectionFocusBaseColor as
@@ -1158,7 +1561,7 @@ export class SphereRenderer {
       base = colored.color.clone();
       material.userData.selectionFocusBaseColor = base;
     }
-    if (!this.selectedPanelId) {
+    if (!this.selectedPanelId || this.tutorialPanelIds) {
       colored.color.copy(base);
     } else {
       const grey = focusedGrey(base);
@@ -1169,6 +1572,7 @@ export class SphereRenderer {
   private updatePanelLabelSelection(): void {
     for (const label of this.panelLabels) {
       const isSelected =
+        this.tutorialPanelIds === null &&
         label.element.dataset.panelId === this.selectedPanelId;
       label.element.classList.toggle(
         "panel-label--selected",
@@ -1176,7 +1580,8 @@ export class SphereRenderer {
       );
       label.element.classList.toggle(
         "panel-label--unfocused",
-        this.selectedPanelId !== null && !isSelected,
+        this.tutorialPanelIds === null &&
+          this.selectedPanelId !== null && !isSelected,
       );
       label.element.setAttribute(
         "aria-pressed",
@@ -1247,6 +1652,12 @@ export class SphereRenderer {
 
   private layoutGrid(bounds: THREE.Sphere): void {
     this.disposeGrid();
+    this.container.dataset.gridBounds = [
+      bounds.center.x,
+      bounds.center.y,
+      bounds.center.z,
+      bounds.radius,
+    ].map((value) => value.toFixed(6)).join(",");
     const size = Math.max(200, Math.ceil((bounds.radius * 4) / 50) * 50);
     this.grid = new THREE.GridHelper(size, 20, 0x5aa7b4, 0x1e3a44);
     this.grid.position.set(
@@ -1258,7 +1669,7 @@ export class SphereRenderer {
     this.scene.add(this.grid);
   }
 
-  private fitSphere(bounds: THREE.Sphere): void {
+  private fitSphere(bounds: THREE.Sphere, updateGrid = true): void {
     const radius = Math.max(bounds.radius, 1);
     const centre = bounds.center;
     const currentDirection = this.camera.position
@@ -1272,12 +1683,7 @@ export class SphereRenderer {
     this.camera.position
       .copy(centre)
       .addScaledVector(currentDirection, distance);
-    this.controls.minDistance = radius * 1.15;
-    this.controls.maxDistance = radius * 5;
-    this.camera.near = Math.max(0.1, radius / 500);
-    this.camera.far = distance + radius * 6;
-    this.camera.updateProjectionMatrix();
-    this.layoutGrid(new THREE.Sphere(centre.clone(), radius));
+    if (updateGrid) this.layoutGrid(new THREE.Sphere(centre.clone(), radius));
     this.controls.update();
   }
 

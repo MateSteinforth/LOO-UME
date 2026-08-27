@@ -110,6 +110,42 @@ When a panel-set edit makes a stored route stale, the editor shows the saved
 route evidence separately and starts with the temporary current-panel draft.
 The operator can use it only after Edit suggested route and Save route.
 
+## Interactive data-chain tutorial
+
+The browser **Wiring & assembly** control derives every connection label from
+the same Schema 2 wiring preview used by the normal wiring layers. **Isolate
+chain** starts with the first output. Previous and Next move through its cables
+and then continue across the remaining outputs. The existing Output rows are
+the chain selector: chain navigation checks one row and masks every panel that
+is not in that output. Separate wire navigation crosses output boundaries and
+checks the row that owns the new connection. Next chain starts at its first
+wire; Previous chain starts at its last wire. Only the selected chain remains
+visible. Its current solder connection is bright red; its other cables are
+muted gray for context. The tutorial never
+moves the camera; the operator keeps orbit and unlimited zoom control. A schematic
+controller sits above the sculpture and labels each output pin. DIN, DOUT, and
+cable endpoints are behind each PCB in the profile's back-view convention.
+Cable curves move inward from those endpoints, toward the sculpture interior.
+Panel labels show their one-based position in the selected chain. The tutorial
+is view-only: it does not change poses, routes, mapping, mechanics, or saved
+project data.
+
+Authored routes are shown as saved data routes. Draft and review-required
+routes remain inspectable but keep a visible warning that they must be saved or
+reviewed before physical assembly. Missing GPIOs remain explicitly unassigned.
+The tutorial describes data cables only; it does not infer a power-distribution
+route that is absent from Schema 2.
+Current referenced printable assets remain visible during chain isolation. A
+Schema 2 project with no `generatedMechanics` or `generatedStructure` references
+has no printable geometry for the tutorial to show. The 41-panel project is
+currently in that pose-and-wiring-only state.
+
+The browser places **Wiring & assembly** at the top of the control panel so the
+chain and wire controls remain available during physical work. Wiring layers
+and tutorial controls use the left and right halves of that section. The populated
+41-panel project is the default browser project; empty authoring projects remain
+available in the project selector.
+
 ## Printable assembly-manual export
 
 The **Export individual files** menu can write one

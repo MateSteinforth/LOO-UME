@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-26
+Last reconciled: 2026-08-27
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -85,7 +85,18 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `UI-020` Add an interactive data-chain assembly tutorial
+
+- Result: Wiring & assembly is first and uses a compact two-column layout. The
+  tutorial isolates one output chain, shows its current solder connection in
+  bright red, mutes its other wires, crosses chain boundaries through wire
+  navigation, and restores the prior view on exit. The populated 41-panel
+  project is the default, the floating cable label is removed, rendered LEDs
+  sit 2.4 mm above the PCB plane, and the viewer has a full-size gradient
+  backdrop.
+- Verification: 15 focused unit tests, `npx tsc -b`, diff check, and independent
+  review passed. Broad browser tests were not repeated for this visual follow-up.
+- Owner: `codex/ui-020-chain-tutorial` in `/tmp/led-rhombo-ui-020`.
 
 ## Done
 

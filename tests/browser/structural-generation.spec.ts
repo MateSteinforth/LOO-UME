@@ -37,7 +37,7 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     await route.fulfill({ status: 503, contentType: "text/plain", body: "unavailable" });
   });
 
-  await page.goto("/");
+  await page.goto("/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json");
   await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );
@@ -224,7 +224,7 @@ test("generates one local printable junction for three co-located panels", async
   await page.route("**/api/generator-status", async (route) => {
     await route.fulfill({ status: 503, contentType: "text/plain", body: "unavailable" });
   });
-  await page.goto("/");
+  await page.goto("/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json");
   await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );
@@ -253,7 +253,7 @@ test("generates the alternative full-edge LED-surface bridge", async ({ page }) 
   await page.route("**/api/generator-status", async (route) => {
     await route.fulfill({ status: 503, contentType: "text/plain", body: "unavailable" });
   });
-  await page.goto("/");
+  await page.goto("/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json");
   await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );

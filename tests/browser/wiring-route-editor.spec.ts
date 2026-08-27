@@ -25,7 +25,7 @@ async function readJsonDownload(download: Download): Promise<Record<string, unkn
 
 test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   test.setTimeout(240_000);
-  await page.goto("/");
+  await page.goto("/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json");
   await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );

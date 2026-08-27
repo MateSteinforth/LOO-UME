@@ -1218,3 +1218,103 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** GitHub Actions run `33049816046`, local Playwright reproduction,
   and the reconnect-eligibility unit and browser suites.
 - **Status:** Resolved.
+
+### F-066 — Hidden tutorial vertices produced invalid bounds
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 viewport isolation.
+- **Symptom:** Chromium logged `computeBoundingSphere` errors after non-chain
+  vertices were masked with non-rendering coordinates.
+- **Cause:** The renderer recomputed geometry bounds after applying the mask.
+- **Correction:** Keep the valid full-geometry bounds while the temporary mask
+  is active; use the selected panel poses to fit the tutorial camera.
+- **Prevention:** Do not calculate bounds from temporarily masked position
+  buffers. Restore authored positions without changing their saved geometry.
+- **Evidence:** The assembly-tutorial Chromium journey completes with no page or
+  console errors.
+- **Status:** Resolved.
+
+### F-067 — Back-view connector labels used front-side geometry
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 physical assembly review.
+- **Symptom:** DIN and DOUT labels said `back view`, but the marker and cable
+  endpoints were offset along the outward panel normal and appeared in front
+  of the PCB.
+- **Cause:** `connectorPosition()` used the correct back-view X/Y corner
+  convention but applied a positive surface-normal offset.
+- **Correction:** Apply the connector surface offset opposite the outward
+  normal. Use that shared wiring preview for both normal wiring layers and the
+  interactive assembly steps.
+- **Prevention:** A connector reference-view label must agree with its signed
+  normal offset. Test both the local corner signs and the normal-side sign.
+- **Evidence:** The 41-panel wiring contract test now requires both DIN and
+  DOUT to have a negative local-normal component.
+- **Status:** Resolved.
+
+### F-068 — Wiring curves bowed outside the sculpture
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 physical assembly review.
+- **Symptom:** Cable endpoints were behind the PCBs, but the curved cable body
+  bowed away from the sculpture and was most visible from the outside.
+- **Cause:** The Bézier control point used the world origin and a radius larger
+  than both endpoints.
+- **Correction:** Derive the current sculpture center from panel poses. Put the
+  control point 18 mm inside the smaller endpoint radius relative to that
+  center.
+- **Prevention:** Back-side wiring must test both the endpoint normal sign and
+  the curve control-point radius.
+- **Evidence:** The focused wiring test requires an 82 mm control radius for
+  two 100 mm endpoint radii and an 18 mm inward offset.
+- **Status:** Resolved.
+
+### F-069 — Hiding inactive cables removed assembly context
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 connection-by-connection soldering workflow.
+- **Symptom:** A cable step hid every other cable, and one Previous/Next pair
+  also crossed output boundaries. The operator could not see the remaining
+  route or use the existing Output rows as the chain authority.
+- **Cause:** Tutorial navigation combined chain and cable state, and cable
+  focus was implemented as visibility instead of emphasis.
+- **Correction:** Use the existing Output rows plus independent chain controls
+  to isolate one panel chain. Keep that chain's cables visible, render the
+  current connection bright red, mute its other wires, and let wire navigation
+  select the owning chain when it crosses an output boundary.
+- **Prevention:** Assembly focus must preserve route context. Chain selection
+  and solder-connection selection are independent UI states.
+- **Evidence:** Focused unit navigation tests and the Chromium tutorial journey
+  verify output-row synchronization, bounded wire steps, active cable identity,
+  muted cable count, and visibility restoration on exit.
+- **Status:** Resolved.
+
+### F-071 — Coplanar LED sprites fought with PCB surfaces
+
+- **Date:** 2026-08-27
+- **Context:** Browser panel rendering.
+- **Symptom:** LEDs flickered against the PCB plane and remained visible from
+  the rear because both surfaces used the same depth.
+- **Cause:** Rendered LED positions used the exact mapped PCB-plane positions.
+- **Correction:** Offset only the rendered LED sprites 2.4 mm along each
+  panel's outward normal. Keep mapping positions and saved poses unchanged.
+- **Prevention:** Use a small display-only normal offset for layered visual
+  surfaces. Do not alter physical mapping coordinates to fix z-fighting.
+- **Evidence:** Focused TypeScript and unit checks plus independent review.
+- **Status:** Resolved.
+
+### F-070 — The default browser project showed no panels
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 physical assembly workflow.
+- **Symptom:** The application loaded the empty pose-only authoring project, so
+  the assembly view had no panel sculpture to inspect.
+- **Cause:** The registry and browser loader still used the empty placement
+  fixture as their default after the physical 41-panel workflow became primary.
+- **Correction:** Make the populated 41-panel Schema 2 project the browser and
+  registry default. Keep the empty placement fixture as an explicit menu item.
+- **Prevention:** The default project must represent the current primary
+  operator workflow. Tests pin the populated project source.
+- **Evidence:** Registry and project-loader checks plus the focused browser
+  tutorial journey.
+- **Status:** Resolved.

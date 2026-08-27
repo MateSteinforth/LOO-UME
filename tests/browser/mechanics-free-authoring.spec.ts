@@ -93,7 +93,7 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   });
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
-  await page.goto("/");
+  await page.goto("/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json");
   await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );

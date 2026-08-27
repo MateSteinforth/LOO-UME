@@ -12,7 +12,7 @@ import { readJsonResponse } from "./JsonResponse.ts";
 import { createProvisionalWiringPreview } from "./WiringPreview.ts";
 
 export const DEFAULT_SCULPTURE_JSON =
-  "./sculptures/pose-only-rhombicosidodecahedron/sculpture.json";
+  "./sculptures/rhombicosidodecahedron/sculpture.json";
 export const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
 
 export interface SculptureRegistryEntry {

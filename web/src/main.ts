@@ -39,6 +39,15 @@ import {
   validateWiringPreview,
 } from "./WiringPreview";
 import {
+  createAssemblyTutorialModel,
+  nextAssemblyTutorialChain,
+  nextAssemblyTutorialWire,
+  previousAssemblyTutorialChain,
+  previousAssemblyTutorialWire,
+  type AssemblyTutorialChain,
+  type AssemblyTutorialModel,
+} from "./AssemblyTutorial.ts";
+import {
   confirmWiringRouteEditorModel,
   copyDraftSuggestionToRouteEditor,
   createWiringRouteEditorModel,
@@ -149,6 +158,42 @@ app.innerHTML = `
 
       <aside class="control-panel">
         <section class="control-section">
+          <div id="wiring-layer-controls" class="layer-controls wiring-assembly">
+            <div class="layer-controls__heading">Wiring &amp; assembly</div>
+            <div class="wiring-assembly__layers">
+            <label class="toggle-field">
+              <input id="connector-layer" type="checkbox" checked />
+              <span>Panel DIN / DOUT + direction</span>
+            </label>
+            <label class="toggle-field">
+              <input id="wiring-layer" type="checkbox" checked />
+              <span>Panel-to-panel wiring</span>
+            </label>
+            <div id="output-layer-list" class="output-layer-list" aria-label="Controller output visibility"></div>
+            </div>
+            <div id="assembly-tutorial-section" class="assembly-tutorial">
+              <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
+              <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
+                Isolate the data chains and step through their cables.
+              </p>
+              <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">
+                Isolate chain
+              </button>
+              <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
+                <output id="assembly-tutorial-step">Cable</output>
+                <div class="assembly-tutorial__actions">
+                  <button id="assembly-tutorial-previous-chain" type="button">Previous chain</button>
+                  <button id="assembly-tutorial-next-chain" type="button">Next chain</button>
+                  <button id="assembly-tutorial-previous-wire" type="button">Previous wire</button>
+                  <button id="assembly-tutorial-next-wire" type="button">Next wire</button>
+                  <button id="assembly-tutorial-exit" class="assembly-tutorial__exit" type="button">Show all</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section">
           <div class="section-heading">
             <span>WLED engine</span>
           </div>
@@ -181,18 +226,6 @@ app.innerHTML = `
               <option value="">Loading sculpture registry…</option>
             </select>
           </label>
-          <div id="wiring-layer-controls" class="layer-controls">
-            <div class="layer-controls__heading">Wiring layers</div>
-            <label class="toggle-field">
-              <input id="connector-layer" type="checkbox" checked />
-              <span>Panel DIN / DOUT + direction</span>
-            </label>
-            <label class="toggle-field">
-              <input id="wiring-layer" type="checkbox" checked />
-              <span>Panel-to-panel wiring</span>
-            </label>
-            <div id="output-layer-list" class="output-layer-list" aria-label="Controller output visibility"></div>
-          </div>
         </section>
 
         <section class="control-section editor-section">
@@ -408,6 +441,26 @@ const connectorLayerToggle =
 const wiringLayerToggle = query<HTMLInputElement>("#wiring-layer");
 const wiringLayerControls = query<HTMLElement>("#wiring-layer-controls");
 const outputLayerList = query<HTMLElement>("#output-layer-list");
+const assemblyTutorialWarning =
+  query<HTMLElement>("#assembly-tutorial-warning");
+const assemblyTutorialInstruction =
+  query<HTMLElement>("#assembly-tutorial-instruction");
+const assemblyTutorialStartButton =
+  query<HTMLButtonElement>("#assembly-tutorial-start");
+const assemblyTutorialControls =
+  query<HTMLElement>("#assembly-tutorial-controls");
+const assemblyTutorialStep =
+  query<HTMLOutputElement>("#assembly-tutorial-step");
+const assemblyTutorialPreviousChainButton =
+  query<HTMLButtonElement>("#assembly-tutorial-previous-chain");
+const assemblyTutorialNextChainButton =
+  query<HTMLButtonElement>("#assembly-tutorial-next-chain");
+const assemblyTutorialPreviousWireButton =
+  query<HTMLButtonElement>("#assembly-tutorial-previous-wire");
+const assemblyTutorialNextWireButton =
+  query<HTMLButtonElement>("#assembly-tutorial-next-wire");
+const assemblyTutorialExitButton =
+  query<HTMLButtonElement>("#assembly-tutorial-exit");
 const projectFileInput = query<HTMLInputElement>("#project-file");
 const openProjectFileButton = query<HTMLButtonElement>("#open-project-file");
 const saveSculptureFileButton =
@@ -531,6 +584,13 @@ async function start(): Promise<void> {
     );
     let wiringPreview = hardwareContract.wiring;
     let mapping = hardwareContract.mapping;
+    let assemblyTutorialModel: AssemblyTutorialModel =
+      createAssemblyTutorialModel(wiringPreview);
+    let assemblyTutorialActive = false;
+    let assemblyTutorialChainIndex = 0;
+    let assemblyTutorialConnectionIndex: number | null = null;
+    let assemblyTutorialOutputVisibility: Map<number, boolean> | null = null;
+    const outputLayerVisibility = new Map<number, boolean>();
     let routeEditorModel: WiringRouteEditorModel | null =
       createWiringRouteEditorModel(editorDefinition, wiringPreview);
     renderer = new SphereRenderer(viewerElement, mapping);
@@ -916,8 +976,13 @@ async function start(): Promise<void> {
         input.className = "output-layer-toggle";
         input.dataset.outputIndex = String(output.outputIndex);
         input.type = "checkbox";
-        input.checked = true;
+        input.checked = outputLayerVisibility.get(output.outputIndex) ?? true;
         input.addEventListener("change", () => {
+          if (assemblyTutorialActive) {
+            selectAssemblyTutorialOutput(output.outputIndex);
+            return;
+          }
+          outputLayerVisibility.set(output.outputIndex, input.checked);
           renderer?.setOutputVisible(output.outputIndex, input.checked);
         });
         const swatch = document.createElement("span");
@@ -933,6 +998,121 @@ async function start(): Promise<void> {
       outputLayerToggles = controls.map(
         (label) => label.querySelector<HTMLInputElement>("input")!,
       );
+      if (assemblyTutorialActive) syncAssemblyTutorialOutputControls();
+    };
+
+    const selectedAssemblyTutorialChain = (): AssemblyTutorialChain | null => {
+      return assemblyTutorialModel.chains[assemblyTutorialChainIndex] ?? null;
+    };
+
+    const syncAssemblyTutorialOutputControls = (): void => {
+      const selectedOutputIndex = selectedAssemblyTutorialChain()?.outputIndex;
+      for (const toggle of outputLayerToggles) {
+        const outputIndex = Number(toggle.dataset.outputIndex);
+        const selected = outputIndex === selectedOutputIndex;
+        toggle.checked = selected;
+        toggle.closest(".output-layer")?.classList.toggle(
+          "output-layer--isolated",
+          selected,
+        );
+        if (selected) toggle.setAttribute("aria-current", "true");
+        else toggle.removeAttribute("aria-current");
+        renderer?.setOutputVisible(outputIndex, selected);
+      }
+    };
+
+    const selectAssemblyTutorialOutput = (outputIndex: number): void => {
+      const chainIndex = assemblyTutorialModel.chains.findIndex(
+        (chain) => chain.outputIndex === outputIndex,
+      );
+      if (chainIndex < 0) {
+        syncAssemblyTutorialOutputControls();
+        return;
+      }
+      assemblyTutorialChainIndex = chainIndex;
+      assemblyTutorialConnectionIndex = 0;
+      syncAssemblyTutorialOutputControls();
+      applyAssemblyTutorialView();
+    };
+
+    const applyAssemblyTutorialView = (): void => {
+      const chain = selectedAssemblyTutorialChain();
+      if (!assemblyTutorialActive || !chain || chain.panels.length === 0) {
+        renderer?.setAssemblyTutorial(null);
+        return;
+      }
+      renderer?.setAssemblyTutorial(chain, assemblyTutorialConnectionIndex);
+      assemblyTutorialWarning.textContent = chain.routeWarning;
+      assemblyTutorialWarning.dataset.status = chain.routeStatus;
+      const connectionIndex = assemblyTutorialConnectionIndex ?? 0;
+      const connection = chain.connections[connectionIndex];
+      assemblyTutorialStep.value =
+        `${chain.label} · wire ${connectionIndex + 1} / ${chain.connections.length}`;
+      assemblyTutorialInstruction.textContent = connection?.instruction ??
+        "This connection is unavailable.";
+      assemblyTutorialPreviousChainButton.disabled = assemblyTutorialChainIndex === 0;
+      assemblyTutorialNextChainButton.disabled =
+        assemblyTutorialChainIndex === assemblyTutorialModel.chains.length - 1;
+      assemblyTutorialNextWireButton.disabled =
+        assemblyTutorialChainIndex === assemblyTutorialModel.chains.length - 1 &&
+        connectionIndex === chain.connections.length - 1;
+      assemblyTutorialPreviousWireButton.disabled =
+        assemblyTutorialChainIndex === 0 && connectionIndex === 0;
+    };
+
+    const exitAssemblyTutorial = (announce = true): void => {
+      if (!assemblyTutorialActive) return;
+      assemblyTutorialActive = false;
+      assemblyTutorialChainIndex = 0;
+      assemblyTutorialConnectionIndex = null;
+      renderer?.setAssemblyTutorial(null);
+      if (assemblyTutorialOutputVisibility) {
+        for (const toggle of outputLayerToggles) {
+          const outputIndex = Number(toggle.dataset.outputIndex);
+          const visible = assemblyTutorialOutputVisibility.get(outputIndex) ?? true;
+          toggle.checked = visible;
+          outputLayerVisibility.set(outputIndex, visible);
+          toggle.removeAttribute("aria-current");
+          toggle.closest(".output-layer")?.classList.remove(
+            "output-layer--isolated",
+          );
+          renderer?.setOutputVisible(outputIndex, visible);
+        }
+      }
+      assemblyTutorialOutputVisibility = null;
+      assemblyTutorialStartButton.hidden = false;
+      assemblyTutorialControls.hidden = true;
+      renderAssemblyTutorialControls();
+      if (announce) setLogMessage("Exited the data-chain assembly tutorial.");
+    };
+
+    const renderAssemblyTutorialControls = (): void => {
+      assemblyTutorialModel = createAssemblyTutorialModel(wiringPreview);
+      assemblyTutorialChainIndex = Math.min(
+        assemblyTutorialChainIndex,
+        Math.max(0, assemblyTutorialModel.chains.length - 1),
+      );
+      const chain = selectedAssemblyTutorialChain();
+      const available = chain !== null && chain.panels.length > 0;
+      assemblyTutorialStartButton.disabled = !available;
+      if (!chain) {
+        assemblyTutorialWarning.textContent = "No data chain is available.";
+        assemblyTutorialWarning.dataset.status = "unavailable";
+        assemblyTutorialInstruction.textContent =
+          "Load a Schema 2 project with at least one panelized output.";
+        if (assemblyTutorialActive) exitAssemblyTutorial(false);
+        return;
+      }
+      assemblyTutorialWarning.textContent = chain.routeWarning;
+      assemblyTutorialWarning.dataset.status = chain.routeStatus;
+      if (!assemblyTutorialActive) {
+        assemblyTutorialInstruction.textContent =
+          `Isolate ${assemblyTutorialModel.chains.length} data ${
+            assemblyTutorialModel.chains.length === 1 ? "chain" : "chains"
+          } and step through every cable.`;
+      } else {
+        applyAssemblyTutorialView();
+      }
     };
 
     const renderRouteEditor = (): void => {
@@ -1306,6 +1486,7 @@ async function start(): Promise<void> {
       selected: LoadedSculpture,
       preserveEditorDefinition = false,
     ): Promise<void> => {
+      exitAssemblyTutorial(false);
       simulatorProjectRevision += 1;
       simulatorLedmapUpdateAuthorized =
         selectedHardwareContract.fingerprint !== selected.contract.fingerprint &&
@@ -1344,6 +1525,7 @@ async function start(): Promise<void> {
       renderer?.setMapping(mapping);
       renderer?.setWiringPreview(wiringPreview);
       renderOutputLayerControls();
+      renderAssemblyTutorialControls();
       renderRouteEditor();
       resetTimeline();
       updateMappingStatus();
@@ -1782,6 +1964,72 @@ async function start(): Promise<void> {
         mapping.topology === "panelized-sculpture" && panelLabelsToggle.checked,
       );
     });
+    assemblyTutorialStartButton.addEventListener("click", () => {
+      assemblyTutorialChainIndex = 0;
+      const chain = selectedAssemblyTutorialChain();
+      if (!chain || chain.panels.length === 0) {
+        setLogMessage("No data chain is available for the assembly tutorial.", true);
+        return;
+      }
+      assemblyTutorialActive = true;
+      assemblyTutorialOutputVisibility = new Map(
+        outputLayerToggles.map((toggle) => [
+          Number(toggle.dataset.outputIndex),
+          toggle.checked,
+        ]),
+      );
+      assemblyTutorialConnectionIndex = 0;
+      assemblyTutorialStartButton.hidden = true;
+      assemblyTutorialControls.hidden = false;
+      syncAssemblyTutorialOutputControls();
+      applyAssemblyTutorialView();
+      setLogMessage(
+        `Isolated ${chain.label}: ${chain.panels.length} panels. This tutorial labels the data chain only.`,
+      );
+    });
+    assemblyTutorialPreviousChainButton.addEventListener("click", () => {
+      const previous = previousAssemblyTutorialChain(assemblyTutorialModel, {
+        chainIndex: assemblyTutorialChainIndex,
+        connectionIndex: assemblyTutorialConnectionIndex,
+      });
+      assemblyTutorialChainIndex = previous.chainIndex;
+      assemblyTutorialConnectionIndex = previous.connectionIndex;
+      syncAssemblyTutorialOutputControls();
+      applyAssemblyTutorialView();
+    });
+    assemblyTutorialNextChainButton.addEventListener("click", () => {
+      const next = nextAssemblyTutorialChain(assemblyTutorialModel, {
+        chainIndex: assemblyTutorialChainIndex,
+        connectionIndex: assemblyTutorialConnectionIndex,
+      });
+      assemblyTutorialChainIndex = next.chainIndex;
+      assemblyTutorialConnectionIndex = next.connectionIndex;
+      syncAssemblyTutorialOutputControls();
+      applyAssemblyTutorialView();
+    });
+    assemblyTutorialPreviousWireButton.addEventListener("click", () => {
+      const previous = previousAssemblyTutorialWire(assemblyTutorialModel, {
+        chainIndex: assemblyTutorialChainIndex,
+        connectionIndex: assemblyTutorialConnectionIndex,
+      });
+      assemblyTutorialChainIndex = previous.chainIndex;
+      assemblyTutorialConnectionIndex = previous.connectionIndex;
+      syncAssemblyTutorialOutputControls();
+      applyAssemblyTutorialView();
+    });
+    assemblyTutorialNextWireButton.addEventListener("click", () => {
+      const next = nextAssemblyTutorialWire(assemblyTutorialModel, {
+        chainIndex: assemblyTutorialChainIndex,
+        connectionIndex: assemblyTutorialConnectionIndex,
+      });
+      assemblyTutorialChainIndex = next.chainIndex;
+      assemblyTutorialConnectionIndex = next.connectionIndex;
+      syncAssemblyTutorialOutputControls();
+      applyAssemblyTutorialView();
+    });
+    assemblyTutorialExitButton.addEventListener("click", () => {
+      exitAssemblyTutorial();
+    });
     printableLayerToggle.addEventListener("change", () => {
       renderer?.setPrintableLayerVisible(printableLayerToggle.checked);
     });
@@ -1875,6 +2123,7 @@ async function start(): Promise<void> {
         return;
       }
       ledCountInput.setCustomValidity("");
+      exitAssemblyTutorial(false);
       engine.resize(requested);
       if (requested === selectedHardwareContract.mapping.entries.length) {
         hardwareContract = selectedHardwareContract;
@@ -1891,6 +2140,7 @@ async function start(): Promise<void> {
         wiringPreview,
       );
       renderOutputLayerControls();
+      renderAssemblyTutorialControls();
       renderRouteEditor();
       resetTimeline();
       updateMappingStatus();
@@ -2432,6 +2682,7 @@ async function start(): Promise<void> {
     renderEditorFaces();
     renderConnectorControls();
     renderOutputLayerControls();
+    renderAssemblyTutorialControls();
     renderRouteEditor();
     updateMappingStatus();
     const generatorStatus = await generatorStatusPromise;

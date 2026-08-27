@@ -63,6 +63,14 @@ export interface WiringPreviewValidation {
   errors: string[];
 }
 
+export interface WiringControllerLayout {
+  position: Vector3Data;
+  pins: Array<{
+    outputIndex: number;
+    position: Vector3Data;
+  }>;
+}
+
 export interface WiringSourceDefinition {
   wiring: WiringDefinition;
 }
@@ -77,6 +85,43 @@ function add(a: Vector3Data, b: Vector3Data): Vector3Data {
 
 function scale(value: Vector3Data, amount: number): Vector3Data {
   return vector(value.x * amount, value.y * amount, value.z * amount);
+}
+
+export function createInwardCableControlPoint(
+  start: Vector3Data,
+  end: Vector3Data,
+  sculptureCenter: Vector3Data,
+  insetMm = 18,
+): Vector3Data {
+  const startRelative = vector(
+    start.x - sculptureCenter.x,
+    start.y - sculptureCenter.y,
+    start.z - sculptureCenter.z,
+  );
+  const endRelative = vector(
+    end.x - sculptureCenter.x,
+    end.y - sculptureCenter.y,
+    end.z - sculptureCenter.z,
+  );
+  const midpoint = vector(
+    (startRelative.x + endRelative.x) / 2,
+    (startRelative.y + endRelative.y) / 2,
+    (startRelative.z + endRelative.z) / 2,
+  );
+  const midpointLength = Math.hypot(midpoint.x, midpoint.y, midpoint.z);
+  if (midpointLength < 1e-8) return { ...sculptureCenter };
+  const innerRadius = Math.max(
+    0,
+    Math.min(
+      Math.hypot(startRelative.x, startRelative.y, startRelative.z),
+      Math.hypot(endRelative.x, endRelative.y, endRelative.z),
+    ) - insetMm,
+  );
+  return vector(
+    sculptureCenter.x + midpoint.x / midpointLength * innerRadius,
+    sculptureCenter.y + midpoint.y / midpointLength * innerRadius,
+    sculptureCenter.z + midpoint.z / midpointLength * innerRadius,
+  );
 }
 
 function distanceSquared(a: PanelDefinition, b: PanelDefinition): number {
@@ -139,9 +184,39 @@ function connectorPosition(
     add(panel.position, scale(panel.xAxis, xOffset)),
     add(
       scale(panel.yAxis, yOffset),
-      scale(panel.normal, surfaceOffset),
+      scale(panel.normal, -surfaceOffset),
     ),
   );
+}
+
+/** Places one schematic controller above the complete data-route preview. */
+export function createWiringControllerLayout(
+  preview: WiringPreview,
+): WiringControllerLayout | null {
+  if (preview.nodes.length === 0 || preview.outputs.length === 0) return null;
+  const points = preview.nodes.flatMap((node) => [node.din, node.dout]);
+  const minimumX = Math.min(...points.map(({ x }) => x));
+  const maximumX = Math.max(...points.map(({ x }) => x));
+  const maximumY = Math.max(...points.map(({ y }) => y));
+  const minimumZ = Math.min(...points.map(({ z }) => z));
+  const maximumZ = Math.max(...points.map(({ z }) => z));
+  const position = vector(
+    (minimumX + maximumX) / 2,
+    maximumY + 32,
+    (minimumZ + maximumZ) / 2,
+  );
+  const pinSpacing = 9;
+  return {
+    position,
+    pins: preview.outputs.map((output, index) => ({
+      outputIndex: output.outputIndex,
+      position: vector(
+        position.x + (index - (preview.outputs.length - 1) / 2) * pinSpacing,
+        position.y - 8,
+        position.z,
+      ),
+    })),
+  };
 }
 
 function cornerDirections(corner: PanelCorner): [-1 | 1, -1 | 1] {

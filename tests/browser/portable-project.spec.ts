@@ -327,7 +327,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
     [...fixture.assets.values()].map((bytes) => sha256(bytes)),
   );
 
-  await page.goto("/");
+  await page.goto("/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json");
   await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );

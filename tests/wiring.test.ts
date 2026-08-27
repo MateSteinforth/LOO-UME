@@ -4,7 +4,9 @@ import {
   createUniformSphereMapping,
 } from "../web/src/LedMapping.ts";
 import {
+  createInwardCableControlPoint,
   createProvisionalWiringPreview,
+  createWiringControllerLayout,
   validateWiringPreview,
 } from "../web/src/WiringPreview.ts";
 import {
@@ -41,6 +43,17 @@ function loadDraftFixture() {
 }
 
 describe("provisional wiring preview", () => {
+  it("bends cable curves inside the panel endpoint radius", () => {
+    const control = createInwardCableControlPoint(
+      { x: 100, y: 0, z: 0 },
+      { x: 80, y: 60, z: 0 },
+      { x: 0, y: 0, z: 0 },
+    );
+    expect(Math.hypot(control.x, control.y, control.z)).toBeCloseTo(82, 10);
+    expect(control.x).toBeGreaterThan(0);
+    expect(control.y).toBeGreaterThan(0);
+  });
+
   it("creates four complete and continuous output routes", () => {
     const { project, mapping } = loadDraftFixture();
     const preview = createProvisionalWiringPreview(
@@ -76,6 +89,11 @@ describe("provisional wiring preview", () => {
     expect(routedPanelIds).toHaveLength(41);
     expect(new Set(routedPanelIds).size).toBe(41);
     expect(preview.nodes).toHaveLength(41);
+    const controller = createWiringControllerLayout(preview)!;
+    expect(controller.pins).toHaveLength(4);
+    expect(controller.position.y).toBeGreaterThan(
+      Math.max(...preview.nodes.flatMap((node) => [node.din.y, node.dout.y])),
+    );
 
     for (const node of preview.nodes) {
       const panel = mapping.panels.find(
@@ -107,6 +125,8 @@ describe("provisional wiring preview", () => {
       expect(local(dinRelative, panel.yAxis)).toBeGreaterThan(0);
       expect(local(doutRelative, panel.xAxis)).toBeLessThan(0);
       expect(local(doutRelative, panel.yAxis)).toBeLessThan(0);
+      expect(local(dinRelative, panel.normal)).toBeLessThan(0);
+      expect(local(doutRelative, panel.normal)).toBeLessThan(0);
       expect(node.connectorReferenceView).toBe("back");
       expect(node.dinCorner).toBe("top-right");
       expect(node.doutCorner).toBe("bottom-left");
