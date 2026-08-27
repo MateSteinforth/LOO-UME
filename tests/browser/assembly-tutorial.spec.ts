@@ -10,13 +10,21 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
     "./sculptures/rhombicosidodecahedron/sculpture.json",
   );
   await expect(page.locator("#led-count")).toHaveValue("2624");
-  await expect(page.locator(".output-layer-toggle")).toHaveCount(4);
-  await expect(page.locator(".output-layer small")).toHaveText([
-    "11 panels",
-    "10 panels",
-    "10 panels",
-    "10 panels",
-  ]);
+  await expect(page.locator(".output-layer-toggle")).toHaveCount(0);
+  const viewSection = page.locator(".control-section").filter({
+    has: page.locator("#wiring-layer-controls"),
+  });
+  await expect(viewSection.locator(".section-heading")).toHaveText("View");
+  await expect(viewSection.locator("#display-mode")).toBeVisible();
+  await expect(viewSection.locator("#panel-transform-mode")).toHaveAttribute(
+    "data-mode",
+    "surface",
+  );
+  await expect(viewSection.locator("[data-transform-icon='plane'] svg")).toBeVisible();
+  await expect(viewSection.locator("[data-transform-icon='world'] svg")).toBeVisible();
+  const placementColumns = await page.locator("#automatic-panel-placement-controls")
+    .evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(placementColumns).toBe(2);
 });
 
 test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
@@ -97,13 +105,14 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "data-tutorial-visible-connections",
     "3",
   );
-  await expect(page.locator(".output-layer-toggle")).toBeChecked();
   await expect(page.locator(".assembly-cable-label")).toHaveCount(0);
   await expect(page.locator("#assembly-tutorial-previous-chain")).toBeDisabled();
   await expect(page.locator("#assembly-tutorial-next-chain")).toBeDisabled();
-  await expect(page.locator(".panel-label:visible").first()).toContainText(
-    /\d+ \/ 3 · /,
-  );
+  await expect(page.locator(".panel-label:visible")).toHaveText([
+    "P-01",
+    "P-02",
+    "P-03",
+  ]);
 
   await expect(page.locator("#assembly-tutorial-instruction")).toHaveText(
     "Controller output 1 (GPIO unassigned) → P-02 DIN (top-right, back view)",
@@ -140,11 +149,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "P-02 DOUT",
   );
   await expect(page.locator(".panel-label--tutorial-active:visible")).toHaveCount(2);
-  await page.locator("#panel-transform-mode").evaluate((element) => {
-    const select = element as HTMLSelectElement;
-    select.value = "free-3d";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-  });
+  await page.locator("#panel-transform-mode").click();
   await page.locator(".route-panel").first().evaluate((element) => {
     (element as HTMLElement).click();
   });
@@ -160,8 +165,6 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   await page.locator("#assembly-tutorial-exit").click();
   await expect(page.locator("#assembly-tutorial-controls")).toBeHidden();
   await expect(page.locator(".assembly-cable-label")).toHaveCount(0);
-  await expect(page.locator(".panel-label").filter({ hasText: "1 / 3" }))
-    .toHaveCount(0);
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-auto-rotate",
     "false",
@@ -185,7 +188,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   expect(consoleErrors).toEqual([]);
 });
 
-test("uses the existing output rows as the isolated chain selector", async ({ page }) => {
+test("uses the chain buttons and skips empty outputs", async ({ page }) => {
   await page.goto(
     "/?sculptureJson=.%2Fsculptures%2Fstructural-three-panel-trail%2Fsculpture.json",
   );
@@ -220,27 +223,17 @@ test("uses the existing output rows as the isolated chain selector", async ({ pa
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(project)),
   });
-  const outputToggles = page.locator(".output-layer-toggle");
-  await expect(outputToggles).toHaveCount(6);
-  await outputToggles.nth(1).uncheck();
-  await outputToggles.nth(3).uncheck();
-  await outputToggles.nth(5).uncheck();
+  await expect(page.locator(".output-layer-toggle")).toHaveCount(0);
   await page.locator("#assembly-tutorial-start").click();
-  await expect(page.locator(".output-layer-toggle:checked")).toHaveCount(1);
-  await expect(outputToggles.nth(1)).toBeChecked();
+  await expect(page.locator("#assembly-tutorial-step")).toContainText("Output 2");
   await page.locator("#assembly-tutorial-next-wire").click();
-  await expect(outputToggles.nth(1)).not.toBeChecked();
-  await expect(outputToggles.nth(3)).toBeChecked();
+  await expect(page.locator("#assembly-tutorial-step")).toContainText("Output 4");
   await page.locator("#assembly-tutorial-previous-wire").click();
-  await expect(outputToggles.nth(1)).toBeChecked();
-  await expect(outputToggles.nth(3)).not.toBeChecked();
+  await expect(page.locator("#assembly-tutorial-step")).toContainText("Output 2");
   await page.locator("#assembly-tutorial-next-chain").click();
-  await expect(outputToggles.nth(1)).not.toBeChecked();
-  await expect(outputToggles.nth(3)).toBeChecked();
+  await expect(page.locator("#assembly-tutorial-step")).toContainText("Output 4");
   await expect(page.locator(".panel-label:visible")).toHaveCount(1);
-  await outputToggles.nth(4).click();
-  await expect(outputToggles.nth(3)).not.toBeChecked();
-  await expect(outputToggles.nth(4)).toBeChecked();
+  await page.locator("#assembly-tutorial-next-chain").click();
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-tutorial-visible-connections",
     "1",
@@ -252,19 +245,8 @@ test("uses the existing output rows as the isolated chain selector", async ({ pa
   await expect(page.locator("#assembly-tutorial-step")).toContainText(
     "Output 5",
   );
-  for (const emptyOutputIndex of [0, 2, 5]) {
-    await outputToggles.nth(emptyOutputIndex).click();
-    await expect(outputToggles.nth(emptyOutputIndex)).not.toBeChecked();
-    await expect(outputToggles.nth(4)).toBeChecked();
-  }
-  await expect(page.locator(".output-layer-toggle:checked")).toHaveCount(1);
   await page.locator("#assembly-tutorial-exit").click();
-  await expect(outputToggles.nth(0)).toBeChecked();
-  await expect(outputToggles.nth(1)).not.toBeChecked();
-  await expect(outputToggles.nth(2)).toBeChecked();
-  await expect(outputToggles.nth(3)).not.toBeChecked();
-  await expect(outputToggles.nth(4)).toBeChecked();
-  await expect(outputToggles.nth(5)).not.toBeChecked();
+  await expect(page.locator("#assembly-tutorial-controls")).toBeHidden();
 });
 
 test("restores a surface-backed viewport after the tutorial", async ({ page }) => {

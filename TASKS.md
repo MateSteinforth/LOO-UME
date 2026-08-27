@@ -113,7 +113,17 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `UI-022` Use the full viewport and compact view controls
+
+- Result: kept the full-height, aspect-safe viewport; consolidated display,
+  wiring, printable, and transform controls in View; added the Plane/World
+  transform button; removed output-row toggles and the panel-crossing direction
+  line; kept tutorial labels as panel IDs; compacted automatic placement; and
+  made public-file staging atomic for concurrent LAN and browser processes.
+- Owner: `codex/ui-022-full-viewport` in the root worktree.
+- Verification: focused unit checks 11/11 and TypeScript passed before the final
+  output-row simplification; final diff check and independent review passed.
+  The broad browser suite was not rerun at operator request.
 
 ## Done
 

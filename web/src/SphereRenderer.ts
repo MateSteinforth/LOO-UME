@@ -25,6 +25,10 @@ import type { VerifiedGeneratedMechanics } from "./GeneratedMechanicsAssets.ts";
 import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts";
 import { createPrintedPlaMaterial } from "./PrintedPlaMaterial.ts";
 import {
+  cameraClippingRange,
+  viewportFitDistance,
+} from "./ViewportCamera.ts";
+import {
   maskedPanelPositions,
   type AssemblyTutorialChain,
 } from "./AssemblyTutorial.ts";
@@ -124,6 +128,8 @@ export class SphereRenderer {
   private panelLabelsVisible = true;
   private selectedPanelId: string | null = null;
   private panelThickness = 0.8;
+  private readonly viewBoundsCenter = new THREE.Vector3();
+  private viewBoundsRadius = 80;
   private tutorialPanelIds: Set<string> | null = null;
   private tutorialActivePanelIds = new Set<string>();
   private tutorialOutputIndex: number | null = null;
@@ -150,9 +156,6 @@ export class SphereRenderer {
     this.controls.dampingFactor = 0.06;
     this.controls.minDistance = 0.01;
     this.controls.maxDistance = Infinity;
-    this.camera.near = 0.01;
-    this.camera.far = 1_000_000;
-    this.camera.updateProjectionMatrix();
     this.controls.autoRotate = true;
     this.container.dataset.autoRotate = "true";
     this.controls.autoRotateSpeed = 0.35;
@@ -189,11 +192,11 @@ export class SphereRenderer {
       this.points,
     );
     this.layoutGrid(new THREE.Sphere(new THREE.Vector3(0, 0, 0), 80));
+    this.resize();
     this.setMapping(mapping);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
-    this.resize();
   }
 
   setMapping(mapping: LedMapping): void {
@@ -303,6 +306,7 @@ export class SphereRenderer {
 
   render(): void {
     this.controls.update();
+    this.updateCameraClipping();
     this.cameraDirection
       .copy(this.camera.position)
       .sub(this.controls.target)
@@ -1238,20 +1242,6 @@ export class SphereRenderer {
         matrix.makeTranslation(dout.x, dout.y, dout.z);
         doutMarkers.setMatrixAt(index, matrix);
 
-        const panelDirection = dout.clone().sub(din);
-        const panelLength = panelDirection.length();
-        if (panelLength > 0) {
-          const arrow = new THREE.ArrowHelper(
-            panelDirection.normalize(),
-            din,
-            panelLength,
-            output.color,
-            3.2,
-            2.2,
-          );
-          arrow.renderOrder = 3;
-          connectorGroup.add(arrow);
-        }
       }
       dinMarkers.instanceMatrix.needsUpdate = true;
       doutMarkers.instanceMatrix.needsUpdate = true;
@@ -1684,13 +1674,26 @@ export class SphereRenderer {
 
   private fitSphere(bounds: THREE.Sphere, updateGrid = true): void {
     const radius = Math.max(bounds.radius, 1);
+    this.viewBoundsCenter.copy(bounds.center);
+    this.viewBoundsRadius = radius;
     const centre = bounds.center;
     const currentDirection = this.camera.position
       .clone()
       .sub(this.controls.target)
       .normalize();
-    const halfFov = THREE.MathUtils.degToRad(this.camera.fov / 2);
-    const distance = (radius / Math.sin(halfFov)) * 1.12;
+    const sidePanelLayout = window.matchMedia("(min-width: 821px)").matches;
+    const distance = viewportFitDistance(
+      radius,
+      this.camera.fov,
+      this.camera.aspect,
+      sidePanelLayout,
+    );
+    this.container.dataset.cameraFit = [
+      sidePanelLayout ? "side-panel" : "stacked",
+      this.camera.aspect.toFixed(6),
+      radius.toFixed(6),
+      distance.toFixed(6),
+    ].join(",");
 
     this.controls.target.copy(centre);
     this.camera.position
@@ -1698,6 +1701,17 @@ export class SphereRenderer {
       .addScaledVector(currentDirection, distance);
     if (updateGrid) this.layoutGrid(new THREE.Sphere(centre.clone(), radius));
     this.controls.update();
+  }
+
+  private updateCameraClipping(): void {
+    const range = cameraClippingRange(
+      this.camera.position.distanceTo(this.viewBoundsCenter),
+      this.viewBoundsRadius,
+    );
+    if (this.camera.near === range.near && this.camera.far === range.far) return;
+    this.camera.near = range.near;
+    this.camera.far = range.far;
+    this.camera.updateProjectionMatrix();
   }
 
   private toThree(value: Vector3Data): THREE.Vector3 {
