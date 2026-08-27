@@ -113,7 +113,14 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `UI-023` Refine View control layout
+
+- Result: the framebuffer mode uses the standard dropdown style, and
+  auto-rotation, panel IDs, and printable-part visibility sit directly below
+  the two wiring switches in View.
+- Owner: `codex/ui-023-view-layout` in the root worktree.
+- Verification: diff check and independent FAST review passed; no broad tests
+  were run for this presentation-only change.
 
 ## Done
 

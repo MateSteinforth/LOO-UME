@@ -882,7 +882,6 @@ input[type="range"] {
 }
 
 .view-settings__display,
-.view-settings__wide,
 .panel-transform-control {
   grid-column: 1 / -1;
 }

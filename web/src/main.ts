@@ -161,6 +161,18 @@ app.innerHTML = `
               <input id="wiring-layer" type="checkbox" checked />
               <span>Panel-to-panel wiring</span>
             </label>
+            <label class="toggle-field">
+              <input id="auto-rotate" type="checkbox" checked />
+              <span>Slow auto-rotation</span>
+            </label>
+            <label class="toggle-field">
+              <input id="panel-labels" type="checkbox" checked />
+              <span>Panel IDs</span>
+            </label>
+            <label class="toggle-field">
+              <input id="printable-layer" type="checkbox" checked />
+              <span>Exact Manifold closures + screw tabs</span>
+            </label>
             </div>
             <div id="assembly-tutorial-section" class="assembly-tutorial">
               <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
@@ -202,24 +214,12 @@ app.innerHTML = `
                   </span>
                 </button>
               </div>
-              <div class="view-settings__display">
+              <label class="field view-settings__display">
                 <select id="display-mode" aria-label="Display">
                   <option value="wled">WLED framebuffer</option>
                   <option value="physical-index">Physical index bands</option>
                   <option value="logical-index">Logical index bands</option>
                 </select>
-              </div>
-              <label class="toggle-field">
-                <input id="auto-rotate" type="checkbox" checked />
-                <span>Slow auto-rotation</span>
-              </label>
-              <label class="toggle-field">
-                <input id="panel-labels" type="checkbox" checked />
-                <span>Panel IDs</span>
-              </label>
-              <label class="toggle-field view-settings__wide">
-                <input id="printable-layer" type="checkbox" checked />
-                <span>Exact Manifold closures + screw tabs</span>
               </label>
             </div>
           </div>
