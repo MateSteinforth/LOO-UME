@@ -77,6 +77,26 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "data-tutorial-muted-material",
     "8290a3,0.62,true,false",
   );
+  await page.locator("#connector-layer").uncheck();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-connector-layer-visible",
+    "false",
+  );
+  await page.locator("#wiring-layer").uncheck();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-wiring-layer-visible",
+    "false",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-visible-connections",
+    "0",
+  );
+  await page.locator("#connector-layer").check();
+  await page.locator("#wiring-layer").check();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-visible-connections",
+    "3",
+  );
   await expect(page.locator(".output-layer-toggle")).toBeChecked();
   await expect(page.locator(".assembly-cable-label")).toHaveCount(0);
   await expect(page.locator("#assembly-tutorial-previous-chain")).toBeDisabled();
@@ -134,6 +154,8 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     input.checked = false;
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
+  await page.locator("#connector-layer").uncheck();
+  await page.locator("#wiring-layer").uncheck();
 
   await page.locator("#assembly-tutorial-exit").click();
   await expect(page.locator("#assembly-tutorial-controls")).toBeHidden();
@@ -147,6 +169,16 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-wiring-restored-connections",
     "3",
+  );
+  await expect(page.locator("#connector-layer")).not.toBeChecked();
+  await expect(page.locator("#wiring-layer")).not.toBeChecked();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-connector-layer-visible",
+    "false",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-wiring-layer-visible",
+    "false",
   );
 
   expect(pageErrors).toEqual([]);

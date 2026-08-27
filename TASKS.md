@@ -85,7 +85,15 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `UI-021` Keep wiring layer toggles active during chain isolation
+
+- Result: DIN/DOUT and panel-wiring switches immediately control their scene
+  layers during isolation, survive chain navigation, and remain selected after
+  tutorial exit.
+- Verification: focused Chromium journey, `npx tsc -b`, diff check, and
+  independent review passed.
+- Owner: `codex/ui-021-tutorial-layer-toggles` in
+  `/tmp/led-rhombo-ui-021`.
 
 ## Done
 
