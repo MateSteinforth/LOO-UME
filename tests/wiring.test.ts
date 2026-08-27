@@ -4,6 +4,7 @@ import {
   createUniformSphereMapping,
 } from "../web/src/LedMapping.ts";
 import {
+  createInwardCableControlPoint,
   createProvisionalWiringPreview,
   createWiringControllerLayout,
   validateWiringPreview,
@@ -42,6 +43,17 @@ function loadDraftFixture() {
 }
 
 describe("provisional wiring preview", () => {
+  it("bends cable curves inside the panel endpoint radius", () => {
+    const control = createInwardCableControlPoint(
+      { x: 100, y: 0, z: 0 },
+      { x: 80, y: 60, z: 0 },
+      { x: 0, y: 0, z: 0 },
+    );
+    expect(Math.hypot(control.x, control.y, control.z)).toBeCloseTo(82, 10);
+    expect(control.x).toBeGreaterThan(0);
+    expect(control.y).toBeGreaterThan(0);
+  });
+
   it("creates four complete and continuous output routes", () => {
     const { project, mapping } = loadDraftFixture();
     const preview = createProvisionalWiringPreview(

@@ -112,16 +112,17 @@ The operator can use it only after Edit suggested route and Save route.
 
 ## Interactive data-chain tutorial
 
-The browser **Wiring & assembly** control derives its chain selector and every
-connection label from the same Schema 2 wiring preview used by the normal
-wiring layers. It can isolate one output, fit the camera to those panels, show
-the complete data path, and then show one controller-to-DIN or DOUT-to-DIN
-cable at a time. A schematic controller sits above the sculpture and labels
-each output pin. DIN, DOUT, and cable endpoints are placed behind each PCB in
-the profile's back-view convention. Each cable step uses the destination
-panel's saved normal and local Y axis to show an upright back view. Panel labels show their one-based position
-in the selected chain. The tutorial is view-only: it does not change poses,
-routes, mapping, mechanics, or saved project data.
+The browser **Wiring & assembly** control derives every connection label from
+the same Schema 2 wiring preview used by the normal wiring layers. **Isolate
+chain** starts with the first output. Previous and Next move through its cables
+and then continue across the remaining outputs. The tutorial never moves the
+camera; the operator keeps orbit and unlimited zoom control. A schematic
+controller sits above the sculpture and labels each output pin. DIN, DOUT, and
+cable endpoints are behind each PCB in the profile's back-view convention.
+Cable curves move inward from those endpoints, toward the sculpture interior.
+Panel labels show their one-based position in the selected chain. The tutorial
+is view-only: it does not change poses, routes, mapping, mechanics, or saved
+project data.
 
 Authored routes are shown as saved data routes. Draft and review-required
 routes remain inspectable but keep a visible warning that they must be saved or

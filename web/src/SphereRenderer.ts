@@ -15,6 +15,7 @@ import type {
   Vector3Data,
 } from "./LedMapping";
 import {
+  createInwardCableControlPoint,
   createWiringControllerLayout,
   type WiringPreview,
 } from "./WiringPreview";
@@ -25,7 +26,6 @@ import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts"
 import { createPrintedPlaMaterial } from "./PrintedPlaMaterial.ts";
 import {
   maskedPanelPositions,
-  tutorialBackViewFrame,
   type AssemblyTutorialChain,
 } from "./AssemblyTutorial.ts";
 import {
@@ -42,17 +42,6 @@ interface PanelLabel {
   object: CSS2DObject;
   element: HTMLSpanElement;
   normal: THREE.Vector3;
-}
-
-interface TutorialCameraState {
-  position: THREE.Vector3;
-  up: THREE.Vector3;
-  target: THREE.Vector3;
-  minDistance: number;
-  maxDistance: number;
-  near: number;
-  far: number;
-  autoRotate: boolean;
 }
 
 interface TutorialLayerState {
@@ -136,7 +125,7 @@ export class SphereRenderer {
   private tutorialPanelIds: Set<string> | null = null;
   private tutorialActivePanelIds = new Set<string>();
   private tutorialOutputIndex: number | null = null;
-  private tutorialCameraState: TutorialCameraState | null = null;
+  private tutorialAutoRotate: boolean | null = null;
   private tutorialLayerState: TutorialLayerState | null = null;
 
   constructor(
@@ -156,9 +145,13 @@ export class SphereRenderer {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.06;
-    this.controls.minDistance = 145;
-    this.controls.maxDistance = 480;
+    this.controls.minDistance = 0.01;
+    this.controls.maxDistance = Infinity;
+    this.camera.near = 0.01;
+    this.camera.far = 1_000_000;
+    this.camera.updateProjectionMatrix();
     this.controls.autoRotate = true;
+    this.container.dataset.autoRotate = "true";
     this.controls.autoRotateSpeed = 0.35;
     this.surfacePlacement = new SurfacePlacementController(
       this.scene,
@@ -307,7 +300,13 @@ export class SphereRenderer {
   }
 
   setAutoRotate(enabled: boolean): void {
-    this.controls.autoRotate = enabled;
+    if (this.tutorialPanelIds) {
+      this.tutorialAutoRotate = enabled;
+      this.controls.autoRotate = false;
+    } else {
+      this.controls.autoRotate = enabled;
+    }
+    this.container.dataset.autoRotate = String(this.controls.autoRotate);
   }
 
   setPanelProfileThickness(thickness: number): void {
@@ -561,16 +560,7 @@ export class SphereRenderer {
     }
     const entering = this.tutorialPanelIds === null;
     if (entering) {
-      this.tutorialCameraState = {
-        position: this.camera.position.clone(),
-        up: this.camera.up.clone(),
-        target: this.controls.target.clone(),
-        minDistance: this.controls.minDistance,
-        maxDistance: this.controls.maxDistance,
-        near: this.camera.near,
-        far: this.camera.far,
-        autoRotate: this.controls.autoRotate,
-      };
+      this.tutorialAutoRotate = this.controls.autoRotate;
       this.tutorialLayerState = {
         boundary: this.boundaryPreviewLayer.visible,
         printable: this.printableLayer.visible,
@@ -619,12 +609,11 @@ export class SphereRenderer {
     this.wiringLayer.visible = true;
     this.surfacePlacement.setInteractionEnabled(false);
     this.controls.autoRotate = false;
+    this.container.dataset.autoRotate = "false";
     this.applyTutorialPanelMask();
     this.applyTutorialOutputVisibility();
     this.applyTutorialConnectionVisibility(connectionIndex);
     this.applySelectionFocus();
-    if (connection) this.fitTutorialConnection(connection);
-    else this.fitTutorialChain(chain);
   }
 
   dispose(): void {
@@ -1089,6 +1078,13 @@ export class SphereRenderer {
     const controllerPins = new Map(
       controllerLayout?.pins.map((pin) => [pin.outputIndex, pin.position]) ?? [],
     );
+    const sculptureBounds = new THREE.Box3();
+    for (const panel of this.mapping.panels) {
+      sculptureBounds.expandByPoint(this.toThree(panel.position));
+    }
+    const sculptureCenter = sculptureBounds.isEmpty()
+      ? new THREE.Vector3()
+      : sculptureBounds.getCenter(new THREE.Vector3());
     if (controllerLayout) {
       const controller = new THREE.Mesh(
         new THREE.BoxGeometry(
@@ -1119,13 +1115,16 @@ export class SphereRenderer {
     ): void => {
       const connectionGroup = new THREE.Group();
       connectionGroup.userData.tutorialConnectionIndex = connectionIndex;
-      const midpoint = start.clone().add(end).multiplyScalar(0.5);
-      const outward = midpoint.clone();
-      if (outward.lengthSq() < 1e-8) outward.set(0, 1, 0);
-      outward
-        .normalize()
-        .multiplyScalar(Math.max(start.length(), end.length()) + 16);
-      const curve = new THREE.QuadraticBezierCurve3(start, outward, end);
+      const control = createInwardCableControlPoint(
+        { x: start.x, y: start.y, z: start.z },
+        { x: end.x, y: end.y, z: end.z },
+        { x: sculptureCenter.x, y: sculptureCenter.y, z: sculptureCenter.z },
+      );
+      const curve = new THREE.QuadraticBezierCurve3(
+        start,
+        this.toThree(control),
+        end,
+      );
       const tube = new THREE.Mesh(
         new THREE.TubeGeometry(curve, 12, 0.72, 7, false),
         new THREE.MeshBasicMaterial({ color, toneMapped: false }),
@@ -1336,8 +1335,6 @@ export class SphereRenderer {
   private clearAssemblyTutorial(): void {
     if (this.tutorialPanelIds === null) return;
     this.tutorialPanelIds = null;
-    delete this.container.dataset.tutorialView;
-    delete this.container.dataset.tutorialCameraUp;
     this.tutorialActivePanelIds.clear();
     this.tutorialOutputIndex = null;
     for (const label of this.panelLabels) {
@@ -1356,72 +1353,12 @@ export class SphereRenderer {
       this.wiringLayer.visible = this.tutorialLayerState.wiring;
       this.tutorialLayerState = null;
     }
-    if (this.tutorialCameraState) {
-      this.camera.position.copy(this.tutorialCameraState.position);
-      this.camera.up.copy(this.tutorialCameraState.up);
-      this.controls.target.copy(this.tutorialCameraState.target);
-      this.controls.minDistance = this.tutorialCameraState.minDistance;
-      this.controls.maxDistance = this.tutorialCameraState.maxDistance;
-      this.camera.near = this.tutorialCameraState.near;
-      this.camera.far = this.tutorialCameraState.far;
-      this.controls.autoRotate = this.tutorialCameraState.autoRotate;
-      this.camera.updateProjectionMatrix();
-      this.controls.update();
-      this.tutorialCameraState = null;
+    if (this.tutorialAutoRotate !== null) {
+      this.controls.autoRotate = this.tutorialAutoRotate;
+      this.container.dataset.autoRotate = String(this.controls.autoRotate);
+      this.tutorialAutoRotate = null;
     }
     this.applySelectionFocus();
-  }
-
-  private fitTutorialChain(chain: AssemblyTutorialChain): void {
-    const selected = new Set(chain.panels.map((panel) => panel.id));
-    const box = new THREE.Box3();
-    for (const panel of this.mapping.panels) {
-      if (!selected.has(panel.id)) continue;
-      for (const corner of this.panelCorners(panel, 0.35)) box.expandByPoint(corner);
-    }
-    if (chain.controllerPosition) {
-      box.expandByPoint(this.toThree(chain.controllerPosition));
-    }
-    for (const connection of chain.connections) {
-      if (connection.start) box.expandByPoint(this.toThree(connection.start));
-      box.expandByPoint(this.toThree(connection.end));
-    }
-    if (box.isEmpty()) return;
-    box.expandByScalar(16);
-    const sphere = new THREE.Sphere();
-    box.getBoundingSphere(sphere);
-    if (this.tutorialCameraState) this.camera.up.copy(this.tutorialCameraState.up);
-    this.fitSphere(sphere, false);
-    this.container.dataset.tutorialView = "chain-overview";
-    delete this.container.dataset.tutorialCameraUp;
-  }
-
-  private fitTutorialConnection(
-    connection: AssemblyTutorialChain["connections"][number],
-  ): void {
-    const panel = this.mapping.panels.find(({ id }) => id === connection.toPanelId);
-    if (!panel) return;
-    const box = new THREE.Box3();
-    for (const corner of this.panelCorners(panel, -0.35)) box.expandByPoint(corner);
-    box.expandByPoint(this.toThree(connection.end));
-    if (connection.start) box.expandByPoint(this.toThree(connection.start));
-    const sphere = new THREE.Sphere();
-    box.getBoundingSphere(sphere);
-    this.fitSphere(sphere, false);
-    const distance = this.camera.position.distanceTo(this.controls.target);
-    this.controls.target.copy(sphere.center);
-    const frame = tutorialBackViewFrame(panel);
-    this.camera.up.copy(this.toThree(frame.cameraUp).normalize());
-    this.camera.position
-      .copy(sphere.center)
-      .addScaledVector(this.toThree(frame.cameraDirection).normalize(), distance);
-    this.controls.update();
-    this.container.dataset.tutorialView = `back:${panel.id}`;
-    this.container.dataset.tutorialCameraUp = [
-      this.camera.up.x,
-      this.camera.up.y,
-      this.camera.up.z,
-    ].map((value) => value.toFixed(6)).join(",");
   }
 
   private disposeGroup(group: THREE.Group): void {
@@ -1647,11 +1584,6 @@ export class SphereRenderer {
     this.camera.position
       .copy(centre)
       .addScaledVector(currentDirection, distance);
-    this.controls.minDistance = radius * 1.15;
-    this.controls.maxDistance = radius * 5;
-    this.camera.near = Math.max(0.1, radius / 500);
-    this.camera.far = distance + radius * 6;
-    this.camera.updateProjectionMatrix();
     if (updateGrid) this.layoutGrid(new THREE.Sphere(centre.clone(), radius));
     this.controls.update();
   }

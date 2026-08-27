@@ -5,9 +5,11 @@ import { createUniformSphereMapping } from "../web/src/LedMapping.ts";
 import {
   createAssemblyTutorialModel,
   maskedPanelPositions,
-  tutorialBackViewFrame,
+  nextAssemblyTutorialStep,
+  previousAssemblyTutorialStep,
 } from "../web/src/AssemblyTutorial.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
+import type { WiringPreview } from "../web/src/WiringPreview.ts";
 
 async function tutorialFor(source: string) {
   const project = await loadPanelAssemblyProjectFromFile(source, process.cwd());
@@ -51,27 +53,8 @@ describe("Schema 2 assembly tutorial", () => {
     );
     expect(model.chains.flatMap((chain) => chain.panels)).toHaveLength(41);
     expect(new Set(
-      model.chains.map((chain) => JSON.stringify(chain.controllerPosition)),
-    ).size).toBe(1);
-    expect(new Set(
       model.chains.map((chain) => JSON.stringify(chain.connections[0]!.start)),
     ).size).toBe(4);
-  });
-
-  it("uses the saved panel frame for an arbitrary 6DOF back view", () => {
-    const frame = tutorialBackViewFrame({
-      normal: { x: 0.36, y: -0.48, z: 0.8 },
-      yAxis: { x: 0.8, y: 0.6, z: 0 },
-    });
-    expect(frame).toEqual({
-      cameraDirection: { x: -0.36, y: 0.48, z: -0.8 },
-      cameraUp: { x: 0.8, y: 0.6, z: 0 },
-    });
-    const dot =
-      frame.cameraDirection.x * frame.cameraUp.x +
-      frame.cameraDirection.y * frame.cameraUp.y +
-      frame.cameraDirection.z * frame.cameraUp.z;
-    expect(dot).toBeCloseTo(0, 12);
   });
 
   it("supports an arbitrary draft Schema 2 project without inventing a GPIO", async () => {
@@ -89,6 +72,21 @@ describe("Schema 2 assembly tutorial", () => {
     expect(model.chains[0]!.connections[0]!.instruction).toMatch(
       /^Controller output 1 \(GPIO unassigned\) → .+ DIN/,
     );
+  });
+
+  it("moves across outputs without a chain dropdown", async () => {
+    const model = await tutorialFor(
+      "sculptures/rhombicosidodecahedron/sculpture.json",
+    );
+    let state = { chainIndex: 0, connectionIndex: null as number | null };
+    for (let index = 0; index < 12; index += 1) {
+      state = nextAssemblyTutorialStep(model, state);
+    }
+    expect(state).toEqual({ chainIndex: 1, connectionIndex: null });
+    expect(previousAssemblyTutorialStep(model, state)).toEqual({
+      chainIndex: 0,
+      connectionIndex: 10,
+    });
   });
 
   it("keeps the stronger warning for every review-required route source", async () => {
@@ -141,5 +139,43 @@ describe("Schema 2 assembly tutorial", () => {
   it("returns no tutorial chains for a non-panelized display", () => {
     const preview = createProvisionalWiringPreview(createUniformSphereMapping(64));
     expect(createAssemblyTutorialModel(preview)).toEqual({ chains: [] });
+  });
+
+  it("skips valid empty outputs at every position", () => {
+    const output = (outputIndex: number, panelIds: string[]) => ({
+      outputIndex,
+      label: `Output ${outputIndex + 1}`,
+      gpio: 16 + outputIndex,
+      color: 0x36e0d0,
+      cssColor: "#36e0d0",
+      panelIds,
+    });
+    const preview: WiringPreview = {
+      status: "draft",
+      controller: { placement: "near-top", status: "provisional" },
+      routeSource: "draft-suggestion",
+      savedOutputPanelIds: null,
+      outputs: [output(0, []), output(1, ["P-01"]), output(2, [])],
+      nodes: [{
+        panelId: "P-01",
+        outputIndex: 1,
+        chainPosition: 0,
+        previousPanelId: null,
+        nextPanelId: null,
+        din: { x: 1, y: 2, z: 3 },
+        dout: { x: -1, y: -2, z: 3 },
+        connectorReferenceView: "back",
+        dinCorner: "top-right",
+        doutCorner: "bottom-left",
+        dinDoutAssignmentStatus: "measured",
+      }],
+      notes: [],
+    };
+    const model = createAssemblyTutorialModel(preview);
+    expect(model.chains.map(({ outputIndex }) => outputIndex)).toEqual([1]);
+    expect(nextAssemblyTutorialStep(model, {
+      chainIndex: 0,
+      connectionIndex: null,
+    })).toEqual({ chainIndex: 0, connectionIndex: 0 });
   });
 });

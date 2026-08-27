@@ -1,4 +1,4 @@
-import type { PanelDefinition, Vector3Data } from "./LedMapping.ts";
+import type { Vector3Data } from "./LedMapping.ts";
 import type {
   WiringPanelNode,
   WiringPreview,
@@ -31,33 +31,58 @@ export interface AssemblyTutorialChain {
   gpio: number | null;
   color: number;
   cssColor: string;
-  controllerPosition: Vector3Data | null;
   routeStatus: AssemblyTutorialRouteStatus;
   routeWarning: string;
   panels: AssemblyTutorialPanel[];
   connections: AssemblyTutorialConnection[];
 }
 
-export interface TutorialBackViewFrame {
-  cameraDirection: Vector3Data;
-  cameraUp: Vector3Data;
-}
-
-export function tutorialBackViewFrame(
-  panel: Pick<PanelDefinition, "normal" | "yAxis">,
-): TutorialBackViewFrame {
-  return {
-    cameraDirection: {
-      x: -panel.normal.x,
-      y: -panel.normal.y,
-      z: -panel.normal.z,
-    },
-    cameraUp: { ...panel.yAxis },
-  };
-}
-
 export interface AssemblyTutorialModel {
   chains: AssemblyTutorialChain[];
+}
+
+export interface AssemblyTutorialStepState {
+  chainIndex: number;
+  connectionIndex: number | null;
+}
+
+export function nextAssemblyTutorialStep(
+  model: AssemblyTutorialModel,
+  state: AssemblyTutorialStepState,
+): AssemblyTutorialStepState {
+  const chain = model.chains[state.chainIndex];
+  if (!chain) return state;
+  if (state.connectionIndex === null) {
+    return { ...state, connectionIndex: 0 };
+  }
+  if (state.connectionIndex < chain.connections.length - 1) {
+    return { ...state, connectionIndex: state.connectionIndex + 1 };
+  }
+  if (state.chainIndex < model.chains.length - 1) {
+    return { chainIndex: state.chainIndex + 1, connectionIndex: null };
+  }
+  return state;
+}
+
+export function previousAssemblyTutorialStep(
+  model: AssemblyTutorialModel,
+  state: AssemblyTutorialStepState,
+): AssemblyTutorialStepState {
+  if (state.connectionIndex !== null) {
+    return {
+      ...state,
+      connectionIndex: state.connectionIndex === 0
+        ? null
+        : state.connectionIndex - 1,
+    };
+  }
+  if (state.chainIndex === 0) return state;
+  const chainIndex = state.chainIndex - 1;
+  const previous = model.chains[chainIndex];
+  return {
+    chainIndex,
+    connectionIndex: previous ? previous.connections.length - 1 : null,
+  };
 }
 
 function routeStatus(preview: WiringPreview): AssemblyTutorialRouteStatus {
@@ -130,13 +155,12 @@ export function createAssemblyTutorialModel(
         gpio: output.gpio,
         color: output.color,
         cssColor: output.cssColor,
-        controllerPosition: controllerLayout?.position ?? null,
         routeStatus: status,
         routeWarning: routeWarning(status),
         panels,
         connections,
       } satisfies AssemblyTutorialChain;
-    }),
+    }).filter((chain) => chain.panels.length > 0),
   };
 }
 

@@ -108,7 +108,9 @@ runtime handling.
 saved route or tutorial state. `SphereRenderer.ts` applies its temporary panel
 visibility mask, reuses the normal back-side connector and cable layers, shows
 one controller pin connection at a time, keeps referenced printable assets
-visible, and restores the prior editor view when the tutorial exits. The
+visible, and does not mutate the user-controlled camera. Cable curves use a
+control point inside the endpoint radius relative to the current sculpture
+center. The
 controller is a schematic near-top placement derived from the complete current
 route; it is not a second saved wiring authority.
 Surface mode keeps the established constrained move and local-Z rotation.

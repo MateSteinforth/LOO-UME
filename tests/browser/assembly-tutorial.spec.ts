@@ -14,7 +14,8 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   await expect(page.locator("#pipeline-status")).toContainText(
     "No authoring surface is referenced",
   );
-  await expect(page.locator("#assembly-tutorial-chain option")).toHaveCount(1);
+  await expect(page.locator("#assembly-tutorial-chain")).toHaveCount(0);
+  await expect(page.locator("#assembly-tutorial-overview")).toHaveCount(0);
   await expect(
     page.locator("#wiring-layer-controls #assembly-tutorial-section"),
   ).toBeVisible();
@@ -24,7 +25,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
 
   await page.locator("#assembly-tutorial-start").click();
   await expect(page.locator("#assembly-tutorial-step")).toHaveText(
-    "Overview · 3 panels",
+    "Chain 1 / 1 · 3 panels",
   );
   await expect(page.locator(".panel-label:visible")).toHaveCount(3);
   await expect(page.locator(".wiring-controller-label:visible")).toHaveText(
@@ -54,21 +55,11 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "data-tutorial-visible-connections",
     "1",
   );
-  await expect(page.locator("#viewer")).toHaveAttribute(
-    "data-tutorial-view",
-    "back:P-02",
-  );
-  await expect(page.locator("#viewer")).toHaveAttribute(
-    "data-tutorial-camera-up",
-    "0.173648,0.000000,0.984808",
-  );
-
-  await page.locator("#assembly-tutorial-overview").evaluate((element) => {
+  await page.locator("#assembly-tutorial-previous").evaluate((element) => {
     (element as HTMLButtonElement).click();
   });
-  await expect(page.locator("#viewer")).toHaveAttribute(
-    "data-tutorial-view",
-    "chain-overview",
+  await expect(page.locator("#assembly-tutorial-step")).toHaveText(
+    "Chain 1 / 1 · 3 panels",
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-tutorial-visible-connections",
@@ -95,12 +86,21 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     (element as HTMLElement).click();
   });
   await expect(page.locator(".panel-delete-billboard")).toHaveCount(0);
+  await page.locator("#auto-rotate").evaluate((element) => {
+    const input = element as HTMLInputElement;
+    input.checked = false;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
 
   await page.locator("#assembly-tutorial-exit").click();
   await expect(page.locator("#assembly-tutorial-controls")).toBeHidden();
   await expect(page.locator(".assembly-cable-label")).toHaveCount(0);
   await expect(page.locator(".panel-label").filter({ hasText: "1 / 3" }))
     .toHaveCount(0);
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-auto-rotate",
+    "false",
+  );
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
 });

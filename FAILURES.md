@@ -1251,3 +1251,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The 41-panel wiring contract test now requires both DIN and
   DOUT to have a negative local-normal component.
 - **Status:** Resolved.
+
+### F-068 — Wiring curves bowed outside the sculpture
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 physical assembly review.
+- **Symptom:** Cable endpoints were behind the PCBs, but the curved cable body
+  bowed away from the sculpture and was most visible from the outside.
+- **Cause:** The Bézier control point used the world origin and a radius larger
+  than both endpoints.
+- **Correction:** Derive the current sculpture center from panel poses. Put the
+  control point 18 mm inside the smaller endpoint radius relative to that
+  center.
+- **Prevention:** Back-side wiring must test both the endpoint normal sign and
+  the curve control-point radius.
+- **Evidence:** The focused wiring test requires an 82 mm control radius for
+  two 100 mm endpoint radii and an 18 mm inward offset.
+- **Status:** Resolved.

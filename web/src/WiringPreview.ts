@@ -87,6 +87,43 @@ function scale(value: Vector3Data, amount: number): Vector3Data {
   return vector(value.x * amount, value.y * amount, value.z * amount);
 }
 
+export function createInwardCableControlPoint(
+  start: Vector3Data,
+  end: Vector3Data,
+  sculptureCenter: Vector3Data,
+  insetMm = 18,
+): Vector3Data {
+  const startRelative = vector(
+    start.x - sculptureCenter.x,
+    start.y - sculptureCenter.y,
+    start.z - sculptureCenter.z,
+  );
+  const endRelative = vector(
+    end.x - sculptureCenter.x,
+    end.y - sculptureCenter.y,
+    end.z - sculptureCenter.z,
+  );
+  const midpoint = vector(
+    (startRelative.x + endRelative.x) / 2,
+    (startRelative.y + endRelative.y) / 2,
+    (startRelative.z + endRelative.z) / 2,
+  );
+  const midpointLength = Math.hypot(midpoint.x, midpoint.y, midpoint.z);
+  if (midpointLength < 1e-8) return { ...sculptureCenter };
+  const innerRadius = Math.max(
+    0,
+    Math.min(
+      Math.hypot(startRelative.x, startRelative.y, startRelative.z),
+      Math.hypot(endRelative.x, endRelative.y, endRelative.z),
+    ) - insetMm,
+  );
+  return vector(
+    sculptureCenter.x + midpoint.x / midpointLength * innerRadius,
+    sculptureCenter.y + midpoint.y / midpointLength * innerRadius,
+    sculptureCenter.z + midpoint.z / midpointLength * innerRadius,
+  );
+}
+
 function distanceSquared(a: PanelDefinition, b: PanelDefinition): number {
   const x = a.position.x - b.position.x;
   const y = a.position.y - b.position.y;
