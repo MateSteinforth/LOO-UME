@@ -85,21 +85,15 @@ No tasks.
 
 ## Ready to Merge
 
-### `UI-020` Add an interactive data-chain assembly tutorial
-
-- Result: Wiring & assembly is first and uses a compact two-column layout. The
-  tutorial isolates one output chain, shows its current solder connection in
-  bright red, mutes its other wires, crosses chain boundaries through wire
-  navigation, and restores the prior view on exit. The populated 41-panel
-  project is the default, the floating cable label is removed, rendered LEDs
-  sit 2.4 mm above the PCB plane, and the viewer has a full-size gradient
-  backdrop.
-- Verification: 15 focused unit tests, `npx tsc -b`, diff check, and independent
-  review passed. Broad browser tests were not repeated for this visual follow-up.
-- Owner: `codex/ui-020-chain-tutorial` in `/tmp/led-rhombo-ui-020`.
+No tasks.
 
 ## Done
 
+- `UI-020`: integrated the interactive chain-by-chain wiring tutorial, compact
+  two-column controls, red current-wire focus, muted selected-chain context,
+  populated 41-panel default, improved LED depth separation, gradient backdrop,
+  and three-point scene lighting. Focused tests, TypeScript, diff checks, and
+  independent reviews passed; integrated on 2026-08-27.
 - `FIRM-015`: pose-only panel edits now update and activate the exact spatial
   WLED ledmap before preset persistence and DDP resume. Route, calibration,
   output, color-order, malformed-map, and identity changes remain fail-closed.
