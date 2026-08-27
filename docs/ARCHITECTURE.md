@@ -117,9 +117,10 @@ route; it is not a second saved wiring authority.
 The populated 41-panel Schema 2 project is the browser default. Empty authoring
 projects remain explicit registry choices.
 The sidebar has no separate wizard state. Project and View remain available,
-followed by seven always-editable sections: Shape, Panels, Mapping, ESP32,
-Generate parts, Wiring & assembly, and Export. Animation controls stay in View
-because they remain useful throughout the workflow. Section order explains the
+followed by six always-editable sections: Shape, Panels, Mapping, Generate
+parts, Build Hardware, and Export. Animation controls stay in View because they
+remain useful throughout the workflow. Build Hardware combines ESP32 setup with
+the connection-by-connection assembly tutorial. Section order explains the
 operator workflow, while actual readiness continues to come from the Schema 2
 project, mapping lifecycle, and generated-asset contracts.
 The renderer offsets LED sprites 2.4 mm along each panel's outward normal. This

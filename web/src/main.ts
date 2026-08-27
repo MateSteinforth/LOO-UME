@@ -307,14 +307,6 @@ app.innerHTML = `
         <section class="control-section workflow-step" data-workflow-step="4">
           <div class="workflow-step__heading">
             <span class="workflow-step__number">4</span>
-            <div><strong>ESP32</strong><small>Flash and copy the loaded project</small></div>
-          </div>
-          <button id="open-esp32-setup" class="editor-button workflow-step__secondary" type="button">Set up ESP32</button>
-        </section>
-
-        <section class="control-section workflow-step" data-workflow-step="5">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">5</span>
             <div><strong>Generate parts</strong><small>Choose the fabrication methods</small></div>
           </div>
           <p class="workflow-step__hint">Generate panel closures, connector ribbons, or LED-surface bridges. Each result remains editable and can be regenerated.</p>
@@ -365,11 +357,12 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="6">
+        <section class="control-section workflow-step" data-workflow-step="5">
           <div class="workflow-step__heading">
-            <span class="workflow-step__number">6</span>
-            <div><strong>Wiring &amp; assembly</strong><small>Build one connection at a time</small></div>
+            <span class="workflow-step__number">5</span>
+            <div><strong>BUILD HARDWARE</strong><small>Flash, wire, and assemble</small></div>
           </div>
+          <button id="open-esp32-setup" class="editor-button workflow-step__secondary" type="button">Set up ESP32</button>
           <div id="assembly-tutorial-section" class="assembly-tutorial assembly-tutorial--workflow">
             <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
             <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
@@ -389,9 +382,9 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step workflow-export" data-workflow-step="7">
+        <section class="control-section workflow-step workflow-export" data-workflow-step="6">
           <div class="workflow-step__heading">
-            <span class="workflow-step__number">7</span>
+            <span class="workflow-step__number">6</span>
             <div><strong>Export</strong><small>Save the project and current assets</small></div>
           </div>
           <p class="workflow-step__hint">Export the editable Schema 2 project ZIP with every current referenced asset available as verified bytes.</p>
