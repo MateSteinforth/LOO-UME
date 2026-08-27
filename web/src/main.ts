@@ -147,9 +147,33 @@ app.innerHTML = `
       </section>
 
       <aside class="control-panel">
-        <section class="control-section">
+        <section class="control-section project-toolbar">
+          <div class="section-heading">
+            <span>Project</span>
+            <small>open or start</small>
+          </div>
+          <input id="project-file" type="file" accept="application/json,application/zip,.json,.zip" hidden />
+          <input id="project-folder" type="file" webkitdirectory multiple hidden />
+          <input id="design-surface-file" type="file" accept="model/gltf-binary,.glb" hidden />
+          <label class="field">
+            <span>Project preset</span>
+            <select id="sculpture-select">
+              <option value="">Loading sculpture registry…</option>
+            </select>
+          </label>
+          <details class="action-menu project-toolbar__open">
+            <summary>Open project</summary>
+            <div class="action-menu__items">
+              <button id="open-project-file" type="button">Open JSON or ZIP</button>
+              <button id="open-project-folder" type="button">Open folder</button>
+            </div>
+          </details>
+        </section>
+
+        <section class="control-section view-section">
           <div class="section-heading">
             <span>View</span>
+            <small>always available</small>
           </div>
           <div id="wiring-layer-controls" class="layer-controls wiring-assembly">
             <div class="wiring-assembly__layers">
@@ -173,25 +197,6 @@ app.innerHTML = `
               <input id="printable-layer" type="checkbox" checked />
               <span>Exact Manifold closures + screw tabs</span>
             </label>
-            </div>
-            <div id="assembly-tutorial-section" class="assembly-tutorial">
-              <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
-              <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
-                Isolate the data chains and step through their cables.
-              </p>
-              <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">
-                Isolate chain
-              </button>
-              <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
-                <output id="assembly-tutorial-step">Cable</output>
-                <div class="assembly-tutorial__actions">
-                  <button id="assembly-tutorial-previous-chain" type="button">Previous chain</button>
-                  <button id="assembly-tutorial-next-chain" type="button">Next chain</button>
-                  <button id="assembly-tutorial-previous-wire" type="button">Previous wire</button>
-                  <button id="assembly-tutorial-next-wire" type="button">Next wire</button>
-                  <button id="assembly-tutorial-exit" class="assembly-tutorial__exit" type="button">Show all</button>
-                </div>
-              </div>
             </div>
             <div class="view-settings">
               <div class="panel-transform-control">
@@ -225,65 +230,76 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section">
-          <div class="section-heading">
-            <span>WLED engine</span>
+        <section class="control-section workflow-step" data-workflow-step="1">
+          <div class="workflow-step__heading">
+            <span class="workflow-step__number">1</span>
+            <div><strong>Shape</strong><small>Load the sculpture surface</small></div>
           </div>
+          <p class="workflow-step__hint">Start with a watertight GLB, or continue from saved panel poses without one.</p>
+          <button id="load-design-surface" class="editor-button workflow-step__primary" type="button">Load watertight GLB</button>
           <label class="field">
-            <span>Effect</span>
-            <select id="effect"></select>
-          </label>
-          <label class="field">
-            <span>Palette</span>
-            <select id="palette"></select>
-          </label>
-          <label class="field slider-field">
-            <span>Speed <output id="speed-value">128</output></span>
-            <input id="speed" type="range" min="0" max="255" value="128" />
-          </label>
-          <label class="field slider-field">
-            <span>Intensity <output id="intensity-value">128</output></span>
-            <input id="intensity" type="range" min="0" max="255" value="128" />
+            <span>GLB units to millimetres</span>
+            <input id="surface-scale" type="number" min="0.000001" step="any" value="1000" />
           </label>
         </section>
 
-        <section class="control-section">
-          <div class="section-heading">
-            <span>Mapping</span>
-            <small>logical ≠ physical</small>
+        <section class="control-section workflow-step" data-workflow-step="2">
+          <div class="workflow-step__heading">
+            <span class="workflow-step__number">2</span>
+            <div><strong>Panels</strong><small>Place and edit the layout</small></div>
           </div>
-          <label class="field">
-            <span>Processed sculpture</span>
-            <select id="sculpture-select">
-              <option value="">Loading sculpture registry…</option>
-            </select>
-          </label>
+          <p class="workflow-step__hint">Seed panels from the active surface, then refine every pose in the viewport.</p>
+          <div id="automatic-panel-placement-controls">
+            <label class="field">
+              <span>Target panel count</span>
+              <input id="automatic-panel-count" type="number" min="1" step="1" value="30" />
+            </label>
+            <button id="automatically-place-panels" class="editor-button" type="button" disabled>Automatically place panels</button>
+          </div>
+          <div id="add-panel-controls" hidden>
+            <label class="field"><span>Available closure face</span><select id="add-panel-face"></select></label>
+            <button id="add-panel" class="editor-button" type="button" hidden>Add panel to selected face</button>
+          </div>
         </section>
 
-        <section class="control-section editor-section">
-          <div class="section-heading">
-            <span>Sculpture editor</span>
+        <section class="control-section workflow-step" data-workflow-step="3">
+          <div class="workflow-step__heading">
+            <span class="workflow-step__number">3</span>
+            <div><strong>Mapping &amp; animation</strong><small>Route, preview, and controller</small></div>
           </div>
-          <input id="project-file" type="file" accept="application/json,application/zip,.json,.zip" hidden />
-          <input id="project-folder" type="file" webkitdirectory multiple hidden />
-          <input id="design-surface-file" type="file" accept="model/gltf-binary,.glb" hidden />
-          <div class="project-actions">
-            <details class="action-menu">
-              <summary>Open project</summary>
-              <div class="action-menu__items">
-                <button id="open-project-file" type="button">Open JSON or ZIP</button>
-                <button id="open-project-folder" type="button">Open folder</button>
-              </div>
-            </details>
-            <button id="save-project" class="editor-button" type="button">Save project ZIP</button>
+          <section id="route-editor-section" class="route-editor-section" hidden>
+            <div class="section-heading editor-subheading">
+              <span>Wiring route editor</span>
+              <small>controller to DIN to DOUT</small>
+            </div>
+            <p id="route-editor-note" class="mapping-note"></p>
+            <div id="route-editor" class="route-editor" aria-label="Panel wiring route editor"></div>
+            <button id="route-action" class="editor-button" type="button">Edit suggested route</button>
+          </section>
+          <div class="animation-controls">
+            <label class="field"><span>Effect</span><select id="effect"></select></label>
+            <label class="field"><span>Palette</span><select id="palette"></select></label>
+            <label class="field slider-field">
+              <span>Speed <output id="speed-value">128</output></span>
+              <input id="speed" type="range" min="0" max="255" value="128" />
+            </label>
+            <label class="field slider-field">
+              <span>Intensity <output id="intensity-value">128</output></span>
+              <input id="intensity" type="range" min="0" max="255" value="128" />
+            </label>
           </div>
+          <button id="open-esp32-setup" class="editor-button workflow-step__secondary" type="button">Set up ESP32</button>
+        </section>
+
+        <section class="control-section workflow-step" data-workflow-step="4">
+          <div class="workflow-step__heading">
+            <span class="workflow-step__number">4</span>
+            <div><strong>Generate parts</strong><small>Choose the fabrication methods</small></div>
+          </div>
+          <p class="workflow-step__hint">Generate panel closures, connector ribbons, or LED-surface bridges. Each result remains editable and can be regenerated.</p>
           <details id="advanced-tools" class="compact-menu">
-            <summary>Advanced tools</summary>
+            <summary>Fabrication settings</summary>
             <div class="compact-menu__content">
-              <label class="field">
-                <span>GLB units to millimetres</span>
-                <input id="surface-scale" type="number" min="0.000001" step="any" value="1000" />
-              </label>
               <div id="structural-connector-settings" class="connector-settings">
                 <strong>Modular connector settings</strong>
                 <label class="field">
@@ -310,6 +326,68 @@ app.innerHTML = `
                 </div>
                 <div id="connector-pair-list" class="connector-pair-list"></div>
               </div>
+            </div>
+          </details>
+          <div class="pipeline-actions">
+            <button id="assembly-package" class="pipeline-button" type="button">
+              Generate panel closures
+            </button>
+            <button id="generate-structure" class="pipeline-button" type="button">
+              Generate connector ribbons
+            </button>
+            <button id="generate-surface-structure" class="pipeline-button" type="button">
+              Generate LED-surface bridges
+            </button>
+            <button id="download-structure" class="pipeline-button" type="button" disabled>
+              Download displayed connectors ZIP
+            </button>
+          </div>
+        </section>
+
+        <section class="control-section workflow-step" data-workflow-step="5">
+          <div class="workflow-step__heading">
+            <span class="workflow-step__number">5</span>
+            <div><strong>Wiring &amp; assembly</strong><small>Build one connection at a time</small></div>
+          </div>
+          <div id="assembly-tutorial-section" class="assembly-tutorial assembly-tutorial--workflow">
+            <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
+            <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
+              Isolate a data chain and step through each cable in order.
+            </p>
+            <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">Isolate chain</button>
+            <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
+              <output id="assembly-tutorial-step">Cable</output>
+              <div class="assembly-tutorial__actions">
+                <button id="assembly-tutorial-previous-chain" type="button">Previous chain</button>
+                <button id="assembly-tutorial-next-chain" type="button">Next chain</button>
+                <button id="assembly-tutorial-previous-wire" type="button">Previous wire</button>
+                <button id="assembly-tutorial-next-wire" type="button">Next wire</button>
+                <button id="assembly-tutorial-exit" class="assembly-tutorial__exit" type="button">Show all</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section workflow-step workflow-export" data-workflow-step="6">
+          <div class="workflow-step__heading">
+            <span class="workflow-step__number">6</span>
+            <div><strong>Export</strong><small>Save the project and current assets</small></div>
+          </div>
+          <p class="workflow-step__hint">Export the editable Schema 2 project ZIP with every current referenced asset available as verified bytes.</p>
+          <button id="save-project" class="pipeline-button workflow-export__primary" type="button">Export project ZIP</button>
+          <details id="export-options" class="compact-menu">
+            <summary>Other export options</summary>
+            <div class="compact-menu__content">
+              <button id="save-sculpture-file" class="editor-button" type="button">Export raw JSON</button>
+              <button id="export-project-folder" class="editor-button" type="button">Export project folder</button>
+            </div>
+          </details>
+        </section>
+
+        <section class="control-section utilities-section">
+          <details id="developer-utilities" class="compact-menu">
+            <summary>Developer utilities</summary>
+            <div class="compact-menu__content">
               <label class="field">
                 <span>Custom sculpture JSON URL</span>
                 <div class="input-action">
@@ -324,59 +402,8 @@ app.innerHTML = `
                   <button id="apply-count" type="button">Apply</button>
                 </div>
               </label>
-              <button id="save-sculpture-file" class="editor-button" type="button">Export raw JSON</button>
-              <button id="export-project-folder" class="editor-button" type="button">Export project folder</button>
-              <button id="open-esp32-setup" class="editor-button" type="button">Set up ESP32</button>
             </div>
           </details>
-          <section id="route-editor-section" class="route-editor-section" hidden>
-            <div class="section-heading editor-subheading">
-              <span>Wiring route editor</span>
-              <small>controller to DIN to DOUT</small>
-            </div>
-            <p id="route-editor-note" class="mapping-note"></p>
-            <div id="route-editor" class="route-editor" aria-label="Panel wiring route editor"></div>
-            <button id="route-action" class="editor-button" type="button">Edit suggested route</button>
-          </section>
-          <div class="section-heading editor-subheading">
-            <span>Design surface</span>
-            <small>watertight GLB</small>
-          </div>
-          <button id="load-design-surface" class="editor-button" type="button">
-            Load watertight GLB
-          </button>
-          <div id="automatic-panel-placement-controls">
-            <label class="field">
-              <span>Target panel count</span>
-              <input id="automatic-panel-count" type="number" min="1" step="1" value="30" />
-            </label>
-            <button id="automatically-place-panels" class="editor-button" type="button" disabled>
-              Automatically place panels
-            </button>
-          </div>
-          <div id="add-panel-controls" hidden>
-            <label class="field">
-              <span>Available closure face</span>
-              <select id="add-panel-face"></select>
-            </label>
-            <button id="add-panel" class="editor-button" type="button" hidden>
-              Add panel to selected face
-            </button>
-          </div>
-          <div class="pipeline-actions">
-            <button id="assembly-package" class="pipeline-button" type="button">
-              Build assembly package
-            </button>
-            <button id="generate-structure" class="pipeline-button" type="button">
-              Generate connector ribbons
-            </button>
-            <button id="generate-surface-structure" class="pipeline-button" type="button">
-              Generate LED-surface bridges
-            </button>
-            <button id="download-structure" class="pipeline-button" type="button" disabled>
-              Download displayed connectors ZIP
-            </button>
-          </div>
           <div id="pipeline-status" class="pipeline-status pipeline-status--history" role="log" aria-live="polite" aria-label="Activity log">
             Local Vite pipeline is ready.
           </div>
@@ -434,7 +461,7 @@ const intensityValue = query<HTMLOutputElement>("#intensity-value");
 const sculptureSelect = query<HTMLSelectElement>("#sculpture-select");
 const sculptureJsonInput = query<HTMLInputElement>("#sculpture-json");
 const loadSculptureButton = query<HTMLButtonElement>("#load-sculpture");
-const advancedTools = query<HTMLDetailsElement>("#advanced-tools");
+const developerUtilities = query<HTMLDetailsElement>("#developer-utilities");
 const ledCountInput = query<HTMLInputElement>("#led-count");
 const applyCountButton = query<HTMLButtonElement>("#apply-count");
 const displayMode = query<HTMLSelectElement>("#display-mode");
@@ -948,8 +975,8 @@ async function start(): Promise<void> {
       renderer?.setEditorCapabilities(capabilities);
       const packageIsCurrent = verifiedGeneratedMechanics !== undefined;
       assemblyPackageButton.textContent = packageIsCurrent
-        ? "Download assembly package"
-        : "Build assembly package";
+        ? "Download panel closures package"
+        : "Generate panel closures";
       assemblyPackageButton.disabled = mapping.topology !== "panelized-sculpture" ||
         (!packageIsCurrent && !capabilities.canGenerateGenericMechanics);
       assemblyPackageButton.title = packageIsCurrent
@@ -2065,7 +2092,7 @@ async function start(): Promise<void> {
     };
     sculptureSelect.addEventListener("change", () => {
       if (!sculptureSelect.value) {
-        advancedTools.open = true;
+        developerUtilities.open = true;
         sculptureJsonInput.focus();
         return;
       }

@@ -113,6 +113,18 @@ No tasks.
 
 ## Ready to Merge
 
+### `UI-024` Organize the editor around the fabrication workflow
+
+- Result: Project and View remain always available above an editable six-step
+  sequence for Shape, Panels, Mapping & animation, Generate parts, Wiring &
+  assembly, and the dominant project ZIP export.
+- Dependency: includes the unmerged `UI-023` View-layout refinement.
+- Owner: `codex/ui-024-guided-workflow` in the root worktree.
+- Verification: TypeScript, desktop production build, diff check, one focused
+  Chromium layout journey before its final direct overflow assertion, and an
+  independent review passed. The final browser rerun was blocked by the host's
+  `listen EPERM` restriction; no broad suite was run.
+
 ### `UI-023` Refine View control layout
 
 - Result: the framebuffer mode uses the standard dropdown style, and

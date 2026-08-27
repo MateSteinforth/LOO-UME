@@ -107,7 +107,7 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   );
   await expect(page.locator("#route-editor-note")).toContainText("saved authored route");
 
-  await page.locator("#advanced-tools > summary").click();
+  await page.locator("#export-options > summary").click();
   const savedDownloadPromise = page.waitForEvent("download");
   await page.locator("#save-sculpture-file").click();
   const saved = await readJsonDownload(await savedDownloadPromise);

@@ -333,7 +333,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   );
   await chooseDirectory(page, fixture.directory);
   await expect(page.locator("#assembly-package")).toHaveText(
-    "Download assembly package",
+    "Download panel closures package",
     { timeout: 30_000 },
   );
   await expect(page.locator("#assembly-package")).toBeEnabled();
@@ -368,7 +368,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
     expect(folderAudit.revoked).not.toContain(url);
   }
 
-  await page.locator("#advanced-tools").evaluate((element) => {
+  await page.locator("#export-options").evaluate((element) => {
     (element as HTMLDetailsElement).open = true;
   });
   await page.locator("#export-project-folder").click();
@@ -488,7 +488,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   );
   await expect(page.locator(".route-panel")).toHaveCount(5);
   await expect(page.locator("#assembly-package")).toHaveText(
-    "Build assembly package",
+    "Generate panel closures",
   );
   await expect(page.locator("#printable-layer")).toBeDisabled();
   const staleEditAudit = await browserAudit(page);
