@@ -1279,11 +1279,42 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Cause:** Tutorial navigation combined chain and cable state, and cable
   focus was implemented as visibility instead of emphasis.
 - **Correction:** Use the existing Output rows plus independent chain controls
-  to isolate one output. Keep all its cables visible, render noncurrent cables
-  in muted gray, and limit wire controls to that output.
+  to isolate one panel chain. Keep that chain's cables visible, render the
+  current connection bright red, mute its other wires, and let wire navigation
+  select the owning chain when it crosses an output boundary.
 - **Prevention:** Assembly focus must preserve route context. Chain selection
   and solder-connection selection are independent UI states.
 - **Evidence:** Focused unit navigation tests and the Chromium tutorial journey
   verify output-row synchronization, bounded wire steps, active cable identity,
   muted cable count, and visibility restoration on exit.
+- **Status:** Resolved.
+
+### F-071 — Coplanar LED sprites fought with PCB surfaces
+
+- **Date:** 2026-08-27
+- **Context:** Browser panel rendering.
+- **Symptom:** LEDs flickered against the PCB plane and remained visible from
+  the rear because both surfaces used the same depth.
+- **Cause:** Rendered LED positions used the exact mapped PCB-plane positions.
+- **Correction:** Offset only the rendered LED sprites 0.9 mm along each
+  panel's outward normal. Keep mapping positions and saved poses unchanged.
+- **Prevention:** Use a small display-only normal offset for layered visual
+  surfaces. Do not alter physical mapping coordinates to fix z-fighting.
+- **Evidence:** Focused TypeScript and unit checks plus independent review.
+- **Status:** Resolved.
+
+### F-070 — The default browser project showed no panels
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 physical assembly workflow.
+- **Symptom:** The application loaded the empty pose-only authoring project, so
+  the assembly view had no panel sculpture to inspect.
+- **Cause:** The registry and browser loader still used the empty placement
+  fixture as their default after the physical 41-panel workflow became primary.
+- **Correction:** Make the populated 41-panel Schema 2 project the browser and
+  registry default. Keep the empty placement fixture as an explicit menu item.
+- **Prevention:** The default project must represent the current primary
+  operator workflow. Tests pin the populated project source.
+- **Evidence:** Registry and project-loader checks plus the focused browser
+  tutorial journey.
 - **Status:** Resolved.

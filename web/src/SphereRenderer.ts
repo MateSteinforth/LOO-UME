@@ -67,6 +67,8 @@ function createLedSpriteTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas);
 }
 
+const LED_RENDER_OFFSET_MM = 0.9;
+
 export class SphereRenderer {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
@@ -193,16 +195,23 @@ export class SphereRenderer {
     const colors = new Float32Array(mapping.entries.length * 3);
     this.baseLedColors = new Float32Array(mapping.entries.length * 3);
     this.baseLedPositions = new Float32Array(mapping.entries.length * 3);
+    const panelNormals = new Map(
+      mapping.panels.map((panel) => [panel.id, panel.normal]),
+    );
     for (let physical = 0; physical < mapping.entries.length; physical += 1) {
       const entry = mapping.entries[physical];
       if (!entry) continue;
       const offset = physical * 3;
-      positions[offset] = entry.x;
-      positions[offset + 1] = entry.y;
-      positions[offset + 2] = entry.z;
-      this.baseLedPositions[offset] = entry.x;
-      this.baseLedPositions[offset + 1] = entry.y;
-      this.baseLedPositions[offset + 2] = entry.z;
+      const normal = entry.panelId ? panelNormals.get(entry.panelId) : undefined;
+      const x = entry.x + (normal?.x ?? 0) * LED_RENDER_OFFSET_MM;
+      const y = entry.y + (normal?.y ?? 0) * LED_RENDER_OFFSET_MM;
+      const z = entry.z + (normal?.z ?? 0) * LED_RENDER_OFFSET_MM;
+      positions[offset] = x;
+      positions[offset + 1] = y;
+      positions[offset + 2] = z;
+      this.baseLedPositions[offset] = x;
+      this.baseLedPositions[offset + 1] = y;
+      this.baseLedPositions[offset + 2] = z;
       colors[offset] = 0.04;
       colors[offset + 1] = 0.08;
       colors[offset + 2] = 0.12;
@@ -543,11 +552,14 @@ export class SphereRenderer {
     this.outputVisibility.set(outputIndex, visible);
     const connectorLayer = this.connectorOutputLayers.get(outputIndex);
     const wiringLayer = this.wiringOutputLayers.get(outputIndex);
-    const display = this.tutorialOutputIndex === null
+    const connectorDisplay = this.tutorialOutputIndex === null
       ? visible
       : outputIndex === this.tutorialOutputIndex;
-    if (connectorLayer) connectorLayer.visible = display;
-    if (wiringLayer) wiringLayer.visible = display;
+    const wiringDisplay = this.tutorialOutputIndex === null
+      ? visible
+      : outputIndex === this.tutorialOutputIndex;
+    if (connectorLayer) connectorLayer.visible = connectorDisplay;
+    if (wiringLayer) wiringLayer.visible = wiringDisplay;
   }
 
   setAssemblyTutorial(
@@ -592,17 +604,6 @@ export class SphereRenderer {
       );
     }
     this.disposeTutorialLabels();
-    if (connection) {
-      const element = document.createElement("span");
-      element.className = "assembly-cable-label";
-      element.textContent = connection.instruction;
-      const object = new CSS2DObject(element);
-      const end = this.toThree(connection.end);
-      object.position.copy(connection.start
-        ? this.toThree(connection.start).add(end).multiplyScalar(0.5)
-        : end);
-      this.tutorialLayer.add(object);
-    }
     this.boundaryPreviewLayer.visible = false;
     this.printableLayer.visible = true;
     this.connectorLayer.visible = true;
@@ -1330,7 +1331,9 @@ export class SphereRenderer {
         const index = child.userData.tutorialConnectionIndex as number | undefined;
         if (index === undefined) continue;
         const baseColor = child.userData.tutorialBaseColor as number | undefined;
-        const active = connectionIndex === null || index === connectionIndex;
+        const active = connectionIndex === null || (
+          outputIndex === this.tutorialOutputIndex && index === connectionIndex
+        );
         child.visible = true;
         child.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return;
@@ -1340,7 +1343,9 @@ export class SphereRenderer {
           for (const material of materials) {
             if (!(material instanceof THREE.MeshBasicMaterial)) continue;
             material.color.setHex(
-              active ? baseColor ?? 0xffffff : 0x56606c,
+              active
+                ? this.tutorialPanelIds ? 0xff2435 : baseColor ?? 0xffffff
+                : 0x56606c,
             );
             material.transparent = !active;
             material.opacity = active ? 1 : 0.28;
@@ -1368,7 +1373,7 @@ export class SphereRenderer {
             materials[0].depthWrite,
           ].join(",")
           : "missing";
-        if (this.tutorialPanelIds && outputIndex === this.tutorialOutputIndex) {
+        if (this.tutorialPanelIds) {
           if (active) activeMaterialState ??= materialState;
           else mutedMaterialState ??= materialState;
         } else if (
@@ -1384,11 +1389,9 @@ export class SphereRenderer {
           restoredConnections += 1;
         }
         if (group.visible && child.visible) visibleConnections += 1;
-        if (
-          this.tutorialPanelIds &&
-          outputIndex === this.tutorialOutputIndex &&
-          !active
-        ) mutedConnections += 1;
+        if (this.tutorialPanelIds && group.visible && !active) {
+          mutedConnections += 1;
+        }
       }
     }
     if (this.tutorialPanelIds) {

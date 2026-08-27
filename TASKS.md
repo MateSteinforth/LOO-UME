@@ -87,17 +87,15 @@ No tasks.
 
 ### `UI-020` Add an interactive data-chain assembly tutorial
 
-- Result: the view-only tutorial derives every available output chain from the
-  shared Schema 2 wiring preview. It shows a near-top controller, places cable
-  endpoints and inward curves behind the PCBs, uses the existing Output rows as
-  the chain selector, and separates chain navigation from wire navigation. The
-  current solder connection is bright while every other selected-chain cable
-  stays visible in muted gray. It retains referenced printable assets and
-  leaves the user-controlled camera unchanged. Draft and review-required routes
-  remain marked.
-- Verification: 7 tutorial unit tests, 4 focused wiring tests, 3 focused
-  Chromium journeys, `npx tsc -b`, `npm run build:web`, diff check, and
-  independent review passed.
+- Result: Wiring & assembly is first and uses a compact two-column layout. The
+  tutorial isolates one output chain, shows its current solder connection in
+  bright red, mutes its other wires, crosses chain boundaries through wire
+  navigation, and restores the prior view on exit. The populated 41-panel
+  project is the default, the floating cable label is removed, rendered LEDs
+  sit 0.9 mm above the PCB plane, and the viewer has a full-size gradient
+  backdrop.
+- Verification: 15 focused unit tests, `npx tsc -b`, diff check, and independent
+  review passed. Broad browser tests were not repeated for this visual follow-up.
 - Owner: `codex/ui-020-chain-tutorial` in `/tmp/led-rhombo-ui-020`.
 
 ## Done

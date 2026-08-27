@@ -80,12 +80,16 @@ describe("Schema 2 assembly tutorial", () => {
     const model = await tutorialFor(
       "sculptures/rhombicosidodecahedron/sculpture.json",
     );
-    let state = { chainIndex: 0, connectionIndex: 0 as number | null };
-    for (let index = 0; index < 20; index += 1) {
-      state = nextAssemblyTutorialWire(model, state);
-    }
-    expect(state).toEqual({ chainIndex: 0, connectionIndex: 10 });
-    expect(nextAssemblyTutorialChain(model, state)).toEqual({
+    const lastWire = { chainIndex: 0, connectionIndex: 10 as number | null };
+    expect(nextAssemblyTutorialWire(model, lastWire)).toEqual({
+      chainIndex: 1,
+      connectionIndex: 0,
+    });
+    expect(previousAssemblyTutorialWire(model, {
+      chainIndex: 1,
+      connectionIndex: 0,
+    })).toEqual(lastWire);
+    expect(nextAssemblyTutorialChain(model, lastWire)).toEqual({
       chainIndex: 1,
       connectionIndex: 0,
     });
@@ -94,12 +98,12 @@ describe("Schema 2 assembly tutorial", () => {
       connectionIndex: 7,
     })).toEqual({
       chainIndex: 0,
-      connectionIndex: 0,
+      connectionIndex: 10,
     });
     expect(previousAssemblyTutorialWire(model, {
-      chainIndex: 1,
+      chainIndex: 0,
       connectionIndex: 0,
-    })).toEqual({ chainIndex: 1, connectionIndex: 0 });
+    })).toEqual({ chainIndex: 0, connectionIndex: 0 });
   });
 
   it("keeps the stronger warning for every review-required route source", async () => {

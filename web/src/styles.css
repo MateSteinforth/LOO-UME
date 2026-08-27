@@ -132,8 +132,15 @@ input[type="checkbox"] {
   overflow: hidden;
   background:
     linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 42px 42px;
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    radial-gradient(
+      circle at 44% 34%,
+      rgba(82, 126, 158, 0.34),
+      transparent 48%
+    ),
+    linear-gradient(155deg, #172638 0%, #0a121e 48%, #02050a 100%);
+  background-size: 42px 42px, 42px 42px, 100% 100%, 100% 100%;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
 }
 
 .viewer-panel::after {
@@ -241,21 +248,6 @@ input[type="checkbox"] {
     0 0 18px rgba(255, 244, 168, 0.6);
 }
 
-.assembly-cable-label {
-  display: block;
-  max-width: 260px;
-  padding: 6px 9px;
-  border: 1px solid rgba(255, 244, 168, 0.9);
-  border-radius: 5px;
-  color: #071016;
-  background: rgba(255, 244, 168, 0.96);
-  box-shadow: 0 3px 18px rgba(0, 0, 0, 0.65);
-  font: 750 10px/1.35 "SFMono-Regular", Consolas, monospace;
-  text-align: center;
-  white-space: normal;
-  transform: translateY(-14px);
-}
-
 .wiring-controller-label,
 .wiring-controller-pin-label {
   display: block;
@@ -290,9 +282,9 @@ input[type="checkbox"] {
 }
 
 .assembly-tutorial {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(57, 217, 208, 0.18);
+  min-width: 0;
+  padding-left: 12px;
+  border-left: 1px solid rgba(57, 217, 208, 0.18);
 }
 
 .assembly-tutorial__warning,
@@ -914,6 +906,34 @@ input[type="range"] {
   display: grid;
   gap: 5px;
   margin-top: 13px;
+}
+
+.wiring-assembly {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.wiring-assembly > .layer-controls__heading {
+  grid-column: 1 / -1;
+}
+
+.wiring-assembly__layers {
+  min-width: 0;
+}
+
+.wiring-assembly .output-layer {
+  grid-template-columns: 12px 7px minmax(0, 1fr);
+}
+
+.wiring-assembly .output-layer small {
+  grid-column: 3;
+}
+
+.wiring-assembly__layers .toggle-field:first-child,
+.wiring-assembly .assembly-tutorial__warning,
+.wiring-assembly .assembly-tutorial__instruction {
+  margin-top: 0;
 }
 
 .output-layer {

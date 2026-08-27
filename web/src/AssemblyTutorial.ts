@@ -53,12 +53,15 @@ export function nextAssemblyTutorialWire(
   const chain = model.chains[state.chainIndex];
   if (!chain) return state;
   const connectionIndex = state.connectionIndex ?? 0;
+  if (connectionIndex >= chain.connections.length - 1) {
+    if (state.chainIndex >= model.chains.length - 1) {
+      return { ...state, connectionIndex };
+    }
+    return { chainIndex: state.chainIndex + 1, connectionIndex: 0 };
+  }
   return {
     ...state,
-    connectionIndex: Math.min(
-      connectionIndex + 1,
-      chain.connections.length - 1,
-    ),
+    connectionIndex: connectionIndex + 1,
   };
 }
 
@@ -68,9 +71,18 @@ export function previousAssemblyTutorialWire(
 ): AssemblyTutorialStepState {
   const chain = model.chains[state.chainIndex];
   if (!chain) return state;
+  const connectionIndex = state.connectionIndex ?? 0;
+  if (connectionIndex <= 0) {
+    if (state.chainIndex <= 0) return { ...state, connectionIndex };
+    const chainIndex = state.chainIndex - 1;
+    return {
+      chainIndex,
+      connectionIndex: model.chains[chainIndex]!.connections.length - 1,
+    };
+  }
   return {
     ...state,
-    connectionIndex: Math.max(0, (state.connectionIndex ?? 0) - 1),
+    connectionIndex: connectionIndex - 1,
   };
 }
 
@@ -86,12 +98,15 @@ export function nextAssemblyTutorialChain(
 }
 
 export function previousAssemblyTutorialChain(
-  _model: AssemblyTutorialModel,
+  model: AssemblyTutorialModel,
   state: AssemblyTutorialStepState,
 ): AssemblyTutorialStepState {
+  const chainIndex = Math.max(0, state.chainIndex - 1);
   return {
-    chainIndex: Math.max(0, state.chainIndex - 1),
-    connectionIndex: 0,
+    chainIndex,
+    connectionIndex: model.chains[chainIndex]
+      ? model.chains[chainIndex]!.connections.length - 1
+      : 0,
   };
 }
 

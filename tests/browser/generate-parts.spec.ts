@@ -35,7 +35,7 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   delete source.boundaryTopology;
   delete source.generatedMechanics;
 
-  await page.goto("/");
+  await page.goto("/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json");
   await expect(page.locator("#pipeline-status")).toContainText("watertight");
   await expect(page.locator("#automatically-place-panels")).toBeEnabled();
 

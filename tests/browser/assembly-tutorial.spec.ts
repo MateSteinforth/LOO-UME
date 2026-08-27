@@ -1,6 +1,24 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
+test("loads the populated 41-panel sculpture by default", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "No authoring surface is referenced",
+  );
+  await expect(page.locator("#sculpture-select")).toHaveValue(
+    "./sculptures/rhombicosidodecahedron/sculpture.json",
+  );
+  await expect(page.locator("#led-count")).toHaveValue("2624");
+  await expect(page.locator(".output-layer-toggle")).toHaveCount(4);
+  await expect(page.locator(".output-layer small")).toHaveText([
+    "11 panels",
+    "10 panels",
+    "10 panels",
+    "10 panels",
+  ]);
+});
+
 test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
@@ -19,6 +37,10 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   await expect(page.locator("#assembly-tutorial-overview")).toHaveCount(0);
   await expect(
     page.locator("#wiring-layer-controls #assembly-tutorial-section"),
+  ).toBeVisible();
+  await expect(
+    page.locator(".control-panel > .control-section").first()
+      .locator("#wiring-layer-controls"),
   ).toBeVisible();
   await expect(page.locator("#assembly-tutorial-warning")).toHaveText(
     "DRAFT ROUTE — save the route before physical assembly.",
@@ -49,13 +71,14 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-tutorial-active-material",
-    "36e0d0,1,false,true",
+    "ff2435,1,false,true",
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-tutorial-muted-material",
     "56606c,0.28,true,false",
   );
   await expect(page.locator(".output-layer-toggle")).toBeChecked();
+  await expect(page.locator(".assembly-cable-label")).toHaveCount(0);
   await expect(page.locator("#assembly-tutorial-previous-chain")).toBeDisabled();
   await expect(page.locator("#assembly-tutorial-next-chain")).toBeDisabled();
   await expect(page.locator(".panel-label:visible").first()).toContainText(
@@ -173,6 +196,12 @@ test("uses the existing output rows as the isolated chain selector", async ({ pa
   await page.locator("#assembly-tutorial-start").click();
   await expect(page.locator(".output-layer-toggle:checked")).toHaveCount(1);
   await expect(outputToggles.nth(1)).toBeChecked();
+  await page.locator("#assembly-tutorial-next-wire").click();
+  await expect(outputToggles.nth(1)).not.toBeChecked();
+  await expect(outputToggles.nth(3)).toBeChecked();
+  await page.locator("#assembly-tutorial-previous-wire").click();
+  await expect(outputToggles.nth(1)).toBeChecked();
+  await expect(outputToggles.nth(3)).not.toBeChecked();
   await page.locator("#assembly-tutorial-next-chain").click();
   await expect(outputToggles.nth(1)).not.toBeChecked();
   await expect(outputToggles.nth(3)).toBeChecked();
@@ -180,6 +209,14 @@ test("uses the existing output rows as the isolated chain selector", async ({ pa
   await outputToggles.nth(4).click();
   await expect(outputToggles.nth(3)).not.toBeChecked();
   await expect(outputToggles.nth(4)).toBeChecked();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-visible-connections",
+    "1",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-muted-connections",
+    "0",
+  );
   await expect(page.locator("#assembly-tutorial-step")).toContainText(
     "Output 5",
   );
@@ -200,7 +237,9 @@ test("uses the existing output rows as the isolated chain selector", async ({ pa
 
 test("restores a surface-backed viewport after the tutorial", async ({ page }) => {
   test.setTimeout(180_000);
-  await page.goto("/");
+  await page.goto(
+    "/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json",
+  );
   await expect(page.locator("#pipeline-status")).toContainText("watertight");
   await page.locator("#advanced-tools").evaluate((element) => {
     (element as HTMLDetailsElement).open = true;

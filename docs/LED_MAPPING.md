@@ -117,9 +117,11 @@ the same Schema 2 wiring preview used by the normal wiring layers. **Isolate
 chain** starts with the first output. Previous and Next move through its cables
 and then continue across the remaining outputs. The existing Output rows are
 the chain selector: chain navigation checks one row and masks every panel that
-is not in that output. Separate wire navigation stays inside the selected
-output. The current solder connection keeps the output color; the other cables
-in that chain remain visible in muted gray for context. The tutorial never
+is not in that output. Separate wire navigation crosses output boundaries and
+checks the row that owns the new connection. Next chain starts at its first
+wire; Previous chain starts at its last wire. Only the selected chain remains
+visible. Its current solder connection is bright red; its other cables are
+muted gray for context. The tutorial never
 moves the camera; the operator keeps orbit and unlimited zoom control. A schematic
 controller sits above the sculpture and labels each output pin. DIN, DOUT, and
 cable endpoints are behind each PCB in the profile's back-view convention.
@@ -137,6 +139,12 @@ Current referenced printable assets remain visible during chain isolation. A
 Schema 2 project with no `generatedMechanics` or `generatedStructure` references
 has no printable geometry for the tutorial to show. The 41-panel project is
 currently in that pose-and-wiring-only state.
+
+The browser places **Wiring & assembly** at the top of the control panel so the
+chain and wire controls remain available during physical work. Wiring layers
+and tutorial controls use the left and right halves of that section. The populated
+41-panel project is the default browser project; empty authoring projects remain
+available in the project selector.
 
 ## Printable assembly-manual export
 

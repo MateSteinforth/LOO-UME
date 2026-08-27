@@ -107,13 +107,19 @@ runtime handling.
 `AssemblyTutorial.ts` is a stateless view model over `WiringPreview`; it adds no
 saved route or tutorial state. `SphereRenderer.ts` applies its temporary panel
 visibility mask, reuses the normal back-side connector and cable layers, shows
-one bright solder connection while muting the other selected-chain cables,
+one bright-red solder connection while muting the other selected-chain cables,
 keeps referenced printable assets
 visible, and does not mutate the user-controlled camera. Cable curves use a
 control point inside the endpoint radius relative to the current sculpture
 center. The
 controller is a schematic near-top placement derived from the complete current
 route; it is not a second saved wiring authority.
+The populated 41-panel Schema 2 project is the browser default. Empty authoring
+projects remain explicit registry choices.
+The renderer offsets LED sprites 0.9 mm along each panel's outward normal. This
+is a display-only separation from the PCB plane; it does not change mapping or
+saved panel poses. The transparent WebGL canvas uses the viewer's radial and
+linear CSS gradient as its world backdrop.
 Surface mode keeps the established constrained move and local-Z rotation.
 Free 6DOF mode uses local translation and rotation controls, writes one
 right-handed pose, and removes the old surface attachment. Structural downloads

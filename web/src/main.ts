@@ -158,6 +158,42 @@ app.innerHTML = `
 
       <aside class="control-panel">
         <section class="control-section">
+          <div id="wiring-layer-controls" class="layer-controls wiring-assembly">
+            <div class="layer-controls__heading">Wiring &amp; assembly</div>
+            <div class="wiring-assembly__layers">
+            <label class="toggle-field">
+              <input id="connector-layer" type="checkbox" checked />
+              <span>Panel DIN / DOUT + direction</span>
+            </label>
+            <label class="toggle-field">
+              <input id="wiring-layer" type="checkbox" checked />
+              <span>Panel-to-panel wiring</span>
+            </label>
+            <div id="output-layer-list" class="output-layer-list" aria-label="Controller output visibility"></div>
+            </div>
+            <div id="assembly-tutorial-section" class="assembly-tutorial">
+              <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
+              <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
+                Isolate the data chains and step through their cables.
+              </p>
+              <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">
+                Isolate chain
+              </button>
+              <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
+                <output id="assembly-tutorial-step">Cable</output>
+                <div class="assembly-tutorial__actions">
+                  <button id="assembly-tutorial-previous-chain" type="button">Previous chain</button>
+                  <button id="assembly-tutorial-next-chain" type="button">Next chain</button>
+                  <button id="assembly-tutorial-previous-wire" type="button">Previous wire</button>
+                  <button id="assembly-tutorial-next-wire" type="button">Next wire</button>
+                  <button id="assembly-tutorial-exit" class="assembly-tutorial__exit" type="button">Show all</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section">
           <div class="section-heading">
             <span>WLED engine</span>
           </div>
@@ -190,37 +226,6 @@ app.innerHTML = `
               <option value="">Loading sculpture registry…</option>
             </select>
           </label>
-          <div id="wiring-layer-controls" class="layer-controls">
-            <div class="layer-controls__heading">Wiring &amp; assembly</div>
-            <label class="toggle-field">
-              <input id="connector-layer" type="checkbox" checked />
-              <span>Panel DIN / DOUT + direction</span>
-            </label>
-            <label class="toggle-field">
-              <input id="wiring-layer" type="checkbox" checked />
-              <span>Panel-to-panel wiring</span>
-            </label>
-            <div id="output-layer-list" class="output-layer-list" aria-label="Controller output visibility"></div>
-            <div id="assembly-tutorial-section" class="assembly-tutorial">
-              <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
-              <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
-                Isolate the data chains and step through their cables.
-              </p>
-              <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">
-                Isolate chain
-              </button>
-              <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
-                <output id="assembly-tutorial-step">Cable</output>
-                <div class="assembly-tutorial__actions">
-                  <button id="assembly-tutorial-previous-chain" type="button">Previous chain</button>
-                  <button id="assembly-tutorial-next-chain" type="button">Next chain</button>
-                  <button id="assembly-tutorial-previous-wire" type="button">Previous wire</button>
-                  <button id="assembly-tutorial-next-wire" type="button">Next wire</button>
-                  <button id="assembly-tutorial-exit" class="assembly-tutorial__exit" type="button">Show all</button>
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
 
         <section class="control-section editor-section">
@@ -1048,9 +1053,11 @@ async function start(): Promise<void> {
       assemblyTutorialPreviousChainButton.disabled = assemblyTutorialChainIndex === 0;
       assemblyTutorialNextChainButton.disabled =
         assemblyTutorialChainIndex === assemblyTutorialModel.chains.length - 1;
-      assemblyTutorialPreviousWireButton.disabled = connectionIndex === 0;
       assemblyTutorialNextWireButton.disabled =
+        assemblyTutorialChainIndex === assemblyTutorialModel.chains.length - 1 &&
         connectionIndex === chain.connections.length - 1;
+      assemblyTutorialPreviousWireButton.disabled =
+        assemblyTutorialChainIndex === 0 && connectionIndex === 0;
     };
 
     const exitAssemblyTutorial = (announce = true): void => {
@@ -2005,7 +2012,9 @@ async function start(): Promise<void> {
         chainIndex: assemblyTutorialChainIndex,
         connectionIndex: assemblyTutorialConnectionIndex,
       });
+      assemblyTutorialChainIndex = previous.chainIndex;
       assemblyTutorialConnectionIndex = previous.connectionIndex;
+      syncAssemblyTutorialOutputControls();
       applyAssemblyTutorialView();
     });
     assemblyTutorialNextWireButton.addEventListener("click", () => {
@@ -2013,7 +2022,9 @@ async function start(): Promise<void> {
         chainIndex: assemblyTutorialChainIndex,
         connectionIndex: assemblyTutorialConnectionIndex,
       });
+      assemblyTutorialChainIndex = next.chainIndex;
       assemblyTutorialConnectionIndex = next.connectionIndex;
+      syncAssemblyTutorialOutputControls();
       applyAssemblyTutorialView();
     });
     assemblyTutorialExitButton.addEventListener("click", () => {

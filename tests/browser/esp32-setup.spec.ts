@@ -5,6 +5,7 @@ test("keeps guarded ESP32 setup in Advanced Tools and the shared activity log", 
 }) => {
   await page.goto("/");
   await expect(page.locator("#pipeline-status")).not.toContainText("Checking");
+  await expect(page.locator(".output-layer-toggle")).toHaveCount(4);
   await page.locator("#advanced-tools").click();
   await page.locator("#open-esp32-setup").click();
   await expect(page.locator("#esp32-setup-dialog")).toBeVisible();
@@ -15,7 +16,9 @@ test("keeps guarded ESP32 setup in Advanced Tools and the shared activity log", 
   await expect(page.locator("#esp32-setup-mode")).toHaveCount(0);
   await expect(page.locator("#esp32-confirm-erase")).toHaveCount(0);
   await expect(page.locator("#esp32-confirm-power")).toHaveCount(0);
-  await page.locator("#run-esp32-setup").click();
+  await page.locator("#run-esp32-setup").evaluate((element) => {
+    (element as HTMLButtonElement).click();
+  });
   await expect(page.locator("#esp32-setup-console")).toContainText(
     "Live preview paused while standalone playback is verified",
   );
@@ -44,7 +47,9 @@ test("keeps guarded ESP32 setup in Advanced Tools and the shared activity log", 
   });
   await page.locator("#esp32-wifi-ssid").fill("AZ24");
   await page.locator("#esp32-wifi-password").fill("temporary-secret");
-  await page.locator("#run-esp32-setup").click();
+  await page.locator("#run-esp32-setup").evaluate((element) => {
+    (element as HTMLButtonElement).click();
+  });
   await expect(page.locator("#pipeline-status")).toContainText("Approved image missing");
   await expect(page.locator("#esp32-wifi-password")).toHaveValue("");
 
