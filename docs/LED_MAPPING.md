@@ -117,24 +117,25 @@ mapping/wiring**.
 The browser **Build Hardware** control derives every connection label from
 the same Schema 2 wiring preview used by the normal wiring layers. **Isolate
 chain** starts with the first output. Previous and Next move through its cables
-and then continue across the remaining outputs. The existing Output rows are
-the chain selector: chain navigation checks one row and masks every panel that
-is not in that output. Separate wire navigation crosses output boundaries and
-checks the row that owns the new connection. Next chain starts at its first
-wire; Previous chain starts at its last wire. Only the selected chain remains
-visible. Its current solder connection is bright red; its other cables are
-muted gray for context. The tutorial never
+and then continue across the remaining outputs. Separate Previous/Next chain
+controls select an output without showing redundant output checkboxes. Wire
+navigation crosses output boundaries and selects the owning chain. Next chain
+starts at its first wire; Previous chain starts at its last wire. Only the
+selected chain remains visible. Its current solder connection is bright red;
+its other cables are muted gray for context. The tutorial never
 moves the camera; the operator keeps orbit and unlimited zoom control. A schematic
 controller sits above the sculpture and labels each output pin. DIN, DOUT, and
 cable endpoints are behind each PCB in the profile's back-view convention.
 Cable curves move inward from those endpoints, toward the sculpture interior.
-Panel labels show their one-based position in the selected chain. The tutorial
-is view-only: it does not change poses, routes, mapping, mechanics, or saved
-project data.
+Panel labels keep their panel IDs. The tutorial is view-only: it does not change
+poses, routes, mapping, mechanics, or saved project data. Selecting a panel from
+a route row also stops slow auto-rotation so its back-side DIN/DOUT labels stay
+stationary during review.
 
 Authored routes are shown as saved data routes. Draft and review-required
-routes remain inspectable but keep a visible warning that they must be saved or
-reviewed before physical assembly. Missing GPIOs remain explicitly unassigned.
+routes remain inspectable but keep a visible warning that mapping/wiring must be
+regenerated or reviewed before physical assembly. Missing GPIOs remain
+explicitly unassigned.
 The tutorial describes data cables only; it does not infer a power-distribution
 route that is absent from Schema 2.
 Current referenced printable assets remain visible during chain isolation. A
@@ -142,24 +143,23 @@ Schema 2 project with no `generatedMechanics` or `generatedStructure` references
 has no printable geometry for the tutorial to show. The 41-panel project is
 currently in that pose-and-wiring-only state.
 
-The browser places **Wiring & assembly** at the top of the control panel so the
-chain and wire controls remain available during physical work. Wiring layers
-and tutorial controls use the left and right halves of that section. The populated
-41-panel project is the default browser project; empty authoring projects remain
-available in the project selector.
+The persistent **View** section owns the DIN/DOUT and panel-wiring layers. The
+guided **BUILD HARDWARE** section follows part generation and owns chain/wire
+isolation plus ESP32 setup. These controls remain available without locking the
+other project sections. The populated 41-panel project is the default browser
+project; empty authoring projects remain available in the project selector.
 
 ## Printable assembly-manual export
 
-The **Export individual files** menu can write one
-self-contained HTML file for the current Schema 2 wiring preview. It uses the
-current in-memory model, embeds the A4 print CSS, and does not depend on a
-popup. Open the downloaded file in a browser and select **Print / Save PDF**. A
-directly opened standalone page still loads and revalidates its Schema 2
-source. Mapping-ready routes retain their ready label. Draft and temporary
+After **Generate panel closures** succeeds, the same button downloads an
+assembly package that contains a self-contained `assembly-manual.html`. The
+manual uses the current in-memory Schema 2 model, embeds the A4 print CSS, and
+does not depend on a popup. Open it in a browser and select **Print / Save
+PDF**. Mapping-ready routes retain their ready label. Draft and temporary
 suggestions export as explicit **DRAFT SUGGESTION** manuals; they show missing
 GPIOs as unassigned and current non-optimized panel turns as assumptions. The
-assembly package contains the same `assembly-manual.html` together with the
-project, verified GLB/STL assets, ledmap, and wiring review. The export
+package also contains the project, verified GLB/STL assets, ledmap, and wiring
+review. The export
 derives panel count, output count, output labels and colors, GPIOs, routes,
 transforms, and address ranges from the current contract. It does not contain
 a hard-coded flagship route.
@@ -180,7 +180,7 @@ and browser headers and footers disabled. The page labels the saved pixel and co
 GPIO, route, mapping fingerprint, and orientation fingerprint. It is a mapping
 assembly aid. It is not an electrical approval or a power-distribution plan.
 
-The manual 41-panel snapshot currently resolves to:
+The current 41-panel wiring manual resolves to:
 
 | Output | Panels | Physical range | GPIO |
 | ---: | ---: | ---: | --- |

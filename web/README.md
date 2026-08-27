@@ -4,13 +4,18 @@
 portable projects, mapping, wiring, Manifold generation, rendering, and the
 assembly package.
 
-The primary workflow is Open project, edit poses and routes, then Build or
-Download assembly package. Generic boundary and part STL files compile in the
-browser with pinned `manifold-3d` 3.5.1. The loopback helper is a bounded
-fallback for a Manifold runtime-load failure.
+Project and View remain persistent above six editable sections: Shape, Panels,
+Mapping, Generate parts, Build Hardware, and Export. Selecting a panel stops
+slow auto-rotation so the editing target stays stationary. Generic boundary and
+part STL files compile in the browser with pinned `manifold-3d` 3.5.1. The
+loopback helper is a bounded fallback for a Manifold runtime-load failure.
+
+The local host also provides the receipt-gated ESP32 image, bounded private-WLED
+HTTP proxy, and mapped DDP sender. The browser verifies config, ledmap, preset,
+boot state, device identity, and reconnect contract before live preview starts.
 
 Use `npm run dev:web` for development, `npm run desktop` for the local
 production host, and `npm run test:browser` for the Chromium journeys.
 
-Do not use the browser simulator as evidence for firmware, transport, network,
-audio, or electrical behavior.
+Do not infer complete-sculpture, Art-Net, audio, Ethernet, or electrical
+evidence from the physically confirmed one-panel and three-panel paths.

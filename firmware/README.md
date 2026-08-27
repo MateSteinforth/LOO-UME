@@ -13,7 +13,7 @@ WLED application at their reviewed ESP32 offsets. Compiled images stay off
 
 ## Set up from the local editor
 
-Open **Advanced tools**, then select **Set up ESP32** in Chrome or Edge on the
+Open **Build Hardware**, then select **Set up ESP32** in Chrome or Edge on the
 loopback desktop page. The staged complete image must match
 `build-receipt.json`; otherwise select the matching full-flash `.bin` file.
 The workflow:
@@ -36,8 +36,8 @@ The workflow:
 The configured behavior is that WLED leaves realtime mode 2.5 seconds after
 preview traffic stops and resumes the saved native animation. Changes to
 effect, palette, speed, or intensity update the same standalone boot preset.
-Physical confirmation of timeout and resume is still required before this
-behavior is marked proven.
+The operator physically confirmed timeout/resume, reconnect, effect updates,
+tab-close fallback, and power-cycle restoration on the three-panel sculpture.
 
 The local production server serves a complete image only from the ignored
 `build/firmware/` directory and only when its bytes match the tracked receipt.

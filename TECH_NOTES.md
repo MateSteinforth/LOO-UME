@@ -83,23 +83,22 @@ virtual framebuffer. Invalid writes are rejected and counted by
   The 66 mm face edge, separate square/pentagon plane distances, 66 x 65 mm PCB
   envelopes, and canonical centre-panel recess/offset remain represented.
 - The renderer uses opaque PCB depth surfaces plus depth-writing, normal-blended
-  circular LED sprites. This deliberately avoids transparent-shell/additive
-  sorting artifacts that made front LEDs appear dim.
+  circular LED sprites offset 2.4 mm along the panel normal. Display colors use
+  a 2x render-only intensity multiplier. This avoids coplanar depth fighting and
+  rear-visible LEDs without changing mapping or DDP bytes.
 - Logical effect indices are sorted by UV latitude/longitude so WLED Scan
   progresses north-to-south. Physical indices now come from the exact four-output
   route drawn by the wiring overlay. `HardwareMapping.ts` produces
   `map[logicalIndex] = physicalIndex`, which is both rendered and exported.
-  The browser imports the generated panel-map and ledmap JSON directly, checks
-  their shared fingerprint, and rejects any per-LED mismatch. A full-frame
-  round-trip test proves their equivalence.
-- The current 11/10/10/10 geographic route remains provisional. The panel JSON
-  now supplies bottom-left pixel zero and a bottom-to-top serpentine row order;
-  this derives pixel 56 at top-right and pixel 63 at top-left for the 8 x 8
-  grid. DIN is measured at the bottom-left and DOUT at the top-right in the
-  canonical back view with the three
-  holes vertical. Exact pad centres and keep-outs, GPIO assignments, installed
-  orientation, and final chains remain unresolved. The production ledmap
-  exporter refuses to run until its hardware-readiness requirements are met.
+  The browser compiles the same contract from the loaded Schema 2 project and
+  rejects a generated panel-map or ledmap mismatch. A full-frame round-trip test
+  proves equivalence.
+- The 11/10/10/10 route, GPIOs 16–19, and installed quarter turns are authored
+  assumptions. The one-panel test measured front-view DIN/pixel 0 at top-left,
+  straight left-to-right rows progressing downward, pixel 63/DOUT at
+  bottom-right, and GRB/WLED order 0. The profile stores the mirrored back-view
+  convention. Exact complete-sculpture parity still needs as-built evidence,
+  but the mapping-ready exporter can emit the guarded deployment contract.
 - The audio setter stores volume, peak, and up to 64 FFT bins. No current effect
   consumes them; this is the future adapter seam.
 - Emscripten memory may grow after a resize. JavaScript deliberately reacquires
@@ -121,10 +120,8 @@ virtual framebuffer. Invalid writes are rejected and counted by
 - Port more non-audio 1D effects by dependency clusters while retaining the
   source-sync invariant.
 - Add a 2D Segment adapter and feed equirectangular UV dimensions.
-- Replace generated panel transforms and synthetic indices with measured
-  canonical panel orientation, physical chain order, connector positions, UV,
-  and XYZ data.
 - Connect browser Web Audio analysis to the existing audio input structure
   before enabling audio-reactive effects.
-- Add an optional DDP/Art-Net consumer of the same packed framebuffer, outside
-  the effect engine and renderer.
+- Implement `LIVE-010` as a bounded local MadMapper Art-Net-to-mapped-DDP bridge
+  outside the effect engine and renderer. Keep the current physical mapping as
+  its only address authority.

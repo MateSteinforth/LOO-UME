@@ -127,6 +127,9 @@ The renderer offsets LED sprites 2.4 mm along each panel's outward normal. This
 is a display-only separation from the PCB plane; it does not change mapping or
 saved panel poses. The transparent WebGL canvas uses the viewer's radial and
 linear CSS gradient as its world backdrop.
+Selecting a panel through the viewport, its label, or a route row stops slow
+auto-rotation and clears the matching View checkbox. This is view state only;
+selection and rotation never change a saved pose.
 Surface mode keeps the established constrained move and local-Z rotation.
 Free 6DOF mode uses local translation and rotation controls, writes one
 right-handed pose, and removes the old surface attachment. Structural downloads
@@ -144,9 +147,11 @@ and publishes the completed directory atomically.
 
 ## Simulator-to-hardware boundary
 
-The browser proves a logical-to-physical permutation in memory. It does not yet
-prove an installed ESP32 sculpture. The 41-panel project stores an authored
-assumed route with chain lengths `11/10/10/10`, GPIOs 16–19, measured GRB
+The browser proves a logical-to-physical permutation in memory. The
+receipt-bound browser flash, Improv setup, one-panel smoke test, and three-panel
+DDP/preset/reconnect/power-cycle path have physical evidence. They do not prove
+the complete 41-panel sculpture. The 41-panel project stores an authored assumed
+route with chain lengths `11/10/10/10`, GPIOs 16–19, measured GRB
 order, measured straight row-major pixel order, and route-optimized installed
 quarter turns.
 
@@ -157,8 +162,8 @@ authorities.
 
 Mapping readiness is separate from electrical approval. A production bundle
 must bind the current project, route, ledmap, WLED bus fragment, target identity,
-and exact file hashes. Hardware-verified state remains blocked until accepted
-`PROOF-010` evidence exists.
+and exact file hashes. Complete hardware-verified state remains blocked until
+accepted `PROOF-010` evidence exists for all 2,624 addresses.
 
 The local editor serves the receipt-bound flash image and brokers the later
 WLED HTTP configuration/read-back calls. The browser supplies only the private

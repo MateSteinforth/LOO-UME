@@ -37,7 +37,7 @@ No tasks.
 
 ### `P1 · LIVE-010` Bridge MadMapper Art-Net into the mapped WLED DDP output
 
-- Scope: add a local Advanced Tools bridge that receives bounded Art-Net from
+- Scope: add a local BUILD HARDWARE bridge that receives bounded Art-Net from
   MadMapper, applies the active Schema 2 logical-to-physical mapping, and sends
   the result through the existing verified DDP path while WLED remains in DDP
   mode.
@@ -54,7 +54,7 @@ No tasks.
   bounded DDP sender. No hardware or external API dependency blocks the
   three-panel slice.
 - Conflict risk: local server lifecycle, `scripts/esp32-device-handler.ts`,
-  `web/src/Esp32Setup.ts`, `web/src/main.ts`, and Advanced Tools controls.
+  `web/src/Esp32Setup.ts`, `web/src/main.ts`, and BUILD HARDWARE controls.
 
 ## In Progress
 
@@ -110,6 +110,10 @@ No tasks.
 
 ## Done
 
+- `UI-025`: integrated panel-selection auto-rotation stop and synchronized View
+  state on 2026-08-27. Reconciled current operator, architecture, hardware,
+  firmware, mapping, workflow, CI, and failure-learning documentation;
+  TypeScript, diff checks, stale-contract scan, and independent review passed.
 - `UI-024`: integrated the always-editable six-step fabrication workflow,
   persistent View animation controls, Build Hardware assembly/ESP32 controls,
   compact action layout, and revised renderer lighting on 2026-08-27.
@@ -155,7 +159,7 @@ No tasks.
   private-device read-back and reconnect, and the physically mapped live 8x8
   simulator link. The operator completed setup at `192.168.68.53`; 366/366
   tests, TypeScript, Vite, focused browser journeys, and review passed.
-- `FIRM-012`: integrated the receipt-verified Advanced Tools ESP32 flash,
+- `FIRM-012`: integrated the receipt-verified BUILD HARDWARE ESP32 flash,
   private Wi-Fi provisioning, `loo-ume.local` identity, one-panel simulator
   state transfer, and device read-back; physical browser/USB review passed on
   2026-08-25. Full-install mode remains unavailable.

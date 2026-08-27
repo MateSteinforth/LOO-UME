@@ -1,13 +1,12 @@
 # Software architecture
 
-This document records the selected assumed prototype hardware contract and the
-remaining firmware plan. `main` contains the selected target's exact build
-receipt, guarded deployment contract, and one-panel smoke configuration. WLED
-build tooling stays on `generate/wled-firmware`; the binary is an ignored
-build/release artifact. No controller has been flashed or bench-tested, and
-network transport and audio remain unimplemented.
-The active milestone is static simulator-to-device address and RGB parity;
-networking, audio, and custom effects remain later work.
+This document records the selected prototype controller and software contract.
+`main` contains the exact build receipt, guarded deployment contract, browser
+flash/setup path, and one-panel smoke configuration. WLED build tooling stays
+on `generate/wled-firmware`; the binary is an ignored build/release artifact.
+The ESP32 flash, one-panel address/color test, and three-panel native/DDP
+playback path have physical evidence. Complete 41-panel parity, Art-Net, audio,
+Ethernet, and custom effects remain later or external work.
 
 ## Hardware baseline
 
@@ -19,8 +18,8 @@ networking, audio, and custom effects remain later work.
   SN74AHCT125-shifted outputs on GPIOs 16, 17, 18, and 19. Ethernet, audio, and
   custom effects remain deferred.
 - Four data outputs use the assumed 11/10/10/10 panel split. The route must be
-  explicitly saved before it becomes an assembly route. The obsolete 42-panel
-  split must not be reused.
+  confirmed through **Regenerate mapping/wiring** before it becomes an authored
+  assembly route. The obsolete 42-panel split must not be reused.
 - Two independent 5 V / 40 A power domains each feed two outputs. Grounds are
   common; positive rails remain separate.
 

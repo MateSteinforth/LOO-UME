@@ -11,14 +11,17 @@ the printable closures, publishes an atomic folder asset set, verifies SHA-256,
 and displays the exact referenced STL bytes.
 Folder and ZIP import/export use that same path/hash contract, resolve imported
 assets through browser object URLs, and retain no database or local-storage
-state. The existing manual 41-panel parts and planar-shell generator remain supported.
+state. Planar closures use the panel-outline boundary compiler. Connector
+ribbons and LED-surface bridges use the separate eligible-hole structural
+pipeline. Both routes are Manifold-only and derive geometry from panel poses.
 
 ## User workflow
 
 The implemented generation and portable-project data flow is:
 
-1. Start from the empty pose-only project (the editor default). It already
-   references a watertight rhombicosidodecahedron GLB whose squares are 66 mm.
+1. Start from the populated 41-panel default project, select another Schema 2
+   preset, or import an editable project ZIP. Empty surface-authoring fixtures
+   remain available when a new layout is required.
 2. Automatically place a requested number of LED panels on that surface, or
    load another GLB.
 3. Manually add, move, rotate, or delete panels until neighbouring outline
@@ -26,14 +29,15 @@ The implemented generation and portable-project data flow is:
    It does not use the GLB or a JSON shell as geometry.
 4. Use simulation, mapping, wiring preview, save, and reload without generating
    any mechanics.
-5. Press **Build assembly package**.
+5. Press **Generate panel closures**.
 6. Detect and persist the ordered corner cycle around every unambiguous gap,
    then generate a closed boundary by filling those cycles.
 7. Validate the boundary, split it into printable parts, and add the proven PCB
    clearances, mounting details, and interior panel-ID labels. Each eligible
    hole still gets one unique tab; assignment prefers the hole nearest each
    edge middle. Recessed text matches the simulator hover label (`P-01`).
-8. Press **Download assembly package**. The ZIP contains `sculpture.json`, the
+8. After generation, press **Download panel closures package**. The ZIP contains
+   `sculpture.json`, the
    GLB when present, the exact boundary and part STLs loaded into Three.js,
    `assembly-manual.html`, and the shared deployment export. Mapping-ready
    input gets guarded `wled/` installation files. Draft or stale input gets
@@ -47,11 +51,10 @@ Mechanics generation is optional. Failure or absence of mechanics must never
 disable panel editing, WLED simulation, LED mapping, provisional wiring, or
 project save/reload.
 
-The **Export individual files** menu writes the same self-contained manual HTML
-directly. Open the downloaded file in a browser, then use **Print / Save PDF**.
-The export uses the current automatic draft
-suggestion when no mapping-ready route exists; it does not silently promote
-that suggestion to an authored or mapping-ready route.
+The package contains the self-contained manual HTML. Open that file in a
+browser, then use **Print / Save PDF**. The export uses the current automatic
+draft suggestion when no mapping-ready route exists; it does not silently
+promote that suggestion to an authored or mapping-ready route.
 
 ## Geometry assumption for the first generator
 
@@ -88,8 +91,9 @@ or silently choose between multiple coplanar cycles. The interface has no
 topology confirmation or correction control. It cannot accept, reject, reorder,
 or redraw detected cycles. The user must move the panels until detection is
 unambiguous or edit `boundaryTopology` outside the interface. The prism fixture
-is `sculptures/panel-outline-prism/sculpture.json`. The default empty project
-places six panels on the 66 mm cuboctahedron squares. Invalid fixtures cover
+is `sculptures/panel-outline-prism/sculpture.json`. The explicit
+`cuboctahedron-empty-66` fixture starts with zero panels and has an automatic
+placement target of six panels on the 66 mm cuboctahedron squares. Invalid fixtures cover
 non-planar, open, intersecting, and non-manifold layouts.
 
 For each proposed cap, generation must reject:
@@ -179,7 +183,7 @@ and starts the local server. It prints a loopback URL at `127.0.0.1`, using port
 Both local hosts use the same bounded handler for
 `/api/generator-status` and `/api/editor-pipeline`. The browser fetches status
 instead of inferring availability from its build mode. Unavailable Manifold
-disables **Build assembly package**; editing, simulation, mapping, wiring, save, and
+disables **Generate panel closures**; editing, simulation, mapping, wiring, save, and
 reopen continue.
 
 The HTTP server, project data, generated assets, and Manifold compilation all
@@ -308,7 +312,7 @@ generation-relevant profile fact changes:
 - the generated-mechanics fingerprint no longer matches;
 - the parts are marked stale and are not presented as current printable output;
 - the UI may allow an explicitly labelled stale inspection mode; and
-- **Build assembly package** creates a new boundary and replaces the referenced part
+- **Generate panel closures** creates a new boundary and replaces the referenced part
   set only after the complete pipeline succeeds.
 
 A failed generation must not partially replace the last successful manifest or
