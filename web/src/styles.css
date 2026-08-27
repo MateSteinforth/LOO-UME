@@ -346,8 +346,12 @@ input[type="checkbox"] {
 
 .assembly-tutorial__actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
+}
+
+.assembly-tutorial__actions .assembly-tutorial__exit {
+  grid-column: 1 / -1;
 }
 
 .assembly-tutorial__actions button {
@@ -937,6 +941,12 @@ input[type="range"] {
 .output-layer small {
   color: #64748b;
   font-size: 8px;
+}
+
+.output-layer--isolated {
+  border-color: color-mix(in srgb, var(--output-color), transparent 35%);
+  color: #f4fbff;
+  background: color-mix(in srgb, var(--output-color), transparent 88%);
 }
 
 .output-swatch {

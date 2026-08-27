@@ -115,8 +115,12 @@ The operator can use it only after Edit suggested route and Save route.
 The browser **Wiring & assembly** control derives every connection label from
 the same Schema 2 wiring preview used by the normal wiring layers. **Isolate
 chain** starts with the first output. Previous and Next move through its cables
-and then continue across the remaining outputs. The tutorial never moves the
-camera; the operator keeps orbit and unlimited zoom control. A schematic
+and then continue across the remaining outputs. The existing Output rows are
+the chain selector: chain navigation checks one row and masks every panel that
+is not in that output. Separate wire navigation stays inside the selected
+output. The current solder connection keeps the output color; the other cables
+in that chain remain visible in muted gray for context. The tutorial never
+moves the camera; the operator keeps orbit and unlimited zoom control. A schematic
 controller sits above the sculpture and labels each output pin. DIN, DOUT, and
 cable endpoints are behind each PCB in the profile's back-view convention.
 Cable curves move inward from those endpoints, toward the sculpture interior.

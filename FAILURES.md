@@ -1268,3 +1268,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The focused wiring test requires an 82 mm control radius for
   two 100 mm endpoint radii and an 18 mm inward offset.
 - **Status:** Resolved.
+
+### F-069 — Hiding inactive cables removed assembly context
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 connection-by-connection soldering workflow.
+- **Symptom:** A cable step hid every other cable, and one Previous/Next pair
+  also crossed output boundaries. The operator could not see the remaining
+  route or use the existing Output rows as the chain authority.
+- **Cause:** Tutorial navigation combined chain and cable state, and cable
+  focus was implemented as visibility instead of emphasis.
+- **Correction:** Use the existing Output rows plus independent chain controls
+  to isolate one output. Keep all its cables visible, render noncurrent cables
+  in muted gray, and limit wire controls to that output.
+- **Prevention:** Assembly focus must preserve route context. Chain selection
+  and solder-connection selection are independent UI states.
+- **Evidence:** Focused unit navigation tests and the Chromium tutorial journey
+  verify output-row synchronization, bounded wire steps, active cable identity,
+  muted cable count, and visibility restoration on exit.
+- **Status:** Resolved.

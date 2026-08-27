@@ -612,8 +612,8 @@ export class SphereRenderer {
     this.container.dataset.autoRotate = "false";
     this.applyTutorialPanelMask();
     this.applyTutorialOutputVisibility();
-    this.applyTutorialConnectionVisibility(connectionIndex);
     this.applySelectionFocus();
+    this.applyTutorialConnectionVisibility(connectionIndex);
   }
 
   dispose(): void {
@@ -1115,6 +1115,7 @@ export class SphereRenderer {
     ): void => {
       const connectionGroup = new THREE.Group();
       connectionGroup.userData.tutorialConnectionIndex = connectionIndex;
+      connectionGroup.userData.tutorialBaseColor = color;
       const control = createInwardCableControlPoint(
         { x: start.x, y: start.y, z: start.z },
         { x: end.x, y: end.y, z: end.z },
@@ -1125,15 +1126,25 @@ export class SphereRenderer {
         this.toThree(control),
         end,
       );
+      const tubeMaterial = new THREE.MeshBasicMaterial({
+        color,
+        toneMapped: false,
+      });
+      tubeMaterial.userData.tutorialCableMaterial = true;
       const tube = new THREE.Mesh(
         new THREE.TubeGeometry(curve, 12, 0.72, 7, false),
-        new THREE.MeshBasicMaterial({ color, toneMapped: false }),
+        tubeMaterial,
       );
       tube.renderOrder = 2;
       connectionGroup.add(tube);
+      const arrowMaterial = new THREE.MeshBasicMaterial({
+        color,
+        toneMapped: false,
+      });
+      arrowMaterial.userData.tutorialCableMaterial = true;
       const arrowHead = new THREE.Mesh(
         new THREE.ConeGeometry(1.8, 4.5, 8),
-        new THREE.MeshBasicMaterial({ color, toneMapped: false }),
+        arrowMaterial,
       );
       arrowHead.position.copy(curve.getPoint(0.78));
       arrowHead.quaternion.setFromUnitVectors(
@@ -1310,18 +1321,92 @@ export class SphereRenderer {
     connectionIndex: number | null,
   ): void {
     let visibleConnections = 0;
-    for (const group of this.wiringOutputLayers.values()) {
+    let mutedConnections = 0;
+    let restoredConnections = 0;
+    let activeMaterialState: string | null = null;
+    let mutedMaterialState: string | null = null;
+    for (const [outputIndex, group] of this.wiringOutputLayers) {
       for (const child of group.children) {
         const index = child.userData.tutorialConnectionIndex as number | undefined;
         if (index === undefined) continue;
-        child.visible = connectionIndex === null || index === connectionIndex;
+        const baseColor = child.userData.tutorialBaseColor as number | undefined;
+        const active = connectionIndex === null || index === connectionIndex;
+        child.visible = true;
+        child.traverse((object) => {
+          if (!(object instanceof THREE.Mesh)) return;
+          const materials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+          for (const material of materials) {
+            if (!(material instanceof THREE.MeshBasicMaterial)) continue;
+            material.color.setHex(
+              active ? baseColor ?? 0xffffff : 0x56606c,
+            );
+            material.transparent = !active;
+            material.opacity = active ? 1 : 0.28;
+            material.depthWrite = active;
+            material.needsUpdate = true;
+          }
+        });
+        const materials: THREE.MeshBasicMaterial[] = [];
+        child.traverse((object) => {
+          if (!(object instanceof THREE.Mesh)) return;
+          const objectMaterials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+          for (const material of objectMaterials) {
+            if (material instanceof THREE.MeshBasicMaterial) {
+              materials.push(material);
+            }
+          }
+        });
+        const materialState = materials[0]
+          ? [
+            materials[0].color.getHexString(),
+            materials[0].opacity,
+            materials[0].transparent,
+            materials[0].depthWrite,
+          ].join(",")
+          : "missing";
+        if (this.tutorialPanelIds && outputIndex === this.tutorialOutputIndex) {
+          if (active) activeMaterialState ??= materialState;
+          else mutedMaterialState ??= materialState;
+        } else if (
+          !this.tutorialPanelIds &&
+          materials.length > 0 &&
+          materials.every((material) =>
+            material.color.getHex() === (baseColor ?? 0xffffff) &&
+            material.opacity === 1 &&
+            !material.transparent &&
+            material.depthWrite
+          )
+        ) {
+          restoredConnections += 1;
+        }
         if (group.visible && child.visible) visibleConnections += 1;
+        if (
+          this.tutorialPanelIds &&
+          outputIndex === this.tutorialOutputIndex &&
+          !active
+        ) mutedConnections += 1;
       }
     }
     if (this.tutorialPanelIds) {
       this.container.dataset.tutorialVisibleConnections = String(visibleConnections);
+      this.container.dataset.tutorialActiveConnection = String(connectionIndex ?? 0);
+      this.container.dataset.tutorialMutedConnections = String(mutedConnections);
+      this.container.dataset.tutorialActiveMaterial = activeMaterialState ?? "missing";
+      this.container.dataset.tutorialMutedMaterial = mutedMaterialState ?? "missing";
+      delete this.container.dataset.wiringRestoredConnections;
     } else {
       delete this.container.dataset.tutorialVisibleConnections;
+      delete this.container.dataset.tutorialActiveConnection;
+      delete this.container.dataset.tutorialMutedConnections;
+      delete this.container.dataset.tutorialActiveMaterial;
+      delete this.container.dataset.tutorialMutedMaterial;
+      this.container.dataset.wiringRestoredConnections = String(
+        restoredConnections,
+      );
     }
   }
 
@@ -1454,6 +1539,7 @@ export class SphereRenderer {
   }
 
   private applyMaterialSelectionFocus(material: THREE.Material): void {
+    if (this.tutorialPanelIds && material.userData.tutorialCableMaterial) return;
     const colored = material as THREE.Material & { color?: THREE.Color };
     if (!colored.color) return;
     let base = material.userData.selectionFocusBaseColor as

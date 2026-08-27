@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
 test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
@@ -25,7 +26,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
 
   await page.locator("#assembly-tutorial-start").click();
   await expect(page.locator("#assembly-tutorial-step")).toHaveText(
-    "Chain 1 / 1 · 3 panels",
+    "Spatial trail output · wire 1 / 3",
   );
   await expect(page.locator(".panel-label:visible")).toHaveCount(3);
   await expect(page.locator(".wiring-controller-label:visible")).toHaveText(
@@ -38,39 +39,58 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "data-tutorial-visible-connections",
     "3",
   );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-active-connection",
+    "0",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-muted-connections",
+    "2",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-active-material",
+    "36e0d0,1,false,true",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-muted-material",
+    "56606c,0.28,true,false",
+  );
+  await expect(page.locator(".output-layer-toggle")).toBeChecked();
+  await expect(page.locator("#assembly-tutorial-previous-chain")).toBeDisabled();
+  await expect(page.locator("#assembly-tutorial-next-chain")).toBeDisabled();
   await expect(page.locator(".panel-label:visible").first()).toContainText(
     /\d+ \/ 3 · /,
   );
 
-  await page.locator("#assembly-tutorial-next").evaluate((element) => {
-    (element as HTMLButtonElement).click();
-  });
   await expect(page.locator("#assembly-tutorial-instruction")).toHaveText(
     "Controller output 1 (GPIO unassigned) → P-02 DIN (top-right, back view)",
   );
-  await expect(page.locator(".assembly-cable-label")).toHaveText(
-    "Controller output 1 (GPIO unassigned) → P-02 DIN (top-right, back view)",
-  );
-  await expect(page.locator("#viewer")).toHaveAttribute(
-    "data-tutorial-visible-connections",
-    "1",
-  );
-  await page.locator("#assembly-tutorial-previous").evaluate((element) => {
+  await page.locator("#assembly-tutorial-next-wire").evaluate((element) => {
     (element as HTMLButtonElement).click();
   });
-  await expect(page.locator("#assembly-tutorial-step")).toHaveText(
-    "Chain 1 / 1 · 3 panels",
+  await expect(page.locator("#assembly-tutorial-instruction")).toHaveText(
+    /P-02 DOUT.*→.*DIN/,
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-tutorial-visible-connections",
     "3",
   );
-
-  await page.locator("#assembly-tutorial-next").evaluate((element) => {
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-active-connection",
+    "1",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-muted-connections",
+    "2",
+  );
+  await page.locator("#assembly-tutorial-previous-wire").evaluate((element) => {
     (element as HTMLButtonElement).click();
   });
+  await expect(page.locator("#assembly-tutorial-step")).toHaveText(
+    "Spatial trail output · wire 1 / 3",
+  );
 
-  await page.locator("#assembly-tutorial-next").evaluate((element) => {
+  await page.locator("#assembly-tutorial-next-wire").evaluate((element) => {
     (element as HTMLButtonElement).click();
   });
   await expect(page.locator("#assembly-tutorial-instruction")).toContainText(
@@ -101,8 +121,81 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "data-auto-rotate",
     "false",
   );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-wiring-restored-connections",
+    "3",
+  );
+
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
+});
+
+test("uses the existing output rows as the isolated chain selector", async ({ page }) => {
+  await page.goto(
+    "/?sculptureJson=.%2Fsculptures%2Fstructural-three-panel-trail%2Fsculpture.json",
+  );
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "No authoring surface is referenced",
+  );
+  const project = JSON.parse(await readFile(
+    "sculptures/structural-three-panel-trail/sculpture.json",
+    "utf8",
+  )) as {
+    wiring: {
+      chainLengths: number[];
+      outputs: Array<{
+        outputIndex: number;
+        label: string;
+        gpio: number | null;
+        color: string;
+      }>;
+    };
+  };
+  project.wiring.chainLengths = [0, 1, 0, 1, 1, 0];
+  project.wiring.outputs = [
+    { outputIndex: 0, label: "Empty first", gpio: null, color: "#36e0d0" },
+    { outputIndex: 1, label: "Output 2", gpio: null, color: "#ff9d5c" },
+    { outputIndex: 2, label: "Empty middle", gpio: null, color: "#a78bfa" },
+    { outputIndex: 3, label: "Output 4", gpio: null, color: "#f472b6" },
+    { outputIndex: 4, label: "Output 5", gpio: null, color: "#facc15" },
+    { outputIndex: 5, label: "Empty last", gpio: null, color: "#60a5fa" },
+  ];
+  await page.locator("#project-file").setInputFiles({
+    name: "multi-output-tutorial.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(project)),
+  });
+  const outputToggles = page.locator(".output-layer-toggle");
+  await expect(outputToggles).toHaveCount(6);
+  await outputToggles.nth(1).uncheck();
+  await outputToggles.nth(3).uncheck();
+  await outputToggles.nth(5).uncheck();
+  await page.locator("#assembly-tutorial-start").click();
+  await expect(page.locator(".output-layer-toggle:checked")).toHaveCount(1);
+  await expect(outputToggles.nth(1)).toBeChecked();
+  await page.locator("#assembly-tutorial-next-chain").click();
+  await expect(outputToggles.nth(1)).not.toBeChecked();
+  await expect(outputToggles.nth(3)).toBeChecked();
+  await expect(page.locator(".panel-label:visible")).toHaveCount(1);
+  await outputToggles.nth(4).click();
+  await expect(outputToggles.nth(3)).not.toBeChecked();
+  await expect(outputToggles.nth(4)).toBeChecked();
+  await expect(page.locator("#assembly-tutorial-step")).toContainText(
+    "Output 5",
+  );
+  for (const emptyOutputIndex of [0, 2, 5]) {
+    await outputToggles.nth(emptyOutputIndex).click();
+    await expect(outputToggles.nth(emptyOutputIndex)).not.toBeChecked();
+    await expect(outputToggles.nth(4)).toBeChecked();
+  }
+  await expect(page.locator(".output-layer-toggle:checked")).toHaveCount(1);
+  await page.locator("#assembly-tutorial-exit").click();
+  await expect(outputToggles.nth(0)).toBeChecked();
+  await expect(outputToggles.nth(1)).not.toBeChecked();
+  await expect(outputToggles.nth(2)).toBeChecked();
+  await expect(outputToggles.nth(3)).not.toBeChecked();
+  await expect(outputToggles.nth(4)).toBeChecked();
+  await expect(outputToggles.nth(5)).not.toBeChecked();
 });
 
 test("restores a surface-backed viewport after the tutorial", async ({ page }) => {

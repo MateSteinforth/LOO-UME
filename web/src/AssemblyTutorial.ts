@@ -46,42 +46,52 @@ export interface AssemblyTutorialStepState {
   connectionIndex: number | null;
 }
 
-export function nextAssemblyTutorialStep(
+export function nextAssemblyTutorialWire(
   model: AssemblyTutorialModel,
   state: AssemblyTutorialStepState,
 ): AssemblyTutorialStepState {
   const chain = model.chains[state.chainIndex];
   if (!chain) return state;
-  if (state.connectionIndex === null) {
-    return { ...state, connectionIndex: 0 };
-  }
-  if (state.connectionIndex < chain.connections.length - 1) {
-    return { ...state, connectionIndex: state.connectionIndex + 1 };
-  }
-  if (state.chainIndex < model.chains.length - 1) {
-    return { chainIndex: state.chainIndex + 1, connectionIndex: null };
-  }
-  return state;
+  const connectionIndex = state.connectionIndex ?? 0;
+  return {
+    ...state,
+    connectionIndex: Math.min(
+      connectionIndex + 1,
+      chain.connections.length - 1,
+    ),
+  };
 }
 
-export function previousAssemblyTutorialStep(
+export function previousAssemblyTutorialWire(
   model: AssemblyTutorialModel,
   state: AssemblyTutorialStepState,
 ): AssemblyTutorialStepState {
-  if (state.connectionIndex !== null) {
-    return {
-      ...state,
-      connectionIndex: state.connectionIndex === 0
-        ? null
-        : state.connectionIndex - 1,
-    };
-  }
-  if (state.chainIndex === 0) return state;
-  const chainIndex = state.chainIndex - 1;
-  const previous = model.chains[chainIndex];
+  const chain = model.chains[state.chainIndex];
+  if (!chain) return state;
   return {
-    chainIndex,
-    connectionIndex: previous ? previous.connections.length - 1 : null,
+    ...state,
+    connectionIndex: Math.max(0, (state.connectionIndex ?? 0) - 1),
+  };
+}
+
+export function nextAssemblyTutorialChain(
+  model: AssemblyTutorialModel,
+  state: AssemblyTutorialStepState,
+): AssemblyTutorialStepState {
+  if (model.chains.length === 0) return state;
+  return {
+    chainIndex: Math.min(state.chainIndex + 1, model.chains.length - 1),
+    connectionIndex: 0,
+  };
+}
+
+export function previousAssemblyTutorialChain(
+  _model: AssemblyTutorialModel,
+  state: AssemblyTutorialStepState,
+): AssemblyTutorialStepState {
+  return {
+    chainIndex: Math.max(0, state.chainIndex - 1),
+    connectionIndex: 0,
   };
 }
 

@@ -5,8 +5,10 @@ import { createUniformSphereMapping } from "../web/src/LedMapping.ts";
 import {
   createAssemblyTutorialModel,
   maskedPanelPositions,
-  nextAssemblyTutorialStep,
-  previousAssemblyTutorialStep,
+  nextAssemblyTutorialChain,
+  nextAssemblyTutorialWire,
+  previousAssemblyTutorialChain,
+  previousAssemblyTutorialWire,
 } from "../web/src/AssemblyTutorial.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 import type { WiringPreview } from "../web/src/WiringPreview.ts";
@@ -74,19 +76,30 @@ describe("Schema 2 assembly tutorial", () => {
     );
   });
 
-  it("moves across outputs without a chain dropdown", async () => {
+  it("keeps wire and chain navigation independent", async () => {
     const model = await tutorialFor(
       "sculptures/rhombicosidodecahedron/sculpture.json",
     );
-    let state = { chainIndex: 0, connectionIndex: null as number | null };
-    for (let index = 0; index < 12; index += 1) {
-      state = nextAssemblyTutorialStep(model, state);
+    let state = { chainIndex: 0, connectionIndex: 0 as number | null };
+    for (let index = 0; index < 20; index += 1) {
+      state = nextAssemblyTutorialWire(model, state);
     }
-    expect(state).toEqual({ chainIndex: 1, connectionIndex: null });
-    expect(previousAssemblyTutorialStep(model, state)).toEqual({
-      chainIndex: 0,
-      connectionIndex: 10,
+    expect(state).toEqual({ chainIndex: 0, connectionIndex: 10 });
+    expect(nextAssemblyTutorialChain(model, state)).toEqual({
+      chainIndex: 1,
+      connectionIndex: 0,
     });
+    expect(previousAssemblyTutorialChain(model, {
+      chainIndex: 1,
+      connectionIndex: 7,
+    })).toEqual({
+      chainIndex: 0,
+      connectionIndex: 0,
+    });
+    expect(previousAssemblyTutorialWire(model, {
+      chainIndex: 1,
+      connectionIndex: 0,
+    })).toEqual({ chainIndex: 1, connectionIndex: 0 });
   });
 
   it("keeps the stronger warning for every review-required route source", async () => {
@@ -173,7 +186,7 @@ describe("Schema 2 assembly tutorial", () => {
     };
     const model = createAssemblyTutorialModel(preview);
     expect(model.chains.map(({ outputIndex }) => outputIndex)).toEqual([1]);
-    expect(nextAssemblyTutorialStep(model, {
+    expect(nextAssemblyTutorialWire(model, {
       chainIndex: 0,
       connectionIndex: null,
     })).toEqual({ chainIndex: 0, connectionIndex: 0 });

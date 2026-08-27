@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-26
+Last reconciled: 2026-08-27
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -89,13 +89,15 @@ No tasks.
 
 - Result: the view-only tutorial derives every available output chain from the
   shared Schema 2 wiring preview. It shows a near-top controller, places cable
-  endpoints and inward curves behind the PCBs, isolates each chain in sequence,
-  shows one cable per step, retains referenced printable assets, and leaves the
-  user-controlled camera unchanged. Draft and review-required routes remain
-  marked.
-- Verification: `npm run test:tutorial` (7 unit and 2 Chromium tests), focused
-  wiring tests, `npx tsc -b`, `npm run build:web`, diff check, and independent
-  review passed.
+  endpoints and inward curves behind the PCBs, uses the existing Output rows as
+  the chain selector, and separates chain navigation from wire navigation. The
+  current solder connection is bright while every other selected-chain cable
+  stays visible in muted gray. It retains referenced printable assets and
+  leaves the user-controlled camera unchanged. Draft and review-required routes
+  remain marked.
+- Verification: 7 tutorial unit tests, 4 focused wiring tests, 3 focused
+  Chromium journeys, `npx tsc -b`, `npm run build:web`, diff check, and
+  independent review passed.
 - Owner: `codex/ui-020-chain-tutorial` in `/tmp/led-rhombo-ui-020`.
 
 ## Done
