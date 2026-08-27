@@ -148,8 +148,10 @@ app.innerHTML = `
 
       <aside class="control-panel">
         <section class="control-section">
+          <div class="section-heading">
+            <span>View</span>
+          </div>
           <div id="wiring-layer-controls" class="layer-controls wiring-assembly">
-            <div class="layer-controls__heading">Wiring &amp; assembly</div>
             <div class="wiring-assembly__layers">
             <label class="toggle-field">
               <input id="connector-layer" type="checkbox" checked />
@@ -159,7 +161,6 @@ app.innerHTML = `
               <input id="wiring-layer" type="checkbox" checked />
               <span>Panel-to-panel wiring</span>
             </label>
-            <div id="output-layer-list" class="output-layer-list" aria-label="Controller output visibility"></div>
             </div>
             <div id="assembly-tutorial-section" class="assembly-tutorial">
               <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
@@ -179,6 +180,47 @@ app.innerHTML = `
                   <button id="assembly-tutorial-exit" class="assembly-tutorial__exit" type="button">Show all</button>
                 </div>
               </div>
+            </div>
+            <div class="view-settings">
+              <div class="panel-transform-control">
+                <span>Panel transform</span>
+                <button id="panel-transform-mode" class="panel-transform-toggle" type="button"
+                  data-mode="surface" aria-pressed="false"
+                  aria-label="Panel transform: move along surface" title="Move along surface">
+                  <span class="panel-transform-toggle__option" data-transform-icon="plane" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M3 8.5 12 4l9 4.5-9 4.5-9-4.5Zm0 4.5 9 4.5 9-4.5M3 17.5 12 22l9-4.5" />
+                    </svg>
+                    <small>Plane</small>
+                  </span>
+                  <span class="panel-transform-toggle__option" data-transform-icon="world" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M3 12h18M12 3c3 2.6 4.5 5.6 4.5 9S15 18.4 12 21M12 3C9 5.6 7.5 8.6 7.5 12S9 18.4 12 21" />
+                    </svg>
+                    <small>World</small>
+                  </span>
+                </button>
+              </div>
+              <div class="view-settings__display">
+                <select id="display-mode" aria-label="Display">
+                  <option value="wled">WLED framebuffer</option>
+                  <option value="physical-index">Physical index bands</option>
+                  <option value="logical-index">Logical index bands</option>
+                </select>
+              </div>
+              <label class="toggle-field">
+                <input id="auto-rotate" type="checkbox" checked />
+                <span>Slow auto-rotation</span>
+              </label>
+              <label class="toggle-field">
+                <input id="panel-labels" type="checkbox" checked />
+                <span>Panel IDs</span>
+              </label>
+              <label class="toggle-field view-settings__wide">
+                <input id="printable-layer" type="checkbox" checked />
+                <span>Exact Manifold closures + screw tabs</span>
+              </label>
             </div>
           </div>
         </section>
@@ -238,26 +280,6 @@ app.innerHTML = `
           <details id="advanced-tools" class="compact-menu">
             <summary>Advanced tools</summary>
             <div class="compact-menu__content">
-              <label class="field">
-                <span>Display</span>
-                <select id="display-mode">
-                  <option value="wled">WLED framebuffer</option>
-                  <option value="physical-index">Physical index bands</option>
-                  <option value="logical-index">Logical index bands</option>
-                </select>
-              </label>
-              <label class="toggle-field">
-                <input id="auto-rotate" type="checkbox" checked />
-                <span>Slow auto-rotation</span>
-              </label>
-              <label class="toggle-field">
-                <input id="panel-labels" type="checkbox" checked />
-                <span>Panel IDs</span>
-              </label>
-              <label class="toggle-field">
-                <input id="printable-layer" type="checkbox" checked />
-                <span>Exact Manifold closures + screw tabs</span>
-              </label>
               <label class="field">
                 <span>GLB units to millimetres</span>
                 <input id="surface-scale" type="number" min="0.000001" step="any" value="1000" />
@@ -323,13 +345,6 @@ app.innerHTML = `
           <button id="load-design-surface" class="editor-button" type="button">
             Load watertight GLB
           </button>
-          <label class="field">
-            <span>Panel transform</span>
-            <select id="panel-transform-mode">
-              <option value="surface">Move along surface</option>
-              <option value="free-3d">Free 6DOF</option>
-            </select>
-          </label>
           <div id="automatic-panel-placement-controls">
             <label class="field">
               <span>Target panel count</span>
@@ -430,7 +445,6 @@ const connectorLayerToggle =
   query<HTMLInputElement>("#connector-layer");
 const wiringLayerToggle = query<HTMLInputElement>("#wiring-layer");
 const wiringLayerControls = query<HTMLElement>("#wiring-layer-controls");
-const outputLayerList = query<HTMLElement>("#output-layer-list");
 const assemblyTutorialWarning =
   query<HTMLElement>("#assembly-tutorial-warning");
 const assemblyTutorialInstruction =
@@ -499,7 +513,7 @@ const connectorPairFirstSelect = query<HTMLSelectElement>("#connector-pair-first
 const connectorPairSecondSelect = query<HTMLSelectElement>("#connector-pair-second");
 const includeConnectorPairButton = query<HTMLButtonElement>("#include-connector-pair");
 const connectorPairList = query<HTMLElement>("#connector-pair-list");
-const panelTransformMode = query<HTMLSelectElement>("#panel-transform-mode");
+const panelTransformMode = query<HTMLButtonElement>("#panel-transform-mode");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 const esp32SetupConsole = query<HTMLElement>("#esp32-setup-console");
 const esp32SetupDialog = query<HTMLDialogElement>("#esp32-setup-dialog");
@@ -540,7 +554,6 @@ let pipelineAvailabilityMessage =
   "Checking local Manifold availability. Mapping and wiring remain available.";
 assemblyPackageButton.disabled = true;
 pipelineStatus.textContent = pipelineAvailabilityMessage;
-let outputLayerToggles: HTMLInputElement[] = [];
 
 let renderer: SphereRenderer | undefined;
 let animationFrame = 0;
@@ -957,72 +970,18 @@ async function start(): Promise<void> {
           : "Load a GLB or sculpture JSON shell first.";
     };
 
-    const renderOutputLayerControls = (): void => {
-      const controls = wiringPreview.outputs.map((output) => {
-        const label = document.createElement("label");
-        label.className = "output-layer";
-        label.style.setProperty("--output-color", output.cssColor);
-        const input = document.createElement("input");
-        input.className = "output-layer-toggle";
-        input.dataset.outputIndex = String(output.outputIndex);
-        input.type = "checkbox";
-        input.checked = outputLayerVisibility.get(output.outputIndex) ?? true;
-        input.addEventListener("change", () => {
-          if (assemblyTutorialActive) {
-            selectAssemblyTutorialOutput(output.outputIndex);
-            return;
-          }
-          outputLayerVisibility.set(output.outputIndex, input.checked);
-          renderer?.setOutputVisible(output.outputIndex, input.checked);
-        });
-        const swatch = document.createElement("span");
-        swatch.className = "output-swatch";
-        const name = document.createElement("span");
-        name.textContent = output.label;
-        const count = document.createElement("small");
-        count.textContent = output.panelIds.length + " panels";
-        label.append(input, swatch, name, count);
-        return label;
-      });
-      outputLayerList.replaceChildren(...controls);
-      outputLayerToggles = controls.map(
-        (label) => label.querySelector<HTMLInputElement>("input")!,
-      );
-      if (assemblyTutorialActive) syncAssemblyTutorialOutputControls();
-    };
-
     const selectedAssemblyTutorialChain = (): AssemblyTutorialChain | null => {
       return assemblyTutorialModel.chains[assemblyTutorialChainIndex] ?? null;
     };
 
     const syncAssemblyTutorialOutputControls = (): void => {
       const selectedOutputIndex = selectedAssemblyTutorialChain()?.outputIndex;
-      for (const toggle of outputLayerToggles) {
-        const outputIndex = Number(toggle.dataset.outputIndex);
-        const selected = outputIndex === selectedOutputIndex;
-        toggle.checked = selected;
-        toggle.closest(".output-layer")?.classList.toggle(
-          "output-layer--isolated",
-          selected,
+      for (const output of wiringPreview.outputs) {
+        renderer?.setOutputVisible(
+          output.outputIndex,
+          output.outputIndex === selectedOutputIndex,
         );
-        if (selected) toggle.setAttribute("aria-current", "true");
-        else toggle.removeAttribute("aria-current");
-        renderer?.setOutputVisible(outputIndex, selected);
       }
-    };
-
-    const selectAssemblyTutorialOutput = (outputIndex: number): void => {
-      const chainIndex = assemblyTutorialModel.chains.findIndex(
-        (chain) => chain.outputIndex === outputIndex,
-      );
-      if (chainIndex < 0) {
-        syncAssemblyTutorialOutputControls();
-        return;
-      }
-      assemblyTutorialChainIndex = chainIndex;
-      assemblyTutorialConnectionIndex = 0;
-      syncAssemblyTutorialOutputControls();
-      applyAssemblyTutorialView();
     };
 
     const applyAssemblyTutorialView = (): void => {
@@ -1057,16 +1016,12 @@ async function start(): Promise<void> {
       assemblyTutorialConnectionIndex = null;
       renderer?.setAssemblyTutorial(null);
       if (assemblyTutorialOutputVisibility) {
-        for (const toggle of outputLayerToggles) {
-          const outputIndex = Number(toggle.dataset.outputIndex);
-          const visible = assemblyTutorialOutputVisibility.get(outputIndex) ?? true;
-          toggle.checked = visible;
-          outputLayerVisibility.set(outputIndex, visible);
-          toggle.removeAttribute("aria-current");
-          toggle.closest(".output-layer")?.classList.remove(
-            "output-layer--isolated",
-          );
-          renderer?.setOutputVisible(outputIndex, visible);
+        for (const output of wiringPreview.outputs) {
+          const visible = assemblyTutorialOutputVisibility.get(
+            output.outputIndex,
+          ) ?? true;
+          outputLayerVisibility.set(output.outputIndex, visible);
+          renderer?.setOutputVisible(output.outputIndex, visible);
         }
       }
       assemblyTutorialOutputVisibility = null;
@@ -1336,9 +1291,6 @@ async function start(): Promise<void> {
         "layer-controls--disabled",
         !isPanelized,
       );
-      for (const toggle of outputLayerToggles) {
-        toggle.disabled = !isPanelized;
-      }
       renderer?.setPanelLabelsVisible(isPanelized && panelLabelsToggle.checked);
       renderer?.setPrintableLayerVisible(
         hasPrintableClosures && printableLayerToggle.checked,
@@ -1514,7 +1466,6 @@ async function start(): Promise<void> {
       );
       renderer?.setMapping(mapping);
       renderer?.setWiringPreview(wiringPreview);
-      renderOutputLayerControls();
       renderAssemblyTutorialControls();
       renderRouteEditor();
       resetTimeline();
@@ -1762,16 +1713,38 @@ async function start(): Promise<void> {
       }
     };
 
+    const currentPanelTransformMode = (): "surface" | "free-3d" =>
+      panelTransformMode.dataset.mode === "free-3d" ? "free-3d" : "surface";
+    const synchronizePanelTransformToggle = (): void => {
+      const mode = currentPanelTransformMode();
+      const free3d = mode === "free-3d";
+      panelTransformMode.setAttribute("aria-pressed", String(free3d));
+      panelTransformMode.setAttribute(
+        "aria-label",
+        free3d
+          ? "Panel transform: free 6DOF world mode"
+          : "Panel transform: move along surface",
+      );
+      panelTransformMode.title = free3d
+        ? "Free 6DOF world transform"
+        : "Move along surface";
+    };
     const applyPanelTransformMode = (): void => {
-      const mode = panelTransformMode.value === "free-3d"
-        ? "free-3d"
-        : "surface";
+      const mode = currentPanelTransformMode();
+      const free3d = mode === "free-3d";
+      synchronizePanelTransformToggle();
       renderer?.setPanelTransformMode(mode);
-      setLogMessage(mode === "free-3d"
+      setLogMessage(free3d
         ? "Free 6DOF panel transforms are active. A completed move detaches that panel from its placement surface."
         : "Surface move mode is active. Panels stay on the active surface, or move in their saved local plane when no surface is loaded.");
     };
-    panelTransformMode.addEventListener("change", applyPanelTransformMode);
+    panelTransformMode.addEventListener("click", () => {
+      panelTransformMode.dataset.mode = currentPanelTransformMode() === "surface"
+        ? "free-3d"
+        : "surface";
+      applyPanelTransformMode();
+    });
+    synchronizePanelTransformToggle();
     renderer?.setPanelTransformMode("surface");
 
     renderer?.setSurfaceEditorCallbacks({
@@ -1787,7 +1760,7 @@ async function start(): Promise<void> {
           editorDefinition, activePlacementSurface !== undefined, pipelineAvailable,
         );
         if (panelId) {
-          const free3d = panelTransformMode.value === "free-3d";
+          const free3d = currentPanelTransformMode() === "free-3d";
           const actions = [
             capabilities.canTranslateOnActiveSurface || capabilities.canTranslateInPanelPlane
               ? free3d ? "move on local X/Y/Z" : "move along the surface"
@@ -1963,9 +1936,9 @@ async function start(): Promise<void> {
       }
       assemblyTutorialActive = true;
       assemblyTutorialOutputVisibility = new Map(
-        outputLayerToggles.map((toggle) => [
-          Number(toggle.dataset.outputIndex),
-          toggle.checked,
+        wiringPreview.outputs.map((output) => [
+          output.outputIndex,
+          outputLayerVisibility.get(output.outputIndex) ?? true,
         ]),
       );
       assemblyTutorialConnectionIndex = 0;
@@ -2129,7 +2102,6 @@ async function start(): Promise<void> {
         editorDefinition,
         wiringPreview,
       );
-      renderOutputLayerControls();
       renderAssemblyTutorialControls();
       renderRouteEditor();
       resetTimeline();
@@ -2671,7 +2643,6 @@ async function start(): Promise<void> {
     ledCountInput.value = String(mapping.entries.length);
     renderEditorFaces();
     renderConnectorControls();
-    renderOutputLayerControls();
     renderAssemblyTutorialControls();
     renderRouteEditor();
     updateMappingStatus();

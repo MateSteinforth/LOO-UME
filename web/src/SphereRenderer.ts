@@ -1242,20 +1242,6 @@ export class SphereRenderer {
         matrix.makeTranslation(dout.x, dout.y, dout.z);
         doutMarkers.setMatrixAt(index, matrix);
 
-        const panelDirection = dout.clone().sub(din);
-        const panelLength = panelDirection.length();
-        if (panelLength > 0) {
-          const arrow = new THREE.ArrowHelper(
-            panelDirection.normalize(),
-            din,
-            panelLength,
-            output.color,
-            3.2,
-            2.2,
-          );
-          arrow.renderOrder = 3;
-          connectorGroup.add(arrow);
-        }
       }
       dinMarkers.instanceMatrix.needsUpdate = true;
       doutMarkers.instanceMatrix.needsUpdate = true;

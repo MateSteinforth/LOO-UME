@@ -156,7 +156,7 @@ export function createAssemblyTutorialModel(
       const panels = nodes.map((node, chainPosition) => ({
         id: node.panelId,
         chainPosition,
-        label: `${chainPosition + 1} / ${nodes.length} · ${node.panelId}`,
+        label: node.panelId,
       }));
       const connections = nodes.map((node, index) => {
         const previous = nodes[index - 1] ?? null;

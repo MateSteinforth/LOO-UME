@@ -112,18 +112,19 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator("#add-panel-controls")).toBeHidden();
 
   await page.locator("#advanced-tools > summary").click();
-  await expect(page.locator("#advanced-tools #display-mode")).toBeVisible();
-  await expect(page.locator("#advanced-tools #auto-rotate")).toBeVisible();
-  await expect(page.locator("#advanced-tools #panel-labels")).toBeVisible();
-  await expect(page.locator("#advanced-tools #printable-layer")).toBeVisible();
+  await expect(page.locator("#wiring-layer-controls #display-mode")).toBeVisible();
+  await expect(page.locator("#wiring-layer-controls #auto-rotate")).toBeVisible();
+  await expect(page.locator("#wiring-layer-controls #panel-labels")).toBeVisible();
+  await expect(page.locator("#wiring-layer-controls #printable-layer")).toBeVisible();
   await expect(page.locator("#advanced-tools #surface-scale")).toBeVisible();
   await expect(page.locator("#advanced-tools #structural-connector-settings")).toBeVisible();
-  await expect(page.locator("#panel-transform-mode")).toHaveValue("surface");
-  await page.locator("#panel-transform-mode").selectOption("free-3d");
+  await expect(page.locator("#panel-transform-mode")).toHaveAttribute("data-mode", "surface");
+  await page.locator("#panel-transform-mode").click();
   await expect(page.locator("#pipeline-status")).toContainText(
     "Free 6DOF panel transforms are active",
   );
-  await page.locator("#panel-transform-mode").selectOption("surface");
+  await expect(page.locator("#panel-transform-mode")).toHaveAttribute("data-mode", "free-3d");
+  await page.locator("#panel-transform-mode").click();
   await expect(page.locator("#pipeline-status")).toContainText(
     "Surface move mode is active",
   );
@@ -171,7 +172,7 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
     .toHaveCount(0);
   await expect(page.locator("#connector-layer")).toBeEnabled();
   await expect(page.locator("#wiring-layer")).toBeEnabled();
-  await expect(page.locator(".output-layer-toggle").first()).toBeEnabled();
+  await expect(page.locator(".output-layer-toggle")).toHaveCount(0);
   await page.locator("#wiring-layer").uncheck();
   await page.locator("#wiring-layer").check();
   await expect(page.locator("#play-toggle, #restart")).toHaveCount(0);

@@ -113,14 +113,16 @@ No tasks.
 
 ## Ready to Merge
 
-### `UI-022` Use the full viewport and stable desktop camera depth
+### `UI-022` Use the full viewport and compact view controls
 
-- Result: removed the title header, filled the screen with the workspace, kept
-  the existing mobile fit, added aspect-safe desktop framing, and replaced the
-  extreme fixed clipping range with bounds-relative depth precision.
+- Result: kept the full-height, aspect-safe viewport; consolidated display,
+  wiring, printable, and transform controls in View; added the Plane/World
+  transform button; removed output-row toggles and the panel-crossing direction
+  line; kept tutorial labels as panel IDs; and compacted automatic placement.
 - Owner: `codex/ui-022-full-viewport` in the root worktree.
-- Verification: camera policy 4/4, focused desktop/mobile Chromium 1/1,
-  TypeScript, Vite production build, diff check, and independent review passed.
+- Verification: focused unit checks 11/11 and TypeScript passed before the final
+  output-row simplification; final diff check and independent review passed.
+  The broad browser suite was not rerun at operator request.
 
 ## Done
 

@@ -44,7 +44,7 @@ describe("Schema 2 assembly tutorial", () => {
     expect(model.chains[0]!.panels[0]).toEqual({
       id: "SQ-03",
       chainPosition: 0,
-      label: "1 / 11 · SQ-03",
+      label: "SQ-03",
     });
     expect(model.chains[0]!.connections[0]!.instruction).toBe(
       "Controller GPIO 16 → SQ-03 DIN (top-right, back view)",
