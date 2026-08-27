@@ -6,6 +6,7 @@ import {
   LEDMAP_FINGERPRINT_VERSION,
   LEGACY_LEDMAP_FINGERPRINT_VERSION,
   loadGeneratedHardwareMappingContract,
+  physicalAddressContractKey,
   transformInstalledPanelCoordinate,
   validateLedmapEquivalence,
 } from "../web/src/HardwareMapping.ts";
@@ -50,6 +51,32 @@ function createHardwareMappingContract(
 }
 
 describe("hardware mapping contract", () => {
+  it("separates spatial LED order from the physical route and address contract", () => {
+    const geometry = createFixtureMapping();
+    const wiring = createProvisionalWiringPreview(geometry);
+    const contract = createHardwareMappingContract(geometry, wiring);
+    const poseOnly = structuredClone(contract);
+    for (const entry of poseOnly.mapping.entries) {
+      entry.logicalIndex = poseOnly.mapping.entries.length - 1 - entry.logicalIndex;
+      entry.x += 10;
+    }
+    expect(physicalAddressContractKey(poseOnly)).toBe(
+      physicalAddressContractKey(contract),
+    );
+
+    const changedRoute = structuredClone(contract);
+    changedRoute.outputs[0]!.panelIds.reverse();
+    expect(physicalAddressContractKey(changedRoute)).not.toBe(
+      physicalAddressContractKey(contract),
+    );
+
+    const changedCalibration = structuredClone(contract);
+    changedCalibration.mapping.entries[0]!.physicalIndex += 1;
+    expect(physicalAddressContractKey(changedCalibration)).not.toBe(
+      physicalAddressContractKey(contract),
+    );
+  });
+
   it("versions full-width ledmap fingerprints without breaking legacy reload", () => {
     const low = { map: [1] };
     const high = { map: [65_537] };

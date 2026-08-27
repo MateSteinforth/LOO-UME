@@ -4,6 +4,7 @@ import {
   validateMapping,
 } from "./LedMapping";
 import {
+  physicalAddressContractKey,
   validateLedmapEquivalence,
 } from "./HardwareMapping";
 import {
@@ -579,6 +580,7 @@ async function start(): Promise<void> {
     let standaloneSaveRequest: Promise<void> | undefined;
     let simulatorProjectRevision = 0;
     let simulatorSetupActive = false;
+    let simulatorLedmapUpdateAuthorized = false;
 
     const loadedSimulatorDeployment = (): {
       outputs: Array<{ startIndex: number; pixelCount: number; gpio: number }>;
@@ -646,6 +648,7 @@ async function start(): Promise<void> {
       return {
         sourceFingerprint: hardwareContract.fingerprint,
         sourceRevision: simulatorProjectRevision,
+        allowLedmapUpdate: simulatorLedmapUpdateAuthorized,
         config,
         expectedLedCount: ledCount,
         ledmapBytes: JSON.stringify(hardwareContract.ledmap) + "\n",
@@ -673,6 +676,7 @@ async function start(): Promise<void> {
     const enableSimulatorLink = (deviceUrl: URL, reconnected = false): void => {
       const { outputs, ledCount, panelCount } = loadedSimulatorDeployment();
       simulatorDeviceUrl = deviceUrl;
+      simulatorLedmapUpdateAuthorized = false;
       nextSimulatorFrameAt = 0;
       simulatorLinkFailed = false;
       setLogMessage(
@@ -1275,6 +1279,10 @@ async function start(): Promise<void> {
       preserveEditorDefinition = false,
     ): Promise<void> => {
       simulatorProjectRevision += 1;
+      simulatorLedmapUpdateAuthorized =
+        selectedHardwareContract.fingerprint !== selected.contract.fingerprint &&
+        physicalAddressContractKey(selectedHardwareContract) ===
+          physicalAddressContractKey(selected.contract);
       simulatorDeviceUrl = undefined;
       simulatorLinkFailed = false;
       if (standaloneSaveTimer) {

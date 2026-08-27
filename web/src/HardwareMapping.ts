@@ -52,6 +52,33 @@ export interface HardwareMappingContract {
   wledColorOrder: PanelColorOrderDefinition;
 }
 
+export function physicalAddressContractKey(
+  contract: HardwareMappingContract,
+): string {
+  return JSON.stringify({
+    outputs: contract.outputs.map((output) => ({
+      outputIndex: output.outputIndex,
+      gpio: output.gpio,
+      startIndex: output.startIndex,
+      pixelCount: output.pixelCount,
+      panelIds: output.panelIds,
+    })),
+    panelPixelGrid: contract.mapping.panelPixelGrid,
+    colorOrder: {
+      sequence: contract.wledColorOrder.channelSequence,
+      wledValue: contract.wledColorOrder.wledValue,
+    },
+    pixels: contract.mapping.entries
+      .map((entry) => [
+        entry.panelId,
+        entry.panelPixelX,
+        entry.panelPixelY,
+        entry.physicalIndex,
+      ])
+      .sort((first, second) => JSON.stringify(first).localeCompare(JSON.stringify(second))),
+  });
+}
+
 function panelPixelKey(
   panelId: string,
   panelPixelX: number,

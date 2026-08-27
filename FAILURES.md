@@ -1181,3 +1181,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Live state/preset comparison after the 14:50 and 14:56 failures,
   pinned WLED `json.cpp`/`udp.cpp`, and the forced-live request regression.
 - **Status:** Resolved; physical reopen, mirror, and native fallback passed.
+
+### F-064 — A panel pose edit stopped mirroring on an expected ledmap change
+
+- **Date:** 2026-08-26
+- **Context:** FIRM-014 physical live preview after free 6DOF panel edits.
+- **Symptom:** Each completed pose edit stopped automatic reconnect with
+  `The existing WLED ledmap does not match the loaded simulator.`
+- **Cause:** Logical LED order is spatial, so a pose edit correctly produces a
+  new ledmap. Reconnect treated every valid map difference as controller drift
+  and had no bounded update path.
+- **Correction:** After exact device identity, LED count, and bus-config checks,
+  upload a valid changed ledmap, activate map 0 through the WLED state API, and
+  verify both the active map and exact stored bytes before preset save and DDP.
+- **Prevention:** Separate an expected spatial-map update from physical route,
+  bus, identity, malformed-map, and transport failures. Mutate only after all
+  stable controller contracts pass.
+- **Evidence:** Operator log at 15:07 and the focused reconnect map-update,
+  activation, exact-read-back, and malformed-map regressions.
+- **Status:** Resolved; the operator accepted physical pose-edit mirroring and
+  requested integration on 2026-08-27.
