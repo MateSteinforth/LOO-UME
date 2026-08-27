@@ -232,6 +232,30 @@ input[type="checkbox"] {
   box-shadow: 0 0 0 2px rgba(255, 179, 92, 0.35);
 }
 
+.panel-label--tutorial-active {
+  color: #071016;
+  border-color: #fff4a8;
+  background: #fff4a8;
+  box-shadow:
+    0 0 0 2px rgba(255, 244, 168, 0.35),
+    0 0 18px rgba(255, 244, 168, 0.6);
+}
+
+.assembly-cable-label {
+  display: block;
+  max-width: 260px;
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 244, 168, 0.9);
+  border-radius: 5px;
+  color: #071016;
+  background: rgba(255, 244, 168, 0.96);
+  box-shadow: 0 3px 18px rgba(0, 0, 0, 0.65);
+  font: 750 10px/1.35 "SFMono-Regular", Consolas, monospace;
+  text-align: center;
+  white-space: normal;
+  transform: translateY(-14px);
+}
+
 .control-panel {
   z-index: 3;
   min-height: 0;
@@ -246,6 +270,77 @@ input[type="checkbox"] {
 .control-section {
   padding: 20px;
   border-bottom: 1px solid var(--line);
+}
+
+.assembly-tutorial__warning,
+.assembly-tutorial__instruction {
+  margin: 12px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.assembly-tutorial__warning {
+  color: #8ca0bb;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.assembly-tutorial__warning[data-status="draft"],
+.assembly-tutorial__warning[data-status="requires-review"] {
+  color: #ffc36c;
+}
+
+.assembly-tutorial__warning[data-status="unavailable"] {
+  color: #ff8191;
+}
+
+.assembly-tutorial__instruction {
+  min-height: 45px;
+  color: #c2d0e3;
+}
+
+.assembly-tutorial__start {
+  width: 100%;
+  margin-top: 13px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.assembly-tutorial__controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 13px;
+}
+
+.assembly-tutorial__controls[hidden] {
+  display: none;
+}
+
+.assembly-tutorial__controls output {
+  color: #fff4a8;
+  font: 750 10px/1.4 "SFMono-Regular", Consolas, monospace;
+}
+
+.assembly-tutorial__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.assembly-tutorial__actions button {
+  min-height: 34px;
+  padding: 6px;
+  border: 1px solid rgba(57, 217, 208, 0.25);
+  border-radius: 5px;
+  color: #d9fffb;
+  background: rgba(57, 217, 208, 0.08);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.assembly-tutorial__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
 }
 
 .input-action button,

@@ -27,6 +27,7 @@
     "serve:test:browser": "npm run stage:sculptures && vite --host 127.0.0.1 --port 4174 --strictPort",
     "setup:browser": "PLAYWRIGHT_BROWSERS_PATH=.tools/playwright playwright install chromium",
     "test:browser": "PLAYWRIGHT_BROWSERS_PATH=.tools/playwright playwright test",
+    "test:tutorial": "vitest run --config vitest.config.ts tests/assembly-tutorial.test.ts && PLAYWRIGHT_BROWSERS_PATH=.tools/playwright playwright test tests/browser/assembly-tutorial.spec.ts",
     "test:panel-editing": "vitest run --config vitest.config.ts tests/panel-json-editing.test.ts tests/selection-focus.test.ts",
     "test:placement": "vitest run --config vitest.config.ts tests/automatic-panel-placement.test.ts",
     "test:editor": "vitest run --config vitest.config.ts tests/sculpture-editor.test.ts tests/panel-json-editing.test.ts tests/automatic-panel-placement.test.ts tests/selection-focus.test.ts",

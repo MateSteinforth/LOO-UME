@@ -110,6 +110,21 @@ When a panel-set edit makes a stored route stale, the editor shows the saved
 route evidence separately and starts with the temporary current-panel draft.
 The operator can use it only after Edit suggested route and Save route.
 
+## Interactive data-chain tutorial
+
+The browser assembly tutorial derives its chain selector and every connection
+label from the current Schema 2 wiring preview. It can isolate one output,
+fit the camera to those panels, show the complete data path, and step from the
+controller-to-DIN connection through each DOUT-to-DIN cable. Panel labels show
+their one-based position in the selected chain. The tutorial is view-only: it
+does not change poses, routes, mapping, mechanics, or saved project data.
+
+Authored routes are shown as saved data routes. Draft and review-required
+routes remain inspectable but keep a visible warning that they must be saved or
+reviewed before physical assembly. Missing GPIOs remain explicitly unassigned.
+The tutorial describes data cables only; it does not infer a power-distribution
+route that is absent from Schema 2.
+
 ## Printable assembly-manual export
 
 The **Export individual files** menu can write one

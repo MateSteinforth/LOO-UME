@@ -104,6 +104,10 @@ adapter; it returns the existing project and mapping/wiring contract without
 owning application state. Other focused modules own portable projects,
 assembly-package bytes, renderer state, route editing, mapping, and Manifold
 runtime handling.
+`AssemblyTutorial.ts` is a stateless view model over `WiringPreview`; it adds no
+saved route or tutorial state. `SphereRenderer.ts` applies its temporary panel
+visibility mask, cable label, and camera fit, then restores the prior editor
+view when the tutorial exits.
 Surface mode keeps the established constrained move and local-Z rotation.
 Free 6DOF mode uses local translation and rotation controls, writes one
 right-handed pose, and removes the old surface attachment. Structural downloads

@@ -21,6 +21,10 @@ import type { VerifiedGeneratedMechanics } from "./GeneratedMechanicsAssets.ts";
 import type { VerifiedGeneratedStructure } from "./GeneratedStructuralAssets.ts";
 import { createPrintedPlaMaterial } from "./PrintedPlaMaterial.ts";
 import {
+  maskedPanelPositions,
+  type AssemblyTutorialChain,
+} from "./AssemblyTutorial.ts";
+import {
   SurfacePlacementController,
   type FreePanelTransform,
   type PanelTransformMode,
@@ -34,6 +38,23 @@ interface PanelLabel {
   object: CSS2DObject;
   element: HTMLSpanElement;
   normal: THREE.Vector3;
+}
+
+interface TutorialCameraState {
+  position: THREE.Vector3;
+  target: THREE.Vector3;
+  minDistance: number;
+  maxDistance: number;
+  near: number;
+  far: number;
+  autoRotate: boolean;
+}
+
+interface TutorialLayerState {
+  boundary: boolean;
+  printable: boolean;
+  connector: boolean;
+  wiring: boolean;
 }
 
 function createLedSpriteTexture(): THREE.CanvasTexture {
@@ -66,6 +87,7 @@ export class SphereRenderer {
   private readonly printableLayer = new THREE.Group();
   private readonly connectorLayer = new THREE.Group();
   private readonly wiringLayer = new THREE.Group();
+  private readonly tutorialLayer = new THREE.Group();
   private readonly connectorOutputLayers = new Map<number, THREE.Group>();
   private readonly wiringOutputLayers = new Map<number, THREE.Group>();
   private readonly outputVisibility = new Map<number, boolean>([
@@ -99,12 +121,18 @@ export class SphereRenderer {
   private grid: THREE.GridHelper | undefined;
   private readonly color = new THREE.Color();
   private baseLedColors = new Float32Array();
+  private baseLedPositions = new Float32Array();
   private readonly cameraDirection = new THREE.Vector3();
   private readonly resizeObserver: ResizeObserver;
   private mapping: LedMapping;
   private panelLabelsVisible = true;
   private selectedPanelId: string | null = null;
   private panelThickness = 0.8;
+  private tutorialPanelIds: Set<string> | null = null;
+  private tutorialActivePanelIds = new Set<string>();
+  private tutorialOutputIndex: number | null = null;
+  private tutorialCameraState: TutorialCameraState | null = null;
+  private tutorialLayerState: TutorialLayerState | null = null;
 
   constructor(
     private readonly container: HTMLElement,
@@ -146,6 +174,7 @@ export class SphereRenderer {
       this.printableLayer,
       this.wiringLayer,
       this.connectorLayer,
+      this.tutorialLayer,
       this.points,
     );
     this.layoutGrid(new THREE.Sphere(new THREE.Vector3(0, 0, 0), 80));
@@ -157,6 +186,7 @@ export class SphereRenderer {
   }
 
   setMapping(mapping: LedMapping): void {
+    this.setAssemblyTutorial(null);
     this.mappingRevision += 1;
     this.mapping = mapping;
     this.clearBoundaryPreview();
@@ -164,6 +194,7 @@ export class SphereRenderer {
     const positions = new Float32Array(mapping.entries.length * 3);
     const colors = new Float32Array(mapping.entries.length * 3);
     this.baseLedColors = new Float32Array(mapping.entries.length * 3);
+    this.baseLedPositions = new Float32Array(mapping.entries.length * 3);
     for (let physical = 0; physical < mapping.entries.length; physical += 1) {
       const entry = mapping.entries[physical];
       if (!entry) continue;
@@ -171,6 +202,9 @@ export class SphereRenderer {
       positions[offset] = entry.x;
       positions[offset + 1] = entry.y;
       positions[offset + 2] = entry.z;
+      this.baseLedPositions[offset] = entry.x;
+      this.baseLedPositions[offset + 1] = entry.y;
+      this.baseLedPositions[offset + 2] = entry.z;
       colors[offset] = 0.04;
       colors[offset + 1] = 0.08;
       colors[offset + 2] = 0.12;
@@ -240,7 +274,9 @@ export class SphereRenderer {
       this.baseLedColors[offset + 1] = this.color.g;
       this.baseLedColors[offset + 2] = this.color.b;
       const display = selectionDisplayColor(
-        this.color, entry.panelId, this.selectedPanelId,
+        this.color,
+        entry.panelId,
+        this.tutorialPanelIds ? null : this.selectedPanelId,
       );
       attribute.setXYZ(physical, display.r, display.g, display.b);
     }
@@ -254,9 +290,12 @@ export class SphereRenderer {
       .sub(this.controls.target)
       .normalize();
     for (const label of this.panelLabels) {
+      const panelId = label.element.dataset.panelId ?? "";
       label.object.visible =
-        this.panelLabelsVisible &&
-        label.normal.dot(this.cameraDirection) > 0.08;
+        (this.panelLabelsVisible || this.tutorialPanelIds !== null) &&
+        (!this.tutorialPanelIds || this.tutorialPanelIds.has(panelId)) &&
+        (this.tutorialPanelIds !== null ||
+          label.normal.dot(this.cameraDirection) > 0.08);
     }
     this.renderer.render(this.scene, this.camera);
     this.labelRenderer.render(this.scene, this.camera);
@@ -482,26 +521,107 @@ export class SphereRenderer {
   }
 
   setPrintableLayerVisible(visible: boolean): void {
-    this.printableLayer.visible = visible;
+    if (this.tutorialLayerState) this.tutorialLayerState.printable = visible;
+    this.printableLayer.visible = this.tutorialPanelIds ? false : visible;
   }
 
   setConnectorLayerVisible(visible: boolean): void {
-    this.connectorLayer.visible = visible;
+    if (this.tutorialLayerState) this.tutorialLayerState.connector = visible;
+    this.connectorLayer.visible = this.tutorialPanelIds ? true : visible;
   }
 
   setWiringLayerVisible(visible: boolean): void {
-    this.wiringLayer.visible = visible;
+    if (this.tutorialLayerState) this.tutorialLayerState.wiring = visible;
+    this.wiringLayer.visible = this.tutorialPanelIds ? true : visible;
   }
 
   setOutputVisible(outputIndex: number, visible: boolean): void {
     this.outputVisibility.set(outputIndex, visible);
     const connectorLayer = this.connectorOutputLayers.get(outputIndex);
     const wiringLayer = this.wiringOutputLayers.get(outputIndex);
-    if (connectorLayer) connectorLayer.visible = visible;
-    if (wiringLayer) wiringLayer.visible = visible;
+    const display = this.tutorialOutputIndex === null
+      ? visible
+      : outputIndex === this.tutorialOutputIndex;
+    if (connectorLayer) connectorLayer.visible = display;
+    if (wiringLayer) wiringLayer.visible = display;
+  }
+
+  setAssemblyTutorial(
+    chain: AssemblyTutorialChain | null,
+    connectionIndex: number | null = null,
+  ): void {
+    if (!chain) {
+      this.clearAssemblyTutorial();
+      return;
+    }
+    const entering = this.tutorialPanelIds === null;
+    const changingChain = this.tutorialOutputIndex !== chain.outputIndex;
+    if (entering) {
+      this.tutorialCameraState = {
+        position: this.camera.position.clone(),
+        target: this.controls.target.clone(),
+        minDistance: this.controls.minDistance,
+        maxDistance: this.controls.maxDistance,
+        near: this.camera.near,
+        far: this.camera.far,
+        autoRotate: this.controls.autoRotate,
+      };
+      this.tutorialLayerState = {
+        boundary: this.boundaryPreviewLayer.visible,
+        printable: this.printableLayer.visible,
+        connector: this.connectorLayer.visible,
+        wiring: this.wiringLayer.visible,
+      };
+    }
+    this.tutorialOutputIndex = chain.outputIndex;
+    this.tutorialPanelIds = new Set(chain.panels.map((panel) => panel.id));
+    const connection = connectionIndex === null
+      ? null
+      : chain.connections[connectionIndex] ?? null;
+    this.tutorialActivePanelIds = new Set(
+      connection
+        ? [connection.fromPanelId, connection.toPanelId].filter(
+          (panelId): panelId is string => panelId !== null,
+        )
+        : [],
+    );
+    const tutorialLabels = new Map(
+      chain.panels.map((panel) => [panel.id, panel.label]),
+    );
+    for (const label of this.panelLabels) {
+      const panelId = label.element.dataset.panelId ?? "";
+      label.element.textContent = tutorialLabels.get(panelId) ?? panelId;
+      label.element.classList.toggle(
+        "panel-label--tutorial-active",
+        this.tutorialActivePanelIds.has(panelId),
+      );
+    }
+    this.disposeTutorialLabels();
+    if (connection) {
+      const element = document.createElement("span");
+      element.className = "assembly-cable-label";
+      element.textContent = connection.instruction;
+      const object = new CSS2DObject(element);
+      const end = this.toThree(connection.end);
+      object.position.copy(connection.start
+        ? this.toThree(connection.start).add(end).multiplyScalar(0.5)
+        : end);
+      this.tutorialLayer.add(object);
+    }
+    this.boundaryPreviewLayer.visible = false;
+    this.printableLayer.visible = false;
+    this.connectorLayer.visible = true;
+    this.wiringLayer.visible = true;
+    this.surfacePlacement.setInteractionEnabled(false);
+    this.controls.autoRotate = false;
+    this.applyTutorialPanelMask();
+    this.applyTutorialOutputVisibility();
+    this.applySelectionFocus();
+    if (entering || changingChain) this.fitTutorialChain(chain);
   }
 
   dispose(): void {
+    this.clearAssemblyTutorial();
     this.resizeObserver.disconnect();
     this.controls.dispose();
     this.surfacePlacement.dispose();
@@ -509,6 +629,7 @@ export class SphereRenderer {
     this.clearBoundaryPreview();
     this.disposeGroup(this.printableLayer);
     this.clearWiringPreview();
+    this.disposeTutorialLabels();
     this.geometry.dispose();
     this.ledTexture.dispose();
     this.material.dispose();
@@ -702,6 +823,8 @@ export class SphereRenderer {
     surfaces.userData.selectionFocusBaseColors =
       Float32Array.from(surfaceColors);
     surfaces.userData.selectionFocusPanelIds = surfacePanelIds;
+    surfaces.userData.tutorialBasePositions =
+      Float32Array.from(surfacePositions);
     surfaces.renderOrder = 0;
     this.panelLayer.add(surfaces);
 
@@ -734,6 +857,8 @@ export class SphereRenderer {
     panelSurfaces.userData.selectionFocusBaseColors =
       Float32Array.from(panelSurfaceColors);
     panelSurfaces.userData.selectionFocusPanelIds = panelSurfaceIds;
+    panelSurfaces.userData.tutorialBasePositions =
+      Float32Array.from(panelSurfacePositions);
     panelSurfaces.renderOrder = 0;
     this.panelLayer.add(panelSurfaces);
     this.buildPrintableClosures(printableClosures, surfaceFaces);
@@ -787,6 +912,7 @@ export class SphereRenderer {
     outlines.userData.selectionFocusBaseColors =
       Float32Array.from(colors);
     outlines.userData.selectionFocusPanelIds = outlinePanelIds;
+    outlines.userData.tutorialBasePositions = Float32Array.from(positions);
     outlines.renderOrder = 1;
     this.panelLayer.add(outlines);
   }
@@ -1062,6 +1188,114 @@ export class SphereRenderer {
     this.wiringOutputLayers.clear();
   }
 
+  private applyTutorialPanelMask(): void {
+    const ledPosition = this.geometry.getAttribute("position") as
+      THREE.BufferAttribute | undefined;
+    if (ledPosition && this.baseLedPositions.length === ledPosition.count * 3) {
+      ledPosition.copyArray(maskedPanelPositions(
+        this.baseLedPositions,
+        this.mapping.entries.map((entry) => entry.panelId),
+        this.tutorialPanelIds,
+      ));
+      ledPosition.needsUpdate = true;
+    }
+    this.panelLayer.traverse((object) => {
+      if (!(object instanceof THREE.Mesh) && !(object instanceof THREE.LineSegments)) {
+        return;
+      }
+      const panelIds = object.userData.selectionFocusPanelIds as
+        Array<string | null> | undefined;
+      const basePositions = object.userData.tutorialBasePositions as
+        Float32Array | undefined;
+      if (!panelIds || !basePositions) {
+        if (this.tutorialPanelIds) {
+          object.userData.tutorialBaseVisible ??= object.visible;
+          object.visible = false;
+        } else if (typeof object.userData.tutorialBaseVisible === "boolean") {
+          object.visible = object.userData.tutorialBaseVisible;
+          delete object.userData.tutorialBaseVisible;
+        }
+        return;
+      }
+      const position = object.geometry.getAttribute("position") as
+        THREE.BufferAttribute;
+      position.copyArray(maskedPanelPositions(
+        basePositions,
+        panelIds,
+        this.tutorialPanelIds,
+      ));
+      position.needsUpdate = true;
+    });
+  }
+
+  private applyTutorialOutputVisibility(): void {
+    for (const [outputIndex, group] of this.connectorOutputLayers) {
+      group.visible = this.tutorialOutputIndex === null
+        ? this.outputVisibility.get(outputIndex) ?? true
+        : outputIndex === this.tutorialOutputIndex;
+    }
+    for (const [outputIndex, group] of this.wiringOutputLayers) {
+      group.visible = this.tutorialOutputIndex === null
+        ? this.outputVisibility.get(outputIndex) ?? true
+        : outputIndex === this.tutorialOutputIndex;
+    }
+  }
+
+  private disposeTutorialLabels(): void {
+    for (const child of [...this.tutorialLayer.children]) {
+      if (child instanceof CSS2DObject) child.element.remove();
+      this.tutorialLayer.remove(child);
+    }
+  }
+
+  private clearAssemblyTutorial(): void {
+    if (this.tutorialPanelIds === null) return;
+    this.tutorialPanelIds = null;
+    this.tutorialActivePanelIds.clear();
+    this.tutorialOutputIndex = null;
+    for (const label of this.panelLabels) {
+      label.element.textContent = label.element.dataset.panelId ?? "";
+      label.element.classList.remove("panel-label--tutorial-active");
+    }
+    this.disposeTutorialLabels();
+    this.applyTutorialPanelMask();
+    this.applyTutorialOutputVisibility();
+    this.surfacePlacement.setInteractionEnabled(true);
+    if (this.tutorialLayerState) {
+      this.boundaryPreviewLayer.visible = this.tutorialLayerState.boundary;
+      this.printableLayer.visible = this.tutorialLayerState.printable;
+      this.connectorLayer.visible = this.tutorialLayerState.connector;
+      this.wiringLayer.visible = this.tutorialLayerState.wiring;
+      this.tutorialLayerState = null;
+    }
+    if (this.tutorialCameraState) {
+      this.camera.position.copy(this.tutorialCameraState.position);
+      this.controls.target.copy(this.tutorialCameraState.target);
+      this.controls.minDistance = this.tutorialCameraState.minDistance;
+      this.controls.maxDistance = this.tutorialCameraState.maxDistance;
+      this.camera.near = this.tutorialCameraState.near;
+      this.camera.far = this.tutorialCameraState.far;
+      this.controls.autoRotate = this.tutorialCameraState.autoRotate;
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+      this.tutorialCameraState = null;
+    }
+    this.applySelectionFocus();
+  }
+
+  private fitTutorialChain(chain: AssemblyTutorialChain): void {
+    const selected = new Set(chain.panels.map((panel) => panel.id));
+    const box = new THREE.Box3();
+    for (const panel of this.mapping.panels) {
+      if (!selected.has(panel.id)) continue;
+      for (const corner of this.panelCorners(panel, 0.35)) box.expandByPoint(corner);
+    }
+    if (box.isEmpty()) return;
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
+    this.fitSphere(sphere, false);
+  }
+
   private disposeGroup(group: THREE.Group): void {
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
@@ -1124,7 +1358,9 @@ export class SphereRenderer {
       };
       const entry = this.mapping.entries[physical]!;
       const display = selectionDisplayColor(
-        base, entry.panelId, this.selectedPanelId,
+        base,
+        entry.panelId,
+        this.tutorialPanelIds ? null : this.selectedPanelId,
       );
       attribute.setXYZ(physical, display.r, display.g, display.b);
     }
@@ -1142,7 +1378,9 @@ export class SphereRenderer {
       const offset = index * 3;
       const color = { r: base[offset]!, g: base[offset + 1]!, b: base[offset + 2]! };
       const display = selectionDisplayColor(
-        color, panelIds[index] ?? null, this.selectedPanelId,
+        color,
+        panelIds[index] ?? null,
+        this.tutorialPanelIds ? null : this.selectedPanelId,
       );
       attribute.setXYZ(index, display.r, display.g, display.b);
     }
@@ -1158,7 +1396,7 @@ export class SphereRenderer {
       base = colored.color.clone();
       material.userData.selectionFocusBaseColor = base;
     }
-    if (!this.selectedPanelId) {
+    if (!this.selectedPanelId || this.tutorialPanelIds) {
       colored.color.copy(base);
     } else {
       const grey = focusedGrey(base);
@@ -1169,6 +1407,7 @@ export class SphereRenderer {
   private updatePanelLabelSelection(): void {
     for (const label of this.panelLabels) {
       const isSelected =
+        this.tutorialPanelIds === null &&
         label.element.dataset.panelId === this.selectedPanelId;
       label.element.classList.toggle(
         "panel-label--selected",
@@ -1176,7 +1415,8 @@ export class SphereRenderer {
       );
       label.element.classList.toggle(
         "panel-label--unfocused",
-        this.selectedPanelId !== null && !isSelected,
+        this.tutorialPanelIds === null &&
+          this.selectedPanelId !== null && !isSelected,
       );
       label.element.setAttribute(
         "aria-pressed",
@@ -1247,6 +1487,12 @@ export class SphereRenderer {
 
   private layoutGrid(bounds: THREE.Sphere): void {
     this.disposeGrid();
+    this.container.dataset.gridBounds = [
+      bounds.center.x,
+      bounds.center.y,
+      bounds.center.z,
+      bounds.radius,
+    ].map((value) => value.toFixed(6)).join(",");
     const size = Math.max(200, Math.ceil((bounds.radius * 4) / 50) * 50);
     this.grid = new THREE.GridHelper(size, 20, 0x5aa7b4, 0x1e3a44);
     this.grid.position.set(
@@ -1258,7 +1504,7 @@ export class SphereRenderer {
     this.scene.add(this.grid);
   }
 
-  private fitSphere(bounds: THREE.Sphere): void {
+  private fitSphere(bounds: THREE.Sphere, updateGrid = true): void {
     const radius = Math.max(bounds.radius, 1);
     const centre = bounds.center;
     const currentDirection = this.camera.position
@@ -1277,7 +1523,7 @@ export class SphereRenderer {
     this.camera.near = Math.max(0.1, radius / 500);
     this.camera.far = distance + radius * 6;
     this.camera.updateProjectionMatrix();
-    this.layoutGrid(new THREE.Sphere(centre.clone(), radius));
+    if (updateGrid) this.layoutGrid(new THREE.Sphere(centre.clone(), radius));
     this.controls.update();
   }
 

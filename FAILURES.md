@@ -1218,3 +1218,18 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** GitHub Actions run `33049816046`, local Playwright reproduction,
   and the reconnect-eligibility unit and browser suites.
 - **Status:** Resolved.
+
+### F-066 — Hidden tutorial vertices produced invalid bounds
+
+- **Date:** 2026-08-27
+- **Context:** UI-020 viewport isolation.
+- **Symptom:** Chromium logged `computeBoundingSphere` errors after non-chain
+  vertices were masked with non-rendering coordinates.
+- **Cause:** The renderer recomputed geometry bounds after applying the mask.
+- **Correction:** Keep the valid full-geometry bounds while the temporary mask
+  is active; use the selected panel poses to fit the tutorial camera.
+- **Prevention:** Do not calculate bounds from temporarily masked position
+  buffers. Restore authored positions without changing their saved geometry.
+- **Evidence:** The assembly-tutorial Chromium journey completes with no page or
+  console errors.
+- **Status:** Resolved.

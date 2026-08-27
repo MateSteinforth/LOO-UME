@@ -205,6 +205,7 @@ export class SurfacePlacementController {
   private transformStart: FreePanelTransform | null = null;
   private activeTransformControls: TransformControls | null = null;
   private transformMode: PanelTransformMode = "surface";
+  private interactionEnabled = true;
 
   onSelectionChange?: (panelId: string | null) => void;
   onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
@@ -256,6 +257,12 @@ export class SurfacePlacementController {
   setTransformMode(mode: PanelTransformMode): void {
     if (mode === this.transformMode) return;
     this.transformMode = mode;
+    this.updateGizmo();
+  }
+
+  setInteractionEnabled(enabled: boolean): void {
+    this.interactionEnabled = enabled;
+    this.layer.visible = enabled;
     this.updateGizmo();
   }
 
@@ -347,6 +354,7 @@ export class SurfacePlacementController {
   }
 
   selectPanel(panelId: string | null): void {
+    if (!this.interactionEnabled) return;
     if (panelId !== null &&
       (!this.capabilities.canSelectPanels || !this.panelTargets.has(panelId))) return;
     this.select(panelId);
@@ -425,6 +433,7 @@ export class SurfacePlacementController {
   }
 
   private readonly pointerDown = (event: PointerEvent): void => {
+    if (!this.interactionEnabled) return;
     if (event.button !== 0) return;
     if (this.translateControls.axis !== null || this.rotateControls.axis !== null ||
       this.translateControls.dragging || this.rotateControls.dragging) return;
@@ -846,6 +855,16 @@ export class SurfacePlacementController {
 
   private updateGizmo(): void {
     this.disposeGizmo();
+    if (!this.interactionEnabled) {
+      this.gizmo.visible = false;
+      this.translateControls.detach();
+      this.rotateControls.detach();
+      this.translateControls.enabled = false;
+      this.rotateControls.enabled = false;
+      this.translateHelper.visible = false;
+      this.rotateHelper.visible = false;
+      return;
+    }
     const target = this.selectedPanelId
       ? this.panelTargets.get(this.selectedPanelId)
       : undefined;
