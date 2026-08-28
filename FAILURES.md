@@ -1448,3 +1448,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Exact three-panel optimizer comparison, connector-coordinate
   regression, Schema 2 reload, and mapping tests.
 - **Status:** Resolved by WIRE-016.
+
+### F-079 — A one-off width broke workflow action alignment
+
+- **Date:** 2026-08-28
+- **Context:** Adding the automatic wiring action to the numbered workflow.
+- **Symptom:** **Optimize wiring** was first perceived as inconsistent, then a
+  one-off 220 px override made it visibly shorter than **Fabrication settings**
+  and the four fabrication actions.
+- **Cause:** The correction ignored the established workflow layout contract:
+  direct actions use a 42 px left inset and fill the remaining content width.
+- **Correction:** Remove the button-specific width. Keep
+  `.workflow-step__primary { width: calc(100% - 42px); }`, which aligns the
+  action with the full-width controls in later workflow sections.
+- **Prevention:** Do not calibrate one workflow button by eye. Compare its
+  computed width with the existing Fabrication settings and fabrication action
+  controls, then reuse the shared workflow class.
+- **Evidence:** The Optimize wiring button now uses only the shared workflow
+  width rule; no button-specific width remains.
+- **Status:** Resolved.
