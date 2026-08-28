@@ -274,3 +274,16 @@ complete realtime spatial-to-wire mapping because its documented SVG contract
 has no per-instance matrix-assignation field. WLED realtime ledmap processing
 stays disabled for direct Art-Net, while native WLED effects can continue to use
 the installed ledmap. `LIVE-010` must prove the path on Ethernet hardware.
+
+## D33 — Preview MadMapper through a bounded loopback Art-Net receiver
+
+LOO/UME can show the physical MadMapper patch on its pose-derived 3D sculpture
+without an ESP32. The desktop service receives ArtDMX only on
+`127.0.0.1:6454`, assembles complete consecutive-universe frames, and streams
+them to its same-origin browser through framed binary HTTP. This avoids a new
+WebSocket dependency and avoids exposing a UDP listener to the LAN.
+
+The browser converts physical Art-Net indices to the current logical renderer
+indices with the same mapping contract used by the SVG export. Preview is
+temporary display state: project changes stop it, signal timeout restores the
+native simulation, and no received frame changes authored project data.

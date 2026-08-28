@@ -24,6 +24,7 @@
     "web/src/HardwareMapping.ts",
     "web/src/MadMapperExport.ts",
     "web/src/MadMapperPackage.ts",
+    "web/src/ArtNetPreview.ts",
     "web/src/PanelLabelSheet.ts",
     "web/src/PanelCarrierGeometry.ts",
     "web/src/WiringAssemblyManual.ts",

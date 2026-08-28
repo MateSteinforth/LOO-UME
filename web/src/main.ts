@@ -91,6 +91,10 @@ import {
 } from "./AssemblyPackage.ts";
 import { createMadMapperPackageZip } from "./MadMapperPackage.ts";
 import { createFabricationPackageZip } from "./FabricationPackage.ts";
+import {
+  ArtNetPreviewClient,
+  physicalRgbToLogicalPixels,
+} from "./ArtNetPreview.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
 import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
 import {
@@ -304,6 +308,8 @@ app.innerHTML = `
           <p id="wiring-optimization-summary" class="mapping-note"></p>
           <button id="optimize-wiring" class="editor-button" type="button">Optimize wiring</button>
           <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
+          <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper preview</button>
+          <output id="madmapper-preview-status" class="mapping-note" aria-live="polite">Stopped</output>
           <details id="route-editor-section" class="compact-menu route-editor-section" hidden>
             <summary>Advanced route editor</summary>
             <div class="compact-menu__content">
@@ -616,6 +622,8 @@ const downloadMadMapperPackageButton =
   query<HTMLButtonElement>("#download-madmapper-package");
 const downloadPanelLabelsButton =
   query<HTMLButtonElement>("#download-panel-labels");
+const madMapperPreviewButton = query<HTMLButtonElement>("#madmapper-preview");
+const madMapperPreviewStatus = query<HTMLOutputElement>("#madmapper-preview-status");
 const runEsp32SetupButton = query<HTMLButtonElement>("#run-esp32-setup");
 const closeEsp32SetupButton = query<HTMLButtonElement>("#close-esp32-setup");
 const esp32WifiSsidInput = query<HTMLInputElement>("#esp32-wifi-ssid");
@@ -748,6 +756,76 @@ async function start(): Promise<void> {
     let simulatorSetupActive = false;
     let simulatorLedmapUpdateAuthorized = false;
     let simulatorReconnectEnabled = false;
+    const artNetPreviewClient = new ArtNetPreviewClient();
+    let artNetPreviewPixels: Uint32Array | undefined;
+    let artNetPreviewLastFrameAt = 0;
+    let artNetPreviewTimedOut = false;
+    let artNetPreviewRevision = 0;
+    let artNetPreviewFrameTimes: number[] = [];
+
+    const stopMadMapperPreview = (message?: string): void => {
+      artNetPreviewRevision += 1;
+      artNetPreviewClient.stop();
+      artNetPreviewPixels = undefined;
+      artNetPreviewLastFrameAt = 0;
+      artNetPreviewFrameTimes = [];
+      artNetPreviewTimedOut = false;
+      madMapperPreviewButton.textContent = "Start MadMapper preview";
+      madMapperPreviewStatus.textContent = "Stopped";
+      if (message) setLogMessage(message);
+    };
+
+    const startMadMapperPreview = (): void => {
+      if (artNetPreviewClient.active) {
+        stopMadMapperPreview("MadMapper preview stopped. Native simulation resumed.");
+        return;
+      }
+      if (!hardwareContract.readiness.mappingReady) {
+        throw new Error("Confirm the authored route and panel addressing before preview.");
+      }
+      const revision = ++artNetPreviewRevision;
+      const expectedFingerprint = hardwareContract.fingerprint;
+      artNetPreviewPixels = undefined;
+      artNetPreviewFrameTimes = [];
+      artNetPreviewTimedOut = false;
+      madMapperPreviewButton.textContent = "Stop MadMapper preview";
+      madMapperPreviewStatus.textContent = "Waiting for Art-Net on 127.0.0.1:6454";
+      const endUniverse = Math.ceil(hardwareContract.mapping.entries.length / 170);
+      setLogMessage(
+        `MadMapper preview is listening on 127.0.0.1:6454, universes 1 through ${endUniverse}.`,
+      );
+      void artNetPreviewClient.start({
+        pixelCount: hardwareContract.mapping.entries.length,
+        startUniverse: 1,
+        mappingFingerprint: expectedFingerprint,
+        onFrame: (frame) => {
+          if (
+            revision !== artNetPreviewRevision ||
+            hardwareContract.fingerprint !== expectedFingerprint
+          ) return;
+          artNetPreviewPixels = physicalRgbToLogicalPixels(
+            frame.physicalRgb,
+            hardwareContract.mapping.entries,
+          );
+          artNetPreviewLastFrameAt = performance.now();
+          artNetPreviewTimedOut = false;
+          artNetPreviewFrameTimes.push(artNetPreviewLastFrameAt);
+          artNetPreviewFrameTimes = artNetPreviewFrameTimes.filter(
+            (time) => artNetPreviewLastFrameAt - time < 1_000,
+          );
+          madMapperPreviewStatus.textContent =
+            `${artNetPreviewFrameTimes.length} FPS · ${frame.universeCount} universes · ` +
+            `${frame.incompleteFrames} incomplete · ${frame.rejectedPackets} rejected`;
+        },
+      }).catch((error) => {
+        if (revision !== artNetPreviewRevision) return;
+        stopMadMapperPreview();
+        setLogMessage(
+          `MadMapper preview failed: ${error instanceof Error ? error.message : String(error)}`,
+          true,
+        );
+      });
+    };
 
     const reconnectStorage = (): Storage | undefined => {
       try {
@@ -1073,6 +1151,10 @@ async function start(): Promise<void> {
       downloadPanelLabelsButton.title = editorDefinition.panels.length === 0
         ? "Place at least one panel before downloading fabrication files."
         : "Download the HERMA 4385 label PDF and any verified displayed connectors.";
+      madMapperPreviewButton.disabled = !hardwareContract.readiness.mappingReady;
+      madMapperPreviewButton.title = hardwareContract.readiness.mappingReady
+        ? "Receive the generated physical Art-Net patch on loopback and show it on the 3D sculpture."
+        : "Confirm the authored route and panel addressing before MadMapper preview.";
       generateStructureButton.disabled =
         !capabilities.canGenerateStructuralMechanics;
       generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
@@ -1557,6 +1639,9 @@ async function start(): Promise<void> {
       selected: LoadedSculpture,
       preserveEditorDefinition = false,
     ): Promise<void> => {
+      if (artNetPreviewClient.active) {
+        stopMadMapperPreview("MadMapper preview stopped because the project changed.");
+      }
       exitAssemblyTutorial(false);
       simulatorProjectRevision += 1;
       simulatorLedmapUpdateAuthorized =
@@ -3145,6 +3230,14 @@ async function start(): Promise<void> {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setLogMessage(message, true);
+        updatePipelineAvailability();
+      }
+    });
+    madMapperPreviewButton.addEventListener("click", () => {
+      try {
+        startMadMapperPreview();
+      } catch (error) {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
       }
     });
     ledCountInput.value = String(mapping.entries.length);
@@ -3173,7 +3266,23 @@ async function start(): Promise<void> {
       simulationTime += delta;
       engine.tick(Math.floor(simulationTime));
 
-      renderer?.updateColors(engine.pixels, currentDisplayMode);
+      const artNetFrameIsCurrent =
+        artNetPreviewClient.active &&
+        artNetPreviewPixels !== undefined &&
+        now - artNetPreviewLastFrameAt <= 1_000;
+      if (
+        artNetPreviewClient.active &&
+        artNetPreviewPixels !== undefined &&
+        !artNetFrameIsCurrent &&
+        !artNetPreviewTimedOut
+      ) {
+        artNetPreviewTimedOut = true;
+        madMapperPreviewStatus.textContent = "Signal timeout · native simulation shown";
+      }
+      renderer?.updateColors(
+        artNetFrameIsCurrent ? artNetPreviewPixels! : engine.pixels,
+        artNetFrameIsCurrent ? "wled" : currentDisplayMode,
+      );
       renderer?.render();
 
       if (
