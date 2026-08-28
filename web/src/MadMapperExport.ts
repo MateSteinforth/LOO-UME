@@ -10,7 +10,7 @@ const RGB_PIXELS_PER_UNIVERSE = 170;
 const ATLAS_WIDTH = 4096;
 const ATLAS_HEIGHT = 2048;
 const ATLAS_MARGIN = 32;
-const FIXTURE_DEFINITION = "Generic – Pixel RGB";
+const FIXTURE_DEFINITION = "Generic - Pixel RGB";
 
 export interface MadMapperExportOptions {
   startUniverse?: number;

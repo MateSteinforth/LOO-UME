@@ -35,9 +35,12 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
     universeCount: 16,
   });
   expect(manifest.mappingFingerprint).toMatch(/^[0-9a-f]{8}$/);
-  expect(new TextDecoder().decode(
+  const fixturesSvg = new TextDecoder().decode(
     entries[`${root}/fixtures.svg`],
-  )).toContain(`mapping fingerprint ${manifest.mappingFingerprint}`);
+  );
+  expect(fixturesSvg).toContain(`mapping fingerprint ${manifest.mappingFingerprint}`);
+  expect(fixturesSvg).toContain('fixture_definition="Generic - Pixel RGB"');
+  expect(fixturesSvg).not.toContain("Generic – Pixel RGB");
   expect(new TextDecoder().decode(
     entries[`${root}/SETUP.pdf`],
   )).toContain("DRAFT - ART-NET HARDWARE SETTINGS REQUIRE LIVE-010 VALIDATION");

@@ -61,7 +61,8 @@ describe("MadMapper fixture export", () => {
     });
     expect(bundle.svg.match(/<g id=/g)).toHaveLength(41);
     expect(bundle.svg.match(/<polygon /g)).toHaveLength(41);
-    expect(bundle.svg).toContain('fixture_definition="Generic – Pixel RGB"');
+    expect(bundle.svg).toContain('fixture_definition="Generic - Pixel RGB"');
+    expect(bundle.svg).not.toContain("Generic – Pixel RGB");
     expect(bundle.svg).toContain('matrix_width="8" matrix_height="8"');
     expect(bundle.patchCsv.trim().split("\n")).toHaveLength(42);
   });
