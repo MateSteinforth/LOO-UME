@@ -36,14 +36,18 @@ edit marks derived mechanics stale but does not stop those functions.
    uses that saved route or creates a labelled legacy draft suggestion.
 4. `createHardwareMappingContract()` compiles physical indices and the WLED
    ledmap from the same current project.
-5. `preflightPanelBoundaryParts()` is the shared browser/CLI fit gate. It
+5. `createMadMapperFixtureBundle()` derives the supported SVG fixture atlas and
+   patch manifest from a mapping-ready hardware contract.
+   `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
+   final network values remain evidence-gated.
+6. `preflightPanelBoundaryParts()` is the shared browser/CLI fit gate. It
    derives or reuses corner-only gap cycles and validates the closed boundary,
    PCB envelopes, and compiled closure topology before Manifold or publication.
    `compilePanelBoundaryBundle()` then compiles the exact STL bytes.
-6. `runStructuralPipeline()` derives eligible anchors from the same poses and
+7. `runStructuralPipeline()` derives eligible anchors from the same poses and
    profile, runs advisory load-path analysis, and compiles either modular
    connector ribbons or LED-surface bridges into exact STL/3MF assets.
-7. The assembly package joins project JSON, verified GLB/STL bytes, printable
+8. The assembly package joins project JSON, verified GLB/STL bytes, printable
    manual, ledmap, and wiring review. Project ZIP remains the normal save form.
 
 There is no database or browser local storage. Persistence uses project JSON,
@@ -120,10 +124,11 @@ projects remain explicit registry choices.
 The sidebar has no separate wizard state. Project and View remain available,
 followed by six always-editable sections: Shape, Panels, Mapping, Generate
 parts, Build Hardware, and Export. Animation controls stay in View because they
-remain useful throughout the workflow. Build Hardware combines ESP32 setup with
-the connection-by-connection assembly tutorial. Section order explains the
-operator workflow, while actual readiness continues to come from the Schema 2
-project, mapping lifecycle, and generated-asset contracts.
+remain useful throughout the workflow. Build Hardware combines ESP32 setup,
+the connection-by-connection assembly tutorial, and the mapping-ready
+MadMapper information ZIP. Section order explains the operator workflow, while
+actual readiness continues to come from the Schema 2 project, mapping
+lifecycle, and generated-asset contracts.
 The renderer offsets LED sprites 2.4 mm along each panel's outward normal. This
 is a display-only separation from the PCB plane; it does not change mapping or
 saved panel poses. The transparent WebGL canvas uses the viewer's radial and

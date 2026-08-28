@@ -86,6 +86,7 @@ import {
   createAssemblyPackageZip,
   createWiringReview,
 } from "./AssemblyPackage.ts";
+import { createMadMapperPackageZip } from "./MadMapperPackage.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
 import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
 import {
@@ -386,6 +387,7 @@ app.innerHTML = `
             </div>
           </div>
           <button id="open-esp32-setup" class="editor-button workflow-step__secondary" type="button">Set up ESP32</button>
+          <button id="download-madmapper-package" class="editor-button workflow-step__secondary" type="button">Download MadMapper ZIP</button>
         </section>
 
         <section class="control-section workflow-step workflow-export" data-workflow-step="6">
@@ -572,6 +574,8 @@ const pipelineStatus = query<HTMLElement>("#pipeline-status");
 const esp32SetupConsole = query<HTMLElement>("#esp32-setup-console");
 const esp32SetupDialog = query<HTMLDialogElement>("#esp32-setup-dialog");
 const openEsp32SetupButton = query<HTMLButtonElement>("#open-esp32-setup");
+const downloadMadMapperPackageButton =
+  query<HTMLButtonElement>("#download-madmapper-package");
 const runEsp32SetupButton = query<HTMLButtonElement>("#run-esp32-setup");
 const closeEsp32SetupButton = query<HTMLButtonElement>("#close-esp32-setup");
 const esp32WifiSsidInput = query<HTMLInputElement>("#esp32-wifi-ssid");
@@ -1009,6 +1013,11 @@ async function start(): Promise<void> {
       assemblyPackageButton.title = packageIsCurrent
         ? "Download the current project, verified geometry, manual, and guarded deployment export."
         : "Build current boundary and part STLs. The button changes to Download when they are verified.";
+      downloadMadMapperPackageButton.disabled =
+        !hardwareContract.readiness.mappingReady;
+      downloadMadMapperPackageButton.title = hardwareContract.readiness.mappingReady
+        ? "Download the MadMapper SVG, patch information, manifest, and setup PDF."
+        : "Confirm the authored route and panel addressing before MadMapper export.";
       generateStructureButton.disabled =
         editorDefinition.panels.length === 0;
       generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
@@ -2516,6 +2525,26 @@ async function start(): Promise<void> {
           : `Downloaded ${link.download} with the project, verified geometry, assembly manual, and diagnostic-only mapping files.`);
     };
 
+    const downloadMadMapperPackage = (): void => {
+      const zipBytes = createMadMapperPackageZip(
+        hardwareContract,
+        editorDefinition.id,
+      );
+      const objectUrl = URL.createObjectURL(new Blob(
+        [Uint8Array.from(zipBytes)],
+        { type: "application/zip" },
+      ));
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download =
+        `${portableProjectFolderName(editorDefinition)}-madmapper.zip`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      setLogMessage(
+        `Downloaded ${link.download} with ${hardwareContract.mapping.panels.length} matrix fixtures, the Art-Net patch, mapping manifest, and draft setup PDF.`,
+      );
+    };
+
     downloadStructureButton.addEventListener("click", () => {
       if (!verifiedGeneratedStructure) return;
       const surfaceStyle = editorDefinition.structuralDesign?.connectorization
@@ -2741,6 +2770,15 @@ async function start(): Promise<void> {
           updatePipelineAvailability();
         }
       })();
+    });
+    downloadMadMapperPackageButton.addEventListener("click", () => {
+      try {
+        downloadMadMapperPackage();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setLogMessage(message, true);
+        updatePipelineAvailability();
+      }
     });
     ledCountInput.value = String(mapping.entries.length);
     renderEditorFaces();
