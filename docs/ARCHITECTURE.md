@@ -31,8 +31,9 @@ edit marks derived mechanics stale but does not stop those functions.
    browser and portable-project adapters use the same profile-resolving loader.
 2. `createPanelAssemblyMapping()` expands authoritative poses into panels, LED
    world positions, logical indices, and mapping metadata.
-3. `createProvisionalWiringPreview()` uses the saved route or creates a labelled
-   draft suggestion. Confirming a route writes exact ordered panel IDs.
+3. `optimizeAutomaticWiring()` can write a deterministic balanced route, GPIO
+   set, and physical local-Z panel orientation. `createProvisionalWiringPreview()`
+   uses that saved route or creates a labelled legacy draft suggestion.
 4. `createHardwareMappingContract()` compiles physical indices and the WLED
    ledmap from the same current project.
 5. `preflightPanelBoundaryParts()` is the shared browser/CLI fit gate. It
@@ -155,10 +156,18 @@ route with chain lengths `11/10/10/10`, GPIOs 16–19, measured GRB
 order, measured straight row-major pixel order, and route-optimized installed
 quarter turns.
 
-Installed address calibration is separate from pose. Poses own LED world
-positions. A back-view quarter-turn/mirror transform changes only local wire
-indexing. Bus reversal is false so route and ledmap remain the direction
-authorities.
+New automatic routes rotate the authoritative panel pose around local Z so the
+viewport and assembly tutorial show physical DIN/DOUT locations. The resulting
+installed-address transform is route-optimized identity; it is not a second
+mechanical orientation authority. Legacy address-only turns remain loadable and
+are folded into the pose by explicit optimization. Bus reversal is false.
+
+The optimizer uses one to four balanced outputs with at most 11 panels each and
+assigns GPIOs 16–19 in output order. If no generated-part manifest exists, it
+may evaluate all four quarter turns. Once `generatedMechanics` or
+`generatedStructure` exists, including a stale manifest, the durable gate allows
+only the current pose or a 180-degree turn. This prevents a stale fingerprint
+from reopening 90-degree choices after fabrication.
 
 Mapping readiness is separate from electrical approval. A production bundle
 must bind the current project, route, ledmap, WLED bus fragment, target identity,

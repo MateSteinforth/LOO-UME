@@ -1427,3 +1427,24 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Git returned the initialized-submodule worktree-move refusal;
   the affected worktree was retained rather than damaged.
 - **Status:** Mitigated; cleanup requires its owner after the work is integrated.
+
+### F-078 — Address-only turns made physical connector views ambiguous
+
+- **Date:** 2026-08-28
+- **Context:** Automatic data-route planning and the connection-by-connection
+  assembly tutorial.
+- **Symptom:** Cable length could be optimized with an installed-address turn
+  while the saved pose and tutorial continued to show DIN/DOUT at the old
+  physical corners.
+- **Cause:** Address calibration was used as a second mechanical orientation
+  authority.
+- **Correction:** Automatic wiring folds non-mirrored legacy turns into the
+  authoritative pose, optimizes physical pose rotation, and writes an identity
+  route-optimized address transform. Optimization and tutorial rendering share
+  one back-view-to-pose connector function.
+- **Prevention:** A transform that moves a physical connector belongs in the
+  pose. Address calibration can reorder pixels but must not secretly move DIN
+  or DOUT.
+- **Evidence:** Exact three-panel optimizer comparison, connector-coordinate
+  regression, Schema 2 reload, and mapping tests.
+- **Status:** Resolved by WIRE-016.

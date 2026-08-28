@@ -181,6 +181,7 @@ describe("Schema 2 assembly tutorial", () => {
         nextPanelId: null,
         din: { x: 1, y: 2, z: 3 },
         dout: { x: -1, y: -2, z: 3 },
+        panelCenterBehindPcb: { x: 0, y: 0, z: 3 },
         connectorReferenceView: "back",
         dinCorner: "top-right",
         doutCorner: "bottom-left",

@@ -57,6 +57,7 @@ describe("browser wiring route editor model", () => {
     const confirmed = confirmWiringRouteEditorModel(definition, reordered);
     expect(confirmed.wiring).toMatchObject({
       status: "authored",
+      routeStrategy: "manual-authored-route",
       routeRevision: 1,
       chainLengths: [2],
       outputs: [{ panelIds: reordered.outputs[0]!.panelIds }],

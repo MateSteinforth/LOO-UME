@@ -196,6 +196,7 @@ export function confirmWiringRouteEditorModel(
     wiring: {
       ...wiring,
       status: "authored",
+      routeStrategy: "manual-authored-route",
       routeRevision: (definition.wiring.routeRevision ?? 0) + 1,
       chainLengths: model.outputs.map((output) => output.panelIds.length),
       outputs: definition.wiring.outputs.map((output, index) => ({

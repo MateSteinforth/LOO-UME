@@ -10,6 +10,13 @@ Active projects use Schema `2.0.0` from `src/sculpture/PanelAssembly.ts`.
 - `orientation.yAxis`: panel-local vertical direction.
 - `orientation.normal`: outward-facing local Z direction.
 
+The pose also owns physical PCB rotation around that normal. Automatic wiring
+writes the selected local-Z rotation into `xAxis`/`yAxis`, so DIN/DOUT, LED
+positions, tutorial cables, and fabrication share one physical frame. New
+automatic results keep the separate installed-address transform at identity.
+Before a generated-part manifest exists, routing can test 0/90/180/270 degrees.
+After a manifest exists, routing can keep the pose or add 180 degrees only.
+
 The axes must be finite, unit length, mutually perpendicular, and right-handed
 (`xAxis × yAxis = normal`). Mechanical faces and GLB attachments locate or
 constrain panels but never calculate over a saved pose.

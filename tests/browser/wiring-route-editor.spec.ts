@@ -63,6 +63,9 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
     buffer: projectBytes,
   });
   await expect(page.locator("#route-editor-section")).toBeVisible();
+  await expect(page.locator("#route-editor-section")).not.toHaveAttribute("open", "");
+  await page.getByText("Advanced route editor", { exact: true }).click();
+  await expect(page.locator("#route-editor-section")).toHaveAttribute("open", "");
   await expect(page.locator(".route-panel")).toHaveCount(41);
   await expect(page.locator("#route-editor-note")).toContainText("draft suggestion");
   await expect(page.locator("#route-action")).toHaveText("Edit suggested route");
@@ -140,4 +143,48 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
     "data-panel-id",
     savedPanelIds[0]!,
   );
+});
+
+test("optimizes the loaded project while keeping manual routing advanced", async ({ page }) => {
+  await page.goto("/?sculptureJson=.%2Fsculptures%2Fstructural-three-panel-trail%2Fsculpture.json");
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "No authoring surface is referenced",
+  );
+  await expect(page.locator("#wiring-optimization-summary")).toContainText(
+    "1 output · 3 panels · GPIO 16",
+  );
+  await expect(page.locator("#route-editor-section")).not.toHaveAttribute("open", "");
+  await page.locator("#optimize-wiring").click();
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Optimized wiring revision",
+    { timeout: 20_000 },
+  );
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "1 output, 3 panels, GPIO 16",
+  );
+
+  await page.locator("#export-options > summary").click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#save-sculpture-file").click();
+  const saved = await readJsonDownload(await downloadPromise) as {
+    wiring: {
+      routeStrategy: string;
+      chainLengths: number[];
+      outputs: Array<{ gpio: number; panelIds: string[] }>;
+    };
+    panels: Array<{
+      installedAddressTransform: {
+        quarterTurnsClockwise: number;
+        selectionMethod: string;
+      };
+    }>;
+  };
+  expect(saved.wiring.routeStrategy).toBe("balanced-oriented-cable-optimizer");
+  expect(saved.wiring.chainLengths).toEqual([3]);
+  expect(saved.wiring.outputs[0]).toMatchObject({ gpio: 16 });
+  expect(saved.wiring.outputs[0]!.panelIds).toHaveLength(3);
+  expect(saved.panels.every((panel) =>
+    panel.installedAddressTransform.quarterTurnsClockwise === 0 &&
+    panel.installedAddressTransform.selectionMethod === "route-optimized"
+  )).toBe(true);
 });

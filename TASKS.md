@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-27
+Last reconciled: 2026-08-28
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -106,7 +106,33 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `WIRE-016` Automatically optimize data routes, outputs, GPIOs, and panel orientation
+
+- Scope: replace the normal manual-route workflow with a deterministic
+  orientation-aware optimizer. Choose one through four balanced outputs,
+  approved GPIOs, complete controller-to-DIN-to-DOUT panel routes, and the
+  shortest bounded cable plan. Keep the existing route editor behind an
+  Advanced route editor disclosure.
+- Orientation gate: before any printable-part manifest exists, the optimizer may
+  rotate a panel around local Z by 0, 90, 180, or 270 degrees. After printable
+  parts have been generated, the manifest remains a durable gate even when its
+  fingerprint is stale: the optimizer may preserve the current orientation or
+  add 180 degrees only. The saved panel pose must own the resulting physical
+  DIN/DOUT position; address transforms cannot act as a second mechanical
+  orientation authority.
+- Acceptance: every panel appears exactly once; output sizes differ by at most
+  one and never exceed 11 panels; GPIOs use 16 through 19 in output order; the
+  optimized result is deterministic and no worse than the existing draft on
+  test fixtures; mapping, tutorial wiring, and fabrication see the same saved
+  connector orientation. Measured/locked evidence is not silently rewritten.
+- Verification: 47 focused optimizer/mapping/tutorial tests, TypeScript,
+  focused Chromium route/optimizer coverage, diff checks, and independent
+  review passed.
+- Owner: `codex/wire-016-automatic-routing` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-wire-016`.
+- Conflict risk: `PanelAssembly.ts`, wiring preview/editor, browser Mapping UI,
+  generated-part invalidation, Schema 2, mapping/tutorial tests, and shared
+  documentation.
 
 ## Done
 

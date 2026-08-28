@@ -586,7 +586,9 @@
         "routeStrategy": {
           "enum": [
             "face-adjacency-nearest-neighbor",
-            "longitude-sectors-nearest-neighbor"
+            "longitude-sectors-nearest-neighbor",
+            "balanced-oriented-cable-optimizer",
+            "manual-authored-route"
           ]
         },
         "chainLengths": {

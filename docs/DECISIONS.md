@@ -230,3 +230,14 @@ Slow auto-rotation is a passive overview aid. A successful panel selection from
 the viewport, a label, or the route editor stops it and synchronizes the View
 checkbox. The application does not resume rotation automatically when selection
 clears. This keeps the editing target stationary without changing project data.
+
+## D31 — Automatic wiring owns physical panel orientation
+
+The normal Mapping action jointly chooses balanced chain membership/order,
+GPIOs, and local-Z panel orientation. It writes physical rotation into the
+authoritative pose and leaves the installed-address transform at optimized
+identity, so connector rendering and fabrication cannot disagree with mapping.
+Before any generated-part manifest exists, all four quarter turns are eligible.
+After a mechanics or structural manifest exists, including when stale, only the
+current pose and a 180-degree turn are eligible. Manual route editing is an
+Advanced exception, not the normal workflow.

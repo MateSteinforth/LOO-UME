@@ -152,7 +152,9 @@ export interface WiringDefinition {
   status: WiringLifecycleStatus | "provisional";
   routeStrategy:
     | "longitude-sectors-nearest-neighbor"
-    | "face-adjacency-nearest-neighbor";
+    | "face-adjacency-nearest-neighbor"
+    | "balanced-oriented-cable-optimizer"
+    | "manual-authored-route";
   chainLengths: number[];
   controller: {
     placement: "near-top";

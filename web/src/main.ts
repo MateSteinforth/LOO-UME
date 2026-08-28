@@ -11,6 +11,7 @@ import {
   createPanelAssemblyProject,
   getGeneratedMechanicsState,
 } from "../../src/sculpture/PanelAssembly";
+import { optimizeAutomaticWiring } from "../../src/sculpture/AutomaticWiringOptimizer.ts";
 import {
   addPanelOnDesignSurface,
   addPanelToClosureFace,
@@ -293,15 +294,20 @@ app.innerHTML = `
             <span class="workflow-step__number">3</span>
             <div><strong>Mapping</strong><small>Define the controller-to-panel route</small></div>
           </div>
-          <section id="route-editor-section" class="route-editor-section" hidden>
-            <div class="section-heading editor-subheading">
-              <span>Wiring route editor</span>
-              <small>controller to DIN to DOUT</small>
+          <p id="wiring-optimization-summary" class="mapping-note"></p>
+          <button id="optimize-wiring" class="editor-button workflow-step__primary" type="button">Optimize wiring</button>
+          <details id="route-editor-section" class="compact-menu route-editor-section" hidden>
+            <summary>Advanced route editor</summary>
+            <div class="compact-menu__content">
+              <div class="section-heading editor-subheading">
+                <span>Wiring route editor</span>
+                <small>controller to DIN to DOUT</small>
+              </div>
+              <p id="route-editor-note" class="mapping-note"></p>
+              <div id="route-editor" class="route-editor" aria-label="Panel wiring route editor"></div>
+              <button id="route-action" class="editor-button" type="button">Edit suggested route</button>
             </div>
-            <p id="route-editor-note" class="mapping-note"></p>
-            <div id="route-editor" class="route-editor" aria-label="Panel wiring route editor"></div>
-            <button id="route-action" class="editor-button" type="button">Edit suggested route</button>
-          </section>
+          </details>
         </section>
 
         <section class="control-section workflow-step" data-workflow-step="4">
@@ -521,6 +527,9 @@ const exportProjectFolderButton =
   query<HTMLButtonElement>("#export-project-folder");
 const saveProjectButton = query<HTMLButtonElement>("#save-project");
 const routeEditorSection = query<HTMLElement>("#route-editor-section");
+const wiringOptimizationSummary =
+  query<HTMLElement>("#wiring-optimization-summary");
+const optimizeWiringButton = query<HTMLButtonElement>("#optimize-wiring");
 const routeEditorNote = query<HTMLElement>("#route-editor-note");
 const routeEditor = query<HTMLElement>("#route-editor");
 const routeActionButton = query<HTMLButtonElement>("#route-action");
@@ -1108,6 +1117,15 @@ async function start(): Promise<void> {
     const renderRouteEditor = (): void => {
       const isPanelized = mapping.topology === "panelized-sculpture";
       routeEditorSection.hidden = !isPanelized;
+      optimizeWiringButton.hidden = !isPanelized;
+      optimizeWiringButton.disabled = !isPanelized || editorDefinition.panels.length === 0 ||
+        wiringPreview.status === "measured" || wiringPreview.status === "hardware-verified";
+      const fabricationLocked = Boolean(
+        editorDefinition.generatedMechanics || editorDefinition.generatedStructure,
+      );
+      wiringOptimizationSummary.textContent = isPanelized
+        ? `${wiringPreview.outputs.length} output${wiringPreview.outputs.length === 1 ? "" : "s"} · ${editorDefinition.panels.length} panels · GPIO ${wiringPreview.outputs.map((output) => output.gpio ?? "unassigned").join("/")} · ${fabricationLocked ? "0/180° orientation gate" : "0/90/180/270° before fabrication"}.`
+        : "Automatic wiring requires a panelized Schema 2 project.";
       if (!isPanelized || !routeEditorModel) {
         routeEditor.replaceChildren();
         routeEditorNote.textContent = "A panelized sculpture is required for route editing.";
@@ -2060,6 +2078,31 @@ async function start(): Promise<void> {
     });
     wiringLayerToggle.addEventListener("change", () => {
       renderer?.setWiringLayerVisible(wiringLayerToggle.checked);
+    });
+    optimizeWiringButton.addEventListener("click", () => {
+      void (async () => {
+        optimizeWiringButton.disabled = true;
+        setLogMessage("Optimizing balanced outputs, GPIOs, panel order, and physical DIN/DOUT orientation…");
+        await new Promise<void>((resolvePromise) => requestAnimationFrame(() => resolvePromise()));
+        try {
+          const result = optimizeAutomaticWiring(
+            editorDefinition,
+            editorProject.panelProfile,
+          );
+          const project = createPanelAssemblyProject(
+            result.definition,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          await applyLoadedSculpture(createLoadedSculpture(project));
+          setLogMessage(
+            `Optimized wiring revision ${result.definition.wiring.routeRevision}: ${result.outputCount} output${result.outputCount === 1 ? "" : "s"}, ${result.chainLengths.join("/")} panels, GPIO ${result.gpios.join("/")}, approximately ${result.estimatedCableLengthMm.toFixed(1)} mm data cable. ${result.orientationPolicy === "quarter-turns" ? "Quarter-turn panel poses were available before fabrication." : "Existing printable parts limited pose changes to 0/180 degrees."}`,
+          );
+        } catch (error) {
+          setLogMessage(error instanceof Error ? error.message : String(error), true);
+          renderRouteEditor();
+        }
+      })();
     });
     routeActionButton.addEventListener("click", () => {
       void (async () => {
