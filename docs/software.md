@@ -39,6 +39,13 @@ usermod, not in patched WLED core files.
 
 ## Mapping
 
+The normal browser action automatically selects balanced outputs, GPIOs
+16–19, complete panel order, and physical local-Z panel orientation. One output
+serves at most 11 panels; output sizes differ by at most one. The manual route
+editor is an Advanced control. A generated-part manifest permanently narrows
+later automatic orientation changes from all quarter turns to 0/180 degrees.
+DIN/DOUT rendering and route cost use the same pose-owned connector geometry.
+
 The canonical map has one record per LED and joins:
 
 - panel ID and panel-local `(x, y)`;

@@ -52,7 +52,9 @@ Project and View remain available above six always-editable sections:
 
 1. **Shape:** load an optional watertight GLB placement surface.
 2. **Panels:** place and edit pose-authoritative panels.
-3. **Mapping:** edit the data route, then **Regenerate mapping/wiring**.
+3. **Mapping:** optimize balanced outputs, GPIOs, panel order, and physical
+   DIN/DOUT orientation. Manual route editing remains under **Advanced route
+   editor**.
 4. **Generate parts:** compile planar closures, connector ribbons, or
    LED-surface bridges with Manifold.
 5. **Build Hardware:** isolate each data connection, flash/configure the

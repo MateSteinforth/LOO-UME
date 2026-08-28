@@ -10,6 +10,11 @@ slow auto-rotation so the editing target stays stationary. Generic boundary and
 part STL files compile in the browser with pinned `manifold-3d` 3.5.1. The
 loopback helper is a bounded fallback for a Manifold runtime-load failure.
 
+Mapping normally uses the deterministic pose-owned wiring optimizer. It selects
+balanced outputs, GPIOs, routes, and allowed local-Z panel rotations; the
+drag-and-drop route editor is under **Advanced route editor**. A generated-part
+manifest narrows later rotation choices to 0/180 degrees.
+
 The local host also provides the receipt-gated ESP32 image, bounded private-WLED
 HTTP proxy, and mapped DDP sender. The browser verifies config, ledmap, preset,
 boot state, device identity, and reconnect contract before live preview starts.

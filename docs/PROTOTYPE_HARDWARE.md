@@ -70,16 +70,20 @@ The one-panel test on 2026-08-25 measured this convention:
   is bottom-right.
 - Back view: DIN/pixel 0 is top-right, each row runs right-to-left, and
   DOUT/pixel 63 is bottom-left.
-- The tool selects each panel's quarter turn to minimize routed data-wire
-  length. Mirroring remains false.
+- The automatic route writes each selected physical quarter turn into the panel
+  pose before fabrication. After a generated-part manifest exists it permits
+  only the current pose or a 180-degree turn. Mirroring remains false.
 
-The selected turns reduce the estimated inter-panel connector distance from
-2,795.8 mm for identity orientation to 1,245.8 mm. This estimate uses named
-connector corners because exact pad centres are not in the profile.
+The older address-only orientation study reduced its inter-panel estimate from
+2,795.8 mm for identity orientation to 1,245.8 mm. That result is historical
+comparison data. The current automatic route also includes each controller pin
+to the first DIN and writes every selected physical turn into the panel pose.
+Both estimates use named connector corners because exact pad centres are not in
+the profile.
 
-Install each PCB with the saved tool-selected quarter turn. If a frame or
-connector prevents it, change that panel's address transform and regenerate the
-mapping before connecting its data cable.
+Install each PCB with the saved pose orientation. If a frame or connector
+prevents it, change the panel pose and optimize the route again before
+connecting its data cable.
 
 ## Power distribution
 

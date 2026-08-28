@@ -10,6 +10,11 @@ import {
   type PanelHardwareProfile,
   type WiringDefinition,
 } from "../../src/sculpture/Definition.ts";
+import {
+  panelCenterBehindPcb,
+  panelConnectorWorldPosition,
+  wiringControllerGeometry,
+} from "../../src/sculpture/PanelConnectorGeometry.ts";
 
 export interface WiringPanelNode {
   panelId: string;
@@ -19,6 +24,7 @@ export interface WiringPanelNode {
   nextPanelId: string | null;
   din: Vector3Data;
   dout: Vector3Data;
+  panelCenterBehindPcb: Vector3Data;
   connectorReferenceView: "back";
   dinCorner: PanelCorner;
   doutCorner: PanelCorner;
@@ -77,14 +83,6 @@ export interface WiringSourceDefinition {
 
 function vector(x: number, y: number, z: number): Vector3Data {
   return { x, y, z };
-}
-
-function add(a: Vector3Data, b: Vector3Data): Vector3Data {
-  return vector(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-function scale(value: Vector3Data, amount: number): Vector3Data {
-  return vector(value.x * amount, value.y * amount, value.z * amount);
 }
 
 export function createInwardCableControlPoint(
@@ -169,61 +167,24 @@ function routeNearestNeighbor(
   return route;
 }
 
-function connectorPosition(
-  panel: PanelDefinition,
-  xDirection: -1 | 1,
-  yDirection: -1 | 1,
-  edgeInset: number,
-  surfaceOffset: number,
-): Vector3Data {
-  const xOffset =
-    xDirection * (panel.previewWidth / 2 - edgeInset);
-  const yOffset =
-    yDirection * (panel.previewHeight / 2 - edgeInset);
-  return add(
-    add(panel.position, scale(panel.xAxis, xOffset)),
-    add(
-      scale(panel.yAxis, yOffset),
-      scale(panel.normal, -surfaceOffset),
-    ),
-  );
-}
-
 /** Places one schematic controller above the complete data-route preview. */
 export function createWiringControllerLayout(
   preview: WiringPreview,
 ): WiringControllerLayout | null {
   if (preview.nodes.length === 0 || preview.outputs.length === 0) return null;
-  const points = preview.nodes.flatMap((node) => [node.din, node.dout]);
-  const minimumX = Math.min(...points.map(({ x }) => x));
-  const maximumX = Math.max(...points.map(({ x }) => x));
-  const maximumY = Math.max(...points.map(({ y }) => y));
-  const minimumZ = Math.min(...points.map(({ z }) => z));
-  const maximumZ = Math.max(...points.map(({ z }) => z));
-  const position = vector(
-    (minimumX + maximumX) / 2,
-    maximumY + 32,
-    (minimumZ + maximumZ) / 2,
+  const points = preview.nodes.map((node) => node.panelCenterBehindPcb);
+  const geometry = wiringControllerGeometry(
+    points.map(({ x, y, z }) => [x, y, z]),
+    preview.outputs.length,
   );
-  const pinSpacing = 9;
+  const position = vector(...geometry.position);
   return {
     position,
     pins: preview.outputs.map((output, index) => ({
       outputIndex: output.outputIndex,
-      position: vector(
-        position.x + (index - (preview.outputs.length - 1) / 2) * pinSpacing,
-        position.y - 8,
-        position.z,
-      ),
+      position: vector(...geometry.pinPositions[index]!),
     })),
   };
-}
-
-function cornerDirections(corner: PanelCorner): [-1 | 1, -1 | 1] {
-  return [
-    corner.endsWith("left") ? -1 : 1,
-    corner.startsWith("bottom") ? -1 : 1,
-  ];
 }
 
 function routesMatchCurrentPanels(
@@ -340,12 +301,6 @@ export function createProvisionalWiringPreview(
       "Authored wiring routes must match chain lengths and cover each panel exactly once.",
     );
   }
-  const [dinXDirection, dinYDirection] = cornerDirections(
-    panelProfile.dataConnectors.dinCorner,
-  );
-  const [doutXDirection, doutYDirection] = cornerDirections(
-    panelProfile.dataConnectors.doutCorner,
-  );
   let offset = 0;
 
   for (
@@ -393,20 +348,39 @@ export function createProvisionalWiringPreview(
         chainPosition,
         previousPanelId: panels[chainPosition - 1]?.id ?? null,
         nextPanelId: panels[chainPosition + 1]?.id ?? null,
-        din: connectorPosition(
-          panel,
-          dinXDirection,
-          dinYDirection,
+        din: vector(...panelConnectorWorldPosition(
+          {
+            position: [panel.position.x, panel.position.y, panel.position.z],
+            xAxis: [panel.xAxis.x, panel.xAxis.y, panel.xAxis.z],
+            yAxis: [panel.yAxis.x, panel.yAxis.y, panel.yAxis.z],
+            normal: [panel.normal.x, panel.normal.y, panel.normal.z],
+          },
+          panelProfile,
           definition.wiring.connector.edgeInset,
           definition.wiring.connector.surfaceOffset,
-        ),
-        dout: connectorPosition(
-          panel,
-          doutXDirection,
-          doutYDirection,
+          "din",
+        )),
+        dout: vector(...panelConnectorWorldPosition(
+          {
+            position: [panel.position.x, panel.position.y, panel.position.z],
+            xAxis: [panel.xAxis.x, panel.xAxis.y, panel.xAxis.z],
+            yAxis: [panel.yAxis.x, panel.yAxis.y, panel.yAxis.z],
+            normal: [panel.normal.x, panel.normal.y, panel.normal.z],
+          },
+          panelProfile,
           definition.wiring.connector.edgeInset,
           definition.wiring.connector.surfaceOffset,
-        ),
+          "dout",
+        )),
+        panelCenterBehindPcb: vector(...panelCenterBehindPcb(
+          {
+            position: [panel.position.x, panel.position.y, panel.position.z],
+            xAxis: [panel.xAxis.x, panel.xAxis.y, panel.xAxis.z],
+            yAxis: [panel.yAxis.x, panel.yAxis.y, panel.yAxis.z],
+            normal: [panel.normal.x, panel.normal.y, panel.normal.z],
+          },
+          definition.wiring.connector.surfaceOffset,
+        )),
         connectorReferenceView: panelProfile.dataConnectors.referenceView,
         dinCorner: panelProfile.dataConnectors.dinCorner,
         doutCorner: panelProfile.dataConnectors.doutCorner,

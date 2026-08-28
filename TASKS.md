@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-27
+Last reconciled: 2026-08-28
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -110,6 +110,11 @@ No tasks.
 
 ## Done
 
+- `WIRE-016`: integrated automatic balanced data routing, GPIO 16–19
+  assignment, pose-owned DIN/DOUT orientation, the durable pre/post-fabrication
+  rotation gate, and the Advanced manual route editor on 2026-08-28. Focused
+  optimizer/mapping/tutorial tests, TypeScript, Chromium, diff checks, physical
+  LAN UI review, and independent review passed.
 - `UI-025`: integrated panel-selection auto-rotation stop and synchronized View
   state on 2026-08-27. Reconciled current operator, architecture, hardware,
   firmware, mapping, workflow, CI, and failure-learning documentation;

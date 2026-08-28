@@ -88,15 +88,39 @@ of that state is rejected until `PROOF-010` supplies its acceptance validator.
 A later relevant edit retains a receipt only as stale evidence under
 `requires-review`.
 
+## Automatic route optimization
+
+The normal Mapping action uses `balanced-oriented-cable-optimizer`. It chooses
+one through four outputs, balanced chain lengths with at most 11 panels per
+output, GPIOs 16 through 19, complete panel order, and physical panel local-Z
+orientation. Its objective includes controller-pin-to-first-DIN plus every
+DOUT-to-next-DIN distance. All panels occur exactly once. Equal results use
+stable panel-ID and turn tie-breaks so panel array order cannot change output.
+
+The search is exact on small fixtures and uses deterministic bounded local
+improvement for the 41-panel project. It is an optimized route, not a proof of
+the mathematical global minimum. The existing drag route editor remains under
+**Advanced route editor** for exceptional manual correction.
+
+Panel orientation is pose-owned. The optimizer folds a non-mirrored legacy
+address-only turn into the pose, then writes a route-optimized identity address
+transform. Before a generated mechanics or structural manifest exists, it can
+evaluate 0/90/180/270 degrees. After either manifest exists, even when stale,
+it can keep the current pose or add 180 degrees only. A mirrored transform or a
+post-fabrication legacy 90-degree address-only turn fails closed.
+
 ## Browser route editor
 
-The browser route editor shows each output label, known GPIO or `unknown`,
+The Advanced browser route editor shows each output label, known GPIO or `unknown`,
 one-based chain position, predecessor, successor, and back-view DIN/DOUT
 direction. A route row selects the same panel in the viewer. Drag rows to change
 order; use
 the output selector to change an assignment. There are no per-row Select,
 Up, or Down buttons. The saved sculpture JSON does not change until
 **Regenerate mapping/wiring**.
+An operator-confirmed edit changes `routeStrategy` to `manual-authored-route`;
+it cannot retain an automatic-optimizer claim after chain membership or order
+changes.
 
 A draft or temporary draft suggestion must first enter **Edit suggested
 route**. This prevents the geographic heuristic from becoming an assembly route
@@ -235,12 +259,14 @@ changes their status to assumed and changes the global installed-orientation
 calibration to provisional. This makes invalidation explicit and prevents stale
 measurement status from silently passing readiness.
 
-`npm run optimize:wiring-orientation` evaluates four non-mirrored quarter turns
+The legacy maintenance command `npm run optimize:wiring-orientation` evaluates
+four non-mirrored address-only quarter turns
 per panel and uses dynamic programming to minimize the complete set of
 DOUT-to-next-DIN distances on each saved output. Equal-distance solutions use
 the lexicographically lowest turn sequence. The current route estimate changes
 from 2,795.8 mm at identity to 1,245.8 mm after optimization. The estimate uses
-profile connector corners, not unknown pad-centre offsets.
+profile connector corners, not unknown pad-centre offsets. New browser-created
+routes use the pose-owned optimizer above instead.
 
 The implementation sequence is:
 

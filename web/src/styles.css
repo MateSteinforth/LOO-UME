@@ -583,9 +583,11 @@ input[type="range"] {
 }
 
 .route-editor-section {
-  margin-top: 17px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
+  margin-top: 9px;
+}
+
+.route-editor-section .editor-subheading {
+  margin-top: 0;
 }
 
 .route-editor {

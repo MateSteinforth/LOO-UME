@@ -636,7 +636,9 @@ function validateWiring(
       wiring.status !== "measured" &&
       wiring.status !== "hardware-verified") ||
     (wiring.routeStrategy !== "face-adjacency-nearest-neighbor" &&
-      wiring.routeStrategy !== "longitude-sectors-nearest-neighbor") ||
+      wiring.routeStrategy !== "longitude-sectors-nearest-neighbor" &&
+      wiring.routeStrategy !== "balanced-oriented-cable-optimizer" &&
+      wiring.routeStrategy !== "manual-authored-route") ||
     !Array.isArray(wiring.chainLengths) ||
     !Array.isArray(wiring.outputs)
   ) {
