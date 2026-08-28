@@ -26,6 +26,10 @@ import {
   createProjectLibraryHandler,
   type ProjectLibraryHandler,
 } from "./project-library-handler.ts";
+import {
+  createArtNetPreviewHandler,
+  type ArtNetPreviewHandler,
+} from "./artnet-preview-handler.ts";
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = Object.freeze({
   ".css": "text/css; charset=utf-8",
@@ -54,6 +58,7 @@ export interface LocalEditorServerOptions {
   firmwareHandler?: Esp32FirmwareHandler;
   deviceHandler?: Esp32DeviceHandler;
   projectLibraryHandler?: ProjectLibraryHandler;
+  artNetPreviewHandler?: ArtNetPreviewHandler;
 }
 
 export interface LocalEditorServer {
@@ -191,6 +196,8 @@ export async function startLocalEditorServer(
   const deviceHandler = options.deviceHandler ?? createEsp32DeviceHandler();
   const projectLibraryHandler = options.projectLibraryHandler ??
     createProjectLibraryHandler({ rootDirectory });
+  const artNetPreviewHandler = options.artNetPreviewHandler ??
+    createArtNetPreviewHandler();
   const sockets = new Set<Socket>();
   const server = createServer((request, response) => {
     void (async () => {
@@ -201,6 +208,7 @@ export async function startLocalEditorServer(
       if (await projectLibraryHandler.handle(request, response)) return;
       if (await firmwareHandler.handle(request, response)) return;
       if (await deviceHandler.handle(request, response)) return;
+      if (await artNetPreviewHandler.handle(request, response)) return;
       if (await pipelineHandler.handle(request, response)) return;
       await serveStatic(request, response, distDirectory, generatedPublicDirectory);
     })().catch((error) => {
@@ -239,6 +247,7 @@ export async function startLocalEditorServer(
           server.closeIdleConnections?.();
         });
         await pipelineHandler.close(gracePeriodMs);
+        await artNetPreviewHandler.close();
         let timer: ReturnType<typeof setTimeout> | undefined;
         await Promise.race([
           closed,
