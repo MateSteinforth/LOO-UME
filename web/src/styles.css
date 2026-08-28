@@ -305,9 +305,6 @@ input[type="checkbox"] {
 
 .workflow-step > :not(.workflow-step__heading, .workflow-step__hint) {
   margin-left: 42px;
-}
-
-.workflow-step__primary {
   width: calc(100% - 42px);
 }
 
@@ -324,11 +321,6 @@ input[type="checkbox"] {
 
 .shape-controls .editor-button {
   width: auto;
-}
-
-.editor-button.workflow-step__secondary,
-.pipeline-button.workflow-export__primary {
-  width: calc(100% - 42px);
 }
 
 .shape-controls .editor-button {
@@ -383,7 +375,6 @@ input[type="checkbox"] {
 }
 
 .pipeline-button.workflow-export__primary {
-  width: calc(100% - 42px);
   min-height: 44px;
   margin-top: 14px;
   font-size: 11px;

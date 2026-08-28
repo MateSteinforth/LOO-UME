@@ -295,7 +295,7 @@ app.innerHTML = `
             <div><strong>Mapping</strong><small>Define the controller-to-panel route</small></div>
           </div>
           <p id="wiring-optimization-summary" class="mapping-note"></p>
-          <button id="optimize-wiring" class="editor-button workflow-step__primary" type="button">Optimize wiring</button>
+          <button id="optimize-wiring" class="editor-button" type="button">Optimize wiring</button>
           <details id="route-editor-section" class="compact-menu route-editor-section" hidden>
             <summary>Advanced route editor</summary>
             <div class="compact-menu__content">

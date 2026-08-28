@@ -1456,14 +1456,17 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Symptom:** **Optimize wiring** was first perceived as inconsistent, then a
   one-off 220 px override made it visibly shorter than **Fabrication settings**
   and the four fabrication actions.
-- **Cause:** The correction ignored the established workflow layout contract:
-  direct actions use a 42 px left inset and fill the remaining content width.
-- **Correction:** Remove the button-specific width. Keep
-  `.workflow-step__primary { width: calc(100% - 42px); }`, which aligns the
-  action with the full-width controls in later workflow sections.
+- **Cause:** The first correction ignored the established workflow layout
+  contract. Removing it then exposed a CSS cascade error: the later generic
+  `.editor-button { width: 100%; }` had equal specificity and overrode
+  `.workflow-step__primary`, making the inset button 42 px too wide.
+- **Correction:** Put both the inset and remaining width on the existing shared
+  direct-child layout rule:
+  `.workflow-step > :not(.workflow-step__heading, .workflow-step__hint)`.
+  Remove special width selectors from Optimize wiring, Set up ESP32, and Export.
 - **Prevention:** Do not calibrate one workflow button by eye. Compare its
   computed width with the existing Fabrication settings and fabrication action
-  controls, then reuse the shared workflow class.
-- **Evidence:** The Optimize wiring button now uses only the shared workflow
-  width rule; no button-specific width remains.
+  controls, then reuse the shared direct-child workflow layout.
+- **Evidence:** All direct workflow content now uses one layout rule. Nested
+  buttons continue to fill their already-inset parent containers.
 - **Status:** Resolved.

@@ -10,6 +10,11 @@ slow auto-rotation so the editing target stays stationary. Generic boundary and
 part STL files compile in the browser with pinned `manifold-3d` 3.5.1. The
 loopback helper is a bounded fallback for a Manifold runtime-load failure.
 
+Workflow sections own control alignment. Every direct child below a numbered
+heading uses the shared 42 px inset and fills the remaining content width;
+nested buttons fill their already-inset parent. Do not add button-specific width
+rules for Optimize wiring, fabrication actions, Set up ESP32, or Export.
+
 Mapping normally uses the deterministic pose-owned wiring optimizer. It selects
 balanced outputs, GPIOs, routes, and allowed local-Z panel rotations; the
 drag-and-drop route editor is under **Advanced route editor**. A generated-part
