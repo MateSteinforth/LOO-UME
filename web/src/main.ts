@@ -2096,7 +2096,7 @@ async function start(): Promise<void> {
           );
           await applyLoadedSculpture(createLoadedSculpture(project));
           setLogMessage(
-            `Optimized wiring revision ${result.definition.wiring.routeRevision}: ${result.outputCount} output${result.outputCount === 1 ? "" : "s"}, ${result.chainLengths.join("/")} panels, GPIO ${result.gpios.join("/")}, approximately ${result.estimatedCableLengthMm.toFixed(1)} mm data cable. ${result.orientationPolicy === "quarter-turns" ? "Quarter-turn panel poses were available before fabrication." : "Existing printable parts limited pose changes to 0/180 degrees."}`,
+            `Optimized wiring revision ${result.definition.wiring.routeRevision}: ${result.outputCount} output${result.outputCount === 1 ? "" : "s"}, ${result.chainLengths.join("/")} panels, GPIO ${result.gpios.join("/")}, approximately ${result.estimatedCableLengthMm.toFixed(1)} mm data cable. ${result.orientationPolicy === "quarter-turns" ? "No printable parts exist, so panel orientation could use 0°, 90°, 180°, or 270°." : "Printable parts exist, so panel orientation changes were limited to 0° or 180°."}`,
           );
         } catch (error) {
           setLogMessage(error instanceof Error ? error.message : String(error), true);

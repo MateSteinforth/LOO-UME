@@ -311,6 +311,10 @@ input[type="checkbox"] {
   width: calc(100% - 42px);
 }
 
+#optimize-wiring {
+  width: min(220px, calc(100% - 42px));
+}
+
 .shape-controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
