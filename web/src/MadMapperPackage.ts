@@ -64,13 +64,13 @@ function guideLines(
     `Sculpture: ${sculptureId}`,
     `Mapping fingerprint: ${manifest.mappingFingerprint}`,
     `MadMapper: ${manifest.minimumMadMapperVersion} or later`,
-    `Patch: ${manifest.panelFixtureCount} grouped 8 x 8 RGB matrices, ${manifest.pixelCount} pixels`,
+    `Patch: ${manifest.pixelFixtureCount} individual RGB fixtures in ${manifest.panelFixtureCount} panel groups`,
     `Address range: universe ${manifest.startUniverse}, channel 1 through universe ${manifest.endUniverse}, channel ${manifest.panels.at(-1)?.endAddress.channel ?? "?"}`,
     "",
     "IMPORT FIXTURES",
     "1. Extract this ZIP and open MadMapper 6.1 or later.",
     "2. Select File > Import Fixtures and choose fixtures.svg.",
-    `3. Confirm ${manifest.panelFixtureCount} panel groups and one 8 x 8 RGB matrix in each group.`,
+    `3. Confirm ${manifest.panelFixtureCount} panel groups and ${manifest.pixelFixtureCount} individual RGB fixtures.`,
     "4. Confirm the fixture definition is Generic - Pixel RGB.",
     "5. In the fixture definition, enable Avoid Cross Universe Pixels.",
     boundaryPanel
@@ -100,8 +100,8 @@ function guideLines(
     "2. Test one low-brightness RGB pixel at physical index 0.",
     `3. Test physical indices 169 and 170 across universe ${manifest.startUniverse} to ${manifest.startUniverse + 1}.`,
     boundaryPanel
-      ? `4. Test the four corners of ${boundaryPanel.id} to confirm matrix orientation.`
-      : "4. Test the four corners of one panel to confirm matrix orientation.",
+      ? `4. Test the four corners of ${boundaryPanel.id} to confirm physical pixel placement.`
+      : "4. Test the four corners of one panel to confirm physical pixel placement.",
     "5. Stop if an address, RGB channel, or orientation is wrong.",
     "",
     "The SVG, CSV, JSON, WLED deployment, and device must have the same",

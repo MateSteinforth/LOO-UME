@@ -34,14 +34,16 @@ export interface MadMapperPanelPatch {
 }
 
 export interface MadMapperPatchManifest {
-  schemaVersion: "1.0.0";
+  schemaVersion: "1.1.0";
   generator: "loo-ume-madmapper-svg";
   minimumMadMapperVersion: "6.1";
   mappingFingerprint: string;
   mappingFingerprintVersion: HardwareMappingContract["fingerprintVersion"];
   addressOrder: "physical-wire-order";
   fixtureDefinition: typeof FIXTURE_DEFINITION;
+  fixtureLayout: "individual-physical-pixels";
   panelFixtureCount: number;
+  pixelFixtureCount: number;
   pixelCount: number;
   channelsPerPixel: typeof CHANNELS_PER_RGB_PIXEL;
   channelsPerUniverse: typeof CHANNELS_PER_UNIVERSE;
@@ -126,14 +128,22 @@ function assertExportable(contract: HardwareMappingContract): void {
   }
 }
 
-function unwrapPanelU(values: number[]): number[] {
-  const anchor = values[0]!;
-  return values.map((value) => {
-    let adjusted = value;
-    while (adjusted - anchor > 0.5) adjusted -= 1;
-    while (adjusted - anchor < -0.5) adjusted += 1;
-    return adjusted;
-  });
+function equirectangularUv(position: { x: number; y: number; z: number }): {
+  u: number;
+  v: number;
+} {
+  const length = Math.hypot(position.x, position.y, position.z);
+  if (length === 0) throw new Error("MadMapper pixel position cannot be at the origin.");
+  return {
+    u: (Math.atan2(position.z / length, position.x / length) / (2 * Math.PI) + 1) % 1,
+    v: Math.acos(Math.max(-1, Math.min(1, position.y / length))) / Math.PI,
+  };
+}
+
+interface MadMapperPixelFixture {
+  id: string;
+  address: MadMapperAddress;
+  points: Array<{ x: number; y: number }>;
 }
 
 function panelFixtures(
@@ -141,7 +151,7 @@ function panelFixtures(
   startUniverse: number,
 ): Array<{
   patch: MadMapperPanelPatch;
-  points: Array<{ x: number; y: number }>;
+  pixels: MadMapperPixelFixture[];
 }> {
   const columns = contract.mapping.panelPixelGrid!.columns;
   const rows = contract.mapping.panelPixelGrid!.rows;
@@ -167,9 +177,44 @@ function panelFixtures(
     if (!route) {
       throw new Error(`MadMapper panel ${panel.id} has no output route.`);
     }
-    const cornerOffsets = [0, columns - 1, pixelsPerPanel - 1, pixelsPerPanel - columns];
-    const corners = cornerOffsets.map((offset) => entries[offset]!);
-    const unwrappedU = unwrapPanelU(corners.map((entry) => entry.u));
+    const panelDefinition = contract.mapping.panels.find(
+      (candidate) => candidate.id === panel.id,
+    );
+    if (!panelDefinition) {
+      throw new Error(`MadMapper panel ${panel.id} has no pose definition.`);
+    }
+    const panelAnchorU = equirectangularUv(panelDefinition.position).u;
+    const pitchX = panelDefinition.previewWidth / (columns + 1);
+    const pitchY = panelDefinition.previewHeight / (rows + 1);
+    const pixels = entries.map((entry) => {
+      const corners = [
+        [-0.5, 0.5],
+        [0.5, 0.5],
+        [0.5, -0.5],
+        [-0.5, -0.5],
+      ].map(([xOffset, yOffset]) => equirectangularUv({
+        x: entry.x + panelDefinition.xAxis.x * xOffset! * pitchX +
+          panelDefinition.yAxis.x * yOffset! * pitchY,
+        y: entry.y + panelDefinition.xAxis.y * xOffset! * pitchX +
+          panelDefinition.yAxis.y * yOffset! * pitchY,
+        z: entry.z + panelDefinition.xAxis.z * xOffset! * pitchX +
+          panelDefinition.yAxis.z * yOffset! * pitchY,
+      }));
+      const unwrappedU = corners.map(({ u }) => {
+        let adjusted = u;
+        while (adjusted - panelAnchorU > 0.5) adjusted -= 1;
+        while (adjusted - panelAnchorU < -0.5) adjusted += 1;
+        return adjusted;
+      });
+      return {
+        id: `${panel.id}-pixel-${entry.panelPixelX}-${entry.panelPixelY}`,
+        address: madMapperAddressForPixel(entry.physicalIndex, startUniverse),
+        points: corners.map((corner, index) => ({
+          x: unwrappedU[index]! * ATLAS_WIDTH,
+          y: corner.v * ATLAS_HEIGHT,
+        })),
+      };
+    });
     const physicalStart = entries[0]!.physicalIndex;
     const physicalEnd = entries.at(-1)!.physicalIndex;
     return {
@@ -184,10 +229,7 @@ function panelFixtures(
         endAddress: madMapperAddressForPixel(physicalEnd, startUniverse),
         installedAddressTransform: panel.installedAddressTransform,
       },
-      points: corners.map((entry, index) => ({
-        x: unwrappedU[index]! * ATLAS_WIDTH,
-        y: entry.v * ATLAS_HEIGHT,
-      })),
+      pixels,
     };
   }).sort(
     (first, second) => first.patch.physicalStart - second.patch.physicalStart,
@@ -196,20 +238,25 @@ function panelFixtures(
 
 function renderSvg(
   fixtures: ReturnType<typeof panelFixtures>,
-  columns: number,
-  rows: number,
   fingerprint: string,
 ): string {
-  const coordinates = fixtures.flatMap((fixture) => fixture.points);
+  const coordinates = fixtures.flatMap((fixture) =>
+    fixture.pixels.flatMap((pixel) => pixel.points)
+  );
   const minX = Math.min(...coordinates.map((point) => point.x)) - ATLAS_MARGIN;
   const minY = Math.min(...coordinates.map((point) => point.y)) - ATLAS_MARGIN;
   const maxX = Math.max(...coordinates.map((point) => point.x)) + ATLAS_MARGIN;
   const maxY = Math.max(...coordinates.map((point) => point.y)) + ATLAS_MARGIN;
-  const groups = fixtures.map(({ patch, points }) => {
-    const pointText = points.map((point) => `${point.x.toFixed(3)},${point.y.toFixed(3)}`).join(" ");
+  const groups = fixtures.map(({ patch, pixels }) => {
+    const pixelElements = pixels.map((pixel) => {
+      const pointText = pixel.points
+        .map((point) => `${point.x.toFixed(3)},${point.y.toFixed(3)}`)
+        .join(" ");
+      return `    <polygon id="${xmlEscape(pixel.id)}" points="${pointText}" universe="${pixel.address.universe}" channel="${pixel.address.channel}" fixture_type="fixture_quad" fixture_definition="${FIXTURE_DEFINITION}"/>`;
+    }).join("\n");
     return [
       `  <g id="${xmlEscape(patch.id)}">`,
-      `    <polygon id="${xmlEscape(patch.id)}-matrix" points="${pointText}" universe="${patch.startAddress.universe}" channel="${patch.startAddress.channel}" fixture_type="fixture_quad" fixture_definition="${FIXTURE_DEFINITION}" matrix_width="${columns}" matrix_height="${rows}"/>`,
+      pixelElements,
       "  </g>",
     ].join("\n");
   }).join("\n");
@@ -217,7 +264,7 @@ function renderSvg(
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(maxX - minX)}" height="${Math.ceil(maxY - minY)}" viewBox="${minX.toFixed(3)} ${minY.toFixed(3)} ${(maxX - minX).toFixed(3)} ${(maxY - minY).toFixed(3)}">`,
     "  <title>LOO/UME MadMapper SVG fixtures</title>",
-    `  <desc>Physical-wire-order fixture atlas; mapping fingerprint ${xmlEscape(fingerprint)}</desc>`,
+    `  <desc>Individual physical-pixel fixture atlas; mapping fingerprint ${xmlEscape(fingerprint)}</desc>`,
     "  <style>svg { background: black; } * { stroke: white; fill: none; }</style>",
     groups,
     "</svg>",
@@ -259,14 +306,16 @@ export function createMadMapperFixtureBundle(
   const pixelCount = contract.mapping.entries.length;
   const endUniverse = madMapperAddressForPixel(pixelCount - 1, startUniverse).universe;
   const manifest: MadMapperPatchManifest = {
-    schemaVersion: "1.0.0",
+    schemaVersion: "1.1.0",
     generator: "loo-ume-madmapper-svg",
     minimumMadMapperVersion: "6.1",
     mappingFingerprint: contract.fingerprint,
     mappingFingerprintVersion: contract.fingerprintVersion,
     addressOrder: "physical-wire-order",
     fixtureDefinition: FIXTURE_DEFINITION,
+    fixtureLayout: "individual-physical-pixels",
     panelFixtureCount: fixtures.length,
+    pixelFixtureCount: pixelCount,
     pixelCount,
     channelsPerPixel: CHANNELS_PER_RGB_PIXEL,
     channelsPerUniverse: CHANNELS_PER_UNIVERSE,
@@ -283,12 +332,7 @@ export function createMadMapperFixtureBundle(
     panels: fixtures.map((fixture) => fixture.patch),
   };
   return {
-    svg: renderSvg(
-      fixtures,
-      contract.mapping.panelPixelGrid!.columns,
-      contract.mapping.panelPixelGrid!.rows,
-      contract.fingerprint,
-    ),
+    svg: renderSvg(fixtures, contract.fingerprint),
     patchCsv: renderCsv(manifest.panels),
     manifest,
   };

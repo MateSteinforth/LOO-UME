@@ -22,8 +22,26 @@ async function flagshipContract() {
   return createHardwareMappingContract(mapping, wiring, project.panelProfile);
 }
 
+function fixtureCenter(svg: string, fixtureId: string): [number, number] {
+  const match = svg.match(new RegExp(`id="${fixtureId}" points="([^"]+)"`));
+  if (!match) throw new Error(`Missing fixture ${fixtureId}.`);
+  const points = match[1]!.split(" ").map((point) =>
+    point.split(",").map(Number) as [number, number]
+  );
+  return [
+    points.reduce((total, point) => total + point[0], 0) / points.length,
+    points.reduce((total, point) => total + point[1], 0) / points.length,
+  ];
+}
+
+function fixtureRowAngle(svg: string, panelId: string): number {
+  const start = fixtureCenter(svg, `${panelId}-pixel-0-0`);
+  const end = fixtureCenter(svg, `${panelId}-pixel-7-0`);
+  return Math.atan2(end[1] - start[1], end[0] - start[0]) * 180 / Math.PI;
+}
+
 describe("MadMapper fixture export", () => {
-  it("patches the flagship as 41 oriented matrices over 16 universes", async () => {
+  it("patches the flagship as 2,624 pose-positioned physical pixels", async () => {
     const contract = await flagshipContract();
     const bundle = createMadMapperFixtureBundle(contract);
 
@@ -31,7 +49,9 @@ describe("MadMapper fixture export", () => {
       minimumMadMapperVersion: "6.1",
       mappingFingerprint: "73b36d49",
       addressOrder: "physical-wire-order",
+      fixtureLayout: "individual-physical-pixels",
       panelFixtureCount: 41,
+      pixelFixtureCount: 2_624,
       pixelCount: 2_624,
       startUniverse: 1,
       endUniverse: 16,
@@ -60,11 +80,21 @@ describe("MadMapper fixture export", () => {
       endAddress: { universe: 2, channel: 64 },
     });
     expect(bundle.svg.match(/<g id=/g)).toHaveLength(41);
-    expect(bundle.svg.match(/<polygon /g)).toHaveLength(41);
+    expect(bundle.svg.match(/<polygon /g)).toHaveLength(2_624);
     expect(bundle.svg).toContain('fixture_definition="Generic - Pixel RGB"');
     expect(bundle.svg).not.toContain("Generic – Pixel RGB");
-    expect(bundle.svg).toContain('matrix_width="8" matrix_height="8"');
+    expect(bundle.svg).not.toContain("matrix_width=");
+    expect(bundle.svg).toContain('id="SQ-03-pixel-0-0"');
+    expect(bundle.svg).toContain('id="PC-04-pixel-');
     expect(bundle.patchCsv.trim().split("\n")).toHaveLength(42);
+  });
+
+  it("preserves different panel pose rotations in individual fixture positions", async () => {
+    const bundle = createMadMapperFixtureBundle(await flagshipContract());
+
+    expect(fixtureRowAngle(bundle.svg, "SQ-03")).toBeCloseTo(0, 1);
+    expect(fixtureRowAngle(bundle.svg, "SQ-11")).toBeCloseTo(31.6, 1);
+    expect(fixtureRowAngle(bundle.svg, "SQ-20")).toBeCloseTo(-31.6, 1);
   });
 
   it("never splits one RGB pixel across universes", () => {

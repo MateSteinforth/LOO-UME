@@ -43,6 +43,7 @@ describe("MadMapper package", () => {
     expect(manifest).toMatchObject({
       mappingFingerprint: "73b36d49",
       panelFixtureCount: 41,
+      pixelFixtureCount: 2_624,
       pixelCount: 2_624,
       universeCount: 16,
     });
