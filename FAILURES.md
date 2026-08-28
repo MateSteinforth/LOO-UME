@@ -1501,3 +1501,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Operator import result and focused horizontal, +31.6 degree, and
   -31.6 degree panel-row regressions.
 - **Status:** Resolved in the exporter; awaiting package performance review.
+
+### F-082 — Label-sheet geometry must come from the manufacturer template
+
+- **Date:** 2026-08-28
+- **Context:** Printing physical panel IDs on HERMA 4385 round labels.
+- **Symptom:** Diameter, A4 size, and labels per sheet do not uniquely define
+  printer-safe label centers. A centered estimate can miss all 315 die cuts.
+- **Cause:** Product summaries omit pitch gaps and safety margins.
+- **Correction:** Use the official HERMA 4385 punch template: 15 x 21 labels,
+  10 mm diameter, 2.7 mm horizontal and vertical gaps, 11.1 mm side margins,
+  and 16.5 mm top and bottom margins. Generate a 100%-scale A4 PDF without
+  printed guide circles.
+- **Prevention:** Never derive a physical label sheet from count and diameter.
+  Pin the manufacturer article and punch geometry, and tell the operator to
+  disable page fitting.
+- **Evidence:** HERMA article 4385 product page and official `4385_SV.pdf`.
+- **Status:** Resolved by LABEL-010.

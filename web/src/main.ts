@@ -87,6 +87,7 @@ import {
   createWiringReview,
 } from "./AssemblyPackage.ts";
 import { createMadMapperPackageZip } from "./MadMapperPackage.ts";
+import { createHerma4385PanelLabelsPdf } from "./PanelLabelSheet.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
 import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
 import {
@@ -297,6 +298,7 @@ app.innerHTML = `
           </div>
           <p id="wiring-optimization-summary" class="mapping-note"></p>
           <button id="optimize-wiring" class="editor-button" type="button">Optimize wiring</button>
+          <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
           <details id="route-editor-section" class="compact-menu route-editor-section" hidden>
             <summary>Advanced route editor</summary>
             <div class="compact-menu__content">
@@ -369,6 +371,7 @@ app.innerHTML = `
             <span class="workflow-step__number">5</span>
             <div><strong>BUILD HARDWARE</strong><small>Flash, wire, and assemble</small></div>
           </div>
+          <button id="download-panel-labels" class="editor-button" type="button">Generate panel labels PDF</button>
           <div id="assembly-tutorial-section" class="assembly-tutorial assembly-tutorial--workflow">
             <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
             <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
@@ -387,7 +390,6 @@ app.innerHTML = `
             </div>
           </div>
           <button id="open-esp32-setup" class="editor-button workflow-step__secondary" type="button">Set up ESP32</button>
-          <button id="download-madmapper-package" class="editor-button workflow-step__secondary" type="button">Download MadMapper ZIP</button>
         </section>
 
         <section class="control-section workflow-step workflow-export" data-workflow-step="6">
@@ -576,6 +578,8 @@ const esp32SetupDialog = query<HTMLDialogElement>("#esp32-setup-dialog");
 const openEsp32SetupButton = query<HTMLButtonElement>("#open-esp32-setup");
 const downloadMadMapperPackageButton =
   query<HTMLButtonElement>("#download-madmapper-package");
+const downloadPanelLabelsButton =
+  query<HTMLButtonElement>("#download-panel-labels");
 const runEsp32SetupButton = query<HTMLButtonElement>("#run-esp32-setup");
 const closeEsp32SetupButton = query<HTMLButtonElement>("#close-esp32-setup");
 const esp32WifiSsidInput = query<HTMLInputElement>("#esp32-wifi-ssid");
@@ -1018,6 +1022,10 @@ async function start(): Promise<void> {
       downloadMadMapperPackageButton.title = hardwareContract.readiness.mappingReady
         ? "Download the MadMapper SVG, patch information, manifest, and setup PDF."
         : "Confirm the authored route and panel addressing before MadMapper export.";
+      downloadPanelLabelsButton.disabled = editorDefinition.panels.length === 0;
+      downloadPanelLabelsButton.title = editorDefinition.panels.length === 0
+        ? "Place at least one panel before generating labels."
+        : "Print current panel IDs on a HERMA 4385 A4 label sheet at 100% scale.";
       generateStructureButton.disabled =
         editorDefinition.panels.length === 0;
       generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
@@ -2545,6 +2553,25 @@ async function start(): Promise<void> {
       );
     };
 
+    const downloadPanelLabels = (): void => {
+      const pdfBytes = createHerma4385PanelLabelsPdf(
+        editorDefinition.panels.map((panel) => panel.id),
+      );
+      const objectUrl = URL.createObjectURL(new Blob(
+        [Uint8Array.from(pdfBytes)],
+        { type: "application/pdf" },
+      ));
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download =
+        `${portableProjectFolderName(editorDefinition)}-panel-labels-herma-4385.pdf`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      setLogMessage(
+        `Downloaded ${link.download} with ${editorDefinition.panels.length} panel IDs. Print A4 at 100% or Actual size on HERMA 4385; do not use Fit to page.`,
+      );
+    };
+
     downloadStructureButton.addEventListener("click", () => {
       if (!verifiedGeneratedStructure) return;
       const surfaceStyle = editorDefinition.structuralDesign?.connectorization
@@ -2778,6 +2805,14 @@ async function start(): Promise<void> {
         const message = error instanceof Error ? error.message : String(error);
         setLogMessage(message, true);
         updatePipelineAvailability();
+      }
+    });
+    downloadPanelLabelsButton.addEventListener("click", () => {
+      try {
+        downloadPanelLabels();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setLogMessage(message, true);
       }
     });
     ledCountInput.value = String(mapping.entries.length);

@@ -10,6 +10,38 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
   const button = page.locator("#download-madmapper-package");
   await expect(button).toBeVisible();
   await expect(button).toBeEnabled();
+  await expect(button.locator("xpath=ancestor::section[1]")).toHaveAttribute(
+    "data-workflow-step",
+    "3",
+  );
+
+  const labelButton = page.locator("#download-panel-labels");
+  await expect(labelButton).toBeVisible();
+  await expect(labelButton).toBeEnabled();
+  await expect(labelButton.locator("xpath=ancestor::section[1]")).toHaveAttribute(
+    "data-workflow-step",
+    "5",
+  );
+  const labelDownloadPromise = page.waitForEvent("download");
+  await labelButton.click();
+  const labelDownload = await labelDownloadPromise;
+  expect(labelDownload.suggestedFilename()).toBe(
+    "generated-rhombicosidodecahedron-41-panel-preview-panel-labels-herma-4385.pdf",
+  );
+  const labelDownloadPath = await labelDownload.path();
+  if (!labelDownloadPath) throw new Error("The browser did not expose the panel-label PDF.");
+  const labelPdf = (await readFile(labelDownloadPath)).toString("latin1");
+  expect(labelPdf).toContain("%LOOUME-HERMA-4385");
+  expect(labelPdf).toContain("(SQ-03) Tj");
+  expect(labelPdf).toContain("/Count 1");
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Print A4 at 100% or Actual size on HERMA 4385",
+  );
+
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-panel-labels-at-din",
+    "41",
+  );
 
   const downloadPromise = page.waitForEvent("download");
   await button.click();

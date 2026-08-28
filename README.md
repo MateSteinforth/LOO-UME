@@ -54,10 +54,11 @@ Project and View remain available above six always-editable sections:
 2. **Panels:** place and edit pose-authoritative panels.
 3. **Mapping:** optimize balanced outputs, GPIOs, panel order, and physical
    DIN/DOUT orientation. Manual route editing remains under **Advanced route
-   editor**.
+   editor**. Download the mapping-ready MadMapper package from this section.
 4. **Generate parts:** compile planar closures, connector ribbons, or
    LED-surface bridges with Manifold.
-5. **Build Hardware:** isolate each data connection, flash/configure the
+5. **Build Hardware:** print current panel IDs on HERMA 4385 labels, place each
+   label at that panel's DIN, isolate each data connection, flash/configure the
    approved ESP32, and copy the loaded simulator contract.
 6. **Export:** download the editable project ZIP and referenced verified assets.
 

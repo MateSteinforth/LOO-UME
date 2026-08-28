@@ -151,7 +151,8 @@ moves the camera; the operator keeps orbit and unlimited zoom control. A schemat
 controller sits above the sculpture and labels each output pin. DIN, DOUT, and
 cable endpoints are behind each PCB in the profile's back-view convention.
 Cable curves move inward from those endpoints, toward the sculpture interior.
-Panel labels keep their panel IDs. The tutorial is view-only: it does not change
+Panel labels keep their panel IDs and sit on the same back-side DIN point used
+by the green wiring marker. The tutorial is view-only: it does not change
 poses, routes, mapping, mechanics, or saved project data. Selecting a panel from
 a route row also stops slow auto-rotation so its back-side DIN/DOUT labels stay
 stationary during review.
@@ -168,10 +169,26 @@ has no printable geometry for the tutorial to show. The 41-panel project is
 currently in that pose-and-wiring-only state.
 
 The persistent **View** section owns the DIN/DOUT and panel-wiring layers. The
-guided **BUILD HARDWARE** section follows part generation and owns chain/wire
-isolation plus ESP32 setup. These controls remain available without locking the
+guided **BUILD HARDWARE** section follows part generation and owns panel-label
+PDF generation, chain/wire isolation, and ESP32 setup. The MadMapper package is
+part of Mapping because it consumes the physical mapping contract. These controls remain available without locking the
 other project sections. The populated 41-panel project is the default browser
 project; empty authoring projects remain available in the project selector.
+
+## Printable panel labels
+
+**Generate panel labels PDF** writes one current Schema 2 panel ID per label on
+the exact HERMA 4385 A4 grid. The manufacturer sheet has 315 removable white
+paper labels: 15 columns by 21 rows, 10 mm diameter, 2.7 mm gaps, 11.1 mm side
+margins, and 16.5 mm top and bottom margins. Print at **100%** or **Actual
+size**. Do not use **Fit to page**. The PDF continues to another sheet when a
+project has more than 315 panels. Apply each printed ID at the DIN end of its
+matching physical PCB; the simulator uses the same DIN anchor.
+
+The PDF contains IDs only. It does not modify the project, infer a route, or
+claim connector pad-centre measurements. The sheet contract comes from the
+[official HERMA 4385 product page](https://www.herma.de/buero-zuhause/produkt/abloesbare-etiketten-a4-4385/)
+and its manufacturer punch template.
 
 ## Printable assembly-manual export
 

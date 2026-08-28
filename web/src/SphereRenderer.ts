@@ -204,6 +204,7 @@ export class SphereRenderer {
     this.setAssemblyTutorial(null);
     this.mappingRevision += 1;
     this.mapping = mapping;
+    this.container.dataset.panelLabelsAtDin = "0";
     this.clearBoundaryPreview();
     this.clearWiringPreview();
     const positions = new Float32Array(mapping.entries.length * 3);
@@ -395,6 +396,19 @@ export class SphereRenderer {
   setWiringPreview(preview: WiringPreview): void {
     this.clearWiringPreview();
     if (preview.status === "unavailable") return;
+    const nodeByPanelId = new Map(
+      preview.nodes.map((node) => [node.panelId, node]),
+    );
+    let anchoredLabelCount = 0;
+    for (const label of this.panelLabels) {
+      const panelId = label.element.dataset.panelId ?? "";
+      const node = nodeByPanelId.get(panelId);
+      if (!node) continue;
+      label.object.position.copy(this.toThree(node.din));
+      label.element.dataset.anchor = "din";
+      anchoredLabelCount += 1;
+    }
+    this.container.dataset.panelLabelsAtDin = String(anchoredLabelCount);
     this.buildWiringPreview(preview);
     this.applySelectionFocus();
   }

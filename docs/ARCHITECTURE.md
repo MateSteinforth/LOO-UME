@@ -40,14 +40,17 @@ edit marks derived mechanics stale but does not stop those functions.
    patch manifest from a mapping-ready hardware contract.
    `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
    final network values remain evidence-gated.
-6. `preflightPanelBoundaryParts()` is the shared browser/CLI fit gate. It
+6. `createHerma4385PanelLabelsPdf()` places current Schema 2 panel IDs on the
+   manufacturer's exact 15 x 21 A4 punch grid. The simulator anchors the same
+   ID at the wiring preview's DIN position; neither path creates saved state.
+7. `preflightPanelBoundaryParts()` is the shared browser/CLI fit gate. It
    derives or reuses corner-only gap cycles and validates the closed boundary,
    PCB envelopes, and compiled closure topology before Manifold or publication.
    `compilePanelBoundaryBundle()` then compiles the exact STL bytes.
-7. `runStructuralPipeline()` derives eligible anchors from the same poses and
+8. `runStructuralPipeline()` derives eligible anchors from the same poses and
    profile, runs advisory load-path analysis, and compiles either modular
    connector ribbons or LED-surface bridges into exact STL/3MF assets.
-8. The assembly package joins project JSON, verified GLB/STL bytes, printable
+9. The assembly package joins project JSON, verified GLB/STL bytes, printable
    manual, ledmap, and wiring review. Project ZIP remains the normal save form.
 
 There is no database or browser local storage. Persistence uses project JSON,
@@ -124,9 +127,10 @@ projects remain explicit registry choices.
 The sidebar has no separate wizard state. Project and View remain available,
 followed by six always-editable sections: Shape, Panels, Mapping, Generate
 parts, Build Hardware, and Export. Animation controls stay in View because they
-remain useful throughout the workflow. Build Hardware combines ESP32 setup,
-the connection-by-connection assembly tutorial, and the mapping-ready
-MadMapper information ZIP. Section order explains the operator workflow, while
+remain useful throughout the workflow. Mapping owns route optimization, manual
+route editing, and the mapping-ready MadMapper information ZIP. Build Hardware
+combines HERMA 4385 panel-label PDF generation, ESP32 setup, and the
+connection-by-connection assembly tutorial. Section order explains the operator workflow, while
 actual readiness continues to come from the Schema 2 project, mapping
 lifecycle, and generated-asset contracts.
 The renderer offsets LED sprites 2.4 mm along each panel's outward normal. This
@@ -136,6 +140,9 @@ linear CSS gradient as its world backdrop.
 Selecting a panel through the viewport, its label, or a route row stops slow
 auto-rotation and clears the matching View checkbox. This is view state only;
 selection and rotation never change a saved pose.
+Panel ID labels use the DIN marker from the current wiring preview instead
+of the panel center. This renderer placement and the printable label PDF do not
+change the panel pose or the route.
 Surface mode keeps the established constrained move and local-Z rotation.
 Free 6DOF mode uses local translation and rotation controls, writes one
 right-handed pose, and removes the old surface attachment. Structural downloads
