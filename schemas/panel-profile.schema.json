@@ -77,6 +77,14 @@
         "emitterOffset": {
           "type": "number"
         },
+        "localEmitterPositions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/localPosition3"
+          }
+        },
         "colorOrder": {
           "type": "object",
           "additionalProperties": false,
@@ -307,6 +315,26 @@
         "doutCorner": {
           "$ref": "#/$defs/panelCorner"
         },
+        "localPositions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "coordinateFrame",
+            "din",
+            "dout"
+          ],
+          "properties": {
+            "coordinateFrame": {
+              "const": "pose-local"
+            },
+            "din": {
+              "$ref": "#/$defs/localPosition3"
+            },
+            "dout": {
+              "$ref": "#/$defs/localPosition3"
+            }
+          }
+        },
         "padPositionStatus": {
           "$ref": "#/$defs/factStatus"
         },
@@ -493,6 +521,22 @@
     }
   },
   "$defs": {
+    "localPosition3": {
+      "type": "array",
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false
+    },
     "factStatus": {
       "enum": [
         "unknown",

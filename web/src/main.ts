@@ -720,19 +720,24 @@ async function start(): Promise<void> {
       ledCount: number;
       panelCount: number;
     } => {
+      const columns = mapping.panelPixelGrid?.columns;
+      const rows = mapping.panelPixelGrid?.rows;
+      const pixelsPerFixture = (columns ?? 0) * (rows ?? 0);
       if (
         mapping.topology !== "panelized-sculpture" ||
-        mapping.panelPixelGrid?.columns !== 8 ||
-        mapping.panelPixelGrid.rows !== 8
+        !Number.isInteger(columns) ||
+        !Number.isInteger(rows) ||
+        columns! < 1 ||
+        rows! < 1
       ) {
-        throw new Error("ESP32 setup requires the loaded 8 by 8 panel simulator.");
+        throw new Error("ESP32 setup requires a loaded panelized simulator.");
       }
       const ledCount = mapping.entries.length;
-      const panelCount = ledCount / 64;
+      const panelCount = mapping.panels.length;
       if (
-        !Number.isInteger(panelCount) ||
         panelCount < 1 ||
         panelCount > 41 ||
+        ledCount !== panelCount * pixelsPerFixture ||
         hardwareContract.outputs.length < 1 ||
         hardwareContract.outputs.length > 4
       ) {
@@ -752,8 +757,8 @@ async function start(): Promise<void> {
           output.startIndex !== outputs
             .slice(0, index)
             .reduce((sum, prior) => sum + prior.pixelCount, 0) ||
-          output.pixelCount < 64 ||
-          output.pixelCount % 64 !== 0
+          output.pixelCount < pixelsPerFixture ||
+          output.pixelCount % pixelsPerFixture !== 0
         ) ||
         new Set(outputs.map((output) => output.gpio)).size !== outputs.length ||
         outputs.reduce((sum, output) => sum + output.pixelCount, 0) !== ledCount
@@ -777,6 +782,7 @@ async function start(): Promise<void> {
         smokeConfig as Record<string, unknown>,
         outputs,
         hardwareContract.wledColorOrder.wledValue,
+        mapping.panelPixelGrid!.columns * mapping.panelPixelGrid!.rows,
       );
       return {
         sourceFingerprint: hardwareContract.fingerprint,

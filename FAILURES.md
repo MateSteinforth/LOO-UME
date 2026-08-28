@@ -1501,3 +1501,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Operator import result and focused horizontal, +31.6 degree, and
   -31.6 degree panel-row regressions.
 - **Status:** Resolved in the exporter; awaiting package performance review.
+
+### F-082 — A 64-pixel setup gate blocked generalized fixtures
+
+- **Date:** 2026-08-28
+- **Context:** Backward-compatible explicit emitter geometry for 1×N strips and
+  rings.
+- **Symptom:** Mapping and wiring accepted a 1×12 fixture, but ESP32 setup
+  rejected its output lengths because they were not divisible by 64.
+- **Cause:** The device boundary inferred fixture completeness and current from
+  the one historical 8×8 panel size.
+- **Correction:** Carry `pixelsPerFixture` from the loaded profile grid into the
+  setup validator and scale the existing provisional current limit per LED.
+  Keep unlimited-current 41-panel authority restricted to the exact legacy
+  64-pixel, 2,624-LED, four-output contract.
+- **Prevention:** When a source profile owns a dimension, pass that dimension
+  through runtime boundaries. Do not rediscover it from a flagship constant.
+- **Evidence:** The 1×12 circular mapping reaches exact 492-LED WLED buses; a
+  non-legacy 2,624-LED regression retains finite current limits; legacy setup
+  tests remain byte-equivalent.
+- **Status:** Resolved by FIXTURE-010.

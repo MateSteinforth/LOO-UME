@@ -20,6 +20,7 @@ import {
 } from "../src/sculpture/PanelAssembly.ts";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
 import { validateMapping } from "../web/src/LedMapping.ts";
+import { createSimulatorSetupConfig } from "../web/src/Esp32Setup.ts";
 
 const SOURCE = "sculptures/rhombicosidodecahedron/sculpture.json";
 const PROJECT = createPanelAssemblyProject(
@@ -164,6 +165,115 @@ describe("hardware mapping contract", () => {
     expect(reloaded.outputs.map((output) => output.pixelCount)).toEqual([
       132, 120, 120, 120,
     ]);
+  });
+
+  it("maps a 1x12 circular emitter fixture through the WLED contract", () => {
+    const definition = structuredClone(PROJECT.sculpture);
+    const profile = structuredClone(PANEL_PROFILE_INPUT);
+    profile.id = "test-flexible-ring-1x12";
+    profile.pixelGrid.columns = 12;
+    profile.pixelGrid.rows = 1;
+    profile.pixelGrid.localEmitterPositions = Array.from(
+      { length: 12 },
+      (_, index) => {
+        const radians = -index * Math.PI / 6;
+        return [
+          Math.cos(radians) * 30,
+          Math.sin(radians) * 30,
+          0,
+        ];
+      },
+    );
+    profile.dataConnectors.doutCorner = "top-left";
+    profile.dataConnectors.localPositions = {
+      coordinateFrame: "pose-local",
+      din: [30, 0, 0],
+      dout: profile.pixelGrid.localEmitterPositions[11],
+    };
+    const oldDout = profile.mounting.holes.find(
+      (hole: { id: string }) => hole.id === "bottom-left",
+    );
+    oldDout.mechanicalUse = "eligible";
+    delete oldDout.blockedBy;
+    const newDout = profile.mounting.holes.find(
+      (hole: { id: string }) => hole.id === "top-left",
+    );
+    newDout.mechanicalUse = "blocked";
+    newDout.blockedBy = "DOUT";
+    profile.power.worstCaseCurrentPerPanel = 0.72;
+    definition.panelProfile = {
+      id: profile.id,
+      source: "test-flexible-ring-1x12.json",
+    };
+    for (const panel of definition.panels) {
+      panel.installedAddressTransform = {
+        status: "assumed",
+        referenceView: "back",
+        quarterTurnsClockwise: 0,
+        mirrored: false,
+        selectionMethod: "manual",
+      };
+    }
+
+    const project = createPanelAssemblyProject(
+      definition,
+      "test-flexible-ring-sculpture.json",
+      profile,
+    );
+    const geometry = createPanelAssemblyMapping(project);
+    const firstPanel = geometry.panels[0]!;
+    const firstEntry = geometry.entries.find(
+      (entry) => entry.panelId === firstPanel.id && entry.physicalIndex === 0,
+    )!;
+    expect(firstEntry.x).toBeCloseTo(
+      firstPanel.position.x + firstPanel.xAxis.x * 30,
+      10,
+    );
+    expect(firstEntry.y).toBeCloseTo(
+      firstPanel.position.y + firstPanel.xAxis.y * 30,
+      10,
+    );
+    expect(firstEntry.z).toBeCloseTo(
+      firstPanel.position.z + firstPanel.xAxis.z * 30,
+      10,
+    );
+    expect(geometry.entries).toHaveLength(41 * 12);
+    expect(validateMapping(geometry, geometry.entries.length)).toEqual({
+      valid: true,
+      errors: [],
+    });
+
+    const wiring = createWiringPreview(
+      geometry,
+      project.sculpture,
+      project.panelProfile,
+    );
+    const contract = createContract(geometry, wiring, project.panelProfile);
+    expect(contract.mapping.panelPixelGrid).toEqual({ columns: 12, rows: 1 });
+    expect(contract.outputs.map((output) => output.pixelCount)).toEqual([
+      132, 120, 120, 120,
+    ]);
+    expect(contract.mapping.entries).toHaveLength(492);
+    const setupConfig = createSimulatorSetupConfig(
+      JSON.parse(readFileSync("firmware/one-panel-smoke-cfg.json", "utf8")),
+      contract.outputs.map((output) => ({
+        startIndex: output.startIndex,
+        pixelCount: output.pixelCount,
+        gpio: output.gpio!,
+      })),
+      contract.wledColorOrder.wledValue,
+      12,
+    ) as { hw: { led: { total: number; maxpwr: number; ins: unknown[] } } };
+    expect(setupConfig.hw.led).toMatchObject({
+      total: 492,
+      maxpwr: 7_688,
+      ins: [
+        { start: 0, len: 132, pin: [16], maxpwr: 2_063 },
+        { start: 132, len: 120, pin: [17], maxpwr: 1_875 },
+        { start: 252, len: 120, pin: [18], maxpwr: 1_875 },
+        { start: 372, len: 120, pin: [19], maxpwr: 1_875 },
+      ],
+    });
   });
 
   it("rotates fixed back-view corner vectors clockwise after mirroring", () => {

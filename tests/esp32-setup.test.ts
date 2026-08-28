@@ -199,6 +199,16 @@ describe("guarded ESP32 setup contracts", () => {
         { start: 1_984, len: 640, pin: [19], maxpwr: 14_000 },
       ],
     });
+    const nonLegacy2624 = createSimulatorSetupConfig(template, [
+      { startIndex: 0, pixelCount: 656, gpio: 16 },
+      { startIndex: 656, pixelCount: 656, gpio: 17 },
+      { startIndex: 1_312, pixelCount: 656, gpio: 18 },
+      { startIndex: 1_968, pixelCount: 656, gpio: 19 },
+    ], 0, 82) as { hw: { led: { maxpwr: number; ins: Array<{ maxpwr: number }> } } };
+    expect(nonLegacy2624.hw.led.maxpwr).toBe(41_000);
+    expect(nonLegacy2624.hw.led.ins.map((output) => output.maxpwr)).toEqual([
+      10_250, 10_250, 10_250, 10_250,
+    ]);
     expect(() => createSimulatorSetupConfig(template, [
       { startIndex: 0, pixelCount: 2_688, gpio: 16 },
     ], 0)).toThrow(/1 through 41/);

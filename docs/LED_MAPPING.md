@@ -16,7 +16,10 @@ assumed route or unmeasured panel facts into measured evidence.
 The current mapping pipeline separates three concepts:
 
 1. **Panel-local coordinates** identify an emitter by panel ID and `(x, y)` in
-   the active panel profile's `columns × rows` grid. The current physical panel
+   the active panel profile's `columns × rows` address grid. A profile can
+   provide one row-major pose-local XYZ point per grid coordinate; the existing
+   pixel-order contract maps those coordinates to wire addresses. Otherwise the
+   runtime derives the historical rectangular grid. The current physical panel
    profile is 8 × 8.
 2. **Logical index** is effect/simulator order. LED world positions are projected
    equirectangularly, then sorted by `v`, `u`, and a deterministic tie-breaker:

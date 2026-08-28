@@ -35,6 +35,33 @@ No tasks.
 
 ## Ready
 
+### `P1 · FIXTURE-011` Add arbitrary carriers and flexible paths
+
+- Scope: extend the normalized fixture contract with optional planar carrier
+  outlines and flexible emitter paths, render those carriers and emitters, and
+  make placement and fabrication tools advertise and enforce their actual
+  capabilities instead of assuming every fixture is rectangular and rigid.
+- Acceptance: one tracked arbitrary-outline fixture and one 1×N ring/strip
+  fixture load, render, map, wire, simulate, and configure WLED; rectangular
+  automatic placement and unsupported fabrication actions fail closed with a
+  clear message; the current 41-panel project remains unchanged.
+- Dependency: `FIXTURE-010`.
+- Conflict risk: panel rendering, placement footprints, fabrication capability
+  gates, and the panel-profile/schema contract.
+
+### `P1 · UI-026` Replace the numbered workflow with capability toolboxes
+
+- Scope: remove the forced 1–6 presentation and group the existing controls as
+  always-editable Shape, Fixtures, Mapping, Fabrication, Build Hardware, View,
+  and Export toolboxes. Show or disable actions from the loaded project's
+  capabilities rather than from a presumed fabrication sequence.
+- Acceptance: the existing 41-panel workflow keeps every current action, while
+  strip/ring projects can use mapping, wiring, simulation, ESP32, and export
+  without irrelevant mesh-placement or planar-part steps blocking them.
+- Dependency: `FIXTURE-010`; use `FIXTURE-011` capability results when present.
+- Conflict risk: `web/src/main.ts`, `web/src/styles.css`, and focused browser UI
+  contracts.
+
 ### `P1 · LIVE-010` Prove direct MadMapper Art-Net physical addressing
 
 - Scope: send the generated 16-universe physical fixture atlas directly from
@@ -102,7 +129,21 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `P1 · FIXTURE-010` Normalize explicit emitter and connector positions
+
+- Result: panel profiles can provide one pose-local XYZ emitter for each
+  row-major grid coordinate and exact pose-local DIN/DOUT anchors. Mapping,
+  wiring, automatic orientation, and ESP32 setup consume the generalized
+  fixture size; missing fields retain the historical rectangular behavior.
+- Evidence: the 1×12 circular fixture reaches an exact 492-LED WLED setup;
+  focused profile/mapping/wiring/ESP32 checks passed 74/74; TypeScript and diff
+  checks passed; main and this branch produce the same complete 2,624-entry
+  flagship mapping SHA-256 `bf766be1…a9b24`; independent review passed.
+- Out of scope: carrier rendering, flexible-path editing, automatic placement,
+  printable geometry, and UI restructuring; those remain `FIXTURE-011` and
+  `UI-026`.
+- Owner: `codex/fixture-010-generalized-emitters` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-fixture-010`.
 
 ## Done
 

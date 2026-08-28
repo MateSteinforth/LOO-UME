@@ -62,6 +62,8 @@ export interface PanelHardwareProfile {
     columns: number;
     rows: number;
     emitterOffset: number;
+    /** Optional row-major grid-coordinate XYZ positions in the panel pose frame. */
+    localEmitterPositions?: Array<[number, number, number]>;
     colorOrder: PanelColorOrderDefinition;
     provisionalOrder: PixelOrderDefinition;
   };
@@ -93,6 +95,12 @@ export interface PanelHardwareProfile {
     cornerAssignmentStatus: "measured";
     dinCorner: PanelCorner;
     doutCorner: PanelCorner;
+    /** Optional exact anchors in the authoritative panel pose frame. */
+    localPositions?: {
+      coordinateFrame: "pose-local";
+      din: [number, number, number];
+      dout: [number, number, number];
+    };
     padPositionStatus: FactStatus;
     note: string;
   };
@@ -131,6 +139,56 @@ export interface PanelHardwareProfile {
     regions: unknown[];
     note: string;
   };
+}
+
+export type PanelLocalPosition = [number, number, number];
+
+/**
+ * Resolve every row-major grid coordinate to one pose-local emitter position.
+ * Profiles without explicit positions retain the historical grid exactly.
+ */
+export function panelEmitterLocalPositions(
+  profile: PanelHardwareProfile,
+): PanelLocalPosition[] {
+  if (profile.pixelGrid.localEmitterPositions) {
+    return profile.pixelGrid.localEmitterPositions.map((position) => [
+      position[0],
+      position[1],
+      position[2],
+    ]);
+  }
+  const { columns, rows, emitterOffset } = profile.pixelGrid;
+  const pitchX = profile.dimensions.width / (columns + 1);
+  const pitchY = profile.dimensions.height / (rows + 1);
+  return Array.from({ length: columns * rows }, (_, physicalIndex) => {
+    const pixelX = physicalIndex % columns;
+    const pixelY = Math.floor(physicalIndex / columns);
+    return [
+      (pixelX - (columns - 1) / 2) * pitchX,
+      ((rows - 1) / 2 - pixelY) * pitchY,
+      emitterOffset,
+    ];
+  });
+}
+
+/** Resolve DIN/DOUT to pose-local XYZ, preserving the legacy corner rule. */
+export function panelConnectorLocalPosition(
+  profile: PanelHardwareProfile,
+  edgeInset: number,
+  kind: "din" | "dout",
+): PanelLocalPosition {
+  const explicit = profile.dataConnectors.localPositions?.[kind];
+  if (explicit) return [explicit[0], explicit[1], explicit[2]];
+  const corner = kind === "din"
+    ? profile.dataConnectors.dinCorner
+    : profile.dataConnectors.doutCorner;
+  const backX = corner.endsWith("left") ? -1 : 1;
+  return [
+    -backX * (profile.dimensions.width / 2 - edgeInset),
+    (corner.startsWith("bottom") ? -1 : 1) *
+      (profile.dimensions.height / 2 - edgeInset),
+    0,
+  ];
 }
 
 /** Convert measured PCB back-view XY into the outward-facing panel pose XY. */
@@ -299,6 +357,36 @@ export function parsePanelHardwareProfile(
     throw new Error("Pixel grid dimensions must be integers.");
   }
   requireFiniteNumber(pixelGrid, "emitterOffset");
+  if (pixelGrid.localEmitterPositions !== undefined) {
+    if (
+      !Array.isArray(pixelGrid.localEmitterPositions) ||
+      pixelGrid.localEmitterPositions.length !== columns * rows
+    ) {
+      throw new Error(
+        "Explicit emitter positions must contain one row-major position per grid coordinate.",
+      );
+    }
+    const positionKeys = new Set<string>();
+    for (const position of pixelGrid.localEmitterPositions) {
+      if (
+        !Array.isArray(position) ||
+        position.length !== 3 ||
+        position.some((coordinate) =>
+          typeof coordinate !== "number" || !Number.isFinite(coordinate)
+        )
+      ) {
+        throw new Error(
+          "Explicit emitter positions must contain three finite pose-local coordinates.",
+        );
+      }
+      const key = position.map((coordinate) => Object.is(coordinate, -0) ? 0 : coordinate)
+        .join(",");
+      if (positionKeys.has(key)) {
+        throw new Error("Explicit emitter positions must be unique.");
+      }
+      positionKeys.add(key);
+    }
+  }
   const colorOrder = requireRecord(pixelGrid, "colorOrder");
   requireOneOf(colorOrder, "status", ["provisional", "measured"]);
   const channelSequence = requireOneOf(colorOrder, "channelSequence", [
@@ -461,6 +549,31 @@ export function parsePanelHardwareProfile(
   ]);
   if (dinCorner === doutCorner) {
     throw new Error("DIN and DOUT must use different panel corners.");
+  }
+  if (dataConnectors.localPositions !== undefined) {
+    const localPositions = requireRecord(dataConnectors, "localPositions");
+    if (localPositions.coordinateFrame !== "pose-local") {
+      throw new Error(
+        "Explicit connector positions must use the pose-local coordinate frame.",
+      );
+    }
+    for (const key of ["din", "dout"] as const) {
+      const position = localPositions[key];
+      if (
+        !Array.isArray(position) ||
+        position.length !== 3 ||
+        position.some((coordinate) =>
+          typeof coordinate !== "number" || !Number.isFinite(coordinate)
+        )
+      ) {
+        throw new Error(
+          "Explicit connector positions must contain three finite pose-local coordinates.",
+        );
+      }
+    }
+    if (JSON.stringify(localPositions.din) === JSON.stringify(localPositions.dout)) {
+      throw new Error("Explicit DIN and DOUT positions must be different.");
+    }
   }
   const cornerCoordinate = (corner: PanelCorner): [number, number] => [
     corner.endsWith("left") ? 0 : columns - 1,

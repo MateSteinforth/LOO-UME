@@ -45,6 +45,22 @@ power topology, and exact electrical pad centres remain incomplete. The
 front-view straight row-major pixel order and GRB color order are measured.
 Never use a blocked hole for a structural tab.
 
+The profile keeps `columns × rows` as the addressable coordinate grid, but
+emitter geometry can be explicit. Optional row-major `localEmitterPositions`
+stores one XYZ point per grid coordinate in the authoritative pose frame. The
+existing pixel-order contract still maps those coordinates to wire addresses.
+Optional `dataConnectors.localPositions` stores exact pose-local DIN and DOUT
+anchors.
+When these fields are absent, the runtime derives the historical rectangular
+grid and back-view corner anchors exactly. This compatible seam lets a flexible
+1×N strip or ring use mapping, wiring, simulation, and WLED without pretending
+that its LEDs form a rectangular physical carrier.
+
+Carrier outlines, flexible path rendering, automatic-placement capability
+gates, and fabrication support are separate work. Until those capabilities are
+present, explicit emitter geometry does not authorize rectangular placement or
+print generation for a non-rectangular fixture.
+
 ## Placement and editing
 
 The editor creates panels in three ways:

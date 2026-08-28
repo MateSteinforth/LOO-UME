@@ -29,8 +29,10 @@ edit marks derived mechanics stale but does not stop those functions.
 1. `parsePanelAssemblyDefinition()` is the central deep Schema 2 runtime
    validator. `LoadPanelAssemblyProject.ts` is the thin CLI file adapter, while
    browser and portable-project adapters use the same profile-resolving loader.
-2. `createPanelAssemblyMapping()` expands authoritative poses into panels, LED
-   world positions, logical indices, and mapping metadata.
+2. `panelEmitterLocalPositions()` normalizes an optional row-major pose-local
+   grid-coordinate emitter list or derives the legacy rectangular grid.
+   `createPanelAssemblyMapping()` expands those positions through authoritative
+   poses into LED world positions, logical indices, and mapping metadata.
 3. `optimizeAutomaticWiring()` can write a deterministic balanced route, GPIO
    set, and physical local-Z panel orientation. `createProvisionalWiringPreview()`
    uses that saved route or creates a labelled legacy draft suggestion.
