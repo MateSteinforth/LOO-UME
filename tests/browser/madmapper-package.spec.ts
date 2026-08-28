@@ -32,6 +32,8 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
   ));
   expect(manifest).toMatchObject({
     panelFixtureCount: 41,
+    pixelFixtureCount: 2_624,
+    fixtureLayout: "individual-physical-pixels",
     universeCount: 16,
   });
   expect(manifest.mappingFingerprint).toMatch(/^[0-9a-f]{8}$/);

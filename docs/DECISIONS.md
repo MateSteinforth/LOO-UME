@@ -241,3 +241,19 @@ Before any generated-part manifest exists, all four quarter turns are eligible.
 After a mechanics or structural manifest exists, including when stale, only the
 current pose and a 180-degree turn are eligible. Manual route editing is an
 Advanced exception, not the normal workflow.
+
+## D32 — Export a supported MadMapper information package
+
+The MadMapper handoff contains a generated 6.1+ SVG fixture atlas, readable
+address files, mapping manifest, and generated setup PDF. It does not generate
+MadMapper's undocumented native project format. Schema 2, the mapping contract,
+and mapping fingerprint remain the authorities.
+
+The SVG uses one fixture group for each panel and one independently addressed
+`Generic - Pixel RGB` fixture for each physical LED. Every fixture footprint
+comes from its pose-derived LED position and panel axes. Art-Net addresses
+follow physical wire order over 16 universes. This makes MadMapper perform the
+complete realtime spatial-to-wire mapping because its documented SVG contract
+has no per-instance matrix-assignation field. WLED realtime ledmap processing
+stays disabled for direct Art-Net, while native WLED effects can continue to use
+the installed ledmap. `LIVE-010` must prove the path on Ethernet hardware.

@@ -35,26 +35,22 @@ No tasks.
 
 ## Ready
 
-### `P1 · LIVE-010` Bridge MadMapper Art-Net into the mapped WLED DDP output
+### `P1 · LIVE-010` Prove direct MadMapper Art-Net physical addressing
 
-- Scope: add a local BUILD HARDWARE bridge that receives bounded Art-Net from
-  MadMapper, applies the active Schema 2 logical-to-physical mapping, and sends
-  the result through the existing verified DDP path while WLED remains in DDP
-  mode.
-- First slice: three panels / 192 RGB LEDs / two Art-Net universes, with an
-  exported MadMapper fixture-address plan, selected sender and LAN interface,
-  Start/Stop controls, universe/FPS/status diagnostics, and standalone-preset
-  fallback after input timeout.
-- Acceptance: reject wrong senders, universes, pixel counts, stale projects,
-  incomplete frames, and unsafe targets without forwarding; project changes
-  stop the bridge. Preserve exact color order and address parity. The protocol
-  contract must scale to 2,624 LEDs / 16 universes without using WLED's Art-Net
-  input.
-- Dependencies: existing local desktop server, Schema 2 mapping compiler, and
-  bounded DDP sender. No hardware or external API dependency blocks the
-  three-panel slice.
-- Conflict risk: local server lifecycle, `scripts/esp32-device-handler.ts`,
-  `web/src/Esp32Setup.ts`, `web/src/main.ts`, and BUILD HARDWARE controls.
+- Scope: send the generated 16-universe physical fixture atlas directly from
+  MadMapper to WLED over wired Ethernet. MadMapper owns realtime spatial-to-wire
+  mapping; WLED realtime ledmap processing stays disabled. Native WLED effects
+  continue to use the installed ledmap.
+- First slice: three panels / 192 RGB LEDs / two universes; then 2,624 LEDs / 16
+  universes with finite native-preset fallback.
+- Acceptance: prove exact panel orientation, physical address, RGB order,
+  universe boundaries, timeout fallback, restart behavior, sustained FPS, and
+  incomplete-frame handling. Confirm that MadMapper remains responsive with
+  2,624 individual fixtures.
+- Dependencies: the approved Ethernet-capable WLED hardware and powered test
+  setup. Do not add an Art-Net-to-DDP bridge unless measurements prove that the
+  direct path cannot meet the performance target.
+- Conflict risk: WLED Ethernet/realtime configuration and BUILD HARDWARE setup.
 
 ## In Progress
 
@@ -110,6 +106,11 @@ No tasks.
 
 ## Done
 
+- `MAD-010` / `MAD-011`: integrated the mapping-ready MadMapper ZIP download
+  on 2026-08-28. It exports 2,624 pose-positioned physical RGB fixtures in 41
+  panel groups, direct addresses over 16 universes, CSV/JSON information, and
+  a setup PDF. Eight focused tests, TypeScript, and the production build passed;
+  full-load MadMapper and Ethernet evidence remains in `LIVE-010`.
 - `WIRE-016`: integrated automatic balanced data routing, GPIO 16–19
   assignment, pose-owned DIN/DOUT orientation, the durable pre/post-fabrication
   rotation gate, and the Advanced manual route editor on 2026-08-28. Focused

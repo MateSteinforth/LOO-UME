@@ -1470,3 +1470,34 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** All direct workflow content now uses one layout rule. Nested
   buttons continue to fill their already-inset parent containers.
 - **Status:** Resolved.
+
+### F-080 — Documentation typography broke a MadMapper fixture identifier
+
+- **Date:** 2026-08-28
+- **Context:** MAD-010/MAD-011 SVG import in MadMapper Demo 6.1.5.
+- **Symptom:** Import rejected every fixture as an unknown definition.
+- **Cause:** The exporter copied a typographic en dash into an external library
+  identifier that requires the exact ASCII `Generic - Pixel RGB` spelling.
+- **Correction:** Emit the byte-exact identifier and reject the typographic form
+  in focused tests.
+- **Prevention:** Treat external library names as exact data, not prose.
+- **Evidence:** Operator import result and the MadMapper exporter regression.
+- **Status:** Resolved in the exporter; awaiting package retest.
+
+### F-081 — Matrix polygons did not preserve per-panel pixel orientation
+
+- **Date:** 2026-08-28
+- **Context:** MAD-010 SVG import in MadMapper Demo 6.1.5.
+- **Symptom:** All imported 8 x 8 matrices had the same internal alignment,
+  although the sculpture's middle panels have different pose rotations.
+- **Cause:** MadMapper does not derive matrix assignation from SVG polygon
+  corner order, and its documented SVG contract has no per-instance matrix
+  assignation or rotation field.
+- **Correction:** Export one independently addressed RGB fixture for every
+  physical LED. Derive its footprint from the pose and address it in physical
+  wire order.
+- **Prevention:** Do not use grouped matrix fixtures when instances require
+  different scan directions unless the import format supports that explicitly.
+- **Evidence:** Operator import result and focused horizontal, +31.6 degree, and
+  -31.6 degree panel-row regressions.
+- **Status:** Resolved in the exporter; awaiting package performance review.

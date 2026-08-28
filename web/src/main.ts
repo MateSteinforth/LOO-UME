@@ -2541,7 +2541,7 @@ async function start(): Promise<void> {
       link.click();
       URL.revokeObjectURL(objectUrl);
       setLogMessage(
-        `Downloaded ${link.download} with ${hardwareContract.mapping.panels.length} matrix fixtures, the Art-Net patch, mapping manifest, and draft setup PDF.`,
+        `Downloaded ${link.download} with ${hardwareContract.mapping.entries.length} physical RGB fixtures in ${hardwareContract.mapping.panels.length} panel groups, the Art-Net patch, mapping manifest, and draft setup PDF.`,
       );
     };
 
