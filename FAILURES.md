@@ -1576,3 +1576,43 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   explicit capabilities.
 - **Evidence:** Focused toolbox ownership, overflow, and capability checks.
 - **Status:** Resolved by UI-026.
+
+### F-086 — Explicit emitter coordinates do not remove the back-view address reflection
+
+- **Date:** 2026-08-29
+- **Context:** Creating the tracked 1×188 flexible LED-ring profile.
+- **Symptom:** The first hardware-contract check rejected a corner/direction
+  combination, and the next attempt assigned physical address 0 to the DOUT-side
+  emitter instead of the explicit DIN-side emitter.
+- **Cause:** `localEmitterPositions` uses the outward pose frame, while pixel
+  order and installed address transforms remain PCB back-view contracts. The
+  hardware compiler must still reflect X exactly once.
+- **Correction:** Keep the explicit emitter list in outward row-major order and
+  declare the compatible back-view start corner and first-line direction. Prove
+  physical address 0 at DIN after the complete hardware mapping compiler, not
+  only in the geometry mapping.
+- **Prevention:** For every non-rectangular fixture, test an exact DIN emitter,
+  DOUT emitter, complete physical permutation, and WLED bus through the final
+  hardware contract.
+- **Evidence:** `tests/one-metre-ring-demo.test.ts`.
+- **Status:** Resolved by FIXTURE-012.
+
+### F-087 — Ring size and strip-facing direction must be explicit
+
+- **Date:** 2026-08-29
+- **Context:** First visual review of the flexible LED-ring demo.
+- **Symptom:** “One-metre ring” was modeled as a 1,000 mm strip circumference
+  with 60 LEDs lying on the hoop face. The intended object was a 1,000 mm
+  diameter hoop with the strip LEDs facing radially outward.
+- **Cause:** The fixture encoded a path but did not state whether one metre was
+  diameter or circumference, and the default flexible-path cross-section used
+  the path plane instead of an authored radial frame.
+- **Correction:** State the 1,000 mm diameter and approximately 60 LEDs/m
+  density explicitly, use 188 emitters, and add a backward-compatible
+  `radial-outward` frame whose thickness axis points away from the declared
+  center.
+- **Prevention:** Every ring fixture must record diameter or circumference,
+  emitter density/count, DIN direction, and which carrier surface emits light.
+- **Evidence:** The corrected FIXTURE-012 profile, radial-frame geometry test,
+  and operator visual review URL.
+- **Status:** Resolved by FIXTURE-012.

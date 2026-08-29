@@ -12,6 +12,16 @@ export interface LocalPanelCarrierGeometry {
   outlineSegments: Array<[LocalCarrierPoint, LocalCarrierPoint]>;
 }
 
+export function usesExplicitRadialCarrierEmitters(
+  profile: PanelCarrierProfile & {
+    pixelGrid?: { localEmitterPositions?: unknown };
+  },
+): boolean {
+  return profile.carrier?.kind === "flexible-path" &&
+    profile.carrier.frame?.kind === "radial-outward" &&
+    Array.isArray(profile.pixelGrid?.localEmitterPositions);
+}
+
 function planarGeometry(
   outline: Array<[number, number]>,
 ): LocalPanelCarrierGeometry {
@@ -40,6 +50,7 @@ function flexiblePathGeometry(
   closed: boolean,
   width: number,
   thickness: number,
+  radialCenter?: LocalCarrierPoint,
 ): LocalPanelCarrierGeometry {
   const triangles: LocalCarrierPoint[] = [];
   const outlineSegments: Array<[LocalCarrierPoint, LocalCarrierPoint]> = [];
@@ -56,7 +67,7 @@ function flexiblePathGeometry(
     const start = path[index]!;
     const end = path[(index + 1) % path.length]!;
     const vertices = flexibleCarrierSegmentVertices(
-      start, end, width, thickness,
+      start, end, width, thickness, radialCenter,
     );
     for (const face of faces) {
       for (const vertexIndex of face) {
@@ -93,5 +104,6 @@ export function createLocalPanelCarrierGeometry(
     carrier.closed,
     carrier.width,
     carrier.thickness,
+    carrier.frame?.center,
   );
 }

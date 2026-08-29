@@ -74,6 +74,20 @@ remains the camera, selection, and portability envelope. Mapping, wiring,
 simulation, MadMapper export, ESP32 setup, project save, and project reload are
 carrier-independent.
 
+`sculptures/one-metre-led-ring/sculpture.json` is the tracked flexible-path
+example. It models one 1,000 mm diameter hoop with 188 explicit outward-radial
+emitters at approximately 60 LEDs/m, one authored chain, and GPIO 16. Its panel-profile mounting fields are
+legacy compatibility data only; capability gates keep rectangular placement
+and fabrication disabled. Color order, connector anchors, and power values are
+provisional demo assumptions rather than physical evidence.
+
+The optional `radial-outward` flexible frame keeps strip thickness aligned with
+the radius from its declared center and strip width perpendicular to the path
+and radius. Existing flexible paths without this frame retain their original
+path-normal cross-section. Explicit radial-frame emitter positions already sit
+on their physical display surface, so the renderer does not add the rigid-panel
+2.4 mm preview separation to them.
+
 Automatic surface placement, planar closures, connector ribbons, and
 LED-surface bridges still use rigid rectangular PCB assumptions. Their browser
 controls are disabled for other carrier kinds, and the CAD entry points repeat

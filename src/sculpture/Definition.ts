@@ -99,7 +99,7 @@ export interface PanelHardwareProfile {
   dataConnectors: {
     referenceView: "back";
     orientationReference: "three-mounting-holes-vertical";
-    cornerAssignmentStatus: "measured";
+    cornerAssignmentStatus: "provisional" | "measured";
     dinCorner: PanelCorner;
     doutCorner: PanelCorner;
     /** Optional exact anchors in the authoritative panel pose frame. */
@@ -540,13 +540,16 @@ export function parsePanelHardwareProfile(
   const dataConnectors = requireRecord(profileInput, "dataConnectors");
   if (
     dataConnectors.referenceView !== "back" ||
-    dataConnectors.orientationReference !== "three-mounting-holes-vertical" ||
-    dataConnectors.cornerAssignmentStatus !== "measured"
+    dataConnectors.orientationReference !== "three-mounting-holes-vertical"
   ) {
     throw new Error(
-      "Data connector corners require the measured back-view orientation.",
+      "Data connector corners require the supported back-view orientation.",
     );
   }
+  requireOneOf(dataConnectors, "cornerAssignmentStatus", [
+    "provisional",
+    "measured",
+  ]);
   const dinCorner = requireOneOf(dataConnectors, "dinCorner", [
     "top-left",
     "top-right",
