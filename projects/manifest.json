@@ -28,6 +28,16 @@
       "source": "./projects/demos/one-metre-flexible-led-ring-demo.loo.zip"
     },
     {
+      "id": "photo-derived-wedge-panel-demo",
+      "name": "Photo-derived Wedge Panel Demo",
+      "source": "./projects/demos/photo-derived-wedge-panel-demo.loo.zip"
+    },
+    {
+      "id": "photo-derived-30-panel-wedge-sculpture",
+      "name": "Photo-derived 30-panel Wedge Sculpture",
+      "source": "./projects/demos/photo-derived-30-panel-wedge-sculpture.loo.zip"
+    },
+    {
       "id": "structural-two-panel-spatial-trial",
       "name": "Structural Two-panel Spatial Trial",
       "source": "./projects/demos/structural-two-panel-spatial-trial.loo.zip"

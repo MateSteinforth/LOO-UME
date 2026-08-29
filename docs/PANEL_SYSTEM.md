@@ -98,6 +98,14 @@ facts are estimates. It is useful for simulation, mapping, wiring, ESP32 setup,
 and portable-project exchange, but it is not manufacturing or fabrication
 authority.
 
+`sculptures/photo-wedge-panel/sculpture-30-panel.json` is the corresponding
+full visual-study reconstruction. It places 30 copies on provisional
+rhombic-triacontahedron face-normal directions at a 270 mm center radius and
+stores a current automatic route: three equal 10-panel chains on GPIO 16, 17,
+and 18. The arrangement reproduces the supplied rendering for simulation and
+Project Browser review. It does not claim measured panel poses, enclosure fit,
+or fabrication geometry.
+
 The optional `radial-outward` flexible frame keeps strip thickness aligned with
 the radius from its declared center and strip width perpendicular to the path
 and radius. Existing flexible paths without this frame retain their original

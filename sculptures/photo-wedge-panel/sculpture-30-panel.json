@@ -1,0 +1,1154 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "photo-derived-30-panel-wedge-sculpture",
+  "name": "Photo-derived 30-panel Wedge Sculpture",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "photo-derived-ws2812b-8x8-wedge-panel",
+    "source": "panel-profile.json"
+  },
+  "panels": [
+    {
+      "id": "WEDGE-01",
+      "pose": {
+        "position": [
+          0,
+          0,
+          270
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            1,
+            0
+          ],
+          "yAxis": [
+            -1,
+            0,
+            0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-02",
+      "pose": {
+        "position": [
+          -83.434588482,
+          -135,
+          218.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            0.850650808,
+            -0.525731112,
+            0
+          ],
+          "yAxis": [
+            0.425325404,
+            0.68819096,
+            0.587785252
+          ],
+          "normal": [
+            -0.309016994,
+            -0.5,
+            0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-03",
+      "pose": {
+        "position": [
+          83.434588482,
+          -135,
+          218.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            0.425325404,
+            -0.68819096,
+            -0.587785252
+          ],
+          "yAxis": [
+            0.850650808,
+            0.525731112,
+            0
+          ],
+          "normal": [
+            0.309016994,
+            -0.5,
+            0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-04",
+      "pose": {
+        "position": [
+          83.434588482,
+          135,
+          218.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.850650808,
+            0.525731112,
+            0
+          ],
+          "yAxis": [
+            -0.425325404,
+            -0.68819096,
+            0.587785252
+          ],
+          "normal": [
+            0.309016994,
+            0.5,
+            0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-05",
+      "pose": {
+        "position": [
+          -83.434588482,
+          135,
+          218.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.425325404,
+            0.68819096,
+            -0.587785252
+          ],
+          "yAxis": [
+            -0.850650808,
+            -0.525731112,
+            0
+          ],
+          "normal": [
+            -0.309016994,
+            0.5,
+            0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-06",
+      "pose": {
+        "position": [
+          -218.434588482,
+          -83.434588482,
+          135
+        ],
+        "orientation": {
+          "xAxis": [
+            0.467086179,
+            0.178411045,
+            0.866025404
+          ],
+          "yAxis": [
+            -0.35682209,
+            0.934172359,
+            0
+          ],
+          "normal": [
+            -0.809016994,
+            -0.309016994,
+            0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-07",
+      "pose": {
+        "position": [
+          218.434588482,
+          -83.434588482,
+          135
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.467086179,
+            0.178411045,
+            0.866025404
+          ],
+          "yAxis": [
+            -0.35682209,
+            -0.934172359,
+            0
+          ],
+          "normal": [
+            0.809016994,
+            -0.309016994,
+            0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-08",
+      "pose": {
+        "position": [
+          218.434588482,
+          83.434588482,
+          135
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.467086179,
+            -0.178411045,
+            0.866025404
+          ],
+          "yAxis": [
+            0.35682209,
+            -0.934172359,
+            0
+          ],
+          "normal": [
+            0.809016994,
+            0.309016994,
+            0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-09",
+      "pose": {
+        "position": [
+          -218.434588482,
+          83.434588482,
+          135
+        ],
+        "orientation": {
+          "xAxis": [
+            0.35682209,
+            0.934172359,
+            0
+          ],
+          "yAxis": [
+            -0.467086179,
+            0.178411045,
+            -0.866025404
+          ],
+          "normal": [
+            -0.809016994,
+            0.309016994,
+            0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-10",
+      "pose": {
+        "position": [
+          -135,
+          -218.434588482,
+          83.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            0.162459848,
+            0.262865556,
+            0.951056516
+          ],
+          "yAxis": [
+            -0.850650808,
+            0.525731112,
+            0
+          ],
+          "normal": [
+            -0.5,
+            -0.809016994,
+            0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-11",
+      "pose": {
+        "position": [
+          135,
+          -218.434588482,
+          83.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.850650808,
+            -0.525731112,
+            0
+          ],
+          "yAxis": [
+            0.162459848,
+            -0.262865556,
+            -0.951056516
+          ],
+          "normal": [
+            0.5,
+            -0.809016994,
+            0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-12",
+      "pose": {
+        "position": [
+          135,
+          218.434588482,
+          83.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.162459848,
+            -0.262865556,
+            0.951056516
+          ],
+          "yAxis": [
+            0.850650808,
+            -0.525731112,
+            0
+          ],
+          "normal": [
+            0.5,
+            0.809016994,
+            0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-13",
+      "pose": {
+        "position": [
+          -135,
+          218.434588482,
+          83.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            0.850650808,
+            0.525731112,
+            0
+          ],
+          "yAxis": [
+            -0.162459848,
+            0.262865556,
+            -0.951056516
+          ],
+          "normal": [
+            -0.5,
+            0.809016994,
+            0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-14",
+      "pose": {
+        "position": [
+          0,
+          -270,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0,
+            1
+          ],
+          "yAxis": [
+            -1,
+            0,
+            0
+          ],
+          "normal": [
+            0,
+            -1,
+            0
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-15",
+      "pose": {
+        "position": [
+          270,
+          0,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0,
+            1
+          ],
+          "yAxis": [
+            0,
+            -1,
+            0
+          ],
+          "normal": [
+            1,
+            0,
+            0
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-16",
+      "pose": {
+        "position": [
+          0,
+          270,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0,
+            1
+          ],
+          "yAxis": [
+            1,
+            0,
+            0
+          ],
+          "normal": [
+            0,
+            1,
+            0
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-17",
+      "pose": {
+        "position": [
+          -270,
+          0,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0,
+            -1
+          ],
+          "yAxis": [
+            0,
+            -1,
+            0
+          ],
+          "normal": [
+            -1,
+            0,
+            0
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-18",
+      "pose": {
+        "position": [
+          -135,
+          -218.434588482,
+          -83.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            0.850650808,
+            -0.525731112,
+            0
+          ],
+          "yAxis": [
+            -0.162459848,
+            -0.262865556,
+            0.951056516
+          ],
+          "normal": [
+            -0.5,
+            -0.809016994,
+            -0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-19",
+      "pose": {
+        "position": [
+          135,
+          -218.434588482,
+          -83.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.162459848,
+            0.262865556,
+            -0.951056516
+          ],
+          "yAxis": [
+            0.850650808,
+            0.525731112,
+            0
+          ],
+          "normal": [
+            0.5,
+            -0.809016994,
+            -0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-20",
+      "pose": {
+        "position": [
+          135,
+          218.434588482,
+          -83.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            0.162459848,
+            0.262865556,
+            0.951056516
+          ],
+          "yAxis": [
+            0.850650808,
+            -0.525731112,
+            0
+          ],
+          "normal": [
+            0.5,
+            0.809016994,
+            -0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-21",
+      "pose": {
+        "position": [
+          -135,
+          218.434588482,
+          -83.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            0.162459848,
+            -0.262865556,
+            -0.951056516
+          ],
+          "yAxis": [
+            -0.850650808,
+            -0.525731112,
+            0
+          ],
+          "normal": [
+            -0.5,
+            0.809016994,
+            -0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-22",
+      "pose": {
+        "position": [
+          -218.434588482,
+          -83.434588482,
+          -135
+        ],
+        "orientation": {
+          "xAxis": [
+            0.35682209,
+            -0.934172359,
+            0
+          ],
+          "yAxis": [
+            -0.467086179,
+            -0.178411045,
+            0.866025404
+          ],
+          "normal": [
+            -0.809016994,
+            -0.309016994,
+            -0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-23",
+      "pose": {
+        "position": [
+          218.434588482,
+          -83.434588482,
+          -135
+        ],
+        "orientation": {
+          "xAxis": [
+            0.467086179,
+            -0.178411045,
+            0.866025404
+          ],
+          "yAxis": [
+            -0.35682209,
+            -0.934172359,
+            0
+          ],
+          "normal": [
+            0.809016994,
+            -0.309016994,
+            -0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-24",
+      "pose": {
+        "position": [
+          218.434588482,
+          83.434588482,
+          -135
+        ],
+        "orientation": {
+          "xAxis": [
+            0.467086179,
+            0.178411045,
+            0.866025404
+          ],
+          "yAxis": [
+            0.35682209,
+            -0.934172359,
+            0
+          ],
+          "normal": [
+            0.809016994,
+            0.309016994,
+            -0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-25",
+      "pose": {
+        "position": [
+          -218.434588482,
+          83.434588482,
+          -135
+        ],
+        "orientation": {
+          "xAxis": [
+            0.467086179,
+            -0.178411045,
+            -0.866025404
+          ],
+          "yAxis": [
+            -0.35682209,
+            -0.934172359,
+            0
+          ],
+          "normal": [
+            -0.809016994,
+            0.309016994,
+            -0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-26",
+      "pose": {
+        "position": [
+          -83.434588482,
+          -135,
+          -218.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.425325404,
+            -0.68819096,
+            0.587785252
+          ],
+          "yAxis": [
+            -0.850650808,
+            0.525731112,
+            0
+          ],
+          "normal": [
+            -0.309016994,
+            -0.5,
+            -0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-27",
+      "pose": {
+        "position": [
+          83.434588482,
+          -135,
+          -218.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.850650808,
+            -0.525731112,
+            0
+          ],
+          "yAxis": [
+            -0.425325404,
+            0.68819096,
+            -0.587785252
+          ],
+          "normal": [
+            0.309016994,
+            -0.5,
+            -0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-28",
+      "pose": {
+        "position": [
+          83.434588482,
+          135,
+          -218.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.850650808,
+            0.525731112,
+            0
+          ],
+          "yAxis": [
+            0.425325404,
+            0.68819096,
+            0.587785252
+          ],
+          "normal": [
+            0.309016994,
+            0.5,
+            -0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-29",
+      "pose": {
+        "position": [
+          -83.434588482,
+          135,
+          -218.434588482
+        ],
+        "orientation": {
+          "xAxis": [
+            0.850650808,
+            0.525731112,
+            0
+          ],
+          "yAxis": [
+            0.425325404,
+            -0.68819096,
+            -0.587785252
+          ],
+          "normal": [
+            -0.309016994,
+            0.5,
+            -0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    },
+    {
+      "id": "WEDGE-30",
+      "pose": {
+        "position": [
+          0,
+          0,
+          -270
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            1,
+            0
+          ],
+          "yAxis": [
+            1,
+            0,
+            0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "44f55ffbcf019f48"
+      }
+    }
+  ],
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "authored",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "balanced-oriented-cable-optimizer",
+    "routeRevision": 3,
+    "chainLengths": [
+      10,
+      10,
+      10
+    ],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Output 1",
+        "gpio": 16,
+        "color": "#36e0d0",
+        "panelIds": [
+          "WEDGE-16",
+          "WEDGE-12",
+          "WEDGE-04",
+          "WEDGE-05",
+          "WEDGE-13",
+          "WEDGE-21",
+          "WEDGE-29",
+          "WEDGE-28",
+          "WEDGE-20",
+          "WEDGE-08"
+        ]
+      },
+      {
+        "outputIndex": 1,
+        "label": "Output 2",
+        "gpio": 17,
+        "color": "#ff9d5c",
+        "panelIds": [
+          "WEDGE-25",
+          "WEDGE-22",
+          "WEDGE-06",
+          "WEDGE-09",
+          "WEDGE-17",
+          "WEDGE-30",
+          "WEDGE-24",
+          "WEDGE-15",
+          "WEDGE-07",
+          "WEDGE-01"
+        ]
+      },
+      {
+        "outputIndex": 2,
+        "label": "Output 3",
+        "gpio": 18,
+        "color": "#a78bfa",
+        "panelIds": [
+          "WEDGE-23",
+          "WEDGE-14",
+          "WEDGE-10",
+          "WEDGE-02",
+          "WEDGE-03",
+          "WEDGE-11",
+          "WEDGE-19",
+          "WEDGE-27",
+          "WEDGE-26",
+          "WEDGE-18"
+        ]
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Provisional pose-first reconstruction of the operator reference image using 30 repeated photo-derived wedge panels.",
+    "The layout uses rhombic-triacontahedron face-normal directions at an estimated 270 mm center radius; it is a visual study, not measured fabrication geometry.",
+    "The shared panel profile retains provisional dimensions, connectors, pixel order, color order, and electrical facts.",
+    "Automatic wiring revision 3 selected 3 balanced outputs, GPIO 16/17/18, and quarter-turn physical panel poses; estimated data cable 2440.6 mm."
+  ]
+}
