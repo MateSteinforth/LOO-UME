@@ -47,15 +47,7 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · LIB-016` Make Project Library work like a file browser
-
-- Scope: the thumbnail browser is first, the filename field spans the save
-  section, and entries sort newest first. Local and bundled entries support
-  revision-gated rename, delete, and confirmed overwrite.
-- Safety: bundled changes use ignored local overlays and hide records; tracked
-  demo ZIPs stay unchanged. Application updates also protect the overlay state.
-- Verification: 19 focused unit tests, TypeScript, production build, two
-  Chromium journeys, diff-check, and independent QUALITY review passed.
+No tasks.
 
 ## In Progress
 
@@ -116,6 +108,11 @@ No tasks.
 No tasks.
 
 ## Done
+
+- `LIB-016`: integrated the file-browser-style Project Library on 2026-08-29.
+  Thumbnails appear first and sort newest first; the filename field spans the
+  save section; local and bundled entries support revision-gated rename,
+  delete, and confirmed overwrite through update-safe local overlays.
 
 - `UI-030`: integrated one complete fabrication ZIP on 2026-08-29. It contains
   the HERMA label PDF, a paginated manufacturing manual PDF, every current
