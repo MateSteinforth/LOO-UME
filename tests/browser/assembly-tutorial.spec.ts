@@ -25,26 +25,28 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
   const placementColumns = await page.locator("#automatic-panel-placement-controls")
     .evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
   expect(placementColumns).toBe(2);
-  await expect(page.locator(".workflow-step__heading strong")).toHaveText([
+  await expect(page.locator(".toolbox-heading strong")).toHaveText([
     "Shape",
-    "Panels",
+    "Fixtures",
     "Mapping",
-    "Generate parts",
-    "BUILD HARDWARE",
+    "Fabrication",
+    "Build Hardware",
     "Export",
   ]);
   await expect(viewSection.locator("#effect")).toBeVisible();
   await expect(viewSection.locator("#palette")).toBeVisible();
-  await expect(page.locator("[data-workflow-step='5'] #open-esp32-setup"))
+  await expect(page.locator("[data-toolbox='build-hardware'] #open-esp32-setup"))
     .toBeVisible();
-  await expect(page.locator("[data-workflow-step='6'] #save-project"))
+  await expect(page.locator("[data-toolbox='export'] #save-project"))
     .toHaveText("Export project ZIP");
-  await expect(page.locator("[data-workflow-step='1'] #load-design-surface"))
+  await expect(page.locator("[data-toolbox='shape'] #load-design-surface"))
     .toHaveText("GLB");
-  const overflowingSteps = await page.locator(".workflow-step").evaluateAll((steps) =>
+  await expect(page.locator("[data-toolbox='mapping'] #download-madmapper-package"))
+    .toBeVisible();
+  const overflowingSteps = await page.locator(".toolbox-section").evaluateAll((steps) =>
     steps
       .filter((step) => step.scrollWidth > step.clientWidth)
-      .map((step) => step.getAttribute("data-workflow-step")),
+      .map((step) => step.getAttribute("data-toolbox")),
   );
   expect(overflowingSteps).toEqual([]);
 });
@@ -65,7 +67,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   );
   await expect(page.locator("#assembly-tutorial-chain")).toHaveCount(0);
   await expect(page.locator("#assembly-tutorial-overview")).toHaveCount(0);
-  await expect(page.locator("[data-workflow-step='5'] #assembly-tutorial-section"))
+  await expect(page.locator("[data-toolbox='build-hardware'] #assembly-tutorial-section"))
     .toBeVisible();
   await expect(page.locator(".view-section #wiring-layer-controls")).toBeVisible();
   await expect(page.locator("#assembly-tutorial-warning")).toHaveText(

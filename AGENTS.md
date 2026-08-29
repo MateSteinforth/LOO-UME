@@ -68,6 +68,9 @@ Historical Schema 1 inputs are available only through Git history.
   one action that changes from build to download over separate sequential
   buttons, and keep raw/debug exports under Advanced when one self-contained
   project or assembly package is the normal handoff.
+- Present operator areas as always-editable capability toolboxes, not numbered
+  gates. A profile can disable an unsupported placement or fabrication action,
+  but it must not block independent mapping, simulation, hardware, or export.
 - Schema 2 mechanics are optional. Omitting `mechanicalShell` and `closures`
   is the implemented mechanics-free state:
   load GLB, place/edit panels, simulate, map, wire, save, and reload before any

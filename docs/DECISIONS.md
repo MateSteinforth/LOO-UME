@@ -86,8 +86,9 @@ native preset persistence, exact read-back, and bounded DDP preview.
 
 ## D13 — One assembly package is the primary handoff
 
-The main operator path remains fully editable through Shape, Panels, Mapping,
-Generate parts, BUILD HARDWARE, and Export. The panel-closure package joins the
+The main operator path remains fully editable through the Shape, Fixtures,
+Mapping, Fabrication, Build Hardware, and Export toolboxes. Their order is not
+a readiness gate. The panel-closure package joins the
 authoritative project, verified assets, printable manual, ledmap, and wiring
 review from one in-memory contract. The project ZIP is the primary editable
 handoff; raw files remain secondary tools.

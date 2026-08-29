@@ -125,14 +125,15 @@ controller is a schematic near-top placement derived from the complete current
 route; it is not a second saved wiring authority.
 The populated 41-panel Schema 2 project is the browser default. Empty authoring
 projects remain explicit registry choices.
-The sidebar has no separate wizard state. Project and View remain available,
-followed by six always-editable sections: Shape, Panels, Mapping, Generate
-parts, Build Hardware, and Export. Animation controls stay in View because they
-remain useful throughout the workflow. Build Hardware combines ESP32 setup,
-the connection-by-connection assembly tutorial, and the mapping-ready
-MadMapper information ZIP. Section order explains the operator workflow, while
-actual readiness continues to come from the Schema 2 project, mapping
-lifecycle, and generated-asset contracts.
+The sidebar has no wizard state or numbered progression. Project and View remain
+available, followed by always-editable Shape, Fixtures, Mapping, Fabrication,
+Build Hardware, and Export toolboxes. Animation controls stay in View because
+they remain useful throughout the work. Mapping owns route optimization, its
+advanced editor, and the mapping-ready MadMapper ZIP. Build Hardware owns ESP32
+setup and the connection-by-connection assembly tutorial. Each loaded fixture
+profile controls which placement and fabrication actions are enabled; mapping,
+simulation, hardware setup, and export do not wait for an irrelevant fabrication
+step.
 The renderer offsets LED sprites 2.4 mm along each panel's outward normal. This
 is a display-only separation from the PCB plane; it does not change mapping or
 saved panel poses. The transparent WebGL canvas uses the viewer's radial and

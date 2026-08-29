@@ -245,67 +245,38 @@ input[type="checkbox"] {
   margin-top: 9px;
 }
 
-.workflow-step {
+.toolbox-section {
   position: relative;
 }
 
-.workflow-step::before {
-  position: absolute;
-  top: 52px;
-  bottom: -1px;
-  left: 36px;
-  width: 1px;
-  content: "";
-  background: linear-gradient(rgba(57, 217, 208, 0.28), transparent);
-}
-
-.workflow-step__heading {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  gap: 10px;
+.toolbox-heading {
+  display: flex;
   align-items: center;
 }
 
-.workflow-step__heading > div {
+.toolbox-heading > div {
   display: grid;
   gap: 2px;
 }
 
-.workflow-step__heading strong {
+.toolbox-heading strong {
   color: #e5eef9;
   font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.workflow-step__heading small {
+.toolbox-heading small {
   color: #718198;
   font-size: 9px;
   line-height: 1.35;
 }
 
-.workflow-step__number {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid rgba(57, 217, 208, 0.42);
-  border-radius: 50%;
-  color: #bffbf6;
-  background: rgba(57, 217, 208, 0.1);
-  font: 750 11px/1 "SFMono-Regular", Consolas, monospace;
-}
-
-.workflow-step__hint {
-  margin: 12px 0 0 42px;
+.toolbox-hint {
+  margin: 12px 0 0;
   color: #7c8ca2;
   font-size: 10px;
   line-height: 1.5;
-}
-
-.workflow-step > :not(.workflow-step__heading, .workflow-step__hint) {
-  margin-left: 42px;
-  width: calc(100% - 42px);
 }
 
 .shape-controls {
@@ -370,11 +341,11 @@ input[type="checkbox"] {
   border-left: 0;
 }
 
-.workflow-export {
+.toolbox-export {
   background: rgba(255, 139, 69, 0.025);
 }
 
-.pipeline-button.workflow-export__primary {
+.pipeline-button.toolbox-export__primary {
   min-height: 44px;
   margin-top: 14px;
   font-size: 11px;

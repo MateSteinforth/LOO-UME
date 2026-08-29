@@ -260,12 +260,11 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="1">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">1</span>
-            <div><strong>Shape</strong><small>Load the sculpture surface</small></div>
+        <section class="control-section toolbox-section" data-toolbox="shape">
+          <div class="toolbox-heading">
+            <div><strong>Shape</strong><small>Authoring surface and scale</small></div>
           </div>
-          <p class="workflow-step__hint">Start with a watertight GLB, or continue from saved panel poses without one.</p>
+          <p class="toolbox-hint">Load a watertight GLB when the fixture layout uses a placement surface. Saved poses remain usable without one.</p>
           <div class="shape-controls">
             <label class="field">
               <span>GLB units to millimetres</span>
@@ -275,12 +274,11 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="2">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">2</span>
-            <div><strong>Panels</strong><small>Place and edit the layout</small></div>
+        <section class="control-section toolbox-section" data-toolbox="fixtures">
+          <div class="toolbox-heading">
+            <div><strong>Fixtures</strong><small>Place and edit emitters</small></div>
           </div>
-          <p class="workflow-step__hint">Seed panels from the active surface, then refine every pose in the viewport.</p>
+          <p class="toolbox-hint">Edit every saved fixture pose. Surface placement stays unavailable when the selected carrier does not support it.</p>
           <div id="automatic-panel-placement-controls">
             <label class="field">
               <span>Target panel count</span>
@@ -294,10 +292,9 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="3">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">3</span>
-            <div><strong>Mapping</strong><small>Define the controller-to-panel route</small></div>
+        <section class="control-section toolbox-section" data-toolbox="mapping">
+          <div class="toolbox-heading">
+            <div><strong>Mapping</strong><small>Addresses, route, and external control</small></div>
           </div>
           <p id="wiring-optimization-summary" class="mapping-note"></p>
           <button id="optimize-wiring" class="editor-button" type="button">Optimize wiring</button>
@@ -313,14 +310,14 @@ app.innerHTML = `
               <button id="route-action" class="editor-button" type="button">Edit suggested route</button>
             </div>
           </details>
+          <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="4">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">4</span>
-            <div><strong>Generate parts</strong><small>Choose the fabrication methods</small></div>
+        <section class="control-section toolbox-section" data-toolbox="fabrication">
+          <div class="toolbox-heading">
+            <div><strong>Fabrication</strong><small>Generate supported printable parts</small></div>
           </div>
-          <p class="workflow-step__hint">Generate panel closures, connector ribbons, or LED-surface bridges. Each result remains editable and can be regenerated.</p>
+          <p class="toolbox-hint">Generate only the methods supported by the loaded fixture carrier. Mapping and simulation do not depend on printable parts.</p>
           <details id="advanced-tools" class="compact-menu">
             <summary>Fabrication settings</summary>
             <div class="compact-menu__content">
@@ -368,10 +365,9 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="5">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">5</span>
-            <div><strong>BUILD HARDWARE</strong><small>Flash, wire, and assemble</small></div>
+        <section class="control-section toolbox-section" data-toolbox="build-hardware">
+          <div class="toolbox-heading">
+            <div><strong>Build Hardware</strong><small>Wire, flash, and assemble</small></div>
           </div>
           <div id="assembly-tutorial-section" class="assembly-tutorial assembly-tutorial--workflow">
             <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
@@ -390,17 +386,15 @@ app.innerHTML = `
               </div>
             </div>
           </div>
-          <button id="open-esp32-setup" class="editor-button workflow-step__secondary" type="button">Set up ESP32</button>
-          <button id="download-madmapper-package" class="editor-button workflow-step__secondary" type="button">Download MadMapper ZIP</button>
+          <button id="open-esp32-setup" class="editor-button" type="button">Set up ESP32</button>
         </section>
 
-        <section class="control-section workflow-step workflow-export" data-workflow-step="6">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">6</span>
+        <section class="control-section toolbox-section toolbox-export" data-toolbox="export">
+          <div class="toolbox-heading">
             <div><strong>Export</strong><small>Save the project and current assets</small></div>
           </div>
-          <p class="workflow-step__hint">Export the editable Schema 2 project ZIP with every current referenced asset available as verified bytes.</p>
-          <button id="save-project" class="pipeline-button workflow-export__primary" type="button">Export project ZIP</button>
+          <p class="toolbox-hint">Export the editable Schema 2 project ZIP with every current referenced asset available as verified bytes.</p>
+          <button id="save-project" class="pipeline-button toolbox-export__primary" type="button">Export project ZIP</button>
           <details id="export-options" class="compact-menu">
             <summary>Other export options</summary>
             <div class="compact-menu__content">

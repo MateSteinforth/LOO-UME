@@ -1540,3 +1540,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Focused outline/ribbon geometry, parser, capability, CAD-gate,
   mapping, WLED, and legacy-profile tests.
 - **Status:** Resolved by FIXTURE-011.
+
+### F-084 — Numbered presentation implied false workflow dependencies
+
+- **Date:** 2026-08-29
+- **Context:** Generalized fixtures that can map, simulate, and configure WLED
+  without a placement surface or supported printable-part generator.
+- **Symptom:** The sidebar presented every project as a six-step fabrication
+  sequence, so valid strip and ring work appeared to depend on irrelevant GLB
+  placement and planar fabrication stages.
+- **Cause:** Visual numbering described one historical panel workflow instead
+  of the loaded profile's actual capabilities.
+- **Correction:** Replace numbered steps with always-editable Shape, Fixtures,
+  Mapping, Fabrication, Build Hardware, and Export toolboxes. Keep control IDs
+  and handlers stable, and use capability gates for unavailable actions.
+- **Prevention:** Use section order only for navigation. Never use presentation
+  order as a readiness authority; derive readiness from project contracts and
+  explicit capabilities.
+- **Evidence:** Focused toolbox ownership, overflow, and capability checks.
+- **Status:** Resolved by UI-026.

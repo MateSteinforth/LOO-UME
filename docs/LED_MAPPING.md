@@ -171,10 +171,12 @@ has no printable geometry for the tutorial to show. The 41-panel project is
 currently in that pose-and-wiring-only state.
 
 The persistent **View** section owns the DIN/DOUT and panel-wiring layers. The
-guided **BUILD HARDWARE** section follows part generation and owns chain/wire
-isolation plus ESP32 setup. These controls remain available without locking the
-other project sections. The populated 41-panel project is the default browser
-project; empty authoring projects remain available in the project selector.
+**Build Hardware** toolbox owns chain/wire isolation plus ESP32 setup. It is not
+gated by optional fabrication and does not lock the other project controls.
+MadMapper export belongs to Mapping because it consumes the address contract,
+not a fabricated assembly. The populated 41-panel project is the default
+browser project; empty authoring projects remain available in the project
+selector.
 
 ## Printable assembly-manual export
 

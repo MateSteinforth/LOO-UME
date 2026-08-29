@@ -18,8 +18,9 @@ direction and major remaining seams.
   persisted native playback, and bounded mapped DDP preview.
 - Physical one-panel addressing/color proof and three-panel setup, reconnect,
   live mirroring, fallback, and power-cycle proof.
-- An always-editable Shape → Panels → Mapping → Generate parts → Build
-  Hardware → Export operator workflow with connection-by-connection assembly.
+- Always-editable Shape, Fixtures, Mapping, Fabrication, Build Hardware, and
+  Export toolboxes with connection-by-connection assembly and profile-driven
+  capability gates.
 - Real Chromium authoring, generation, route, manual, and portability journeys.
 
 ## Current product milestone

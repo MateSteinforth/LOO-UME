@@ -35,41 +35,23 @@ No tasks.
 
 ## Ready
 
-### `P1 · UI-026` Replace the numbered workflow with capability toolboxes
-
-- Scope: remove the forced 1–6 presentation and group the existing controls as
-  always-editable Shape, Fixtures, Mapping, Fabrication, Build Hardware, View,
-  and Export toolboxes. Show or disable actions from the loaded project's
-  capabilities rather than from a presumed fabrication sequence.
-- Acceptance: the existing 41-panel workflow keeps every current action, while
-  strip/ring projects can use mapping, wiring, simulation, ESP32, and export
-  without irrelevant mesh-placement or planar-part steps blocking them.
-- Dependency: `FIXTURE-010`; use `FIXTURE-011` capability results when present.
-- Conflict risk: `web/src/main.ts`, `web/src/styles.css`, and focused browser UI
-  contracts.
-
-### `P1 · LIVE-010` Prove direct MadMapper Art-Net physical addressing
-
-- Scope: send the generated 16-universe physical fixture atlas directly from
-  MadMapper to WLED over wired Ethernet. MadMapper owns realtime spatial-to-wire
-  mapping; WLED realtime ledmap processing stays disabled. Native WLED effects
-  continue to use the installed ledmap.
-- First slice: three panels / 192 RGB LEDs / two universes; then 2,624 LEDs / 16
-  universes with finite native-preset fallback.
-- Acceptance: prove exact panel orientation, physical address, RGB order,
-  universe boundaries, timeout fallback, restart behavior, sustained FPS, and
-  incomplete-frame handling. Confirm that MadMapper remains responsive with
-  2,624 individual fixtures.
-- Dependencies: the approved Ethernet-capable WLED hardware and powered test
-  setup. Do not add an Art-Net-to-DDP bridge unless measurements prove that the
-  direct path cannot meet the performance target.
-- Conflict risk: WLED Ethernet/realtime configuration and BUILD HARDWARE setup.
+No tasks.
 
 ## In Progress
 
 No tasks.
 
 ## Blocked
+
+### `P1 · LIVE-010` Prove direct MadMapper Art-Net physical addressing
+
+- Blocked by: an approved Ethernet-capable WLED controller, powered three-panel
+  setup, and a computer running MadMapper on the same wired network.
+- Needed: run the generated two-universe three-panel package first, then the
+  16-universe 2,624-LED package; record address/RGB parity, universe boundaries,
+  timeout fallback, restart behavior, sustained FPS, and incomplete frames.
+- Boundary: do not add an Art-Net-to-DDP bridge unless measurements show that
+  direct MadMapper-to-WLED Art-Net cannot meet the target.
 
 ### `MECH-020` Add correction tools for a proven ambiguous gap case
 
@@ -114,6 +96,19 @@ No tasks.
 No tasks.
 
 ## Ready to Merge
+
+### `P1 · UI-026` Replace the numbered workflow with capability toolboxes
+
+- Result: the sidebar now uses always-editable Shape, Fixtures, Mapping,
+  Fabrication, Build Hardware, and Export toolboxes without wizard numbering.
+  MadMapper belongs to Mapping; ESP32 setup and the wiring tutorial belong to
+  Build Hardware. Existing control IDs and handlers remain unchanged.
+- Evidence: focused Chromium layout/ownership/overflow check passed; TypeScript
+  and diff checks passed; independent review found no blocker.
+- Dependency: includes reviewed FIXTURE-010 and FIXTURE-011 work from this same
+  operator-requested worktree.
+- Owner: `codex/fixture-011-arbitrary-carriers` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-fixture-011`.
 
 ### `P1 · FIXTURE-011` Add arbitrary carriers and flexible paths
 
