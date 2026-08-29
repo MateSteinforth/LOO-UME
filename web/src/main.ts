@@ -36,6 +36,7 @@ import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { deriveEditorCapabilities } from "./EditorCapabilities.ts";
 import { WledEngine } from "./WledEngine";
 import {
+  createWiringControllerLayout,
   createProvisionalWiringPreview,
   validateWiringPreview,
 } from "./WiringPreview";
@@ -225,10 +226,6 @@ app.innerHTML = `
               <span>Panel-to-panel wiring</span>
             </label>
             <label class="toggle-field">
-              <input id="auto-rotate" type="checkbox" checked />
-              <span>Slow auto-rotation</span>
-            </label>
-            <label class="toggle-field">
               <input id="panel-labels" type="checkbox" checked />
               <span>Panel IDs</span>
             </label>
@@ -310,6 +307,21 @@ app.innerHTML = `
           <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
           <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper preview</button>
           <output id="madmapper-preview-status" class="mapping-note" aria-live="polite">Stopped</output>
+          <details id="controller-position-section" class="compact-menu">
+            <summary>Controller position</summary>
+            <div class="compact-menu__content">
+              <p id="controller-position-status" class="mapping-note"></p>
+              <div class="controller-position-grid">
+                <label class="field"><span>X (mm)</span><input id="controller-position-x" type="number" step="1" /></label>
+                <label class="field"><span>Y (mm)</span><input id="controller-position-y" type="number" step="1" /></label>
+                <label class="field"><span>Z (mm)</span><input id="controller-position-z" type="number" step="1" /></label>
+              </div>
+              <div class="project-library-actions">
+                <button id="apply-controller-position" class="editor-button" type="button">Apply position</button>
+                <button id="reset-controller-position" class="editor-button" type="button">Use suggested position</button>
+              </div>
+            </div>
+          </details>
           <details id="route-editor-section" class="compact-menu route-editor-section" hidden>
             <summary>Advanced route editor</summary>
             <div class="compact-menu__content">
@@ -448,21 +460,23 @@ app.innerHTML = `
             </div>
           </section>
           <section class="project-library-tool-group project-library-tool-group--save">
-            <strong>Save to local library</strong>
+            <strong>Save in this LOO/UME installation</strong>
+            <small>Stores a reusable project ZIP in the server's local project library.</small>
             <div class="project-library-actions">
               <label class="field project-library-save-as">
-                <span>Local ZIP filename</span>
+                <span>Project filename</span>
                 <input id="project-library-filename" type="text" maxlength="188" spellcheck="false" />
               </label>
-              <button id="save-project-as" class="pipeline-button" type="button">Save As</button>
+              <button id="save-project-as" class="pipeline-button" type="button">Save new library copy</button>
             </div>
           </section>
           <section class="project-library-tool-group">
-            <strong>Backup and transfer</strong>
+            <strong>Download or inspect</strong>
+            <small>Downloads files through this browser. It does not add them to the library.</small>
             <div class="project-library-actions">
-              <button id="save-project" class="pipeline-button" type="button">Download project ZIP</button>
-              <button id="save-sculpture-file" class="editor-button" type="button">Export raw JSON</button>
-              <button id="export-project-folder" class="editor-button" type="button">Export project folder</button>
+              <button id="save-project" class="pipeline-button" type="button">Download complete project ZIP</button>
+              <button id="export-project-folder" class="editor-button" type="button">Download editable folder</button>
+              <button id="save-sculpture-file" class="editor-button" type="button">Download sculpture JSON only</button>
             </div>
           </section>
         </div>
@@ -537,7 +551,6 @@ const developerUtilities = query<HTMLDetailsElement>("#developer-utilities");
 const ledCountInput = query<HTMLInputElement>("#led-count");
 const applyCountButton = query<HTMLButtonElement>("#apply-count");
 const displayMode = query<HTMLSelectElement>("#display-mode");
-const autoRotate = query<HTMLInputElement>("#auto-rotate");
 const panelLabelsToggle = query<HTMLInputElement>("#panel-labels");
 const printableLayerToggle = query<HTMLInputElement>("#printable-layer");
 const connectorLayerToggle =
@@ -581,6 +594,16 @@ const optimizeWiringButton = query<HTMLButtonElement>("#optimize-wiring");
 const routeEditorNote = query<HTMLElement>("#route-editor-note");
 const routeEditor = query<HTMLElement>("#route-editor");
 const routeActionButton = query<HTMLButtonElement>("#route-action");
+const controllerPositionInputs = [
+  query<HTMLInputElement>("#controller-position-x"),
+  query<HTMLInputElement>("#controller-position-y"),
+  query<HTMLInputElement>("#controller-position-z"),
+] as const;
+const controllerPositionStatus = query<HTMLElement>("#controller-position-status");
+const applyControllerPositionButton =
+  query<HTMLButtonElement>("#apply-controller-position");
+const resetControllerPositionButton =
+  query<HTMLButtonElement>("#reset-controller-position");
 const designSurfaceFileInput =
   query<HTMLInputElement>("#design-surface-file");
 const loadDesignSurfaceButton =
@@ -1469,6 +1492,25 @@ async function start(): Promise<void> {
       }
     };
 
+    const renderControllerPositionControls = (): void => {
+      const layout = createWiringControllerLayout(wiringPreview);
+      const authoredPosition = editorDefinition.wiring.controller.position;
+      const position = authoredPosition ?? (layout
+        ? [layout.position.x, layout.position.y, layout.position.z] as const
+        : undefined);
+      controllerPositionInputs.forEach((input, axis) => {
+        input.disabled = position === undefined;
+        input.value = position === undefined ? "" : String(position[axis]);
+      });
+      applyControllerPositionButton.disabled = position === undefined;
+      resetControllerPositionButton.disabled = authoredPosition === undefined;
+      controllerPositionStatus.textContent = position === undefined
+        ? "No controller is available for this project."
+        : authoredPosition
+        ? "This exact controller position is saved in the project."
+        : "This is the suggested position. Apply it to save an exact position.";
+    };
+
     const updateMappingStatus = (): void => {
       const validation = validateMapping(mapping, engine.ledCount);
       const isPanelized = mapping.topology === "panelized-sculpture";
@@ -1512,6 +1554,7 @@ async function start(): Promise<void> {
       renderer?.setWiringLayerVisible(
         isPanelized && wiringLayerToggle.checked,
       );
+      renderControllerPositionControls();
       updatePipelineAvailability();
     };
 
@@ -1686,6 +1729,47 @@ async function start(): Promise<void> {
       return restoreGeneratedMechanics(selected);
     };
 
+    applyControllerPositionButton.addEventListener("click", () => {
+      const position = controllerPositionInputs.map((input) => Number(input.value)) as [
+        number,
+        number,
+        number,
+      ];
+      if (!position.every(Number.isFinite)) {
+        setLogMessage("Enter a finite X, Y, and Z controller position.", true);
+        return;
+      }
+      const nextDefinition = structuredClone(editorDefinition);
+      nextDefinition.wiring.controller.position = position;
+      const project = createPanelAssemblyProject(
+        nextDefinition,
+        editorProject.source,
+        editorProject.panelProfile,
+      );
+      void applyLoadedSculpture(createLoadedSculpture(project)).then(() => {
+        setLogMessage(
+          `Saved controller position X ${position[0]} mm, Y ${position[1]} mm, Z ${position[2]} mm.`,
+        );
+      }).catch((error) => {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
+      });
+    });
+
+    resetControllerPositionButton.addEventListener("click", () => {
+      const nextDefinition = structuredClone(editorDefinition);
+      delete nextDefinition.wiring.controller.position;
+      const project = createPanelAssemblyProject(
+        nextDefinition,
+        editorProject.source,
+        editorProject.panelProfile,
+      );
+      void applyLoadedSculpture(createLoadedSculpture(project)).then(() => {
+        setLogMessage("The controller uses the suggested position.");
+      }).catch((error) => {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
+      });
+    });
+
     const connectorPairKey = (left: string, right: string): string =>
       [left, right].sort().join("\u0000");
 
@@ -1832,8 +1916,6 @@ async function start(): Promise<void> {
       activePlacementSurface = { surface, attachmentSurface };
       renderer?.setDesignSurface(surface.geometry, attachmentSurface);
       updatePipelineAvailability();
-      autoRotate.checked = false;
-      renderer?.setAutoRotate(false);
       const size = surface.validation.bounds.size
         .map((value) => Math.round(value))
         .join(" × ");
@@ -1962,10 +2044,6 @@ async function start(): Promise<void> {
     renderer?.setSurfaceEditorCallbacks({
       onSelectionChange: (panelId) => {
         selectedEditorPanelId = panelId;
-        if (panelId) {
-          autoRotate.checked = false;
-          renderer?.setAutoRotate(false);
-        }
         for (const row of routeEditor.querySelectorAll<HTMLElement>(".route-panel")) {
           row.classList.toggle(
             "route-panel--selected",
@@ -2146,9 +2224,6 @@ async function start(): Promise<void> {
     displayMode.addEventListener("change", () => {
       currentDisplayMode = displayMode.value as DisplayMode;
     });
-    autoRotate.addEventListener("change", () =>
-      renderer?.setAutoRotate(autoRotate.checked),
-    );
     panelLabelsToggle.addEventListener("change", () => {
       renderer?.setPanelLabelsVisible(
         mapping.topology === "panelized-sculpture" && panelLabelsToggle.checked,
@@ -2525,10 +2600,11 @@ async function start(): Promise<void> {
               button.disabled = true;
               projectLibraryStatus.textContent = `Opening ${entry.name}…`;
               void openLibraryProject(entry).catch((error) => {
-                button.disabled = false;
                 projectLibraryStatus.textContent = error instanceof Error
                   ? error.message
                   : String(error);
+              }).finally(() => {
+                button.disabled = false;
               });
             });
           } catch (error) {

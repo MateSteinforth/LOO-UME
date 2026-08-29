@@ -37,7 +37,7 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
     .toBeVisible();
   await page.locator("#open-project-library").click();
   await expect(page.locator("#project-library-dialog #save-project"))
-    .toHaveText("Download project ZIP");
+    .toHaveText("Download complete project ZIP");
   await page.locator("#project-library-dialog").getByRole("button", { name: "Close" }).click();
   await expect(page.locator("[data-toolbox='shape'] #load-design-surface"))
     .toHaveText("GLB");
@@ -174,11 +174,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     (element as HTMLElement).click();
   });
   await expect(page.locator(".panel-delete-billboard")).toHaveCount(0);
-  await page.locator("#auto-rotate").evaluate((element) => {
-    const input = element as HTMLInputElement;
-    input.checked = false;
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  });
+  await expect(page.locator("#auto-rotate")).toHaveCount(0);
   await page.locator("#connector-layer").uncheck();
   await page.locator("#wiring-layer").uncheck();
 
@@ -283,8 +279,7 @@ test("restores a surface-backed viewport after the tutorial", async ({ page }) =
   await page.locator("#automatically-place-panels").click();
   await expect(page.locator("#assembly-tutorial-start")).toBeEnabled();
   await page.locator("#display-mode").selectOption("physical-index");
-  const autoRotate = page.locator("#auto-rotate");
-  if (await autoRotate.isChecked()) await autoRotate.uncheck();
+  await expect(page.locator("#auto-rotate")).toHaveCount(0);
   const beforeGrid = await page.locator("#viewer").getAttribute(
     "data-grid-bounds",
   );

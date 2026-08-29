@@ -336,6 +336,25 @@ input[type="checkbox"] {
   font-size: 10px;
 }
 
+.project-library-tool-group > small {
+  display: block;
+  min-height: 30px;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.controller-position-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.controller-position-grid .field {
+  margin: 0;
+}
+
 .project-library-actions {
   justify-content: flex-start;
   margin-top: 8px;

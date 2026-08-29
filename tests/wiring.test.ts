@@ -94,6 +94,11 @@ describe("provisional wiring preview", () => {
     expect(controller.position.y).toBeGreaterThan(
       Math.max(...preview.nodes.flatMap((node) => [node.din.y, node.dout.y])),
     );
+    preview.controller!.position = [12, 34, 56];
+    const positionedController = createWiringControllerLayout(preview)!;
+    expect(positionedController.position).toEqual({ x: 12, y: 34, z: 56 });
+    expect(positionedController.pins).toHaveLength(4);
+    expect(positionedController.pins[0]!.position.y).toBe(26);
 
     for (const node of preview.nodes) {
       const panel = mapping.panels.find(

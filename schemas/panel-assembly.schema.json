@@ -580,7 +580,8 @@
                 "provisional",
                 "measured"
               ]
-            }
+            },
+            "position": { "$ref": "#/$defs/vector3" }
           }
         },
         "routeStrategy": {

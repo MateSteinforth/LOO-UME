@@ -150,8 +150,8 @@ coordinates no longer describe the transformed panel. The design surface stays
 available for adding panels. Selection, LED/panel/label focus,
 wiring/connectors, gizmo, and delete control share one selected panel ID. Edits
 rebuild mapping and wiring immediately.
-Any successful selection also stops slow auto-rotation and clears its View
-checkbox. This keeps the selected panel stationary; it does not edit the pose.
+The viewport does not rotate automatically. Selection keeps the panel
+stationary and does not edit its pose.
 
 After an edit:
 

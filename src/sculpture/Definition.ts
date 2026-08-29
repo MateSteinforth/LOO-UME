@@ -226,6 +226,8 @@ export interface WiringDefinition {
   controller: {
     placement: "near-top";
     status: "provisional" | "measured";
+    /** Optional authored world position. Missing uses the deterministic suggestion. */
+    position?: [number, number, number];
   };
   connector: {
     edgeInset: number;

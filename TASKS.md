@@ -133,6 +133,16 @@ No tasks.
   `git diff --check`, and independent review passed.
 - Owner: `codex/fixture-013-photo-wedge` in `/tmp/loo-ume-fixture-013`.
 
+### `UI-028` Stabilize project switching and direct viewport setup
+
+- Scope: no automatic viewport rotation; exact saved controller XYZ with a
+  suggested-position reset; reusable Project Library cards; clear library,
+  ZIP, folder, and JSON action labels.
+- Verification: 475 unit tests, TypeScript, production build, and nine focused
+  Chromium journeys passed on `codex/ui-project-reliability`.
+- Owner: `codex/ui-project-reliability` in
+  `/tmp/led-rhombo-ui-project-reliability`.
+
 ## Done
 
 - `LIVE-011` through `LIVE-013`: integrated the local MadMapper 3D preview on

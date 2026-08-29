@@ -243,6 +243,8 @@ person to remember the periodic run.
 
 ## D30 — Panel selection stops automatic rotation
 
+Superseded by D34.
+
 Slow auto-rotation is a passive overview aid. A successful panel selection from
 the viewport, a label, or the route editor stops it and synchronizes the View
 checkbox. The application does not resume rotation automatically when selection
@@ -291,3 +293,11 @@ The browser converts physical Art-Net indices to the current logical renderer
 indices with the same mapping contract used by the SVG export. Preview is
 temporary display state: project changes stop it, signal timeout restores the
 native simulation, and no received frame changes authored project data.
+
+## D34 — Use manual viewport orbit and a saved controller position
+
+The viewport does not rotate automatically. The operator has direct orbit and
+zoom control without a separate animation switch. The schematic controller has
+an optional saved world XYZ position. When this position is absent, LOO/UME uses
+the deterministic suggested position. The saved position controls the rendered
+controller, output pins, cable routes, and wiring optimization costs.

@@ -110,7 +110,8 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
 
   await page.locator("#advanced-tools > summary").click();
   await expect(page.locator("#wiring-layer-controls #display-mode")).toBeVisible();
-  await expect(page.locator("#wiring-layer-controls #auto-rotate")).toBeVisible();
+  await expect(page.locator("#wiring-layer-controls #auto-rotate")).toHaveCount(0);
+  await expect(page.locator("#viewer")).toHaveAttribute("data-auto-rotate", "false");
   await expect(page.locator("#wiring-layer-controls #panel-labels")).toBeVisible();
   await expect(page.locator("#wiring-layer-controls #printable-layer")).toBeVisible();
   await expect(page.locator("[data-toolbox='shape'] #surface-scale")).toBeVisible();

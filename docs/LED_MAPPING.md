@@ -156,9 +156,9 @@ cable endpoints are behind each PCB in the profile's back-view convention.
 Cable curves move inward from those endpoints, toward the sculpture interior.
 Panel labels keep their panel IDs and sit on the same back-side DIN point used
 by the green wiring marker. The tutorial is view-only: it does not change
-poses, routes, mapping, mechanics, or saved project data. Selecting a panel from
-a route row also stops slow auto-rotation so its back-side DIN/DOUT labels stay
-stationary during review.
+poses, routes, mapping, mechanics, or saved project data. The viewport does not
+rotate automatically, so back-side DIN/DOUT labels stay stationary during
+review.
 
 Authored routes are shown as saved data routes. Draft and review-required
 routes remain inspectable but keep a visible warning that mapping/wiring must be

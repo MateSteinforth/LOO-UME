@@ -172,9 +172,8 @@ export class SphereRenderer {
     this.controls.dampingFactor = 0.06;
     this.controls.minDistance = 0.01;
     this.controls.maxDistance = Infinity;
-    this.controls.autoRotate = true;
-    this.container.dataset.autoRotate = "true";
-    this.controls.autoRotateSpeed = 0.35;
+    this.controls.autoRotate = false;
+    this.container.dataset.autoRotate = "false";
     this.surfacePlacement = new SurfacePlacementController(
       this.scene,
       this.camera,
@@ -1256,6 +1255,11 @@ export class SphereRenderer {
       ? new THREE.Vector3()
       : sculptureBounds.getCenter(new THREE.Vector3());
     if (controllerLayout) {
+      this.container.dataset.controllerPosition = [
+        controllerLayout.position.x,
+        controllerLayout.position.y,
+        controllerLayout.position.z,
+      ].join(",");
       const controller = new THREE.Mesh(
         new THREE.BoxGeometry(
           Math.max(38, preview.outputs.length * 9 + 12),
@@ -1414,6 +1418,7 @@ export class SphereRenderer {
   }
 
   private clearWiringPreview(): void {
+    delete this.container.dataset.controllerPosition;
     this.disposeGroup(this.connectorLayer);
     this.disposeGroup(this.wiringLayer);
     this.connectorOutputLayers.clear();

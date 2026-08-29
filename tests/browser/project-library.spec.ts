@@ -11,7 +11,7 @@ test("opens the 41-fixture demo from the ZIP project library", async ({ page }) 
   await expect(page.locator("#open-project-library")).toHaveText("Project Library");
   await expect(dialog.locator("#open-project-file")).toBeVisible();
   await expect(dialog.locator("#open-project-folder")).toBeVisible();
-  await expect(dialog.locator("#save-project")).toHaveText("Download project ZIP");
+  await expect(dialog.locator("#save-project")).toHaveText("Download complete project ZIP");
   await expect(dialog.locator("#save-sculpture-file")).toBeVisible();
   await expect(dialog.locator("#export-project-folder")).toBeVisible();
   await expect(page.locator("[data-toolbox='export']")).toHaveCount(0);
@@ -38,6 +38,20 @@ test("opens the 41-fixture demo from the ZIP project library", async ({ page }) 
   );
   await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded complete project LED Rhombicosidodecahedron (41-panel)",
+  );
+
+  await page.locator("#open-project-library").click();
+  await dialog.locator(".project-card", {
+    hasText: "One-metre Diameter Flexible LED Ring Demo",
+  }).click();
+  await expect(page.locator("#current-project-name")).toHaveText(
+    "One-metre Diameter Flexible LED Ring Demo",
+  );
+
+  await page.locator("#open-project-library").click();
+  await project.click();
+  await expect(page.locator("#current-project-name")).toHaveText(
+    "LED Rhombicosidodecahedron (41-panel)",
   );
 });
 

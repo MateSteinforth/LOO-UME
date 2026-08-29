@@ -61,6 +61,7 @@ export function panelCenterBehindPcb(
 export function wiringControllerGeometry(
   panelCentersBehindPcbs: readonly ConnectorVector3[],
   outputCount: number,
+  authoredPosition?: ConnectorVector3,
 ): WiringControllerGeometry {
   if (panelCentersBehindPcbs.length === 0 || outputCount < 1) {
     throw new Error("Controller geometry requires panels and at least one output.");
@@ -70,11 +71,13 @@ export function wiringControllerGeometry(
   const maximumY = Math.max(...panelCentersBehindPcbs.map((point) => point[1]));
   const minimumZ = Math.min(...panelCentersBehindPcbs.map((point) => point[2]));
   const maximumZ = Math.max(...panelCentersBehindPcbs.map((point) => point[2]));
-  const position: ConnectorVector3 = [
-    (minimumX + maximumX) / 2,
-    maximumY + 32,
-    (minimumZ + maximumZ) / 2,
-  ];
+  const position: ConnectorVector3 = authoredPosition
+    ? [...authoredPosition]
+    : [
+      (minimumX + maximumX) / 2,
+      maximumY + 32,
+      (minimumZ + maximumZ) / 2,
+    ];
   return {
     position,
     pinPositions: Array.from({ length: outputCount }, (_, index) => [
