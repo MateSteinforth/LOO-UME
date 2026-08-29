@@ -1940,3 +1940,24 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `sculptures/photo-wedge-panel/` and
   `tests/photo-wedge-panel-demo.test.ts`.
 - **Status:** Resolved by FIXTURE-013.
+
+### F-106 — A reference rendering does not establish installed panel poses
+
+- **Date:** 2026-08-29
+- **Context:** Reconstructing a complete repeated-panel sculpture from one
+  perspective rendering.
+- **Symptom:** The image shows the intended 30-face visual form but does not
+  provide exact centers, rotations, radius, seams, or scale.
+- **Cause:** A perspective view is useful visual evidence but is not a measured
+  pose or mechanical assembly contract.
+- **Correction:** Use a deterministic 30-direction rhombic-triacontahedron
+  study at an explicitly estimated 270 mm center radius. Keep every pose and
+  the shared panel profile provisional, then prove only load, mapping, routing,
+  WLED configuration, portable reload, and Project Browser availability.
+- **Prevention:** Do not extract manufacturing poses from one rendering. A
+  photo reconstruction must identify its mathematical approximation and keep
+  placement and fabrication evidence provisional until drawings or direct
+  measurements replace it.
+- **Evidence:** `sculptures/photo-wedge-panel/sculpture-30-panel.json` and the
+  30-panel regression in `tests/photo-wedge-panel-demo.test.ts`.
+- **Status:** Resolved by FIXTURE-014.

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
+import { optimizeAutomaticWiring } from "../src/sculpture/AutomaticWiringOptimizer.ts";
 import { createPanelAssemblyMapping } from "../src/sculpture/PanelAssembly.ts";
 import { normalizePanelCarrier } from "../src/sculpture/PanelCarrier.ts";
 import { deriveEditorCapabilities } from "../web/src/EditorCapabilities.ts";
@@ -13,6 +14,8 @@ import {
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
 const SOURCE = "sculptures/photo-wedge-panel/sculpture.json";
+const SCULPTURE_SOURCE =
+  "sculptures/photo-wedge-panel/sculpture-30-panel.json";
 const PROFILE_SOURCE = "sculptures/photo-wedge-panel/panel-profile.json";
 
 describe("photo-derived wedge panel visual-study fixture", () => {
@@ -134,6 +137,98 @@ describe("photo-derived wedge panel visual-study fixture", () => {
       expect(createPanelAssemblyMapping(reopened.project).entries).toHaveLength(64);
       expect(reopened.assets.get(project.sculpture.panelProfile.source)?.bytes)
         .toEqual(profileBytes);
+    } finally {
+      reopened.dispose();
+    }
+  });
+
+  it("loads, routes, configures, and exports the 30-panel photo reconstruction", async () => {
+    const manifest = JSON.parse(readFileSync("sculptures/manifest.json", "utf8"));
+    expect(manifest.sculptures).toContainEqual({
+      id: "photo-derived-30-panel-wedge-sculpture",
+      name: "Photo-derived 30-panel Wedge Sculpture",
+      source: "./sculptures/photo-wedge-panel/sculpture-30-panel.json",
+      artifactStatus: "authoring-only",
+    });
+
+    const project = await loadPanelAssemblyProjectFromFile(SCULPTURE_SOURCE);
+    const mapping = createPanelAssemblyMapping(project);
+    const wiring = createProvisionalWiringPreview(
+      mapping,
+      project.sculpture,
+      project.panelProfile,
+    );
+    const contract = createHardwareMappingContract(mapping, wiring, project.panelProfile);
+    expect(project.sculpture.panels).toHaveLength(30);
+    expect(project.sculpture.panels.every((panel) =>
+      Math.abs(Math.hypot(...panel.pose.position) - 270) < 1e-6
+    )).toBe(true);
+    expect(project.sculpture.panels.every((panel) =>
+      panel.pose.position.every((coordinate, axis) =>
+        Math.abs(coordinate / 270 - panel.pose.orientation.normal[axis]) < 1e-9
+      )
+    )).toBe(true);
+    expect(new Set(project.sculpture.panels.map((panel) =>
+      panel.pose.orientation.normal.join(",")
+    )).size).toBe(30);
+    expect(mapping.entries).toHaveLength(1_920);
+    expect(contract.readiness.mappingReady).toBe(true);
+    expect(contract.outputs.map(({ gpio, pixelCount, panelIds }) => ({
+      gpio,
+      pixelCount,
+      panels: panelIds.length,
+    }))).toEqual([
+      { gpio: 16, pixelCount: 640, panels: 10 },
+      { gpio: 17, pixelCount: 640, panels: 10 },
+      { gpio: 18, pixelCount: 640, panels: 10 },
+    ]);
+    const optimizedAgain = optimizeAutomaticWiring(
+      project.sculpture,
+      project.panelProfile,
+    );
+    expect(optimizedAgain.definition.wiring.outputs)
+      .toEqual(project.sculpture.wiring.outputs);
+    expect(optimizedAgain.definition.panels.map(({ id, pose }) => ({ id, pose })))
+      .toEqual(project.sculpture.panels.map(({ id, pose }) => ({ id, pose })));
+    expect(Object.values(optimizedAgain.poseQuarterTurnsByPanel))
+      .toEqual(Array(30).fill(0));
+    expect(optimizedAgain.estimatedCableLengthMm).toBeCloseTo(2_440.622313, 6);
+
+    const config = createSimulatorSetupConfig(
+      JSON.parse(readFileSync("firmware/one-panel-smoke-cfg.json", "utf8")),
+      contract.outputs.map(({ startIndex, pixelCount, gpio }) => ({
+        startIndex,
+        pixelCount,
+        gpio: gpio!,
+      })),
+      contract.wledColorOrder.wledValue,
+      64,
+    ) as { hw: { led: { total: number; maxpwr: number; ins: unknown[] } } };
+    expect(config.hw.led).toMatchObject({
+      total: 1_920,
+      maxpwr: 30_000,
+      ins: [
+        { start: 0, len: 640, pin: [16], maxpwr: 10_000 },
+        { start: 640, len: 640, pin: [17], maxpwr: 10_000 },
+        { start: 1_280, len: 640, pin: [18], maxpwr: 10_000 },
+      ],
+    });
+
+    const profileBytes = new TextEncoder().encode(readFileSync(PROFILE_SOURCE, "utf8"));
+    const reopened = await openPortableProjectZip(
+      createPortableProjectZip(
+        project.sculpture,
+        new Map([[project.sculpture.panelProfile.source, profileBytes]]),
+      ),
+      "photo-wedge-30-panel.zip",
+      async () => {
+        throw new Error("The bundled wedge profile was not used.");
+      },
+    );
+    try {
+      expect(reopened.project.sculpture.panels).toHaveLength(30);
+      expect(createPanelAssemblyMapping(reopened.project).entries).toHaveLength(1_920);
+      expect(reopened.assets.get("panel-profile.json")?.bytes).toEqual(profileBytes);
     } finally {
       reopened.dispose();
     }

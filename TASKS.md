@@ -105,6 +105,21 @@ No tasks.
 
 ## Ready to Merge
 
+### `FIXTURE-014` Reconstruct the photographed wedge-panel sculpture
+
+- Result: one provisional 30-panel Schema 2 reconstruction uses the shared
+  wedge profile, 1,920 mapped emitters, and an optimizer-stable 2,440.6 mm
+  route with three 10-panel chains on GPIO 16/17/18. Its portable ZIP and
+  rendered thumbnail are available in the Project Browser.
+- Boundary: the 270 mm radius, panel poses, and all FIXTURE-013 hardware facts
+  remain visual-study estimates; rectangular fabrication stays unavailable.
+- Verification: five focused project/registry/package tests, TypeScript, Vite
+  production build, two focused Chromium Project Browser journeys,
+  `git diff --check`, rendered-thumbnail inspection, and independent review
+  passed.
+- Owner: `codex/fixture-014-photo-sculpture` in
+  `/tmp/loo-ume-fixture-014`.
+
 ### `FIXTURE-013` Add a provisional photo-derived wedge-panel fixture
 
 - Scope: one tracked planar-outline 8×8 profile and one-panel Schema 2 demo

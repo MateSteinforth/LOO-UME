@@ -39,6 +39,12 @@
       "artifactStatus": "authoring-only"
     },
     {
+      "id": "photo-derived-30-panel-wedge-sculpture",
+      "name": "Photo-derived 30-panel Wedge Sculpture",
+      "source": "./sculptures/photo-wedge-panel/sculpture-30-panel.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
       "id": "structural-two-panel-spatial-trial",
       "name": "Structural Two-panel Spatial Trial",
       "source": "./sculptures/structural-two-panel-spatial/sculpture.json",
