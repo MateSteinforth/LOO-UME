@@ -262,9 +262,11 @@ Advanced exception, not the normal workflow.
 ## D32 — Export a supported MadMapper information package
 
 The MadMapper handoff contains a generated 6.1+ SVG fixture atlas, readable
-address files, mapping manifest, and generated setup PDF. It does not generate
-MadMapper's undocumented native project format. Schema 2, the mapping contract,
-and mapping fingerprint remain the authorities.
+address files, an importable loopback Art-Net unicast routing CSV, mapping
+manifest, and generated setup PDF. The routing CSV activates every exported
+universe at `127.0.0.1` without remapping. It does not generate MadMapper's
+undocumented native project format. Schema 2, the mapping contract, and mapping
+fingerprint remain the authorities.
 
 The SVG uses one fixture group for each panel and one independently addressed
 `Generic - Pixel RGB` fixture for each physical LED. Every fixture footprint
@@ -279,10 +281,11 @@ the installed ledmap. `LIVE-010` must prove the path on Ethernet hardware.
 
 LOO/UME can show the physical MadMapper patch on its pose-derived 3D sculpture
 without an ESP32. The desktop service receives ArtDMX only on
-`127.0.0.2:6454`, assembles complete consecutive-universe frames, and streams
-them to its same-origin browser through framed binary HTTP. This avoids a new
-WebSocket dependency, avoids exposing a UDP listener to the LAN, and lets
-MadMapper own the standard `127.0.0.1:6454` output socket on the same computer.
+`127.0.0.1:6454`, shares that fixed Art-Net port through address reuse,
+assembles complete consecutive-universe frames, and streams them to its
+same-origin browser through framed binary HTTP. This avoids a new WebSocket
+dependency, avoids exposing a UDP listener to the LAN, and avoids a macOS
+loopback alias or administrator action.
 
 The browser converts physical Art-Net indices to the current logical renderer
 indices with the same mapping contract used by the SVG export. Preview is

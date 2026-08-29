@@ -122,12 +122,15 @@ export class ArtNetFrameAssembler {
     this.mutableStatistics.packetsReceived += 1;
     this.expire(now);
     const message = parseArtDmx(packet);
+    const expectedBytes = message
+      ? this.expectedUniverseBytes(message.universe)
+      : 0;
     if (
       sender !== this.allowedSender ||
       !message ||
       message.universe < this.startUniverse ||
       message.universe > this.endUniverse ||
-      message.data.byteLength !== this.expectedUniverseBytes(message.universe)
+      message.data.byteLength < expectedBytes
     ) {
       this.mutableStatistics.packetsRejected += 1;
       return undefined;
@@ -157,7 +160,7 @@ export class ArtNetFrameAssembler {
       }
     }
 
-    this.parts.set(message.universe, message.data);
+    this.parts.set(message.universe, message.data.slice(0, expectedBytes));
     this.lastPacketAt = now;
     if (this.parts.size !== this.universeCount) return undefined;
 

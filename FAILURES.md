@@ -1773,11 +1773,129 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Symptom:** MadMapper reported that it could not open Art-Net on the selected
   network interface when the LOO/UME preview already listened on UDP 6454.
 - **Cause:** Both applications tried to bind `127.0.0.1:6454`.
-- **Correction:** Keep MadMapper on `lo0` / `127.0.0.1` and bind LOO/UME to the
-  separate loopback destination `127.0.0.2:6454`; enable UDP address reuse as a
-  secondary compatibility measure.
+- **Correction:** Keep both applications on `127.0.0.1:6454` and enable UDP
+  address reuse in the receiver. MadMapper uses the corresponding shared-port
+  socket options.
 - **Prevention:** Same-computer UDP tools that use a fixed protocol port must
-  use separate loopback addresses or prove compatible shared-socket behavior.
-- **Evidence:** A focused handler test opens a MadMapper-shaped socket on
-  `127.0.0.1` and the LOO/UME receiver on `127.0.0.2` at the same UDP port.
-- **Status:** Resolved in code; awaiting macOS Human Review.
+  prove compatible shared-socket behavior with a packet sent by the first
+  bound socket. A second bind alone does not prove delivery.
+- **Evidence:** A focused handler test opens a MadMapper-shaped reusable socket,
+  starts LOO/UME on the same address and port, and receives the packet that the
+  first socket sends. The pinned Node 22.23.2 runtime passed the same macOS
+  socket test.
+- **Status:** Resolved and confirmed in macOS Human Review.
+
+### F-098 — Case-only documentation paths collided on macOS
+
+- **Date:** 2026-08-29
+- **Context:** Fresh macOS clone of `codex/madmapper-preview`.
+- **Symptom:** Git warned that `docs/ARCHITECTURE.md` and
+  `docs/architecture.md` collided, so only one file could exist in the working
+  tree.
+- **Cause:** The obsolete lowercase file remained as a three-line redirect
+  after the uppercase architecture document became canonical.
+- **Correction:** Remove `docs/architecture.md`. Keep the complete
+  `docs/ARCHITECTURE.md` document and its existing references.
+- **Prevention:** Do not retain aliases that differ from a canonical path only
+  by letter case. Case-insensitive filesystems cannot represent both paths.
+- **Evidence:** The Git tree has one case-insensitive match for the architecture
+  document, and all repository references use the uppercase path.
+- **Status:** Resolved on the MadMapper preview branch.
+
+### F-099 — A secondary macOS loopback address required a terminal setup step
+
+- **Date:** 2026-08-29
+- **Context:** LIVE-011 through LIVE-013 local MadMapper preview on macOS.
+- **Symptom:** Starting the preview returned HTTP 409 with
+  `bind EADDRNOTAVAIL 127.0.0.2:6454`, although UDP port 6454 was free.
+- **Cause:** The clean macOS `lo0` interface had only `127.0.0.1`. The preview
+  assumed that any address in `127.0.0.0/8` was immediately bindable, but macOS
+  requires the selected secondary address to be assigned to `lo0` first.
+- **Correction:** Bind the preview to the existing `127.0.0.1:6454` address and
+  share the fixed Art-Net port through address reuse. The operator now configures
+  MadMapper and presses Start without changing macOS network settings.
+- **Prevention:** A normal operator workflow must not require an undocumented
+  interface alias or administrator command. Test same-computer transport from a
+  clean macOS `lo0` state and use shared-port behavior when both applications
+  support it.
+- **Evidence:** `/sbin/ifconfig lo0` listed only `127.0.0.1`; `lsof -nP
+  -iUDP:6454` found no owner; the browser and host reported the exact failed
+  bind at `127.0.0.2:6454`.
+- **Status:** Resolved and confirmed with all 16 universes on macOS.
+
+### F-100 — The MadMapper ZIP required 16 manual unicast routes
+
+- **Date:** 2026-08-29
+- **Context:** LIVE-013 local MadMapper preview Human Review.
+- **Symptom:** One manually entered Art-Net route produced no preview, and the
+  operator would have to add universes 1 through 16 one row at a time.
+- **Cause:** The complete-frame receiver correctly waits for every exported
+  universe, but the MadMapper package did not contain the deterministic unicast
+  routing configuration needed to send all of them.
+- **Correction:** Generate `artnet-unicast-loopback.csv` with one active,
+  non-remapped `127.0.0.1` row for every exported universe, add it to the ZIP,
+  and reference its Import action in `SETUP.pdf`.
+- **Prevention:** When an external application supports configuration import,
+  package repeated deterministic settings instead of requiring manual entry.
+- **Evidence:** The focused package test checks the MadMapper CSV header and all
+  16 consecutive loopback routes.
+- **Status:** Resolved; the operator imported and used the generated table.
+
+### F-101 — Symmetric LED float ordering changed the golden mapping on macOS
+
+- **Date:** 2026-08-29
+- **Context:** Focused MadMapper package verification on pinned Node 22.23.2 for
+  macOS.
+- **Symptom:** The current authored project generated mapping fingerprint
+  `ce395bed`, while tests and checked mapping artifacts require `73b36d49`.
+- **Cause:** Logical LED indices sort on exact computed `v` and `u` floats.
+  Symmetric positions differed from the checked artifact by approximately
+  `1e-16`, which reordered 29 tied logical positions.
+- **Correction:** Use one documented cross-platform deterministic position key,
+  then deliberately regenerate and review every mapping-dependent artifact.
+  Do not update one expected fingerprint in isolation.
+- **Prevention:** Never use unquantized derived floating-point values as an
+  address-authority sort key when builds must be byte-identical across systems.
+- **Evidence:** Direct comparison found 29 ledmap differences in tied symmetric
+  positions; the existing package, exporter, assembly-manual, and golden
+  mapping tests fail on the same `ce395bed` versus `73b36d49` mismatch.
+- **Status:** Open as `MAP-021`; not changed during LIVE-013 review.
+
+### F-102 — The preview rejected MadMapper's padded ArtDMX universes
+
+- **Date:** 2026-08-29
+- **Context:** LIVE-013 local MadMapper preview Human Review with MadMapper Demo
+  6.1.5.
+- **Symptom:** MadMapper sent universes 1 through 16, but LOO/UME counted every
+  packet as rejected and completed no preview frame.
+- **Cause:** MadMapper sends a standard 512-channel payload for each ArtDMX
+  universe. The assembler required the payload to equal only the used RGB byte
+  count: 510 bytes for full 170-pixel universes and fewer for the final partial
+  universe.
+- **Correction:** Accept an ArtDMX payload when it contains at least the needed
+  bytes, then copy only the needed RGB prefix and ignore trailing DMX padding.
+- **Prevention:** Protocol receivers must accept valid unused channel padding.
+  Test with the exact full-universe packet size emitted by the target sender,
+  not only minimal synthetic packets.
+- **Evidence:** A loopback header capture received valid ArtDMX protocol 14
+  packets for universes 1 through 16 with 512-byte payloads. The live status
+  showed 39,564 received and 39,564 rejected packets before the capture.
+- **Status:** Resolved and confirmed with live MadMapper output.
+
+### F-103 — MadMapper Demo blackout looked like a preview transport failure
+
+- **Date:** 2026-08-29
+- **Context:** LIVE-013 sustained local preview with MadMapper Demo 6.1.5.
+- **Symptom:** The working 3D preview suddenly appeared to stop or black out.
+- **Cause:** MadMapper Demo deliberately blacks out DMX lighting output every
+  30 seconds.
+- **Correction:** Use live LOO/UME frame statistics to distinguish a demo
+  blackout from transport loss. Use a licensed MadMapper build for sustained
+  continuity and FPS acceptance.
+- **Prevention:** Do not use MadMapper Demo as evidence for uninterrupted DMX
+  output. Record address and pose observations separately from sustained-output
+  observations.
+- **Evidence:** While the visible output appeared stopped, completed frames
+  increased from 1,713 to 1,815 with no incomplete frames. The official
+  MadMapper Demo limitations state that DMX output blacks out every 30 seconds.
+- **Status:** External demo limitation understood; transport remains healthy.

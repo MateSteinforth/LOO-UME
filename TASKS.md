@@ -4,8 +4,8 @@ Last reconciled: 2026-08-29
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: copy the complete loaded simulator to one ESP32, then prove
-static address and RGB parity on the physical 41-panel sculpture.
+Current milestone: review the local MadMapper preview, then prove direct
+Art-Net behavior and static address/RGB parity on physical hardware.
 
 ## Control rules
 
@@ -31,7 +31,15 @@ static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
-No tasks.
+### `P1 · MAP-021` Make logical LED ordering cross-platform deterministic
+
+- Scope: replace exact raw-float ordering of symmetric LED positions with one
+  documented deterministic key, then regenerate and review all mapping,
+  diagnostic, deployment, and MadMapper fingerprint authorities together.
+- Acceptance: Linux and macOS clean checks produce byte-identical ledmaps and
+  the same golden mapping fingerprint.
+- Dependency: explicit mapping-artifact review; do not change the installed
+  address authority as incidental LIVE-013 cleanup.
 
 ## Ready
 
@@ -95,22 +103,29 @@ No tasks.
 
 ### `P1 · LIVE-011` through `LIVE-013` Review local MadMapper 3D preview
 
-- Implemented: bounded ArtDMX parsing and complete-frame assembly, dedicated
-  loopback UDP `127.0.0.2:6454`, dependency-free binary streaming,
-  physical-to-logical frame
-  conversion, Start/Stop controls, FPS/error diagnostics, timeout fallback, and
-  project-change invalidation.
+- Implemented: bounded ArtDMX parsing and complete-frame assembly, shared
+  loopback UDP `127.0.0.1:6454` with address reuse, dependency-free streaming,
+  physical-to-logical frame conversion, Start/Stop controls, FPS/error
+  diagnostics, timeout fallback, project-change invalidation, and an importable
+  loopback routing CSV for every universe in the MadMapper ZIP.
 - Verified: 17 focused Vitest checks, TypeScript, production web build, and one
   real Chromium journey that sends all 16 loopback universes and observes
   reception, timeout, and Stop.
-- Human review: run the desktop editor, start MadMapper preview, keep MadMapper
-  on the `lo0` / `127.0.0.1` interface, route Art-Net unicast to `127.0.0.2`
-  with universes 1 through 16, and confirm moving
-  content follows the correct 3D panel poses at an acceptable sustained FPS.
+- Human review: passed on macOS with MadMapper Demo 6.1.5. The operator imported
+  the ZIP's 16-universe loopback routing CSV, confirmed moving content on the 3D
+  sculpture, and observed approximately 40 completed frames per second. F-087
+  accepts MadMapper's 512-byte ArtDMX payloads without incomplete frames.
+- Review limit: MadMapper Demo blacks out DMX every 30 seconds. It can prove
+  basic pose/address behavior, but sustained continuity and FPS review require
+  a licensed build.
 - Owner: `codex/madmapper-preview` in
-  `/home/mate/Documents/led-rhombicosidodecahedron-madmapper-preview`.
-- Conflict risk: `scripts/local-editor-server.ts`, Vite middleware,
-  `web/src/main.ts`, and Build Hardware controls.
+  `/Users/mate/Documents/LOO-UME-madmapper-preview`.
+- Integration dependency: reconcile with `origin/main` at `934301e` before
+  Ready to Merge. The branch and main diverged at `290d023`; current text
+  conflicts are expected in `FAILURES.md`, `tsconfig.node.json`, and
+  `web/src/main.ts`.
+- Conflict risk: the Art-Net host and Build Hardware controls overlap main's
+  generalized carrier and capability-toolbox work.
 
 ## Ready to Merge
 
@@ -136,7 +151,6 @@ No tasks.
   wiring, WLED setup, portable export/reload, focused tests, TypeScript,
   Chromium, and independent geometry review passed. Rectangular-only placement
   and fabrication remain disabled for this carrier.
-
 - `FIXTURE-010` / `FIXTURE-011` / `UI-026`: integrated explicit pose-local
   emitter and DIN/DOUT coordinates, arbitrary planar and flexible-path carrier
   display geometry, profile-driven capability gates, and the unnumbered toolbox

@@ -24,6 +24,24 @@ function safeFolderName(value: string): string {
   return normalized || "sculpture";
 }
 
+function createLoopbackUnicastRoutingTable(
+  manifest: MadMapperPatchManifest,
+): Uint8Array {
+  const lines = [
+    "IP,Short Name,Universe,Active (0 or 1),Long Name,Remapped (0 or 1),Remapped Universe,Was Autodetected (via polling - 0 or 1)",
+  ];
+  for (
+    let universe = manifest.startUniverse;
+    universe <= manifest.endUniverse;
+    universe += 1
+  ) {
+    lines.push(
+      `127.0.0.1,LOO-UME,${universe},1,LOO-UME MadMapper preview,0,0,0`,
+    );
+  }
+  return textEncoder.encode(lines.join("\n") + "\n");
+}
+
 function asciiPdfText(value: string): string {
   return value
     .replace(/[^\x20-\x7e]/g, "?")
@@ -79,6 +97,12 @@ function guideLines(
     boundaryPanel
       ? `   cross the boundary, and end at universe ${boundaryPanel.endAddress.universe}, channel ${boundaryPanel.endAddress.channel}.`
       : "",
+    "",
+    "LOCAL LOO/UME PREVIEW",
+    "1. In Preferences > Project > DMX, select Art-Net, lo0 / 127.0.0.1, and 30 FPS.",
+    "2. Enable Use Unicast and disable Enable Universe Synchronization.",
+    "3. Import artnet-unicast-loopback.csv in the ArtNet Interface table.",
+    "4. Start the MadMapper preview in LOO/UME.",
     "",
     "ART-NET OUTPUT - HARDWARE REVIEW VALUES",
     "1. Add or enable a DMX output and select Art-Net.",
@@ -158,6 +182,10 @@ export function createMadMapperPackageFiles(
   const bundle = createMadMapperFixtureBundle(contract, options);
   return new Map([
     ["fixtures.svg", textEncoder.encode(bundle.svg)],
+    [
+      "artnet-unicast-loopback.csv",
+      createLoopbackUnicastRoutingTable(bundle.manifest),
+    ],
     ["patch.csv", textEncoder.encode(bundle.patchCsv)],
     ["manifest.json", jsonBytes(bundle.manifest)],
     ["SETUP.pdf", createMadMapperSettingsPdf(sculptureId, bundle.manifest)],

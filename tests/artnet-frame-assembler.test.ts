@@ -28,13 +28,12 @@ describe("Art-Net frame assembler", () => {
     expect(parseArtDmx(wrongOpcode)).toBeUndefined();
   });
 
-  it("assembles 2,624 physical RGB pixels from 16 out-of-order universes", () => {
+  it("assembles 2,624 pixels from 16 padded MadMapper universes", () => {
     const assembler = new ArtNetFrameAssembler({ pixelCount: 2_624 });
     let frame;
     for (let universe = 16; universe >= 1; universe -= 1) {
-      const pixelCount = universe === 16 ? 74 : 170;
       frame = assembler.push(
-        artDmx(universe, new Uint8Array(pixelCount * 3).fill(universe), 42),
+        artDmx(universe, new Uint8Array(512).fill(universe), 42),
         "127.0.0.1",
         1_000 + universe,
       ) ?? frame;
@@ -47,6 +46,7 @@ describe("Art-Net frame assembler", () => {
     );
     expect(assembler.statistics).toMatchObject({
       packetsReceived: 16,
+      packetsRejected: 0,
       completedFrames: 1,
       incompleteFrames: 0,
     });

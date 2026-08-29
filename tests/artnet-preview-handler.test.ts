@@ -78,7 +78,7 @@ describe("Art-Net preview handler", () => {
       (response) => response.json(),
     ) as { active: boolean; bindAddress: string; port: number };
     expect(status.active).toBe(true);
-    expect(status.bindAddress).toBe("127.0.0.2");
+    expect(status.bindAddress).toBe("127.0.0.1");
     await sendUdp(status.bindAddress, status.port, [
       artDmx(2, new Uint8Array(66).fill(22), 7),
       artDmx(1, new Uint8Array(510).fill(11), 7),
@@ -98,7 +98,7 @@ describe("Art-Net preview handler", () => {
   });
 
   it("coexists with a MadMapper socket on the primary loopback address", async () => {
-    const madMapperSocket = createSocket("udp4");
+    const madMapperSocket = createSocket({ type: "udp4", reuseAddr: true });
     await new Promise<void>((resolve, reject) => {
       madMapperSocket.once("error", reject);
       madMapperSocket.bind(0, "127.0.0.1", resolve);
@@ -109,14 +109,29 @@ describe("Art-Net preview handler", () => {
     const udpPort = (madMapperSocket.address() as AddressInfo).port;
     const fixture = await fixtureServer(udpPort);
     const stream = await fetch(
-      `${fixture.url}api/artnet-preview/stream?pixels=1&startUniverse=1&fingerprint=73b36d49`,
+      `${fixture.url}api/artnet-preview/stream?pixels=2&startUniverse=1&fingerprint=73b36d49`,
       { headers: { "X-LOO-UME-ArtNet-Preview": "1" } },
     );
     expect(stream.status).toBe(200);
     const status = fixture.handler.status();
-    expect(status.bindAddress).toBe("127.0.0.2");
+    expect(status.bindAddress).toBe("127.0.0.1");
     expect(status.port).toBe(udpPort);
-    await stream.body?.cancel();
+    await new Promise<void>((resolve, reject) => {
+      madMapperSocket.send(
+        artDmx(1, Uint8Array.from([1, 2, 3, 4, 5, 6]), 7),
+        status.port,
+        status.bindAddress,
+        (error) => {
+          if (error) reject(error);
+          else resolve();
+        },
+      );
+    });
+    const reader = stream.body!.getReader();
+    const { value, done } = await reader.read();
+    expect(done).toBe(false);
+    expect(value?.slice(28)).toEqual(Uint8Array.from([1, 2, 3, 4, 5, 6]));
+    await reader.cancel();
   });
 
   it("requires a valid mapping fingerprint and only one active stream", async () => {

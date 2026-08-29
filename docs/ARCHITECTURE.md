@@ -270,13 +270,16 @@ leaves DDP realtime mode and runs the saved native animation. A USB power cycle
 also restored the same animation without the simulator.
 
 The MadMapper virtual preview is a separate loopback-only input path. While the
-operator enables it, the desktop service binds UDP `127.0.0.2:6454`, accepts
-only bounded ArtDMX packets from loopback, and assembles the exact consecutive
-physical universes exported in the MadMapper fixture atlas. It publishes only
-complete RGB frames through a same-origin binary HTTP stream. The browser maps
-those physical indices back to the current logical renderer indices and shows
-them on the pose-derived 3D LEDs. A project/fingerprint change stops the stream;
-a one-second signal timeout shows the native simulation again. This path does
+operator enables it, the desktop service shares UDP `127.0.0.1:6454` with
+MadMapper through address reuse, accepts only bounded ArtDMX packets from
+loopback, and assembles the exact consecutive physical universes exported in
+the MadMapper fixture atlas. The downloaded MadMapper package includes one
+importable unicast routing-table row for each of those universes. The service
+publishes only complete RGB frames through a same-origin binary HTTP stream.
+The browser maps those physical indices back to the current logical renderer
+indices and shows them on the pose-derived 3D LEDs. A project/fingerprint change
+stops the stream; a one-second signal timeout shows the native simulation again.
+This path does
 not change authored data, send DDP, or require an ESP32.
 
 `src/wled/DiagnosticFrames.ts` derives deterministic low-brightness, one-pixel

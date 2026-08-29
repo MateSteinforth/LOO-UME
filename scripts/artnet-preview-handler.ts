@@ -8,13 +8,13 @@ import {
 } from "./artnet-frame-assembler.ts";
 
 const DEFAULT_ART_NET_PORT = 6454;
-const ART_NET_PREVIEW_ADDRESS = "127.0.0.2";
+const ART_NET_PREVIEW_ADDRESS = "127.0.0.1";
 const STREAM_HEADER_BYTES = 28;
 const STREAM_MAGIC = Uint8Array.from([0x4c, 0x55, 0x4d, 0x46]);
 
 export interface ArtNetPreviewStatus {
   active: boolean;
-  bindAddress: "127.0.0.2";
+  bindAddress: "127.0.0.1";
   port: number;
   pixelCount: number | null;
   startUniverse: number | null;

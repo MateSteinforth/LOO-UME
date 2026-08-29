@@ -29,6 +29,7 @@ describe("MadMapper package", () => {
     const files = createMadMapperPackageFiles(contract, "rhombicosidodecahedron");
     expect([...files.keys()]).toEqual([
       "fixtures.svg",
+      "artnet-unicast-loopback.csv",
       "patch.csv",
       "manifest.json",
       "SETUP.pdf",
@@ -38,6 +39,7 @@ describe("MadMapper package", () => {
     expect(pdf).toContain("DRAFT - ART-NET HARDWARE SETTINGS REQUIRE LIVE-010 VALIDATION");
     expect(pdf).toContain("File > Import Fixtures");
     expect(pdf).toContain("Avoid Cross Universe Pixels");
+    expect(pdf).toContain("Import artnet-unicast-loopback.csv");
     expect(pdf).toMatch(/startxref\n\d+\n%%EOF\n$/);
     const manifest = JSON.parse(new TextDecoder().decode(files.get("manifest.json")));
     expect(manifest).toMatchObject({
@@ -49,6 +51,26 @@ describe("MadMapper package", () => {
     });
   });
 
+  it("creates an importable loopback route for every exported universe", async () => {
+    const contract = await flagshipContract();
+    const files = createMadMapperPackageFiles(contract, "rhombicosidodecahedron");
+    const unicastRouting = new TextDecoder()
+      .decode(files.get("artnet-unicast-loopback.csv"))
+      .trimEnd()
+      .split("\n");
+    expect(unicastRouting).toHaveLength(17);
+    expect(unicastRouting[0]).toBe(
+      "IP,Short Name,Universe,Active (0 or 1),Long Name,Remapped (0 or 1),Remapped Universe,Was Autodetected (via polling - 0 or 1)",
+    );
+    expect(unicastRouting.slice(1)).toEqual(
+      Array.from(
+        { length: 16 },
+        (_, index) =>
+          `127.0.0.1,LOO-UME,${index + 1},1,LOO-UME MadMapper preview,0,0,0`,
+      ),
+    );
+  });
+
   it("creates deterministic ZIP bytes under one sculpture folder", async () => {
     const contract = await flagshipContract();
     const first = createMadMapperPackageZip(contract, "Rhombicosidodecahedron");
@@ -56,6 +78,7 @@ describe("MadMapper package", () => {
     expect(first).toEqual(second);
     expect(Object.keys(unzipSync(first)).sort()).toEqual([
       "rhombicosidodecahedron-madmapper/SETUP.pdf",
+      "rhombicosidodecahedron-madmapper/artnet-unicast-loopback.csv",
       "rhombicosidodecahedron-madmapper/fixtures.svg",
       "rhombicosidodecahedron-madmapper/manifest.json",
       "rhombicosidodecahedron-madmapper/patch.csv",
