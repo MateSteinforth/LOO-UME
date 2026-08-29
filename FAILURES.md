@@ -1518,3 +1518,61 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   disable page fitting.
 - **Evidence:** HERMA article 4385 product page and official `4385_SV.pdf`.
 - **Status:** Resolved by LABEL-010.
+
+### F-083 — A 64-pixel setup gate blocked generalized fixtures
+
+- **Date:** 2026-08-28
+- **Context:** Backward-compatible explicit emitter geometry for 1×N strips and
+  rings.
+- **Symptom:** Mapping and wiring accepted a 1×12 fixture, but ESP32 setup
+  rejected its output lengths because they were not divisible by 64.
+- **Cause:** The device boundary inferred fixture completeness and current from
+  the one historical 8×8 panel size.
+- **Correction:** Carry `pixelsPerFixture` from the loaded profile grid into the
+  setup validator and scale the existing provisional current limit per LED.
+  Keep unlimited-current 41-panel authority restricted to the exact legacy
+  64-pixel, 2,624-LED, four-output contract.
+- **Prevention:** When a source profile owns a dimension, pass that dimension
+  through runtime boundaries. Do not rediscover it from a flagship constant.
+- **Evidence:** The 1×12 circular mapping reaches exact 492-LED WLED buses; a
+  non-legacy 2,624-LED regression retains finite current limits; legacy setup
+  tests remain byte-equivalent.
+- **Status:** Resolved by FIXTURE-010.
+
+### F-084 — Rectangular display assumptions leaked into fixture capabilities
+
+- **Date:** 2026-08-29
+- **Context:** Arbitrary planar carriers and flexible 1×N strip/ring profiles.
+- **Symptom:** Explicit emitter positions could map and reach WLED, but the
+  viewer still drew a rectangular PCB and rectangular placement/fabrication
+  actions appeared available.
+- **Cause:** Carrier display geometry and tool capability were inferred from
+  `dimensions` instead of represented as an optional profile contract.
+- **Correction:** Add validated rectangular, planar-outline, and flexible-path
+  carrier kinds. Render the latter two directly, disable incompatible browser
+  actions, and repeat the rigid-rectangle gate at CAD entry points.
+- **Prevention:** Keep address geometry, display carrier geometry, and
+  fabrication support as separate contracts. A new carrier must not inherit a
+  tool capability merely because it has a bounding width and height.
+- **Evidence:** Focused outline/ribbon geometry, parser, capability, CAD-gate,
+  mapping, WLED, and legacy-profile tests.
+- **Status:** Resolved by FIXTURE-011.
+
+### F-085 — Numbered presentation implied false workflow dependencies
+
+- **Date:** 2026-08-29
+- **Context:** Generalized fixtures that can map, simulate, and configure WLED
+  without a placement surface or supported printable-part generator.
+- **Symptom:** The sidebar presented every project as a six-step fabrication
+  sequence, so valid strip and ring work appeared to depend on irrelevant GLB
+  placement and planar fabrication stages.
+- **Cause:** Visual numbering described one historical panel workflow instead
+  of the loaded profile's actual capabilities.
+- **Correction:** Replace numbered steps with always-editable Shape, Fixtures,
+  Mapping, Fabrication, Build Hardware, and Export toolboxes. Keep control IDs
+  and handlers stable, and use capability gates for unavailable actions.
+- **Prevention:** Use section order only for navigation. Never use presentation
+  order as a readiness authority; derive readiness from project contracts and
+  explicit capabilities.
+- **Evidence:** Focused toolbox ownership, overflow, and capability checks.
+- **Status:** Resolved by UI-026.

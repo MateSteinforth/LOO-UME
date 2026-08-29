@@ -11,16 +11,16 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
   await expect(button).toBeVisible();
   await expect(button).toBeEnabled();
   await expect(button.locator("xpath=ancestor::section[1]")).toHaveAttribute(
-    "data-workflow-step",
-    "3",
+    "data-toolbox",
+    "mapping",
   );
 
   const labelButton = page.locator("#download-panel-labels");
   await expect(labelButton).toBeVisible();
   await expect(labelButton).toBeEnabled();
   await expect(labelButton.locator("xpath=ancestor::section[1]")).toHaveAttribute(
-    "data-workflow-step",
-    "5",
+    "data-toolbox",
+    "build-hardware",
   );
   const labelDownloadPromise = page.waitForEvent("download");
   await labelButton.click();

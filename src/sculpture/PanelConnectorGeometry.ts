@@ -1,4 +1,7 @@
-import type { PanelHardwareProfile } from "./Definition.ts";
+import {
+  panelConnectorLocalPosition,
+  type PanelHardwareProfile,
+} from "./Definition.ts";
 
 export type ConnectorVector3 = [number, number, number];
 
@@ -24,8 +27,8 @@ function scale(value: ConnectorVector3, amount: number): ConnectorVector3 {
 
 /**
  * Resolve a schematic connector point from the authoritative physical panel
- * pose. Profile connector corners are stored from the PCB back view, so local
- * X is reflected exactly once into the outward-facing right-handed pose.
+ * pose. Explicit profiles supply pose-local anchors. Legacy connector corners
+ * are converted from PCB back view by panelConnectorLocalPosition().
  */
 export function panelConnectorWorldPosition(
   frame: PanelConnectorPoseFrame,
@@ -34,20 +37,15 @@ export function panelConnectorWorldPosition(
   surfaceOffset: number,
   kind: "din" | "dout",
 ): ConnectorVector3 {
-  const corner = kind === "din"
-    ? profile.dataConnectors.dinCorner
-    : profile.dataConnectors.doutCorner;
-  const backX = corner.endsWith("left") ? -1 : 1;
-  const outwardX = -backX;
-  const y = corner.startsWith("bottom") ? -1 : 1;
+  const [x, y, z] = panelConnectorLocalPosition(profile, edgeInset, kind);
   return add(
     add(
       frame.position,
-      scale(frame.xAxis, outwardX * (profile.dimensions.width / 2 - edgeInset)),
+      scale(frame.xAxis, x),
     ),
     add(
-      scale(frame.yAxis, y * (profile.dimensions.height / 2 - edgeInset)),
-      scale(frame.normal, -surfaceOffset),
+      scale(frame.yAxis, y),
+      scale(frame.normal, z - surfaceOffset),
     ),
   );
 }

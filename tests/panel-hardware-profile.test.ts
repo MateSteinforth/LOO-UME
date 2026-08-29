@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   panelBackViewPointToOutwardPoseLocal,
+  panelConnectorLocalPosition,
+  panelEmitterLocalPositions,
   parsePanelHardwareProfile,
 } from "../src/sculpture/Definition.ts";
 
@@ -88,6 +90,78 @@ describe("panel hardware profile", () => {
       wledValue: 1,
       note: expect.stringContaining("Legacy schema 1.0.0"),
     });
+  });
+
+  it("normalizes legacy emitters and connectors without changing their positions", () => {
+    const profile = loadProfile();
+    const emitters = panelEmitterLocalPositions(profile);
+
+    expect(emitters).toHaveLength(64);
+    expect(emitters[0]).toEqual([-25.666666666666664, 25.27777777777778, 1.2]);
+    expect(emitters[63]).toEqual([25.666666666666664, -25.27777777777778, 1.2]);
+    expect(panelConnectorLocalPosition(profile, 4, "din")).toEqual([-29, 28.5, 0]);
+    expect(panelConnectorLocalPosition(profile, 4, "dout")).toEqual([29, -28.5, 0]);
+  });
+
+  it("accepts one explicit pose-local emitter and connector position per address", () => {
+    const profile = structuredClone(loadProfile());
+    profile.pixelGrid.columns = 12;
+    profile.pixelGrid.rows = 1;
+    profile.pixelGrid.provisionalOrder.pixelZeroCorner = "top-right";
+    profile.pixelGrid.provisionalOrder.traversalAxis = "rows";
+    profile.pixelGrid.provisionalOrder.lineProgression = "top-to-bottom";
+    profile.pixelGrid.provisionalOrder.firstLineDirection = "right-to-left";
+    profile.pixelGrid.provisionalOrder.serpentine = false;
+    profile.pixelGrid.localEmitterPositions = Array.from(
+      { length: 12 },
+      (_, index) => {
+        const radians = -index * Math.PI / 6;
+        return [
+          Math.cos(radians) * 159,
+          Math.sin(radians) * 159,
+          0,
+        ] as [number, number, number];
+      },
+    );
+    profile.dataConnectors.doutCorner = "top-left";
+    const oldDout = profile.mounting.holes.find(({ id }) => id === "bottom-left")!;
+    oldDout.mechanicalUse = "eligible";
+    delete oldDout.blockedBy;
+    const newDout = profile.mounting.holes.find(({ id }) => id === "top-left")!;
+    newDout.mechanicalUse = "blocked";
+    newDout.blockedBy = "DOUT";
+    profile.dataConnectors.localPositions = {
+      coordinateFrame: "pose-local",
+      din: [159, 0, 0],
+      dout: profile.pixelGrid.localEmitterPositions[11]!,
+    };
+    profile.power.worstCaseCurrentPerPanel = 0.72;
+
+    const parsed = parsePanelHardwareProfile(profile);
+    expect(panelEmitterLocalPositions(parsed)).toEqual(
+      profile.pixelGrid.localEmitterPositions,
+    );
+    expect(panelConnectorLocalPosition(parsed, 99, "din")).toEqual([159, 0, 0]);
+    expect(panelConnectorLocalPosition(parsed, 99, "dout")).toEqual(
+      profile.pixelGrid.localEmitterPositions[11],
+    );
+  });
+
+  it("rejects incomplete or overlapping explicit emitter positions", () => {
+    const incomplete = structuredClone(loadProfile());
+    incomplete.pixelGrid.localEmitterPositions = [[0, 0, 0]];
+    expect(() => parsePanelHardwareProfile(incomplete)).toThrow(
+      "one row-major position per grid coordinate",
+    );
+
+    const overlapping = structuredClone(loadProfile());
+    overlapping.pixelGrid.localEmitterPositions = Array.from(
+      { length: 64 },
+      () => [0, 0, 0] as [number, number, number],
+    );
+    expect(() => parsePanelHardwareProfile(overlapping)).toThrow(
+      "must be unique",
+    );
   });
 
   it("requires measured pixel zero at DIN and the final pixel at DOUT", () => {

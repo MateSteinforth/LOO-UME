@@ -48,19 +48,20 @@ This is a review link, not a deployment.
 
 ## Main workflow
 
-Project and View remain available above six always-editable sections:
+Project and View remain available above six always-editable toolboxes. They are
+not ordered gates; use only the tools supported by the loaded fixture:
 
-1. **Shape:** load an optional watertight GLB placement surface.
-2. **Panels:** place and edit pose-authoritative panels.
-3. **Mapping:** optimize balanced outputs, GPIOs, panel order, and physical
+- **Shape:** load an optional watertight GLB placement surface.
+- **Fixtures:** place and edit pose-authoritative panels, strips, or rings.
+- **Mapping:** optimize balanced outputs, GPIOs, fixture order, and physical
    DIN/DOUT orientation. Manual route editing remains under **Advanced route
-   editor**. Download the mapping-ready MadMapper package from this section.
-4. **Generate parts:** compile planar closures, connector ribbons, or
-   LED-surface bridges with Manifold.
-5. **Build Hardware:** print current panel IDs on HERMA 4385 labels, place each
-   label at that panel's DIN, isolate each data connection, flash/configure the
-   approved ESP32, and copy the loaded simulator contract.
-6. **Export:** download the editable project ZIP and referenced verified assets.
+   editor**; the MadMapper package is available here.
+- **Fabrication:** compile supported planar closures, connector ribbons, or
+  LED-surface bridges with Manifold.
+- **Build Hardware:** print current panel IDs on HERMA 4385 labels at each DIN,
+  isolate each data connection, flash/configure the approved ESP32, and copy
+  the loaded simulator contract.
+- **Export:** download the editable project ZIP and referenced verified assets.
 
 The browser runs a deterministic subset of WLED effects. Through the local
 host it can flash the receipt-bound ESP32 image, configure WLED, persist the

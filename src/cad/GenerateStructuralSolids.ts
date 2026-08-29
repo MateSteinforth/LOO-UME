@@ -2042,6 +2042,12 @@ export async function buildStructuralRibbonSolids(
   normalized: NormalizedStructuralDesign,
   candidate: import("../structure/CandidateTruss.ts").CandidateTruss,
 ): Promise<StructuralSolidMesh[]> {
+  if (normalized.panelCarrierKind !== undefined) {
+    throw new Error(
+      "Printable structural connector generation supports only rigid rectangular panel carriers. " +
+      "Mapping, wiring, simulation, and ESP32 setup remain available.",
+    );
+  }
   if (candidate.sourceFingerprint.value !== normalized.sourceFingerprint.value) {
     throw new Error("Candidate truss fingerprint does not match normalized structural inputs.");
   }

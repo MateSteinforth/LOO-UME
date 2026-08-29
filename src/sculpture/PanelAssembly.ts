@@ -4,6 +4,7 @@ import panelProfileJson from "../../catalog/panels/ws2812b-8x8-66x65.json" with 
 import {
   getWiringLifecycleStatus,
   panelBackViewPointToOutwardPoseLocal,
+  panelEmitterLocalPositions,
   parsePanelHardwareProfile,
   type FactStatus,
   type PanelHardwareProfile,
@@ -17,6 +18,7 @@ import type {
   Vector3Data,
 } from "../../web/src/LedMapping.ts";
 import { GENERATED_CLOSURE_PLANARITY_MM } from "./PanelBoundaryTolerances.ts";
+import { supportsRectangularPanelTools } from "./PanelCarrier.ts";
 
 import {
   assertProjectAssetReference,
@@ -243,11 +245,13 @@ export function createInstalledAddressOptimizationFingerprint(
       pixelGrid: {
         columns: panelProfile.pixelGrid.columns,
         rows: panelProfile.pixelGrid.rows,
+        localEmitterPositions: panelProfile.pixelGrid.localEmitterPositions,
       },
       dataConnectors: {
         referenceView: panelProfile.dataConnectors.referenceView,
         dinCorner: panelProfile.dataConnectors.dinCorner,
         doutCorner: panelProfile.dataConnectors.doutCorner,
+        localPositions: panelProfile.dataConnectors.localPositions,
       },
     },
     outputs: definition.wiring.outputs.map((output, index) => ({
@@ -1857,7 +1861,8 @@ export function createPanelAssemblyMapping(
   assembly?: CompiledPanelAssembly,
 ): LedMapping {
   const resolvedAssembly = assembly ??
-    (!project.sculpture.mechanicalShell ||
+    (!supportsRectangularPanelTools(project.panelProfile) ||
+        !project.sculpture.mechanicalShell ||
         !project.sculpture.closures ||
         project.sculpture.mechanicalShell.derivationStatus === "requires-regeneration"
       ? null
@@ -1924,22 +1929,23 @@ export function createPanelAssemblyMapping(
     };
   });
   const entries: LedMappingEntry[] = [];
+  const localEmitterPositions = panelEmitterLocalPositions(project.panelProfile);
   for (let panelIndex = 0; panelIndex < panels.length; panelIndex += 1) {
     const panel = panels[panelIndex]!;
-    const pitchX = panel.previewWidth / (columns + 1);
-    const pitchY = panel.previewHeight / (rows + 1);
     for (let pixelY = 0; pixelY < rows; pixelY += 1) {
       for (let pixelX = 0; pixelX < columns; pixelX += 1) {
         const physicalIndex =
           panelIndex * ledsPerPanel + pixelY * columns + pixelX;
+        const [localX, localY, localZ] =
+          localEmitterPositions[pixelY * columns + pixelX]!;
         const position = add(
           add(
             panel.position,
-            scale(panel.xAxis, (pixelX - (columns - 1) / 2) * pitchX),
+            scale(panel.xAxis, localX),
           ),
           add(
-            scale(panel.yAxis, ((rows - 1) / 2 - pixelY) * pitchY),
-            scale(panel.normal, project.panelProfile.pixelGrid.emitterOffset),
+            scale(panel.yAxis, localY),
+            scale(panel.normal, localZ),
           ),
         );
         entries.push({

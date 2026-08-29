@@ -29,8 +29,12 @@ edit marks derived mechanics stale but does not stop those functions.
 1. `parsePanelAssemblyDefinition()` is the central deep Schema 2 runtime
    validator. `LoadPanelAssemblyProject.ts` is the thin CLI file adapter, while
    browser and portable-project adapters use the same profile-resolving loader.
-2. `createPanelAssemblyMapping()` expands authoritative poses into panels, LED
-   world positions, logical indices, and mapping metadata.
+2. `panelEmitterLocalPositions()` normalizes an optional row-major pose-local
+   grid-coordinate emitter list or derives the legacy rectangular grid.
+   `createPanelAssemblyMapping()` expands those positions through authoritative
+   poses into LED world positions, logical indices, and mapping metadata.
+   The separate optional carrier contract affects display geometry and tool
+   capability only; it does not become a second address authority.
 3. `optimizeAutomaticWiring()` can write a deterministic balanced route, GPIO
    set, and physical local-Z panel orientation. `createProvisionalWiringPreview()`
    uses that saved route or creates a labelled legacy draft suggestion.
@@ -124,15 +128,15 @@ controller is a schematic near-top placement derived from the complete current
 route; it is not a second saved wiring authority.
 The populated 41-panel Schema 2 project is the browser default. Empty authoring
 projects remain explicit registry choices.
-The sidebar has no separate wizard state. Project and View remain available,
-followed by six always-editable sections: Shape, Panels, Mapping, Generate
-parts, Build Hardware, and Export. Animation controls stay in View because they
-remain useful throughout the workflow. Mapping owns route optimization, manual
-route editing, and the mapping-ready MadMapper information ZIP. Build Hardware
-combines HERMA 4385 panel-label PDF generation, ESP32 setup, and the
-connection-by-connection assembly tutorial. Section order explains the operator workflow, while
-actual readiness continues to come from the Schema 2 project, mapping
-lifecycle, and generated-asset contracts.
+The sidebar has no wizard state or numbered progression. Project and View remain
+available, followed by always-editable Shape, Fixtures, Mapping, Fabrication,
+Build Hardware, and Export toolboxes. Animation controls stay in View because
+they remain useful throughout the work. Mapping owns route optimization, its
+advanced editor, and the mapping-ready MadMapper ZIP. Build Hardware owns HERMA
+4385 panel-label PDF generation, ESP32 setup, and the connection-by-connection
+assembly tutorial. Each loaded fixture profile controls which placement and
+fabrication actions are enabled; mapping, simulation, hardware setup, and export
+do not wait for an irrelevant fabrication step.
 The renderer offsets LED sprites 2.4 mm along each panel's outward normal. This
 is a display-only separation from the PCB plane; it does not change mapping or
 saved panel poses. The transparent WebGL canvas uses the viewer's radial and

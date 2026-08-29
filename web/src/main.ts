@@ -91,6 +91,10 @@ import { createHerma4385PanelLabelsPdf } from "./PanelLabelSheet.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
 import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
 import {
+  assertRectangularPanelTools,
+  supportsRectangularPanelTools,
+} from "../../src/sculpture/PanelCarrier.ts";
+import {
   getGeneratedStructuralState,
   normalizeStructuralDesign,
   STRUCTURAL_CONNECTOR_DEFAULTS,
@@ -257,12 +261,11 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="1">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">1</span>
-            <div><strong>Shape</strong><small>Load the sculpture surface</small></div>
+        <section class="control-section toolbox-section" data-toolbox="shape">
+          <div class="toolbox-heading">
+            <div><strong>Shape</strong><small>Authoring surface and scale</small></div>
           </div>
-          <p class="workflow-step__hint">Start with a watertight GLB, or continue from saved panel poses without one.</p>
+          <p class="toolbox-hint">Load a watertight GLB when the fixture layout uses a placement surface. Saved poses remain usable without one.</p>
           <div class="shape-controls">
             <label class="field">
               <span>GLB units to millimetres</span>
@@ -272,12 +275,11 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="2">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">2</span>
-            <div><strong>Panels</strong><small>Place and edit the layout</small></div>
+        <section class="control-section toolbox-section" data-toolbox="fixtures">
+          <div class="toolbox-heading">
+            <div><strong>Fixtures</strong><small>Place and edit emitters</small></div>
           </div>
-          <p class="workflow-step__hint">Seed panels from the active surface, then refine every pose in the viewport.</p>
+          <p class="toolbox-hint">Edit every saved fixture pose. Surface placement stays unavailable when the selected carrier does not support it.</p>
           <div id="automatic-panel-placement-controls">
             <label class="field">
               <span>Target panel count</span>
@@ -291,10 +293,9 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="3">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">3</span>
-            <div><strong>Mapping</strong><small>Define the controller-to-panel route</small></div>
+        <section class="control-section toolbox-section" data-toolbox="mapping">
+          <div class="toolbox-heading">
+            <div><strong>Mapping</strong><small>Addresses, route, and external control</small></div>
           </div>
           <p id="wiring-optimization-summary" class="mapping-note"></p>
           <button id="optimize-wiring" class="editor-button" type="button">Optimize wiring</button>
@@ -313,12 +314,11 @@ app.innerHTML = `
           </details>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="4">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">4</span>
-            <div><strong>Generate parts</strong><small>Choose the fabrication methods</small></div>
+        <section class="control-section toolbox-section" data-toolbox="fabrication">
+          <div class="toolbox-heading">
+            <div><strong>Fabrication</strong><small>Generate supported printable parts</small></div>
           </div>
-          <p class="workflow-step__hint">Generate panel closures, connector ribbons, or LED-surface bridges. Each result remains editable and can be regenerated.</p>
+          <p class="toolbox-hint">Generate only the methods supported by the loaded fixture carrier. Mapping and simulation do not depend on printable parts.</p>
           <details id="advanced-tools" class="compact-menu">
             <summary>Fabrication settings</summary>
             <div class="compact-menu__content">
@@ -366,10 +366,9 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section workflow-step" data-workflow-step="5">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">5</span>
-            <div><strong>BUILD HARDWARE</strong><small>Flash, wire, and assemble</small></div>
+        <section class="control-section toolbox-section" data-toolbox="build-hardware">
+          <div class="toolbox-heading">
+            <div><strong>Build Hardware</strong><small>Wire, flash, and assemble</small></div>
           </div>
           <button id="download-panel-labels" class="editor-button" type="button">Generate panel labels PDF</button>
           <div id="assembly-tutorial-section" class="assembly-tutorial assembly-tutorial--workflow">
@@ -389,16 +388,15 @@ app.innerHTML = `
               </div>
             </div>
           </div>
-          <button id="open-esp32-setup" class="editor-button workflow-step__secondary" type="button">Set up ESP32</button>
+          <button id="open-esp32-setup" class="editor-button" type="button">Set up ESP32</button>
         </section>
 
-        <section class="control-section workflow-step workflow-export" data-workflow-step="6">
-          <div class="workflow-step__heading">
-            <span class="workflow-step__number">6</span>
+        <section class="control-section toolbox-section toolbox-export" data-toolbox="export">
+          <div class="toolbox-heading">
             <div><strong>Export</strong><small>Save the project and current assets</small></div>
           </div>
-          <p class="workflow-step__hint">Export the editable Schema 2 project ZIP with every current referenced asset available as verified bytes.</p>
-          <button id="save-project" class="pipeline-button workflow-export__primary" type="button">Export project ZIP</button>
+          <p class="toolbox-hint">Export the editable Schema 2 project ZIP with every current referenced asset available as verified bytes.</p>
+          <button id="save-project" class="pipeline-button toolbox-export__primary" type="button">Export project ZIP</button>
           <details id="export-options" class="compact-menu">
             <summary>Other export options</summary>
             <div class="compact-menu__content">
@@ -658,10 +656,7 @@ async function start(): Promise<void> {
     const outputLayerVisibility = new Map<number, boolean>();
     let routeEditorModel: WiringRouteEditorModel | null =
       createWiringRouteEditorModel(editorDefinition, wiringPreview);
-    renderer = new SphereRenderer(viewerElement, mapping);
-    renderer.setPanelProfileThickness(
-      editorProject.panelProfile.dimensions.thickness,
-    );
+    renderer = new SphereRenderer(viewerElement, mapping, editorProject.panelProfile);
     renderer.setShellTransparency(
       DEFAULT_SHELL_TRANSPARENCY,
     );
@@ -724,19 +719,24 @@ async function start(): Promise<void> {
       ledCount: number;
       panelCount: number;
     } => {
+      const columns = mapping.panelPixelGrid?.columns;
+      const rows = mapping.panelPixelGrid?.rows;
+      const pixelsPerFixture = (columns ?? 0) * (rows ?? 0);
       if (
         mapping.topology !== "panelized-sculpture" ||
-        mapping.panelPixelGrid?.columns !== 8 ||
-        mapping.panelPixelGrid.rows !== 8
+        !Number.isInteger(columns) ||
+        !Number.isInteger(rows) ||
+        columns! < 1 ||
+        rows! < 1
       ) {
-        throw new Error("ESP32 setup requires the loaded 8 by 8 panel simulator.");
+        throw new Error("ESP32 setup requires a loaded panelized simulator.");
       }
       const ledCount = mapping.entries.length;
-      const panelCount = ledCount / 64;
+      const panelCount = mapping.panels.length;
       if (
-        !Number.isInteger(panelCount) ||
         panelCount < 1 ||
         panelCount > 41 ||
+        ledCount !== panelCount * pixelsPerFixture ||
         hardwareContract.outputs.length < 1 ||
         hardwareContract.outputs.length > 4
       ) {
@@ -756,8 +756,8 @@ async function start(): Promise<void> {
           output.startIndex !== outputs
             .slice(0, index)
             .reduce((sum, prior) => sum + prior.pixelCount, 0) ||
-          output.pixelCount < 64 ||
-          output.pixelCount % 64 !== 0
+          output.pixelCount < pixelsPerFixture ||
+          output.pixelCount % pixelsPerFixture !== 0
         ) ||
         new Set(outputs.map((output) => output.gpio)).size !== outputs.length ||
         outputs.reduce((sum, output) => sum + output.pixelCount, 0) !== ledCount
@@ -781,6 +781,7 @@ async function start(): Promise<void> {
         smokeConfig as Record<string, unknown>,
         outputs,
         hardwareContract.wledColorOrder.wledValue,
+        mapping.panelPixelGrid!.columns * mapping.panelPixelGrid!.rows,
       );
       return {
         sourceFingerprint: hardwareContract.fingerprint,
@@ -1005,7 +1006,8 @@ async function start(): Promise<void> {
 
     const updatePipelineAvailability = (): void => {
       const capabilities = deriveEditorCapabilities(
-        editorDefinition, activePlacementSurface !== undefined, pipelineAvailable,
+        editorDefinition, activePlacementSurface !== undefined,
+        pipelineAvailable, editorProject.panelProfile,
       );
       renderer?.setEditorCapabilities(capabilities);
       const packageIsCurrent = verifiedGeneratedMechanics !== undefined;
@@ -1016,7 +1018,9 @@ async function start(): Promise<void> {
         (!packageIsCurrent && !capabilities.canGenerateGenericMechanics);
       assemblyPackageButton.title = packageIsCurrent
         ? "Download the current project, verified geometry, manual, and guarded deployment export."
-        : "Build current boundary and part STLs. The button changes to Download when they are verified.";
+        : capabilities.canGenerateGenericMechanics
+          ? "Build current boundary and part STLs. The button changes to Download when they are verified."
+          : "Panel closure generation currently supports only rigid rectangular panel carriers.";
       downloadMadMapperPackageButton.disabled =
         !hardwareContract.readiness.mappingReady;
       downloadMadMapperPackageButton.title = hardwareContract.readiness.mappingReady
@@ -1027,17 +1031,21 @@ async function start(): Promise<void> {
         ? "Place at least one panel before generating labels."
         : "Print current panel IDs on a HERMA 4385 A4 label sheet at 100% scale.";
       generateStructureButton.disabled =
-        editorDefinition.panels.length === 0;
+        !capabilities.canGenerateStructuralMechanics;
       generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
-      generateStructureButton.title =
-        "Generate nearest-hole connector ribbons, STL, 3MF, and an optional load-path report.";
-      generateSurfaceStructureButton.title =
-        "Generate 2 mm full-edge bridges at the panel LED planes, STL, 3MF, and an optional load-path report.";
+      generateStructureButton.title = capabilities.canGenerateStructuralMechanics
+        ? "Generate nearest-hole connector ribbons, STL, 3MF, and an optional load-path report."
+        : "Connector generation currently supports only rigid rectangular panel carriers.";
+      generateSurfaceStructureButton.title = capabilities.canGenerateStructuralMechanics
+        ? "Generate 2 mm full-edge bridges at the panel LED planes, STL, 3MF, and an optional load-path report."
+        : "Bridge generation currently supports only rigid rectangular panel carriers.";
       automaticPanelPlacementControls.hidden = false;
       automaticallyPlacePanelsButton.disabled =
         !capabilities.canAutomaticallySeed;
       automaticallyPlacePanelsButton.title = activePlacementSurface
-          ? "Seed panels evenly across the active placement surface."
+          ? capabilities.canAutomaticallySeed
+            ? "Seed panels evenly across the active placement surface."
+            : "Automatic placement currently supports only rigid rectangular panel carriers."
           : "Load a GLB or sculpture JSON shell first.";
     };
 
@@ -1480,7 +1488,8 @@ async function start(): Promise<void> {
     };
 
     const renderEditorFaces = (): void => {
-      const options = mechanicalShellIsCurrent() && editorDefinition.closures
+      const options = supportsRectangularPanelTools(editorProject.panelProfile) &&
+          mechanicalShellIsCurrent() && editorDefinition.closures
         ? editorDefinition.closures.faceIds.flatMap((faceId) => {
         try {
           addPanelToClosureFace(
@@ -1541,9 +1550,7 @@ async function start(): Promise<void> {
       engine.resize(mapping.entries.length);
       tryReconnectSimulatorLink();
       ledCountInput.value = String(mapping.entries.length);
-      renderer?.setPanelProfileThickness(
-        selected.project.panelProfile.dimensions.thickness,
-      );
+      renderer?.setPanelProfile(selected.project.panelProfile);
       renderer?.setMapping(mapping);
       renderer?.setWiringPreview(wiringPreview);
       renderAssemblyTutorialControls();
@@ -1841,7 +1848,8 @@ async function start(): Promise<void> {
           );
         }
         const capabilities = deriveEditorCapabilities(
-          editorDefinition, activePlacementSurface !== undefined, pipelineAvailable,
+          editorDefinition, activePlacementSurface !== undefined,
+          pipelineAvailable, editorProject.panelProfile,
         );
         if (panelId) {
           const free3d = currentPanelTransformMode() === "free-3d";
@@ -2423,6 +2431,10 @@ async function start(): Promise<void> {
 
     automaticallyPlacePanelsButton.addEventListener("click", () => {
       try {
+        assertRectangularPanelTools(
+          editorProject.panelProfile,
+          "Automatic surface placement",
+        );
         if (!activePlacementSurface) {
           throw new Error("Load a GLB or sculpture JSON shell first.");
         }
@@ -2460,6 +2472,10 @@ async function start(): Promise<void> {
     });
     addPanelButton.addEventListener("click", () => {
       try {
+        assertRectangularPanelTools(
+          editorProject.panelProfile,
+          "Closure-face panel placement",
+        );
         const faceId = addPanelFaceSelect.value;
         if (!faceId) throw new Error("Choose an available closure face.");
         const edited = addPanelToClosureFace(

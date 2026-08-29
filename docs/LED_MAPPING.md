@@ -16,7 +16,10 @@ assumed route or unmeasured panel facts into measured evidence.
 The current mapping pipeline separates three concepts:
 
 1. **Panel-local coordinates** identify an emitter by panel ID and `(x, y)` in
-   the active panel profile's `columns × rows` grid. The current physical panel
+   the active panel profile's `columns × rows` address grid. A profile can
+   provide one row-major pose-local XYZ point per grid coordinate; the existing
+   pixel-order contract maps those coordinates to wire addresses. Otherwise the
+   runtime derives the historical rectangular grid. The current physical panel
    profile is 8 × 8.
 2. **Logical index** is effect/simulator order. LED world positions are projected
    equirectangularly, then sorted by `v`, `u`, and a deterministic tie-breaker:
@@ -169,11 +172,13 @@ has no printable geometry for the tutorial to show. The 41-panel project is
 currently in that pose-and-wiring-only state.
 
 The persistent **View** section owns the DIN/DOUT and panel-wiring layers. The
-guided **BUILD HARDWARE** section follows part generation and owns panel-label
-PDF generation, chain/wire isolation, and ESP32 setup. The MadMapper package is
-part of Mapping because it consumes the physical mapping contract. These controls remain available without locking the
-other project sections. The populated 41-panel project is the default browser
-project; empty authoring projects remain available in the project selector.
+**Build Hardware** toolbox owns panel-label PDF generation, chain/wire isolation,
+and ESP32 setup. It is not gated by optional fabrication and does not lock the
+other project controls.
+MadMapper export belongs to Mapping because it consumes the address contract,
+not a fabricated assembly. The populated 41-panel project is the default
+browser project; empty authoring projects remain available in the project
+selector.
 
 ## Printable panel labels
 

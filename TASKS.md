@@ -35,28 +35,23 @@ No tasks.
 
 ## Ready
 
-### `P1 · LIVE-010` Prove direct MadMapper Art-Net physical addressing
-
-- Scope: send the generated 16-universe physical fixture atlas directly from
-  MadMapper to WLED over wired Ethernet. MadMapper owns realtime spatial-to-wire
-  mapping; WLED realtime ledmap processing stays disabled. Native WLED effects
-  continue to use the installed ledmap.
-- First slice: three panels / 192 RGB LEDs / two universes; then 2,624 LEDs / 16
-  universes with finite native-preset fallback.
-- Acceptance: prove exact panel orientation, physical address, RGB order,
-  universe boundaries, timeout fallback, restart behavior, sustained FPS, and
-  incomplete-frame handling. Confirm that MadMapper remains responsive with
-  2,624 individual fixtures.
-- Dependencies: the approved Ethernet-capable WLED hardware and powered test
-  setup. Do not add an Art-Net-to-DDP bridge unless measurements prove that the
-  direct path cannot meet the performance target.
-- Conflict risk: WLED Ethernet/realtime configuration and BUILD HARDWARE setup.
+No tasks.
 
 ## In Progress
 
 No tasks.
 
 ## Blocked
+
+### `P1 · LIVE-010` Prove direct MadMapper Art-Net physical addressing
+
+- Blocked by: an approved Ethernet-capable WLED controller, powered three-panel
+  setup, and a computer running MadMapper on the same wired network.
+- Needed: run the generated two-universe three-panel package first, then the
+  16-universe 2,624-LED package; record address/RGB parity, universe boundaries,
+  timeout fallback, restart behavior, sustained FPS, and incomplete frames.
+- Boundary: do not add an Art-Net-to-DDP bridge unless measurements show that
+  direct MadMapper-to-WLED Art-Net cannot meet the target.
 
 ### `MECH-020` Add correction tools for a proven ambiguous gap case
 
@@ -105,6 +100,13 @@ No tasks.
 No tasks.
 
 ## Done
+
+- `FIXTURE-010` / `FIXTURE-011` / `UI-026`: integrated explicit pose-local
+  emitter and DIN/DOUT coordinates, arbitrary planar and flexible-path carrier
+  display geometry, profile-driven capability gates, and the unnumbered toolbox
+  sidebar on 2026-08-29. The legacy 41-panel project remains byte-equivalent;
+  focused fixture, mapping, WLED, boundary, UI, TypeScript, build, and
+  independent reviews passed.
 
 - `LABEL-010`: integrated the HERMA 4385 multi-page panel-label PDF and DIN-end
   simulator label placement on 2026-08-29. The operator confirmed the browser

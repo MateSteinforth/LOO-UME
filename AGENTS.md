@@ -13,6 +13,9 @@ To establish this workflow in another repository, follow
 
 - Authored projects: `sculptures/*/sculpture.json` (active format: Schema 2).
 - Reusable PCB facts: `catalog/panels/ws2812b-8x8-66x65.json`.
+- Carrier kinds, validation, and rigid-tool capability gates:
+  `src/sculpture/PanelCarrier.ts`; browser carrier geometry is derived in
+  `web/src/PanelCarrierGeometry.ts`.
 - Runtime Schema 2 contract and mapping compiler: `src/sculpture/PanelAssembly.ts`.
 - Structural input, normalization, warnings, and fingerprints:
   `src/sculpture/StructuralDesign.ts`.
@@ -57,10 +60,17 @@ Historical Schema 1 inputs are available only through Git history.
   may constrain editing but must not silently replace a saved pose.
 - Mapping, wiring, and simulation must continue after a panel edit even when
   printable mechanics are stale or unavailable.
+- Keep emitter/address geometry separate from carrier display geometry and
+  fabrication capability. Missing carrier data means the legacy rigid
+  rectangle. Planar outlines and flexible paths may map, wire, simulate, and
+  configure WLED, but must not enter rectangle-only placement or CAD paths.
 - Keep the primary operator workflow state-aware and artifact-complete. Prefer
   one action that changes from build to download over separate sequential
   buttons, and keep raw/debug exports under Advanced when one self-contained
   project or assembly package is the normal handoff.
+- Present operator areas as always-editable capability toolboxes, not numbered
+  gates. A profile can disable an unsupported placement or fabrication action,
+  but it must not block independent mapping, simulation, hardware, or export.
 - Schema 2 mechanics are optional. Omitting `mechanicalShell` and `closures`
   is the implemented mechanics-free state:
   load GLB, place/edit panels, simulate, map, wire, save, and reload before any

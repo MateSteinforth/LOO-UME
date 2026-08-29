@@ -39,6 +39,8 @@ import {
   type SurfacePanelPlacement,
   type SurfacePlacement,
 } from "./SurfacePlacementController";
+import type { PanelHardwareProfile } from "../../src/sculpture/Definition.ts";
+import { createLocalPanelCarrierGeometry } from "./PanelCarrierGeometry.ts";
 
 export type DisplayMode = "wled" | "physical-index" | "logical-index";
 
@@ -129,6 +131,7 @@ export class SphereRenderer {
   private panelLabelsVisible = true;
   private selectedPanelId: string | null = null;
   private panelThickness = 0.8;
+  private panelProfile: PanelHardwareProfile | undefined;
   private readonly viewBoundsCenter = new THREE.Vector3();
   private viewBoundsRadius = 80;
   private tutorialPanelIds: Set<string> | null = null;
@@ -141,8 +144,11 @@ export class SphereRenderer {
   constructor(
     private readonly container: HTMLElement,
     mapping: LedMapping,
+    panelProfile?: PanelHardwareProfile,
   ) {
     this.mapping = mapping;
+    this.panelProfile = panelProfile;
+    this.panelThickness = panelProfile?.dimensions.thickness ?? 0.8;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -343,6 +349,11 @@ export class SphereRenderer {
   setPanelProfileThickness(thickness: number): void {
     this.panelThickness = thickness;
     this.surfacePlacement.setPanels(this.mapping.panels, thickness);
+  }
+
+  setPanelProfile(profile: PanelHardwareProfile): void {
+    this.panelProfile = profile;
+    this.setPanelProfileThickness(profile.dimensions.thickness);
   }
 
   setEditorCapabilities(capabilities: EditorCapabilities): void {
@@ -728,12 +739,6 @@ export class SphereRenderer {
     const printableClosureIds = new Set(
       printableClosures.map((closure) => closure.id),
     );
-    const edgePairs: Array<[number, number]> = [
-      [0, 1],
-      [1, 2],
-      [2, 3],
-      [3, 0],
-    ];
 
     for (const face of surfaceFaces) {
       if (face.role === "filler" && printableClosureIds.has(face.id)) continue;
@@ -766,16 +771,33 @@ export class SphereRenderer {
       );
     }
 
+    const sharedCarrierGeometry = this.panelProfile
+      ? createLocalPanelCarrierGeometry(this.panelProfile)
+      : undefined;
+
     for (const panel of panels) {
-      const surfaceCorners = this.panelCorners(panel, 0);
-      const corners = this.panelCorners(panel, 0.35);
+      const carrierGeometry = sharedCarrierGeometry ??
+        createLocalPanelCarrierGeometry({
+          dimensions: {
+            width: panel.previewWidth,
+            height: panel.previewHeight,
+            thickness: this.panelThickness,
+          },
+        });
+      const localToWorld = (
+        point: readonly [number, number, number],
+        normalOffset = 0,
+      ): THREE.Vector3 => this.toThree(panel.position)
+        .addScaledVector(this.toThree(panel.xAxis), point[0])
+        .addScaledVector(this.toThree(panel.yAxis), point[1])
+        .addScaledVector(this.toThree(panel.normal), point[2] + normalOffset);
       const outlineColor = new THREE.Color(
         panel.faceType === "square-face" ? 0x39d9d0 : 0xff9d5c,
       );
       const surfaceColor = new THREE.Color(0x080a0c);
-      for (const cornerIndex of [0, 1, 2, 0, 2, 3]) {
-        const corner = surfaceCorners[cornerIndex]!;
-        panelSurfacePositions.push(corner.x, corner.y, corner.z);
+      for (const localPoint of carrierGeometry.triangles) {
+        const point = localToWorld(localPoint);
+        panelSurfacePositions.push(point.x, point.y, point.z);
         panelSurfaceColors.push(
           surfaceColor.r,
           surfaceColor.g,
@@ -783,9 +805,9 @@ export class SphereRenderer {
         );
         panelSurfaceIds.push(panel.id);
       }
-      for (const [start, end] of edgePairs) {
-        const first = corners[start]!;
-        const second = corners[end]!;
+      for (const [start, end] of carrierGeometry.outlineSegments) {
+        const first = localToWorld(start, 0.35);
+        const second = localToWorld(end, 0.35);
         positions.push(first.x, first.y, first.z, second.x, second.y, second.z);
         colors.push(
           outlineColor.r,
@@ -1632,29 +1654,6 @@ export class SphereRenderer {
       }
     }
     this.panelLayer.clear();
-  }
-
-  private panelCorners(
-    panel: PanelDefinition,
-    normalOffset: number,
-  ): THREE.Vector3[] {
-    const normal = this.toThree(panel.normal);
-    const center = this.toThree(panel.position).addScaledVector(
-      normal,
-      normalOffset,
-    );
-    const halfX = this.toThree(panel.xAxis).multiplyScalar(
-      panel.previewWidth / 2,
-    );
-    const halfY = this.toThree(panel.yAxis).multiplyScalar(
-      panel.previewHeight / 2,
-    );
-    return [
-      center.clone().sub(halfX).sub(halfY),
-      center.clone().add(halfX).sub(halfY),
-      center.clone().add(halfX).add(halfY),
-      center.clone().sub(halfX).add(halfY),
-    ];
   }
 
   private fitMapping(): void {

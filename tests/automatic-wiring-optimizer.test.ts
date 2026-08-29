@@ -238,6 +238,30 @@ describe("automatic wiring optimizer", () => {
     )).toBeCloseTo(optimized.estimatedCableLengthMm, 10);
   });
 
+  it("uses explicit pose-local DIN and DOUT anchors during optimization", () => {
+    const loaded = load();
+    const source = identityTransforms(loaded.definition);
+    const legacy = optimizeAutomaticWiring(source, loaded.profile);
+    const explicitProfileInput = structuredClone(loaded.profile);
+    explicitProfileInput.dataConnectors.localPositions = {
+      coordinateFrame: "pose-local",
+      din: [8, 23, 0],
+      dout: [-17, -11, 0],
+    };
+    const explicitProfile = parsePanelHardwareProfile(explicitProfileInput);
+    const optimized = optimizeAutomaticWiring(source, explicitProfile);
+
+    expect(optimized.estimatedCableLengthMm).not.toBeCloseTo(
+      legacy.estimatedCableLengthMm,
+      6,
+    );
+    expect(renderedCableLength(
+      optimized.definition,
+      explicitProfile,
+      THREE_PANEL_SOURCE,
+    )).toBeCloseTo(optimized.estimatedCableLengthMm, 10);
+  });
+
   it("is deterministic when panel storage order changes", () => {
     const loaded = load();
     const source = identityTransforms(loaded.definition);

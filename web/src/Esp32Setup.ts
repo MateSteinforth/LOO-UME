@@ -185,21 +185,25 @@ export function createSimulatorSetupConfig(
   source: Record<string, unknown>,
   outputs: readonly SimulatorSetupOutput[],
   colorOrder: number,
+  pixelsPerFixture = 64,
 ): Record<string, unknown> {
   const ledCount = outputs.reduce((sum, output) => sum + output.pixelCount, 0);
   const gpioSet = new Set(outputs.map((output) => output.gpio));
   if (
     outputs.length < 1 ||
     outputs.length > 4 ||
-    ledCount < 64 ||
+    !Number.isInteger(pixelsPerFixture) ||
+    pixelsPerFixture < 1 ||
+    ledCount < pixelsPerFixture ||
     ledCount > 2_624 ||
-    ledCount % 64 !== 0 ||
+    ledCount % pixelsPerFixture !== 0 ||
+    ledCount / pixelsPerFixture > 41 ||
     gpioSet.size !== outputs.length ||
     outputs.some((output, index) =>
       !Number.isInteger(output.startIndex) ||
       !Number.isInteger(output.pixelCount) ||
-      output.pixelCount < 64 ||
-      output.pixelCount % 64 !== 0 ||
+      output.pixelCount < pixelsPerFixture ||
+      output.pixelCount % pixelsPerFixture !== 0 ||
       output.startIndex !== outputs
         .slice(0, index)
         .reduce((sum, prior) => sum + prior.pixelCount, 0) ||
@@ -210,7 +214,7 @@ export function createSimulatorSetupConfig(
     colorOrder > 5
   ) {
     throw new Error(
-      "ESP32 setup requires 1 through 41 complete 64-LED panels on one through four contiguous approved GPIO outputs and a WLED color order.",
+      "ESP32 setup requires 1 through 41 complete fixtures on one through four contiguous approved GPIO outputs and a WLED color order.",
     );
   }
   const config = structuredClone(source);
@@ -223,8 +227,11 @@ export function createSimulatorSetupConfig(
   if (!led || !template) {
     throw new Error("The approved ESP32 setup template has no LED bus.");
   }
-  const completeAuthority = ledCount === 2_624 && outputs.length === 4;
-  const maximumCurrentMa = completeAuthority ? 0 : ledCount / 64 * 1_000;
+  const completeAuthority = pixelsPerFixture === 64 &&
+    ledCount === 2_624 && outputs.length === 4;
+  const maximumCurrentMa = completeAuthority
+    ? 0
+    : Math.round(ledCount / 64 * 1_000);
   led.total = ledCount;
   led.maxpwr = maximumCurrentMa;
   led.ins = outputs.map((output) => ({
@@ -233,7 +240,9 @@ export function createSimulatorSetupConfig(
     len: output.pixelCount,
     pin: [output.gpio],
     order: colorOrder,
-    maxpwr: completeAuthority ? 14_000 : output.pixelCount / 64 * 1_000,
+    maxpwr: completeAuthority
+      ? 14_000
+      : Math.round(output.pixelCount / 64 * 1_000),
   }));
   config.def = { ps: STANDALONE_PRESET_ID, on: true, bri: 128 };
   config.if = {

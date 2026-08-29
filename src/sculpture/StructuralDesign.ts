@@ -4,6 +4,10 @@ import {
   type PanelMountingHoleId,
 } from "./Definition.ts";
 import {
+  normalizePanelCarrier,
+  type PanelCarrierDefinition,
+} from "./PanelCarrier.ts";
+import {
   assertProjectAssetReference,
   sha256Text,
 } from "./GeneratedMechanics.ts";
@@ -180,6 +184,8 @@ export interface NormalizedStructuralDesign {
   };
   sourceFingerprint: { algorithm: "sha256"; value: string };
   inputSource: "authored" | "preview-defaults";
+  /** Omitted for the historical rectangular contract to preserve artifacts. */
+  panelCarrierKind?: Exclude<PanelCarrierDefinition["kind"], "rectangular">;
   referencePanelId: string | null;
   design: StructuralDesignDefinition;
   connectorization: StructuralConnectorizationDefinition;
@@ -713,6 +719,7 @@ export function createStructuralFingerprint(
       id: profile.id,
       units: profile.units,
       dimensions: profile.dimensions,
+      carrier: profile.carrier,
       pixelGrid: { emitterOffset: profile.pixelGrid.emitterOffset },
       mounting: {
         printedPilotDiameter: profile.mounting.printedPilotDiameter,
@@ -757,6 +764,7 @@ export function normalizeStructuralDesign(
 ): NormalizedStructuralDesign {
   const definition = project.sculpture;
   const profile = project.panelProfile;
+  const carrierKind = normalizePanelCarrier(profile).kind;
   if (definition.panels.length === 0) {
     throw new Error("Structural normalization requires at least one panel pose.");
   }
@@ -958,6 +966,7 @@ export function normalizeStructuralDesign(
     units: { length: "mm", force: "N", mass: "kg", stress: "MPa", density: "kg/m^3" },
     sourceFingerprint: { algorithm: "sha256", value: createStructuralFingerprint(definition, profile) },
     inputSource: source,
+    ...(carrierKind === "rectangular" ? {} : { panelCarrierKind: carrierKind }),
     referencePanelId: design.supports.length === 0 ? panels[0]!.id : null,
     design,
     connectorization,
