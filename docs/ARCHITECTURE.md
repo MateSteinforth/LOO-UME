@@ -56,9 +56,11 @@ edit marks derived mechanics stale but does not stop those functions.
    connector ribbons or LED-surface bridges into exact STL/3MF assets.
 9. `ProjectPackage.ts` wraps the portable project files in the same versioned
    `.loo.zip` format used by demo, local-library, backup, and transfer projects.
-   It embeds a manifest and deterministic pose-derived thumbnail. The assembly
-   package separately joins project JSON, verified GLB/STL bytes, printable
-   manual, ledmap, and wiring review.
+   It embeds a manifest and thumbnail. New browser saves use one 480 x 300
+   WebGL render with the current viewport direction and mapping-fit camera;
+   older pose-derived SVG thumbnails remain loadable. The assembly package
+   separately joins project JSON, verified GLB/STL bytes, printable manual,
+   ledmap, and wiring review.
 
 There is no project database or browser-local project authority. Persistence
 uses a folder of validated project ZIPs. Repository demo ZIPs are deterministic
@@ -288,7 +290,8 @@ current values are copied operating assumptions, not electrical approval.
 | `src/structure/StructuralPipeline.ts` | Candidate, advisory solve/optimization, and structural composition |
 | `src/cad/CompileStructuralArtifacts.ts` | Exact structural STL, preview, and 3MF bundle |
 | `web/src/` | Browser editor, renderer, mapping, wiring, project and package export |
-| `web/src/ProjectPackage.ts` | Versioned project ZIP manifest, deterministic thumbnail, and package validation |
+| `web/src/ProjectPackage.ts` | Versioned project ZIP manifest, embedded SVG/PNG thumbnail, and package validation |
+| `projects/thumbnails/` | Tracked framed WebGL PNGs embedded in deterministic demo ZIPs |
 | `web/src/ProjectLibraryClient.ts` | Revision-gated browser client for local ZIP persistence |
 | `projects/demos/` | Deterministic tracked demo ZIPs generated from authored sculpture sources |
 | `scripts/project-library-handler.ts` | Shared loopback-only validated demo/local ZIP read API |

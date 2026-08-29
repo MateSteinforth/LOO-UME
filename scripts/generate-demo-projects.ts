@@ -15,6 +15,7 @@ interface AuthoredRegistry {
 const rootDirectory = process.cwd();
 const projectDirectory = resolve(rootDirectory, "projects");
 const demoDirectory = resolve(projectDirectory, "demos");
+const thumbnailDirectory = resolve(projectDirectory, "thumbnails");
 const authoredRegistry = JSON.parse(
   await readFile(resolve(rootDirectory, "sculptures/manifest.json"), "utf8"),
 ) as AuthoredRegistry;
@@ -60,10 +61,23 @@ for (const entry of authoredRegistry.sculptures) {
     throw new Error(`Authored registry metadata disagrees with ${entry.source}.`);
   }
   const filename = `${entry.id}.loo.zip`;
+  let renderedThumbnail: Uint8Array | undefined;
+  try {
+    renderedThumbnail = new Uint8Array(await readFile(
+      resolve(thumbnailDirectory, `${entry.id}.png`),
+    ));
+  } catch (error) {
+    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) {
+      throw error;
+    }
+  }
   const bytes = createProjectPackageZip(
     definition,
     await availableAssets(definition, sculpturePath),
     definition.id,
+    renderedThumbnail
+      ? { bytes: renderedThumbnail, mediaType: "image/png" }
+      : undefined,
   );
   await writeFile(resolve(demoDirectory, filename), bytes);
   packages.push({

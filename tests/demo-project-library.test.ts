@@ -28,7 +28,11 @@ describe("tracked demo project library", () => {
       expect(summary.manifest).toMatchObject({
         id: entry.id,
         name: entry.name,
+        thumbnail: "thumbnail.png",
       });
+      expect(summary.thumbnailMediaType).toBe("image/png");
+      expect([...summary.thumbnailBytes.subarray(0, 4)])
+        .toEqual([0x89, 0x50, 0x4e, 0x47]);
       const bundle = await openPortableProjectZip(
         bytes,
         entry.source,

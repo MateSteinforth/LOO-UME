@@ -18,4 +18,10 @@ the trusted local network for review. Normal Vite and desktop startup keep the
 API loopback-only.
 
 Each package contains `manifest.json`, authoritative `sculpture.json`, an
-embedded pose-derived `thumbnail.svg`, and all referenced portable assets.
+embedded framed viewport thumbnail, and all referenced portable assets. New
+packages use `thumbnail.png`; older `thumbnail.svg` packages remain compatible.
+
+Tracked demo PNGs live in `thumbnails/`. To refresh them, start a local Vite
+server, run `npm run capture:demo-project-thumbnails -- <server-url>`, stop the
+server, then run `npm run generate:demo-projects`. Do not stage sculptures while
+the Vite server is active.

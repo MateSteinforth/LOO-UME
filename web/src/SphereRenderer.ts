@@ -47,6 +47,12 @@ import {
 
 export type DisplayMode = "wled" | "physical-index" | "logical-index";
 
+export interface FramedThumbnailOptions {
+  width?: number;
+  height?: number;
+  direction?: Vector3Data;
+}
+
 interface PanelLabel {
   object: CSS2DObject;
   element: HTMLSpanElement;
@@ -341,6 +347,101 @@ export class SphereRenderer {
     }
     this.renderer.render(this.scene, this.camera);
     this.labelRenderer.render(this.scene, this.camera);
+  }
+
+  async captureFramedThumbnail(
+    options: FramedThumbnailOptions = {},
+  ): Promise<Uint8Array> {
+    const width = Math.max(1, Math.round(options.width ?? 480));
+    const height = Math.max(1, Math.round(options.height ?? 300));
+    const mappingBounds = this.geometry.boundingSphere;
+    const sphere = mappingBounds && mappingBounds.radius > 0
+      ? mappingBounds.clone()
+      : this.surfacePlacement.getSurfaceBounds() ??
+        new THREE.Sphere(this.viewBoundsCenter.clone(), this.viewBoundsRadius);
+    const radius = Math.max(sphere.radius, 1);
+    const direction = options.direction
+      ? this.toThree(options.direction).normalize()
+      : this.camera.position.clone().sub(this.controls.target).normalize();
+    if (direction.lengthSq() < 0.5) direction.set(0, 0.16, 1).normalize();
+    const thumbnailCamera = this.camera.clone();
+    thumbnailCamera.aspect = width / height;
+    const distance = viewportFitDistance(
+      radius,
+      thumbnailCamera.fov,
+      thumbnailCamera.aspect,
+      true,
+    );
+    thumbnailCamera.position.copy(sphere.center).addScaledVector(direction, distance);
+    thumbnailCamera.lookAt(sphere.center);
+    const clipping = cameraClippingRange(distance, radius);
+    thumbnailCamera.near = clipping.near;
+    thumbnailCamera.far = clipping.far;
+    thumbnailCamera.updateProjectionMatrix();
+
+    const target = new THREE.WebGLRenderTarget(width, height, {
+      depthBuffer: true,
+      stencilBuffer: false,
+    });
+    target.texture.colorSpace = THREE.SRGBColorSpace;
+    const previousTarget = this.renderer.getRenderTarget();
+    const previousClearColor = this.renderer.getClearColor(new THREE.Color());
+    const previousClearAlpha = this.renderer.getClearAlpha();
+    const gridVisible = this.grid?.visible;
+    const pixels = new Uint8Array(width * height * 4);
+    try {
+      if (this.grid) this.grid.visible = false;
+      this.renderer.setRenderTarget(target);
+      this.renderer.setClearColor(0x000000, 0);
+      this.renderer.clear(true, true, true);
+      this.renderer.render(this.scene, thumbnailCamera);
+      this.renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels);
+    } finally {
+      if (this.grid && gridVisible !== undefined) this.grid.visible = gridVisible;
+      this.renderer.setRenderTarget(previousTarget);
+      this.renderer.setClearColor(previousClearColor, previousClearAlpha);
+      target.dispose();
+    }
+
+    const foreground = document.createElement("canvas");
+    foreground.width = width;
+    foreground.height = height;
+    const foregroundContext = foreground.getContext("2d");
+    if (!foregroundContext) throw new Error("Unable to encode the project thumbnail.");
+    const flipped = new Uint8ClampedArray(pixels.byteLength);
+    const rowBytes = width * 4;
+    for (let row = 0; row < height; row += 1) {
+      flipped.set(
+        pixels.subarray(row * rowBytes, (row + 1) * rowBytes),
+        (height - row - 1) * rowBytes,
+      );
+    }
+    foregroundContext.putImageData(new ImageData(flipped, width, height), 0, 0);
+    const output = document.createElement("canvas");
+    output.width = width;
+    output.height = height;
+    const context = output.getContext("2d");
+    if (!context) throw new Error("Unable to encode the project thumbnail.");
+    const backdrop = context.createRadialGradient(
+      width * 0.38,
+      height * 0.28,
+      0,
+      width * 0.5,
+      height * 0.5,
+      Math.max(width, height) * 0.72,
+    );
+    backdrop.addColorStop(0, "#18364a");
+    backdrop.addColorStop(1, "#050811");
+    context.fillStyle = backdrop;
+    context.fillRect(0, 0, width, height);
+    context.drawImage(foreground, 0, 0);
+    const blob = await new Promise<Blob>((resolvePromise, reject) => {
+      output.toBlob((value) => {
+        if (value) resolvePromise(value);
+        else reject(new Error("Unable to encode the project thumbnail."));
+      }, "image/png");
+    });
+    return new Uint8Array(await blob.arrayBuffer());
   }
 
   setAutoRotate(enabled: boolean): void {

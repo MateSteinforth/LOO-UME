@@ -2316,11 +2316,41 @@ async function start(): Promise<void> {
         .slice(0, 170);
       return `${base || "sculpture-project"}.loo.zip`;
     };
-    const currentProjectPackage = (): Uint8Array => createProjectPackageZip(
-      editorDefinition,
-      availableProjectAssets,
-      portableProjectFolderName(editorDefinition),
-    );
+    const currentProjectPackage = async (): Promise<Uint8Array> => {
+      let thumbnail: { bytes: Uint8Array; mediaType: "image/png" } | undefined;
+      try {
+        if (renderer) {
+          thumbnail = {
+            bytes: await renderer.captureFramedThumbnail(),
+            mediaType: "image/png",
+          };
+        }
+      } catch (error) {
+        setLogMessage(
+          `The framed thumbnail could not be rendered; the project will use its safe fallback preview. ${error instanceof Error ? error.message : String(error)}`,
+          true,
+        );
+      }
+      return createProjectPackageZip(
+        editorDefinition,
+        availableProjectAssets,
+        portableProjectFolderName(editorDefinition),
+        thumbnail,
+      );
+    };
+    Object.assign(window, {
+      __looUmeCaptureProjectThumbnail: async (): Promise<number[]> => {
+        if (!renderer) throw new Error("The viewport renderer is unavailable.");
+        renderer.setAutoRotate(false);
+        renderer.updateColors(
+          new Uint32Array(mapping.entries.length),
+          "physical-index",
+        );
+        return Array.from(await renderer.captureFramedThumbnail({
+          direction: { x: 0.85, y: 0.45, z: 1 },
+        }));
+      },
+    });
     const clearProjectLibraryCache = (): void => {
       projectPackageBytes.clear();
       for (const url of projectThumbnailUrls.splice(0)) URL.revokeObjectURL(url);
@@ -2361,7 +2391,7 @@ async function start(): Promise<void> {
       const filename = normalizeLocalProjectFilename(filenameInput);
       const saved = await saveLocalProjectPackage(
         filename,
-        currentProjectPackage(),
+        await currentProjectPackage(),
       );
       await refreshProjectLibrary();
       currentLibraryProject = projectLibraryRegistry.projects.find((entry) =>
@@ -2540,7 +2570,7 @@ async function start(): Promise<void> {
         try {
           const saved = await saveLocalProjectPackage(
             currentLibraryProject.filename,
-            currentProjectPackage(),
+            await currentProjectPackage(),
             currentLibraryProject.revision,
           );
           await refreshProjectLibrary();
@@ -2629,28 +2659,29 @@ async function start(): Promise<void> {
     });
 
     saveProjectButton.addEventListener("click", () => {
-      try {
-        const folderName = portableProjectFolderName(editorDefinition);
-        const bytes = createProjectPackageZip(
-          editorDefinition,
-          availableProjectAssets,
-          folderName,
-        );
-        const objectUrl = URL.createObjectURL(new Blob(
-          [Uint8Array.from(bytes)],
-          { type: "application/zip" },
-        ));
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = `${folderName}.zip`;
-        link.click();
-        URL.revokeObjectURL(objectUrl);
-        setLogMessage(
-          `Exported ${link.download} from verified in-memory project assets.`,
-        );
-      } catch (error) {
-        reportPortableError(error);
-      }
+      void (async () => {
+        saveProjectButton.disabled = true;
+        try {
+          const folderName = portableProjectFolderName(editorDefinition);
+          const bytes = await currentProjectPackage();
+          const objectUrl = URL.createObjectURL(new Blob(
+            [Uint8Array.from(bytes)],
+            { type: "application/zip" },
+          ));
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = `${folderName}.zip`;
+          link.click();
+          URL.revokeObjectURL(objectUrl);
+          setLogMessage(
+            `Exported ${link.download} from verified in-memory project assets.`,
+          );
+        } catch (error) {
+          reportPortableError(error);
+        } finally {
+          saveProjectButton.disabled = false;
+        }
+      })();
     });
 
     exportProjectFolderButton.addEventListener("click", () => {

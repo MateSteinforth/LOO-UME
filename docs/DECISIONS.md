@@ -51,6 +51,11 @@ only and does not become writable. Local mutations require an exact prior
 revision or an explicit create-only precondition, and package replacement is
 atomic. The project filename is the library label; package metadata and the
 authoritative sculpture name stay inside the unchanged ZIP format.
+Rendered thumbnails use the same package schema: new packages reference an
+embedded `thumbnail.png`, while existing `thumbnail.svg` packages remain valid.
+The browser captures one mapping-framed render during Save or Export without
+moving the active camera. Tracked demo PNGs are derived with the same renderer
+and then embedded by the fast deterministic demo-package generator.
 
 ## D7 — Mapping artifacts derive from sculpture JSON
 

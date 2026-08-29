@@ -103,6 +103,20 @@ No tasks.
 
 ## Ready to Merge
 
+### `LIB-014` Render framed viewport thumbnails
+
+- Implemented: Save, Save As, and Export embed a real 480 x 300 WebGL PNG using
+  the current camera direction and the normal mapping-fit bounds without moving
+  the active camera. All 13 tracked demo ZIPs contain visually checked framed
+  renders; old SVG-thumbnail packages remain valid.
+- Verified: 35 focused package/library/server checks, desktop TypeScript and
+  production build, two fresh-server Chromium journeys with exact PNG media and
+  dimensions, plus visual inspection of the dense 41-panel and empty projects.
+- Owner: `codex/project-library` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
+- Conflict risk: renderer capture, package thumbnail contract, tracked demo
+  ZIPs/PNGs, and Project Library browser controls.
+
 ### `LIB-012` Add conflict-safe local project saving
 
 - Implemented: Save and Save As write one validated `.loo.zip` into the ignored

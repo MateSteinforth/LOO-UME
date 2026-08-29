@@ -12,6 +12,12 @@ import {
 
 export const PROJECT_PACKAGE_SCHEMA_VERSION = "1.0.0" as const;
 export const PROJECT_PACKAGE_THUMBNAIL = "thumbnail.svg";
+export const PROJECT_PACKAGE_RENDERED_THUMBNAIL = "thumbnail.png";
+
+export interface ProjectPackageThumbnail {
+  bytes: Uint8Array;
+  mediaType: "image/png" | "image/svg+xml";
+}
 
 export interface ProjectPackageManifest {
   schemaVersion: typeof PROJECT_PACKAGE_SCHEMA_VERSION;
@@ -19,14 +25,14 @@ export interface ProjectPackageManifest {
   name: string;
   sculpture: "sculpture.json";
   sculptureSha256: string;
-  thumbnail: typeof PROJECT_PACKAGE_THUMBNAIL;
+  thumbnail: typeof PROJECT_PACKAGE_THUMBNAIL | typeof PROJECT_PACKAGE_RENDERED_THUMBNAIL;
   panelCount: number;
 }
 
 export interface ProjectPackageSummary {
   manifest: ProjectPackageManifest;
   thumbnailBytes: Uint8Array;
-  thumbnailMediaType: "image/svg+xml";
+  thumbnailMediaType: "image/png" | "image/svg+xml";
 }
 
 export function createProjectThumbnailSvg(
@@ -82,6 +88,7 @@ export function createProjectPackageZip(
   definition: PanelAssemblyDefinition,
   availableAssets: ReadonlyMap<string, Uint8Array>,
   folderName = portableProjectFolderName(definition),
+  thumbnail?: ProjectPackageThumbnail,
 ): Uint8Array {
   if (folderName.includes("/")) {
     throw new Error("Project package folder name must be one safe path segment.");
@@ -90,10 +97,16 @@ export function createProjectPackageZip(
   const files = createPortableProjectFiles(definition, availableAssets);
   const sculptureBytes = files.get("sculpture.json")!;
   const manifest = createProjectPackageManifest(definition, sculptureBytes);
+  if (thumbnail?.mediaType === "image/png") {
+    manifest.thumbnail = PROJECT_PACKAGE_RENDERED_THUMBNAIL;
+  }
   files.set("manifest.json", new TextEncoder().encode(
     `${JSON.stringify(manifest, null, 2)}\n`,
   ));
-  files.set(PROJECT_PACKAGE_THUMBNAIL, createProjectThumbnailSvg(definition));
+  files.set(
+    manifest.thumbnail,
+    thumbnail?.bytes ?? createProjectThumbnailSvg(definition),
+  );
   const entries: Record<string, Uint8Array> = {};
   for (const [path, bytes] of files) entries[`${folderName}/${path}`] = bytes;
   return zipSync(entries, {
@@ -116,7 +129,8 @@ function parseManifest(bytes: Uint8Array): ProjectPackageManifest {
     typeof value.name !== "string" || value.name.length === 0 || value.name.length > 240 ||
     value.sculpture !== "sculpture.json" ||
     !/^[0-9a-f]{64}$/.test(value.sculptureSha256 ?? "") ||
-    value.thumbnail !== PROJECT_PACKAGE_THUMBNAIL ||
+    (value.thumbnail !== PROJECT_PACKAGE_THUMBNAIL &&
+      value.thumbnail !== PROJECT_PACKAGE_RENDERED_THUMBNAIL) ||
     !Number.isInteger(value.panelCount) || (value.panelCount ?? -1) < 0
   ) {
     throw new Error("Project package manifest is invalid.");
@@ -149,6 +163,8 @@ export function readProjectPackageSummary(
   return {
     manifest,
     thumbnailBytes: Uint8Array.from(thumbnailBytes),
-    thumbnailMediaType: "image/svg+xml",
+    thumbnailMediaType: manifest.thumbnail === PROJECT_PACKAGE_RENDERED_THUMBNAIL
+      ? "image/png"
+      : "image/svg+xml",
   };
 }

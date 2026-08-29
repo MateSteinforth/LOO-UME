@@ -47,6 +47,18 @@ test("saves, reopens, renames, and deletes one local project ZIP", async ({ page
   );
   await expect(dialog.locator(".project-card-shell", { hasText: filename }))
     .toBeVisible();
+  const savedThumbnail = dialog.locator(
+    ".project-card-shell",
+    { hasText: filename },
+  ).locator("img");
+  await expect(savedThumbnail).toHaveJSProperty("naturalWidth", 480);
+  await expect(savedThumbnail).toHaveJSProperty("naturalHeight", 300);
+  const thumbnailSource = await savedThumbnail.getAttribute("src");
+  expect(thumbnailSource).not.toBeNull();
+  const thumbnailResponse = await page.request.get(
+    new URL(thumbnailSource!, page.url()).toString(),
+  );
+  expect(thumbnailResponse.headers()["content-type"]).toBe("image/png");
 
   await page.reload();
   await page.locator("#open-project-library").click();

@@ -44,4 +44,20 @@ describe("ZIP project package", () => {
     expect(svg).toContain("stroke-dasharray");
     expect(svg).not.toContain("<script");
   });
+
+  it("embeds a rendered PNG thumbnail without changing the ZIP schema", async () => {
+    const definition = parsePanelAssemblyDefinition(JSON.parse(
+      await readFile("sculptures/rhombicosidodecahedron/sculpture.json", "utf8"),
+    ));
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
+    const summary = readProjectPackageSummary(createProjectPackageZip(
+      definition,
+      new Map(),
+      definition.id,
+      { bytes: png, mediaType: "image/png" },
+    ));
+    expect(summary.manifest.thumbnail).toBe("thumbnail.png");
+    expect(summary.thumbnailMediaType).toBe("image/png");
+    expect(summary.thumbnailBytes).toEqual(png);
+  });
 });

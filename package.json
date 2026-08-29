@@ -8,6 +8,7 @@
     "validate:sculpture": "tsx scripts/validate-sculpture.ts",
     "stage:sculptures": "node scripts/stage-sculpture-json.mjs",
     "generate:demo-projects": "tsx scripts/generate-demo-projects.ts",
+    "capture:demo-project-thumbnails": "tsx scripts/capture-demo-project-thumbnails.ts",
     "generate:mapping": "tsx scripts/generate-mapping.ts",
     "optimize:wiring-orientation": "tsx scripts/optimize-installed-orientations.ts",
     "generate:mapping:hardware": "tsx scripts/generate-mapping.ts --hardware",

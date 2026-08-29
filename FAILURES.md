@@ -1682,3 +1682,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The first Host-specific probe returned 403. The corrected
   handler test and LAN Host probe return 200.
 - **Status:** Resolved by the LIB-012 LAN review correction.
+
+### F-089 — Whole-scene thumbnail bounds made the sculpture too small
+
+- **Date:** 2026-08-29
+- **Context:** LIB-014 framed viewport thumbnails.
+- **Symptom:** The first real 41-panel PNG showed a small sculpture surrounded
+  by excessive empty space.
+- **Cause:** Thumbnail framing included wiring/controller and interaction
+  helper bounds that the main viewport does not use for its camera fit.
+- **Correction:** Use the renderer's authoritative LED mapping sphere, with the
+  authoring-surface bounds only as the mechanics-free fallback. Render the
+  visible scene, but do not let helper geometry control the camera.
+- **Prevention:** A viewport-derived preview must use the same framing authority
+  as the viewport. Inspect one dense and one empty project before publication.
+- **Evidence:** The corrected 41-panel render fills the 480 x 300 card, while
+  the empty project frames its complete authoring surface.
+- **Status:** Resolved by LIB-014.
