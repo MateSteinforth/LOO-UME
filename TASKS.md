@@ -43,7 +43,30 @@ on physical hardware.
 
 ## Ready
 
-No tasks.
+### `INSTALL-014` Add post-clone launch and update commands
+
+- Scope: make the normal installed workflow use only `./bootstrap.sh launch`
+  and `./bootstrap.sh update`. Keep the existing reviewed native bootstrap,
+  pinned repository-local Node/npm, locked dependencies, desktop build, and
+  Manifold verification as the trust boundary.
+- `launch`: idempotently install or verify required local tools and dependencies,
+  build only when required, start the loopback desktop server, wait for its
+  verified ready URL, and open that URL in the default macOS or Linux browser.
+  If no graphical opener exists, keep the server running and print the URL.
+- `update`: refuse to overwrite a dirty worktree or divergent history; update
+  `main` by fast-forward only from the verified `origin`, refresh locked
+  dependencies/build output when inputs changed, then perform the same launch.
+- Acceptance: after `git clone --depth 1
+  https://github.com/MateSteinforth/LOO-UME.git && cd LOO-UME`, first launch and
+  later update each require one command; repeated launch avoids unnecessary
+  reinstall work; browser-open failure never stops the usable local server;
+  Linux x86-64 and native macOS arm64/x86-64 remain supported without global
+  Node/npm or administrator commands.
+- Boundary: Git and an installed graphical browser remain host prerequisites.
+  A command run over SSH cannot open a browser on a different computer; it must
+  print the usable URL instead.
+- Likely conflicts: `bootstrap.sh`, desktop-server readiness/startup,
+  bootstrap tests, README setup instructions, architecture, and failure notes.
 
 ## In Progress
 
