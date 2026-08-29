@@ -92,6 +92,12 @@ so a browser cannot silently replace a ZIP changed after it was opened.
 install manifest pins official Node.js archives by target, byte size, SHA-256,
 and extracted-tree identity. It installs Node/npm and dependencies only below
 the repository, then proves the production desktop and Manifold path.
+`bootstrap.sh launch` reuses that proof only when the target tuple, clean
+commit, required runtime packages, and complete hashed `dist/` tree match its
+private receipt. It starts the loopback server and opens the ready URL when the
+host has a graphical browser opener. `bootstrap.sh update` accepts only clean,
+fast-forward-only `main` updates from the canonical HTTPS `origin`, then
+executes the updated launcher.
 
 ## Geometry and fabrication boundary
 

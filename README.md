@@ -16,19 +16,30 @@ panel outlines and validated flat gap caps.
 
 ## Start
 
-On Linux x86-64 or macOS, one command installs the pinned Node.js and npm
-release under `.tools/`, installs locked dependencies, builds the application,
-and verifies the Manifold desktop generation path:
+After cloning the repository on Linux x86-64 or macOS, start LOO/UME with:
 
 ```bash
-./bootstrap.sh setup
-./bootstrap.sh desktop
+./bootstrap.sh launch
 ```
 
-This does not need administrator access or a global Node.js installation. The
-bootstrap accepts only pinned official archives with exact size, SHA-256, and
-extracted-tree identities. Use `./bootstrap.sh npm <arguments>` for other npm
-commands with the managed runtime.
+The first launch installs pinned Node.js and npm under `.tools/`, installs
+locked dependencies, builds the application, verifies the Manifold desktop
+path, starts the loopback server, and opens the browser. Later launches reuse a
+current clean build only after its complete output hash manifest passes. This
+does not need administrator access or a global Node.js installation. The
+bootstrap accepts only pinned official archives with
+exact size, SHA-256, and extracted-tree identities.
+
+To fast-forward a clean `main` checkout from the approved GitHub repository and
+launch the updated application, use:
+
+```bash
+./bootstrap.sh update
+```
+
+Update stops without changing files if the branch, remote, working tree, or
+history is not safe for a fast-forward. Use `./bootstrap.sh npm <arguments>` for
+other npm commands with the managed runtime.
 
 The local production server listens on `127.0.0.1:4173` by default. Use
 `ORBITAL_LAB_PORT` to select another port.
@@ -95,8 +106,10 @@ checked-in WLED simulator, then runs the normal tests and builds. It does not
 need Python, Emscripten, or a WLED source checkout. `npm run verify:clean`
 proves the same path after a clean `npm ci`.
 
-`./bootstrap.sh setup` is the clean-checkout operator path. It also runs the
-production desktop-start and two-STL Manifold proof before it reports success.
+`./bootstrap.sh launch` is the normal clean-checkout operator path. Its first
+run includes the production desktop-start and two-STL Manifold proof before the
+browser opens. `./bootstrap.sh setup` remains available for installation
+automation that must prepare without starting the server.
 
 Simulator rebuild tools and pinned sources live only on the long-lived
 `generate/wled-simulator` branch. A reviewed rebuild moves only the two runtime

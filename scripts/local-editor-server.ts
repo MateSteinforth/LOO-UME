@@ -1,5 +1,6 @@
 import { createReadStream } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import {
   createServer,
   type IncomingMessage,
@@ -273,11 +274,49 @@ function parsePort(value: string | undefined): number {
   return port;
 }
 
+export function localBrowserCommand(
+  platform = process.platform,
+  environment: NodeJS.ProcessEnv = process.env,
+): readonly string[] | undefined {
+  if (platform === "darwin") return ["/usr/bin/open"];
+  if (
+    platform === "linux" &&
+    (environment.DISPLAY || environment.WAYLAND_DISPLAY)
+  ) return ["/usr/bin/xdg-open"];
+  return undefined;
+}
+
+export async function openLocalEditorBrowser(url: string): Promise<boolean> {
+  const command = localBrowserCommand();
+  if (!command) return false;
+  return await new Promise<boolean>((resolvePromise) => {
+    const child = spawn(command[0]!, [...command.slice(1), url], {
+      stdio: "ignore",
+    });
+    child.once("error", () => resolvePromise(false));
+    child.once("close", (code) => resolvePromise(code === 0));
+  });
+}
+
 async function main(): Promise<void> {
+  const argumentsList = process.argv.slice(2);
+  const openBrowser = argumentsList.length === 1 &&
+    argumentsList[0] === "--open-browser";
+  if (argumentsList.length > (openBrowser ? 1 : 0)) {
+    throw new Error("Use scripts/local-editor-server.ts [--open-browser].");
+  }
   const localServer = await startLocalEditorServer({
     port: parsePort(process.env.ORBITAL_LAB_PORT),
   });
   console.log(`LOO/UME is available at ${localServer.url}`);
+  if (openBrowser) {
+    const opened = await openLocalEditorBrowser(localServer.url);
+    if (opened) {
+      console.log("Opened LOO/UME in the local browser.");
+    } else {
+      console.log(`Open ${localServer.url} in a browser on this computer.`);
+    }
+  }
   const status = localServer.pipelineHandler.generatorStatus;
   const writeStatus = status.available ? console.log : console.warn;
   writeStatus(status.message);
