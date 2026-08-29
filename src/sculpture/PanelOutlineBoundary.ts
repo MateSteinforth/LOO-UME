@@ -10,7 +10,7 @@ import type {
 } from "./PanelAssembly.ts";
 import { triangulatePolygon, type Point2 } from "../cad/TriangulatePolygon.ts";
 import { GENERATED_CLOSURE_PLANARITY_MM } from "./PanelBoundaryTolerances.ts";
-import { assertRectangularPanelTools } from "./PanelCarrier.ts";
+import { assertRectangularPanelFabrication } from "./PanelCarrier.ts";
 
 export type Vector3Tuple = [number, number, number];
 
@@ -1252,7 +1252,7 @@ export function generateClosedPanelBoundary(
   profile: PanelHardwareProfile,
   topology: PanelBoundaryTopology | undefined = definition.boundaryTopology,
 ): ClosedPanelBoundary {
-  assertRectangularPanelTools(profile, "Panel boundary generation");
+  assertRectangularPanelFabrication(profile, "Panel boundary generation");
   validateTopologyPresence(topology);
   const sortedPanels = [...definition.panels].sort((left, right) =>
     compareText(left.id, right.id)

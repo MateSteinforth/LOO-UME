@@ -19,6 +19,11 @@ export type PanelCarrierDefinition =
 export interface PanelCarrierProfile {
   dimensions: { width: number; height: number; thickness: number };
   carrier?: PanelCarrierDefinition;
+  mounting?: {
+    physicalCorrections?: {
+      status?: "provisional" | "measured";
+    };
+  };
 }
 
 export type PanelCarrierPoint3 = [number, number, number];
@@ -121,6 +126,13 @@ export function supportsRectangularPanelTools(
   return normalizePanelCarrier(profile).kind === "rectangular";
 }
 
+export function supportsRectangularPanelFabrication(
+  profile: PanelCarrierProfile,
+): boolean {
+  return supportsRectangularPanelTools(profile) &&
+    profile.mounting?.physicalCorrections?.status === "measured";
+}
+
 export function assertRectangularPanelTools(
   profile: PanelCarrierProfile,
   operation: string,
@@ -128,6 +140,18 @@ export function assertRectangularPanelTools(
   if (supportsRectangularPanelTools(profile)) return;
   throw new Error(
     `${operation} supports only rigid rectangular panel carriers. ` +
+    "Mapping, wiring, simulation, and ESP32 setup remain available.",
+  );
+}
+
+export function assertRectangularPanelFabrication(
+  profile: PanelCarrierProfile,
+  operation: string,
+): void {
+  assertRectangularPanelTools(profile, operation);
+  if (supportsRectangularPanelFabrication(profile)) return;
+  throw new Error(
+    `${operation} requires measured physical fit corrections. ` +
     "Mapping, wiring, simulation, and ESP32 setup remain available.",
   );
 }
