@@ -27,6 +27,12 @@
       "artifactStatus": "authoring-only"
     },
     {
+      "id": "one-metre-flexible-led-ring-demo",
+      "name": "One-metre Flexible LED Ring Demo",
+      "source": "./sculptures/one-metre-led-ring/sculpture.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
       "id": "structural-two-panel-spatial-trial",
       "name": "Structural Two-panel Spatial Trial",
       "source": "./sculptures/structural-two-panel-spatial/sculpture.json",

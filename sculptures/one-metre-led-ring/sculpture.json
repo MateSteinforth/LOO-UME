@@ -1,0 +1,73 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "one-metre-flexible-led-ring-demo",
+  "name": "One-metre Flexible LED Ring Demo",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "ws2812b-strip-60-one-metre-ring",
+    "source": "panel-profile.json"
+  },
+  "panels": [
+    {
+      "id": "RING-01",
+      "pose": {
+        "position": [0, 0, 0],
+        "orientation": {
+          "xAxis": [0, 1, 0],
+          "yAxis": [-1, 0, 0],
+          "normal": [0, 0, 1]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "349b095ace750ca9"
+      }
+    }
+  ],
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "authored",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "balanced-oriented-cable-optimizer",
+    "routeRevision": 2,
+    "chainLengths": [1],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Output 1",
+        "gpio": 16,
+        "color": "#36e0d0",
+        "panelIds": ["RING-01"]
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Demo fixture: one closed 1,000 mm strip path with 60 equally spaced emitters and one GPIO 16 output.",
+    "The 30-segment carrier polygon has an exact 1,000 mm centreline perimeter; its nominal diameter is 318.892 mm.",
+    "Mapping, wiring, simulation, MadMapper, ESP32 setup, and project export are supported. Rectangular placement and fabrication are intentionally disabled.",
+    "Color order, connector placement, and power values are provisional demo assumptions, not hardware evidence.",
+    "Automatic wiring revision 2 selected 1 balanced output, GPIO 16, and quarter-turn physical panel poses; estimated data cable 135.5 mm."
+  ]
+}

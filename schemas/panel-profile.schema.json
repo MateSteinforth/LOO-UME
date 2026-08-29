@@ -360,7 +360,10 @@
           "const": "three-mounting-holes-vertical"
         },
         "cornerAssignmentStatus": {
-          "const": "measured"
+          "enum": [
+            "provisional",
+            "measured"
+          ]
         },
         "dinCorner": {
           "$ref": "#/$defs/panelCorner"

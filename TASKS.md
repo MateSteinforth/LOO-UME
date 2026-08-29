@@ -97,7 +97,19 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `FIXTURE-012` Add a one-metre flexible LED-ring demo
+
+- Scope: one tracked Schema 2 project and adjacent portable panel profile for a
+  1,000 mm circumference flexible ring with 60 explicit emitters and one GPIO
+  16 output.
+- Acceptance: registry load, runtime profile/project parsing, exact DIN/DOUT
+  physical mapping, one-bus WLED setup, portable ZIP save/reload, and browser
+  display pass; rectangular placement and fabrication remain disabled.
+- Owner: `codex/fixture-012-one-metre-ring` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-ring-demo`.
+- Evidence: 35 focused Vitest checks, one focused Chromium journey, TypeScript,
+  production build, diff check, exact perimeter inspection, and independent
+  review passed.
 
 ## Done
 

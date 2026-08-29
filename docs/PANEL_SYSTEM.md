@@ -74,6 +74,13 @@ remains the camera, selection, and portability envelope. Mapping, wiring,
 simulation, MadMapper export, ESP32 setup, project save, and project reload are
 carrier-independent.
 
+`sculptures/one-metre-led-ring/sculpture.json` is the tracked flexible-path
+example. It models one 1,000 mm closed strip centreline with 60 explicit
+emitters, one authored chain, and GPIO 16. Its panel-profile mounting fields are
+legacy compatibility data only; capability gates keep rectangular placement
+and fabrication disabled. Color order, connector anchors, and power values are
+provisional demo assumptions rather than physical evidence.
+
 Automatic surface placement, planar closures, connector ribbons, and
 LED-surface bridges still use rigid rectangular PCB assumptions. Their browser
 controls are disabled for other carrier kinds, and the CAD entry points repeat

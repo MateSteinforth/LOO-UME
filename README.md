@@ -5,6 +5,11 @@ panel-based LED sculptures. Schema 2 sculpture JSON owns panel poses. Mapping,
 wiring, simulation, and save/reopen continue when printable mechanics are
 missing or stale.
 
+The project registry includes a one-metre flexible LED-ring demo with one
+60-emitter strip fixture and one GPIO 16 output. It exercises flexible carrier
+display, mapping, wiring, simulation, WLED setup, and export without enabling
+rectangular placement or fabrication tools.
+
 Printable boundary and part STL files compile with pinned `manifold-3d` 3.5.1.
 The design GLB is a placement surface only. Printable material derives from
 panel outlines and validated flat gap caps.
