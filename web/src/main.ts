@@ -62,7 +62,6 @@ import {
   type VerifiedGeneratedMechanics,
 } from "./GeneratedMechanicsAssets.ts";
 import {
-  createPortableProjectZip,
   openPortableProjectFiles,
   openPortableProjectZip,
   portableProjectFolderName,
@@ -71,6 +70,10 @@ import {
   type PortableProjectBundle,
   type PortableProjectFile,
 } from "./PortableProject.ts";
+import {
+  createProjectPackageZip,
+  readProjectPackageSummary,
+} from "./ProjectPackage.ts";
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
 import {
@@ -128,6 +131,7 @@ import {
   createLoadedSculpture,
   DEFAULT_SCULPTURE_JSON,
   loadLocalSculpture,
+  loadProjectLibraryRegistry,
   loadSculptureContract,
   loadSculptureRegistry,
   loadStagedPanelProfile,
@@ -161,12 +165,11 @@ app.innerHTML = `
           <input id="project-file" type="file" accept="application/json,application/zip,.json,.zip" hidden />
           <input id="project-folder" type="file" webkitdirectory multiple hidden />
           <input id="design-surface-file" type="file" accept="model/gltf-binary,.glb" hidden />
-          <label class="field">
-            <span>Project preset</span>
-            <select id="sculpture-select">
-              <option value="">Loading sculpture registry…</option>
-            </select>
-          </label>
+          <button id="open-project-library" class="pipeline-button project-library-open" type="button">Browse projects</button>
+          <output id="current-project-name" class="current-project-name">Loading project…</output>
+          <select id="sculpture-select" hidden aria-hidden="true">
+            <option value="">Loading sculpture registry…</option>
+          </select>
           <details class="action-menu project-toolbar__open">
             <summary>Open project</summary>
             <div class="action-menu__items">
@@ -437,6 +440,19 @@ app.innerHTML = `
         </section>
       </aside>
     </main>
+    <dialog id="project-library-dialog" class="project-library-dialog">
+      <form method="dialog" class="project-library-shell">
+        <header class="project-library-header">
+          <div><strong>Projects</strong><small>Demo and saved project ZIPs</small></div>
+          <button id="close-project-library" class="editor-button" value="cancel">Close</button>
+        </header>
+        <div class="project-library-actions">
+          <button id="import-project-zip" class="pipeline-button" type="button">Import ZIP</button>
+        </div>
+        <p id="project-library-status" class="project-library-status">Open a project ZIP.</p>
+        <div id="project-library-grid" class="project-library-grid" aria-live="polite"></div>
+      </form>
+    </dialog>
     <dialog id="esp32-setup-dialog" class="esp32-setup-dialog">
       <form method="dialog" class="esp32-setup-form">
         <div class="section-heading"><span>Set up ESP32</span><small>USB + Wi-Fi</small></div>
@@ -490,6 +506,12 @@ const speedValue = query<HTMLOutputElement>("#speed-value");
 const intensityInput = query<HTMLInputElement>("#intensity");
 const intensityValue = query<HTMLOutputElement>("#intensity-value");
 const sculptureSelect = query<HTMLSelectElement>("#sculpture-select");
+const openProjectLibraryButton = query<HTMLButtonElement>("#open-project-library");
+const projectLibraryDialog = query<HTMLDialogElement>("#project-library-dialog");
+const projectLibraryGrid = query<HTMLElement>("#project-library-grid");
+const projectLibraryStatus = query<HTMLElement>("#project-library-status");
+const importProjectZipButton = query<HTMLButtonElement>("#import-project-zip");
+const currentProjectName = query<HTMLOutputElement>("#current-project-name");
 const sculptureJsonInput = query<HTMLInputElement>("#sculpture-json");
 const loadSculptureButton = query<HTMLButtonElement>("#load-sculpture");
 const developerUtilities = query<HTMLDetailsElement>("#developer-utilities");
@@ -624,7 +646,10 @@ let animationFrame = 0;
 async function start(): Promise<void> {
   try {
     const generatorStatusPromise = loadGeneratorStatus();
-    const sculptureRegistry = await loadSculptureRegistry();
+    const [sculptureRegistry, projectLibraryRegistry] = await Promise.all([
+      loadSculptureRegistry(),
+      loadProjectLibraryRegistry(),
+    ]);
     sculptureSelect.replaceChildren(
       ...sculptureRegistry.sculptures.map(
         (entry) => new Option(entry.name, entry.source),
@@ -641,6 +666,7 @@ async function start(): Promise<void> {
     let loadedSculpture = await loadSculptureContract(
       initialSculptureSource,
     );
+    currentProjectName.textContent = loadedSculpture.definition.name;
     let editorDefinition = loadedSculpture.definition;
     let editorProject = loadedSculpture.project;
     let selectedHardwareContract = loadedSculpture.contract;
@@ -2120,6 +2146,7 @@ async function start(): Promise<void> {
             editorProject.panelProfile,
           );
           await applyLoadedSculpture(createLoadedSculpture(project));
+          currentProjectName.textContent = project.sculpture.name;
           setLogMessage(
             `Optimized wiring revision ${result.definition.wiring.routeRevision}: ${result.outputCount} output${result.outputCount === 1 ? "" : "s"}, ${result.chainLengths.join("/")} panels, GPIO ${result.gpios.join("/")}, approximately ${result.estimatedCableLengthMm.toFixed(1)} mm data cable. ${result.orientationPolicy === "quarter-turns" ? "No printable parts exist, so panel orientation could use 0°, 90°, 180°, or 270°." : "Printable parts exist, so panel orientation changes were limited to 0° or 180°."}`,
           );
@@ -2172,6 +2199,7 @@ async function start(): Promise<void> {
         const selected = await loadSculptureContract(source);
         replacePortableBundle();
         await applyLoadedSculpture(selected);
+        currentProjectName.textContent = selected.definition.name;
         await loadReferencedDesignSurface();
         sculptureSelect.value = sculptureRegistry.sculptures.some(
           (entry) => entry.source === source,
@@ -2242,6 +2270,7 @@ async function start(): Promise<void> {
       const selected = createLoadedSculpture(bundle.project);
       replacePortableBundle(bundle);
       await applyLoadedSculpture(selected);
+      currentProjectName.textContent = selected.definition.name;
       await loadReferencedDesignSurface();
       sculptureSelect.value = "";
       sculptureJsonInput.value = label;
@@ -2254,6 +2283,97 @@ async function start(): Promise<void> {
       const message = error instanceof Error ? error.message : String(error);
       setLogMessage(message, true);
     };
+
+    const projectPackageBytes = new Map<string, Uint8Array>();
+    const projectThumbnailUrls: string[] = [];
+    let projectLibraryRendered = false;
+    const loadProjectPackageBytes = async (source: string): Promise<Uint8Array> => {
+      const cached = projectPackageBytes.get(source);
+      if (cached) return cached;
+      const response = await fetch(source);
+      if (!response.ok) {
+        throw new Error(`Unable to load project ZIP: HTTP ${response.status}.`);
+      }
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      readProjectPackageSummary(bytes);
+      projectPackageBytes.set(source, bytes);
+      return bytes;
+    };
+    const openLibraryProject = async (source: string): Promise<void> => {
+      const bytes = await loadProjectPackageBytes(source);
+      const summary = readProjectPackageSummary(bytes);
+      const bundle = await openPortableProjectZip(
+        bytes,
+        `${summary.manifest.id}.loo.zip`,
+        loadStagedPanelProfile,
+      );
+      await applyPortableBundle(bundle, summary.manifest.name);
+      currentProjectName.textContent = summary.manifest.name;
+      projectLibraryDialog.close();
+    };
+    const renderProjectLibrary = async (): Promise<void> => {
+      if (projectLibraryRendered) return;
+      projectLibraryStatus.textContent = "Loading demo project ZIPs…";
+      const cards = await Promise.all(projectLibraryRegistry.projects.map(
+        async (entry) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "project-card";
+          try {
+            const bytes = await loadProjectPackageBytes(entry.source);
+            const summary = readProjectPackageSummary(bytes);
+            if (summary.manifest.id !== entry.id || summary.manifest.name !== entry.name) {
+              throw new Error(`Project library metadata disagrees with ${entry.source}.`);
+            }
+            const thumbnailUrl = URL.createObjectURL(new Blob(
+              [Uint8Array.from(summary.thumbnailBytes)],
+              { type: summary.thumbnailMediaType },
+            ));
+            projectThumbnailUrls.push(thumbnailUrl);
+            const image = document.createElement("img");
+            image.src = thumbnailUrl;
+            image.alt = "";
+            const label = document.createElement("span");
+            label.textContent = summary.manifest.name;
+            const detail = document.createElement("small");
+            detail.textContent = `${summary.manifest.panelCount} fixture${summary.manifest.panelCount === 1 ? "" : "s"} · Demo ZIP`;
+            button.append(image, label, detail);
+            button.addEventListener("click", () => {
+              button.disabled = true;
+              projectLibraryStatus.textContent = `Opening ${summary.manifest.name}…`;
+              void openLibraryProject(entry.source).catch((error) => {
+                button.disabled = false;
+                projectLibraryStatus.textContent = error instanceof Error
+                  ? error.message
+                  : String(error);
+              });
+            });
+          } catch (error) {
+            button.disabled = true;
+            button.textContent = `${entry.name}: ${error instanceof Error ? error.message : String(error)}`;
+          }
+          return button;
+        },
+      ));
+      projectLibraryGrid.replaceChildren(...cards);
+      projectLibraryStatus.textContent = `${cards.length} demo project ZIPs`;
+      projectLibraryRendered = true;
+    };
+    openProjectLibraryButton.addEventListener("click", () => {
+      projectLibraryDialog.showModal();
+      void renderProjectLibrary().catch((error) => {
+        projectLibraryStatus.textContent = error instanceof Error
+          ? error.message
+          : String(error);
+      });
+    });
+    importProjectZipButton.addEventListener("click", () => {
+      projectLibraryDialog.close();
+      projectFileInput.click();
+    });
+    window.addEventListener("beforeunload", () => {
+      for (const url of projectThumbnailUrls) URL.revokeObjectURL(url);
+    });
 
     openProjectFileButton.addEventListener("click", () => {
       projectFileInput.click();
@@ -2324,7 +2444,7 @@ async function start(): Promise<void> {
     saveProjectButton.addEventListener("click", () => {
       try {
         const folderName = portableProjectFolderName(editorDefinition);
-        const bytes = createPortableProjectZip(
+        const bytes = createProjectPackageZip(
           editorDefinition,
           availableProjectAssets,
           folderName,

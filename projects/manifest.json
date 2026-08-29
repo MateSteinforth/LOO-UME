@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "defaultSource": "./projects/demos/generated-rhombicosidodecahedron-41-panel-preview.loo.zip",
+  "projects": [
+    {
+      "id": "pose-only-rhombicosidodecahedron-authoring",
+      "name": "Empty 66 mm rhombicosidodecahedron",
+      "source": "./projects/demos/pose-only-rhombicosidodecahedron-authoring.loo.zip"
+    },
+    {
+      "id": "pose-only-empty-authoring",
+      "name": "Empty pose-only project",
+      "source": "./projects/demos/pose-only-empty-authoring.loo.zip"
+    },
+    {
+      "id": "cuboctahedron-empty-66-authoring",
+      "name": "Empty 66 mm Cuboctahedron",
+      "source": "./projects/demos/cuboctahedron-empty-66-authoring.loo.zip"
+    },
+    {
+      "id": "pose-only-two-panel-fixture",
+      "name": "Pose-only Two-panel Fixture",
+      "source": "./projects/demos/pose-only-two-panel-fixture.loo.zip"
+    },
+    {
+      "id": "structural-two-panel-spatial-trial",
+      "name": "Structural Two-panel Spatial Trial",
+      "source": "./projects/demos/structural-two-panel-spatial-trial.loo.zip"
+    },
+    {
+      "id": "structural-three-panel-trail-trial",
+      "name": "Structural Three-panel Spatial Trail",
+      "source": "./projects/demos/structural-three-panel-trail-trial.loo.zip"
+    },
+    {
+      "id": "structural-three-panel-junction-trial",
+      "name": "Structural Three-panel Local Junction",
+      "source": "./projects/demos/structural-three-panel-junction-trial.loo.zip"
+    },
+    {
+      "id": "structural-twelve-panel-rising-spiral-trial",
+      "name": "Structural Twelve-panel Rising Spiral",
+      "source": "./projects/demos/structural-twelve-panel-rising-spiral-trial.loo.zip"
+    },
+    {
+      "id": "panel-outline-prism-boundary-fixture",
+      "name": "Panel-outline Prism Boundary Fixture",
+      "source": "./projects/demos/panel-outline-prism-boundary-fixture.loo.zip"
+    },
+    {
+      "id": "cuboctahedron-six-panel-prototype",
+      "name": "Six-panel Cuboctahedron",
+      "source": "./projects/demos/cuboctahedron-six-panel-prototype.loo.zip"
+    },
+    {
+      "id": "generated-rhombicosidodecahedron-41-panel-preview",
+      "name": "LED Rhombicosidodecahedron (41-panel)",
+      "source": "./projects/demos/generated-rhombicosidodecahedron-41-panel-preview.loo.zip"
+    },
+    {
+      "id": "automatic-rhombicosidodecahedron-30-panel-test",
+      "name": "Automatic 30-panel Rhombicosidodecahedron",
+      "source": "./projects/demos/automatic-rhombicosidodecahedron-30-panel-test.loo.zip"
+    },
+    {
+      "id": "truncated-octahedron-six-panel-test",
+      "name": "Six-panel Truncated Octahedron",
+      "source": "./projects/demos/truncated-octahedron-six-panel-test.loo.zip"
+    }
+  ]
+}

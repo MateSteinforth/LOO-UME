@@ -7,6 +7,7 @@
     "verify:wasm": "node scripts/verify-wasm-runtime.mjs",
     "validate:sculpture": "tsx scripts/validate-sculpture.ts",
     "stage:sculptures": "node scripts/stage-sculpture-json.mjs",
+    "generate:demo-projects": "tsx scripts/generate-demo-projects.ts",
     "generate:mapping": "tsx scripts/generate-mapping.ts",
     "optimize:wiring-orientation": "tsx scripts/optimize-installed-orientations.ts",
     "generate:mapping:hardware": "tsx scripts/generate-mapping.ts --hardware",

@@ -41,6 +41,7 @@
     "web/src/GeneratorStatus.ts",
     "web/src/JsonResponse.ts",
     "web/src/ProjectLoader.ts",
+    "web/src/ProjectPackage.ts",
     "web/src/PortableProject.ts",
     "web/src/ZipResourceLimits.ts",
     "web/src/SelectionFocus.ts",

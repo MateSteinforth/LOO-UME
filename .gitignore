@@ -23,6 +23,8 @@ web/public/catalog/
 web/public/generated-cad/
 web/public/generated-previews/
 web/public/generated-projects/
+/web/public/projects/
+/projects/local/
 
 # FreeCAD recovery/backup files
 *.FCStd1

@@ -14,6 +14,7 @@ import { createProvisionalWiringPreview } from "./WiringPreview.ts";
 export const DEFAULT_SCULPTURE_JSON =
   "./sculptures/rhombicosidodecahedron/sculpture.json";
 export const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
+export const PROJECT_LIBRARY_URL = "./projects/manifest.json";
 
 export interface SculptureRegistryEntry {
   id: string;
@@ -25,6 +26,45 @@ export interface SculptureRegistry {
   schemaVersion: "1.0.0";
   defaultSource: string;
   sculptures: SculptureRegistryEntry[];
+}
+
+export interface ProjectLibraryEntry {
+  id: string;
+  name: string;
+  source: string;
+}
+
+export interface ProjectLibraryRegistry {
+  schemaVersion: "1.0.0";
+  defaultSource: string;
+  projects: ProjectLibraryEntry[];
+}
+
+export async function loadProjectLibraryRegistry(
+  source = PROJECT_LIBRARY_URL,
+): Promise<ProjectLibraryRegistry> {
+  const response = await fetch(source);
+  if (!response.ok) {
+    throw new Error(`Unable to load project library: HTTP ${response.status}.`);
+  }
+  const registry = (await readJsonResponse(
+    response,
+    "Project library",
+  )) as Partial<ProjectLibraryRegistry>;
+  if (
+    registry.schemaVersion !== "1.0.0" ||
+    typeof registry.defaultSource !== "string" ||
+    !Array.isArray(registry.projects) || registry.projects.length === 0 ||
+    registry.projects.some((entry) =>
+      typeof entry.id !== "string" || entry.id.length === 0 ||
+      typeof entry.name !== "string" || entry.name.length === 0 ||
+      typeof entry.source !== "string" || !entry.source.endsWith(".loo.zip")
+    ) ||
+    !registry.projects.some((entry) => entry.source === registry.defaultSource)
+  ) {
+    throw new Error("Project library is invalid.");
+  }
+  return registry as ProjectLibraryRegistry;
 }
 
 export interface LoadedSculpture {

@@ -13,12 +13,20 @@ const rootDirectory = process.cwd();
 const sourceDirectory = resolve(rootDirectory, "sculptures");
 const artifactDirectory = resolve(rootDirectory, "artifacts", "sculptures");
 const catalogDirectory = resolve(rootDirectory, "catalog");
+const projectDirectory = resolve(rootDirectory, "projects");
+const demoProjectDirectory = resolve(projectDirectory, "demos");
 const publicCatalogDirectory = resolve(rootDirectory, "web", "public", "catalog");
 const publicSculptureDirectory = resolve(
   rootDirectory,
   "web",
   "public",
   "sculptures",
+);
+const publicProjectDirectory = resolve(
+  rootDirectory,
+  "web",
+  "public",
+  "projects",
 );
 const publicCadDirectory = resolve(
   rootDirectory,
@@ -53,6 +61,16 @@ async function copyTree(source, destination) {
       }
     }),
   );
+}
+
+async function copyFileAtomic(source, destination) {
+  const temporaryPath = `${destination}.stage-${process.pid}-${randomUUID()}`;
+  try {
+    await copyFile(source, temporaryPath);
+    await rename(temporaryPath, destination);
+  } finally {
+    await rm(temporaryPath, { force: true });
+  }
 }
 
 function isStagingSibling(name) {
@@ -101,8 +119,16 @@ if (
 await Promise.all([
   copyTree(sourceDirectory, publicSculptureDirectory),
   copyTree(catalogDirectory, publicCatalogDirectory),
+  mkdir(publicProjectDirectory, { recursive: true }),
   mkdir(publicCadDirectory, { recursive: true }),
   mkdir(publicPreviewDirectory, { recursive: true }),
+]);
+await Promise.all([
+  copyTree(demoProjectDirectory, resolve(publicProjectDirectory, "demos")),
+  copyFileAtomic(
+    resolve(projectDirectory, "manifest.json"),
+    resolve(publicProjectDirectory, "manifest.json"),
+  ),
 ]);
 
 const stagedArtifactIds = new Set();
@@ -139,6 +165,8 @@ for (const sculpture of registry.sculptures) {
 await Promise.all([
   pruneTree(sourceDirectory, publicSculptureDirectory),
   pruneTree(catalogDirectory, publicCatalogDirectory),
+  pruneTree(demoProjectDirectory, resolve(publicProjectDirectory, "demos")),
+  pruneTopLevelDirectories(publicProjectDirectory, new Set(["demos", "manifest.json"])),
   pruneTopLevelDirectories(publicCadDirectory, stagedArtifactIds),
   pruneTopLevelDirectories(publicPreviewDirectory, stagedArtifactIds),
 ]);
@@ -146,5 +174,5 @@ await Promise.all([
 console.log(
   "Staged " +
     registry.sculptures.length +
-    " sculpture JSON documents plus available STL sets and previews for the simulator.",
+  " sculpture JSON documents, project ZIPs, and available previews for the simulator.",
 );

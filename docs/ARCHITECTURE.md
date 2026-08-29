@@ -54,11 +54,17 @@ edit marks derived mechanics stale but does not stop those functions.
 8. `runStructuralPipeline()` derives eligible anchors from the same poses and
    profile, runs advisory load-path analysis, and compiles either modular
    connector ribbons or LED-surface bridges into exact STL/3MF assets.
-9. The assembly package joins project JSON, verified GLB/STL bytes, printable
-   manual, ledmap, and wiring review. Project ZIP remains the normal save form.
+9. `ProjectPackage.ts` wraps the portable project files in the same versioned
+   `.loo.zip` format used by demo, local-library, backup, and transfer projects.
+   It embeds a manifest and deterministic pose-derived thumbnail. The assembly
+   package separately joins project JSON, verified GLB/STL bytes, printable
+   manual, ledmap, and wiring review.
 
-There is no database or browser local storage. Persistence uses project JSON,
-safe relative asset references, SHA-256 values, downloaded folders, and ZIPs.
+There is no project database or browser-local project authority. Persistence
+uses a folder of validated project ZIPs. Repository demo ZIPs are deterministic
+artifacts generated from the unpacked authored Schema 2 sources; local ZIPs are
+ignored by Git. Every package uses safe relative asset references and SHA-256
+values.
 Before extraction, ZIP import reads the bounded central directory and rejects
 excessive archive bytes, entry count, per-entry expansion, total expansion,
 suspicious compression ratios, ZIP64, multi-disk, encrypted, or inconsistent
@@ -126,8 +132,10 @@ control point inside the endpoint radius relative to the current sculpture
 center. The
 controller is a schematic near-top placement derived from the complete current
 route; it is not a second saved wiring authority.
-The populated 41-panel Schema 2 project is the browser default. Empty authoring
-projects remain explicit registry choices.
+The populated 41-panel Schema 2 project is the browser default. The Project
+Library displays every tracked demo as a thumbnail card and opens its actual
+ZIP through the same bounded portable-project loader used for local imports.
+Empty authoring projects remain explicit demo choices.
 The sidebar has no wizard state or numbered progression. Project and View remain
 available, followed by always-editable Shape, Fixtures, Mapping, Fabrication,
 and Export toolboxes. Animation controls stay in View because
@@ -268,6 +276,8 @@ current values are copied operating assumptions, not electrical approval.
 | `src/structure/StructuralPipeline.ts` | Candidate, advisory solve/optimization, and structural composition |
 | `src/cad/CompileStructuralArtifacts.ts` | Exact structural STL, preview, and 3MF bundle |
 | `web/src/` | Browser editor, renderer, mapping, wiring, project and package export |
+| `web/src/ProjectPackage.ts` | Versioned project ZIP manifest, deterministic thumbnail, and package validation |
+| `projects/demos/` | Deterministic tracked demo ZIPs generated from authored sculpture sources |
 | `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
 | `scripts/esp32-firmware-handler.ts` | Loopback-only, receipt-gated complete ESP32 image endpoint |
 | `scripts/esp32-device-handler.ts` | Loopback-only, bounded private WLED HTTP and 1-to-2,624-pixel segmented DDP broker |

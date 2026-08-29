@@ -31,11 +31,35 @@ static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
-No tasks.
+### `LIB-013` Retire the legacy preset and folder project paths
+
+- Scope: remove the old preset dropdown, direct JSON project opening, and
+  editable-folder export after the ZIP library has full parity.
+- Acceptance: normal operators use only library ZIPs, Import ZIP, and Export
+  ZIP; migration keeps older portable ZIPs loadable.
+- Dependencies: `LIB-010` through `LIB-012`.
+
+### `LIB-012` Add conflict-safe local project saving
+
+- Scope: save, save-as, rename, and delete ZIP projects through the loopback
+  desktop/Vite server with atomic replacement and revision checks.
+- Acceptance: optimized wiring and all current project state survive restart;
+  stale clients cannot overwrite a newer ZIP; static hosting remains read-only.
+- Dependencies: `LIB-010` and `LIB-011`.
+- Conflict risk: portable project export, local server, Vite middleware, and
+  project toolbar controls.
 
 ## Ready
 
-No tasks.
+### `LIB-011` Serve one ZIP project library from the local host
+
+- Scope: list validated demo and local `.loo.zip` packages, return exact ZIP
+  bytes and embedded thumbnails, and keep local projects under an ignored
+  repository folder.
+- Acceptance: the desktop and Vite development hosts expose the same bounded,
+  loopback-only read API; invalid packages and unsafe paths fail closed.
+- Dependencies: `LIB-010` package and index contract.
+- Conflict risk: `scripts/local-editor-server.ts`, Vite middleware, and staging.
 
 ## In Progress
 
@@ -97,7 +121,20 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `LIB-010` Make ZIP packages the visible project-library format
+
+- Implemented: one versioned `.loo.zip` manifest, embedded deterministic
+  pose-derived thumbnails, 13 tracked demo packages, synchronized staging, a
+  thumbnail Project Library popup, Import ZIP, and package-format export.
+- Compatibility: older portable ZIPs still open; unpacked authored demo JSON
+  remains the reviewable source used to regenerate tracked demo packages.
+- Verified: 20 focused unit checks, exact two-run ZIP determinism, TypeScript,
+  desktop production build, the Project Library Chromium journey, four existing
+  editor/tutorial Chromium journeys, and visual inspection at 1440 x 900.
+- Owner: `codex/project-library` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
+- Conflict risk: `web/src/PortableProject.ts`, `web/src/ProjectLoader.ts`,
+  `web/src/main.ts`, staging, registry tests, and project-loading browser tests.
 
 ## Done
 

@@ -23,6 +23,15 @@ async function chooseFile(
   await chooser.setFiles(file);
 }
 
+async function openDemoProject(page: Page, name: string): Promise<void> {
+  await page.locator("#open-project-library").click();
+  const dialog = page.locator("#project-library-dialog");
+  await expect(dialog).toBeVisible();
+  await dialog.locator(".project-card", { hasText: name }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator("#current-project-name")).toHaveText(name);
+}
+
 test("generates, previews, transports, reopens, and invalidates a structural set", async ({
   page,
 }) => {
@@ -41,12 +50,7 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );
-  await page.locator("#sculpture-select").selectOption(
-    "./sculptures/structural-three-panel-trail/sculpture.json",
-  );
-  await expect(page.locator("#sculpture-select")).toHaveValue(
-    "./sculptures/structural-three-panel-trail/sculpture.json",
-  );
+  await openDemoProject(page, "Structural Three-panel Spatial Trail");
   await expect(page.locator("#generate-structure")).toBeEnabled();
   await page.locator("#advanced-tools > summary").click();
   await expect(page.locator("#structural-connector-settings")).toBeVisible();
@@ -238,9 +242,7 @@ test("generates one local printable junction for three co-located panels", async
   await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );
-  await page.locator("#sculpture-select").selectOption(
-    "./sculptures/structural-three-panel-junction/sculpture.json",
-  );
+  await openDemoProject(page, "Structural Three-panel Local Junction");
   await page.locator("#advanced-tools > summary").click();
   await expect(page.locator("#connector-pair-list")).toContainText("P-01 ↔ P-02");
   await expect(page.locator("#connector-pair-list")).toContainText("P-01 ↔ P-03");
@@ -267,9 +269,7 @@ test("generates the alternative full-edge LED-surface bridge", async ({ page }) 
   await expect(page.locator("#pipeline-status")).toContainText(
     "design/placement-surface.glb",
   );
-  await page.locator("#sculpture-select").selectOption(
-    "./sculptures/structural-two-panel-spatial/sculpture.json",
-  );
+  await openDemoProject(page, "Structural Two-panel Spatial Trial");
   await expect(page.locator("#generate-structure")).toBeEnabled();
   await expect(page.locator("#generate-surface-structure")).toBeEnabled();
 

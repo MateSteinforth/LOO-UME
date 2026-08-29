@@ -6,8 +6,8 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
   await expect(page.locator("#pipeline-status")).toContainText(
     "No authoring surface is referenced",
   );
-  await expect(page.locator("#sculpture-select")).toHaveValue(
-    "./sculptures/rhombicosidodecahedron/sculpture.json",
+  await expect(page.locator("#current-project-name")).toHaveText(
+    "LED Rhombicosidodecahedron (41-panel)",
   );
   await expect(page.locator("#led-count")).toHaveValue("2624");
   await expect(page.locator(".output-layer-toggle")).toHaveCount(0);

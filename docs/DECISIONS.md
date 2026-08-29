@@ -36,11 +36,15 @@ the panel profile. Printable material must not enter PCB envelopes or obstruct
 DIN, DOUT, V+, V-, or blocked mounting holes. Change measured corrections only
 after a new physical result.
 
-## D6 — A folder is the native project; ZIP is transport
+## D6 — ZIP is the operator project and library format
 
-A portable project is `sculpture.json` plus safe relative, SHA-256-identified
-assets. Folder and ZIP import/export use the same validation. Generated assets
-are derived; sculpture JSON remains authoritative.
+One `.loo.zip` format is used for demo, local-library, backup, and transfer
+projects. It contains a versioned manifest, authoritative `sculpture.json`, an
+embedded thumbnail, and safe relative SHA-256-identified assets. The local
+library is a folder of these ZIPs; import and export copy the same validated
+format without conversion. Repository-authored demo JSON remains the reviewable
+source for deterministic tracked demo ZIPs. Generated assets are derived, and
+the sculpture JSON inside each package remains the project authority.
 
 ## D7 — Mapping artifacts derive from sculpture JSON
 

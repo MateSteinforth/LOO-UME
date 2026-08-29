@@ -238,7 +238,7 @@ export async function openPortableProjectFiles(
   };
 }
 
-function unzipProjectFiles(zipBytes: Uint8Array): PortableProjectFile[] {
+export function unzipPortableProjectFiles(zipBytes: Uint8Array): PortableProjectFile[] {
   const expectedEntries = new Map(inspectZipResources(zipBytes));
   const files: PortableProjectFile[] = [];
   const seen = new Set<string>();
@@ -320,7 +320,7 @@ export async function openPortableProjectZip(
   objectUrlFactory: PortableObjectUrlFactory = defaultObjectUrlFactory,
 ): Promise<PortableProjectBundle> {
   return openPortableProjectFiles(
-    unzipProjectFiles(zipBytes),
+    unzipPortableProjectFiles(zipBytes),
     sourceLabel,
     loadPanelProfile,
     objectUrlFactory,
