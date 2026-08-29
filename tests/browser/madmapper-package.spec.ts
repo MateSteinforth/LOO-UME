@@ -20,17 +20,21 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
   await expect(labelButton).toBeEnabled();
   await expect(labelButton.locator("xpath=ancestor::section[1]")).toHaveAttribute(
     "data-toolbox",
-    "build-hardware",
+    "fabrication",
   );
   const labelDownloadPromise = page.waitForEvent("download");
   await labelButton.click();
   const labelDownload = await labelDownloadPromise;
   expect(labelDownload.suggestedFilename()).toBe(
-    "generated-rhombicosidodecahedron-41-panel-preview-panel-labels-herma-4385.pdf",
+    "generated-rhombicosidodecahedron-41-panel-preview-fabrication.zip",
   );
   const labelDownloadPath = await labelDownload.path();
   if (!labelDownloadPath) throw new Error("The browser did not expose the panel-label PDF.");
-  const labelPdf = (await readFile(labelDownloadPath)).toString("latin1");
+  const labelEntries = unzipSync(await readFile(labelDownloadPath));
+  expect(Object.keys(labelEntries)).toEqual(["panel-labels-herma-4385.pdf"]);
+  const labelPdf = Buffer.from(
+    labelEntries["panel-labels-herma-4385.pdf"]!,
+  ).toString("latin1");
   expect(labelPdf).toContain("%LOOUME-HERMA-4385");
   expect(labelPdf).toContain("(SQ-03) Tj");
   expect(labelPdf).toContain("/Count 1");

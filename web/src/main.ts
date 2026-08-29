@@ -87,7 +87,7 @@ import {
   createWiringReview,
 } from "./AssemblyPackage.ts";
 import { createMadMapperPackageZip } from "./MadMapperPackage.ts";
-import { createHerma4385PanelLabelsPdf } from "./PanelLabelSheet.ts";
+import { createFabricationPackageZip } from "./FabricationPackage.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
 import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
 import {
@@ -104,7 +104,6 @@ import {
 } from "../../src/sculpture/StructuralDesign.ts";
 import { createCandidateTruss } from "../../src/structure/CandidateTruss.ts";
 import {
-  createGeneratedStructureZip,
   loadVerifiedGeneratedStructure,
   type VerifiedGeneratedStructure,
 } from "./GeneratedStructuralAssets.ts";
@@ -316,79 +315,85 @@ app.innerHTML = `
 
         <section class="control-section toolbox-section" data-toolbox="fabrication">
           <div class="toolbox-heading">
-            <div><strong>Fabrication</strong><small>Generate supported printable parts</small></div>
+            <div><strong>Fabrication</strong><small>Generate, label, assemble, and test</small></div>
           </div>
-          <p class="toolbox-hint">Generate only the methods supported by the loaded fixture carrier. Mapping and simulation do not depend on printable parts.</p>
-          <details id="advanced-tools" class="compact-menu">
-            <summary>Fabrication settings</summary>
-            <div class="compact-menu__content">
-              <div id="structural-connector-settings" class="connector-settings">
-                <strong>Modular connector settings</strong>
-                <label class="field">
-                  <span>Maximum automatic neighbor distance (mm)</span>
-                  <input id="connector-neighbor-distance" type="number" min="1" step="1" value="140" />
-                </label>
-                <label class="field">
-                  <span>Maximum automatic neighbors per panel</span>
-                  <input id="connector-neighbor-degree" type="number" min="1" step="1" value="2" />
-                </label>
-                <div class="connector-bed-grid">
-                  <label class="field"><span>Bed X (mm)</span><input id="connector-bed-x" type="number" min="1" step="1" value="250" /></label>
-                  <label class="field"><span>Bed Y (mm)</span><input id="connector-bed-y" type="number" min="1" step="1" value="250" /></label>
-                  <label class="field"><span>Bed Z (mm)</span><input id="connector-bed-z" type="number" min="1" step="1" value="250" /></label>
-                </div>
-                <label class="field">
-                  <span>Reserved keyed-split length (not active)</span>
-                  <input id="connector-segment-length" type="number" min="1" step="1" value="220" disabled title="Oversize loft bodies currently fail the print-envelope check." />
-                </label>
-                <div class="connector-pair-add">
-                  <select id="connector-pair-first" aria-label="First panel"></select>
-                  <select id="connector-pair-second" aria-label="Second panel"></select>
-                  <button id="include-connector-pair" class="editor-button" type="button">Include panel pair</button>
-                </div>
-                <div id="connector-pair-list" class="connector-pair-list"></div>
-              </div>
+          <div class="fabrication-stage">
+            <div class="fabrication-stage__heading">
+              <strong>1. Generate parts</strong>
+              <small>Choose settings, then generate the printable method supported by the loaded fixtures.</small>
             </div>
-          </details>
-          <div class="pipeline-actions">
-            <button id="assembly-package" class="pipeline-button" type="button">
-              Generate panel closures
-            </button>
-            <button id="generate-structure" class="pipeline-button" type="button">
-              Generate connector ribbons
-            </button>
-            <button id="generate-surface-structure" class="pipeline-button" type="button">
-              Generate LED-surface bridges
-            </button>
-            <button id="download-structure" class="pipeline-button" type="button" disabled>
-              Download displayed connectors ZIP
-            </button>
-          </div>
-        </section>
-
-        <section class="control-section toolbox-section" data-toolbox="build-hardware">
-          <div class="toolbox-heading">
-            <div><strong>Build Hardware</strong><small>Wire, flash, and assemble</small></div>
-          </div>
-          <button id="download-panel-labels" class="editor-button" type="button">Generate panel labels PDF</button>
-          <div id="assembly-tutorial-section" class="assembly-tutorial assembly-tutorial--workflow">
-            <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
-            <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">
-              Isolate a data chain and step through each cable in order.
-            </p>
-            <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">Isolate chain</button>
-            <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
-              <output id="assembly-tutorial-step">Cable</output>
-              <div class="assembly-tutorial__actions">
-                <button id="assembly-tutorial-previous-chain" type="button">Previous chain</button>
-                <button id="assembly-tutorial-next-chain" type="button">Next chain</button>
-                <button id="assembly-tutorial-previous-wire" type="button">Previous wire</button>
-                <button id="assembly-tutorial-next-wire" type="button">Next wire</button>
-                <button id="assembly-tutorial-exit" class="assembly-tutorial__exit" type="button">Show all</button>
+            <details id="advanced-tools" class="compact-menu">
+              <summary>Fabrication settings</summary>
+              <div class="compact-menu__content">
+                <div id="structural-connector-settings" class="connector-settings">
+                  <strong>Modular connector settings</strong>
+                  <label class="field">
+                    <span>Maximum automatic neighbor distance (mm)</span>
+                    <input id="connector-neighbor-distance" type="number" min="1" step="1" value="140" />
+                  </label>
+                  <label class="field">
+                    <span>Maximum automatic neighbors per panel</span>
+                    <input id="connector-neighbor-degree" type="number" min="1" step="1" value="2" />
+                  </label>
+                  <div class="connector-bed-grid">
+                    <label class="field"><span>Bed X (mm)</span><input id="connector-bed-x" type="number" min="1" step="1" value="250" /></label>
+                    <label class="field"><span>Bed Y (mm)</span><input id="connector-bed-y" type="number" min="1" step="1" value="250" /></label>
+                    <label class="field"><span>Bed Z (mm)</span><input id="connector-bed-z" type="number" min="1" step="1" value="250" /></label>
+                  </div>
+                  <label class="field">
+                    <span>Reserved keyed-split length (not active)</span>
+                    <input id="connector-segment-length" type="number" min="1" step="1" value="220" disabled title="Oversize loft bodies currently fail the print-envelope check." />
+                  </label>
+                  <div class="connector-pair-add">
+                    <select id="connector-pair-first" aria-label="First panel"></select>
+                    <select id="connector-pair-second" aria-label="Second panel"></select>
+                    <button id="include-connector-pair" class="editor-button" type="button">Include panel pair</button>
+                  </div>
+                  <div id="connector-pair-list" class="connector-pair-list"></div>
+                </div>
               </div>
+            </details>
+            <div class="pipeline-actions">
+              <button id="assembly-package" class="pipeline-button" type="button">Generate panel closures</button>
+              <button id="generate-structure" class="pipeline-button" type="button">Generate connector ribbons</button>
+              <button id="generate-surface-structure" class="pipeline-button" type="button">Generate LED-surface bridges</button>
             </div>
           </div>
-          <button id="open-esp32-setup" class="editor-button" type="button">Set up ESP32</button>
+          <div class="fabrication-stage">
+            <div class="fabrication-stage__heading">
+              <strong>2. Download fabrication ZIP</strong>
+              <small>Download the printable HERMA panel-label PDF with any verified connectors shown in the viewport.</small>
+            </div>
+            <button id="download-panel-labels" class="pipeline-button" type="button">Download fabrication ZIP</button>
+          </div>
+          <div class="fabrication-stage">
+            <div class="fabrication-stage__heading">
+              <strong>3. Solder and assemble</strong>
+              <small>Isolate one data chain and follow each controller-to-panel and panel-to-panel cable.</small>
+            </div>
+            <div id="assembly-tutorial-section" class="assembly-tutorial assembly-tutorial--workflow">
+              <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
+              <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">Isolate a data chain and step through each cable in order.</p>
+              <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">Isolate chain</button>
+              <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
+                <output id="assembly-tutorial-step">Cable</output>
+                <div class="assembly-tutorial__actions">
+                  <button id="assembly-tutorial-previous-chain" type="button">Previous chain</button>
+                  <button id="assembly-tutorial-next-chain" type="button">Next chain</button>
+                  <button id="assembly-tutorial-previous-wire" type="button">Previous wire</button>
+                  <button id="assembly-tutorial-next-wire" type="button">Next wire</button>
+                  <button id="assembly-tutorial-exit" class="assembly-tutorial__exit" type="button">Show all</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="fabrication-stage">
+            <div class="fabrication-stage__heading">
+              <strong>4. Test on ESP32</strong>
+              <small>Flash the approved ESP32 firmware and copy the loaded simulator mapping and animation.</small>
+            </div>
+            <button id="open-esp32-setup" class="editor-button" type="button">Set up ESP32</button>
+          </div>
         </section>
 
         <section class="control-section toolbox-section toolbox-export" data-toolbox="export">
@@ -554,8 +559,6 @@ const generateStructureButton =
   query<HTMLButtonElement>("#generate-structure");
 const generateSurfaceStructureButton =
   query<HTMLButtonElement>("#generate-surface-structure");
-const downloadStructureButton =
-  query<HTMLButtonElement>("#download-structure");
 const connectorSettings = query<HTMLElement>("#structural-connector-settings");
 const connectorNeighborDistanceInput = query<HTMLInputElement>("#connector-neighbor-distance");
 const connectorNeighborDegreeInput = query<HTMLInputElement>("#connector-neighbor-degree");
@@ -1028,8 +1031,8 @@ async function start(): Promise<void> {
         : "Confirm the authored route and panel addressing before MadMapper export.";
       downloadPanelLabelsButton.disabled = editorDefinition.panels.length === 0;
       downloadPanelLabelsButton.title = editorDefinition.panels.length === 0
-        ? "Place at least one panel before generating labels."
-        : "Print current panel IDs on a HERMA 4385 A4 label sheet at 100% scale.";
+        ? "Place at least one panel before downloading fabrication files."
+        : "Download the HERMA 4385 label PDF and any verified displayed connectors.";
       generateStructureButton.disabled =
         !capabilities.canGenerateStructuralMechanics;
       generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
@@ -1373,8 +1376,6 @@ async function start(): Promise<void> {
       printableLayerToggle.disabled = !hasPrintableClosures;
       connectorLayerToggle.disabled = !isPanelized;
       wiringLayerToggle.disabled = !isPanelized;
-      downloadStructureButton.disabled =
-        verifiedGeneratedStructure === undefined;
       wiringLayerControls.classList.toggle(
         "layer-controls--disabled",
         !isPanelized,
@@ -1400,7 +1401,6 @@ async function start(): Promise<void> {
       verifiedGeneratedStructure = undefined;
       renderer?.setExactGeneratedMechanics(null);
       renderer?.setExactGeneratedStructure();
-      downloadStructureButton.disabled = true;
       const structuralState = getGeneratedStructuralState(
         selected.definition,
         selected.project.panelProfile,
@@ -2569,44 +2569,25 @@ async function start(): Promise<void> {
       );
     };
 
-    const downloadPanelLabels = (): void => {
-      const pdfBytes = createHerma4385PanelLabelsPdf(
+    const downloadFabricationPackage = (): void => {
+      const zipBytes = createFabricationPackageZip(
         editorDefinition.panels.map((panel) => panel.id),
+        verifiedGeneratedStructure,
       );
       const objectUrl = URL.createObjectURL(new Blob(
-        [Uint8Array.from(pdfBytes)],
-        { type: "application/pdf" },
-      ));
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download =
-        `${portableProjectFolderName(editorDefinition)}-panel-labels-herma-4385.pdf`;
-      link.click();
-      URL.revokeObjectURL(objectUrl);
-      setLogMessage(
-        `Downloaded ${link.download} with ${editorDefinition.panels.length} panel IDs. Print A4 at 100% or Actual size on HERMA 4385; do not use Fit to page.`,
-      );
-    };
-
-    downloadStructureButton.addEventListener("click", () => {
-      if (!verifiedGeneratedStructure) return;
-      const surfaceStyle = editorDefinition.structuralDesign?.connectorization
-        ?.surfaceStyle ?? "screw-shoe-ribbon";
-      const label = surfaceStyle === "led-surface-bridge"
-        ? "led-surface-bridges"
-        : "connector-ribbons";
-      const bytes = createGeneratedStructureZip(verifiedGeneratedStructure);
-      const objectUrl = URL.createObjectURL(new Blob(
-        [Uint8Array.from(bytes)],
+        [Uint8Array.from(zipBytes)],
         { type: "application/zip" },
       ));
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download = `${editorDefinition.id}-${label}.zip`;
+      link.download =
+        `${portableProjectFolderName(editorDefinition)}-fabrication.zip`;
       link.click();
       URL.revokeObjectURL(objectUrl);
-      setLogMessage(`Downloaded ${link.download} from the connectors displayed in the viewport.`);
-    });
+      setLogMessage(
+        `Downloaded ${link.download} with the HERMA 4385 PDF for ${editorDefinition.panels.length} panel IDs${verifiedGeneratedStructure ? " and the verified connectors displayed in the viewport" : ""}. Print A4 at 100% or Actual size on HERMA 4385; do not use Fit to page.`,
+      );
+    };
 
     const generateStructuralStyle = async (
       surfaceStyle: StructuralConnectorSurfaceStyle,
@@ -2825,7 +2806,7 @@ async function start(): Promise<void> {
     });
     downloadPanelLabelsButton.addEventListener("click", () => {
       try {
-        downloadPanelLabels();
+        downloadFabricationPackage();
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setLogMessage(message, true);

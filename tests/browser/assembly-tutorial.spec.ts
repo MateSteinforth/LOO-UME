@@ -30,12 +30,11 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
     "Fixtures",
     "Mapping",
     "Fabrication",
-    "Build Hardware",
     "Export",
   ]);
   await expect(viewSection.locator("#effect")).toBeVisible();
   await expect(viewSection.locator("#palette")).toBeVisible();
-  await expect(page.locator("[data-toolbox='build-hardware'] #open-esp32-setup"))
+  await expect(page.locator("[data-toolbox='fabrication'] #open-esp32-setup"))
     .toBeVisible();
   await expect(page.locator("[data-toolbox='export'] #save-project"))
     .toHaveText("Export project ZIP");
@@ -67,7 +66,7 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
   );
   await expect(page.locator("#assembly-tutorial-chain")).toHaveCount(0);
   await expect(page.locator("#assembly-tutorial-overview")).toHaveCount(0);
-  await expect(page.locator("[data-toolbox='build-hardware'] #assembly-tutorial-section"))
+  await expect(page.locator("[data-toolbox='fabrication'] #assembly-tutorial-section"))
     .toBeVisible();
   await expect(page.locator(".view-section #wiring-layer-controls")).toBeVisible();
   await expect(page.locator("#assembly-tutorial-warning")).toHaveText(
