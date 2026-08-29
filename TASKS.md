@@ -105,45 +105,17 @@ No tasks.
 
 ## Ready to Merge
 
-### `FIXTURE-014` Reconstruct the photographed wedge-panel sculpture
-
-- Result: one provisional 30-panel Schema 2 reconstruction uses the shared
-  wedge profile, 1,920 mapped emitters, and an optimizer-stable 2,440.6 mm
-  route with three 10-panel chains on GPIO 16/17/18. Its portable ZIP and
-  rendered thumbnail are available in the Project Browser.
-- Boundary: the 270 mm radius, panel poses, and all FIXTURE-013 hardware facts
-  remain visual-study estimates; rectangular fabrication stays unavailable.
-- Verification: five focused project/registry/package tests, TypeScript, Vite
-  production build, two focused Chromium Project Browser journeys,
-  `git diff --check`, rendered-thumbnail inspection, and independent review
-  passed.
-- Owner: `codex/fixture-014-photo-sculpture` in
-  `/tmp/loo-ume-fixture-014`.
-
-### `FIXTURE-013` Add a provisional photo-derived wedge-panel fixture
-
-- Scope: one tracked planar-outline 8×8 profile and one-panel Schema 2 demo
-  derived from the two operator screenshots. Dimensions, holes, connector
-  anchors, pixel order, color order, and electrical facts remain provisional.
-- Result: loads and maps 64 emitters, wires one GPIO 16 output, creates the
-  bounded WLED setup, survives portable ZIP reload, and appears in the project
-  registry. Non-rectangular tools stay disabled; every fabrication entry point
-  also requires measured physical corrections.
-- Verification: 26 focused tests, `npx tsc -b`, Vite production build,
-  `git diff --check`, and independent review passed.
-- Owner: `codex/fixture-013-photo-wedge` in `/tmp/loo-ume-fixture-013`.
-
-### `UI-028` Stabilize project switching and direct viewport setup
-
-- Scope: no automatic viewport rotation; exact saved controller XYZ with a
-  suggested-position reset; reusable Project Library cards; clear library,
-  ZIP, folder, and JSON action labels.
-- Verification: 475 unit tests, TypeScript, production build, and nine focused
-  Chromium journeys passed on `codex/ui-project-reliability`.
-- Owner: `codex/ui-project-reliability` in
-  `/tmp/led-rhombo-ui-project-reliability`.
+No tasks.
 
 ## Done
+
+- `FIXTURE-013`, `FIXTURE-014`, and `UI-028`: integrated the provisional wedge
+  panel profile, its one-panel and 30-panel visual-study projects, reusable
+  Project Library switching, manual-only viewport orbit, saved controller XYZ,
+  and clear library/export labels on 2026-08-29. The 30-panel radius, poses, and
+  hardware facts remain provisional; fabrication stays unavailable. The
+  combined main passed all 480 unit tests, TypeScript, production build, and
+  four focused Chromium Project Library/controller journeys.
 
 - `LIVE-011` through `LIVE-013`: integrated the local MadMapper 3D preview on
   2026-08-29. The current Mapping toolbox owns Start/Stop, complete 16-universe
