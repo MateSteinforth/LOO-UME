@@ -245,8 +245,15 @@ input[type="checkbox"] {
   margin-top: 9px;
 }
 
-.project-library-open {
+.project-toolbar__library-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.project-toolbar__library-actions button {
   width: 100%;
+  margin: 0;
 }
 
 .current-project-name {
@@ -316,6 +323,16 @@ input[type="checkbox"] {
 .project-library-actions {
   justify-content: flex-start;
   margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.project-library-save-as {
+  min-width: min(280px, 100%);
+  margin: 0;
+}
+
+.project-library-save-as input {
+  width: 100%;
 }
 
 .project-library-status {
@@ -345,6 +362,31 @@ input[type="checkbox"] {
   background: rgba(15, 24, 39, 0.88);
 }
 
+.project-card-shell {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.project-card-shell .project-card {
+  width: 100%;
+}
+
+.project-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.project-card-actions button {
+  padding: 6px 8px;
+  border: 1px solid rgba(142, 177, 207, 0.18);
+  border-radius: 6px;
+  color: var(--muted);
+  background: rgba(15, 24, 39, 0.88);
+  cursor: pointer;
+}
+
 .project-card:hover:not(:disabled),
 .project-card:focus-visible {
   border-color: rgba(57, 217, 208, 0.7);
@@ -369,6 +411,12 @@ input[type="checkbox"] {
 .project-card small {
   color: var(--muted);
   font-size: 9px;
+}
+
+.project-card .project-card-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .toolbox-section {

@@ -20,7 +20,12 @@ afterEach(async () => {
   ));
 });
 
-async function fixture(): Promise<{ url: string; packageBytes: Uint8Array }> {
+async function fixture(): Promise<{
+  root: string;
+  url: string;
+  packageBytes: Uint8Array;
+  changedPackageBytes: Uint8Array;
+}> {
   const root = await mkdtemp(join(tmpdir(), "project-library-handler-"));
   temporaryDirectories.push(root);
   const demoDirectory = join(root, "projects", "demos");
@@ -33,6 +38,13 @@ async function fixture(): Promise<{ url: string; packageBytes: Uint8Array }> {
     await readFile("sculptures/rhombicosidodecahedron/sculpture.json", "utf8"),
   ));
   const packageBytes = createProjectPackageZip(definition, new Map(), definition.id);
+  const changedDefinition = structuredClone(definition);
+  changedDefinition.name = `${definition.name} saved`;
+  const changedPackageBytes = createProjectPackageZip(
+    changedDefinition,
+    new Map(),
+    changedDefinition.id,
+  );
   await Promise.all([
     writeFile(join(demoDirectory, "flagship.loo.zip"), packageBytes),
     writeFile(join(localDirectory, "working-copy.loo.zip"), packageBytes),
@@ -56,8 +68,10 @@ async function fixture(): Promise<{ url: string; packageBytes: Uint8Array }> {
   });
   servers.push(server);
   return {
+    root,
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/`,
     packageBytes,
+    changedPackageBytes,
   };
 }
 
@@ -128,5 +142,79 @@ describe("project library handler", () => {
     expect((await fetch(
       `${url}api/project-library/package/local/not-a-project.zip`,
     )).status).toBe(400);
+  });
+
+  it("creates, replaces, renames, and deletes local ZIPs with revision checks", async () => {
+    const { root, url, packageBytes, changedPackageBytes } = await fixture();
+    const endpoint = `${url}api/project-library/package/local/new-project.loo.zip`;
+    const created = await fetch(endpoint, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/zip",
+        "If-None-Match": "*",
+      },
+      body: new Blob([Uint8Array.from(packageBytes)]),
+    });
+    expect(created.status).toBe(200);
+    const createdRevision = (await created.json() as { revision: string }).revision;
+    expect(new Uint8Array(await readFile(
+      join(root, "projects", "local", "new-project.loo.zip"),
+    ))).toEqual(packageBytes);
+
+    const replaced = await fetch(endpoint, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/zip",
+        "If-Match": `"${createdRevision}"`,
+      },
+      body: new Blob([Uint8Array.from(changedPackageBytes)]),
+    });
+    expect(replaced.status).toBe(200);
+    const replacedRevision = (await replaced.json() as { revision: string }).revision;
+    expect(replacedRevision).not.toBe(createdRevision);
+    expect((await fetch(endpoint, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/zip",
+        "If-Match": `"${createdRevision}"`,
+      },
+      body: new Blob([Uint8Array.from(packageBytes)]),
+    })).status).toBe(412);
+
+    const renamed = await fetch(endpoint, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "If-Match": `"${replacedRevision}"`,
+      },
+      body: JSON.stringify({ filename: "renamed-project.loo.zip" }),
+    });
+    expect(renamed.status).toBe(200);
+    const renamedEndpoint = `${url}api/project-library/package/local/renamed-project.loo.zip`;
+    expect(new Uint8Array(await (await fetch(renamedEndpoint)).arrayBuffer()))
+      .toEqual(changedPackageBytes);
+    expect((await fetch(renamedEndpoint, {
+      method: "DELETE",
+      headers: { "If-Match": `"${replacedRevision}"` },
+    })).status).toBe(204);
+    expect((await fetch(renamedEndpoint)).status).toBe(404);
+  });
+
+  it("rejects invalid saves and missing write preconditions", async () => {
+    const { url, packageBytes } = await fixture();
+    const endpoint = `${url}api/project-library/package/local/guarded.loo.zip`;
+    expect((await fetch(endpoint, {
+      method: "PUT",
+      headers: { "Content-Type": "application/zip" },
+      body: new Blob([Uint8Array.from(packageBytes)]),
+    })).status).toBe(428);
+    expect((await fetch(endpoint, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/zip",
+        "If-None-Match": "*",
+      },
+      body: "not a zip",
+    })).status).toBe(400);
   });
 });

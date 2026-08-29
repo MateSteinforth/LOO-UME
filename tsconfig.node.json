@@ -40,6 +40,7 @@
     "web/src/PrintedPlaMaterial.ts",
     "web/src/GeneratorStatus.ts",
     "web/src/JsonResponse.ts",
+    "web/src/ProjectLibraryClient.ts",
     "web/src/ProjectLoader.ts",
     "web/src/ProjectPackage.ts",
     "web/src/PortableProject.ts",

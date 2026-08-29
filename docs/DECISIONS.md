@@ -47,7 +47,10 @@ source for deterministic tracked demo ZIPs. Generated assets are derived, and
 the sculpture JSON inside each package remains the project authority. Desktop
 and Vite development hosts enumerate and serve exact validated demo/local ZIP
 bytes through one loopback-only handler; a static host exposes tracked demos
-only and does not become writable.
+only and does not become writable. Local mutations require an exact prior
+revision or an explicit create-only precondition, and package replacement is
+atomic. The project filename is the library label; package metadata and the
+authoritative sculpture name stay inside the unchanged ZIP format.
 
 ## D7 — Mapping artifacts derive from sculpture JSON
 

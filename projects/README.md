@@ -9,7 +9,9 @@ LOO/UME uses one `.loo.zip` package for library projects, backup, and transfer.
   its contents.
 
 The desktop and Vite development hosts enumerate both folders through
-`/api/project-library`. Static builds use `manifest.json` and tracked demos only.
+`/api/project-library`. They validate complete packages before atomic local
+saves and require revision checks for replace, rename, and delete operations.
+Static builds use `manifest.json` and tracked demos only.
 
 Each package contains `manifest.json`, authoritative `sculpture.json`, an
 embedded pose-derived `thumbnail.svg`, and all referenced portable assets.

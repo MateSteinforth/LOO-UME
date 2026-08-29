@@ -136,7 +136,13 @@ import {
   loadSculptureRegistry,
   loadStagedPanelProfile,
   type LoadedSculpture,
+  type ProjectLibraryEntry,
 } from "./ProjectLoader.ts";
+import {
+  deleteLocalProjectPackage,
+  renameLocalProjectPackage,
+  saveLocalProjectPackage,
+} from "./ProjectLibraryClient.ts";
 
 const DEFAULT_PRIMARY_COLOR = "#ff7a18";
 const DEFAULT_SECONDARY_COLOR = "#050816";
@@ -165,7 +171,10 @@ app.innerHTML = `
           <input id="project-file" type="file" accept="application/json,application/zip,.json,.zip" hidden />
           <input id="project-folder" type="file" webkitdirectory multiple hidden />
           <input id="design-surface-file" type="file" accept="model/gltf-binary,.glb" hidden />
-          <button id="open-project-library" class="pipeline-button project-library-open" type="button">Browse projects</button>
+          <div class="project-toolbar__library-actions">
+            <button id="open-project-library" class="pipeline-button project-library-open" type="button">Browse projects</button>
+            <button id="save-library-project" class="editor-button" type="button">Save</button>
+          </div>
           <output id="current-project-name" class="current-project-name">Loading project…</output>
           <select id="sculpture-select" hidden aria-hidden="true">
             <option value="">Loading sculpture registry…</option>
@@ -448,6 +457,11 @@ app.innerHTML = `
         </header>
         <div class="project-library-actions">
           <button id="import-project-zip" class="pipeline-button" type="button">Import ZIP</button>
+          <label class="field project-library-save-as">
+            <span>Local ZIP filename</span>
+            <input id="project-library-filename" type="text" maxlength="188" spellcheck="false" />
+          </label>
+          <button id="save-project-as" class="pipeline-button" type="button">Save As</button>
         </div>
         <p id="project-library-status" class="project-library-status">Open a project ZIP.</p>
         <div id="project-library-grid" class="project-library-grid" aria-live="polite"></div>
@@ -511,6 +525,9 @@ const projectLibraryDialog = query<HTMLDialogElement>("#project-library-dialog")
 const projectLibraryGrid = query<HTMLElement>("#project-library-grid");
 const projectLibraryStatus = query<HTMLElement>("#project-library-status");
 const importProjectZipButton = query<HTMLButtonElement>("#import-project-zip");
+const saveLibraryProjectButton = query<HTMLButtonElement>("#save-library-project");
+const saveProjectAsButton = query<HTMLButtonElement>("#save-project-as");
+const projectLibraryFilenameInput = query<HTMLInputElement>("#project-library-filename");
 const currentProjectName = query<HTMLOutputElement>("#current-project-name");
 const sculptureJsonInput = query<HTMLInputElement>("#sculpture-json");
 const loadSculptureButton = query<HTMLButtonElement>("#load-sculpture");
@@ -646,10 +663,11 @@ let animationFrame = 0;
 async function start(): Promise<void> {
   try {
     const generatorStatusPromise = loadGeneratorStatus();
-    const [sculptureRegistry, projectLibraryRegistry] = await Promise.all([
+    const [sculptureRegistry, initialProjectLibraryRegistry] = await Promise.all([
       loadSculptureRegistry(),
       loadProjectLibraryRegistry(),
     ]);
+    let projectLibraryRegistry = initialProjectLibraryRegistry;
     sculptureSelect.replaceChildren(
       ...sculptureRegistry.sculptures.map(
         (entry) => new Option(entry.name, entry.source),
@@ -2198,6 +2216,7 @@ async function start(): Promise<void> {
       try {
         const selected = await loadSculptureContract(source);
         replacePortableBundle();
+        currentLibraryProject = undefined;
         await applyLoadedSculpture(selected);
         currentProjectName.textContent = selected.definition.name;
         await loadReferencedDesignSurface();
@@ -2287,6 +2306,26 @@ async function start(): Promise<void> {
     const projectPackageBytes = new Map<string, Uint8Array>();
     const projectThumbnailUrls: string[] = [];
     let projectLibraryRendered = false;
+    let currentLibraryProject: ProjectLibraryEntry | undefined;
+    const normalizeLocalProjectFilename = (input: string): string => {
+      const base = input.trim()
+        .replace(/\.loo\.zip$/i, "")
+        .replace(/\.zip$/i, "")
+        .replace(/[^A-Za-z0-9._-]+/g, "-")
+        .replace(/^[.-]+|[.-]+$/g, "")
+        .slice(0, 170);
+      return `${base || "sculpture-project"}.loo.zip`;
+    };
+    const currentProjectPackage = (): Uint8Array => createProjectPackageZip(
+      editorDefinition,
+      availableProjectAssets,
+      portableProjectFolderName(editorDefinition),
+    );
+    const clearProjectLibraryCache = (): void => {
+      projectPackageBytes.clear();
+      for (const url of projectThumbnailUrls.splice(0)) URL.revokeObjectURL(url);
+      projectLibraryRendered = false;
+    };
     const loadProjectPackageBytes = async (source: string): Promise<Uint8Array> => {
       const cached = projectPackageBytes.get(source);
       if (cached) return cached;
@@ -2299,8 +2338,8 @@ async function start(): Promise<void> {
       projectPackageBytes.set(source, bytes);
       return bytes;
     };
-    const openLibraryProject = async (source: string): Promise<void> => {
-      const bytes = await loadProjectPackageBytes(source);
+    const openLibraryProject = async (entry: ProjectLibraryEntry): Promise<void> => {
+      const bytes = await loadProjectPackageBytes(entry.source);
       const summary = readProjectPackageSummary(bytes);
       const bundle = await openPortableProjectZip(
         bytes,
@@ -2309,13 +2348,35 @@ async function start(): Promise<void> {
       );
       await applyPortableBundle(bundle, summary.manifest.name);
       currentProjectName.textContent = summary.manifest.name;
+      currentLibraryProject = entry;
       projectLibraryDialog.close();
+    };
+    const refreshProjectLibrary = async (): Promise<void> => {
+      clearProjectLibraryCache();
+      projectLibraryRegistry = await loadProjectLibraryRegistry();
+      saveLibraryProjectButton.disabled = projectLibraryRegistry.writable !== true;
+      saveProjectAsButton.disabled = projectLibraryRegistry.writable !== true;
+    };
+    const saveAsLocalProject = async (filenameInput: string): Promise<void> => {
+      const filename = normalizeLocalProjectFilename(filenameInput);
+      const saved = await saveLocalProjectPackage(
+        filename,
+        currentProjectPackage(),
+      );
+      await refreshProjectLibrary();
+      currentLibraryProject = projectLibraryRegistry.projects.find((entry) =>
+        entry.location === "local" && entry.filename === saved.filename
+      );
+      projectLibraryFilenameInput.value = saved.filename;
+      setLogMessage(`Saved local project ${saved.filename}.`);
     };
     const renderProjectLibrary = async (): Promise<void> => {
       if (projectLibraryRendered) return;
       projectLibraryStatus.textContent = "Loading demo project ZIPs…";
       const cards = await Promise.all(projectLibraryRegistry.projects.map(
         async (entry) => {
+          const card = document.createElement("article");
+          card.className = "project-card-shell";
           const button = document.createElement("button");
           button.type = "button";
           button.className = "project-card";
@@ -2343,10 +2404,16 @@ async function start(): Promise<void> {
             const detail = document.createElement("small");
             detail.textContent = `${panelCount} fixture${panelCount === 1 ? "" : "s"} · ${entry.readOnly === false ? "Local" : "Demo"} ZIP`;
             button.append(image, label, detail);
+            if (entry.filename) {
+              const filename = document.createElement("small");
+              filename.className = "project-card-filename";
+              filename.textContent = entry.filename;
+              button.append(filename);
+            }
             button.addEventListener("click", () => {
               button.disabled = true;
               projectLibraryStatus.textContent = `Opening ${entry.name}…`;
-              void openLibraryProject(entry.source).catch((error) => {
+              void openLibraryProject(entry).catch((error) => {
                 button.disabled = false;
                 projectLibraryStatus.textContent = error instanceof Error
                   ? error.message
@@ -2357,7 +2424,65 @@ async function start(): Promise<void> {
             button.disabled = true;
             button.textContent = `${entry.name}: ${error instanceof Error ? error.message : String(error)}`;
           }
-          return button;
+          card.append(button);
+          if (
+            entry.location === "local" && entry.filename && entry.revision &&
+            projectLibraryRegistry.writable === true
+          ) {
+            const actions = document.createElement("div");
+            actions.className = "project-card-actions";
+            const renameButton = document.createElement("button");
+            renameButton.type = "button";
+            renameButton.textContent = "Rename";
+            renameButton.addEventListener("click", () => {
+              const requested = window.prompt("New local ZIP filename", entry.filename);
+              if (requested === null) return;
+              void (async () => {
+                try {
+                  const destination = normalizeLocalProjectFilename(requested);
+                  const renamed = await renameLocalProjectPackage(
+                    entry.filename!,
+                    destination,
+                    entry.revision!,
+                  );
+                  if (currentLibraryProject?.filename === entry.filename) {
+                    currentLibraryProject = { ...entry, ...renamed };
+                  }
+                  await refreshProjectLibrary();
+                  await renderProjectLibrary();
+                  setLogMessage(`Renamed local project to ${renamed.filename}.`);
+                } catch (error) {
+                  projectLibraryStatus.textContent = error instanceof Error
+                    ? error.message
+                    : String(error);
+                }
+              })();
+            });
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.textContent = "Delete";
+            deleteButton.addEventListener("click", () => {
+              if (!window.confirm(`Delete ${entry.filename}?`)) return;
+              void (async () => {
+                try {
+                  await deleteLocalProjectPackage(entry.filename!, entry.revision!);
+                  if (currentLibraryProject?.filename === entry.filename) {
+                    currentLibraryProject = undefined;
+                  }
+                  await refreshProjectLibrary();
+                  await renderProjectLibrary();
+                  setLogMessage(`Deleted local project ${entry.filename}.`);
+                } catch (error) {
+                  projectLibraryStatus.textContent = error instanceof Error
+                    ? error.message
+                    : String(error);
+                }
+              })();
+            });
+            actions.append(renameButton, deleteButton);
+            card.append(actions);
+          }
+          return card;
         },
       ));
       projectLibraryGrid.replaceChildren(...cards);
@@ -2368,6 +2493,8 @@ async function start(): Promise<void> {
       projectLibraryRendered = true;
     };
     openProjectLibraryButton.addEventListener("click", () => {
+      projectLibraryFilenameInput.value = currentLibraryProject?.filename ??
+        `${portableProjectFolderName(editorDefinition)}.loo.zip`;
       projectLibraryDialog.showModal();
       void renderProjectLibrary().catch((error) => {
         projectLibraryStatus.textContent = error instanceof Error
@@ -2378,6 +2505,55 @@ async function start(): Promise<void> {
     importProjectZipButton.addEventListener("click", () => {
       projectLibraryDialog.close();
       projectFileInput.click();
+    });
+    saveProjectAsButton.addEventListener("click", () => {
+      void (async () => {
+        saveProjectAsButton.disabled = true;
+        try {
+          await saveAsLocalProject(projectLibraryFilenameInput.value);
+          await renderProjectLibrary();
+        } catch (error) {
+          projectLibraryStatus.textContent = error instanceof Error
+            ? error.message
+            : String(error);
+        } finally {
+          saveProjectAsButton.disabled = projectLibraryRegistry.writable !== true;
+        }
+      })();
+    });
+    saveLibraryProjectButton.disabled = projectLibraryRegistry.writable !== true;
+    saveProjectAsButton.disabled = projectLibraryRegistry.writable !== true;
+    saveLibraryProjectButton.addEventListener("click", () => {
+      void (async () => {
+        if (
+          currentLibraryProject?.location !== "local" ||
+          !currentLibraryProject.filename ||
+          !currentLibraryProject.revision
+        ) {
+          projectLibraryFilenameInput.value = `${portableProjectFolderName(editorDefinition)}.loo.zip`;
+          projectLibraryDialog.showModal();
+          await renderProjectLibrary();
+          projectLibraryFilenameInput.focus();
+          return;
+        }
+        saveLibraryProjectButton.disabled = true;
+        try {
+          const saved = await saveLocalProjectPackage(
+            currentLibraryProject.filename,
+            currentProjectPackage(),
+            currentLibraryProject.revision,
+          );
+          await refreshProjectLibrary();
+          currentLibraryProject = projectLibraryRegistry.projects.find((entry) =>
+            entry.location === "local" && entry.filename === saved.filename
+          );
+          setLogMessage(`Saved local project ${saved.filename}.`);
+        } catch (error) {
+          reportPortableError(error);
+        } finally {
+          saveLibraryProjectButton.disabled = projectLibraryRegistry.writable !== true;
+        }
+      })();
     });
     window.addEventListener("beforeunload", () => {
       for (const url of projectThumbnailUrls) URL.revokeObjectURL(url);
@@ -2399,9 +2575,11 @@ async function start(): Promise<void> {
               loadStagedPanelProfile,
             );
             await applyPortableBundle(bundle, file.name);
+            currentLibraryProject = undefined;
           } else {
             const selected = await loadLocalSculpture(file);
             replacePortableBundle();
+            currentLibraryProject = undefined;
             await applyLoadedSculpture(selected);
             await loadReferencedDesignSurface();
             sculptureSelect.value = "";
@@ -2440,6 +2618,7 @@ async function start(): Promise<void> {
             loadStagedPanelProfile,
           );
           await applyPortableBundle(bundle, label);
+          currentLibraryProject = undefined;
         } catch (error) {
           reportPortableError(error);
         } finally {

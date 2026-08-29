@@ -39,16 +39,6 @@ static address and RGB parity on the physical 41-panel sculpture.
   ZIP; migration keeps older portable ZIPs loadable.
 - Dependencies: `LIB-010` through `LIB-012`.
 
-### `LIB-012` Add conflict-safe local project saving
-
-- Scope: save, save-as, rename, and delete ZIP projects through the loopback
-  desktop/Vite server with atomic replacement and revision checks.
-- Acceptance: optimized wiring and all current project state survive restart;
-  stale clients cannot overwrite a newer ZIP; static hosting remains read-only.
-- Dependencies: `LIB-010` and `LIB-011`.
-- Conflict risk: portable project export, local server, Vite middleware, and
-  project toolbar controls.
-
 ## Ready
 
 No tasks.
@@ -112,6 +102,21 @@ No tasks.
 No tasks.
 
 ## Ready to Merge
+
+### `LIB-012` Add conflict-safe local project saving
+
+- Implemented: Save and Save As write one validated `.loo.zip` into the ignored
+  local library through atomic replacement. Local cards can reopen, rename, and
+  delete packages. Exact SHA-256 revision preconditions reject stale writes;
+  demo ZIPs and static hosts stay read-only.
+- Verified: 33 focused package/API/client/production-server checks, desktop
+  TypeScript and production build, and two fresh-server Chromium journeys. The
+  complete journey saves, reloads, reopens with four optimized outputs, saves
+  again, renames, and deletes the local ZIP.
+- Owner: `codex/project-library` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
+- Conflict risk: project-library handler/client, Vite and desktop adapters,
+  Project Library controls, and project toolbar styles.
 
 ### `LIB-011` Serve one ZIP project library from the local host
 

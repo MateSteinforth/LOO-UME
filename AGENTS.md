@@ -231,6 +231,9 @@ Historical Schema 1 inputs are available only through Git history.
 - On a shared multi-worktree host, do not let Playwright reuse an unknown server
   on port 4174. Confirm its owning worktree or run the targeted check with
   `CI=1` so Playwright starts the configured server from the current worktree.
+- `tsconfig.node.json` has an explicit web-module list. When a Node-side test or
+  script imports a new file under `web/src/`, add that file to the list before
+  the production TypeScript build.
 
 ## Agentic workflow
 

@@ -36,12 +36,14 @@ export interface ProjectLibraryEntry {
   thumbnailSource?: string;
   panelCount?: number;
   revision?: string;
+  filename?: string;
   location?: "demo" | "local";
   readOnly?: boolean;
 }
 
 export interface ProjectLibraryRegistry {
   schemaVersion: "1.0.0";
+  writable?: boolean;
   defaultSource: string;
   projects: ProjectLibraryEntry[];
   invalidPackages?: Array<{ source: string; error: string }>;
@@ -78,6 +80,7 @@ export async function loadProjectLibraryRegistry(
       (entry.thumbnailSource !== undefined && typeof entry.thumbnailSource !== "string") ||
       (entry.panelCount !== undefined && (!Number.isInteger(entry.panelCount) || entry.panelCount < 0)) ||
       (entry.revision !== undefined && !/^[0-9a-f]{64}$/.test(entry.revision)) ||
+      (entry.filename !== undefined && !/^[A-Za-z0-9][A-Za-z0-9._-]{0,179}\.loo\.zip$/.test(entry.filename)) ||
       (entry.location !== undefined && entry.location !== "demo" && entry.location !== "local") ||
       (entry.readOnly !== undefined && typeof entry.readOnly !== "boolean")
     ) ||

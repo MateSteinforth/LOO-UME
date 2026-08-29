@@ -9,6 +9,11 @@ import {
   loadProjectLibraryRegistry,
   loadSculptureRegistry,
 } from "../web/src/ProjectLoader.ts";
+import {
+  deleteLocalProjectPackage,
+  renameLocalProjectPackage,
+  saveLocalProjectPackage,
+} from "../web/src/ProjectLibraryClient.ts";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -80,6 +85,53 @@ describe("browser project loading boundary", () => {
         source: "./one/sculpture.json",
       }],
     });
+  });
+
+  it("sends revision-gated local project mutations", async () => {
+    const revision = "a".repeat(64);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        filename: "saved.loo.zip",
+        revision,
+      }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        filename: "renamed.loo.zip",
+        revision,
+      }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(saveLocalProjectPackage(
+      "saved.loo.zip",
+      new Uint8Array([1, 2, 3]),
+    )).resolves.toEqual({ filename: "saved.loo.zip", revision });
+    expect(fetchMock.mock.calls[0]![1]).toMatchObject({
+      method: "PUT",
+      headers: expect.objectContaining({ "If-None-Match": "*" }),
+    });
+    await expect(renameLocalProjectPackage(
+      "saved.loo.zip",
+      "renamed.loo.zip",
+      revision,
+    )).resolves.toEqual({ filename: "renamed.loo.zip", revision });
+    expect(fetchMock.mock.calls[1]![1]).toMatchObject({
+      method: "PATCH",
+      headers: expect.objectContaining({ "If-Match": `"${revision}"` }),
+    });
+    await expect(deleteLocalProjectPackage("renamed.loo.zip", revision))
+      .resolves.toBeUndefined();
+  });
+
+  it("reports a stale project save from the local API", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      error: "The project changed after it was opened. Reload it before saving.",
+    }), { status: 412, headers: { "content-type": "application/json" } })));
+
+    await expect(saveLocalProjectPackage(
+      "saved.loo.zip",
+      new Uint8Array([1]),
+      "b".repeat(64),
+    )).rejects.toThrow("The project changed after it was opened");
   });
 
   it("rejects a registry with no usable project entries", async () => {

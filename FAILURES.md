@@ -1649,3 +1649,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The reused-server run timed out on `#open-project-library`; the
   fresh-server rerun passed the complete API-backed Chromium journey.
 - **Status:** Resolved; prevention rule added to `AGENTS.md`.
+
+### F-087 — New browser module was absent from the Node TypeScript project
+
+- **Date:** 2026-08-29
+- **Context:** LIB-012 Project Library mutation client extraction.
+- **Symptom:** Focused Vitest checks passed, but `npm run build:desktop` failed
+  with TS6307 for `web/src/ProjectLibraryClient.ts`.
+- **Cause:** `tsconfig.node.json` lists each Node-tested browser module
+  explicitly, and the new module was not in that list.
+- **Correction:** Add the module to the explicit include list and rerun the
+  complete desktop build.
+- **Prevention:** Update `tsconfig.node.json` with every new `web/src/` module
+  imported by Node-side tests or scripts.
+- **Evidence:** The first build failed at TypeScript; the corrected desktop
+  TypeScript and Vite build passed.
+- **Status:** Resolved; prevention rule added to `AGENTS.md`.

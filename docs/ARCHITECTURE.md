@@ -76,7 +76,10 @@ library handler. It enumerates regular `.loo.zip` files under tracked `demo/`
 and ignored `local/` directories, validates each bounded package, caches it by
 file identity, and returns exact ZIP or embedded-thumbnail bytes. Invalid
 packages are diagnostic entries and are never openable. Static hosting falls
-back to the tracked demo manifest and stays read-only.
+back to the tracked demo manifest and stays read-only. Local saves validate the
+complete package before an atomic temporary-file replacement. Create, replace,
+rename, and delete requests use package SHA-256 revisions as HTTP preconditions,
+so a browser cannot silently replace a ZIP changed after it was opened.
 
 `bootstrap.sh` selects a reviewed native stage-zero executable. The strict
 install manifest pins official Node.js archives by target, byte size, SHA-256,
@@ -284,6 +287,7 @@ current values are copied operating assumptions, not electrical approval.
 | `src/cad/CompileStructuralArtifacts.ts` | Exact structural STL, preview, and 3MF bundle |
 | `web/src/` | Browser editor, renderer, mapping, wiring, project and package export |
 | `web/src/ProjectPackage.ts` | Versioned project ZIP manifest, deterministic thumbnail, and package validation |
+| `web/src/ProjectLibraryClient.ts` | Revision-gated browser client for local ZIP persistence |
 | `projects/demos/` | Deterministic tracked demo ZIPs generated from authored sculpture sources |
 | `scripts/project-library-handler.ts` | Shared loopback-only validated demo/local ZIP read API |
 | `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
