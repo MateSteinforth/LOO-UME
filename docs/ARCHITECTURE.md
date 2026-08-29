@@ -87,10 +87,15 @@ It enumerates regular `.loo.zip` files under tracked `demo/`
 and ignored `local/` directories, validates each bounded package, caches it by
 file identity, and returns exact ZIP or embedded-thumbnail bytes. Invalid
 packages are diagnostic entries and are never openable. Static hosting falls
-back to the tracked demo manifest and stays read-only. Local saves validate the
-complete package before an atomic temporary-file replacement. Create, replace,
+back to the tracked demo manifest and stays read-only. The desktop library sorts
+validated entries by modification time, newest first. Local saves validate the
+complete package before an atomic temporary-file replacement. A rename, delete,
+or overwrite of a bundled demo creates an ignored local copy or a persistent
+local hide record; it never changes the Git-managed demo ZIP. Create, replace,
 rename, and delete requests use package SHA-256 revisions as HTTP preconditions,
-so a browser cannot silently replace a ZIP changed after it was opened.
+so a browser cannot silently replace a ZIP changed after it was opened. The
+main Save action requires operator confirmation before it overwrites the
+selected library entry.
 
 `bootstrap.sh` selects a reviewed native stage-zero executable. The strict
 install manifest pins official Node.js archives by target, byte size, SHA-256,
@@ -167,7 +172,7 @@ pose with the standard transform controls. This pose moves the body, label,
 pins, and cable starts; it is not a second saved wiring-route authority.
 The populated 41-panel Schema 2 project is the browser default. The Project
 Library is the single project-file surface: it displays every tracked demo and
-local ZIP as a thumbnail card and contains JSON/ZIP/folder open plus
+local ZIP as a newest-first thumbnail browser and contains JSON/ZIP/folder open plus
 ZIP/JSON/folder backup and transfer actions. Each card opens its actual ZIP
 through the same bounded portable-project loader used for local imports. Empty
 authoring projects remain explicit demo choices.

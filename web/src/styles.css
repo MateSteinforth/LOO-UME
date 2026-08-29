@@ -326,9 +326,11 @@ input[type="checkbox"] {
 
 .project-library-shell {
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(180px, 1fr) auto;
+  gap: 0;
   max-height: inherit;
   padding: 20px;
+  overflow: auto;
 }
 
 .project-library-header,
@@ -363,9 +365,9 @@ input[type="checkbox"] {
 
 .project-library-tools {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .project-library-tool-group {
@@ -389,6 +391,10 @@ input[type="checkbox"] {
   line-height: 1.45;
 }
 
+.project-library-tool-group--save {
+  grid-column: 1 / -1;
+}
+
 .controller-position-controls {
   display: grid;
   gap: 8px;
@@ -401,8 +407,19 @@ input[type="checkbox"] {
   flex-wrap: wrap;
 }
 
+.project-library-actions--save {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+  flex-wrap: initial;
+}
+
+.project-library-actions--save .pipeline-button {
+  justify-self: start;
+}
+
 .project-library-save-as {
-  min-width: min(280px, 100%);
+  min-width: 0;
   margin: 0;
 }
 
@@ -411,7 +428,7 @@ input[type="checkbox"] {
 }
 
 .project-library-status {
-  margin: 14px 0 10px;
+  margin: 10px 0;
 }
 
 .project-library-grid {
@@ -492,6 +509,11 @@ input[type="checkbox"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.project-card .project-card-modified {
+  color: #8292a8;
+  font-size: 8px;
 }
 
 .toolbox-section {
@@ -1381,6 +1403,14 @@ input[type="range"] {
   }
 
   .project-library-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .project-library-tool-group--save {
+    grid-column: auto;
+  }
+
+  .project-library-actions--save {
     grid-template-columns: 1fr;
   }
 

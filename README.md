@@ -39,7 +39,7 @@ updated application, use:
 
 Update temporarily stores tracked and untracked local changes, applies the
 verified fast-forward, and restores those files before launch. Ignored project
-ZIPs under `projects/local/` remain in place. If a local source edit conflicts
+ZIPs and Project Library overrides under `projects/local/` remain in place. If a local source edit conflicts
 with the new version, update stops before launch and retains the recovery stash;
 resolve the reported Git conflict manually. Update still refuses a non-main
 branch, an unapproved remote, or divergent history. Use
@@ -47,6 +47,11 @@ branch, an unapproved remote, or divergent history. Use
 The loopback desktop UI also checks for a newer `origin/main` revision. When
 one exists, its **Update** notice applies this same guarded operation and
 restarts the local application.
+
+The Project Library shows the newest project first. **Save** overwrites the
+currently opened library project only after confirmation. Rename or delete also
+works for bundled examples: LOO/UME records an ignored local override and keeps
+the tracked example unchanged, so a later application update stays safe.
 
 The local production server listens on `127.0.0.1:4173` by default. Use
 `ORBITAL_LAB_PORT` to select another port.

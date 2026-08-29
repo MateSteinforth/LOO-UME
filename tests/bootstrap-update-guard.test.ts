@@ -127,6 +127,10 @@ describe("bootstrap update guard", () => {
       writeFileSync(join(checkout, "saved-project.loo.zip"), "portable project\n");
       mkdirSync(join(checkout, "projects", "local"), { recursive: true });
       writeFileSync(join(checkout, "projects", "local", "library.loo.zip"), "library project\n");
+      writeFileSync(
+        join(checkout, "projects", "local", ".library-state.json"),
+        '{"schemaVersion":"1.0.0","hiddenDemoFilenames":[]}\n',
+      );
       runGit(checkout, ["fetch", "origin", "main"]);
       const update = spawnSync("sh", [
         "-c",
@@ -147,6 +151,8 @@ describe("bootstrap update guard", () => {
         .toBe("portable project\n");
       expect(readFileSync(join(checkout, "projects", "local", "library.loo.zip"), "utf8"))
         .toBe("library project\n");
+      expect(readFileSync(join(checkout, "projects", "local", ".library-state.json"), "utf8"))
+        .toContain('"hiddenDemoFilenames":[]');
       expect(runGit(checkout, ["stash", "list"]).stdout)
         .toContain("operator backup");
       expect(runGit(checkout, ["stash", "list"]).stdout)
@@ -194,6 +200,29 @@ describe("bootstrap update guard", () => {
         .toBe("library project\n");
 
       runGit(seed, ["rm", "projects/local/library.loo.zip"]);
+      mkdirSync(join(seed, "projects", "local"), { recursive: true });
+      writeFileSync(
+        join(seed, "projects", "local", ".library-state.json"),
+        "upstream collision\n",
+      );
+      runGit(seed, ["add", "-f", "projects/local/.library-state.json"]);
+      runGit(seed, ["commit", "-m", "state collision"]);
+      runGit(seed, ["push", "origin", "main"]);
+      runGit(checkout, ["fetch", "origin", "main"]);
+      const stateCollision = spawnSync("sh", [
+        "-c",
+        '. "$1"; verify_ignored_project_collisions "$2" "$3"',
+        "sh",
+        GUARD,
+        checkout,
+        git,
+      ], { encoding: "utf8" });
+      expect(stateCollision.status).toBe(1);
+      expect(stateCollision.stderr).toContain(".library-state.json");
+      expect(readFileSync(join(checkout, "projects", "local", ".library-state.json"), "utf8"))
+        .toContain('"hiddenDemoFilenames":[]');
+
+      runGit(seed, ["rm", "projects/local/.library-state.json"]);
       writeFileSync(join(seed, "application.txt"), "upstream version 3\n");
       runGit(seed, ["add", "application.txt"]);
       runGit(seed, ["commit", "-m", "version 3"]);
@@ -220,6 +249,8 @@ describe("bootstrap update guard", () => {
         .toBe("portable project\n");
       expect(readFileSync(join(checkout, "projects", "local", "library.loo.zip"), "utf8"))
         .toBe("library project\n");
+      expect(readFileSync(join(checkout, "projects", "local", ".library-state.json"), "utf8"))
+        .toContain('"hiddenDemoFilenames":[]');
     } finally {
       rmSync(directory, { force: true, recursive: true });
     }

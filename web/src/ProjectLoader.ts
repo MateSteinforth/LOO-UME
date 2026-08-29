@@ -39,6 +39,7 @@ export interface ProjectLibraryEntry {
   filename?: string;
   location?: "demo" | "local";
   readOnly?: boolean;
+  modifiedTimeMs?: number;
 }
 
 export interface ProjectLibraryRegistry {
@@ -82,12 +83,19 @@ export async function loadProjectLibraryRegistry(
       (entry.revision !== undefined && !/^[0-9a-f]{64}$/.test(entry.revision)) ||
       (entry.filename !== undefined && !/^[A-Za-z0-9][A-Za-z0-9._-]{0,179}\.loo\.zip$/.test(entry.filename)) ||
       (entry.location !== undefined && entry.location !== "demo" && entry.location !== "local") ||
-      (entry.readOnly !== undefined && typeof entry.readOnly !== "boolean")
+      (entry.readOnly !== undefined && typeof entry.readOnly !== "boolean") ||
+      (entry.modifiedTimeMs !== undefined &&
+        (!Number.isFinite(entry.modifiedTimeMs) || entry.modifiedTimeMs < 0))
     ) ||
     !registry.projects.some((entry) => entry.source === registry.defaultSource)
   ) {
     throw new Error("Project library is invalid.");
   }
+  registry.projects.sort((left, right) =>
+    (right.modifiedTimeMs ?? 0) - (left.modifiedTimeMs ?? 0) ||
+    (right.location ?? "").localeCompare(left.location ?? "") ||
+    left.name.localeCompare(right.name)
+  );
   return registry as ProjectLibraryRegistry;
 }
 

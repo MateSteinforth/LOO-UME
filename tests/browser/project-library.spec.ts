@@ -16,21 +16,38 @@ test("opens the 41-fixture demo from the ZIP project library", async ({ page }) 
   await expect(dialog.locator("#export-project-folder")).toBeVisible();
   await expect(page.locator("[data-toolbox='export']")).toHaveCount(0);
   await expect(dialog.locator(".project-card")).toHaveCount(16);
+  expect(await dialog.evaluate((element) => {
+    const grid = element.querySelector("#project-library-grid")!;
+    const tools = element.querySelector(".project-library-tools")!;
+    return Boolean(grid.compareDocumentPosition(tools) & Node.DOCUMENT_POSITION_FOLLOWING);
+  })).toBe(true);
+  const filenameWidth = await dialog.locator("#project-library-filename")
+    .evaluate((element) => element.getBoundingClientRect().width);
+  const saveGroupWidth = await dialog.locator(".project-library-actions--save")
+    .evaluate((element) => element.getBoundingClientRect().width);
+  expect(Math.abs(filenameWidth - saveGroupWidth)).toBeLessThan(2);
+  const modifiedTimes = await dialog.locator(".project-card-modified").evaluateAll(
+    (elements) => elements.map((element) => Date.parse((element as HTMLTimeElement).dateTime)),
+  );
+  expect(modifiedTimes).toEqual([...modifiedTimes].sort((left, right) => right - left));
   await expect(dialog.locator(".project-card", {
     hasText: "One-metre Diameter Flexible LED Ring Demo",
   })).toBeVisible();
   await expect(dialog.locator(".project-card", {
     hasText: "Photo-derived 30-panel Wedge Sculpture",
   })).toBeVisible();
-  const project = dialog.locator(".project-card", {
+  const projectShell = dialog.locator(".project-card-shell", {
     hasText: "LED Rhombicosidodecahedron (41-panel)",
   });
+  const project = projectShell.locator(".project-card");
   await expect(project.locator("img")).toBeVisible();
   await expect(project.locator("img")).toHaveAttribute(
     "src",
     /api\/project-library\/thumbnail\/demo\//,
   );
-  await expect(project).toContainText("41 fixtures · Demo ZIP");
+  await expect(project).toContainText("41 fixtures · Bundled ZIP");
+  await expect(projectShell.getByRole("button", { name: "Rename" })).toBeVisible();
+  await expect(projectShell.getByRole("button", { name: "Delete" })).toBeVisible();
   await project.click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator("#current-project-name")).toHaveText(
@@ -95,9 +112,10 @@ test("saves, reopens, renames, and deletes one local project ZIP", async ({ page
   await expect(page.locator("#wiring-optimization-summary")).toContainText(
     "4 outputs",
   );
+  page.once("dialog", (confirmation) => confirmation.accept());
   await page.locator("#save-library-project").click();
   await expect(page.locator("#pipeline-status")).toContainText(
-    `Saved local project ${filename}`,
+    `Overwrote project ${filename}`,
   );
 
   await page.locator("#open-project-library").click();

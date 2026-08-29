@@ -44,7 +44,7 @@ verify_ignored_project_collisions() {
 '
   for update_project_path in $update_project_paths; do
     case "$update_project_path" in
-      projects/local/*.loo.zip)
+      projects/local/*.loo.zip|projects/local/.library-state.json)
         if $update_git -C "$update_root" cat-file -e \
           "origin/main:$update_project_path" 2>/dev/null; then
           IFS=$update_old_ifs

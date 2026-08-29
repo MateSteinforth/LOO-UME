@@ -28,7 +28,15 @@ interface CachedProject {
   panelCount: number;
   thumbnailBytes: Uint8Array;
   thumbnailMediaType: string;
+  modifiedTimeMs: number;
 }
+
+interface ProjectLibraryState {
+  schemaVersion: "1.0.0";
+  hiddenDemoFilenames: string[];
+}
+
+const LIBRARY_STATE_FILENAME = ".library-state.json";
 
 class ProjectLibraryError extends Error {
   constructor(readonly status: number, message: string) {
@@ -42,6 +50,7 @@ export interface ProjectLibraryHandlerOptions {
   localDirectory?: string;
   manifestPath?: string;
   allowNonLoopbackHost?: boolean;
+  commitLibraryState?: (bytes: Uint8Array) => Promise<void>;
 }
 
 export interface ProjectLibraryHandler {
@@ -145,6 +154,7 @@ export function createProjectLibraryHandler(
       panelCount: summary.manifest.panelCount,
       thumbnailBytes: summary.thumbnailBytes,
       thumbnailMediaType: summary.thumbnailMediaType,
+      modifiedTimeMs: metadata.mtimeMs,
     };
     cache.set(key, project);
     return project;
@@ -177,25 +187,33 @@ export function createProjectLibraryHandler(
 
   const requireRevision = async (
     request: IncomingMessage,
+    location: ProjectLocation,
     filename: string,
+    allowCreate = false,
   ): Promise<CachedProject | undefined> => {
     const ifMatch = request.headers["if-match"];
     const ifNoneMatch = request.headers["if-none-match"];
-    if (ifMatch === undefined && ifNoneMatch !== "*") {
+    if (ifMatch === undefined && (!allowCreate || ifNoneMatch !== "*")) {
       throw new ProjectLibraryError(
         428,
         "Use If-Match to change an existing project or If-None-Match: * to create one.",
       );
     }
     let existing: CachedProject | undefined;
+    if (
+      location === "demo" &&
+      (await readLibraryState()).hiddenDemoFilenames.includes(filename)
+    ) {
+      throw new ProjectLibraryError(412, "The bundled project is no longer visible in this library.");
+    }
     try {
-      existing = await load("local", filename);
+      existing = await load(location, filename);
     } catch (error) {
       if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) {
         throw error;
       }
     }
-    if (ifNoneMatch === "*") {
+    if (allowCreate && ifNoneMatch === "*") {
       if (existing) throw new ProjectLibraryError(412, "A project with this filename already exists.");
       return undefined;
     }
@@ -227,6 +245,116 @@ export function createProjectLibraryHandler(
     cache.delete(`local/${filename}`);
   };
 
+  const readLibraryState = async (): Promise<ProjectLibraryState> => {
+    try {
+      const bytes = await readFile(resolve(directories.local, LIBRARY_STATE_FILENAME));
+      if (bytes.byteLength > 64 * 1024) {
+        throw new Error("Project library state is too large.");
+      }
+      const value = JSON.parse(bytes.toString("utf8")) as Partial<ProjectLibraryState>;
+      if (
+        value.schemaVersion !== "1.0.0" ||
+        !Array.isArray(value.hiddenDemoFilenames) ||
+        value.hiddenDemoFilenames.some((name) =>
+          typeof name !== "string" || !PACKAGE_NAME.test(name)
+        )
+      ) throw new Error("Project library state is invalid.");
+      return {
+        schemaVersion: "1.0.0",
+        hiddenDemoFilenames: [...new Set(value.hiddenDemoFilenames)].sort(),
+      };
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        return { schemaVersion: "1.0.0", hiddenDemoFilenames: [] };
+      }
+      throw error;
+    }
+  };
+
+  const writeLibraryState = async (state: ProjectLibraryState): Promise<void> => {
+    await mkdir(directories.local, { recursive: true });
+    const bytes = new TextEncoder().encode(`${JSON.stringify(state, null, 2)}\n`);
+    if (options.commitLibraryState) {
+      await options.commitLibraryState(bytes);
+      return;
+    }
+    const temporaryPath = resolve(
+      directories.local,
+      `.${LIBRARY_STATE_FILENAME}.${randomUUID()}.tmp`,
+    );
+    const destinationPath = resolve(directories.local, LIBRARY_STATE_FILENAME);
+    const handle = await open(temporaryPath, "wx", 0o600);
+    try {
+      await handle.writeFile(bytes);
+      await handle.sync();
+      await handle.close();
+      await rename(temporaryPath, destinationPath);
+    } catch (error) {
+      await handle.close().catch(() => undefined);
+      await unlink(temporaryPath).catch(() => undefined);
+      throw error;
+    }
+  };
+
+  const hideDemo = async (filename: string): Promise<void> => {
+    const state = await readLibraryState();
+    if (!state.hiddenDemoFilenames.includes(filename)) {
+      state.hiddenDemoFilenames.push(filename);
+      state.hiddenDemoFilenames.sort();
+      await writeLibraryState(state);
+    }
+  };
+
+  const assertLibraryDestinationAvailable = async (
+    filename: string,
+    allowedDemoFilename?: string,
+  ): Promise<void> => {
+    try {
+      await stat(resolve(directories.local, filename));
+      throw new ProjectLibraryError(412, "A project with this filename already exists.");
+    } catch (error) {
+      if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+    }
+    if (filename === allowedDemoFilename) return;
+    const hiddenDemos = new Set((await readLibraryState()).hiddenDemoFilenames);
+    if (hiddenDemos.has(filename)) return;
+    try {
+      const metadata = await stat(resolve(directories.demo, filename));
+      if (metadata.isFile()) {
+        throw new ProjectLibraryError(
+          412,
+          "A bundled project with this filename already exists.",
+        );
+      }
+    } catch (error) {
+      if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+    }
+  };
+
+  const createDemoOverlay = async (
+    sourceFilename: string,
+    destinationFilename: string,
+    bytes: Uint8Array,
+  ): Promise<void> => {
+    await atomicWrite(destinationFilename, bytes);
+    try {
+      await hideDemo(sourceFilename);
+    } catch (error) {
+      try {
+        await unlink(resolve(directories.local, destinationFilename));
+        cache.delete(`local/${destinationFilename}`);
+      } catch (rollbackError) {
+        throw new Error(
+          `Project library state failed and the local overlay could not be removed: ${
+            rollbackError instanceof Error ? rollbackError.message : String(rollbackError)
+          }`,
+          { cause: error },
+        );
+      }
+      throw error;
+    }
+  };
+
   return {
     async handle(request, response) {
       const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
@@ -246,8 +374,10 @@ export function createProjectLibraryHandler(
         }
         const projects: Array<Record<string, unknown>> = [];
         const invalidPackages: Array<{ source: string; error: string }> = [];
+        const hiddenDemos = new Set((await readLibraryState()).hiddenDemoFilenames);
         for (const location of ["demo", "local"] as const) {
           for (const filename of await names(location)) {
+            if (location === "demo" && hiddenDemos.has(filename)) continue;
             const key = `${location}/${filename}`;
             try {
               const project = await load(location, filename);
@@ -260,7 +390,8 @@ export function createProjectLibraryHandler(
                 revision: project.revision,
                 filename,
                 location,
-                readOnly: location === "demo",
+                readOnly: false,
+                modifiedTimeMs: project.modifiedTimeMs,
               });
             } catch (error) {
               invalidPackages.push({
@@ -270,6 +401,13 @@ export function createProjectLibraryHandler(
             }
           }
         }
+        projects.sort((left, right) => {
+          const time = Number(right.modifiedTimeMs) - Number(left.modifiedTimeMs);
+          if (time !== 0) return time;
+          const location = String(right.location).localeCompare(String(left.location));
+          if (location !== 0) return location;
+          return String(left.filename).localeCompare(String(right.filename));
+        });
         const preferred = await defaultDemoFilename();
         const defaultProject = projects.find((project) =>
           typeof project.source === "string" && project.source.endsWith(`/demo/${preferred}`)
@@ -298,7 +436,7 @@ export function createProjectLibraryHandler(
       const location = match[2] as ProjectLocation;
       const filename = match[3]!;
       try {
-        if (kind === "package" && location === "local" && request.method === "PUT") {
+        if (kind === "package" && request.method === "PUT") {
           if (request.headers["content-type"]?.split(";", 1)[0] !== "application/zip") {
             throw new ProjectLibraryError(415, "Save a project as application/zip.");
           }
@@ -311,14 +449,26 @@ export function createProjectLibraryHandler(
           );
           readProjectPackageSummary(bytes);
           const saved = await serializeMutation(async () => {
-            await requireRevision(request, filename);
-            await atomicWrite(filename, bytes);
+            const current = await requireRevision(
+              request,
+              location,
+              filename,
+              location === "local",
+            );
+            if (location === "demo") {
+              if (!current) throw new ProjectLibraryError(412, "The project no longer exists.");
+              await assertLibraryDestinationAvailable(filename, filename);
+              await createDemoOverlay(filename, filename, bytes);
+            } else {
+              if (!current) await assertLibraryDestinationAvailable(filename);
+              await atomicWrite(filename, bytes);
+            }
             return load("local", filename);
           });
           sendJson(response, 200, { revision: saved.revision, filename });
           return true;
         }
-        if (kind === "package" && location === "local" && request.method === "PATCH") {
+        if (kind === "package" && request.method === "PATCH") {
           const body = await readRequestBytes(request, 1_024);
           let destination: unknown;
           try {
@@ -330,19 +480,21 @@ export function createProjectLibraryHandler(
             throw new ProjectLibraryError(400, "Project package name is invalid.");
           }
           const renamed = await serializeMutation(async () => {
-            const current = await requireRevision(request, filename);
+            const current = await requireRevision(request, location, filename);
             if (!current) throw new ProjectLibraryError(412, "The project no longer exists.");
             await mkdir(directories.local, { recursive: true });
-            try {
-              await stat(resolve(directories.local, destination));
-              throw new ProjectLibraryError(412, "A project with this filename already exists.");
-            } catch (error) {
-              if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
-            }
-            await rename(
-              resolve(directories.local, filename),
-              resolve(directories.local, destination),
+            await assertLibraryDestinationAvailable(
+              destination,
+              location === "demo" ? filename : undefined,
             );
+            if (location === "local") {
+              await rename(
+                resolve(directories.local, filename),
+                resolve(directories.local, destination),
+              );
+            } else {
+              await createDemoOverlay(filename, destination, current.bytes);
+            }
             cache.delete(`local/${filename}`);
             cache.delete(`local/${destination}`);
             return load("local", destination);
@@ -350,23 +502,31 @@ export function createProjectLibraryHandler(
           sendJson(response, 200, { revision: renamed.revision, filename: destination });
           return true;
         }
-        if (kind === "package" && location === "local" && request.method === "DELETE") {
+        if (kind === "package" && request.method === "DELETE") {
           await serializeMutation(async () => {
-            await requireRevision(request, filename);
-            await unlink(resolve(directories.local, filename));
-            cache.delete(`local/${filename}`);
+            await requireRevision(request, location, filename);
+            if (location === "local") {
+              await unlink(resolve(directories.local, filename));
+              cache.delete(`local/${filename}`);
+            } else {
+              await hideDemo(filename);
+            }
           });
           response.statusCode = 204;
           response.end();
           return true;
         }
         if (request.method !== "GET" && request.method !== "HEAD") {
-          response.setHeader("Allow", kind === "package" && location === "local"
+          response.setHeader("Allow", kind === "package"
             ? "GET, HEAD, PUT, PATCH, DELETE"
             : "GET, HEAD");
           sendJson(response, 405, { error: "This project library method is not available." });
           return true;
         }
+        if (
+          location === "demo" &&
+          (await readLibraryState()).hiddenDemoFilenames.includes(filename)
+        ) throw new ProjectLibraryError(404, "The project is not in this library.");
         const project = await load(location, filename);
         const bytes = kind === "package" ? project.bytes : project.thumbnailBytes;
         response.statusCode = 200;

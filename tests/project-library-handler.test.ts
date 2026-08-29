@@ -1,5 +1,5 @@
 import { createServer, request as httpRequest, type Server } from "node:http";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -20,7 +20,10 @@ afterEach(async () => {
   ));
 });
 
-async function fixture(allowNonLoopbackHost = false): Promise<{
+async function fixture(
+  allowNonLoopbackHost = false,
+  commitLibraryState?: (bytes: Uint8Array) => Promise<void>,
+): Promise<{
   root: string;
   url: string;
   packageBytes: Uint8Array;
@@ -53,9 +56,16 @@ async function fixture(allowNonLoopbackHost = false): Promise<{
       defaultSource: "./projects/demos/flagship.loo.zip",
     })),
   ]);
+  const newestTime = new Date();
+  const olderTime = new Date(newestTime.getTime() - 60_000);
+  await Promise.all([
+    utimes(join(localDirectory, "working-copy.loo.zip"), newestTime, newestTime),
+    utimes(join(demoDirectory, "flagship.loo.zip"), olderTime, olderTime),
+  ]);
   const handler = createProjectLibraryHandler({
     rootDirectory: root,
     allowNonLoopbackHost,
+    commitLibraryState,
   });
   const server = createServer((request, response) => {
     void handler.handle(request, response).then((handled) => {
@@ -109,26 +119,188 @@ describe("project library handler", () => {
         thumbnailSource: string;
         readOnly: boolean;
         revision: string;
+        location: "demo" | "local";
+        modifiedTimeMs: number;
       }>;
       invalidPackages: Array<{ source: string }>;
     };
     expect(library.projects).toHaveLength(2);
     expect(library.defaultSource).toContain("/demo/flagship.loo.zip");
-    expect(library.projects.map(({ readOnly }) => readOnly)).toEqual([true, false]);
+    expect(library.projects.map(({ readOnly }) => readOnly)).toEqual([false, false]);
+    expect(library.projects[0]!.location).toBe("local");
+    expect(library.projects[0]!.modifiedTimeMs)
+      .toBeGreaterThanOrEqual(library.projects[1]!.modifiedTimeMs);
     expect(library.invalidPackages).toEqual([
       expect.objectContaining({ source: "local/invalid.loo.zip" }),
     ]);
-    const project = await fetch(new URL(library.projects[1]!.source, url));
+    const local = library.projects.find(({ location }) => location === "local")!;
+    const demo = library.projects.find(({ location }) => location === "demo")!;
+    const project = await fetch(new URL(local.source, url));
     expect(project.status).toBe(200);
     expect(project.headers.get("content-type")).toBe("application/zip");
     expect(new Uint8Array(await project.arrayBuffer())).toEqual(packageBytes);
-    expect(project.headers.get("etag")).toBe(`"${library.projects[1]!.revision}"`);
+    expect(project.headers.get("etag")).toBe(`"${local.revision}"`);
     const thumbnail = await fetch(
-      new URL(library.projects[0]!.thumbnailSource, url),
+      new URL(demo.thumbnailSource, url),
     );
     expect(thumbnail.status).toBe(200);
     expect(thumbnail.headers.get("content-type")).toBe("image/svg+xml");
     expect(await thumbnail.text()).toContain("<svg");
+  });
+
+  it("renames, hides, and overwrites bundled projects through local overrides", async () => {
+    const { root, url, changedPackageBytes } = await fixture();
+    const library = await (await fetch(`${url}api/project-library`)).json() as {
+      projects: Array<{ filename: string; location: "demo" | "local"; revision: string }>;
+    };
+    const demo = library.projects.find(({ location }) => location === "demo")!;
+    const demoEndpoint = `${url}api/project-library/package/demo/${demo.filename}`;
+    const renamed = await fetch(demoEndpoint, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "If-Match": `"${demo.revision}"`,
+      },
+      body: JSON.stringify({ filename: "renamed-bundle.loo.zip" }),
+    });
+    expect(renamed.status).toBe(200);
+    expect(await readFile(
+      join(root, "projects", "demos", demo.filename),
+    )).not.toHaveLength(0);
+    expect(await readFile(
+      join(root, "projects", "local", "renamed-bundle.loo.zip"),
+    )).not.toHaveLength(0);
+    const afterRename = await (await fetch(`${url}api/project-library`)).json() as {
+      projects: Array<{ filename: string; location: "demo" | "local" }>;
+    };
+    expect(afterRename.projects).not.toContainEqual(expect.objectContaining({
+      filename: demo.filename,
+      location: "demo",
+    }));
+    expect(afterRename.projects).toContainEqual(expect.objectContaining({
+      filename: "renamed-bundle.loo.zip",
+      location: "local",
+    }));
+    expect((await fetch(demoEndpoint)).status).toBe(404);
+    expect((await fetch(demoEndpoint, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "If-Match": `"${demo.revision}"`,
+      },
+      body: JSON.stringify({ filename: "stale-second-copy.loo.zip" }),
+    })).status).toBe(412);
+    await expect(readFile(
+      join(root, "projects", "local", "stale-second-copy.loo.zip"),
+    )).rejects.toMatchObject({ code: "ENOENT" });
+
+    const secondFixture = await fixture();
+    const secondLibrary = await (await fetch(`${secondFixture.url}api/project-library`)).json() as {
+      projects: Array<{ filename: string; location: "demo" | "local"; revision: string }>;
+    };
+    const secondDemo = secondLibrary.projects.find(({ location }) => location === "demo")!;
+    const overwritten = await fetch(
+      `${secondFixture.url}api/project-library/package/demo/${secondDemo.filename}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/zip",
+          "If-Match": `"${secondDemo.revision}"`,
+        },
+        body: new Blob([Uint8Array.from(changedPackageBytes)]),
+      },
+    );
+    expect(overwritten.status).toBe(200);
+    expect(new Uint8Array(await readFile(
+      join(secondFixture.root, "projects", "local", secondDemo.filename),
+    ))).toEqual(changedPackageBytes);
+    expect(await readFile(
+      join(secondFixture.root, "projects", "demos", secondDemo.filename),
+    )).not.toHaveLength(0);
+  });
+
+  it("hides a deleted bundled project without deleting its tracked ZIP", async () => {
+    const { root, url } = await fixture();
+    const library = await (await fetch(`${url}api/project-library`)).json() as {
+      projects: Array<{ filename: string; location: "demo" | "local"; revision: string }>;
+    };
+    const demo = library.projects.find(({ location }) => location === "demo")!;
+    const response = await fetch(
+      `${url}api/project-library/package/demo/${demo.filename}`,
+      { method: "DELETE", headers: { "If-Match": `"${demo.revision}"` } },
+    );
+    expect(response.status).toBe(204);
+    expect(await readFile(join(root, "projects", "demos", demo.filename)))
+      .not.toHaveLength(0);
+    const afterDelete = await (await fetch(`${url}api/project-library`)).json() as {
+      projects: Array<{ filename: string; location: "demo" | "local" }>;
+    };
+    expect(afterDelete.projects).not.toContainEqual(expect.objectContaining({
+      filename: demo.filename,
+      location: "demo",
+    }));
+    expect((await fetch(
+      `${url}api/project-library/package/demo/${demo.filename}`,
+      { method: "DELETE", headers: { "If-Match": `"${demo.revision}"` } },
+    )).status).toBe(412);
+  });
+
+  it("rolls back a bundled overlay when its hide record cannot be committed", async () => {
+    const { root, url } = await fixture(false, async () => {
+      throw new Error("injected state failure");
+    });
+    const library = await (await fetch(`${url}api/project-library`)).json() as {
+      projects: Array<{ filename: string; location: "demo" | "local"; revision: string }>;
+    };
+    const demo = library.projects.find(({ location }) => location === "demo")!;
+    const response = await fetch(
+      `${url}api/project-library/package/demo/${demo.filename}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "If-Match": `"${demo.revision}"`,
+        },
+        body: JSON.stringify({ filename: "rolled-back.loo.zip" }),
+      },
+    );
+    expect(response.status).toBe(400);
+    await expect(readFile(
+      join(root, "projects", "local", "rolled-back.loo.zip"),
+    )).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await fetch(`${url}api/project-library/package/demo/${demo.filename}`)).status)
+      .toBe(200);
+  });
+
+  it("rejects local filenames that collide with visible bundled projects", async () => {
+    const { url, packageBytes } = await fixture();
+    const library = await (await fetch(`${url}api/project-library`)).json() as {
+      projects: Array<{ filename: string; location: "demo" | "local"; revision: string }>;
+    };
+    const demo = library.projects.find(({ location }) => location === "demo")!;
+    const local = library.projects.find(({ location }) => location === "local")!;
+    expect((await fetch(
+      `${url}api/project-library/package/local/${demo.filename}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/zip",
+          "If-None-Match": "*",
+        },
+        body: new Blob([Uint8Array.from(packageBytes)]),
+      },
+    )).status).toBe(412);
+    expect((await fetch(
+      `${url}api/project-library/package/local/${local.filename}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "If-Match": `"${local.revision}"`,
+        },
+        body: JSON.stringify({ filename: demo.filename }),
+      },
+    )).status).toBe(412);
   });
 
   it("rejects non-loopback hosts, writes, and unsafe package paths", async () => {

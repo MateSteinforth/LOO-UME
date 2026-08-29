@@ -11,7 +11,10 @@ import {
 } from "../web/src/ProjectLoader.ts";
 import {
   deleteLocalProjectPackage,
+  deleteProjectLibraryPackage,
   renameLocalProjectPackage,
+  renameProjectLibraryPackage,
+  replaceProjectLibraryPackage,
   saveLocalProjectPackage,
 } from "../web/src/ProjectLibraryClient.ts";
 
@@ -28,13 +31,19 @@ describe("browser project loading boundary", () => {
         id: "one",
         name: "One",
         source: "./projects/demos/one.loo.zip",
+        modifiedTimeMs: 100,
+      }, {
+        id: "two",
+        name: "Two",
+        source: "./projects/demos/two.loo.zip",
+        modifiedTimeMs: 200,
       }],
     }), { status: 200, headers: { "content-type": "application/json" } })));
 
     await expect(loadProjectLibraryRegistry("./projects/manifest.json"))
       .resolves.toMatchObject({
         defaultSource: "./projects/demos/one.loo.zip",
-        projects: [{ id: "one", name: "One" }],
+        projects: [{ id: "two", name: "Two" }, { id: "one", name: "One" }],
       });
   });
 
@@ -120,6 +129,35 @@ describe("browser project loading boundary", () => {
     });
     await expect(deleteLocalProjectPackage("renamed.loo.zip", revision))
       .resolves.toBeUndefined();
+  });
+
+  it("sends revision-gated bundled project overrides", async () => {
+    const revision = "b".repeat(64);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        filename: "demo.loo.zip",
+        revision,
+      }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        filename: "renamed.loo.zip",
+        revision,
+      }), { status: 200, headers: { "content-type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await replaceProjectLibraryPackage(
+      "demo", "demo.loo.zip", new Uint8Array([1]), revision,
+    );
+    await renameProjectLibraryPackage(
+      "demo", "demo.loo.zip", "renamed.loo.zip", revision,
+    );
+    await deleteProjectLibraryPackage("demo", "demo.loo.zip", revision);
+    expect(fetchMock.mock.calls.map(([source, init]) => ({ source, method: init.method })))
+      .toEqual([
+        { source: "./api/project-library/package/demo/demo.loo.zip", method: "PUT" },
+        { source: "./api/project-library/package/demo/demo.loo.zip", method: "PATCH" },
+        { source: "./api/project-library/package/demo/demo.loo.zip", method: "DELETE" },
+      ]);
   });
 
   it("reports a stale project save from the local API", async () => {

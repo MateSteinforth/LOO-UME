@@ -2044,3 +2044,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   the operator discover required print or assembly files through another
   package.
 - **Status:** Resolved by UI-030.
+
+### F-111 — Editing a bundled project must not edit tracked installation data
+
+- **Date:** 2026-08-29
+- **Context:** Making bundled Project Library examples behave like normal files.
+- **Symptom:** Bundled cards were read-only. Direct rename, delete, or overwrite
+  would make the installation dirty and could block or conflict with updates.
+- **Cause:** The library exposed the storage location as the edit policy instead
+  of separating the visible library entry from its Git-managed source ZIP.
+- **Correction:** Keep bundled ZIPs immutable. Materialize renamed or overwritten
+  content below ignored `projects/local/`, and persist bundled deletions as local
+  hide records. Gate every mutation with the opened package revision.
+- **Prevention:** User-facing file operations on shipped examples must use a
+  local overlay. Never mutate or remove tracked demo files at runtime.
+- **Evidence:** LIB-016 handler regressions cover bundled rename, delete, and
+  overwrite while the original demo bytes remain present.
+- **Status:** Resolved by LIB-016.

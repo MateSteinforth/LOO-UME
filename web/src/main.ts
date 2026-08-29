@@ -147,8 +147,9 @@ import {
   type ProjectLibraryEntry,
 } from "./ProjectLoader.ts";
 import {
-  deleteLocalProjectPackage,
-  renameLocalProjectPackage,
+  deleteProjectLibraryPackage,
+  renameProjectLibraryPackage,
+  replaceProjectLibraryPackage,
   saveLocalProjectPackage,
 } from "./ProjectLibraryClient.ts";
 
@@ -450,23 +451,26 @@ app.innerHTML = `
           <div><strong>Project Library</strong><small>Open, save, back up, and transfer projects</small></div>
           <button id="close-project-library" class="editor-button" value="cancel">Close</button>
         </header>
+        <p id="project-library-status" class="project-library-status">Open a project ZIP.</p>
+        <div id="project-library-grid" class="project-library-grid" aria-live="polite"></div>
         <div class="project-library-tools">
-          <section class="project-library-tool-group">
-            <strong>Open or import</strong>
-            <div class="project-library-actions">
-              <button id="open-project-file" class="pipeline-button" type="button">Open JSON or ZIP</button>
-              <button id="open-project-folder" class="editor-button" type="button">Open folder</button>
-            </div>
-          </section>
           <section class="project-library-tool-group project-library-tool-group--save">
             <strong>Save in this LOO/UME installation</strong>
             <small>Stores a reusable project ZIP in the server's local project library.</small>
-            <div class="project-library-actions">
+            <div class="project-library-actions project-library-actions--save">
               <label class="field project-library-save-as">
                 <span>Project filename</span>
                 <input id="project-library-filename" type="text" maxlength="188" spellcheck="false" />
               </label>
               <button id="save-project-as" class="pipeline-button" type="button">Save new library copy</button>
+            </div>
+          </section>
+          <section class="project-library-tool-group">
+            <strong>Open or import</strong>
+            <small>Open a project from this computer without adding it to the library.</small>
+            <div class="project-library-actions">
+              <button id="open-project-file" class="pipeline-button" type="button">Open JSON or ZIP</button>
+              <button id="open-project-folder" class="editor-button" type="button">Open folder</button>
             </div>
           </section>
           <section class="project-library-tool-group">
@@ -479,8 +483,6 @@ app.innerHTML = `
             </div>
           </section>
         </div>
-        <p id="project-library-status" class="project-library-status">Open a project ZIP.</p>
-        <div id="project-library-grid" class="project-library-grid" aria-live="polite"></div>
       </form>
     </dialog>
     <dialog id="esp32-setup-dialog" class="esp32-setup-dialog">
@@ -2623,7 +2625,7 @@ async function start(): Promise<void> {
     };
     const renderProjectLibrary = async (): Promise<void> => {
       if (projectLibraryRendered) return;
-      projectLibraryStatus.textContent = "Loading demo project ZIPs…";
+      projectLibraryStatus.textContent = "Loading project ZIPs…";
       const cards = await Promise.all(projectLibraryRegistry.projects.map(
         async (entry) => {
           const card = document.createElement("article");
@@ -2653,8 +2655,15 @@ async function start(): Promise<void> {
             const label = document.createElement("span");
             label.textContent = entry.name;
             const detail = document.createElement("small");
-            detail.textContent = `${panelCount} fixture${panelCount === 1 ? "" : "s"} · ${entry.readOnly === false ? "Local" : "Demo"} ZIP`;
+            detail.textContent = `${panelCount} fixture${panelCount === 1 ? "" : "s"} · ${entry.location === "local" ? "Local" : "Bundled"} ZIP`;
             button.append(image, label, detail);
+            if (entry.modifiedTimeMs !== undefined) {
+              const modified = document.createElement("time");
+              modified.className = "project-card-modified";
+              modified.dateTime = new Date(entry.modifiedTimeMs).toISOString();
+              modified.textContent = `Modified ${new Date(entry.modifiedTimeMs).toLocaleString()}`;
+              button.append(modified);
+            }
             if (entry.filename) {
               const filename = document.createElement("small");
               filename.className = "project-card-filename";
@@ -2678,7 +2687,7 @@ async function start(): Promise<void> {
           }
           card.append(button);
           if (
-            entry.location === "local" && entry.filename && entry.revision &&
+            entry.location && entry.filename && entry.revision &&
             projectLibraryRegistry.writable === true
           ) {
             const actions = document.createElement("div");
@@ -2687,22 +2696,28 @@ async function start(): Promise<void> {
             renameButton.type = "button";
             renameButton.textContent = "Rename";
             renameButton.addEventListener("click", () => {
-              const requested = window.prompt("New local ZIP filename", entry.filename);
+              const requested = window.prompt("New project ZIP filename", entry.filename);
               if (requested === null) return;
               void (async () => {
                 try {
                   const destination = normalizeLocalProjectFilename(requested);
-                  const renamed = await renameLocalProjectPackage(
+                  const renamed = await renameProjectLibraryPackage(
+                    entry.location!,
                     entry.filename!,
                     destination,
                     entry.revision!,
                   );
-                  if (currentLibraryProject?.filename === entry.filename) {
-                    currentLibraryProject = { ...entry, ...renamed };
-                  }
                   await refreshProjectLibrary();
+                  if (
+                    currentLibraryProject?.location === entry.location &&
+                    currentLibraryProject?.filename === entry.filename
+                  ) {
+                    currentLibraryProject = projectLibraryRegistry.projects.find((candidate) =>
+                      candidate.location === "local" && candidate.filename === renamed.filename
+                    );
+                  }
                   await renderProjectLibrary();
-                  setLogMessage(`Renamed local project to ${renamed.filename}.`);
+                  setLogMessage(`Renamed project to ${renamed.filename}.`);
                 } catch (error) {
                   projectLibraryStatus.textContent = error instanceof Error
                     ? error.message
@@ -2717,13 +2732,20 @@ async function start(): Promise<void> {
               if (!window.confirm(`Delete ${entry.filename}?`)) return;
               void (async () => {
                 try {
-                  await deleteLocalProjectPackage(entry.filename!, entry.revision!);
-                  if (currentLibraryProject?.filename === entry.filename) {
+                  await deleteProjectLibraryPackage(
+                    entry.location!,
+                    entry.filename!,
+                    entry.revision!,
+                  );
+                  if (
+                    currentLibraryProject?.location === entry.location &&
+                    currentLibraryProject?.filename === entry.filename
+                  ) {
                     currentLibraryProject = undefined;
                   }
                   await refreshProjectLibrary();
                   await renderProjectLibrary();
-                  setLogMessage(`Deleted local project ${entry.filename}.`);
+                  setLogMessage(`Deleted project ${entry.filename}.`);
                 } catch (error) {
                   projectLibraryStatus.textContent = error instanceof Error
                     ? error.message
@@ -2773,20 +2795,19 @@ async function start(): Promise<void> {
     saveProjectAsButton.disabled = projectLibraryRegistry.writable !== true;
     saveLibraryProjectButton.addEventListener("click", () => {
       void (async () => {
-        if (
-          currentLibraryProject?.location !== "local" ||
-          !currentLibraryProject.filename ||
-          !currentLibraryProject.revision
-        ) {
+        if (!currentLibraryProject?.location ||
+          !currentLibraryProject.filename || !currentLibraryProject.revision) {
           projectLibraryFilenameInput.value = `${portableProjectFolderName(editorDefinition)}.loo.zip`;
           projectLibraryDialog.showModal();
           await renderProjectLibrary();
           projectLibraryFilenameInput.focus();
           return;
         }
+        if (!window.confirm(`Overwrite ${currentLibraryProject.filename}?`)) return;
         saveLibraryProjectButton.disabled = true;
         try {
-          const saved = await saveLocalProjectPackage(
+          const saved = await replaceProjectLibraryPackage(
+            currentLibraryProject.location,
             currentLibraryProject.filename,
             await currentProjectPackage(),
             currentLibraryProject.revision,
@@ -2795,7 +2816,7 @@ async function start(): Promise<void> {
           currentLibraryProject = projectLibraryRegistry.projects.find((entry) =>
             entry.location === "local" && entry.filename === saved.filename
           );
-          setLogMessage(`Saved local project ${saved.filename}.`);
+          setLogMessage(`Overwrote project ${saved.filename}.`);
         } catch (error) {
           reportPortableError(error);
         } finally {
