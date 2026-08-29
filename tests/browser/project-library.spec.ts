@@ -23,9 +23,12 @@ test("opens the 41-fixture demo from the ZIP project library", async ({ page }) 
   })).toBe(true);
   const filenameWidth = await dialog.locator("#project-library-filename")
     .evaluate((element) => element.getBoundingClientRect().width);
-  const saveGroupWidth = await dialog.locator(".project-library-actions--save")
+  const saveGroupWidth = await dialog.locator(".project-library-save-as")
     .evaluate((element) => element.getBoundingClientRect().width);
   expect(Math.abs(filenameWidth - saveGroupWidth)).toBeLessThan(2);
+  const actionColumns = await dialog.locator(".project-library-tools")
+    .evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(actionColumns).toBe(3);
   const modifiedTimes = await dialog.locator(".project-card-modified").evaluateAll(
     (elements) => elements.map((element) => Date.parse((element as HTMLTimeElement).dateTime)),
   );

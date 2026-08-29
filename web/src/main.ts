@@ -454,14 +454,14 @@ app.innerHTML = `
         <p id="project-library-status" class="project-library-status">Open a project ZIP.</p>
         <div id="project-library-grid" class="project-library-grid" aria-live="polite"></div>
         <div class="project-library-tools">
-          <section class="project-library-tool-group project-library-tool-group--save">
+          <label class="field project-library-save-as">
+            <span>Project filename</span>
+            <input id="project-library-filename" type="text" maxlength="188" spellcheck="false" />
+          </label>
+          <section class="project-library-tool-group">
             <strong>Save in this LOO/UME installation</strong>
             <small>Stores a reusable project ZIP in the server's local project library.</small>
-            <div class="project-library-actions project-library-actions--save">
-              <label class="field project-library-save-as">
-                <span>Project filename</span>
-                <input id="project-library-filename" type="text" maxlength="188" spellcheck="false" />
-              </label>
+            <div class="project-library-actions">
               <button id="save-project-as" class="pipeline-button" type="button">Save new library copy</button>
             </div>
           </section>

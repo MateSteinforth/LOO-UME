@@ -365,7 +365,7 @@ input[type="checkbox"] {
 
 .project-library-tools {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 12px;
 }
@@ -391,10 +391,6 @@ input[type="checkbox"] {
   line-height: 1.45;
 }
 
-.project-library-tool-group--save {
-  grid-column: 1 / -1;
-}
-
 .controller-position-controls {
   display: grid;
   gap: 8px;
@@ -407,23 +403,22 @@ input[type="checkbox"] {
   flex-wrap: wrap;
 }
 
-.project-library-actions--save {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: end;
-  flex-wrap: initial;
-}
-
-.project-library-actions--save .pipeline-button {
-  justify-self: start;
-}
-
 .project-library-save-as {
+  grid-column: 1 / -1;
   min-width: 0;
   margin: 0;
 }
 
 .project-library-save-as input {
+  width: 100%;
+}
+
+.project-library-tool-group .project-library-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.project-library-tool-group .project-library-actions button {
   width: 100%;
 }
 
@@ -1403,14 +1398,6 @@ input[type="range"] {
   }
 
   .project-library-tools {
-    grid-template-columns: 1fr;
-  }
-
-  .project-library-tool-group--save {
-    grid-column: auto;
-  }
-
-  .project-library-actions--save {
     grid-template-columns: 1fr;
   }
 
