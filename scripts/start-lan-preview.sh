@@ -37,4 +37,5 @@ port=$(
 )
 
 printf 'Starting the LAN preview on the first free port at or above %s.\n' "$requested_port"
+export LOO_UME_PROJECT_LIBRARY_LAN=1
 exec npm run dev:web -- --host 0.0.0.0 --port "$port" --strictPort

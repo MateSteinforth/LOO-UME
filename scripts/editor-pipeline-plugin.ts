@@ -16,6 +16,7 @@ export function editorPipelinePlugin(): Plugin {
       const deviceHandler = createEsp32DeviceHandler();
       const projectLibraryHandler = createProjectLibraryHandler({
         rootDirectory: process.cwd(),
+        allowNonLoopbackHost: process.env.LOO_UME_PROJECT_LIBRARY_LAN === "1",
       });
       server.middlewares.use(async (request, response, next) => {
         try {

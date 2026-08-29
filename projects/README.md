@@ -13,5 +13,9 @@ The desktop and Vite development hosts enumerate both folders through
 saves and require revision checks for replace, rename, and delete operations.
 Static builds use `manifest.json` and tracked demos only.
 
+`npm run lan` explicitly exposes the application and this project library to
+the trusted local network for review. Normal Vite and desktop startup keep the
+API loopback-only.
+
 Each package contains `manifest.json`, authoritative `sculpture.json`, an
 embedded pose-derived `thumbnail.svg`, and all referenced portable assets.

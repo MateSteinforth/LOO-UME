@@ -1665,3 +1665,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The first build failed at TypeScript; the corrected desktop
   TypeScript and Vite build passed.
 - **Status:** Resolved; prevention rule added to `AGENTS.md`.
+
+### F-088 — LAN preview rejected its own Project Library request
+
+- **Date:** 2026-08-29
+- **Context:** Operator-approved LIB-012 LAN review.
+- **Symptom:** Vite served the page on the LAN, but `/api/project-library`
+  returned HTTP 403 when the request used the LAN address as its Host.
+- **Cause:** The shared handler was loopback-only and the LAN launcher did not
+  provide an explicit reviewed exception.
+- **Correction:** `npm run lan` now sets a narrow Project Library LAN-mode flag;
+  the Vite adapter passes it to the shared handler. Normal Vite and desktop
+  startup remain loopback-only.
+- **Prevention:** Verify the important API endpoints with the printed LAN Host
+  before giving an operator a LAN review URL.
+- **Evidence:** The first Host-specific probe returned 403. The corrected
+  handler test and LAN Host probe return 200.
+- **Status:** Resolved by the LIB-012 LAN review correction.

@@ -41,6 +41,7 @@ export interface ProjectLibraryHandlerOptions {
   demoDirectory?: string;
   localDirectory?: string;
   manifestPath?: string;
+  allowNonLoopbackHost?: boolean;
 }
 
 export interface ProjectLibraryHandler {
@@ -233,7 +234,7 @@ export function createProjectLibraryHandler(
         pathname !== "/api/project-library" &&
         !pathname.startsWith("/api/project-library/")
       ) return false;
-      if (!isLoopbackHost(request.headers.host)) {
+      if (!options.allowNonLoopbackHost && !isLoopbackHost(request.headers.host)) {
         sendJson(response, 403, { error: "Project library accepts only a loopback Host." });
         return true;
       }

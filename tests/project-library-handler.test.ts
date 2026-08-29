@@ -20,7 +20,7 @@ afterEach(async () => {
   ));
 });
 
-async function fixture(): Promise<{
+async function fixture(allowNonLoopbackHost = false): Promise<{
   root: string;
   url: string;
   packageBytes: Uint8Array;
@@ -53,7 +53,10 @@ async function fixture(): Promise<{
       defaultSource: "./projects/demos/flagship.loo.zip",
     })),
   ]);
-  const handler = createProjectLibraryHandler({ rootDirectory: root });
+  const handler = createProjectLibraryHandler({
+    rootDirectory: root,
+    allowNonLoopbackHost,
+  });
   const server = createServer((request, response) => {
     void handler.handle(request, response).then((handled) => {
       if (!handled) {
@@ -142,6 +145,14 @@ describe("project library handler", () => {
     expect((await fetch(
       `${url}api/project-library/package/local/not-a-project.zip`,
     )).status).toBe(400);
+  });
+
+  it("accepts an explicit LAN review Host without changing the default", async () => {
+    const { url } = await fixture(true);
+    expect(await requestWithHost(
+      new URL("api/project-library", url),
+      "192.168.68.61:4175",
+    )).toBe(200);
   });
 
   it("creates, replaces, renames, and deletes local ZIPs with revision checks", async () => {

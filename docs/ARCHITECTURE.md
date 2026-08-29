@@ -71,8 +71,10 @@ suspicious compression ratios, ZIP64, multi-disk, encrypted, or inconsistent
 entries. Streaming extraction checks local entries against that preflight
 before it buffers their bytes.
 
-The desktop server and Vite development adapter share one loopback-only project
-library handler. It enumerates regular `.loo.zip` files under tracked `demo/`
+The desktop server and Vite development adapter share one project library
+handler. It is loopback-only by default; the explicit `npm run lan` review mode
+permits non-loopback Host values and exposes project ZIPs on that trusted network.
+It enumerates regular `.loo.zip` files under tracked `demo/`
 and ignored `local/` directories, validates each bounded package, caches it by
 file identity, and returns exact ZIP or embedded-thumbnail bytes. Invalid
 packages are diagnostic entries and are never openable. Static hosting falls

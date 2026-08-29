@@ -112,7 +112,8 @@ No tasks.
 - Verified: 33 focused package/API/client/production-server checks, desktop
   TypeScript and production build, and two fresh-server Chromium journeys. The
   complete journey saves, reloads, reopens with four optimized outputs, saves
-  again, renames, and deletes the local ZIP.
+  again, renames, and deletes the local ZIP. The explicit LAN review mode also
+  passes a non-loopback Host check; normal startup stays loopback-only.
 - Owner: `codex/project-library` in
   `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
 - Conflict risk: project-library handler/client, Vite and desktop adapters,
