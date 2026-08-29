@@ -102,20 +102,14 @@ No tasks.
 
 ## Ready to Merge
 
-### `LABEL-010` Print panel IDs at the DIN end
-
-- Scope: the MadMapper ZIP action is under Mapping. BUILD HARDWARE generates a
-  deterministic multi-page PDF with current panel IDs on the exact HERMA 4385
-  15 x 21 A4 punch grid. Simulator panel IDs use the same DIN coordinates as
-  the wiring preview.
-- Evidence: 11 focused unit tests, TypeScript, production build, the focused
-  Chromium download/location/DIN-anchor journey, independent A4 rendering, PDF
-  1.7 `pdfinfo`/xref inspection, diff checks, and independent review passed.
-- Delivery: `codex/label-010-panel-labels` in
-  `/home/mate/Documents/led-rhombicosidodecahedron-label-010`; no merge into
-  `main` is authorized yet.
+No tasks.
 
 ## Done
+
+- `LABEL-010`: integrated the HERMA 4385 multi-page panel-label PDF and DIN-end
+  simulator label placement on 2026-08-29. The operator confirmed the browser
+  export. Focused tests, TypeScript, production build, PDF 1.7/A4 inspection,
+  and independent review passed.
 
 - `MAD-010` / `MAD-011`: integrated the mapping-ready MadMapper ZIP download
   on 2026-08-28. It exports 2,624 pose-positioned physical RGB fixtures in 41
