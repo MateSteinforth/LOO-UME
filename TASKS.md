@@ -97,20 +97,15 @@ No tasks.
 
 ## Ready to Merge
 
-### `UI-027` Consolidate fabrication and hardware controls
-
-- Scope: Fabrication now groups supported part generation, one fabrication ZIP,
-  the data-chain assembly tutorial, and ESP32 testing with short descriptions;
-  the separate Build Hardware toolbox is removed.
-- Acceptance: the fabrication ZIP always includes the HERMA 4385 panel-label
-  PDF, adds only current verified connector artifacts, and drops stale connector
-  bytes; project export and all retained control handlers remain separate.
-- Verification: focused ZIP/PDF unit tests, TypeScript, production build, two
-  focused Chromium journeys, diff checks, stale archive regression, and
-  independent review passed. The broad structural Chromium suite was not run.
-- Owner: `codex/ui-027-fabrication-toolbox` in `/tmp/loo-ume-ui-027`.
+No tasks.
 
 ## Done
+
+- `UI-027`: integrated one Fabrication toolbox for part generation, the unified
+  label-and-current-connectors ZIP, the data-chain assembly tutorial, and ESP32
+  testing on 2026-08-29. Focused ZIP/PDF tests, TypeScript, production build,
+  Chromium, stale-artifact regression, operator LAN review, and independent
+  review passed.
 
 - `FIXTURE-012`: integrated the 1,000 mm diameter flexible LED-ring demo with
   188 outward-radial emitters and one GPIO 16 output on 2026-08-29. Mapping,
