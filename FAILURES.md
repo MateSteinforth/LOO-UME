@@ -1616,3 +1616,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The corrected FIXTURE-012 profile, radial-frame geometry test,
   and operator visual review URL.
 - **Status:** Resolved by FIXTURE-012.
+
+### F-088 — Fabrication handoff controls must remain in one operator context
+
+- **Date:** 2026-08-29
+- **Context:** Organizing printable generation, physical labels, wiring review,
+  and ESP32 testing in the browser sidebar.
+- **Symptom:** A separate Build Hardware toolbox split one continuous physical
+  workflow across two sections and left connector files and panel labels as
+  unrelated downloads.
+- **Cause:** UI ownership followed implementation subsystems instead of the
+  operator's generate, download, assemble, and test sequence.
+- **Correction:** Keep one always-editable Fabrication toolbox with four named
+  groups. Its fabrication ZIP always includes the HERMA label PDF and adds the
+  exact verified connector artifacts displayed in the viewport.
+- **Prevention:** When controls form one physical handoff, group them by the
+  operator sequence without adding wizard state or duplicating data authority.
+- **Status:** Resolved by UI-027.

@@ -341,9 +341,9 @@ Three-panel Spatial Trail**. The project contains three nearby spatial panels,
 one authored bench support, and face, corner, and cable-pull loads. The settings
 show two local cells and no first-to-third shortcut. Select **Generate
 connector ribbons**. The browser
-shows the exact assembly-preview STL and enables **Download displayed
-connectors ZIP**
-and portable project export after validation.
+shows the exact assembly-preview STL and enables **Download fabrication ZIP**
+and portable project export after validation. The fabrication ZIP contains the
+verified connector set shown in the viewport and the HERMA panel-label PDF.
 
 The trial values are not measured mounting evidence. Replace the bench support,
 material, mass, and loads before physical use. The generated report is

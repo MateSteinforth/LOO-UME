@@ -141,7 +141,7 @@ mapping/wiring**.
 
 ## Interactive data-chain tutorial
 
-The browser **Build Hardware** control derives every connection label from
+The browser **Fabrication** assembly control derives every connection label from
 the same Schema 2 wiring preview used by the normal wiring layers. **Isolate
 chain** starts with the first output. Previous and Next move through its cables
 and then continue across the remaining outputs. Separate Previous/Next chain
@@ -172,9 +172,9 @@ has no printable geometry for the tutorial to show. The 41-panel project is
 currently in that pose-and-wiring-only state.
 
 The persistent **View** section owns the DIN/DOUT and panel-wiring layers. The
-**Build Hardware** toolbox owns panel-label PDF generation, chain/wire isolation,
-and ESP32 setup. It is not gated by optional fabrication and does not lock the
-other project controls.
+**Fabrication** owns the panel-label ZIP, chain/wire isolation, and ESP32 setup
+below its optional part generators. The tutorial and ESP32 controls are not
+gated by printable-part generation and do not lock the other project controls.
 MadMapper export belongs to Mapping because it consumes the address contract,
 not a fabricated assembly. The populated 41-panel project is the default
 browser project; empty authoring projects remain available in the project
@@ -182,7 +182,7 @@ selector.
 
 ## Printable panel labels
 
-**Generate panel labels PDF** writes one current Schema 2 panel ID per label on
+**Download fabrication ZIP** writes one current Schema 2 panel ID per label on
 the exact HERMA 4385 A4 grid. The manufacturer sheet has 315 removable white
 paper labels: 15 columns by 21 rows, 10 mm diameter, 2.7 mm gaps, 11.1 mm side
 margins, and 16.5 mm top and bottom margins. Print at **100%** or **Actual
@@ -190,8 +190,11 @@ size**. Do not use **Fit to page**. The PDF continues to another sheet when a
 project has more than 315 panels. Apply each printed ID at the DIN end of its
 matching physical PCB; the simulator uses the same DIN anchor.
 
-The PDF contains IDs only. It does not modify the project, infer a route, or
-claim connector pad-centre measurements. The sheet contract comes from the
+The PDF contains IDs only. Its ZIP also contains any verified structural
+connector artifacts currently displayed in the viewport; without such a
+preview, the PDF is the only entry. The export does not modify the project,
+infer a route, or claim connector pad-centre measurements. The sheet contract
+comes from the
 [official HERMA 4385 product page](https://www.herma.de/buero-zuhause/produkt/abloesbare-etiketten-a4-4385/)
 and its manufacturer punch template.
 

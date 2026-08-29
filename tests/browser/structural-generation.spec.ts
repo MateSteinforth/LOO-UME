@@ -79,19 +79,20 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   await expect(page.locator("#pipeline-status")).toContainText(
     "not engineering certification",
   );
-  await expect(page.locator("#download-structure")).toBeEnabled();
+  await expect(page.locator("#download-panel-labels")).toBeEnabled();
   await expect(page.locator("#printable-layer")).toBeEnabled();
 
   const connectorZipPromise = page.waitForEvent("download");
-  await page.locator("#download-structure").click();
+  await page.locator("#download-panel-labels").click();
   const connectorZipDownload = await connectorZipPromise;
   expect(connectorZipDownload.suggestedFilename()).toBe(
-    "structural-three-panel-trail-trial-connector-ribbons.zip",
+    "structural-three-panel-trail-trial-fabrication.zip",
   );
   const connectorZipPath = await connectorZipDownload.path();
   if (!connectorZipPath) throw new Error("The browser did not expose the connector ZIP.");
   const connectorFiles = unzipSync(await readFile(connectorZipPath));
   expect(Object.keys(connectorFiles)).toEqual(expect.arrayContaining([
+    "panel-labels-herma-4385.pdf",
     "structure/assembly-preview.stl",
     "structure/structure.model.3mf",
     "structure/analysis.json",
@@ -158,7 +159,7 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     "Loaded complete project structural-project.zip",
     { timeout: 60_000 },
   );
-  await expect(page.locator("#download-structure")).toBeEnabled();
+  await expect(page.locator("#download-panel-labels")).toBeEnabled();
 
   const staleDefinition = structuredClone(importedDefinition);
   staleDefinition.panels[0]!.pose.position[0] += 1;
@@ -176,7 +177,16 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   await expect(page.locator("#pipeline-status")).toContainText(
     "Loaded complete project stale-structural-project.zip",
   );
-  await expect(page.locator("#download-structure")).toBeDisabled();
+  await expect(page.locator("#download-panel-labels")).toBeEnabled();
+  const staleFabricationZipPromise = page.waitForEvent("download");
+  await page.locator("#download-panel-labels").click();
+  const staleFabricationZip = await staleFabricationZipPromise;
+  const staleFabricationZipPath = await staleFabricationZip.path();
+  if (!staleFabricationZipPath) {
+    throw new Error("The browser did not expose the stale-project fabrication ZIP.");
+  }
+  expect(Object.keys(unzipSync(await readFile(staleFabricationZipPath))))
+    .toEqual(["panel-labels-herma-4385.pdf"]);
   await expect(page.locator("#save-sculpture-file")).toBeEnabled();
 
   const singular = parsePanelAssemblyDefinition(JSON.parse(await readFile(
@@ -210,7 +220,7 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     "Advisory truss analysis: unavailable; ribbon generation is unaffected",
   );
   await expect(page.locator("#pipeline-status")).not.toHaveClass(/pipeline-status--error/);
-  await expect(page.locator("#download-structure")).toBeEnabled();
+  await expect(page.locator("#download-panel-labels")).toBeEnabled();
   await expect(page.locator("#save-sculpture-file")).toBeEnabled();
 
   expect(pageErrors).toEqual([]);
@@ -244,7 +254,7 @@ test("generates one local printable junction for three co-located panels", async
     "1 multi-panel ribbon junction",
   );
   await expect(page.locator("#pipeline-status")).not.toHaveClass(/pipeline-status--error/);
-  await expect(page.locator("#download-structure")).toBeEnabled();
+  await expect(page.locator("#download-panel-labels")).toBeEnabled();
   await expect(page.locator("#printable-layer")).toBeEnabled();
 });
 
@@ -272,13 +282,13 @@ test("generates the alternative full-edge LED-surface bridge", async ({ page }) 
     "not engineering certification",
   );
   await expect(page.locator("#pipeline-status")).not.toHaveClass(/pipeline-status--error/);
-  await expect(page.locator("#download-structure")).toBeEnabled();
+  await expect(page.locator("#download-panel-labels")).toBeEnabled();
   await expect(page.locator("#printable-layer")).toBeEnabled();
 
   const bridgeZipPromise = page.waitForEvent("download");
-  await page.locator("#download-structure").click();
+  await page.locator("#download-panel-labels").click();
   const bridgeZip = await bridgeZipPromise;
   expect(bridgeZip.suggestedFilename()).toBe(
-    "structural-two-panel-spatial-trial-led-surface-bridges.zip",
+    "structural-two-panel-spatial-trial-fabrication.zip",
   );
 });

@@ -130,13 +130,14 @@ The populated 41-panel Schema 2 project is the browser default. Empty authoring
 projects remain explicit registry choices.
 The sidebar has no wizard state or numbered progression. Project and View remain
 available, followed by always-editable Shape, Fixtures, Mapping, Fabrication,
-Build Hardware, and Export toolboxes. Animation controls stay in View because
+and Export toolboxes. Animation controls stay in View because
 they remain useful throughout the work. Mapping owns route optimization, its
-advanced editor, and the mapping-ready MadMapper ZIP. Build Hardware owns HERMA
-4385 panel-label PDF generation, ESP32 setup, and the connection-by-connection
-assembly tutorial. Each loaded fixture profile controls which placement and
-fabrication actions are enabled; mapping, simulation, hardware setup, and export
-do not wait for an irrelevant fabrication step.
+advanced editor, and the mapping-ready MadMapper ZIP. Fabrication has four
+always-editable groups: part generation, a single ZIP containing the HERMA 4385
+panel-label PDF plus any displayed verified structural connectors, the
+connection-by-connection assembly tutorial, and ESP32 setup. Each loaded fixture
+profile controls which part-generation actions are enabled; mapping, simulation,
+hardware setup, and export do not wait for an irrelevant fabrication step.
 The renderer offsets rigid-panel LED sprites 2.4 mm along each panel's outward
 normal. Explicit radial-frame flexible-path emitters define their physical
 outside surface positions and receive no additional panel-normal offset. Both rules are

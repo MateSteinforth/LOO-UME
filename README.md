@@ -61,11 +61,10 @@ not ordered gates; use only the tools supported by the loaded fixture:
 - **Mapping:** optimize balanced outputs, GPIOs, fixture order, and physical
    DIN/DOUT orientation. Manual route editing remains under **Advanced route
    editor**; the MadMapper package is available here.
-- **Fabrication:** compile supported planar closures, connector ribbons, or
-  LED-surface bridges with Manifold.
-- **Build Hardware:** print current panel IDs on HERMA 4385 labels at each DIN,
-  isolate each data connection, flash/configure the approved ESP32, and copy
-  the loaded simulator contract.
+- **Fabrication:** generate supported planar closures, connector ribbons, or
+  LED-surface bridges; download the displayed connectors with a HERMA 4385
+  panel-label PDF; isolate each data connection; and flash/configure the
+  approved ESP32 from the loaded simulator contract.
 - **Export:** download the editable project ZIP and referenced verified assets.
 
 The browser runs a deterministic subset of WLED effects. Through the local
