@@ -253,9 +253,7 @@ async function browserAudit(page: Page): Promise<BrowserAudit> {
 }
 
 async function chooseDirectory(page: Page, directory: string): Promise<void> {
-  await page.locator(".action-menu").first().evaluate((element) => {
-    (element as HTMLDetailsElement).open = true;
-  });
+  await page.locator("#open-project-library").click();
   const chooserPromise = page.waitForEvent("filechooser");
   await page.locator("#open-project-folder").click();
   const chooser = await chooserPromise;
@@ -267,9 +265,7 @@ async function chooseZip(
   name: string,
   buffer: Uint8Array,
 ): Promise<void> {
-  await page.locator(".action-menu").first().evaluate((element) => {
-    (element as HTMLDetailsElement).open = true;
-  });
+  await page.locator("#open-project-library").click();
   const chooserPromise = page.waitForEvent("filechooser");
   await page.locator("#open-project-file").click();
   const chooser = await chooserPromise;
@@ -368,9 +364,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
     expect(folderAudit.revoked).not.toContain(url);
   }
 
-  await page.locator("#export-options").evaluate((element) => {
-    (element as HTMLDetailsElement).open = true;
-  });
+  await page.locator("#open-project-library").click();
   await page.locator("#export-project-folder").click();
   await expect(page.locator("#pipeline-status")).toContainText(
     "Exported complete project folder panel-outline-prism-boundary-fixture",
@@ -393,6 +387,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   }
 
   const currentDownloadPromise = page.waitForEvent("download");
+  await page.locator("#open-project-library").click();
   await page.locator("#save-project").click();
   const currentDownload = await currentDownloadPromise;
   expect(currentDownload.suggestedFilename()).toBe(
@@ -402,10 +397,12 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   const currentFiles = relativeZipFiles(currentZipBytes);
   expect([...currentFiles.keys()].sort()).toEqual([
     "design/tetrahedron.glb",
+    "manifest.json",
     "mechanics/boundary.stl",
     "mechanics/parts/part-001.stl",
     "mechanics/parts/part-002.stl",
     "sculpture.json",
+    "thumbnail.png",
   ]);
   for (const [path, expected] of fixture.assets) {
     expect(Buffer.from(currentFiles.get(path)!)).toEqual(expected);
@@ -497,6 +494,7 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   }
 
   const staleDownloadPromise = page.waitForEvent("download");
+  await page.locator("#open-project-library").click();
   await page.locator("#save-project").click();
   const staleZipBytes = await downloadBytes(await staleDownloadPromise);
   const afterStaleExportAudit = await browserAudit(page);

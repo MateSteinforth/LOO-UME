@@ -147,19 +147,22 @@ center. The
 controller is a schematic near-top placement derived from the complete current
 route; it is not a second saved wiring authority.
 The populated 41-panel Schema 2 project is the browser default. The Project
-Library displays every tracked demo as a thumbnail card and opens its actual
-ZIP through the same bounded portable-project loader used for local imports.
-Empty authoring projects remain explicit demo choices.
+Library is the single project-file surface: it displays every tracked demo and
+local ZIP as a thumbnail card and contains JSON/ZIP/folder open plus
+ZIP/JSON/folder backup and transfer actions. Each card opens its actual ZIP
+through the same bounded portable-project loader used for local imports. Empty
+authoring projects remain explicit demo choices.
 The sidebar has no wizard state or numbered progression. Project and View remain
-available, followed by always-editable Shape, Fixtures, Mapping, Fabrication,
-and Export toolboxes. Animation controls stay in View because
-they remain useful throughout the work. Mapping owns route optimization, its
+available, followed by always-editable Shape, Fixtures, Mapping, and Fabrication
+toolboxes. Project keeps one quick Save beside the Project Library entry point;
+the dialog owns the longer file actions. Animation controls stay in View
+because they remain useful throughout the work. Mapping owns route optimization, its
 advanced editor, and the mapping-ready MadMapper ZIP. Fabrication has four
 always-editable groups: part generation, a single ZIP containing the HERMA 4385
 panel-label PDF plus any displayed verified structural connectors, the
 connection-by-connection assembly tutorial, and ESP32 setup. Each loaded fixture
 profile controls which part-generation actions are enabled; mapping, simulation,
-hardware setup, and export do not wait for an irrelevant fabrication step.
+hardware setup, and project export do not wait for an irrelevant fabrication step.
 The renderer offsets rigid-panel LED sprites 2.4 mm along each panel's outward
 normal. Explicit radial-frame flexible-path emitters define their physical
 outside surface positions and receive no additional panel-normal offset. Both rules are

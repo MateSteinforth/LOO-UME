@@ -7,9 +7,7 @@ async function chooseFile(
   file: { name: string; mimeType: string; buffer: Buffer },
 ): Promise<void> {
   if (buttonSelector === "#open-project-file") {
-    await page.locator(".action-menu").first().evaluate((element) => {
-      (element as HTMLDetailsElement).open = true;
-    });
+    await page.locator("#open-project-library").click();
   }
   const chooserPromise = page.waitForEvent("filechooser");
   await page.locator(buttonSelector).click();
@@ -56,7 +54,6 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
     delete transform.optimizationFingerprint;
   }
   const projectBytes = Buffer.from(JSON.stringify(project));
-  await page.locator(".action-menu").first().locator("summary").click();
   await chooseFile(page, "#open-project-file", {
     name: "rhombicosidodecahedron.json",
     mimeType: "application/json",
@@ -115,8 +112,8 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   );
   await expect(page.locator("#route-editor-note")).toContainText("saved authored route");
 
-  await page.locator("#export-options > summary").click();
   const savedDownloadPromise = page.waitForEvent("download");
+  await page.locator("#open-project-library").click();
   await page.locator("#save-sculpture-file").click();
   const saved = await readJsonDownload(await savedDownloadPromise);
   expect(saved.wiring).toMatchObject({
@@ -163,8 +160,8 @@ test("optimizes the loaded project while keeping manual routing advanced", async
     "1 output, 3 panels, GPIO 16",
   );
 
-  await page.locator("#export-options > summary").click();
   const downloadPromise = page.waitForEvent("download");
+  await page.locator("#open-project-library").click();
   await page.locator("#save-sculpture-file").click();
   const saved = await readJsonDownload(await downloadPromise) as {
     wiring: {

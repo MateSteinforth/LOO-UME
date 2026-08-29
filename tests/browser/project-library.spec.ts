@@ -8,6 +8,13 @@ test("opens the 41-fixture demo from the ZIP project library", async ({ page }) 
   await page.locator("#open-project-library").click();
   const dialog = page.locator("#project-library-dialog");
   await expect(dialog).toBeVisible();
+  await expect(page.locator("#open-project-library")).toHaveText("Project Library");
+  await expect(dialog.locator("#open-project-file")).toBeVisible();
+  await expect(dialog.locator("#open-project-folder")).toBeVisible();
+  await expect(dialog.locator("#save-project")).toHaveText("Download project ZIP");
+  await expect(dialog.locator("#save-sculpture-file")).toBeVisible();
+  await expect(dialog.locator("#export-project-folder")).toBeVisible();
+  await expect(page.locator("[data-toolbox='export']")).toHaveCount(0);
   await expect(dialog.locator(".project-card")).toHaveCount(13);
   const project = dialog.locator(".project-card", {
     hasText: "LED Rhombicosidodecahedron (41-panel)",

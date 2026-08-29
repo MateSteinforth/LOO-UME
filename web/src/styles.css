@@ -241,10 +241,6 @@ input[type="checkbox"] {
   margin-top: 0;
 }
 
-.project-toolbar__open {
-  margin-top: 9px;
-}
-
 .project-toolbar__library-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -315,14 +311,34 @@ input[type="checkbox"] {
 }
 
 .project-library-header .editor-button,
+.project-library-actions .editor-button,
 .project-library-actions .pipeline-button {
   width: auto;
   margin: 0;
 }
 
+.project-library-tools {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.project-library-tool-group {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(142, 177, 207, 0.16);
+  border-radius: 8px;
+  background: rgba(15, 24, 39, 0.58);
+}
+
+.project-library-tool-group > strong {
+  font-size: 10px;
+}
+
 .project-library-actions {
   justify-content: flex-start;
-  margin-top: 16px;
+  margin-top: 8px;
   flex-wrap: wrap;
 }
 
@@ -542,20 +558,6 @@ input[type="checkbox"] {
   font-size: 10px;
   line-height: 1.45;
 }
-
-.toolbox-export {
-  background: rgba(255, 139, 69, 0.025);
-}
-
-.pipeline-button.toolbox-export__primary {
-  min-height: 44px;
-  margin-top: 14px;
-  font-size: 11px;
-  font-weight: 780;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .utilities-section {
   background: rgba(0, 0, 0, 0.08);
 }
@@ -1317,6 +1319,10 @@ input[type="range"] {
     overflow: visible;
     border-top: 1px solid var(--line);
     border-left: 0;
+  }
+
+  .project-library-tools {
+    grid-template-columns: 1fr;
   }
 
 }

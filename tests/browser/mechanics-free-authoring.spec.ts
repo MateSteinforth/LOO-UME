@@ -68,9 +68,7 @@ async function chooseFile(
   file: { name: string; mimeType: string; buffer: Buffer },
 ): Promise<void> {
   if (buttonSelector === "#open-project-file") {
-    await page.locator(".action-menu").first().evaluate((element) => {
-      (element as HTMLDetailsElement).open = true;
-    });
+    await page.locator("#open-project-library").click();
   }
   const chooserPromise = page.waitForEvent("filechooser");
   await page.locator(buttonSelector).click();
@@ -99,7 +97,6 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   );
 
   const projectBytes = await readFile("sculptures/pose-only-two-panel/sculpture.json");
-  await page.locator(".action-menu").first().locator("summary").click();
   await chooseFile(page, "#open-project-file", {
     name: "pose-only-two-panel.json",
     mimeType: "application/json",
@@ -190,6 +187,7 @@ test("authors and saves a mechanics-free GLB project through real controls", asy
   await expect(page.locator("#pipeline-status")).toHaveCount(1);
 
   const savedDownloadPromise = page.waitForEvent("download");
+  await page.locator("#open-project-library").click();
   await page.locator("#save-sculpture-file").click();
   const savedDownload = await savedDownloadPromise;
   expect(savedDownload.suggestedFilename()).toBe(

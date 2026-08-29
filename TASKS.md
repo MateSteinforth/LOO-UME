@@ -103,6 +103,20 @@ No tasks.
 
 ## Ready to Merge
 
+### `LIB-015` Consolidate project file actions
+
+- Implemented: the renamed Project Library dialog now owns JSON/ZIP/folder
+  open, local Save As, project ZIP download, raw JSON export, and folder export.
+  The redundant Open menu and Export toolbox are removed; quick Save remains in
+  the Project toolbar.
+- Verified: TypeScript, four sidebar/tutorial Chromium checks, two Project
+  Library checks, and the complete portable folder/ZIP Chromium journey with
+  exact assets and package metadata.
+- Owner: `codex/project-library` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
+- Conflict risk: Project toolbar/dialog markup and styles plus browser helpers
+  that open or export project files.
+
 ### `LIB-014` Render framed viewport thumbnails
 
 - Implemented: Save, Save As, and Export embed a real 480 x 300 WebGL PNG using

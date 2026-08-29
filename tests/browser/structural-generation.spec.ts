@@ -15,7 +15,7 @@ async function chooseFile(
 ): Promise<void> {
   const button = page.locator(buttonSelector);
   if (!await button.isVisible() && buttonSelector === "#open-project-file") {
-    await page.locator(".action-menu").first().locator("summary").click();
+    await page.locator("#open-project-library").click();
   }
   const chooserPromise = page.waitForEvent("filechooser");
   await button.click();
@@ -106,6 +106,7 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     .toBe(true);
 
   const zipPromise = page.waitForEvent("download");
+  await page.locator("#open-project-library").click();
   await page.locator("#save-project").click();
   const zipDownload = await zipPromise;
   const zipPath = await zipDownload.path();

@@ -166,26 +166,19 @@ app.innerHTML = `
         <section class="control-section project-toolbar">
           <div class="section-heading">
             <span>Project</span>
-            <small>open or start</small>
+            <small>library and save</small>
           </div>
           <input id="project-file" type="file" accept="application/json,application/zip,.json,.zip" hidden />
           <input id="project-folder" type="file" webkitdirectory multiple hidden />
           <input id="design-surface-file" type="file" accept="model/gltf-binary,.glb" hidden />
           <div class="project-toolbar__library-actions">
-            <button id="open-project-library" class="pipeline-button project-library-open" type="button">Browse projects</button>
+            <button id="open-project-library" class="pipeline-button project-library-open" type="button">Project Library</button>
             <button id="save-library-project" class="editor-button" type="button">Save</button>
           </div>
           <output id="current-project-name" class="current-project-name">Loading project…</output>
           <select id="sculpture-select" hidden aria-hidden="true">
             <option value="">Loading sculpture registry…</option>
           </select>
-          <details class="action-menu project-toolbar__open">
-            <summary>Open project</summary>
-            <div class="action-menu__items">
-              <button id="open-project-file" type="button">Open JSON or ZIP</button>
-              <button id="open-project-folder" type="button">Open folder</button>
-            </div>
-          </details>
         </section>
 
         <section class="control-section view-section">
@@ -408,21 +401,6 @@ app.innerHTML = `
           </div>
         </section>
 
-        <section class="control-section toolbox-section toolbox-export" data-toolbox="export">
-          <div class="toolbox-heading">
-            <div><strong>Export</strong><small>Save the project and current assets</small></div>
-          </div>
-          <p class="toolbox-hint">Export the editable Schema 2 project ZIP with every current referenced asset available as verified bytes.</p>
-          <button id="save-project" class="pipeline-button toolbox-export__primary" type="button">Export project ZIP</button>
-          <details id="export-options" class="compact-menu">
-            <summary>Other export options</summary>
-            <div class="compact-menu__content">
-              <button id="save-sculpture-file" class="editor-button" type="button">Export raw JSON</button>
-              <button id="export-project-folder" class="editor-button" type="button">Export project folder</button>
-            </div>
-          </details>
-        </section>
-
         <section class="control-section utilities-section">
           <details id="developer-utilities" class="compact-menu">
             <summary>Developer utilities</summary>
@@ -452,16 +430,35 @@ app.innerHTML = `
     <dialog id="project-library-dialog" class="project-library-dialog">
       <form method="dialog" class="project-library-shell">
         <header class="project-library-header">
-          <div><strong>Projects</strong><small>Demo and saved project ZIPs</small></div>
+          <div><strong>Project Library</strong><small>Open, save, back up, and transfer projects</small></div>
           <button id="close-project-library" class="editor-button" value="cancel">Close</button>
         </header>
-        <div class="project-library-actions">
-          <button id="import-project-zip" class="pipeline-button" type="button">Import ZIP</button>
-          <label class="field project-library-save-as">
-            <span>Local ZIP filename</span>
-            <input id="project-library-filename" type="text" maxlength="188" spellcheck="false" />
-          </label>
-          <button id="save-project-as" class="pipeline-button" type="button">Save As</button>
+        <div class="project-library-tools">
+          <section class="project-library-tool-group">
+            <strong>Open or import</strong>
+            <div class="project-library-actions">
+              <button id="open-project-file" class="pipeline-button" type="button">Open JSON or ZIP</button>
+              <button id="open-project-folder" class="editor-button" type="button">Open folder</button>
+            </div>
+          </section>
+          <section class="project-library-tool-group project-library-tool-group--save">
+            <strong>Save to local library</strong>
+            <div class="project-library-actions">
+              <label class="field project-library-save-as">
+                <span>Local ZIP filename</span>
+                <input id="project-library-filename" type="text" maxlength="188" spellcheck="false" />
+              </label>
+              <button id="save-project-as" class="pipeline-button" type="button">Save As</button>
+            </div>
+          </section>
+          <section class="project-library-tool-group">
+            <strong>Backup and transfer</strong>
+            <div class="project-library-actions">
+              <button id="save-project" class="pipeline-button" type="button">Download project ZIP</button>
+              <button id="save-sculpture-file" class="editor-button" type="button">Export raw JSON</button>
+              <button id="export-project-folder" class="editor-button" type="button">Export project folder</button>
+            </div>
+          </section>
         </div>
         <p id="project-library-status" class="project-library-status">Open a project ZIP.</p>
         <div id="project-library-grid" class="project-library-grid" aria-live="polite"></div>
@@ -524,7 +521,6 @@ const openProjectLibraryButton = query<HTMLButtonElement>("#open-project-library
 const projectLibraryDialog = query<HTMLDialogElement>("#project-library-dialog");
 const projectLibraryGrid = query<HTMLElement>("#project-library-grid");
 const projectLibraryStatus = query<HTMLElement>("#project-library-status");
-const importProjectZipButton = query<HTMLButtonElement>("#import-project-zip");
 const saveLibraryProjectButton = query<HTMLButtonElement>("#save-library-project");
 const saveProjectAsButton = query<HTMLButtonElement>("#save-project-as");
 const projectLibraryFilenameInput = query<HTMLInputElement>("#project-library-filename");
@@ -2532,10 +2528,6 @@ async function start(): Promise<void> {
           : String(error);
       });
     });
-    importProjectZipButton.addEventListener("click", () => {
-      projectLibraryDialog.close();
-      projectFileInput.click();
-    });
     saveProjectAsButton.addEventListener("click", () => {
       void (async () => {
         saveProjectAsButton.disabled = true;
@@ -2590,6 +2582,7 @@ async function start(): Promise<void> {
     });
 
     openProjectFileButton.addEventListener("click", () => {
+      projectLibraryDialog.close();
       projectFileInput.click();
     });
     projectFileInput.addEventListener("change", () => {
@@ -2626,6 +2619,7 @@ async function start(): Promise<void> {
     });
 
     openProjectFolderButton.addEventListener("click", () => {
+      projectLibraryDialog.close();
       projectFolderInput.click();
     });
     projectFolderInput.addEventListener("change", () => {
@@ -2659,6 +2653,7 @@ async function start(): Promise<void> {
     });
 
     saveProjectButton.addEventListener("click", () => {
+      projectLibraryDialog.close();
       void (async () => {
         saveProjectButton.disabled = true;
         try {
@@ -2685,6 +2680,7 @@ async function start(): Promise<void> {
     });
 
     exportProjectFolderButton.addEventListener("click", () => {
+      projectLibraryDialog.close();
       void (async () => {
         exportProjectFolderButton.disabled = true;
         try {
@@ -2755,6 +2751,7 @@ async function start(): Promise<void> {
       })();
     });
     saveSculptureFileButton.addEventListener("click", () => {
+      projectLibraryDialog.close();
       const blob = new Blob([sculptureJson(editorDefinition)], {
         type: "application/json",
       });

@@ -30,14 +30,15 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
     "Fixtures",
     "Mapping",
     "Fabrication",
-    "Export",
   ]);
   await expect(viewSection.locator("#effect")).toBeVisible();
   await expect(viewSection.locator("#palette")).toBeVisible();
   await expect(page.locator("[data-toolbox='fabrication'] #open-esp32-setup"))
     .toBeVisible();
-  await expect(page.locator("[data-toolbox='export'] #save-project"))
-    .toHaveText("Export project ZIP");
+  await page.locator("#open-project-library").click();
+  await expect(page.locator("#project-library-dialog #save-project"))
+    .toHaveText("Download project ZIP");
+  await page.locator("#project-library-dialog").getByRole("button", { name: "Close" }).click();
   await expect(page.locator("[data-toolbox='shape'] #load-design-surface"))
     .toHaveText("GLB");
   await expect(page.locator("[data-toolbox='mapping'] #download-madmapper-package"))

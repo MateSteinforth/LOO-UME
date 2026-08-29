@@ -1650,7 +1650,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   fresh-server rerun passed the complete API-backed Chromium journey.
 - **Status:** Resolved; prevention rule added to `AGENTS.md`.
 
-### F-087 — New browser module was absent from the Node TypeScript project
+### F-090 — New browser module was absent from the Node TypeScript project
 
 - **Date:** 2026-08-29
 - **Context:** LIB-012 Project Library mutation client extraction.
@@ -1666,7 +1666,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   TypeScript and Vite build passed.
 - **Status:** Resolved; prevention rule added to `AGENTS.md`.
 
-### F-088 — LAN preview rejected its own Project Library request
+### F-091 — LAN preview rejected its own Project Library request
 
 - **Date:** 2026-08-29
 - **Context:** Operator-approved LIB-012 LAN review.
@@ -1683,7 +1683,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   handler test and LAN Host probe return 200.
 - **Status:** Resolved by the LIB-012 LAN review correction.
 
-### F-089 — Whole-scene thumbnail bounds made the sculpture too small
+### F-092 — Whole-scene thumbnail bounds made the sculpture too small
 
 - **Date:** 2026-08-29
 - **Context:** LIB-014 framed viewport thumbnails.
@@ -1699,3 +1699,40 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The corrected 41-panel render fills the 480 x 300 card, while
   the empty project frames its complete authoring surface.
 - **Status:** Resolved by LIB-014.
+### F-093 — Dependency symlink was removed while Vite was still running
+
+- **Date:** 2026-08-29
+- **Context:** LIB-014 LAN visual review from a sibling worktree that shares the
+  main worktree's installed dependencies through a temporary symlink.
+- **Symptom:** Vite showed an import-analysis overlay because it could not
+  resolve `manifold-3d` from `src/cad/ManifoldRuntime.ts`.
+- **Cause:** The task-local `node_modules` symlink was removed after server
+  startup. Vite still resolves lazy imports while it serves requests.
+- **Correction:** Restore the exact dependency symlink and keep it until the
+  review server stops.
+- **Prevention:** Treat a shared dependency link as a live server dependency,
+  not startup-only setup. Remove it only after stopping Vite.
+- **Evidence:** The failing overlay named `manifold-3d`; after restoration, the
+  exact `/@fs/.../ManifoldRuntime.ts` request returned transformed JavaScript
+  with the dependency resolved.
+- **Status:** Resolved for the active LAN review; cleanup is deferred until the
+  server stops.
+
+### F-094 — Project-package export changed beyond the focused ZIP assertions
+
+- **Date:** 2026-08-29
+- **Context:** LIB-015 ran the broader portable-project browser journey after
+  LIB-014 added package manifests and rendered thumbnails to normal downloads.
+- **Symptom:** The browser correctly exported `manifest.json` and
+  `thumbnail.png`, but the older exact-file assertion rejected both entries.
+- **Cause:** LIB-014 verified package units and the Project Library journey but
+  did not run the separate portable folder/ZIP browser journey that asserts the
+  complete downloaded file set.
+- **Correction:** Update only the normal project-package expectation; keep the
+  assembly-package expectation unchanged. Rerun the complete portable journey.
+- **Prevention:** When the normal project ZIP wrapper changes, run both package
+  unit tests and `tests/browser/portable-project.spec.ts`. Do not infer the
+  assembly-package contents from the project-package contract.
+- **Evidence:** The corrected portable folder and ZIP journey passed in
+  Chromium with exact assets, manifest, and PNG thumbnail.
+- **Status:** Resolved during LIB-015.
