@@ -47,20 +47,7 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · UI-030` Export one complete fabrication handoff
-
-- Owner: `codex/ui-030-complete-fabrication-zip` in
-  `/tmp/loo-ume-ui-030`.
-- Scope: make Download fabrication ZIP include the HERMA panel-label PDF, a
-  printable manufacturing manual PDF, every current verified planar STL, and
-  the complete current verified structural connector package.
-- Acceptance: stale or unavailable geometry is never exported; current planar
-  and structural assets can coexist without path collisions; the manual lists
-  the current controller outputs and every panel-to-panel data connection.
-- Verification: nine focused PDF/package tests, TypeScript, production build,
-  direct PDF 1.7/A4 inspection, diff check, and independent review passed.
-- Likely conflicts: fabrication package construction, browser download copy,
-  wiring-manual PDF generation, and fabrication documentation.
+No tasks.
 
 ## In Progress
 
@@ -121,6 +108,11 @@ No tasks.
 No tasks.
 
 ## Done
+
+- `UI-030`: integrated one complete fabrication ZIP on 2026-08-29. It contains
+  the HERMA label PDF, a paginated manufacturing manual PDF, every current
+  verified planar STL, and the complete current verified structural connector
+  package; stale geometry stays excluded.
 
 - `INSTALL-015`: integrated dirty-safe shell updates and a loopback-only
   in-application update notice/button on 2026-08-29. Updates are serialized,
