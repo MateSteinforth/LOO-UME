@@ -47,12 +47,7 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · UI-031` Compact the Project Library action area
-
-- Result: the filename is the only full-width row. Save, Open/Import, and
-  Download/Inspect use three bounded desktop columns and one mobile column.
-- Verification: TypeScript, one focused Chromium layout journey, diff-check,
-  and independent FAST review passed.
+No tasks.
 
 ## In Progress
 
@@ -113,6 +108,10 @@ No tasks.
 No tasks.
 
 ## Done
+
+- `UI-031`: integrated the compact Project Library action area on 2026-08-29.
+  The filename is the only full-width row; Save, Open/Import, and
+  Download/Inspect use three desktop columns and one mobile column.
 
 - `LIB-016`: integrated the file-browser-style Project Library on 2026-08-29.
   Thumbnails appear first and sort newest first; the filename field spans the
