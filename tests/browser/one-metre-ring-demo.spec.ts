@@ -8,7 +8,7 @@ test("loads the one-metre flexible ring with mapping and hardware tools", async 
   await expect(page.locator("#pipeline-status")).toContainText(
     "No authoring surface is referenced",
   );
-  await expect(page.locator("#led-count")).toHaveValue("60");
+  await expect(page.locator("#led-count")).toHaveValue("188");
   await expect(page.locator("#viewer canvas")).toBeVisible();
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-panel-labels-at-din",

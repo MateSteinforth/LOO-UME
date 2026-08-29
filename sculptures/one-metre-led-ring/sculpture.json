@@ -2,11 +2,11 @@
   "$schema": "../../schemas/panel-assembly.schema.json",
   "schemaVersion": "2.0.0",
   "id": "one-metre-flexible-led-ring-demo",
-  "name": "One-metre Flexible LED Ring Demo",
+  "name": "One-metre Diameter Flexible LED Ring Demo",
   "units": "mm",
   "status": "provisional",
   "panelProfile": {
-    "id": "ws2812b-strip-60-one-metre-ring",
+    "id": "ws2812b-strip-188-one-metre-diameter-ring",
     "source": "panel-profile.json"
   },
   "panels": [
@@ -26,7 +26,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "349b095ace750ca9"
+        "optimizationFingerprint": "820961e9126f20f0"
       }
     }
   ],
@@ -64,10 +64,10 @@
     "physicalChains": "provisional"
   },
   "notes": [
-    "Demo fixture: one closed 1,000 mm strip path with 60 equally spaced emitters and one GPIO 16 output.",
-    "The 30-segment carrier polygon has an exact 1,000 mm centreline perimeter; its nominal diameter is 318.892 mm.",
+    "Demo fixture: one 1,000 mm diameter hoop with 188 outward-facing emitters at approximately 60 LEDs/m and one GPIO 16 output.",
+    "The carrier uses a 96-segment closed path at 500 mm radius; the emitter centres sit on its outward radial surface at 502.2 mm radius.",
     "Mapping, wiring, simulation, MadMapper, ESP32 setup, and project export are supported. Rectangular placement and fabrication are intentionally disabled.",
     "Color order, connector placement, and power values are provisional demo assumptions, not hardware evidence.",
-    "Automatic wiring revision 2 selected 1 balanced output, GPIO 16, and quarter-turn physical panel poses; estimated data cable 135.5 mm."
+    "Automatic wiring revision 2 selected 1 balanced output, GPIO 16, and quarter-turn physical panel poses; estimated data cable 478.2 mm."
   ]
 }

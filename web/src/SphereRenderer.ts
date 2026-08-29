@@ -40,7 +40,10 @@ import {
   type SurfacePlacement,
 } from "./SurfacePlacementController";
 import type { PanelHardwareProfile } from "../../src/sculpture/Definition.ts";
-import { createLocalPanelCarrierGeometry } from "./PanelCarrierGeometry.ts";
+import {
+  createLocalPanelCarrierGeometry,
+  usesExplicitRadialCarrierEmitters,
+} from "./PanelCarrierGeometry.ts";
 
 export type DisplayMode = "wled" | "physical-index" | "logical-index";
 
@@ -220,14 +223,18 @@ export class SphereRenderer {
     const panelNormals = new Map(
       mapping.panels.map((panel) => [panel.id, panel.normal]),
     );
+    const ledRenderOffset = this.panelProfile &&
+      usesExplicitRadialCarrierEmitters(this.panelProfile)
+      ? 0
+      : LED_RENDER_OFFSET_MM;
     for (let physical = 0; physical < mapping.entries.length; physical += 1) {
       const entry = mapping.entries[physical];
       if (!entry) continue;
       const offset = physical * 3;
       const normal = entry.panelId ? panelNormals.get(entry.panelId) : undefined;
-      const x = entry.x + (normal?.x ?? 0) * LED_RENDER_OFFSET_MM;
-      const y = entry.y + (normal?.y ?? 0) * LED_RENDER_OFFSET_MM;
-      const z = entry.z + (normal?.z ?? 0) * LED_RENDER_OFFSET_MM;
+      const x = entry.x + (normal?.x ?? 0) * ledRenderOffset;
+      const y = entry.y + (normal?.y ?? 0) * ledRenderOffset;
+      const z = entry.z + (normal?.z ?? 0) * ledRenderOffset;
       positions[offset] = x;
       positions[offset + 1] = y;
       positions[offset + 2] = z;

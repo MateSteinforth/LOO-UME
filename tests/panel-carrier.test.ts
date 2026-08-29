@@ -14,7 +14,10 @@ import {
 import { generateClosedPanelBoundary } from "../src/sculpture/PanelOutlineBoundary.ts";
 import { preflightPanelBoundaryParts } from "../src/cad/CompilePanelBoundaryBundle.ts";
 import { runStructuralPipeline } from "../src/structure/StructuralPipeline.ts";
-import { createLocalPanelCarrierGeometry } from "../web/src/PanelCarrierGeometry.ts";
+import {
+  createLocalPanelCarrierGeometry,
+  usesExplicitRadialCarrierEmitters,
+} from "../web/src/PanelCarrierGeometry.ts";
 import { deriveEditorCapabilities } from "../web/src/EditorCapabilities.ts";
 import { createGeneratedMechanicsFingerprint } from "../src/sculpture/GeneratedMechanics.ts";
 import { createStructuralFingerprint } from "../src/sculpture/StructuralDesign.ts";
@@ -121,6 +124,54 @@ describe("generalized panel carriers", () => {
     expect(Math.max(...geometry.triangles.flatMap((point) =>
       point.map((coordinate) => Math.abs(coordinate))
     ))).toBeLessThanOrEqual(160);
+  });
+
+  it("orients a radial flexible strip with width across the hoop axis", () => {
+    const input = structuredClone(BASE_PROFILE);
+    input.id = "test-radial-flexible-ring";
+    input.dimensions = { width: 320, height: 320, thickness: 12 };
+    input.carrier = {
+      kind: "flexible-path",
+      path: Array.from({ length: 12 }, (_, index) => {
+        const radians = -index * Math.PI / 6;
+        return [Math.cos(radians) * 150, Math.sin(radians) * 150, 0];
+      }),
+      closed: true,
+      width: 10,
+      thickness: 1,
+      frame: { kind: "radial-outward", center: [0, 0, 0] },
+    };
+    const profile = parsePanelHardwareProfile(input);
+    const geometry = createLocalPanelCarrierGeometry(profile);
+    expect(profile.carrier).toMatchObject({
+      frame: { kind: "radial-outward", center: [0, 0, 0] },
+    });
+    expect(Math.max(...geometry.triangles.map((point) => Math.abs(point[2]))))
+      .toBeCloseTo(5, 10);
+    expect(Math.max(...geometry.triangles.map(([x, y]) => Math.hypot(x, y))))
+      .toBeGreaterThan(150);
+    const [a, b, c] = geometry.triangles.slice(18, 21);
+    const ab = b!.map((value, index) => value - a![index]!) as [number, number, number];
+    const ac = c!.map((value, index) => value - a![index]!) as [number, number, number];
+    const normal: [number, number, number] = [
+      ab[1] * ac[2] - ab[2] * ac[1],
+      ab[2] * ac[0] - ab[0] * ac[2],
+      ab[0] * ac[1] - ab[1] * ac[0],
+    ];
+    const centroid = a!.map((value, index) =>
+      (value + b![index]! + c![index]!) / 3
+    ) as [number, number, number];
+    expect(normal[0] * centroid[0] + normal[1] * centroid[1])
+      .toBeGreaterThan(0);
+
+    expect(usesExplicitRadialCarrierEmitters({
+      ...profile,
+      pixelGrid: { localEmitterPositions: [[150, 0, 0]] },
+    })).toBe(true);
+    expect(usesExplicitRadialCarrierEmitters({
+      ...profile,
+      pixelGrid: {},
+    })).toBe(false);
   });
 
   it("uses the rendered segment frame for three-dimensional path bounds", () => {

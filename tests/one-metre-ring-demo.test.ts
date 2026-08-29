@@ -14,8 +14,8 @@ import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
 const SOURCE = "sculptures/one-metre-led-ring/sculpture.json";
 
-describe("one-metre flexible LED-ring demo", () => {
-  it("loads, maps, wires, and configures one 60-emitter GPIO 16 fixture", async () => {
+describe("one-metre-diameter flexible LED-ring demo", () => {
+  it("loads, maps, wires, and configures one 188-emitter GPIO 16 fixture", async () => {
     const project = await loadPanelAssemblyProjectFromFile(SOURCE);
     const mapping = createPanelAssemblyMapping(project);
     const wiring = createProvisionalWiringPreview(
@@ -32,46 +32,46 @@ describe("one-metre flexible LED-ring demo", () => {
       width: 12,
       thickness: 2,
     });
-    expect(mapping.panelPixelGrid).toEqual({ columns: 60, rows: 1 });
-    expect(mapping.entries).toHaveLength(60);
+    expect(mapping.panelPixelGrid).toEqual({ columns: 188, rows: 1 });
+    expect(mapping.entries).toHaveLength(188);
     expect(contract.mapping.entries.find((entry) => entry.physicalIndex === 0)).toMatchObject({
       panelId: "RING-01",
       panelPixelX: 0,
       panelPixelY: 0,
       x: 0,
-      y: 159.446204,
-      z: 1.2,
+      y: 502.2,
+      z: 0,
     });
-    expect(contract.mapping.entries.find((entry) => entry.physicalIndex === 59)).toMatchObject({
+    expect(contract.mapping.entries.find((entry) => entry.physicalIndex === 187)).toMatchObject({
       panelId: "RING-01",
-      panelPixelX: 59,
+      panelPixelX: 187,
       panelPixelY: 0,
-      x: -16.666667,
-      y: 158.572741,
-      z: 1.2,
+      x: -16.781001,
+      y: 501.919553,
+      z: 0,
     });
     expect(contract.outputs).toEqual([{
       outputIndex: 0,
       gpio: 16,
       startIndex: 0,
-      pixelCount: 60,
+      pixelCount: 188,
       panelIds: ["RING-01"],
     }]);
     expect([...contract.ledmap.map].sort((a, b) => a - b)).toEqual(
-      Array.from({ length: 60 }, (_, index) => index),
+      Array.from({ length: 188 }, (_, index) => index),
     );
     expect(contract.readiness.mappingReady).toBe(true);
 
     const config = createSimulatorSetupConfig(
       JSON.parse(readFileSync("firmware/one-panel-smoke-cfg.json", "utf8")),
-      [{ startIndex: 0, pixelCount: 60, gpio: 16 }],
+      [{ startIndex: 0, pixelCount: 188, gpio: 16 }],
       contract.wledColorOrder.wledValue,
-      60,
+      188,
     ) as { hw: { led: { total: number; maxpwr: number; ins: unknown[] } } };
     expect(config.hw.led).toMatchObject({
-      total: 60,
-      maxpwr: 938,
-      ins: [{ start: 0, len: 60, pin: [16], order: 0, maxpwr: 938 }],
+      total: 188,
+      maxpwr: 2_938,
+      ins: [{ start: 0, len: 188, pin: [16], order: 0, maxpwr: 2_938 }],
     });
 
     expect(deriveEditorCapabilities(
@@ -93,7 +93,7 @@ describe("one-metre flexible LED-ring demo", () => {
     const manifest = JSON.parse(readFileSync("sculptures/manifest.json", "utf8"));
     expect(manifest.sculptures).toContainEqual({
       id: "one-metre-flexible-led-ring-demo",
-      name: "One-metre Flexible LED Ring Demo",
+      name: "One-metre Diameter Flexible LED Ring Demo",
       source: "./sculptures/one-metre-led-ring/sculpture.json",
       artifactStatus: "authoring-only",
     });
@@ -118,7 +118,7 @@ describe("one-metre flexible LED-ring demo", () => {
     );
     try {
       expect(reopened.project.panelProfile.pixelGrid).toMatchObject({
-        columns: 60,
+        columns: 188,
         rows: 1,
       });
       expect(normalizePanelCarrier(reopened.project.panelProfile)).toMatchObject({
@@ -129,7 +129,7 @@ describe("one-metre flexible LED-ring demo", () => {
         gpio: 16,
         panelIds: ["RING-01"],
       }]);
-      expect(createPanelAssemblyMapping(reopened.project).entries).toHaveLength(60);
+      expect(createPanelAssemblyMapping(reopened.project).entries).toHaveLength(188);
       expect(reopened.assets.get(profileSource)?.bytes).toEqual(profileBytes);
     } finally {
       reopened.dispose();

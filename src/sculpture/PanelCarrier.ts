@@ -10,6 +10,10 @@ export type PanelCarrierDefinition =
     closed: boolean;
     width: number;
     thickness: number;
+    frame?: {
+      kind: "radial-outward";
+      center: [number, number, number];
+    };
   };
 
 export interface PanelCarrierProfile {
@@ -32,24 +36,57 @@ function normalized3(value: PanelCarrierPoint3): PanelCarrierPoint3 {
   return value.map((coordinate) => coordinate / length) as PanelCarrierPoint3;
 }
 
+function dot3(a: PanelCarrierPoint3, b: PanelCarrierPoint3): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
 /** Exact segment prism used by both validation and browser rendering. */
 export function flexibleCarrierSegmentVertices(
   start: PanelCarrierPoint3,
   end: PanelCarrierPoint3,
   width: number,
   thickness: number,
+  radialCenter?: PanelCarrierPoint3,
 ): PanelCarrierPoint3[] {
   const direction = normalized3([
     end[0] - start[0], end[1] - start[1], end[2] - start[2],
   ]);
-  const reference: PanelCarrierPoint3 = Math.abs(direction[2]) < 0.95
-    ? [0, 0, 1]
-    : [0, 1, 0];
-  const widthDirection = normalized3(cross3(reference, direction));
+  let widthDirection: PanelCarrierPoint3;
+  let thicknessDirection: PanelCarrierPoint3;
+  if (radialCenter) {
+    const midpoint: PanelCarrierPoint3 = [
+      (start[0] + end[0]) / 2,
+      (start[1] + end[1]) / 2,
+      (start[2] + end[2]) / 2,
+    ];
+    const radial: PanelCarrierPoint3 = [
+      midpoint[0] - radialCenter[0],
+      midpoint[1] - radialCenter[1],
+      midpoint[2] - radialCenter[2],
+    ];
+    const along = dot3(radial, direction);
+    const perpendicular: PanelCarrierPoint3 = [
+      radial[0] - direction[0] * along,
+      radial[1] - direction[1] * along,
+      radial[2] - direction[2] * along,
+    ];
+    if (Math.hypot(...perpendicular) <= 1e-9) {
+      throw new Error(
+        "A radial flexible carrier segment cannot point through its frame center.",
+      );
+    }
+    thicknessDirection = normalized3(perpendicular);
+    widthDirection = normalized3(cross3(thicknessDirection, direction));
+  } else {
+    const reference: PanelCarrierPoint3 = Math.abs(direction[2]) < 0.95
+      ? [0, 0, 1]
+      : [0, 1, 0];
+    widthDirection = normalized3(cross3(reference, direction));
+    thicknessDirection = normalized3(cross3(direction, widthDirection));
+  }
   const widthAxis = widthDirection.map(
     (coordinate) => coordinate * width / 2,
   ) as PanelCarrierPoint3;
-  const thicknessDirection = normalized3(cross3(direction, widthDirection));
   const thicknessAxis = thicknessDirection.map(
     (coordinate) => coordinate * thickness / 2,
   ) as PanelCarrierPoint3;
@@ -211,6 +248,26 @@ function validateFlexiblePath(
   }
   const width = carrier.width as number;
   const thickness = carrier.thickness as number;
+  let radialCenter: PanelCarrierPoint3 | undefined;
+  if (carrier.frame !== undefined) {
+    if (
+      typeof carrier.frame !== "object" || carrier.frame === null ||
+      Array.isArray(carrier.frame)
+    ) {
+      throw new Error("A flexible carrier frame must be an object.");
+    }
+    const frame = carrier.frame as Record<string, unknown>;
+    if (
+      frame.kind !== "radial-outward" ||
+      Object.keys(frame).some((key) => !["kind", "center"].includes(key)) ||
+      !finiteTuple(frame.center, 3)
+    ) {
+      throw new Error(
+        "A radial flexible carrier frame requires one finite center point.",
+      );
+    }
+    radialCenter = frame.center as PanelCarrierPoint3;
+  }
   if (
     !Array.isArray(carrier.path) ||
     carrier.path.length < (carrier.closed ? 3 : 2)
@@ -233,7 +290,7 @@ function validateFlexiblePath(
       throw new Error("Flexible carrier path segments must have nonzero length.");
     }
     const vertices = flexibleCarrierSegmentVertices(
-      point, next, width, thickness,
+      point, next, width, thickness, radialCenter,
     );
     if (vertices.some(([x, y, z]) =>
       Math.abs(x) > dimensions.width / 2 + 1e-9 ||
@@ -270,7 +327,7 @@ export function validatePanelCarrier(
     return;
   }
   if (record.kind === "flexible-path") {
-    if (!hasOnly(["kind", "path", "closed", "width", "thickness"])) {
+    if (!hasOnly(["kind", "path", "closed", "width", "thickness", "frame"])) {
       throw new Error("A flexible carrier has unsupported fields.");
     }
     validateFlexiblePath(record, dimensions);

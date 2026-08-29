@@ -137,10 +137,11 @@ advanced editor, and the mapping-ready MadMapper ZIP. Build Hardware owns HERMA
 assembly tutorial. Each loaded fixture profile controls which placement and
 fabrication actions are enabled; mapping, simulation, hardware setup, and export
 do not wait for an irrelevant fabrication step.
-The renderer offsets LED sprites 2.4 mm along each panel's outward normal. This
-is a display-only separation from the PCB plane; it does not change mapping or
-saved panel poses. The transparent WebGL canvas uses the viewer's radial and
-linear CSS gradient as its world backdrop.
+The renderer offsets rigid-panel LED sprites 2.4 mm along each panel's outward
+normal. Explicit radial-frame flexible-path emitters define their physical
+outside surface positions and receive no additional panel-normal offset. Both rules are
+display-only and do not change mapping or saved poses. The transparent WebGL
+canvas uses the viewer's radial and linear CSS gradient as its world backdrop.
 Selecting a panel through the viewport, its label, or a route row stops slow
 auto-rotation and clears the matching View checkbox. This is view state only;
 selection and rotation never change a saved pose.

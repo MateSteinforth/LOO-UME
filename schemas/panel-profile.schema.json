@@ -93,7 +93,16 @@
             },
             "closed": { "type": "boolean" },
             "width": { "type": "number", "exclusiveMinimum": 0 },
-            "thickness": { "type": "number", "exclusiveMinimum": 0 }
+            "thickness": { "type": "number", "exclusiveMinimum": 0 },
+            "frame": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "center"],
+              "properties": {
+                "kind": { "const": "radial-outward" },
+                "center": { "$ref": "#/$defs/localPosition3" }
+              }
+            }
           },
           "allOf": [
             {

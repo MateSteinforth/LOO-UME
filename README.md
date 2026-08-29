@@ -5,8 +5,8 @@ panel-based LED sculptures. Schema 2 sculpture JSON owns panel poses. Mapping,
 wiring, simulation, and save/reopen continue when printable mechanics are
 missing or stale.
 
-The project registry includes a one-metre flexible LED-ring demo with one
-60-emitter strip fixture and one GPIO 16 output. It exercises flexible carrier
+The project registry includes a one-metre-diameter flexible LED-ring demo with
+one 188-emitter strip fixture at approximately 60 LEDs/m and one GPIO 16 output. It exercises flexible carrier
 display, mapping, wiring, simulation, WLED setup, and export without enabling
 rectangular placement or fabrication tools.
 

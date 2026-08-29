@@ -28,7 +28,7 @@
     },
     {
       "id": "one-metre-flexible-led-ring-demo",
-      "name": "One-metre Flexible LED Ring Demo",
+      "name": "One-metre Diameter Flexible LED Ring Demo",
       "source": "./sculptures/one-metre-led-ring/sculpture.json",
       "artifactStatus": "authoring-only"
     },
