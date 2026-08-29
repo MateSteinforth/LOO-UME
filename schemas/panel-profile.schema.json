@@ -253,7 +253,10 @@
               "type": "number"
             },
             "status": {
-              "const": "measured"
+              "enum": [
+                "provisional",
+                "measured"
+              ]
             },
             "note": {
               "type": "string",
@@ -366,7 +369,10 @@
           "const": "back"
         },
         "orientationReference": {
-          "const": "three-mounting-holes-vertical"
+          "enum": [
+            "three-mounting-holes-vertical",
+            "pose-local-explicit-connectors"
+          ]
         },
         "cornerAssignmentStatus": {
           "enum": [
@@ -407,7 +413,23 @@
           "type": "string",
           "minLength": 1
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "orientationReference": {
+                "const": "pose-local-explicit-connectors"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "localPositions"
+            ]
+          }
+        }
+      ]
     },
     "power": {
       "type": "object",

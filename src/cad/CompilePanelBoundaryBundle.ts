@@ -13,7 +13,7 @@ import {
 import { sha256Bytes } from "../sculpture/GeneratedMechanics.ts";
 import { serializeAsciiStl, serializeManifoldMeshAsciiStl } from "./Stl.ts";
 import { buildPanelClosureSolids } from "./GeneratePanelClosureSolids.ts";
-import { assertRectangularPanelTools } from "../sculpture/PanelCarrier.ts";
+import { assertRectangularPanelFabrication } from "../sculpture/PanelCarrier.ts";
 
 const GENERATED_CLOSURE_POLICY = Object.freeze({
   generator: "panel-hole-tabs" as const,
@@ -142,7 +142,7 @@ export interface PanelBoundaryPartsPreflight {
 export function preflightPanelBoundaryParts(
   project: PanelAssemblyProject,
 ): PanelBoundaryPartsPreflight {
-  assertRectangularPanelTools(
+  assertRectangularPanelFabrication(
     project.panelProfile,
     "Planar closure generation",
   );

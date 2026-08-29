@@ -56,6 +56,15 @@ grid and back-view corner anchors exactly. This compatible seam lets a flexible
 1×N strip or ring use mapping, wiring, simulation, and WLED without pretending
 that its LEDs form a rectangular physical carrier.
 
+`dataConnectors.orientationReference` distinguishes the historical
+`three-mounting-holes-vertical` board convention from
+`pose-local-explicit-connectors`. The latter requires explicit pose-local DIN
+and DOUT positions and is suitable for carriers that do not share the legacy
+mounting-hole orientation. Profile evidence remains explicit: provisional
+connector assignments and physical corrections are accepted as visual-study
+data, while the approved 8×8 profile keeps its measured 0.20 mm and 0.50 mm
+corrections unchanged.
+
 Carrier rendering and capability gates are described below. Dedicated
 non-rectangular automatic placement and fabrication remain separate work;
 explicit emitter geometry alone does not authorize rectangular placement or
@@ -81,6 +90,14 @@ legacy compatibility data only; capability gates keep rectangular placement
 and fabrication disabled. Color order, connector anchors, and power values are
 provisional demo assumptions rather than physical evidence.
 
+`sculptures/photo-wedge-panel/sculpture.json` is the tracked planar-outline
+photo-study example. It represents one of the three matching wedge PCBs in the
+operator photographs as one 8×8, 64-emitter GPIO 16 fixture. Its dimensions,
+outline, holes, connector anchors, address order, color order, and electrical
+facts are estimates. It is useful for simulation, mapping, wiring, ESP32 setup,
+and portable-project exchange, but it is not manufacturing or fabrication
+authority.
+
 The optional `radial-outward` flexible frame keeps strip thickness aligned with
 the radius from its declared center and strip width perpendicular to the path
 and radius. Existing flexible paths without this frame retain their original
@@ -91,9 +108,11 @@ on their physical display surface, so the renderer does not add the rigid-panel
 Automatic surface placement, planar closures, connector ribbons, and
 LED-surface bridges still use rigid rectangular PCB assumptions. Their browser
 controls are disabled for other carrier kinds, and the CAD entry points repeat
-the same fail-closed check. This is a capability boundary, not a claim that a
-flexible strip cannot eventually receive dedicated placement or fabrication
-tools.
+the same fail-closed check. Printable generation also requires measured
+physical corrections; a rectangular visual-study profile can still map and be
+placed, but provisional hole-edge or surface-flush values cannot authorize
+fabrication. This is a capability boundary, not a claim that a flexible strip
+cannot eventually receive dedicated placement or fabrication tools.
 
 ## Placement and editing
 

@@ -12,7 +12,7 @@ import {
 import { triangulatePolygon } from "./TriangulatePolygon.ts";
 import { loadManifoldRuntime } from "./ManifoldRuntime.ts";
 import { panelIdLabelSection, panelIdLabelSize } from "./PanelIdGlyphs.ts";
-import { assertRectangularPanelTools } from "../sculpture/PanelCarrier.ts";
+import { assertRectangularPanelFabrication } from "../sculpture/PanelCarrier.ts";
 
 const EPS = 0.03;
 const CIRCULAR_SEGMENTS = 40;
@@ -619,7 +619,7 @@ function buildOneClosure(
 export async function buildPanelClosureSolids(
   project: PanelAssemblyProject,
 ): Promise<ClosureSolidMesh[]> {
-  assertRectangularPanelTools(
+  assertRectangularPanelFabrication(
     project.panelProfile,
     "Printable panel closure generation",
   );

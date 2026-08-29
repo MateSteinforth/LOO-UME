@@ -1,0 +1,145 @@
+{
+  "$schema": "../../schemas/panel-profile.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "photo-derived-ws2812b-8x8-wedge-panel",
+  "kind": "led-panel",
+  "units": "mm",
+  "dimensions": {
+    "width": 220,
+    "height": 220,
+    "thickness": 1.6
+  },
+  "carrier": {
+    "kind": "planar-outline",
+    "outline": [
+      [-110, 110],
+      [-92, -110],
+      [92, -110],
+      [110, 110]
+    ]
+  },
+  "pixelGrid": {
+    "columns": 8,
+    "rows": 8,
+    "emitterOffset": 1.2,
+    "colorOrder": {
+      "status": "provisional",
+      "channelSequence": "GRB",
+      "wledValue": 0,
+      "note": "Visual-study assumption for the photographed WS2812-style emitters; verify RGB channels on one fused panel before hardware use."
+    },
+    "provisionalOrder": {
+      "status": "provisional",
+      "pixelZeroCorner": "bottom-right",
+      "traversalAxis": "rows",
+      "lineProgression": "bottom-to-top",
+      "serpentine": false,
+      "firstLineDirection": "right-to-left",
+      "description": "Photo-derived assumption: front silkscreen appears to run D1-D8 left-to-right on the bottom row and D57-D64 on the top row. Stored back view is mirrored, so address zero is bottom-right."
+    }
+  },
+  "mounting": {
+    "cornerHoleInset": 18,
+    "middleHoleOffsetFromOuter": 22,
+    "pcbHolePreviewDiameter": 4,
+    "printedPilotDiameter": 2,
+    "screwLeadIn": {
+      "diameter": 4.4,
+      "depth": 0.8
+    },
+    "holes": [
+      {
+        "id": "top-left",
+        "localPosition": [-76, 72],
+        "mechanicalUse": "blocked",
+        "blockedBy": "DOUT"
+      },
+      {
+        "id": "middle-left",
+        "localPosition": [-82, 0],
+        "mechanicalUse": "eligible"
+      },
+      {
+        "id": "bottom-left",
+        "localPosition": [-68, -72],
+        "mechanicalUse": "eligible"
+      },
+      {
+        "id": "top-right",
+        "localPosition": [76, 72],
+        "mechanicalUse": "eligible"
+      },
+      {
+        "id": "middle-right",
+        "localPosition": [82, 0],
+        "mechanicalUse": "eligible"
+      },
+      {
+        "id": "bottom-right",
+        "localPosition": [68, -72],
+        "mechanicalUse": "blocked",
+        "blockedBy": "DIN"
+      }
+    ],
+    "capAllocation": {
+      "strategy": "minimum-total-edge-distance",
+      "useAllEligibleHolesWhenPossible": true,
+      "distinctClosurePerHole": true
+    },
+    "physicalCorrections": {
+      "holeEdge": 0,
+      "surfaceFlush": 0,
+      "status": "provisional",
+      "note": "Zero placeholders preserve an honest visual-study profile. Board dimensions, hole centres, screw fit, and flush correction require direct measurement before fabrication."
+    }
+  },
+  "dataConnectors": {
+    "referenceView": "back",
+    "orientationReference": "pose-local-explicit-connectors",
+    "cornerAssignmentStatus": "provisional",
+    "dinCorner": "bottom-right",
+    "doutCorner": "top-left",
+    "localPositions": {
+      "coordinateFrame": "pose-local",
+      "din": [-78, -88, -2.4],
+      "dout": [78, 88, -2.4]
+    },
+    "padPositionStatus": "provisional",
+    "note": "DIN/DOUT sides and approximate back-side anchors are inferred from silkscreen and D1-D64 labels in the supplied photographs. Measure the PCB directly before assembly."
+  },
+  "power": {
+    "status": "provisional",
+    "basis": "panel-photo-and-conservative-worst-case",
+    "nominalVoltage": 5,
+    "worstCaseCurrentPerPixel": 0.06,
+    "worstCaseCurrentPerPanel": 3.84,
+    "pads": {
+      "status": "provisional",
+      "availableAt": ["din-end", "dout-end"],
+      "roles": ["V+", "V-"],
+      "supportsIndependentFeedAndInjection": true
+    },
+    "singlePanelLead": {
+      "scope": "short-5v-and-ground-leads",
+      "minimumCrossSectionMm2": 0.75,
+      "approximateAwg": 18,
+      "sharedFeedsRequireLargerConductors": true
+    },
+    "voltageDrop": {
+      "maximumFraction": 0.05,
+      "minimumPanelVoltage": 4.75
+    },
+    "fusing": {
+      "status": "provisional",
+      "grouping": "one-fuse-per-small-panel-group",
+      "panelsPerFuse": null,
+      "sizingRule": "protect-wire"
+    },
+    "note": "Conservative WS2812B placeholder only. The photographed PCB power topology, voltage, actual current, and connector ratings are not measured."
+  },
+  "electricalKeepouts": {
+    "status": "unknown",
+    "regions": [],
+    "note": "The photographs show back-side data and power connectors, capacitors, and holes, but do not establish exact keep-out dimensions."
+  }
+}

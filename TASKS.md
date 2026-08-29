@@ -97,7 +97,18 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `FIXTURE-013` Add a provisional photo-derived wedge-panel fixture
+
+- Scope: one tracked planar-outline 8×8 profile and one-panel Schema 2 demo
+  derived from the two operator screenshots. Dimensions, holes, connector
+  anchors, pixel order, color order, and electrical facts remain provisional.
+- Result: loads and maps 64 emitters, wires one GPIO 16 output, creates the
+  bounded WLED setup, survives portable ZIP reload, and appears in the project
+  registry. Non-rectangular tools stay disabled; every fabrication entry point
+  also requires measured physical corrections.
+- Verification: 26 focused tests, `npx tsc -b`, Vite production build,
+  `git diff --check`, and independent review passed.
+- Owner: `codex/fixture-013-photo-wedge` in `/tmp/loo-ume-fixture-013`.
 
 ## Done
 

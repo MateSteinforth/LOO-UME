@@ -1,6 +1,9 @@
 import type { PanelAssemblyDefinition } from "../../src/sculpture/PanelAssembly.ts";
 import type { PanelHardwareProfile } from "../../src/sculpture/Definition.ts";
-import { supportsRectangularPanelTools } from "../../src/sculpture/PanelCarrier.ts";
+import {
+  supportsRectangularPanelFabrication,
+  supportsRectangularPanelTools,
+} from "../../src/sculpture/PanelCarrier.ts";
 
 export interface EditorCapabilities {
   canSelectPanels: boolean;
@@ -28,6 +31,9 @@ export function deriveEditorCapabilities(
   const rectangularTools = profile
     ? supportsRectangularPanelTools(profile)
     : true;
+  const rectangularFabrication = profile
+    ? supportsRectangularPanelFabrication(profile)
+    : true;
   return {
     canSelectPanels: hasPanels,
     canRotateSelectedPanel: hasPanels,
@@ -38,8 +44,8 @@ export function deriveEditorCapabilities(
     canAutomaticallySeed: hasActiveSurface && rectangularTools,
     canExportMappingAndWiring: true,
     canGenerateGenericMechanics:
-      rectangularTools &&
+      rectangularFabrication &&
       (hasPanels || hasPanelBoundaryInput || hasGenericGenerationInput),
-    canGenerateStructuralMechanics: rectangularTools && hasPanels,
+    canGenerateStructuralMechanics: rectangularFabrication && hasPanels,
   };
 }

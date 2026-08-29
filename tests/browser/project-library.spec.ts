@@ -15,7 +15,7 @@ test("opens the 41-fixture demo from the ZIP project library", async ({ page }) 
   await expect(dialog.locator("#save-sculpture-file")).toBeVisible();
   await expect(dialog.locator("#export-project-folder")).toBeVisible();
   await expect(page.locator("[data-toolbox='export']")).toHaveCount(0);
-  await expect(dialog.locator(".project-card")).toHaveCount(14);
+  await expect(dialog.locator(".project-card")).toHaveCount(15);
   await expect(dialog.locator(".project-card", {
     hasText: "One-metre Diameter Flexible LED Ring Demo",
   })).toBeVisible();

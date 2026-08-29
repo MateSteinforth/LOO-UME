@@ -23,7 +23,7 @@ import {
   type NormalizedStructuralDesign,
   type StructuralVector,
 } from "../sculpture/StructuralDesign.ts";
-import { assertRectangularPanelTools } from "../sculpture/PanelCarrier.ts";
+import { assertRectangularPanelFabrication } from "../sculpture/PanelCarrier.ts";
 import { createCandidateTruss, type CandidateTruss } from "./CandidateTruss.ts";
 import {
   optimizeStructuralTruss,
@@ -470,7 +470,7 @@ export async function runStructuralPipeline(
   project: PanelAssemblyProject,
   options: StructuralPipelineOptions = {},
 ): Promise<StructuralPipelineResult> {
-  assertRectangularPanelTools(
+  assertRectangularPanelFabrication(
     project.panelProfile,
     "Structural connector generation",
   );

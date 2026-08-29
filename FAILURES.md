@@ -1765,3 +1765,27 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   explicit Node TypeScript project in the same change.
 - **Evidence:** The subsequent Node and browser TypeScript builds pass.
 - **Status:** Resolved during Project Library integration.
+
+### F-097 — Photographs are not dimensional or fabrication evidence
+
+- **Date:** 2026-08-29
+- **Context:** Creating a Schema 2 fixture from two photographs of a wedge LED
+  PCB without a ruler, drawing, part number, or measured sample.
+- **Symptom:** The legacy profile contract required measured physical
+  corrections and a three-hole orientation even though neither fact existed
+  for the photographed board.
+- **Cause:** One proven rectangular PCB's evidence rules were treated as if
+  they described every future carrier.
+- **Correction:** Keep the approved PCB facts unchanged, permit explicitly
+  provisional correction evidence, and add a pose-local explicit connector
+  convention for non-legacy carriers. Mark every inferred wedge-panel value as
+  provisional, require measured corrections at every fabrication entry point,
+  and use a planar carrier so incompatible placement and fabrication tools stay
+  disabled.
+- **Prevention:** A photo-derived fixture must state which values are inferred.
+  Do not claim measurements, screw fit, keep-outs, address order, RGB order, or
+  fabrication readiness until direct evidence exists. Prove mapping, WLED, and
+  portable reload separately from physical fit.
+- **Evidence:** `sculptures/photo-wedge-panel/` and
+  `tests/photo-wedge-panel-demo.test.ts`.
+- **Status:** Resolved by FIXTURE-013.

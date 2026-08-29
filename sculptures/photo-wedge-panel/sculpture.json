@@ -1,0 +1,72 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "photo-derived-wedge-panel-demo",
+  "name": "Photo-derived Wedge Panel Demo",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "photo-derived-ws2812b-8x8-wedge-panel",
+    "source": "panel-profile.json"
+  },
+  "panels": [
+    {
+      "id": "WEDGE-01",
+      "pose": {
+        "position": [0, 0, 0],
+        "orientation": {
+          "xAxis": [-1, 0, 0],
+          "yAxis": [0, -1, 0],
+          "normal": [0, 0, 1]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "789b119b99c0577d"
+      }
+    }
+  ],
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "authored",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "balanced-oriented-cable-optimizer",
+    "routeRevision": 2,
+    "chainLengths": [1],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Output 1",
+        "gpio": 16,
+        "color": "#36e0d0",
+        "panelIds": ["WEDGE-01"]
+      }
+    ]
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Visual-study demo derived from two operator photographs of one of three matching 8x8 wedge PCBs.",
+    "The 220 x 220 mm outline, mounting holes, connector anchors, pixel order, color order, and electrical values are provisional estimates, not manufacturing measurements.",
+    "Mapping, wiring, simulation, MadMapper, ESP32 setup, and project export are available. Automatic placement and rectangular-only fabrication are intentionally disabled.",
+    "Automatic wiring revision 2 selected 1 balanced output, GPIO 16, and quarter-turn physical panel poses; estimated data cable 100.9 mm."
+  ]
+}
