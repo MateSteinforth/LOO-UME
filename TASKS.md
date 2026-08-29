@@ -43,58 +43,11 @@ on physical hardware.
 
 ## Ready
 
-### `INSTALL-014` Add post-clone launch and update commands
-
-- Scope: make the normal installed workflow use only `./bootstrap.sh launch`
-  and `./bootstrap.sh update`. Keep the existing reviewed native bootstrap,
-  pinned repository-local Node/npm, locked dependencies, desktop build, and
-  Manifold verification as the trust boundary.
-- `launch`: idempotently install or verify required local tools and dependencies,
-  build only when required, start the loopback desktop server, wait for its
-  verified ready URL, and open that URL in the default macOS or Linux browser.
-  If no graphical opener exists, keep the server running and print the URL.
-- `update`: refuse to overwrite a dirty worktree or divergent history; update
-  `main` by fast-forward only from the verified `origin`, refresh locked
-  dependencies/build output when inputs changed, then perform the same launch.
-- Acceptance: after `git clone --depth 1
-  https://github.com/MateSteinforth/LOO-UME.git && cd LOO-UME`, first launch and
-  later update each require one command; repeated launch avoids unnecessary
-  reinstall work; browser-open failure never stops the usable local server;
-  Linux x86-64 and native macOS arm64/x86-64 remain supported without global
-  Node/npm or administrator commands.
-- Boundary: Git and an installed graphical browser remain host prerequisites.
-  A command run over SSH cannot open a browser on a different computer; it must
-  print the usable URL instead.
-- Likely conflicts: `bootstrap.sh`, desktop-server readiness/startup,
-  bootstrap tests, README setup instructions, architecture, and failure notes.
+No tasks.
 
 ## In Progress
 
 No tasks.
-
-## Ready to Merge
-
-### `P1 · INSTALL-014` Add post-clone launch and update commands
-
-- Owner: `codex/install-014-launch-update` in
-  `/tmp/loo-ume-install-014`.
-- Scope: add `./bootstrap.sh launch` and `./bootstrap.sh update` while
-  preserving the reviewed native bootstrap and repository-local Node/npm
-  trust boundary.
-- Acceptance: launch idempotently installs or verifies local tools and locked
-  dependencies, rebuilds only when the clean commit or required output changed,
-  starts the loopback desktop server, and opens its ready URL when the local OS
-  has a browser opener. Without a graphical opener it prints the URL and keeps
-  serving.
-- Acceptance: update refuses a dirty checkout, a branch other than `main`, an
-  unexpected `origin`, and non-fast-forward history. It fetches and
-  fast-forwards verified `origin/main`, then runs the updated launch command.
-- Boundary: Git and a browser are host prerequisites. An SSH session cannot
-  open a browser on a different computer; the printed loopback URL belongs to
-  the computer that runs LOO/UME.
-- Verification: focused receipt, update-guard, and browser-opener tests pass;
-  TypeScript, the desktop production build, direct bootstrap validation, shell
-  syntax, server readiness, production-page fetch, and independent review pass.
 
 ## Blocked
 
@@ -151,6 +104,14 @@ No tasks.
 No tasks.
 
 ## Done
+
+- `INSTALL-014`: integrated one-command `./bootstrap.sh launch` and guarded
+  `./bootstrap.sh update` on 2026-08-29. Launch binds reusable builds to the
+  target, clean commit, runtime packages, and complete production-output hash
+  manifest. Update permits only clean fast-forward changes from canonical
+  `origin/main`. Focused tests, TypeScript, the production build, the Manifold
+  install proof, two real launches, browser opening, and independent review
+  passed.
 
 - `FIXTURE-013`, `FIXTURE-014`, and `UI-028`: integrated the provisional wedge
   panel profile, its one-panel and 30-panel visual-study projects, reusable
