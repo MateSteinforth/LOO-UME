@@ -68,6 +68,16 @@ describe("clean-checkout bootstrap", () => {
     expect(result.stderr).toContain("usage: ./bootstrap.sh setup");
   });
 
+  it("defines one-command launch and guarded update contracts", () => {
+    const bootstrap = readFileSync("bootstrap.sh", "utf8");
+    expect(bootstrap).toContain("launch)");
+    expect(bootstrap).toContain("run start:desktop -- --open-browser");
+    expect(bootstrap).toContain("update)");
+    expect(bootstrap).toContain("verify_update_checkout");
+    expect(bootstrap).toContain("verify_update_fast_forward");
+    expect(bootstrap).toContain("merge --ff-only origin/main");
+  });
+
   it("runs the same restricted-PATH setup on Linux and native macOS CI", () => {
     const workflow = readFileSync(WORKFLOW, "utf8");
     const macJob = workflow.split("  stage-zero-bootstrap-macos:")[1]

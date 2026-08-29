@@ -1960,3 +1960,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `sculptures/photo-wedge-panel/sculpture-30-panel.json` and the
   30-panel regression in `tests/photo-wedge-panel-demo.test.ts`.
 - **Status:** Resolved by FIXTURE-014.
+
+### F-107 — A local build directory is not sufficient launch-freshness evidence
+
+- **Date:** 2026-08-29
+- **Context:** Adding one-command local launch and update behavior.
+- **Symptom:** Reusing any existing `dist/` directory can start code from an
+  older checkout, while rebuilding on every launch makes a normal restart
+  unnecessarily slow.
+- **Cause:** Generated output existence does not bind that output to the clean
+  source revision that created it.
+- **Correction:** Record the target tuple and clean Git commit only after locked dependency
+  installation, desktop build, and production Manifold proof all pass. Reuse
+  the build only when the checkout is still clean, HEAD matches the receipt,
+  and required dependency and output files exist. Rebuild modified checkouts
+  without recording reusable evidence.
+- **Prevention:** A launcher can skip a build only with source-bound freshness
+  evidence. Do not infer freshness from `dist/` timestamps or existence alone.
+- **Evidence:** `bootstrap.sh` `install_and_build_if_required()` and the
+  INSTALL-014 bootstrap regression.
+- **Status:** Resolved by INSTALL-014.

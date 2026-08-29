@@ -44,6 +44,16 @@ install_manifest="$repository_root/toolchains/bootstrap/install-manifest.json"
 node_root="$repository_root/.tools/node"
 node_executable="$node_root/bin/node"
 npm_cli="$node_root/lib/node_modules/npm/bin/npm-cli.js"
+build_receipt="$repository_root/.tools/desktop-build-receipt.json"
+build_receipt_tool="$repository_root/scripts/desktop-build-receipt.mjs"
+update_guard="$repository_root/scripts/bootstrap-update-guard.sh"
+
+require_git() {
+  if [ ! -x /usr/bin/git ]; then
+    echo "bootstrap: required host tool /usr/bin/git is unavailable." >&2
+    exit 1
+  fi
+}
 
 use_managed_node() {
   "$executable" verify --manifest "$install_manifest" --root "$repository_root"
@@ -55,20 +65,80 @@ use_managed_node() {
   export PATH
 }
 
+install_and_build_if_required() {
+  force_build=${1-}
+  "$executable" install --manifest "$install_manifest" --root "$repository_root"
+  use_managed_node
+  require_git
+  cd "$repository_root"
+
+  current_commit=$(/usr/bin/git rev-parse --verify HEAD)
+  checkout_state=$(/usr/bin/git status --porcelain --untracked-files=normal)
+
+  if [ "$force_build" != "force" ] &&
+     [ -z "$checkout_state" ] &&
+     [ -x "$repository_root/node_modules/.bin/tsx" ] &&
+     [ -f "$repository_root/node_modules/manifold-3d/package.json" ] &&
+     "$node_executable" "$build_receipt_tool" verify \
+       --root "$repository_root" \
+       --receipt "$build_receipt" \
+       --target "$target" \
+       --commit "$current_commit" 2>/dev/null; then
+    echo "LOO/UME build is current at $current_commit."
+    return
+  fi
+
+  rm -f "$build_receipt"
+  "$node_executable" "$npm_cli" ci
+  "$node_executable" "$npm_cli" run build:desktop
+  "$node_executable" "$npm_cli" run verify:desktop-install
+  checkout_state=$(/usr/bin/git status --porcelain --untracked-files=normal)
+  if [ -z "$checkout_state" ]; then
+    "$node_executable" "$build_receipt_tool" create \
+      --root "$repository_root" \
+      --receipt "$build_receipt" \
+      --target "$target" \
+      --commit "$current_commit"
+  else
+    echo "LOO/UME built the modified checkout. A clean commit is required before this build can be reused."
+  fi
+}
+
 case "${1-}" in
   setup)
     if [ "$#" -ne 1 ]; then
       echo "usage: ./bootstrap.sh setup" >&2
       exit 2
     fi
-    "$executable" install --manifest "$install_manifest" --root "$repository_root"
-    use_managed_node
-    cd "$repository_root"
-    "$node_executable" "$npm_cli" ci
-    "$node_executable" "$npm_cli" run build:desktop
-    "$node_executable" "$npm_cli" run verify:desktop-install
-    echo "LOO/UME is ready. Start it with ./bootstrap.sh desktop"
+    install_and_build_if_required force
+    echo "LOO/UME is ready. Start it with ./bootstrap.sh launch"
     exit 0
+    ;;
+  launch)
+    if [ "$#" -ne 1 ]; then
+      echo "usage: ./bootstrap.sh launch" >&2
+      exit 2
+    fi
+    install_and_build_if_required
+    cd "$repository_root"
+    exec "$node_executable" "$npm_cli" run start:desktop -- --open-browser
+    ;;
+  update)
+    if [ "$#" -ne 1 ]; then
+      echo "usage: ./bootstrap.sh update" >&2
+      exit 2
+    fi
+    require_git
+    cd "$repository_root"
+    . "$update_guard"
+    verify_update_checkout \
+      "$repository_root" \
+      /usr/bin/git \
+      "https://github.com/MateSteinforth/LOO-UME.git"
+    /usr/bin/git fetch --prune origin main
+    verify_update_fast_forward "$repository_root" /usr/bin/git
+    /usr/bin/git merge --ff-only origin/main
+    exec "$repository_root/bootstrap.sh" launch
     ;;
   desktop)
     if [ "$#" -ne 1 ]; then

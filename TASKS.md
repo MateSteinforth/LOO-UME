@@ -49,6 +49,30 @@ No tasks.
 
 No tasks.
 
+## Ready to Merge
+
+### `P1 · INSTALL-014` Add post-clone launch and update commands
+
+- Owner: `codex/install-014-launch-update` in
+  `/tmp/loo-ume-install-014`.
+- Scope: add `./bootstrap.sh launch` and `./bootstrap.sh update` while
+  preserving the reviewed native bootstrap and repository-local Node/npm
+  trust boundary.
+- Acceptance: launch idempotently installs or verifies local tools and locked
+  dependencies, rebuilds only when the clean commit or required output changed,
+  starts the loopback desktop server, and opens its ready URL when the local OS
+  has a browser opener. Without a graphical opener it prints the URL and keeps
+  serving.
+- Acceptance: update refuses a dirty checkout, a branch other than `main`, an
+  unexpected `origin`, and non-fast-forward history. It fetches and
+  fast-forwards verified `origin/main`, then runs the updated launch command.
+- Boundary: Git and a browser are host prerequisites. An SSH session cannot
+  open a browser on a different computer; the printed loopback URL belongs to
+  the computer that runs LOO/UME.
+- Verification: focused receipt, update-guard, and browser-opener tests pass;
+  TypeScript, the desktop production build, direct bootstrap validation, shell
+  syntax, server readiness, production-page fetch, and independent review pass.
+
 ## Blocked
 
 ### `P1 · LIVE-010` Prove direct MadMapper Art-Net physical addressing
@@ -100,10 +124,6 @@ No tasks.
   four outputs, and RGB channels against the exact deployment identity.
 
 ## Human Review
-
-No tasks.
-
-## Ready to Merge
 
 No tasks.
 
