@@ -97,20 +97,15 @@ No tasks.
 
 ## Ready to Merge
 
-### `FIXTURE-012` Add a one-metre flexible LED-ring demo
-
-- Scope: tracked 1,000 mm diameter hoop with a common 60 LEDs/m strip density
-  (188 emitters), outward-radial LED placement, and one GPIO 16 output. The
-  optional flexible-carrier frame does not change legacy carrier behavior.
-- Acceptance: the browser shows the strip on the outside of the hoop; runtime
-  mapping, wiring, WLED, portable ZIP, and registry loading pass; rectangular
-  placement and fabrication remain disabled; existing projects stay unchanged.
-- Verification: 36 focused tests, TypeScript checks, focused Chromium, portable
-  export/reload, diff check, and independent geometry review passed.
-- Owner: `codex/fixture-012-one-metre-ring` in
-  `/home/mate/Documents/led-rhombicosidodecahedron-ring-demo`.
+No tasks.
 
 ## Done
+
+- `FIXTURE-012`: integrated the 1,000 mm diameter flexible LED-ring demo with
+  188 outward-radial emitters and one GPIO 16 output on 2026-08-29. Mapping,
+  wiring, WLED setup, portable export/reload, focused tests, TypeScript,
+  Chromium, and independent geometry review passed. Rectangular-only placement
+  and fabrication remain disabled for this carrier.
 
 - `FIXTURE-010` / `FIXTURE-011` / `UI-026`: integrated explicit pose-local
   emitter and DIN/DOUT coordinates, arbitrary planar and flexible-path carrier
