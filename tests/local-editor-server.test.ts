@@ -2,11 +2,16 @@ import { request as httpRequest } from "node:http";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   startLocalEditorServer,
   type LocalEditorServer,
 } from "../scripts/local-editor-server.ts";
+import {
+  createApplicationUpdateHandler,
+  type ApplicationUpdateHandler,
+  type ApplicationUpdateCommand,
+} from "../scripts/application-update-handler.ts";
 import { sha256Bytes } from "../src/sculpture/GeneratedMechanics.ts";
 import {
   getGeneratedMechanicsState,
@@ -24,7 +29,9 @@ afterEach(async () => {
   ));
 });
 
-async function fixtureServer(): Promise<LocalEditorServer> {
+async function fixtureServer(
+  applicationUpdateHandler?: ApplicationUpdateHandler,
+): Promise<LocalEditorServer> {
   const root = await mkdtemp(join(tmpdir(), "local-editor-server-"));
   temporaryDirectories.push(root);
   const distDirectory = join(root, "dist");
@@ -43,6 +50,7 @@ async function fixtureServer(): Promise<LocalEditorServer> {
     distDirectory,
     generatedPublicDirectory,
     port: 0,
+    applicationUpdateHandler,
   });
   localServers.push(server);
   return server;
@@ -108,6 +116,75 @@ describe("production local editor server", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({ id: "sample" });
+  });
+
+  it("reports and applies one update through the loopback-only endpoint", async () => {
+    const applied = vi.fn();
+    const commands: Array<{ command: string; args: readonly string[] }> = [];
+    let releaseUpdate: (() => void) | undefined;
+    const updateGate = new Promise<void>((resolvePromise) => {
+      releaseUpdate = resolvePromise;
+    });
+    const command: ApplicationUpdateCommand = async (executable, args) => {
+      commands.push({ command: executable, args });
+      if (executable === "/bin/sh") await updateGate;
+      const text = args.join(" ");
+      if (text === "branch --show-current") return { stdout: "main\n", stderr: "" };
+      if (text === "remote get-url origin") {
+        return {
+          stdout: "https://github.com/MateSteinforth/LOO-UME.git\n",
+          stderr: "",
+        };
+      }
+      if (text === "rev-parse --verify HEAD") return { stdout: "1111\n", stderr: "" };
+      if (text === "rev-parse --verify origin/main") return { stdout: "2222\n", stderr: "" };
+      if (text === "status --porcelain --untracked-files=normal") {
+        return { stdout: "?? saved-project.loo.zip\n", stderr: "" };
+      }
+      return { stdout: "", stderr: "" };
+    };
+    const handler = createApplicationUpdateHandler({
+      rootDirectory: process.cwd(),
+      command,
+      onUpdateApplied: applied,
+    });
+    const server = await fixtureServer(handler);
+    const status = await fetch(`${server.url}api/application-update`);
+    expect(status.status).toBe(200);
+    expect(await status.json()).toMatchObject({
+      schemaVersion: "1.0.0",
+      updateAvailable: true,
+      canApply: true,
+      localChanges: true,
+    });
+
+    const blocked = await fetch(`${server.url}api/application-update`, {
+      method: "POST",
+      headers: { Origin: "https://example.invalid" },
+    });
+    expect(blocked.status).toBe(403);
+    const appliedRequest = fetch(`${server.url}api/application-update`, {
+      method: "POST",
+      headers: { Origin: server.url.slice(0, -1) },
+    });
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 20));
+    const concurrent = await fetch(`${server.url}api/application-update`, {
+      method: "POST",
+      headers: { Origin: server.url.slice(0, -1) },
+    });
+    expect(concurrent.status).toBe(409);
+    expect(await concurrent.json()).toMatchObject({
+      error: "A LOO/UME update is already running.",
+    });
+    releaseUpdate?.();
+    const appliedResponse = await appliedRequest;
+    expect(appliedResponse.status).toBe(200);
+    expect(await appliedResponse.json()).toMatchObject({ ok: true });
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 150));
+    expect(applied).toHaveBeenCalledOnce();
+    expect(commands.some(({ command: executable, args }) =>
+      executable === "/bin/sh" && args[0]?.endsWith("bootstrap-update-apply.sh")
+    )).toBe(true);
   });
 
   it("blocks non-loopback Host values and unsafe encoded paths", async () => {

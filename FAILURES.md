@@ -2001,3 +2001,26 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** UI-029 controller-pose runtime, wiring, renderer, portable
   reload, and focused browser regressions.
 - **Status:** Resolved by UI-029.
+
+### F-109 — Requiring a clean checkout blocked normal application updates
+
+- **Date:** 2026-08-29
+- **Context:** Updating a local LOO/UME installation that also contains saved
+  project files or deliberate local edits.
+- **Symptom:** `./bootstrap.sh update` stopped at the clean-checkout guard even
+  when the operator only wanted new application functionality without losing
+  local work.
+- **Cause:** INSTALL-014 treated every tracked or untracked path as unsafe
+  update state instead of separating fast-forward history safety from local
+  working-tree preservation.
+- **Correction:** Keep the main-branch, canonical-origin, and fast-forward
+  gates. Temporarily stash tracked and untracked changes, fast-forward, then
+  restore them before launch. Leave ignored `projects/local/` ZIPs in place.
+  Stop before launch and retain the recovery stash if restoration conflicts.
+- **Prevention:** An application updater must preserve user data independently
+  of source history checks. Never discard, reset, or overwrite local files to
+  make an update clean.
+- **Evidence:** INSTALL-015 executable temporary-repository regression covers
+  tracked edits, untracked ZIPs, ignored library ZIPs, fast-forward, exact
+  restoration, and the conflict recovery path.
+- **Status:** Resolved by INSTALL-015.

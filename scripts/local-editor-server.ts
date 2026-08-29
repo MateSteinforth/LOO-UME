@@ -1,4 +1,4 @@
-import { createReadStream } from "node:fs";
+import { closeSync, createReadStream, mkdirSync, openSync } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import {
@@ -31,6 +31,10 @@ import {
   createArtNetPreviewHandler,
   type ArtNetPreviewHandler,
 } from "./artnet-preview-handler.ts";
+import {
+  createApplicationUpdateHandler,
+  type ApplicationUpdateHandler,
+} from "./application-update-handler.ts";
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = Object.freeze({
   ".css": "text/css; charset=utf-8",
@@ -60,6 +64,8 @@ export interface LocalEditorServerOptions {
   deviceHandler?: Esp32DeviceHandler;
   projectLibraryHandler?: ProjectLibraryHandler;
   artNetPreviewHandler?: ArtNetPreviewHandler;
+  applicationUpdateHandler?: ApplicationUpdateHandler;
+  onApplicationUpdateApplied?: () => void;
 }
 
 export interface LocalEditorServer {
@@ -69,6 +75,7 @@ export interface LocalEditorServer {
   readonly url: string;
   readonly pipelineHandler: EditorPipelineHandler;
   readonly projectLibraryHandler: ProjectLibraryHandler;
+  readonly applicationUpdateHandler: ApplicationUpdateHandler;
   close(gracePeriodMs?: number): Promise<void>;
 }
 
@@ -199,6 +206,11 @@ export async function startLocalEditorServer(
     createProjectLibraryHandler({ rootDirectory });
   const artNetPreviewHandler = options.artNetPreviewHandler ??
     createArtNetPreviewHandler();
+  const applicationUpdateHandler = options.applicationUpdateHandler ??
+    createApplicationUpdateHandler({
+      rootDirectory,
+      onUpdateApplied: options.onApplicationUpdateApplied,
+    });
   const sockets = new Set<Socket>();
   const server = createServer((request, response) => {
     void (async () => {
@@ -210,6 +222,7 @@ export async function startLocalEditorServer(
       if (await firmwareHandler.handle(request, response)) return;
       if (await deviceHandler.handle(request, response)) return;
       if (await artNetPreviewHandler.handle(request, response)) return;
+      if (await applicationUpdateHandler.handle(request, response)) return;
       if (await pipelineHandler.handle(request, response)) return;
       await serveStatic(request, response, distDirectory, generatedPublicDirectory);
     })().catch((error) => {
@@ -240,6 +253,7 @@ export async function startLocalEditorServer(
     url: `http://${host}:${address.port}/`,
     pipelineHandler,
     projectLibraryHandler,
+    applicationUpdateHandler,
     close(gracePeriodMs = 2_000) {
       if (closing) return closing;
       closing = (async () => {
@@ -305,8 +319,24 @@ async function main(): Promise<void> {
   if (argumentsList.length > (openBrowser ? 1 : 0)) {
     throw new Error("Use scripts/local-editor-server.ts [--open-browser].");
   }
-  const localServer = await startLocalEditorServer({
+  let localServer: LocalEditorServer;
+  const restartAfterUpdate = (): void => {
+    void localServer.close().then(() => {
+      const toolsDirectory = resolve(process.cwd(), ".tools");
+      mkdirSync(toolsDirectory, { recursive: true, mode: 0o700 });
+      const log = openSync(resolve(toolsDirectory, "application-update.log"), "a", 0o600);
+      const child = spawn(
+        "/bin/sh",
+        [resolve(process.cwd(), "bootstrap.sh"), "launch"],
+        { cwd: process.cwd(), detached: true, stdio: ["ignore", log, log] },
+      );
+      child.unref();
+      closeSync(log);
+    });
+  };
+  localServer = await startLocalEditorServer({
     port: parsePort(process.env.ORBITAL_LAB_PORT),
+    onApplicationUpdateApplied: restartAfterUpdate,
   });
   console.log(`LOO/UME is available at ${localServer.url}`);
   if (openBrowser) {

@@ -303,3 +303,16 @@ uses the deterministic suggested position and world orientation. Clicking the
 controller body or label selects it and attaches translation and rotation
 controls. The saved pose controls the rendered controller, output pins, cable
 routes, and wiring optimization costs.
+
+## D35 — Preserve local work across application updates
+
+The local updater keeps the existing main-branch, canonical-origin, and
+fast-forward-only trust boundary. A dirty working tree is not itself unsafe:
+the updater temporarily stores tracked and untracked changes, applies the
+verified application update, then restores those changes before launch.
+Ignored project-library ZIPs remain in place. A restore conflict stops before
+launch and retains the recovery stash.
+
+The production loopback server can check `origin/main` and expose the same
+operation through an Update button. Update mutation requires a same-origin
+POST to the loopback server. LAN preview and static hosting cannot apply it.

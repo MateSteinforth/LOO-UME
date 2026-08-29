@@ -47,26 +47,27 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · UI-029` Select and transform the controller in the 3D view
+### `P1 · INSTALL-015` Preserve local work during application updates
 
-- Owner: `codex/ui-029-controller-gizmo` in `/tmp/loo-ume-ui-029`.
-- Scope: replace numeric controller positioning as the primary workflow with a
-  selectable rendered controller and the same free 6DOF transform controls used
-  for panels.
-- Acceptance: clicking the controller selects it, stops panel selection, and
-  shows translation and rotation controls. A completed transform saves an exact
-  backward-compatible controller pose; its body, labels, output pins, cables,
-  and wiring-cost geometry use that pose after save and reload.
-- Acceptance: legacy projects with no position or orientation retain the same
-  deterministic suggested controller layout. **Use suggested position** removes
-  the authored pose. Controller edits invalidate stale route-optimization
-  evidence, but do not change panel poses or invalidate printable mechanics.
-- Verification: 72 focused runtime/schema, wiring geometry, renderer/controller,
-  and save/reload tests passed; TypeScript and production build passed; the
-  focused Chromium journey passed 2/2; independent review found no blocker.
-- Likely conflicts: Schema 2 wiring controller, controller geometry,
-  `SurfacePlacementController`, `SphereRenderer`, Mapping UI, browser wiring
-  journey, architecture/decision/failure notes.
+- Owner: `codex/install-015-preserve-projects` in
+  `/tmp/loo-ume-install-015`.
+- Scope: let the production UI report and apply an available update, and let
+  `./bootstrap.sh update` provide the same operation from the shell while
+  preserving tracked and untracked local work, including project ZIPs.
+- Acceptance: update fetches and verifies the same canonical fast-forward
+  boundary, temporarily stores local changes, applies the fast-forward, then
+  restores the exact local changes before launch. Ignored `projects/local/`
+  files stay in place. A restore conflict stops before launch, retains the
+  recovery stash, and reports the required manual action.
+- Acceptance: the loopback production UI shows an update notice only when
+  `origin/main` is ahead, applies the same guarded update from one button, then
+  restarts and reloads the local application. Non-loopback and cross-origin
+  update requests fail closed.
+- Verification: shell syntax and TypeScript passed; the desktop build passed;
+  15 focused bootstrap, update-guard, and local-server tests passed; independent
+  review found no remaining blocker.
+- Likely conflicts: bootstrap update guard/orchestration, bootstrap tests,
+  launch/update documentation, and failure guidance.
 
 ## In Progress
 
@@ -128,6 +129,9 @@ No tasks.
 
 ## Done
 
+- `UI-029`: integrated selectable 6DOF controller pose editing, shared
+  controller-pin geometry, safe optimizer-evidence invalidation, and reset to
+  deterministic suggested placement on 2026-08-29.
 - `INSTALL-014`: integrated one-command `./bootstrap.sh launch` and guarded
   `./bootstrap.sh update` on 2026-08-29. Launch binds reusable builds to the
   target, clean commit, runtime packages, and complete production-output hash

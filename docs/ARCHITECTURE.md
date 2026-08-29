@@ -99,9 +99,13 @@ the repository, then proves the production desktop and Manifold path.
 `bootstrap.sh launch` reuses that proof only when the target tuple, clean
 commit, required runtime packages, and complete hashed `dist/` tree match its
 private receipt. It starts the loopback server and opens the ready URL when the
-host has a graphical browser opener. `bootstrap.sh update` accepts only clean,
-fast-forward-only `main` updates from the canonical HTTPS `origin`, then
-executes the updated launcher.
+host has a graphical browser opener. `bootstrap.sh update` accepts only
+fast-forward-only `main` updates from the canonical HTTPS `origin`. It
+temporarily stashes tracked and untracked local changes, applies the verified
+fast-forward, restores those changes, and then executes the updated launcher.
+Ignored local project-library ZIPs never move. A restore conflict stops before
+launch and retains the recovery stash. The production UI uses the same boundary
+to report and apply available updates.
 
 ## Geometry and fabrication boundary
 

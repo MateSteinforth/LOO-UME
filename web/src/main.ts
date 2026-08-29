@@ -170,6 +170,13 @@ app.innerHTML = `
       </section>
 
       <aside class="control-panel">
+        <section id="application-update-notice" class="application-update-notice" hidden aria-live="polite">
+          <div>
+            <strong>Update available</strong>
+            <small id="application-update-message">A new LOO/UME version is ready.</small>
+          </div>
+          <button id="apply-application-update" class="editor-button" type="button">Update</button>
+        </section>
         <section class="control-section project-toolbar">
           <div class="section-heading">
             <span>Project</span>
@@ -517,6 +524,10 @@ const query = <T extends Element>(selector: string): T => {
 };
 
 const viewerElement = query<HTMLDivElement>("#viewer");
+const applicationUpdateNotice = query<HTMLElement>("#application-update-notice");
+const applicationUpdateMessage = query<HTMLElement>("#application-update-message");
+const applyApplicationUpdateButton =
+  query<HTMLButtonElement>("#apply-application-update");
 const effectSelect = query<HTMLSelectElement>("#effect");
 const paletteSelect = query<HTMLSelectElement>("#palette");
 const previousEffectButton = query<HTMLButtonElement>("#previous-effect");
@@ -670,6 +681,76 @@ pipelineStatus.textContent = pipelineAvailabilityMessage;
 
 let renderer: SphereRenderer | undefined;
 let animationFrame = 0;
+
+interface ApplicationUpdateStatus {
+  updateAvailable: boolean;
+  canApply: boolean;
+  localChanges: boolean;
+  message: string;
+}
+
+async function loadApplicationUpdateStatus(): Promise<ApplicationUpdateStatus | null> {
+  try {
+    const response = await fetch("./api/application-update", { cache: "no-store" });
+    if (!response.ok) return null;
+    return await response.json() as ApplicationUpdateStatus;
+  } catch {
+    return null;
+  }
+}
+
+async function showAvailableApplicationUpdate(): Promise<void> {
+  const status = await loadApplicationUpdateStatus();
+  if (!status?.updateAvailable) return;
+  applicationUpdateNotice.hidden = false;
+  applicationUpdateMessage.textContent = status.message;
+  applyApplicationUpdateButton.disabled = !status.canApply;
+  if (!status.canApply) {
+    applyApplicationUpdateButton.title = "Run ./bootstrap.sh update in the installation checkout.";
+  }
+}
+
+async function waitForUpdatedApplication(): Promise<void> {
+  await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 2_000));
+  for (let attempt = 0; attempt < 300; attempt += 1) {
+    try {
+      const response = await fetch(`./?update-probe=${Date.now()}`, {
+        cache: "no-store",
+      });
+      if (response.ok) {
+        window.location.reload();
+        return;
+      }
+    } catch {
+      // The old local server is stopping or the updated build is starting.
+    }
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 1_000));
+  }
+  applicationUpdateMessage.textContent =
+    "The update did not restart automatically. Run ./bootstrap.sh launch.";
+  applyApplicationUpdateButton.disabled = false;
+}
+
+applyApplicationUpdateButton.addEventListener("click", () => {
+  void (async () => {
+    applyApplicationUpdateButton.disabled = true;
+    applicationUpdateMessage.textContent =
+      "Preserving local projects and updating LOO/UME…";
+    const response = await fetch("./api/application-update", { method: "POST" });
+    const result = await response.json() as { message?: string; error?: string };
+    if (!response.ok) throw new Error(result.error ?? "Application update failed.");
+    applicationUpdateMessage.textContent = result.message ??
+      "LOO/UME updated. Restarting…";
+    await waitForUpdatedApplication();
+  })().catch((error) => {
+    applicationUpdateMessage.textContent = error instanceof Error
+      ? error.message
+      : String(error);
+    applyApplicationUpdateButton.disabled = false;
+  });
+});
+
+void showAvailableApplicationUpdate();
 
 async function start(): Promise<void> {
   try {

@@ -46,7 +46,7 @@ node_executable="$node_root/bin/node"
 npm_cli="$node_root/lib/node_modules/npm/bin/npm-cli.js"
 build_receipt="$repository_root/.tools/desktop-build-receipt.json"
 build_receipt_tool="$repository_root/scripts/desktop-build-receipt.mjs"
-update_guard="$repository_root/scripts/bootstrap-update-guard.sh"
+update_apply="$repository_root/scripts/bootstrap-update-apply.sh"
 
 require_git() {
   if [ ! -x /usr/bin/git ]; then
@@ -129,15 +129,7 @@ case "${1-}" in
       exit 2
     fi
     require_git
-    cd "$repository_root"
-    . "$update_guard"
-    verify_update_checkout \
-      "$repository_root" \
-      /usr/bin/git \
-      "https://github.com/MateSteinforth/LOO-UME.git"
-    /usr/bin/git fetch --prune origin main
-    verify_update_fast_forward "$repository_root" /usr/bin/git
-    /usr/bin/git merge --ff-only origin/main
+    "$update_apply"
     exec "$repository_root/bootstrap.sh" launch
     ;;
   desktop)

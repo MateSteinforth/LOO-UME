@@ -30,16 +30,23 @@ does not need administrator access or a global Node.js installation. The
 bootstrap accepts only pinned official archives with
 exact size, SHA-256, and extracted-tree identities.
 
-To fast-forward a clean `main` checkout from the approved GitHub repository and
-launch the updated application, use:
+To fast-forward `main` from the approved GitHub repository and launch the
+updated application, use:
 
 ```bash
 ./bootstrap.sh update
 ```
 
-Update stops without changing files if the branch, remote, working tree, or
-history is not safe for a fast-forward. Use `./bootstrap.sh npm <arguments>` for
-other npm commands with the managed runtime.
+Update temporarily stores tracked and untracked local changes, applies the
+verified fast-forward, and restores those files before launch. Ignored project
+ZIPs under `projects/local/` remain in place. If a local source edit conflicts
+with the new version, update stops before launch and retains the recovery stash;
+resolve the reported Git conflict manually. Update still refuses a non-main
+branch, an unapproved remote, or divergent history. Use
+`./bootstrap.sh npm <arguments>` for other npm commands with the managed runtime.
+The loopback desktop UI also checks for a newer `origin/main` revision. When
+one exists, its **Update** notice applies this same guarded operation and
+restarts the local application.
 
 The local production server listens on `127.0.0.1:4173` by default. Use
 `ORBITAL_LAB_PORT` to select another port.

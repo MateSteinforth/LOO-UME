@@ -73,9 +73,11 @@ describe("clean-checkout bootstrap", () => {
     expect(bootstrap).toContain("launch)");
     expect(bootstrap).toContain("run start:desktop -- --open-browser");
     expect(bootstrap).toContain("update)");
-    expect(bootstrap).toContain("verify_update_checkout");
-    expect(bootstrap).toContain("verify_update_fast_forward");
-    expect(bootstrap).toContain("merge --ff-only origin/main");
+    expect(bootstrap).toContain("bootstrap-update-apply.sh");
+    const update = readFileSync("scripts/bootstrap-update-apply.sh", "utf8");
+    expect(update).toContain("verify_update_checkout");
+    expect(update).toContain("verify_update_fast_forward");
+    expect(update).toContain("apply_update_with_preserved_changes");
   });
 
   it("runs the same restricted-PATH setup on Linux and native macOS CI", () => {
