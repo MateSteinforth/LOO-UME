@@ -41,16 +41,17 @@ export interface FreePanelTransform {
   };
 }
 
+export type FreeControllerTransform = Omit<FreePanelTransform, "panelId">;
+
 export type PanelTransformMode = "surface" | "free-3d";
 
 function tuple(value: THREE.Vector3): Vector3Tuple {
   return [value.x, value.y, value.z];
 }
 
-export function freePanelTransformFromObject(
-  panelId: string,
+function freeObjectTransformFromObject(
   object: THREE.Object3D,
-): FreePanelTransform {
+): FreeControllerTransform {
   object.updateMatrixWorld(true);
   const position = new THREE.Vector3();
   const quaternion = new THREE.Quaternion();
@@ -60,7 +61,6 @@ export function freePanelTransformFromObject(
   const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(quaternion).normalize();
   const yAxis = new THREE.Vector3().crossVectors(normal, xAxis).normalize();
   return {
-    panelId,
     position: tuple(position),
     orientation: {
       xAxis: tuple(xAxis),
@@ -70,11 +70,40 @@ export function freePanelTransformFromObject(
   };
 }
 
-function freePanelTransformsDiffer(
-  first: FreePanelTransform,
-  second: FreePanelTransform,
+export function freePanelTransformFromObject(
+  panelId: string,
+  object: THREE.Object3D,
+): FreePanelTransform {
+  return { panelId, ...freeObjectTransformFromObject(object) };
+}
+
+export function freeControllerTransformFromObject(
+  object: THREE.Object3D,
+): FreeControllerTransform {
+  return freeObjectTransformFromObject(object);
+}
+
+export function isObjectEffectivelyVisible(object: THREE.Object3D): boolean {
+  for (let current: THREE.Object3D | null = object; current; current = current.parent) {
+    if (!current.visible) return false;
+  }
+  return true;
+}
+
+export function nearestEditorTarget(
+  controllerHit: Pick<THREE.Intersection, "distance"> | undefined,
+  panelHit: Pick<THREE.Intersection, "distance"> | undefined,
+): "controller" | "panel" | null {
+  if (!controllerHit) return panelHit ? "panel" : null;
+  if (!panelHit) return "controller";
+  return controllerHit.distance <= panelHit.distance ? "controller" : "panel";
+}
+
+function freeTransformsDiffer(
+  first: FreeControllerTransform,
+  second: FreeControllerTransform,
 ): boolean {
-  const values = (transform: FreePanelTransform): number[] => [
+  const values = (transform: FreeControllerTransform): number[] => [
     ...transform.position,
     ...transform.orientation.xAxis,
     ...transform.orientation.yAxis,
@@ -174,6 +203,9 @@ export class SurfacePlacementController {
   private readonly translateHandles: THREE.Object3D[] = [];
   private readonly rotateHandles: THREE.Object3D[] = [];
   private readonly panelTargets = new Map<string, THREE.Mesh>();
+  private controllerTarget: THREE.Object3D | null = null;
+  private controllerLayerVisible = true;
+  private controllerSelected = false;
   private surface: THREE.Mesh | null = null;
   private selectedPanelId: string | null = null;
   private draggingPanelId: string | null = null;
@@ -203,17 +235,19 @@ export class SurfacePlacementController {
   private attachmentSurface: "design-surface" | "mechanical-shell" =
     "design-surface";
   private normalOffset = 0.4;
-  private transformStart: FreePanelTransform | null = null;
+  private transformStart: FreeControllerTransform | null = null;
   private activeTransformControls: TransformControls | null = null;
   private transformMode: PanelTransformMode = "surface";
   private interactionEnabled = true;
 
   onSelectionChange?: (panelId: string | null) => void;
+  onControllerSelectionChange?: (selected: boolean) => void;
   onPlacementCommit?: (placement: SurfacePanelPlacement) => void;
   onLocalTranslationCommit?: (panelId: string, deltaX: number, deltaY: number) => void;
   onAddPanelCommit?: (placement: SurfacePlacement) => void;
   onRotationCommit?: (panelId: string, degrees: number) => void;
   onFreeTransformCommit?: (transform: FreePanelTransform) => void;
+  onControllerTransformCommit?: (transform: FreeControllerTransform) => void;
 
   onDeletePanelRequest?: (panelId: string) => void;
   constructor(
@@ -348,6 +382,19 @@ export class SurfacePlacementController {
     this.updateGizmo();
   }
 
+  setControllerTarget(target: THREE.Object3D | null): void {
+    if (this.controllerTarget === target) return;
+    if (this.controllerSelected) this.select(null);
+    this.controllerTarget = target;
+    this.updateGizmo();
+  }
+
+  setControllerLayerVisible(visible: boolean): void {
+    this.controllerLayerVisible = visible;
+    if (!visible && this.controllerSelected) this.select(null);
+    else this.updateGizmo();
+  }
+
   getSurfaceBounds(): THREE.Sphere | null {
     if (!this.surface) return null;
     this.surface.geometry.computeBoundingSphere();
@@ -361,10 +408,16 @@ export class SurfacePlacementController {
     this.select(panelId);
   }
 
+  selectController(): void {
+    if (!this.interactionEnabled || !this.controllerTarget) return;
+    this.select(null, true);
+  }
+
   dispose(): void {
     this.disconnectPointerListeners();
     this.setSurface(null);
     this.setPanels([], 0.8);
+    this.setControllerTarget(null);
     this.translateControls.removeEventListener("mouseDown", this.translateMouseDown);
     this.translateControls.removeEventListener("objectChange", this.transformObjectChange);
     this.translateControls.removeEventListener("mouseUp", this.translateMouseUp);
@@ -390,23 +443,24 @@ export class SurfacePlacementController {
   };
 
   private beginFreeTransform(control: TransformControls): void {
-    if (this.activeTransformControls || !this.selectedPanelId) return;
-    const target = this.panelTargets.get(this.selectedPanelId);
+    if (this.activeTransformControls) return;
+    const target = this.selectedTransformTarget();
     if (!target) return;
     this.activeTransformControls = control;
-    this.transformStart = freePanelTransformFromObject(this.selectedPanelId, target);
+    this.transformStart = freeControllerTransformFromObject(target);
     this.translateControls.enabled = control === this.translateControls;
     this.rotateControls.enabled = control === this.rotateControls;
     this.controls.enabled = false;
   }
 
   private readonly transformObjectChange = (): void => {
-    if (!this.selectedPanelId) return;
-    const target = this.panelTargets.get(this.selectedPanelId);
+    const target = this.selectedTransformTarget();
     if (!target) return;
     target.updateMatrix();
-    this.gizmo.matrix.copy(target.matrix);
-    this.gizmo.updateMatrixWorld(true);
+    if (!this.controllerSelected) {
+      this.gizmo.matrix.copy(target.matrix);
+      this.gizmo.updateMatrixWorld(true);
+    }
   };
 
   private readonly translateMouseUp = (): void => {
@@ -424,13 +478,23 @@ export class SurfacePlacementController {
     this.updateTransformControlAvailability();
     const start = this.transformStart;
     this.transformStart = null;
-    if (!start || !this.selectedPanelId) return;
-    const target = this.panelTargets.get(this.selectedPanelId);
+    if (!start) return;
+    const target = this.selectedTransformTarget();
     if (!target) return;
-    const transform = freePanelTransformFromObject(this.selectedPanelId, target);
-    if (freePanelTransformsDiffer(start, transform)) {
-      this.onFreeTransformCommit?.(transform);
+    const transform = freeControllerTransformFromObject(target);
+    if (!freeTransformsDiffer(start, transform)) return;
+    if (this.controllerSelected) {
+      this.onControllerTransformCommit?.(transform);
+    } else if (this.selectedPanelId) {
+      this.onFreeTransformCommit?.({ panelId: this.selectedPanelId, ...transform });
     }
+  }
+
+  private selectedTransformTarget(): THREE.Object3D | null {
+    if (this.controllerSelected) return this.controllerTarget;
+    return this.selectedPanelId
+      ? this.panelTargets.get(this.selectedPanelId) ?? null
+      : null;
   }
 
   private readonly pointerDown = (event: PointerEvent): void => {
@@ -459,12 +523,24 @@ export class SurfacePlacementController {
       return;
     }
 
+    const controllerHit = this.controllerLayerVisible && this.controllerTarget &&
+      isObjectEffectivelyVisible(this.controllerTarget)
+      ? this.raycaster.intersectObject(this.controllerTarget, true)[0]
+      : undefined;
     const panelHit = this.raycaster.intersectObjects(
-      [...this.panelTargets.values()],
+      [...this.panelTargets.values()].filter(isObjectEffectivelyVisible),
       false,
     )[0];
+    const target = nearestEditorTarget(controllerHit, panelHit);
+    if (target === "controller") {
+      this.select(null, true);
+      this.selectingPointerId = event.pointerId;
+      this.capturePointer(event);
+      return;
+    }
+
     const panelId = panelHit?.object.userData.panelId as string | undefined;
-    if (panelId && this.capabilities.canSelectPanels) {
+    if (target === "panel" && panelId && this.capabilities.canSelectPanels) {
       this.select(panelId);
       this.selectingPointerId = event.pointerId;
       this.capturePointer(event);
@@ -834,12 +910,15 @@ export class SurfacePlacementController {
     return result;
   }
 
-  private select(panelId: string | null): void {
+  private select(panelId: string | null, controller = false): void {
+    const controllerSelected = controller && this.controllerTarget !== null;
     this.selectedPanelId = panelId;
+    this.controllerSelected = controllerSelected;
     this.updateHighlight();
     this.updateGizmo();
     this.applySelectionFocus();
     this.onSelectionChange?.(panelId);
+    this.onControllerSelectionChange?.(controllerSelected);
   }
 
   private updateHighlight(): void {
@@ -847,7 +926,8 @@ export class SurfacePlacementController {
       const material = target.material as THREE.MeshBasicMaterial;
       material.opacity = panelId === this.selectedPanelId ? 0.3 : 0.025;
       material.color.set(panelId === this.selectedPanelId ? 0xffb35c : 0x6ef8ee);
-      if (this.selectedPanelId && panelId !== this.selectedPanelId) {
+      if ((this.selectedPanelId || this.controllerSelected) &&
+        panelId !== this.selectedPanelId) {
         const grey = focusedGrey(material.color);
         material.color.setRGB(grey.r, grey.g, grey.b);
       }
@@ -866,21 +946,22 @@ export class SurfacePlacementController {
       this.rotateHelper.visible = false;
       return;
     }
-    const target = this.selectedPanelId
-      ? this.panelTargets.get(this.selectedPanelId)
-      : undefined;
+    const target = this.selectedTransformTarget();
     if (!target) {
       this.gizmo.visible = false;
       this.translateControls.detach();
       this.rotateControls.detach();
       return;
     }
-    target.geometry.computeBoundingBox();
-    const size = target.geometry.boundingBox?.getSize(new THREE.Vector3()) ??
+    const targetGeometry = "geometry" in target
+      ? (target as THREE.Mesh).geometry
+      : undefined;
+    targetGeometry?.computeBoundingBox();
+    const size = targetGeometry?.boundingBox?.getSize(new THREE.Vector3()) ??
       new THREE.Vector3(66, 65, 1);
     const lift = size.z / 2 + 2;
 
-    if (this.transformMode === "surface") {
+    if (this.transformMode === "surface" && !this.controllerSelected) {
       const translateMaterial = new THREE.MeshBasicMaterial({
         color: 0x42e8df,
         transparent: true,
@@ -975,11 +1056,13 @@ export class SurfacePlacementController {
       this.gizmo.add(close);
     }
 
-    this.gizmo.matrix.copy(target.matrix);
-    this.gizmo.matrixAutoUpdate = false;
-    this.gizmo.visible = true;
-    this.gizmo.updateMatrixWorld(true);
-    if (this.transformMode === "free-3d") {
+    this.gizmo.visible = !this.controllerSelected;
+    if (!this.controllerSelected) {
+      this.gizmo.matrix.copy(target.matrix);
+      this.gizmo.matrixAutoUpdate = false;
+      this.gizmo.updateMatrixWorld(true);
+    }
+    if (this.transformMode === "free-3d" || this.controllerSelected) {
       this.updateTransformControlAvailability();
       this.translateControls.attach(target);
       this.rotateControls.attach(target);
@@ -988,6 +1071,11 @@ export class SurfacePlacementController {
 
   private updateTransformControlAvailability(): void {
     if (this.activeTransformControls) return;
+    if (this.controllerSelected) {
+      this.translateControls.enabled = true;
+      this.rotateControls.enabled = true;
+      return;
+    }
     this.translateControls.enabled = this.transformMode === "free-3d" &&
       (this.capabilities.canTranslateOnActiveSurface ||
         this.capabilities.canTranslateInPanelPlane);
@@ -1020,7 +1108,7 @@ export class SurfacePlacementController {
     if (this.surface) {
       const material = this.surface.material as THREE.MeshBasicMaterial;
       const base = new THREE.Color(0x376478);
-      if (this.selectedPanelId) {
+      if (this.selectedPanelId || this.controllerSelected) {
         const grey = focusedGrey(base);
         material.color.setRGB(grey.r, grey.g, grey.b);
       } else {

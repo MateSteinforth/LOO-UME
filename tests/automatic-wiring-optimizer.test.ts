@@ -238,6 +238,23 @@ describe("automatic wiring optimizer", () => {
     )).toBeCloseTo(optimized.estimatedCableLengthMm, 10);
   });
 
+  it("prices the same rotated controller-pin frame that the renderer uses", () => {
+    const loaded = load();
+    const source = identityTransforms(loaded.definition);
+    source.wiring.controller.position = [40, 90, 20];
+    source.wiring.controller.orientation = {
+      xAxis: [0, 1, 0],
+      yAxis: [-1, 0, 0],
+      normal: [0, 0, 1],
+    };
+    const optimized = optimizeAutomaticWiring(source, loaded.profile);
+    expect(renderedCableLength(
+      optimized.definition,
+      loaded.profile,
+      THREE_PANEL_SOURCE,
+    )).toBeCloseTo(optimized.estimatedCableLengthMm, 10);
+  });
+
   it("uses explicit pose-local DIN and DOUT anchors during optimization", () => {
     const loaded = load();
     const source = identityTransforms(loaded.definition);

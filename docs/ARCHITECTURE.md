@@ -40,7 +40,11 @@ edit marks derived mechanics stale but does not stop those functions.
    evidence remains labelled provisional through load and portable export.
 3. `optimizeAutomaticWiring()` can write a deterministic balanced route, GPIO
    set, and physical local-Z panel orientation. `createProvisionalWiringPreview()`
-   uses that saved route or creates a labelled legacy draft suggestion.
+   uses that saved route or creates a labelled legacy draft suggestion. The
+   controller keeps an optional right-handed world pose. Its local output-pin
+   offsets rotate with that pose, so preview cables and route-cost geometry use
+   the same controller frame. Editing that pose invalidates old route-optimized
+   installed-address evidence without invalidating printable panel mechanics.
 4. `createHardwareMappingContract()` compiles physical indices and the WLED
    ledmap from the same current project.
 5. `createMadMapperFixtureBundle()` derives the supported SVG fixture atlas and
@@ -153,8 +157,10 @@ keeps referenced printable assets
 visible, and does not mutate the user-controlled camera. Cable curves use a
 control point inside the endpoint radius relative to the current sculpture
 center. The
-controller is a schematic near-top placement derived from the complete current
-route; it is not a second saved wiring authority.
+controller defaults to a schematic near-top placement derived from the complete
+current route. The operator can select its body or label and save an exact 6DOF
+pose with the standard transform controls. This pose moves the body, label,
+pins, and cable starts; it is not a second saved wiring-route authority.
 The populated 41-panel Schema 2 project is the browser default. The Project
 Library is the single project-file surface: it displays every tracked demo and
 local ZIP as a thumbnail card and contains JSON/ZIP/folder open plus

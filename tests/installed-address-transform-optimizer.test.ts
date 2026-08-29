@@ -132,6 +132,24 @@ describe("installed address transform optimizer", () => {
     expect(() => parsePanelAssemblyDefinition(source)).not.toThrow();
   });
 
+  it("preserves legacy optimizer fingerprints for position-only controllers", () => {
+    const legacy = loadManual();
+    const originalFingerprint = createInstalledAddressOptimizationFingerprint(
+      legacy,
+      PANEL_PROFILE,
+    );
+    legacy.wiring.controller.position = [120, 80, 45];
+    expect(createInstalledAddressOptimizationFingerprint(
+      legacy,
+      PANEL_PROFILE,
+    )).toBe(originalFingerprint);
+    expect(() => createPanelAssemblyProject(
+      legacy,
+      "sculptures/rhombicosidodecahedron/sculpture.json",
+      PANEL_PROFILE,
+    )).not.toThrow();
+  });
+
   it("keeps route-optimization provenance pairing checks in the JSON parser", () => {
     const missingFingerprint = loadManual();
     delete missingFingerprint.panels[0]!.installedAddressTransform!
@@ -174,6 +192,19 @@ describe("installed address transform optimizer", () => {
     )).toThrow(
       /current optimization fingerprint/,
     );
+
+    const controllerChanged = structuredClone(optimized);
+    controllerChanged.wiring.controller.position = [120, 80, 45];
+    controllerChanged.wiring.controller.orientation = {
+      xAxis: [0, 1, 0],
+      yAxis: [-1, 0, 0],
+      normal: [0, 0, 1],
+    };
+    expect(() => createPanelAssemblyProject(
+      controllerChanged,
+      "sculptures/rhombicosidodecahedron/sculpture.json",
+      PANEL_PROFILE,
+    )).toThrow(/current optimization fingerprint/);
 
     const profileChanged = structuredClone(PANEL_PROFILE);
     profileChanged.dimensions.width += 1;

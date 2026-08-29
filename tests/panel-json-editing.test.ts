@@ -11,12 +11,16 @@ import {
   deletePanel,
   movePanelInLocalPlane,
   rotatePanelAroundLocalZ,
+  setControllerWorldPose,
+  useSuggestedControllerPose,
 } from "../src/sculpture/SculptureEditor.ts";
 import { deriveEditorCapabilities } from "../web/src/EditorCapabilities.ts";
 import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
 import {
   beginPanelPlaneDrag, cancelFreePanelTransform,
-  freePanelTransformFromObject, reconnectFreePanelTransformControls,
+  freeControllerTransformFromObject, freePanelTransformFromObject,
+  isObjectEffectivelyVisible, nearestEditorTarget,
+  reconnectFreePanelTransformControls,
   updatePanelPlaneDrag,
 } from "../web/src/SurfacePlacementController.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
@@ -432,6 +436,90 @@ describe("mechanics-independent panel JSON editing", () => {
     expect(normal.length()).toBeCloseTo(1, 12);
     expect(xAxis.dot(yAxis)).toBeCloseTo(0, 12);
     expect(xAxis.clone().cross(yAxis).distanceTo(normal)).toBeLessThan(1e-12);
+    expect(freeControllerTransformFromObject(object)).toEqual({
+      position: transform.position,
+      orientation: transform.orientation,
+    });
+  });
+
+  it("saves a controller 6DOF pose without changing panels or mechanics", async () => {
+    const definition = await loadManual();
+    definition.wiring.controller.status = "measured";
+    const panels = structuredClone(definition.panels);
+    const mechanics = structuredClone({
+      mechanicalShell: definition.mechanicalShell,
+      generatedMechanics: definition.generatedMechanics,
+      generatedStructure: definition.generatedStructure,
+    });
+    const edited = setControllerWorldPose(definition, {
+      position: [12, -8, 41],
+      orientation: {
+        xAxis: [0, 1, 0],
+        yAxis: [-1, 0, 0],
+        normal: [0, 0, 1],
+      },
+    });
+    expect(edited.wiring.controller).toMatchObject({
+      status: "provisional",
+      position: [12, -8, 41],
+      orientation: {
+        xAxis: [0, 1, 0],
+        yAxis: [-1, 0, 0],
+        normal: [0, 0, 1],
+      },
+    });
+    expect(edited.panels.map((panel) => panel.pose)).toEqual(
+      panels.map((panel) => panel.pose),
+    );
+    expect(edited.wiring.status).toBe("requires-review");
+    expect(edited.calibration.installedPanelOrientation).toBe("provisional");
+    expect(edited.panels.every((panel) =>
+      panel.installedAddressTransform?.selectionMethod === "manual" &&
+      panel.installedAddressTransform.optimizationFingerprint === undefined
+    )).toBe(true);
+    expect({
+      mechanicalShell: edited.mechanicalShell,
+      generatedMechanics: edited.generatedMechanics,
+      generatedStructure: edited.generatedStructure,
+    }).toEqual(mechanics);
+    expect(roundTrip(edited).wiring.controller).toEqual(
+      edited.wiring.controller,
+    );
+  });
+
+  it("uses effective visibility and nearest depth for controller body picking", () => {
+    const hiddenParent = new THREE.Group();
+    const controller = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
+    hiddenParent.add(controller);
+    expect(isObjectEffectivelyVisible(controller)).toBe(true);
+    hiddenParent.visible = false;
+    expect(isObjectEffectivelyVisible(controller)).toBe(false);
+
+    expect(nearestEditorTarget({ distance: 12 }, { distance: 4 })).toBe("panel");
+    expect(nearestEditorTarget({ distance: 3 }, { distance: 9 })).toBe("controller");
+    expect(nearestEditorTarget(undefined, { distance: 9 })).toBe("panel");
+    expect(nearestEditorTarget(undefined, undefined)).toBeNull();
+  });
+
+  it("removes a saved controller pose without retaining optimizer evidence", async () => {
+    const source = await loadManual();
+    source.wiring.controller.status = "measured";
+    source.wiring.controller.position = [12, -8, 41];
+    source.wiring.controller.orientation = {
+      xAxis: [0, 1, 0],
+      yAxis: [-1, 0, 0],
+      normal: [0, 0, 1],
+    };
+    const reset = useSuggestedControllerPose(source);
+    expect(reset.wiring.controller.position).toBeUndefined();
+    expect(reset.wiring.controller.orientation).toBeUndefined();
+    expect(reset.wiring.controller.status).toBe("provisional");
+    expect(reset.wiring.status).toBe("requires-review");
+    expect(reset.panels.every((panel) =>
+      panel.installedAddressTransform?.selectionMethod === "manual" &&
+      panel.installedAddressTransform.optimizationFingerprint === undefined
+    )).toBe(true);
+    expect(() => roundTrip(reset)).not.toThrow();
   });
 
   it("rolls back a cancelled free-transform drag", () => {

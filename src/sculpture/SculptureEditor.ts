@@ -446,12 +446,12 @@ export interface FreePanelPose {
   };
 }
 
-/** Replaces one authoritative pose after a free 3D gizmo transform. */
-export function setPanelWorldPose(
-  source: PanelAssemblyDefinition,
-  panelId: string,
+export type FreeControllerPose = FreePanelPose;
+
+function normalizedFreeWorldPose(
+  label: string,
   pose: FreePanelPose,
-): PanelAssemblyDefinition {
+): FreePanelPose {
   const values = [
     ...pose.position,
     ...pose.orientation.xAxis,
@@ -459,7 +459,7 @@ export function setPanelWorldPose(
     ...pose.orientation.normal,
   ];
   if (values.some((value) => !Number.isFinite(value))) {
-    throw new Error(`Panel ${panelId} free 3D pose must contain only finite values.`);
+    throw new Error(`${label} free 3D pose must contain only finite values.`);
   }
   const normal = normalize([...pose.orientation.normal]);
   const projectedX = subtract(
@@ -467,25 +467,79 @@ export function setPanelWorldPose(
     scale(normal, dot(pose.orientation.xAxis, normal)),
   );
   if (Math.hypot(...projectedX) < 1e-8) {
-    throw new Error(`Panel ${panelId} free 3D pose has a degenerate orientation.`);
+    throw new Error(`${label} free 3D pose has a degenerate orientation.`);
   }
   const xAxis = normalize(projectedX);
   const yAxis = normalize(cross(normal, xAxis));
   const suppliedY = normalize([...pose.orientation.yAxis]);
   if (dot(yAxis, suppliedY) < 0.999) {
-    throw new Error(`Panel ${panelId} free 3D pose must be right-handed.`);
+    throw new Error(`${label} free 3D pose must be right-handed.`);
   }
+  return {
+    position: [...pose.position],
+    orientation: { xAxis, yAxis, normal },
+  };
+}
+
+/** Replaces one authoritative pose after a free 3D gizmo transform. */
+export function setPanelWorldPose(
+  source: PanelAssemblyDefinition,
+  panelId: string,
+  pose: FreePanelPose,
+): PanelAssemblyDefinition {
+  const normalized = normalizedFreeWorldPose(`Panel ${panelId}`, pose);
 
   const definition = structuredClone(source);
   preserveAuthoringBoundary(definition);
   const panel = definition.panels.find((candidate) => candidate.id === panelId);
   if (!panel) throw new Error(`Unknown panel ${panelId}.`);
   panel.pose = {
-    position: [...pose.position],
-    orientation: { xAxis, yAxis, normal },
+    position: normalized.position,
+    orientation: normalized.orientation,
   };
   delete panel.surfaceAttachment;
   markPanelEditConsequences(definition, [panelId]);
+  return definition;
+}
+
+function invalidateControllerDependentWiringEvidence(
+  definition: PanelAssemblyDefinition,
+): void {
+  definition.wiring.controller.status = "provisional";
+  if (hasAuthoredWiringRoutes(definition.wiring)) {
+    definition.wiring.status = "requires-review";
+  }
+  definition.calibration.installedPanelOrientation = "provisional";
+  for (const panel of definition.panels) {
+    const transform = panel.installedAddressTransform;
+    if (transform?.selectionMethod !== "route-optimized") continue;
+    transform.status = "assumed";
+    transform.selectionMethod = "manual";
+    delete transform.optimizationFingerprint;
+  }
+}
+
+/** Saves the schematic controller pose without changing panel mechanics. */
+export function setControllerWorldPose(
+  source: PanelAssemblyDefinition,
+  pose: FreeControllerPose,
+): PanelAssemblyDefinition {
+  const normalized = normalizedFreeWorldPose("Controller", pose);
+  const definition = structuredClone(source);
+  definition.wiring.controller.position = normalized.position;
+  definition.wiring.controller.orientation = normalized.orientation;
+  invalidateControllerDependentWiringEvidence(definition);
+  return definition;
+}
+
+/** Restores deterministic suggested controller geometry and invalidates old route evidence. */
+export function useSuggestedControllerPose(
+  source: PanelAssemblyDefinition,
+): PanelAssemblyDefinition {
+  const definition = structuredClone(source);
+  delete definition.wiring.controller.position;
+  delete definition.wiring.controller.orientation;
+  invalidateControllerDependentWiringEvidence(definition);
   return definition;
 }
 

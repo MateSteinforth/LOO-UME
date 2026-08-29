@@ -233,6 +233,13 @@ export function createInstalledAddressOptimizationFingerprint(
     "id" | "dimensions" | "pixelGrid" | "dataConnectors"
   >,
 ): string {
+  const authoredControllerPose = definition.wiring.controller.position &&
+      definition.wiring.controller.orientation
+    ? {
+      position: definition.wiring.controller.position,
+      orientation: definition.wiring.controller.orientation,
+    }
+    : undefined;
   const source = JSON.stringify({
     coordinateContract: INSTALLED_ADDRESS_COORDINATE_CONTRACT,
     panelProfileReference: definition.panelProfile,
@@ -259,6 +266,7 @@ export function createInstalledAddressOptimizationFingerprint(
       outputIndex: output.outputIndex,
       panelIds: output.panelIds ?? null,
     })),
+    ...(authoredControllerPose ? { controllerPose: authoredControllerPose } : {}),
     panels: [...definition.panels]
       .sort((first, second) => first.id.localeCompare(second.id))
       .map((panel) => ({ id: panel.id, pose: panel.pose })),
@@ -441,9 +449,7 @@ function isFiniteVector3(value: unknown): value is [number, number, number] {
   );
 }
 
-function isValidPanelPose(value: unknown): boolean {
-  if (!isRecord(value) || !isFiniteVector3(value.position)) return false;
-  const orientation = value.orientation;
+function isValidOrientation(orientation: unknown): boolean {
   if (!isRecord(orientation)) return false;
   const xAxis = orientation.xAxis;
   const yAxis = orientation.yAxis;
@@ -467,6 +473,12 @@ function isValidPanelPose(value: unknown): boolean {
     ),
   );
   return orthonormalError <= 1e-6;
+}
+
+function isValidPanelPose(value: unknown): boolean {
+  return isRecord(value) &&
+    isFiniteVector3(value.position) &&
+    isValidOrientation(value.orientation);
 }
 
 function validateAuthoringBoundary(value: unknown): void {
@@ -626,13 +638,20 @@ function validateWiring(
   knownPanelIds: ReadonlySet<string>,
 ): void {
   const controller = record(wiring, "controller");
+  assertOnlyKeys(
+    controller,
+    ["placement", "status", "position", "orientation"],
+    "Wiring controller",
+  );
   if (
     controller.placement !== "near-top" ||
     (controller.status !== "provisional" && controller.status !== "measured") ||
-    (controller.position !== undefined && !isFiniteVector3(controller.position))
+    (controller.position !== undefined && !isFiniteVector3(controller.position)) ||
+    (controller.orientation !== undefined &&
+      (!isValidOrientation(controller.orientation) || controller.position === undefined))
   ) {
     throw new Error(
-      "Panel assemblies require a near-top controller, an optional finite XYZ position, and a known lifecycle state.",
+      "Panel assemblies require a near-top controller, an optional finite right-handed world pose, and a known lifecycle state.",
     );
   }
   if (

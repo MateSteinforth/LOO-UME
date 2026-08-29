@@ -14,6 +14,11 @@ export interface PanelConnectorPoseFrame {
 
 export interface WiringControllerGeometry {
   position: ConnectorVector3;
+  orientation: {
+    xAxis: ConnectorVector3;
+    yAxis: ConnectorVector3;
+    normal: ConnectorVector3;
+  };
   pinPositions: ConnectorVector3[];
 }
 
@@ -62,6 +67,7 @@ export function wiringControllerGeometry(
   panelCentersBehindPcbs: readonly ConnectorVector3[],
   outputCount: number,
   authoredPosition?: ConnectorVector3,
+  authoredOrientation?: WiringControllerGeometry["orientation"],
 ): WiringControllerGeometry {
   if (panelCentersBehindPcbs.length === 0 || outputCount < 1) {
     throw new Error("Controller geometry requires panels and at least one output.");
@@ -78,12 +84,26 @@ export function wiringControllerGeometry(
       maximumY + 32,
       (minimumZ + maximumZ) / 2,
     ];
+  const orientation = authoredOrientation ?? {
+    xAxis: [1, 0, 0] as ConnectorVector3,
+    yAxis: [0, 1, 0] as ConnectorVector3,
+    normal: [0, 0, 1] as ConnectorVector3,
+  };
   return {
     position,
+    orientation: {
+      xAxis: [...orientation.xAxis],
+      yAxis: [...orientation.yAxis],
+      normal: [...orientation.normal],
+    },
     pinPositions: Array.from({ length: outputCount }, (_, index) => [
-      position[0] + (index - (outputCount - 1) / 2) * 9,
-      position[1] - 8,
-      position[2],
+      ...add(
+        position,
+        add(
+          scale(orientation.xAxis, (index - (outputCount - 1) / 2) * 9),
+          scale(orientation.yAxis, -8),
+        ),
+      ),
     ]),
   };
 }

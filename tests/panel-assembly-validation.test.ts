@@ -13,6 +13,19 @@ async function fixture(path: string): Promise<Record<string, any>> {
 }
 
 describe("central Schema 2 runtime validation", () => {
+  it("ships a matching controller-pose JSON Schema", async () => {
+    const schema = await fixture("schemas/panel-assembly.schema.json");
+    const controller = schema.properties.wiring.properties.controller;
+    expect(controller.properties.orientation).toEqual({
+      $ref: "#/$defs/orientation",
+    });
+    expect(controller.dependentRequired).toEqual({ orientation: ["position"] });
+    expect(schema.$defs.vector3.minItems).toBe(3);
+    expect(schema.$defs.orientation.required).toEqual([
+      "xAxis", "yAxis", "normal",
+    ]);
+  });
+
   it.each([
     ["mapping object", (value: Record<string, any>) => { value.mapping = null; }, /mapping must be an object/],
     ["mapping projection", (value: Record<string, any>) => { value.mapping.projection = "cube"; }, /supported projection/],
@@ -20,7 +33,13 @@ describe("central Schema 2 runtime validation", () => {
     ["calibration field", (value: Record<string, any>) => { delete value.calibration.panelPixelOrder; }, /Calibration.*lifecycle/],
     ["calibration value", (value: Record<string, any>) => { value.calibration.physicalChains = "verified"; }, /Calibration.*lifecycle/],
     ["root notes", (value: Record<string, any>) => { value.notes = [false]; }, /Notes.*strings/],
-    ["controller position", (value: Record<string, any>) => { value.wiring.controller.position = [1, 2]; }, /optional finite XYZ position/],
+    ["controller position", (value: Record<string, any>) => { value.wiring.controller.position = [1, 2]; }, /optional finite right-handed world pose/],
+    ["controller orientation", (value: Record<string, any>) => {
+      value.wiring.controller.position = [1, 2, 3];
+      value.wiring.controller.orientation = {
+        xAxis: [1, 0, 0], yAxis: [0, -1, 0], normal: [0, 0, 1],
+      };
+    }, /optional finite right-handed world pose/],
   ])("rejects invalid nested %s", async (_label, mutate, message) => {
     const definition = await fixture("sculptures/pose-only-two-panel/sculpture.json");
     mutate(definition);
@@ -32,6 +51,25 @@ describe("central Schema 2 runtime validation", () => {
     definition.wiring.controller.position = [-120, 80, 45];
     expect(parsePanelAssemblyDefinition(definition).wiring.controller.position)
       .toEqual([-120, 80, 45]);
+  });
+
+  it("accepts an exact right-handed controller pose", async () => {
+    const definition = await fixture("sculptures/pose-only-two-panel/sculpture.json");
+    definition.wiring.controller.position = [-120, 80, 45];
+    definition.wiring.controller.orientation = {
+      xAxis: [0, 1, 0],
+      yAxis: [-1, 0, 0],
+      normal: [0, 0, 1],
+    };
+    expect(parsePanelAssemblyDefinition(definition).wiring.controller)
+      .toMatchObject({
+        position: [-120, 80, 45],
+        orientation: {
+          xAxis: [0, 1, 0],
+          yAxis: [-1, 0, 0],
+          normal: [0, 0, 1],
+        },
+      });
   });
 
   it("rejects repeated boundary corner references during load", async () => {

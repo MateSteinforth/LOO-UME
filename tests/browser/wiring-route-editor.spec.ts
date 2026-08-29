@@ -41,6 +41,16 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
     wiring: {
       status: string;
       routeRevision?: number;
+      controller: {
+        placement: "near-top";
+        status: "provisional" | "measured";
+        position?: [number, number, number];
+        orientation?: {
+          xAxis: [number, number, number];
+          yAxis: [number, number, number];
+          normal: [number, number, number];
+        };
+      };
       outputs: Array<{ panelIds?: string[] }>;
     };
   };
@@ -53,6 +63,15 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
     transform.selectionMethod = "manual";
     delete transform.optimizationFingerprint;
   }
+  project.wiring.controller = {
+    ...project.wiring.controller,
+    position: [-120, 80, 45],
+    orientation: {
+      xAxis: [0, 1, 0],
+      yAxis: [-1, 0, 0],
+      normal: [0, 0, 1],
+    },
+  };
   const projectBytes = Buffer.from(JSON.stringify(project));
   await chooseFile(page, "#open-project-file", {
     name: "rhombicosidodecahedron.json",
@@ -71,17 +90,45 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   );
   await expect(page.locator(".route-panel").first()).toContainText("Controller →");
 
-  await page.getByText("Controller position", { exact: true }).click();
-  await page.locator("#controller-position-x").fill("-120");
-  await page.locator("#controller-position-y").fill("80");
-  await page.locator("#controller-position-z").fill("45");
-  await page.locator("#apply-controller-position").click();
+  await expect(page.locator("#controller-position-x")).toHaveCount(0);
   await expect(page.locator("#controller-position-status")).toContainText(
-    "saved in the project",
+    "saved 6DOF pose",
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-controller-position",
     "-120,80,45",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-controller-orientation",
+    "0,1,0,-1,0,0,0,0,1",
+  );
+  await page.getByRole("button", { name: "Controller", exact: true }).click();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-editor-selection",
+    "controller",
+  );
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Selected controller",
+  );
+  await page.locator("#connector-layer").uncheck();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-editor-selection",
+    "none",
+  );
+  await page.locator("#connector-layer").check();
+  await page.getByRole("button", { name: "Controller", exact: true }).click();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-editor-selection",
+    "controller",
+  );
+  await page.locator("#reset-controller-position").click();
+  await expect(page.locator("#controller-position-status")).toContainText(
+    "suggested controller",
+  );
+  await expect(page.locator("#reset-controller-position")).toBeDisabled();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-controller-orientation",
+    "1,0,0,0,1,0,0,0,1",
   );
 
   const selectedPanelId = await page.locator(".route-panel").first()

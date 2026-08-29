@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { parsePanelAssemblyDefinition } from "../src/sculpture/PanelAssembly.ts";
+import { setControllerWorldPose } from "../src/sculpture/SculptureEditor.ts";
 import {
   createProjectPackageZip,
   createProjectThumbnailSvg,
@@ -10,10 +11,17 @@ import { openPortableProjectZip } from "../web/src/PortableProject.ts";
 
 describe("ZIP project package", () => {
   it("embeds deterministic metadata and a pose-derived thumbnail", async () => {
-    const definition = parsePanelAssemblyDefinition(JSON.parse(
+    const source = parsePanelAssemblyDefinition(JSON.parse(
       await readFile("sculptures/rhombicosidodecahedron/sculpture.json", "utf8"),
     ));
-    definition.wiring.controller.position = [-120, 80, 45];
+    const definition = setControllerWorldPose(source, {
+      position: [-120, 80, 45],
+      orientation: {
+        xAxis: [0, 1, 0],
+        yAxis: [-1, 0, 0],
+        normal: [0, 0, 1],
+      },
+    });
     const first = createProjectPackageZip(definition, new Map());
     const second = createProjectPackageZip(definition, new Map());
     expect(first).toEqual(second);
@@ -37,6 +45,9 @@ describe("ZIP project package", () => {
     expect(reopened.project.sculpture.wiring.controller.position).toEqual([
       -120, 80, 45,
     ]);
+    expect(reopened.project.sculpture.wiring.controller.orientation).toEqual(
+      definition.wiring.controller.orientation,
+    );
     reopened.dispose();
   });
 

@@ -1980,3 +1980,24 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `bootstrap.sh` `install_and_build_if_required()` and the
   INSTALL-014 bootstrap regression.
 - **Status:** Resolved by INSTALL-014.
+
+### F-108 — Numeric XYZ fields hid the controller's scene-object behavior
+
+- **Date:** 2026-08-29
+- **Context:** Editing the schematic controller after panel placement.
+- **Symptom:** The operator had to copy long suggested XYZ values into a form,
+  while panels could be selected and transformed directly in the 3D view.
+- **Cause:** The controller was rendered as a mesh but was not registered as an
+  editor pick target. Its saved contract also had no orientation.
+- **Correction:** Make the controller body and label selectable, attach the
+  existing translation and rotation controls, and save a right-handed pose.
+  Transform local pin offsets with the same pose before cables are built. Bind
+  optimizer evidence to the pose and invalidate it when the controller moves.
+- **Prevention:** A persistent object that is visibly placed in the editor must
+  use direct scene selection when its transform is editable. A rotated visual
+  must not leave its functional connection points or optimization evidence in
+  the old frame. Scene picking must use effective ancestor visibility and the
+  nearest hit, not object-type priority.
+- **Evidence:** UI-029 controller-pose runtime, wiring, renderer, portable
+  reload, and focused browser regressions.
+- **Status:** Resolved by UI-029.

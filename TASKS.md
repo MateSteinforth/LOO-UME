@@ -45,6 +45,29 @@ on physical hardware.
 
 No tasks.
 
+## Ready to Merge
+
+### `P1 · UI-029` Select and transform the controller in the 3D view
+
+- Owner: `codex/ui-029-controller-gizmo` in `/tmp/loo-ume-ui-029`.
+- Scope: replace numeric controller positioning as the primary workflow with a
+  selectable rendered controller and the same free 6DOF transform controls used
+  for panels.
+- Acceptance: clicking the controller selects it, stops panel selection, and
+  shows translation and rotation controls. A completed transform saves an exact
+  backward-compatible controller pose; its body, labels, output pins, cables,
+  and wiring-cost geometry use that pose after save and reload.
+- Acceptance: legacy projects with no position or orientation retain the same
+  deterministic suggested controller layout. **Use suggested position** removes
+  the authored pose. Controller edits invalidate stale route-optimization
+  evidence, but do not change panel poses or invalidate printable mechanics.
+- Verification: 72 focused runtime/schema, wiring geometry, renderer/controller,
+  and save/reload tests passed; TypeScript and production build passed; the
+  focused Chromium journey passed 2/2; independent review found no blocker.
+- Likely conflicts: Schema 2 wiring controller, controller geometry,
+  `SurfacePlacementController`, `SphereRenderer`, Mapping UI, browser wiring
+  journey, architecture/decision/failure notes.
+
 ## In Progress
 
 No tasks.

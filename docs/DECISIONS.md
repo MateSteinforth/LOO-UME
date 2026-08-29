@@ -294,10 +294,12 @@ indices with the same mapping contract used by the SVG export. Preview is
 temporary display state: project changes stop it, signal timeout restores the
 native simulation, and no received frame changes authored project data.
 
-## D34 — Use manual viewport orbit and a saved controller position
+## D34 — Use manual viewport orbit and a selectable controller pose
 
 The viewport does not rotate automatically. The operator has direct orbit and
 zoom control without a separate animation switch. The schematic controller has
-an optional saved world XYZ position. When this position is absent, LOO/UME uses
-the deterministic suggested position. The saved position controls the rendered
-controller, output pins, cable routes, and wiring optimization costs.
+an optional saved right-handed world pose. When this pose is absent, LOO/UME
+uses the deterministic suggested position and world orientation. Clicking the
+controller body or label selects it and attaches translation and rotation
+controls. The saved pose controls the rendered controller, output pins, cable
+routes, and wiring optimization costs.

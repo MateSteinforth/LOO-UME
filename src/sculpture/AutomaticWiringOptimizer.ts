@@ -213,6 +213,7 @@ function controllerPins(
     positions,
     outputCount,
     definition.wiring.controller.position,
+    definition.wiring.controller.orientation,
   ).pinPositions;
 }
 

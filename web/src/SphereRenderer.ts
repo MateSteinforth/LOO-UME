@@ -34,6 +34,7 @@ import {
 } from "./AssemblyTutorial.ts";
 import {
   SurfacePlacementController,
+  type FreeControllerTransform,
   type FreePanelTransform,
   type PanelTransformMode,
   type SurfacePanelPlacement,
@@ -486,11 +487,14 @@ export class SphereRenderer {
     onLocalTranslationCommit?: (panelId: string, deltaX: number, deltaY: number) => void;
     onRotationCommit?: (panelId: string, degrees: number) => void;
     onFreeTransformCommit?: (transform: FreePanelTransform) => void;
+    onControllerSelectionChange?: (selected: boolean) => void;
+    onControllerTransformCommit?: (transform: FreeControllerTransform) => void;
     onAddPanelCommit?: (placement: SurfacePlacement) => void;
     onDeletePanelRequest?: (panelId: string) => void;
   }): void {
     this.surfacePlacement.onSelectionChange = (panelId) => {
       this.selectedPanelId = panelId;
+      this.container.dataset.editorSelection = panelId ?? "none";
       this.updatePanelLabelSelection();
       this.applySelectionFocus();
       callbacks.onSelectionChange?.(panelId);
@@ -499,12 +503,27 @@ export class SphereRenderer {
     this.surfacePlacement.onLocalTranslationCommit = callbacks.onLocalTranslationCommit;
     this.surfacePlacement.onRotationCommit = callbacks.onRotationCommit;
     this.surfacePlacement.onFreeTransformCommit = callbacks.onFreeTransformCommit;
+    this.surfacePlacement.onControllerSelectionChange = (selected) => {
+      if (selected) {
+        this.selectedPanelId = null;
+        this.container.dataset.editorSelection = "controller";
+        this.updatePanelLabelSelection();
+        this.applySelectionFocus();
+      }
+      callbacks.onControllerSelectionChange?.(selected);
+    };
+    this.surfacePlacement.onControllerTransformCommit =
+      callbacks.onControllerTransformCommit;
     this.surfacePlacement.onAddPanelCommit = callbacks.onAddPanelCommit;
     this.surfacePlacement.onDeletePanelRequest = callbacks.onDeletePanelRequest;
   }
 
   selectEditorPanel(panelId: string | null): void {
     this.surfacePlacement.selectPanel(panelId);
+  }
+
+  selectEditorController(): void {
+    this.surfacePlacement.selectController();
   }
 
   setPanelLabelsVisible(visible: boolean): void {
@@ -694,6 +713,7 @@ export class SphereRenderer {
   setConnectorLayerVisible(visible: boolean): void {
     if (this.tutorialLayerState) this.tutorialLayerState.connector = visible;
     this.connectorLayer.visible = visible;
+    this.surfacePlacement.setControllerLayerVisible(visible);
     this.container.dataset.connectorLayerVisible = String(visible);
   }
 
@@ -1260,6 +1280,17 @@ export class SphereRenderer {
         controllerLayout.position.y,
         controllerLayout.position.z,
       ].join(",");
+      this.container.dataset.controllerOrientation = [
+        controllerLayout.orientation.xAxis.x,
+        controllerLayout.orientation.xAxis.y,
+        controllerLayout.orientation.xAxis.z,
+        controllerLayout.orientation.yAxis.x,
+        controllerLayout.orientation.yAxis.y,
+        controllerLayout.orientation.yAxis.z,
+        controllerLayout.orientation.normal.x,
+        controllerLayout.orientation.normal.y,
+        controllerLayout.orientation.normal.z,
+      ].join(",");
       const controller = new THREE.Mesh(
         new THREE.BoxGeometry(
           Math.max(38, preview.outputs.length * 9 + 12),
@@ -1270,13 +1301,36 @@ export class SphereRenderer {
       );
       controller.name = "wiring-controller";
       controller.position.copy(this.toThree(controllerLayout.position));
+      const controllerRotation = new THREE.Matrix4().makeBasis(
+        this.toThree(controllerLayout.orientation.xAxis),
+        this.toThree(controllerLayout.orientation.yAxis),
+        this.toThree(controllerLayout.orientation.normal),
+      );
+      controller.quaternion.setFromRotationMatrix(controllerRotation);
       controller.renderOrder = 2;
       this.connectorLayer.add(controller);
+      this.surfacePlacement.setControllerTarget(controller);
       const label = document.createElement("span");
       label.className = "wiring-controller-label";
       label.textContent = "Controller";
+      label.role = "button";
+      label.tabIndex = 0;
+      label.title = "Select controller for 6DOF transform";
+      const selectController = (event: Event): void => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.surfacePlacement.selectController();
+      };
+      label.addEventListener("pointerdown", (event) => event.stopPropagation());
+      label.addEventListener("click", selectController);
+      label.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") selectController(event);
+      });
       const labelObject = new CSS2DObject(label);
-      labelObject.position.copy(controller.position).add(new THREE.Vector3(0, 13, 0));
+      labelObject.position.copy(controller.position).addScaledVector(
+        this.toThree(controllerLayout.orientation.yAxis),
+        13,
+      );
       this.connectorLayer.add(labelObject);
     }
 
@@ -1419,6 +1473,8 @@ export class SphereRenderer {
 
   private clearWiringPreview(): void {
     delete this.container.dataset.controllerPosition;
+    delete this.container.dataset.controllerOrientation;
+    this.surfacePlacement.setControllerTarget(null);
     this.disposeGroup(this.connectorLayer);
     this.disposeGroup(this.wiringLayer);
     this.connectorOutputLayers.clear();

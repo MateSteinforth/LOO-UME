@@ -71,6 +71,11 @@ export interface WiringPreviewValidation {
 
 export interface WiringControllerLayout {
   position: Vector3Data;
+  orientation: {
+    xAxis: Vector3Data;
+    yAxis: Vector3Data;
+    normal: Vector3Data;
+  };
   pins: Array<{
     outputIndex: number;
     position: Vector3Data;
@@ -177,10 +182,16 @@ export function createWiringControllerLayout(
     points.map(({ x, y, z }) => [x, y, z]),
     preview.outputs.length,
     preview.controller?.position,
+    preview.controller?.orientation,
   );
   const position = vector(...geometry.position);
   return {
     position,
+    orientation: {
+      xAxis: vector(...geometry.orientation.xAxis),
+      yAxis: vector(...geometry.orientation.yAxis),
+      normal: vector(...geometry.orientation.normal),
+    },
     pins: preview.outputs.map((output, index) => ({
       outputIndex: output.outputIndex,
       position: vector(...geometry.pinPositions[index]!),

@@ -228,6 +228,12 @@ export interface WiringDefinition {
     status: "provisional" | "measured";
     /** Optional authored world position. Missing uses the deterministic suggestion. */
     position?: [number, number, number];
+    /** Optional authored right-handed orientation. Missing uses world XYZ. */
+    orientation?: {
+      xAxis: [number, number, number];
+      yAxis: [number, number, number];
+      normal: [number, number, number];
+    };
   };
   connector: {
     edgeInset: number;

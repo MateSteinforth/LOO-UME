@@ -581,7 +581,11 @@
                 "measured"
               ]
             },
-            "position": { "$ref": "#/$defs/vector3" }
+            "position": { "$ref": "#/$defs/vector3" },
+            "orientation": { "$ref": "#/$defs/orientation" }
+          },
+          "dependentRequired": {
+            "orientation": ["position"]
           }
         },
         "routeStrategy": {
@@ -1500,10 +1504,22 @@
   "$defs": {
     "vector3": {
       "type": "array",
+      "minItems": 3,
       "prefixItems": [
         { "type": "number" }, { "type": "number" }, { "type": "number" }
       ],
       "items": false
+    },
+    "orientation": {
+      "type": "object",
+      "description": "Right-handed orthonormal world-space basis.",
+      "additionalProperties": false,
+      "required": ["xAxis", "yAxis", "normal"],
+      "properties": {
+        "xAxis": { "$ref": "#/$defs/vector3" },
+        "yAxis": { "$ref": "#/$defs/vector3" },
+        "normal": { "$ref": "#/$defs/vector3" }
+      }
     },
     "structuralTranslations": {
       "type": "array",

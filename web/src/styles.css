@@ -212,6 +212,11 @@ input[type="checkbox"] {
   white-space: nowrap;
 }
 
+.wiring-controller-label {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
 .wiring-controller-pin-label {
   color: #fff4a8;
   border-color: rgba(255, 244, 168, 0.55);
@@ -345,14 +350,10 @@ input[type="checkbox"] {
   line-height: 1.45;
 }
 
-.controller-position-grid {
+.controller-position-controls {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-}
-
-.controller-position-grid .field {
-  margin: 0;
+  margin-top: 8px;
 }
 
 .project-library-actions {

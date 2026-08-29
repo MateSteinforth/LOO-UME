@@ -20,8 +20,10 @@ import {
   movePanelOnDesignSurface,
   movePanelInLocalPlane,
   rotatePanelAroundLocalZ,
+  setControllerWorldPose,
   setPanelWorldPose,
   sculptureJson,
+  useSuggestedControllerPose,
 } from "../../src/sculpture/SculptureEditor";
 import {
   generateClosedPanelBoundary,
@@ -307,21 +309,10 @@ app.innerHTML = `
           <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
           <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper preview</button>
           <output id="madmapper-preview-status" class="mapping-note" aria-live="polite">Stopped</output>
-          <details id="controller-position-section" class="compact-menu">
-            <summary>Controller position</summary>
-            <div class="compact-menu__content">
-              <p id="controller-position-status" class="mapping-note"></p>
-              <div class="controller-position-grid">
-                <label class="field"><span>X (mm)</span><input id="controller-position-x" type="number" step="1" /></label>
-                <label class="field"><span>Y (mm)</span><input id="controller-position-y" type="number" step="1" /></label>
-                <label class="field"><span>Z (mm)</span><input id="controller-position-z" type="number" step="1" /></label>
-              </div>
-              <div class="project-library-actions">
-                <button id="apply-controller-position" class="editor-button" type="button">Apply position</button>
-                <button id="reset-controller-position" class="editor-button" type="button">Use suggested position</button>
-              </div>
-            </div>
-          </details>
+          <div id="controller-position-section" class="controller-position-controls">
+            <p id="controller-position-status" class="mapping-note"></p>
+            <button id="reset-controller-position" class="editor-button" type="button">Use suggested position</button>
+          </div>
           <details id="route-editor-section" class="compact-menu route-editor-section" hidden>
             <summary>Advanced route editor</summary>
             <div class="compact-menu__content">
@@ -594,14 +585,7 @@ const optimizeWiringButton = query<HTMLButtonElement>("#optimize-wiring");
 const routeEditorNote = query<HTMLElement>("#route-editor-note");
 const routeEditor = query<HTMLElement>("#route-editor");
 const routeActionButton = query<HTMLButtonElement>("#route-action");
-const controllerPositionInputs = [
-  query<HTMLInputElement>("#controller-position-x"),
-  query<HTMLInputElement>("#controller-position-y"),
-  query<HTMLInputElement>("#controller-position-z"),
-] as const;
 const controllerPositionStatus = query<HTMLElement>("#controller-position-status");
-const applyControllerPositionButton =
-  query<HTMLButtonElement>("#apply-controller-position");
 const resetControllerPositionButton =
   query<HTMLButtonElement>("#reset-controller-position");
 const designSurfaceFileInput =
@@ -1495,20 +1479,12 @@ async function start(): Promise<void> {
     const renderControllerPositionControls = (): void => {
       const layout = createWiringControllerLayout(wiringPreview);
       const authoredPosition = editorDefinition.wiring.controller.position;
-      const position = authoredPosition ?? (layout
-        ? [layout.position.x, layout.position.y, layout.position.z] as const
-        : undefined);
-      controllerPositionInputs.forEach((input, axis) => {
-        input.disabled = position === undefined;
-        input.value = position === undefined ? "" : String(position[axis]);
-      });
-      applyControllerPositionButton.disabled = position === undefined;
       resetControllerPositionButton.disabled = authoredPosition === undefined;
-      controllerPositionStatus.textContent = position === undefined
+      controllerPositionStatus.textContent = layout === null
         ? "No controller is available for this project."
         : authoredPosition
-        ? "This exact controller position is saved in the project."
-        : "This is the suggested position. Apply it to save an exact position.";
+        ? "Click the controller to edit its saved 6DOF pose."
+        : "Click the suggested controller to place and rotate it.";
     };
 
     const updateMappingStatus = (): void => {
@@ -1729,35 +1705,8 @@ async function start(): Promise<void> {
       return restoreGeneratedMechanics(selected);
     };
 
-    applyControllerPositionButton.addEventListener("click", () => {
-      const position = controllerPositionInputs.map((input) => Number(input.value)) as [
-        number,
-        number,
-        number,
-      ];
-      if (!position.every(Number.isFinite)) {
-        setLogMessage("Enter a finite X, Y, and Z controller position.", true);
-        return;
-      }
-      const nextDefinition = structuredClone(editorDefinition);
-      nextDefinition.wiring.controller.position = position;
-      const project = createPanelAssemblyProject(
-        nextDefinition,
-        editorProject.source,
-        editorProject.panelProfile,
-      );
-      void applyLoadedSculpture(createLoadedSculpture(project)).then(() => {
-        setLogMessage(
-          `Saved controller position X ${position[0]} mm, Y ${position[1]} mm, Z ${position[2]} mm.`,
-        );
-      }).catch((error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
-      });
-    });
-
     resetControllerPositionButton.addEventListener("click", () => {
-      const nextDefinition = structuredClone(editorDefinition);
-      delete nextDefinition.wiring.controller.position;
+      const nextDefinition = useSuggestedControllerPose(editorDefinition);
       const project = createPanelAssemblyProject(
         nextDefinition,
         editorProject.source,
@@ -2070,6 +2019,16 @@ async function start(): Promise<void> {
           );
         }
       },
+      onControllerSelectionChange: (selected) => {
+        if (!selected) return;
+        selectedEditorPanelId = null;
+        for (const row of routeEditor.querySelectorAll<HTMLElement>(".route-panel")) {
+          row.classList.remove("route-panel--selected");
+        }
+        setLogMessage(
+          "Selected controller. Available: move on local X/Y/Z, rotate on local X/Y/Z.",
+        );
+      },
       onPlacementCommit: (placement) => {
         try {
           const edited = movePanelOnDesignSurface(
@@ -2149,6 +2108,30 @@ async function start(): Promise<void> {
           setLogMessage(edited.mechanicalShell
             ? `Transformed ${transform.panelId} freely in 3D. Its surface attachment was removed and generated mechanics require regeneration.`
             : `Transformed ${transform.panelId} freely in 3D. Mapping and wiring refreshed; no printable mechanics exist yet.`);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          setLogMessage(message, true);
+        }
+      },
+      onControllerTransformCommit: (transform) => {
+        try {
+          const edited = setControllerWorldPose(editorDefinition, transform);
+          const project = createPanelAssemblyProject(
+            edited,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          void applyLoadedSculpture(createLoadedSculpture(project)).then(() => {
+            renderer?.selectEditorController();
+            setLogMessage(
+              "Saved the controller position and orientation. Wiring geometry refreshed.",
+            );
+          }).catch((error) => {
+            setLogMessage(
+              error instanceof Error ? error.message : String(error),
+              true,
+            );
+          });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
