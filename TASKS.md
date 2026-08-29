@@ -47,27 +47,20 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · INSTALL-015` Preserve local work during application updates
+### `P1 · UI-030` Export one complete fabrication handoff
 
-- Owner: `codex/install-015-preserve-projects` in
-  `/tmp/loo-ume-install-015`.
-- Scope: let the production UI report and apply an available update, and let
-  `./bootstrap.sh update` provide the same operation from the shell while
-  preserving tracked and untracked local work, including project ZIPs.
-- Acceptance: update fetches and verifies the same canonical fast-forward
-  boundary, temporarily stores local changes, applies the fast-forward, then
-  restores the exact local changes before launch. Ignored `projects/local/`
-  files stay in place. A restore conflict stops before launch, retains the
-  recovery stash, and reports the required manual action.
-- Acceptance: the loopback production UI shows an update notice only when
-  `origin/main` is ahead, applies the same guarded update from one button, then
-  restarts and reloads the local application. Non-loopback and cross-origin
-  update requests fail closed.
-- Verification: shell syntax and TypeScript passed; the desktop build passed;
-  15 focused bootstrap, update-guard, and local-server tests passed; independent
-  review found no remaining blocker.
-- Likely conflicts: bootstrap update guard/orchestration, bootstrap tests,
-  launch/update documentation, and failure guidance.
+- Owner: `codex/ui-030-complete-fabrication-zip` in
+  `/tmp/loo-ume-ui-030`.
+- Scope: make Download fabrication ZIP include the HERMA panel-label PDF, a
+  printable manufacturing manual PDF, every current verified planar STL, and
+  the complete current verified structural connector package.
+- Acceptance: stale or unavailable geometry is never exported; current planar
+  and structural assets can coexist without path collisions; the manual lists
+  the current controller outputs and every panel-to-panel data connection.
+- Verification: nine focused PDF/package tests, TypeScript, production build,
+  direct PDF 1.7/A4 inspection, diff check, and independent review passed.
+- Likely conflicts: fabrication package construction, browser download copy,
+  wiring-manual PDF generation, and fabrication documentation.
 
 ## In Progress
 
@@ -128,6 +121,11 @@ No tasks.
 No tasks.
 
 ## Done
+
+- `INSTALL-015`: integrated dirty-safe shell updates and a loopback-only
+  in-application update notice/button on 2026-08-29. Updates are serialized,
+  preserve tracked and untracked work plus local project ZIPs, and retain exact
+  recovery evidence if restoration conflicts.
 
 - `UI-029`: integrated selectable 6DOF controller pose editing, shared
   controller-pin geometry, safe optimizer-evidence invalidation, and reset to

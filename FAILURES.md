@@ -1628,8 +1628,8 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Cause:** UI ownership followed implementation subsystems instead of the
   operator's generate, download, assemble, and test sequence.
 - **Correction:** Keep one always-editable Fabrication toolbox with four named
-  groups. Its fabrication ZIP always includes the HERMA label PDF and adds the
-  exact verified connector artifacts displayed in the viewport.
+  groups. Its fabrication ZIP is the complete current manufacturing handoff;
+  F-110 defines its verified geometry, label, and manual contents.
 - **Prevention:** When controls form one physical handoff, group them by the
   operator sequence without adding wizard state or duplicating data authority.
 - **Status:** Resolved by UI-027.
@@ -2024,3 +2024,23 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   tracked edits, untracked ZIPs, ignored library ZIPs, fast-forward, exact
   restoration, and the conflict recovery path.
 - **Status:** Resolved by INSTALL-015.
+
+### F-110 — A fabrication download must be a complete manufacturing handoff
+
+- **Date:** 2026-08-29
+- **Context:** Downloading files for physical construction from the Fabrication
+  toolbox.
+- **Symptom:** **Download fabrication ZIP** could contain only the HERMA label
+  PDF, or that PDF plus the currently displayed structural connector set. The
+  operator still had to find planar parts and the assembly manual elsewhere.
+- **Cause:** UI-027 unified the control location but retained separate package
+  ownership for labels, planar mechanics, structural connectors, and the
+  wiring manual.
+- **Correction:** Build one deterministic fabrication ZIP from the current
+  verified planar and structural in-memory assets, then add the HERMA label PDF
+  and a wiring-derived manufacturing manual PDF.
+- **Prevention:** A control named fabrication download must contain the complete
+  current manufacturing handoff. Never include stale geometry, and never make
+  the operator discover required print or assembly files through another
+  package.
+- **Status:** Resolved by UI-030.

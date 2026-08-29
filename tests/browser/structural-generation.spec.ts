@@ -97,6 +97,7 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   const connectorFiles = unzipSync(await readFile(connectorZipPath));
   expect(Object.keys(connectorFiles)).toEqual(expect.arrayContaining([
     "panel-labels-herma-4385.pdf",
+    "manufacturing-manual.pdf",
     "structure/assembly-preview.stl",
     "structure/structure.model.3mf",
     "structure/analysis.json",
@@ -191,7 +192,10 @@ test("generates, previews, transports, reopens, and invalidates a structural set
     throw new Error("The browser did not expose the stale-project fabrication ZIP.");
   }
   expect(Object.keys(unzipSync(await readFile(staleFabricationZipPath))))
-    .toEqual(["panel-labels-herma-4385.pdf"]);
+    .toEqual([
+      "panel-labels-herma-4385.pdf",
+      "manufacturing-manual.pdf",
+    ]);
   await expect(page.locator("#save-sculpture-file")).toBeEnabled();
 
   const singular = parsePanelAssemblyDefinition(JSON.parse(await readFile(

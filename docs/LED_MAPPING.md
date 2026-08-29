@@ -172,7 +172,7 @@ has no printable geometry for the tutorial to show. The 41-panel project is
 currently in that pose-and-wiring-only state.
 
 The persistent **View** section owns the DIN/DOUT and panel-wiring layers. The
-**Fabrication** owns the panel-label ZIP, chain/wire isolation, and ESP32 setup
+**Fabrication** owns the complete fabrication ZIP, chain/wire isolation, and ESP32 setup
 below its optional part generators. The tutorial and ESP32 controls are not
 gated by printable-part generation and do not lock the other project controls.
 MadMapper export belongs to Mapping because it consumes the address contract,
@@ -190,9 +190,10 @@ size**. Do not use **Fit to page**. The PDF continues to another sheet when a
 project has more than 315 panels. Apply each printed ID at the DIN end of its
 matching physical PCB; the simulator uses the same DIN anchor.
 
-The PDF contains IDs only. Its ZIP also contains any verified structural
-connector artifacts currently displayed in the viewport; without such a
-preview, the PDF is the only entry. The export does not modify the project,
+The label PDF contains IDs only. Its ZIP also contains a printable manufacturing
+manual derived from the current route, every current verified planar STL, and
+the complete verified structural connector package displayed in the viewport.
+Stale or unavailable geometry is omitted. The export does not modify the project,
 infer a route, or claim connector pad-centre measurements. The sheet contract
 comes from the
 [official HERMA 4385 product page](https://www.herma.de/buero-zuhause/produkt/abloesbare-etiketten-a4-4385/)

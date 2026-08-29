@@ -94,6 +94,7 @@ import {
 } from "./AssemblyPackage.ts";
 import { createMadMapperPackageZip } from "./MadMapperPackage.ts";
 import { createFabricationPackageZip } from "./FabricationPackage.ts";
+import { createManufacturingManualPdf } from "./ManufacturingManualPdf.ts";
 import {
   ArtNetPreviewClient,
   physicalRgbToLogicalPixels,
@@ -383,7 +384,7 @@ app.innerHTML = `
           <div class="fabrication-stage">
             <div class="fabrication-stage__heading">
               <strong>2. Download fabrication ZIP</strong>
-              <small>Download the printable HERMA panel-label PDF with any verified connectors shown in the viewport.</small>
+              <small>Download the panel labels, manufacturing manual, and every current verified 3D-print file.</small>
             </div>
             <button id="download-panel-labels" class="pipeline-button" type="button">Download fabrication ZIP</button>
           </div>
@@ -1238,7 +1239,7 @@ async function start(): Promise<void> {
       downloadPanelLabelsButton.disabled = editorDefinition.panels.length === 0;
       downloadPanelLabelsButton.title = editorDefinition.panels.length === 0
         ? "Place at least one panel before downloading fabrication files."
-        : "Download the HERMA 4385 label PDF and any verified displayed connectors.";
+        : "Download panel labels, the manufacturing manual, and all current verified printable files.";
       madMapperPreviewButton.disabled = !hardwareContract.readiness.mappingReady;
       madMapperPreviewButton.title = hardwareContract.readiness.mappingReady
         ? "Receive the generated physical Art-Net patch on loopback and show it on the 3D sculpture."
@@ -3064,15 +3065,16 @@ async function start(): Promise<void> {
       addPanelButton.hidden = !hasEligibleSelection;
       addPanelButton.disabled = !hasEligibleSelection;
     });
-    const createCurrentAssemblyManualDocument = (): string => {
-      const model = createWiringAssemblyManualModel(
+    const createCurrentAssemblyManualModel = () =>
+      createWiringAssemblyManualModel(
         editorDefinition,
         hardwareContract,
         editorProject.panelProfile,
         editorProject.source,
       );
+    const createCurrentAssemblyManualDocument = (): string => {
       return renderStandaloneWiringAssemblyManualDocument(
-        model,
+        createCurrentAssemblyManualModel(),
         wiringManualStyles,
       );
     };
@@ -3132,7 +3134,13 @@ async function start(): Promise<void> {
     const downloadFabricationPackage = (): void => {
       const zipBytes = createFabricationPackageZip(
         editorDefinition.panels.map((panel) => panel.id),
-        verifiedGeneratedStructure,
+        {
+          manufacturingManualPdf: createManufacturingManualPdf(
+            createCurrentAssemblyManualModel(),
+          ),
+          mechanics: verifiedGeneratedMechanics,
+          structure: verifiedGeneratedStructure,
+        },
       );
       const objectUrl = URL.createObjectURL(new Blob(
         [Uint8Array.from(zipBytes)],
@@ -3145,7 +3153,7 @@ async function start(): Promise<void> {
       link.click();
       URL.revokeObjectURL(objectUrl);
       setLogMessage(
-        `Downloaded ${link.download} with the HERMA 4385 PDF for ${editorDefinition.panels.length} panel IDs${verifiedGeneratedStructure ? " and the verified connectors displayed in the viewport" : ""}. Print A4 at 100% or Actual size on HERMA 4385; do not use Fit to page.`,
+        `Downloaded ${link.download} with the HERMA 4385 PDF for ${editorDefinition.panels.length} panel IDs, the manufacturing manual, ${verifiedGeneratedMechanics ? `${verifiedGeneratedMechanics.parts.length + 1} planar STL files` : "no current planar STL files"}, and ${verifiedGeneratedStructure ? "the complete verified structural connector package" : "no current structural connector package"}. Print PDFs at 100% or Actual size; do not use Fit to page.`,
       );
     };
 

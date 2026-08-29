@@ -343,7 +343,8 @@ show two local cells and no first-to-third shortcut. Select **Generate
 connector ribbons**. The browser
 shows the exact assembly-preview STL and enables **Download fabrication ZIP**
 and portable project export after validation. The fabrication ZIP contains the
-verified connector set shown in the viewport and the HERMA panel-label PDF.
+verified connector set shown in the viewport, every current verified planar
+STL, the HERMA panel-label PDF, and the current manufacturing manual PDF.
 
 The trial values are not measured mounting evidence. Replace the bench support,
 material, mass, and loads before physical use. The generated report is

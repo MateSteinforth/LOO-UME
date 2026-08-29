@@ -31,15 +31,20 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
   const labelDownloadPath = await labelDownload.path();
   if (!labelDownloadPath) throw new Error("The browser did not expose the panel-label PDF.");
   const labelEntries = unzipSync(await readFile(labelDownloadPath));
-  expect(Object.keys(labelEntries)).toEqual(["panel-labels-herma-4385.pdf"]);
+  expect(Object.keys(labelEntries)).toEqual([
+    "panel-labels-herma-4385.pdf",
+    "manufacturing-manual.pdf",
+  ]);
   const labelPdf = Buffer.from(
     labelEntries["panel-labels-herma-4385.pdf"]!,
   ).toString("latin1");
   expect(labelPdf).toContain("%LOOUME-HERMA-4385");
   expect(labelPdf).toContain("(SQ-03) Tj");
   expect(labelPdf).toContain("/Count 1");
+  expect(Buffer.from(labelEntries["manufacturing-manual.pdf"]!).toString("latin1"))
+    .toContain("%LOOUME-MANUFACTURING-MANUAL");
   await expect(page.locator("#pipeline-status")).toContainText(
-    "Print A4 at 100% or Actual size on HERMA 4385",
+    "manufacturing manual",
   );
 
   await expect(page.locator("#viewer")).toHaveAttribute(

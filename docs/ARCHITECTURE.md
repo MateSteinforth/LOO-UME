@@ -178,7 +178,9 @@ the dialog owns the longer file actions. Animation controls stay in View
 because they remain useful throughout the work. Mapping owns route optimization, its
 advanced editor, and the mapping-ready MadMapper ZIP. Fabrication has four
 always-editable groups: part generation, a single ZIP containing the HERMA 4385
-panel-label PDF plus any displayed verified structural connectors, the
+panel-label PDF, a current wiring-derived manufacturing manual PDF, every
+current verified planar STL, and the complete displayed verified structural
+connector package; the
 connection-by-connection assembly tutorial, and ESP32 setup. Each loaded fixture
 profile controls which part-generation actions are enabled; mapping, simulation,
 hardware setup, and project export do not wait for an irrelevant fabrication step.

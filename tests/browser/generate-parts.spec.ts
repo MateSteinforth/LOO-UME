@@ -59,6 +59,19 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
     { timeout: 120_000 },
   );
 
+  const fabricationPromise = page.waitForEvent("download");
+  await page.locator("#download-panel-labels").click();
+  const fabricationDownload = await fabricationPromise;
+  const fabricationPath = await fabricationDownload.path();
+  if (!fabricationPath) throw new Error("The browser did not expose the fabrication ZIP.");
+  expect(Object.keys(unzipSync(await readFile(fabricationPath))).sort()).toEqual([
+    "manufacturing-manual.pdf",
+    "mechanics/boundary.stl",
+    "mechanics/parts/part-001.stl",
+    "mechanics/parts/part-002.stl",
+    "panel-labels-herma-4385.pdf",
+  ]);
+
   const packagePromise = page.waitForEvent("download");
   await page.locator("#assembly-package").click();
   const packageDownload = await packagePromise;
