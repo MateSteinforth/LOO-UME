@@ -23,6 +23,11 @@
       "source": "./projects/demos/pose-only-two-panel-fixture.loo.zip"
     },
     {
+      "id": "one-metre-flexible-led-ring-demo",
+      "name": "One-metre Diameter Flexible LED Ring Demo",
+      "source": "./projects/demos/one-metre-flexible-led-ring-demo.loo.zip"
+    },
+    {
       "id": "structural-two-panel-spatial-trial",
       "name": "Structural Two-panel Spatial Trial",
       "source": "./projects/demos/structural-two-panel-spatial-trial.loo.zip"

@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-28
+Last reconciled: 2026-08-29
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -31,13 +31,7 @@ static address and RGB parity on the physical 41-panel sculpture.
 
 ## Backlog
 
-### `LIB-013` Retire the legacy preset and folder project paths
-
-- Scope: remove the old preset dropdown, direct JSON project opening, and
-  editable-folder export after the ZIP library has full parity.
-- Acceptance: normal operators use only library ZIPs, Import ZIP, and Export
-  ZIP; migration keeps older portable ZIPs loadable.
-- Dependencies: `LIB-010` through `LIB-012`.
+No tasks.
 
 ## Ready
 
@@ -103,80 +97,16 @@ No tasks.
 
 ## Ready to Merge
 
-### `LIB-015` Consolidate project file actions
-
-- Implemented: the renamed Project Library dialog now owns JSON/ZIP/folder
-  open, local Save As, project ZIP download, raw JSON export, and folder export.
-  The redundant Open menu and Export toolbox are removed; quick Save remains in
-  the Project toolbar.
-- Verified: TypeScript, four sidebar/tutorial Chromium checks, two Project
-  Library checks, and the complete portable folder/ZIP Chromium journey with
-  exact assets and package metadata.
-- Owner: `codex/project-library` in
-  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
-- Conflict risk: Project toolbar/dialog markup and styles plus browser helpers
-  that open or export project files.
-
-### `LIB-014` Render framed viewport thumbnails
-
-- Implemented: Save, Save As, and Export embed a real 480 x 300 WebGL PNG using
-  the current camera direction and the normal mapping-fit bounds without moving
-  the active camera. All 13 tracked demo ZIPs contain visually checked framed
-  renders; old SVG-thumbnail packages remain valid.
-- Verified: 35 focused package/library/server checks, desktop TypeScript and
-  production build, two fresh-server Chromium journeys with exact PNG media and
-  dimensions, plus visual inspection of the dense 41-panel and empty projects.
-- Owner: `codex/project-library` in
-  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
-- Conflict risk: renderer capture, package thumbnail contract, tracked demo
-  ZIPs/PNGs, and Project Library browser controls.
-
-### `LIB-012` Add conflict-safe local project saving
-
-- Implemented: Save and Save As write one validated `.loo.zip` into the ignored
-  local library through atomic replacement. Local cards can reopen, rename, and
-  delete packages. Exact SHA-256 revision preconditions reject stale writes;
-  demo ZIPs and static hosts stay read-only.
-- Verified: 33 focused package/API/client/production-server checks, desktop
-  TypeScript and production build, and two fresh-server Chromium journeys. The
-  complete journey saves, reloads, reopens with four optimized outputs, saves
-  again, renames, and deletes the local ZIP. The explicit LAN review mode also
-  passes a non-loopback Host check; normal startup stays loopback-only.
-- Owner: `codex/project-library` in
-  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
-- Conflict risk: project-library handler/client, Vite and desktop adapters,
-  Project Library controls, and project toolbar styles.
-
-### `LIB-011` Serve one ZIP project library from the local host
-
-- Implemented: one shared loopback-only desktop/Vite handler enumerates regular
-  demo and local `.loo.zip` files, validates bounded packages, caches by file
-  identity, and serves exact ZIP and embedded thumbnail bytes. Invalid packages
-  remain diagnostic-only; static hosting falls back to tracked demos.
-- Verified: 29 focused package/API/production-server checks, TypeScript, desktop
-  production build, and a fresh-server Chromium journey using API thumbnail and
-  package routes.
-- Owner: `codex/project-library` in
-  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
-- Conflict risk: `scripts/local-editor-server.ts`, Vite middleware,
-  `web/src/ProjectLoader.ts`, and Project Library browser controls.
-
-### `LIB-010` Make ZIP packages the visible project-library format
-
-- Implemented: one versioned `.loo.zip` manifest, embedded deterministic
-  pose-derived thumbnails, 13 tracked demo packages, synchronized staging, a
-  thumbnail Project Library popup, Import ZIP, and package-format export.
-- Compatibility: older portable ZIPs still open; unpacked authored demo JSON
-  remains the reviewable source used to regenerate tracked demo packages.
-- Verified: 20 focused unit checks, exact two-run ZIP determinism, TypeScript,
-  desktop production build, the Project Library Chromium journey, four existing
-  editor/tutorial Chromium journeys, and visual inspection at 1440 x 900.
-- Owner: `codex/project-library` in
-  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
-- Conflict risk: `web/src/PortableProject.ts`, `web/src/ProjectLoader.ts`,
-  `web/src/main.ts`, staging, registry tests, and project-loading browser tests.
+No tasks.
 
 ## Done
+
+- `LIB-010` through `LIB-015`: integrated the ZIP Project Library, conflict-safe
+  local saves, consolidated open/backup actions, and framed viewport thumbnails
+  on 2026-08-29. The integration preserves the current Fabrication UI and
+  flexible-ring format; all 14 authored demos have a ZIP and PNG thumbnail, and
+  the ring ZIP includes its project-local panel profile. All 462 unit tests,
+  TypeScript, production build, and eight focused Chromium journeys passed.
 
 - `UI-027`: integrated one Fabrication toolbox for part generation, the unified
   label-and-current-connectors ZIP, the data-chain assembly tutorial, and ESP32

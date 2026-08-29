@@ -2,7 +2,10 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { sculptureJson } from "../src/sculpture/SculptureEditor.ts";
 import { readProjectPackageSummary } from "../web/src/ProjectPackage.ts";
-import { openPortableProjectZip } from "../web/src/PortableProject.ts";
+import {
+  openPortableProjectZip,
+  unzipPortableProjectFiles,
+} from "../web/src/PortableProject.ts";
 
 interface DemoRegistry {
   schemaVersion: "1.0.0";
@@ -33,6 +36,12 @@ describe("tracked demo project library", () => {
       expect(summary.thumbnailMediaType).toBe("image/png");
       expect([...summary.thumbnailBytes.subarray(0, 4)])
         .toEqual([0x89, 0x50, 0x4e, 0x47]);
+      if (entry.id === "one-metre-flexible-led-ring-demo") {
+        expect(
+          unzipPortableProjectFiles(bytes)
+            .some(({ path }) => path.endsWith("/panel-profile.json")),
+        ).toBe(true);
+      }
       const bundle = await openPortableProjectZip(
         bytes,
         entry.source,

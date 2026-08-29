@@ -4,6 +4,7 @@ import {
   parsePanelAssemblyDefinition,
   type PanelAssemblyDefinition,
 } from "../src/sculpture/PanelAssembly.ts";
+import { assertPortableProjectAssetSource } from "../src/sculpture/GeneratedMechanics.ts";
 import { createProjectPackageZip } from "../web/src/ProjectPackage.ts";
 
 interface AuthoredRegistry {
@@ -44,6 +45,25 @@ async function availableAssets(
   sculpturePath: string,
 ): Promise<Map<string, Uint8Array>> {
   const assets = new Map<string, Uint8Array>();
+  let portableProfileSource = false;
+  try {
+    assertPortableProjectAssetSource(
+      definition.panelProfile.source,
+      "Panel profile",
+    );
+    portableProfileSource = true;
+  } catch {
+    // Shared catalog profiles remain available through the staged catalog.
+  }
+  if (portableProfileSource) {
+    assets.set(
+      definition.panelProfile.source,
+      new Uint8Array(await readFile(resolve(
+        dirname(sculpturePath),
+        definition.panelProfile.source,
+      ))),
+    );
+  }
   for (const source of assetReferences(definition)) {
     assets.set(source, new Uint8Array(await readFile(resolve(dirname(sculpturePath), source))));
   }

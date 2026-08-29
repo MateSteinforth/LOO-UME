@@ -33,6 +33,7 @@
     "web/src/EditorPipelineResponse.ts",
     "web/src/Esp32Setup.ts",
     "web/src/AssemblyPackage.ts",
+    "web/src/FabricationPackage.ts",
     "web/src/DesignSurfaceLoader.ts",
     "web/src/EditorPipelineRequest.ts",
     "web/src/GeneratedMechanicsAssets.ts",

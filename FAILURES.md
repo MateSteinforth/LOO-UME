@@ -1736,3 +1736,32 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The corrected portable folder and ZIP journey passed in
   Chromium with exact assets, manifest, and PNG thumbnail.
 - **Status:** Resolved during LIB-015.
+
+### F-095 — The sculpture registry count did not follow the ring demo
+
+- **Date:** 2026-08-29
+- **Context:** Selective Project Library integration onto the current `main`.
+- **Symptom:** The full verifier found 14 authored sculptures, while the exact
+  registry-count assertion still expected 13.
+- **Cause:** The flexible-ring demo changed the registry without changing its
+  matching count assertion.
+- **Correction:** Update the assertion to the 14-entry authored registry and
+  generate one library ZIP and thumbnail for every current registry entry.
+- **Prevention:** A tracked demo addition must update both the authored registry
+  check and the generated Project Library in the same verified integration.
+- **Evidence:** The registry and Project Library tests both cover all 14 demos.
+- **Status:** Resolved during Project Library integration.
+
+### F-096 — Fabrication package was absent from the Node TypeScript project
+
+- **Date:** 2026-08-29
+- **Context:** Full verification after selective Project Library integration.
+- **Symptom:** All 462 unit tests passed, then `tsc -b` rejected
+  `web/src/FabricationPackage.ts` because the Node project did not list it.
+- **Cause:** The current-main fabrication change added a tested browser module
+  but did not extend the explicit `tsconfig.node.json` include list.
+- **Correction:** Add only `web/src/FabricationPackage.ts` to that list.
+- **Prevention:** Add each new browser module imported by Node-side tests to the
+  explicit Node TypeScript project in the same change.
+- **Evidence:** The subsequent Node and browser TypeScript builds pass.
+- **Status:** Resolved during Project Library integration.
