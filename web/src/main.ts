@@ -2320,27 +2320,32 @@ async function start(): Promise<void> {
           button.type = "button";
           button.className = "project-card";
           try {
-            const bytes = await loadProjectPackageBytes(entry.source);
-            const summary = readProjectPackageSummary(bytes);
-            if (summary.manifest.id !== entry.id || summary.manifest.name !== entry.name) {
-              throw new Error(`Project library metadata disagrees with ${entry.source}.`);
+            let panelCount = entry.panelCount;
+            let thumbnailUrl = entry.thumbnailSource;
+            if (!thumbnailUrl || panelCount === undefined) {
+              const bytes = await loadProjectPackageBytes(entry.source);
+              const summary = readProjectPackageSummary(bytes);
+              if (summary.manifest.id !== entry.id || summary.manifest.name !== entry.name) {
+                throw new Error(`Project library metadata disagrees with ${entry.source}.`);
+              }
+              panelCount = summary.manifest.panelCount;
+              thumbnailUrl = URL.createObjectURL(new Blob(
+                [Uint8Array.from(summary.thumbnailBytes)],
+                { type: summary.thumbnailMediaType },
+              ));
+              projectThumbnailUrls.push(thumbnailUrl);
             }
-            const thumbnailUrl = URL.createObjectURL(new Blob(
-              [Uint8Array.from(summary.thumbnailBytes)],
-              { type: summary.thumbnailMediaType },
-            ));
-            projectThumbnailUrls.push(thumbnailUrl);
             const image = document.createElement("img");
             image.src = thumbnailUrl;
             image.alt = "";
             const label = document.createElement("span");
-            label.textContent = summary.manifest.name;
+            label.textContent = entry.name;
             const detail = document.createElement("small");
-            detail.textContent = `${summary.manifest.panelCount} fixture${summary.manifest.panelCount === 1 ? "" : "s"} · Demo ZIP`;
+            detail.textContent = `${panelCount} fixture${panelCount === 1 ? "" : "s"} · ${entry.readOnly === false ? "Local" : "Demo"} ZIP`;
             button.append(image, label, detail);
             button.addEventListener("click", () => {
               button.disabled = true;
-              projectLibraryStatus.textContent = `Opening ${summary.manifest.name}…`;
+              projectLibraryStatus.textContent = `Opening ${entry.name}…`;
               void openLibraryProject(entry.source).catch((error) => {
                 button.disabled = false;
                 projectLibraryStatus.textContent = error instanceof Error
@@ -2356,7 +2361,10 @@ async function start(): Promise<void> {
         },
       ));
       projectLibraryGrid.replaceChildren(...cards);
-      projectLibraryStatus.textContent = `${cards.length} demo project ZIPs`;
+      const invalidCount = projectLibraryRegistry.invalidPackages?.length ?? 0;
+      projectLibraryStatus.textContent = invalidCount === 0
+        ? `${cards.length} project ZIPs`
+        : `${cards.length} project ZIPs · ${invalidCount} invalid package${invalidCount === 1 ? "" : "s"} ignored`;
       projectLibraryRendered = true;
     };
     openProjectLibraryButton.addEventListener("click", () => {

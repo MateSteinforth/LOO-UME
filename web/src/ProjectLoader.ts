@@ -14,7 +14,8 @@ import { createProvisionalWiringPreview } from "./WiringPreview.ts";
 export const DEFAULT_SCULPTURE_JSON =
   "./sculptures/rhombicosidodecahedron/sculpture.json";
 export const SCULPTURE_REGISTRY_URL = "./sculptures/manifest.json";
-export const PROJECT_LIBRARY_URL = "./projects/manifest.json";
+export const PROJECT_LIBRARY_URL = "./api/project-library";
+export const STATIC_PROJECT_LIBRARY_URL = "./projects/manifest.json";
 
 export interface SculptureRegistryEntry {
   id: string;
@@ -32,18 +33,33 @@ export interface ProjectLibraryEntry {
   id: string;
   name: string;
   source: string;
+  thumbnailSource?: string;
+  panelCount?: number;
+  revision?: string;
+  location?: "demo" | "local";
+  readOnly?: boolean;
 }
 
 export interface ProjectLibraryRegistry {
   schemaVersion: "1.0.0";
   defaultSource: string;
   projects: ProjectLibraryEntry[];
+  invalidPackages?: Array<{ source: string; error: string }>;
+}
+
+async function fetchProjectLibrary(source: string): Promise<Response> {
+  const response = await fetch(source);
+  if (
+    source === PROJECT_LIBRARY_URL &&
+    (response.status === 404 || !response.headers.get("content-type")?.includes("application/json"))
+  ) return fetch(STATIC_PROJECT_LIBRARY_URL);
+  return response;
 }
 
 export async function loadProjectLibraryRegistry(
   source = PROJECT_LIBRARY_URL,
 ): Promise<ProjectLibraryRegistry> {
-  const response = await fetch(source);
+  const response = await fetchProjectLibrary(source);
   if (!response.ok) {
     throw new Error(`Unable to load project library: HTTP ${response.status}.`);
   }
@@ -58,7 +74,12 @@ export async function loadProjectLibraryRegistry(
     registry.projects.some((entry) =>
       typeof entry.id !== "string" || entry.id.length === 0 ||
       typeof entry.name !== "string" || entry.name.length === 0 ||
-      typeof entry.source !== "string" || !entry.source.endsWith(".loo.zip")
+      typeof entry.source !== "string" || !entry.source.endsWith(".loo.zip") ||
+      (entry.thumbnailSource !== undefined && typeof entry.thumbnailSource !== "string") ||
+      (entry.panelCount !== undefined && (!Number.isInteger(entry.panelCount) || entry.panelCount < 0)) ||
+      (entry.revision !== undefined && !/^[0-9a-f]{64}$/.test(entry.revision)) ||
+      (entry.location !== undefined && entry.location !== "demo" && entry.location !== "local") ||
+      (entry.readOnly !== undefined && typeof entry.readOnly !== "boolean")
     ) ||
     !registry.projects.some((entry) => entry.source === registry.defaultSource)
   ) {

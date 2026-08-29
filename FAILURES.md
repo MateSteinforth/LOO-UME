@@ -1633,3 +1633,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Prevention:** When controls form one physical handoff, group them by the
   operator sequence without adding wizard state or duplicating data authority.
 - **Status:** Resolved by UI-027.
+
+### F-089 — Playwright reused another worktree's Vite server
+
+- **Date:** 2026-08-29
+- **Context:** LIB-011 Project Library browser validation on the shared host.
+- **Symptom:** The focused test waited for a new control while its failure
+  screenshot showed the older preset UI from a different checkout.
+- **Cause:** Local Playwright configuration permits `reuseExistingServer`, and
+  another Vite process already owned port 4174.
+- **Correction:** Stop the stale server and rerun with `CI=1`, which requires
+  Playwright to start the configured server from the current worktree.
+- **Prevention:** Before a shared-host browser check, confirm the port owner or
+  disable server reuse. Do not accept a browser result from an unknown process.
+- **Evidence:** The reused-server run timed out on `#open-project-library`; the
+  fresh-server rerun passed the complete API-backed Chromium journey.
+- **Status:** Resolved; prevention rule added to `AGENTS.md`.

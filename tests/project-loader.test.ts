@@ -33,6 +33,30 @@ describe("browser project loading boundary", () => {
       });
   });
 
+  it("falls back to tracked demo ZIPs when a static host has no library API", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("<html></html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        schemaVersion: "1.0.0",
+        defaultSource: "./projects/demos/one.loo.zip",
+        projects: [{
+          id: "one",
+          name: "One",
+          source: "./projects/demos/one.loo.zip",
+        }],
+      }), { status: 200, headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProjectLibraryRegistry()).resolves.toMatchObject({
+      projects: [{ id: "one" }],
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "./api/project-library");
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "./projects/manifest.json");
+  });
+
   it("validates registry records without owning application state", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
       schemaVersion: "1.0.0",

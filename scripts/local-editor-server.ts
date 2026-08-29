@@ -22,6 +22,10 @@ import {
   createEsp32FirmwareHandler,
   type Esp32FirmwareHandler,
 } from "./esp32-firmware-handler.ts";
+import {
+  createProjectLibraryHandler,
+  type ProjectLibraryHandler,
+} from "./project-library-handler.ts";
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = Object.freeze({
   ".css": "text/css; charset=utf-8",
@@ -49,6 +53,7 @@ export interface LocalEditorServerOptions {
   pipelineHandler?: EditorPipelineHandler;
   firmwareHandler?: Esp32FirmwareHandler;
   deviceHandler?: Esp32DeviceHandler;
+  projectLibraryHandler?: ProjectLibraryHandler;
 }
 
 export interface LocalEditorServer {
@@ -57,6 +62,7 @@ export interface LocalEditorServer {
   readonly port: number;
   readonly url: string;
   readonly pipelineHandler: EditorPipelineHandler;
+  readonly projectLibraryHandler: ProjectLibraryHandler;
   close(gracePeriodMs?: number): Promise<void>;
 }
 
@@ -183,6 +189,8 @@ export async function startLocalEditorServer(
   const firmwareHandler = options.firmwareHandler ??
     createEsp32FirmwareHandler({ rootDirectory });
   const deviceHandler = options.deviceHandler ?? createEsp32DeviceHandler();
+  const projectLibraryHandler = options.projectLibraryHandler ??
+    createProjectLibraryHandler({ rootDirectory });
   const sockets = new Set<Socket>();
   const server = createServer((request, response) => {
     void (async () => {
@@ -190,6 +198,7 @@ export async function startLocalEditorServer(
         sendText(response, 403, "The local server accepts only loopback Host values.");
         return;
       }
+      if (await projectLibraryHandler.handle(request, response)) return;
       if (await firmwareHandler.handle(request, response)) return;
       if (await deviceHandler.handle(request, response)) return;
       if (await pipelineHandler.handle(request, response)) return;
@@ -221,6 +230,7 @@ export async function startLocalEditorServer(
     port: address.port,
     url: `http://${host}:${address.port}/`,
     pipelineHandler,
+    projectLibraryHandler,
     close(gracePeriodMs = 2_000) {
       if (closing) return closing;
       closing = (async () => {

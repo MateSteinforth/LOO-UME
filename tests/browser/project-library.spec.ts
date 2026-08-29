@@ -13,6 +13,10 @@ test("opens the 41-fixture demo from the ZIP project library", async ({ page }) 
     hasText: "LED Rhombicosidodecahedron (41-panel)",
   });
   await expect(project.locator("img")).toBeVisible();
+  await expect(project.locator("img")).toHaveAttribute(
+    "src",
+    /api\/project-library\/thumbnail\/demo\//,
+  );
   await expect(project).toContainText("41 fixtures · Demo ZIP");
   await project.click();
   await expect(dialog).not.toBeVisible();

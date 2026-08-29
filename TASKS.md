@@ -51,15 +51,7 @@ static address and RGB parity on the physical 41-panel sculpture.
 
 ## Ready
 
-### `LIB-011` Serve one ZIP project library from the local host
-
-- Scope: list validated demo and local `.loo.zip` packages, return exact ZIP
-  bytes and embedded thumbnails, and keep local projects under an ignored
-  repository folder.
-- Acceptance: the desktop and Vite development hosts expose the same bounded,
-  loopback-only read API; invalid packages and unsafe paths fail closed.
-- Dependencies: `LIB-010` package and index contract.
-- Conflict risk: `scripts/local-editor-server.ts`, Vite middleware, and staging.
+No tasks.
 
 ## In Progress
 
@@ -120,6 +112,20 @@ No tasks.
 No tasks.
 
 ## Ready to Merge
+
+### `LIB-011` Serve one ZIP project library from the local host
+
+- Implemented: one shared loopback-only desktop/Vite handler enumerates regular
+  demo and local `.loo.zip` files, validates bounded packages, caches by file
+  identity, and serves exact ZIP and embedded thumbnail bytes. Invalid packages
+  remain diagnostic-only; static hosting falls back to tracked demos.
+- Verified: 29 focused package/API/production-server checks, TypeScript, desktop
+  production build, and a fresh-server Chromium journey using API thumbnail and
+  package routes.
+- Owner: `codex/project-library` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-project-library`.
+- Conflict risk: `scripts/local-editor-server.ts`, Vite middleware,
+  `web/src/ProjectLoader.ts`, and Project Library browser controls.
 
 ### `LIB-010` Make ZIP packages the visible project-library format
 

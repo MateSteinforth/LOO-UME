@@ -228,6 +228,9 @@ Historical Schema 1 inputs are available only through Git history.
   registry source returns JSON. Replacing the public sculpture directory under
   a live Vite process can leave HTTP 200 HTML history fallbacks cached for valid
   JSON paths.
+- On a shared multi-worktree host, do not let Playwright reuse an unknown server
+  on port 4174. Confirm its owning worktree or run the targeted check with
+  `CI=1` so Playwright starts the configured server from the current worktree.
 
 ## Agentic workflow
 

@@ -71,6 +71,13 @@ suspicious compression ratios, ZIP64, multi-disk, encrypted, or inconsistent
 entries. Streaming extraction checks local entries against that preflight
 before it buffers their bytes.
 
+The desktop server and Vite development adapter share one loopback-only project
+library handler. It enumerates regular `.loo.zip` files under tracked `demo/`
+and ignored `local/` directories, validates each bounded package, caches it by
+file identity, and returns exact ZIP or embedded-thumbnail bytes. Invalid
+packages are diagnostic entries and are never openable. Static hosting falls
+back to the tracked demo manifest and stays read-only.
+
 `bootstrap.sh` selects a reviewed native stage-zero executable. The strict
 install manifest pins official Node.js archives by target, byte size, SHA-256,
 and extracted-tree identity. It installs Node/npm and dependencies only below
@@ -278,6 +285,7 @@ current values are copied operating assumptions, not electrical approval.
 | `web/src/` | Browser editor, renderer, mapping, wiring, project and package export |
 | `web/src/ProjectPackage.ts` | Versioned project ZIP manifest, deterministic thumbnail, and package validation |
 | `projects/demos/` | Deterministic tracked demo ZIPs generated from authored sculpture sources |
+| `scripts/project-library-handler.ts` | Shared loopback-only validated demo/local ZIP read API |
 | `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
 | `scripts/esp32-firmware-handler.ts` | Loopback-only, receipt-gated complete ESP32 image endpoint |
 | `scripts/esp32-device-handler.ts` | Loopback-only, bounded private WLED HTTP and 1-to-2,624-pixel segmented DDP broker |

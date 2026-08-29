@@ -87,6 +87,17 @@ describe("production local editor server", () => {
       generator: "manifold",
       supportedVersion: "3.5.1",
     });
+    const library = await fetch(`${server.url}api/project-library`);
+    expect(library.status).toBe(200);
+    expect(await library.json()).toMatchObject({
+      schemaVersion: "1.0.0",
+      projects: expect.arrayContaining([
+        expect.objectContaining({
+          id: "generated-rhombicosidodecahedron-41-panel-preview",
+          readOnly: true,
+        }),
+      ]),
+    });
   });
 
   it("serves generated output as a live same-origin overlay", async () => {

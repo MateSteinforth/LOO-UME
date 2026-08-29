@@ -8,5 +8,8 @@ LOO/UME uses one `.loo.zip` package for library projects, backup, and transfer.
 - `local/` is the ignored writable library for operator projects. Do not commit
   its contents.
 
+The desktop and Vite development hosts enumerate both folders through
+`/api/project-library`. Static builds use `manifest.json` and tracked demos only.
+
 Each package contains `manifest.json`, authoritative `sculpture.json`, an
 embedded pose-derived `thumbnail.svg`, and all referenced portable assets.

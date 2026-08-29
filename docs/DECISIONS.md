@@ -44,7 +44,10 @@ embedded thumbnail, and safe relative SHA-256-identified assets. The local
 library is a folder of these ZIPs; import and export copy the same validated
 format without conversion. Repository-authored demo JSON remains the reviewable
 source for deterministic tracked demo ZIPs. Generated assets are derived, and
-the sculpture JSON inside each package remains the project authority.
+the sculpture JSON inside each package remains the project authority. Desktop
+and Vite development hosts enumerate and serve exact validated demo/local ZIP
+bytes through one loopback-only handler; a static host exposes tracked demos
+only and does not become writable.
 
 ## D7 — Mapping artifacts derive from sculpture JSON
 
