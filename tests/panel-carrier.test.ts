@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   validatePanelCarrier,
   normalizePanelCarrier,
+  supportsRectangularPanelFabrication,
   supportsRectangularPanelTools,
 } from "../src/sculpture/PanelCarrier.ts";
 import { parsePanelHardwareProfile } from "../src/sculpture/Definition.ts";
@@ -99,9 +100,30 @@ describe("generalized panel carriers", () => {
     const profile = parsePanelHardwareProfile(BASE_PROFILE);
     expect(normalizePanelCarrier(profile)).toEqual({ kind: "rectangular" });
     expect(supportsRectangularPanelTools(profile)).toBe(true);
+    expect(supportsRectangularPanelFabrication(profile)).toBe(true);
     const geometry = createLocalPanelCarrierGeometry(profile);
     expect(geometry.triangles).toHaveLength(6);
     expect(geometry.outlineSegments).toHaveLength(4);
+  });
+
+  it("keeps rectangular mapping available but gates provisional fit fabrication", () => {
+    const input = structuredClone(BASE_PROFILE);
+    input.mounting.physicalCorrections.status = "provisional";
+    input.mounting.physicalCorrections.note = "Unmeasured visual-study values.";
+    const profile = parsePanelHardwareProfile(input);
+    const project = projectWith(profile);
+
+    expect(supportsRectangularPanelTools(profile)).toBe(true);
+    expect(supportsRectangularPanelFabrication(profile)).toBe(false);
+    expect(createPanelAssemblyMapping(project).entries).toHaveLength(3 * 64);
+    expect(deriveEditorCapabilities(project.sculpture, true, true, profile))
+      .toMatchObject({
+        canAutomaticallySeed: true,
+        canGenerateGenericMechanics: false,
+        canGenerateStructuralMechanics: false,
+      });
+    expect(() => generateClosedPanelBoundary(project.sculpture, profile))
+      .toThrow("requires measured physical fit corrections");
   });
 
   it("triangulates an arbitrary simple planar carrier", () => {

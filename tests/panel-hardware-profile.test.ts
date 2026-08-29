@@ -178,12 +178,27 @@ describe("panel hardware profile", () => {
     );
   });
 
-  it("rejects loss of the measured physical corrections", () => {
+  it("preserves provisional correction evidence without changing the approved profile", () => {
     const profile = loadProfile();
     profile.mounting.physicalCorrections.status = "provisional" as "measured";
 
+    expect(parsePanelHardwareProfile(profile).mounting.physicalCorrections.status)
+      .toBe("provisional");
+    expect(loadProfile().mounting.physicalCorrections).toMatchObject({
+      holeEdge: 0.2,
+      surfaceFlush: 0.5,
+      status: "measured",
+    });
+  });
+
+  it("requires explicit connector anchors for pose-local orientation", () => {
+    const profile = loadProfile();
+    profile.dataConnectors.orientationReference =
+      "pose-local-explicit-connectors" as "three-mounting-holes-vertical";
+    delete profile.dataConnectors.localPositions;
+
     expect(() => parsePanelHardwareProfile(profile)).toThrow(
-      "must remain measured",
+      "requires explicit DIN and DOUT positions",
     );
   });
 

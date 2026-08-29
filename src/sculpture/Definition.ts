@@ -92,13 +92,15 @@ export interface PanelHardwareProfile {
     physicalCorrections: {
       holeEdge: number;
       surfaceFlush: number;
-      status: "measured";
+      status: "provisional" | "measured";
       note: string;
     };
   };
   dataConnectors: {
     referenceView: "back";
-    orientationReference: "three-mounting-holes-vertical";
+    orientationReference:
+      | "three-mounting-holes-vertical"
+      | "pose-local-explicit-connectors";
     cornerAssignmentStatus: "provisional" | "measured";
     dinCorner: PanelCorner;
     doutCorner: PanelCorner;
@@ -532,15 +534,14 @@ export function parsePanelHardwareProfile(
   const corrections = requireRecord(mounting, "physicalCorrections");
   requireFiniteNumber(corrections, "holeEdge");
   requireFiniteNumber(corrections, "surfaceFlush");
-  if (corrections.status !== "measured") {
-    throw new Error("Physical fit corrections must remain measured facts.");
-  }
+  requireOneOf(corrections, "status", ["provisional", "measured"]);
   requireString(corrections, "note");
 
   const dataConnectors = requireRecord(profileInput, "dataConnectors");
   if (
     dataConnectors.referenceView !== "back" ||
-    dataConnectors.orientationReference !== "three-mounting-holes-vertical"
+    (dataConnectors.orientationReference !== "three-mounting-holes-vertical" &&
+      dataConnectors.orientationReference !== "pose-local-explicit-connectors")
   ) {
     throw new Error(
       "Data connector corners require the supported back-view orientation.",
@@ -589,6 +590,14 @@ export function parsePanelHardwareProfile(
     if (JSON.stringify(localPositions.din) === JSON.stringify(localPositions.dout)) {
       throw new Error("Explicit DIN and DOUT positions must be different.");
     }
+  }
+  if (
+    dataConnectors.orientationReference === "pose-local-explicit-connectors" &&
+    dataConnectors.localPositions === undefined
+  ) {
+    throw new Error(
+      "Pose-local connector orientation requires explicit DIN and DOUT positions.",
+    );
   }
   const cornerCoordinate = (corner: PanelCorner): [number, number] => [
     corner.endsWith("left") ? 0 : columns - 1,
