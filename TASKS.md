@@ -4,8 +4,8 @@ Last reconciled: 2026-08-29
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: review the local MadMapper preview, then prove direct
-Art-Net behavior and static address/RGB parity on physical hardware.
+Current milestone: prove direct Art-Net behavior and static address/RGB parity
+on physical hardware.
 
 ## Control rules
 
@@ -101,37 +101,21 @@ No tasks.
 
 ## Human Review
 
-### `P1 · LIVE-011` through `LIVE-013` Review local MadMapper 3D preview
-
-- Implemented: bounded ArtDMX parsing and complete-frame assembly, shared
-  loopback UDP `127.0.0.1:6454` with address reuse, dependency-free streaming,
-  physical-to-logical frame conversion, Start/Stop controls, FPS/error
-  diagnostics, timeout fallback, project-change invalidation, and an importable
-  loopback routing CSV for every universe in the MadMapper ZIP.
-- Verified: 17 focused Vitest checks, TypeScript, production web build, and one
-  real Chromium journey that sends all 16 loopback universes and observes
-  reception, timeout, and Stop.
-- Human review: passed on macOS with MadMapper Demo 6.1.5. The operator imported
-  the ZIP's 16-universe loopback routing CSV, confirmed moving content on the 3D
-  sculpture, and observed approximately 40 completed frames per second. F-087
-  accepts MadMapper's 512-byte ArtDMX payloads without incomplete frames.
-- Review limit: MadMapper Demo blacks out DMX every 30 seconds. It can prove
-  basic pose/address behavior, but sustained continuity and FPS review require
-  a licensed build.
-- Owner: `codex/madmapper-preview` in
-  `/Users/mate/Documents/LOO-UME-madmapper-preview`.
-- Integration dependency: reconcile with `origin/main` at `934301e` before
-  Ready to Merge. The branch and main diverged at `290d023`; current text
-  conflicts are expected in `FAILURES.md`, `tsconfig.node.json`, and
-  `web/src/main.ts`.
-- Conflict risk: the Art-Net host and Build Hardware controls overlap main's
-  generalized carrier and capability-toolbox work.
+No tasks.
 
 ## Ready to Merge
 
 No tasks.
 
 ## Done
+
+- `LIVE-011` through `LIVE-013`: integrated the local MadMapper 3D preview on
+  2026-08-29. The current Mapping toolbox owns Start/Stop, complete 16-universe
+  loopback Art-Net frames render on the pose-derived LEDs, and the MadMapper ZIP
+  includes its importable routing CSV. macOS Human Review passed at about 40
+  completed frames per second; MadMapper Demo's 30-second DMX blackout remains
+  an external review limit. All 473 unit tests, TypeScript, production build,
+  and nine focused Chromium journeys passed after current-main integration.
 
 - `LIB-010` through `LIB-015`: integrated the ZIP Project Library, conflict-safe
   local saves, consolidated open/backup actions, and framed viewport thumbnails

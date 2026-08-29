@@ -59,6 +59,7 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
   const entries = unzipSync(await readFile(downloadPath));
   expect(Object.keys(entries).sort()).toEqual([
     `${root}/SETUP.pdf`,
+    `${root}/artnet-unicast-loopback.csv`,
     `${root}/fixtures.svg`,
     `${root}/manifest.json`,
     `${root}/patch.csv`,

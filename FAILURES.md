@@ -1899,3 +1899,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   increased from 1,713 to 1,815 with no incomplete frames. The official
   MadMapper Demo limitations state that DMX output blacks out every 30 seconds.
 - **Status:** External demo limitation understood; transport remains healthy.
+
+### F-104 — MadMapper browser ZIP assertion omitted the new routing table
+
+- **Date:** 2026-08-29
+- **Context:** Selective MadMapper preview integration onto the Project Library
+  `main`.
+- **Symptom:** The browser downloaded the correct enhanced ZIP, but the older
+  exact-file assertion rejected `artnet-unicast-loopback.csv`.
+- **Cause:** The stabilization commit updated the unit package contract but the
+  browser download contract existed only on the newer main branch.
+- **Correction:** Add the routing CSV to the browser ZIP expectation and rerun
+  the complete browser download journey.
+- **Prevention:** When a package gains a file, update every exact package
+  contract across unit and browser tests during integration.
+- **Evidence:** Unit and browser MadMapper ZIP checks both require the routing
+  table after the correction.
+- **Status:** Resolved during MadMapper preview integration.
