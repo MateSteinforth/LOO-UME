@@ -95,15 +95,17 @@ No tasks.
 
 ### `P1 · LIVE-011` through `LIVE-013` Review local MadMapper 3D preview
 
-- Implemented: bounded ArtDMX parsing and complete-frame assembly, loopback UDP
-  `127.0.0.1:6454`, dependency-free binary streaming, physical-to-logical frame
+- Implemented: bounded ArtDMX parsing and complete-frame assembly, dedicated
+  loopback UDP `127.0.0.2:6454`, dependency-free binary streaming,
+  physical-to-logical frame
   conversion, Start/Stop controls, FPS/error diagnostics, timeout fallback, and
   project-change invalidation.
-- Verified: 16 focused Vitest checks, TypeScript, production web build, and one
+- Verified: 17 focused Vitest checks, TypeScript, production web build, and one
   real Chromium journey that sends all 16 loopback universes and observes
   reception, timeout, and Stop.
-- Human review: run the desktop editor, start MadMapper preview, set MadMapper
-  Art-Net unicast to `127.0.0.1` with universes 1 through 16, and confirm moving
+- Human review: run the desktop editor, start MadMapper preview, keep MadMapper
+  on the `lo0` / `127.0.0.1` interface, route Art-Net unicast to `127.0.0.2`
+  with universes 1 through 16, and confirm moving
   content follows the correct 3D panel poses at an acceptable sustained FPS.
 - Owner: `codex/madmapper-preview` in
   `/home/mate/Documents/led-rhombicosidodecahedron-madmapper-preview`.

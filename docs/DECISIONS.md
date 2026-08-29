@@ -279,9 +279,10 @@ the installed ledmap. `LIVE-010` must prove the path on Ethernet hardware.
 
 LOO/UME can show the physical MadMapper patch on its pose-derived 3D sculpture
 without an ESP32. The desktop service receives ArtDMX only on
-`127.0.0.1:6454`, assembles complete consecutive-universe frames, and streams
+`127.0.0.2:6454`, assembles complete consecutive-universe frames, and streams
 them to its same-origin browser through framed binary HTTP. This avoids a new
-WebSocket dependency and avoids exposing a UDP listener to the LAN.
+WebSocket dependency, avoids exposing a UDP listener to the LAN, and lets
+MadMapper own the standard `127.0.0.1:6454` output socket on the same computer.
 
 The browser converts physical Art-Net indices to the current logical renderer
 indices with the same mapping contract used by the SVG export. Preview is

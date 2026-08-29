@@ -789,10 +789,10 @@ async function start(): Promise<void> {
       artNetPreviewFrameTimes = [];
       artNetPreviewTimedOut = false;
       madMapperPreviewButton.textContent = "Stop MadMapper preview";
-      madMapperPreviewStatus.textContent = "Waiting for Art-Net on 127.0.0.1:6454";
+      madMapperPreviewStatus.textContent = "Waiting for Art-Net on 127.0.0.2:6454";
       const endUniverse = Math.ceil(hardwareContract.mapping.entries.length / 170);
       setLogMessage(
-        `MadMapper preview is listening on 127.0.0.1:6454, universes 1 through ${endUniverse}.`,
+        `MadMapper preview is listening on 127.0.0.2:6454, universes 1 through ${endUniverse}.`,
       );
       void artNetPreviewClient.start({
         pixelCount: hardwareContract.mapping.entries.length,

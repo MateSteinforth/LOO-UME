@@ -23,7 +23,7 @@ async function sendFlagshipFrame(sequence: number): Promise<void> {
         data.set([universe * 8, 255 - universe * 8, universe], offset);
       }
       await new Promise<void>((resolve, reject) => {
-        socket.send(artDmx(universe, data, sequence), 6454, "127.0.0.1", (error) => {
+        socket.send(artDmx(universe, data, sequence), 6454, "127.0.0.2", (error) => {
           if (error) reject(error);
           else resolve();
         });

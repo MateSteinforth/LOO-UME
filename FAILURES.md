@@ -1765,3 +1765,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   explicit Node TypeScript project in the same change.
 - **Evidence:** The subsequent Node and browser TypeScript builds pass.
 - **Status:** Resolved during Project Library integration.
+
+### F-097 — MadMapper and the local preview competed for one Art-Net socket
+
+- **Date:** 2026-08-29
+- **Context:** LIVE-013 same-computer MadMapper preview on macOS.
+- **Symptom:** MadMapper reported that it could not open Art-Net on the selected
+  network interface when the LOO/UME preview already listened on UDP 6454.
+- **Cause:** Both applications tried to bind `127.0.0.1:6454`.
+- **Correction:** Keep MadMapper on `lo0` / `127.0.0.1` and bind LOO/UME to the
+  separate loopback destination `127.0.0.2:6454`; enable UDP address reuse as a
+  secondary compatibility measure.
+- **Prevention:** Same-computer UDP tools that use a fixed protocol port must
+  use separate loopback addresses or prove compatible shared-socket behavior.
+- **Evidence:** A focused handler test opens a MadMapper-shaped socket on
+  `127.0.0.1` and the LOO/UME receiver on `127.0.0.2` at the same UDP port.
+- **Status:** Resolved in code; awaiting macOS Human Review.

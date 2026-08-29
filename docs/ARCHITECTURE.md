@@ -270,7 +270,7 @@ leaves DDP realtime mode and runs the saved native animation. A USB power cycle
 also restored the same animation without the simulator.
 
 The MadMapper virtual preview is a separate loopback-only input path. While the
-operator enables it, the desktop service binds UDP `127.0.0.1:6454`, accepts
+operator enables it, the desktop service binds UDP `127.0.0.2:6454`, accepts
 only bounded ArtDMX packets from loopback, and assembles the exact consecutive
 physical universes exported in the MadMapper fixture atlas. It publishes only
 complete RGB frames through a same-origin binary HTTP stream. The browser maps
@@ -312,7 +312,7 @@ current values are copied operating assumptions, not electrical approval.
 | `scripts/esp32-firmware-handler.ts` | Loopback-only, receipt-gated complete ESP32 image endpoint |
 | `scripts/esp32-device-handler.ts` | Loopback-only, bounded private WLED HTTP and 1-to-2,624-pixel segmented DDP broker |
 | `scripts/artnet-frame-assembler.ts` | Transport-independent bounded ArtDMX validation and complete physical-frame assembly |
-| `scripts/artnet-preview-handler.ts` | Loopback UDP 6454 receiver and same-origin binary browser stream |
+| `scripts/artnet-preview-handler.ts` | Dedicated loopback-address UDP 6454 receiver and same-origin binary browser stream |
 | `tests/browser/` | Real Chromium operator journeys |
 | `wasm/` | Deterministic subset of WLED 1D effects, not firmware |
 | `firmware/` | ESP32 receipt, setup procedure, and smoke configuration; WLED build tooling and binaries stay off-main |

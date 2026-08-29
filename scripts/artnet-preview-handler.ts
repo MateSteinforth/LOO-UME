@@ -8,12 +8,13 @@ import {
 } from "./artnet-frame-assembler.ts";
 
 const DEFAULT_ART_NET_PORT = 6454;
+const ART_NET_PREVIEW_ADDRESS = "127.0.0.2";
 const STREAM_HEADER_BYTES = 28;
 const STREAM_MAGIC = Uint8Array.from([0x4c, 0x55, 0x4d, 0x46]);
 
 export interface ArtNetPreviewStatus {
   active: boolean;
-  bindAddress: "127.0.0.1";
+  bindAddress: "127.0.0.2";
   port: number;
   pixelCount: number | null;
   startUniverse: number | null;
@@ -65,7 +66,7 @@ function listen(socket: UdpSocket, port: number): Promise<number> {
   return new Promise((resolve, reject) => {
     const onError = (error: Error): void => reject(error);
     socket.once("error", onError);
-    socket.bind(port, "127.0.0.1", () => {
+    socket.bind(port, ART_NET_PREVIEW_ADDRESS, () => {
       socket.off("error", onError);
       const address = socket.address();
       resolve(typeof address === "string" ? port : address.port);
@@ -112,7 +113,7 @@ export function createArtNetPreviewHandler(
 
   const currentStatus = (): ArtNetPreviewStatus => ({
     active: socket !== undefined,
-    bindAddress: "127.0.0.1",
+    bindAddress: ART_NET_PREVIEW_ADDRESS,
     port: actualPort,
     pixelCount,
     startUniverse,
@@ -173,7 +174,7 @@ export function createArtNetPreviewHandler(
         });
         return true;
       }
-      const nextSocket = createSocket("udp4");
+      const nextSocket = createSocket({ type: "udp4", reuseAddr: true });
       try {
         actualPort = await listen(nextSocket, configuredPort);
       } catch (error) {

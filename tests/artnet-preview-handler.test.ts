@@ -25,11 +25,11 @@ function artDmx(universe: number, data: Uint8Array, sequence: number): Uint8Arra
   return packet;
 }
 
-async function fixtureServer(): Promise<{
+async function fixtureServer(udpPort = 0): Promise<{
   url: string;
   handler: ArtNetPreviewHandler;
 }> {
-  const handler = createArtNetPreviewHandler({ udpPort: 0 });
+  const handler = createArtNetPreviewHandler({ udpPort });
   const server = createServer((request, response) => {
     void handler.handle(request, response).then((handled) => {
       if (!handled) {
@@ -50,12 +50,12 @@ async function fixtureServer(): Promise<{
   return { url: `http://127.0.0.1:${port}/`, handler };
 }
 
-async function sendUdp(port: number, packets: Uint8Array[]): Promise<void> {
+async function sendUdp(address: string, port: number, packets: Uint8Array[]): Promise<void> {
   const socket = createSocket("udp4");
   try {
     for (const packet of packets) {
       await new Promise<void>((resolve, reject) => {
-        socket.send(packet, port, "127.0.0.1", (error) => {
+        socket.send(packet, port, address, (error) => {
           if (error) reject(error);
           else resolve();
         });
@@ -76,9 +76,10 @@ describe("Art-Net preview handler", () => {
     expect(stream.status).toBe(200);
     const status = await fetch(`${fixture.url}api/artnet-preview/status`).then(
       (response) => response.json(),
-    ) as { active: boolean; port: number };
+    ) as { active: boolean; bindAddress: string; port: number };
     expect(status.active).toBe(true);
-    await sendUdp(status.port, [
+    expect(status.bindAddress).toBe("127.0.0.2");
+    await sendUdp(status.bindAddress, status.port, [
       artDmx(2, new Uint8Array(66).fill(22), 7),
       artDmx(1, new Uint8Array(510).fill(11), 7),
     ]);
@@ -94,6 +95,28 @@ describe("Art-Net preview handler", () => {
     expect(value![28]).toBe(11);
     expect(value![28 + 510]).toBe(22);
     await reader.cancel();
+  });
+
+  it("coexists with a MadMapper socket on the primary loopback address", async () => {
+    const madMapperSocket = createSocket("udp4");
+    await new Promise<void>((resolve, reject) => {
+      madMapperSocket.once("error", reject);
+      madMapperSocket.bind(0, "127.0.0.1", resolve);
+    });
+    cleanups.push(async () => {
+      await new Promise<void>((resolve) => madMapperSocket.close(() => resolve()));
+    });
+    const udpPort = (madMapperSocket.address() as AddressInfo).port;
+    const fixture = await fixtureServer(udpPort);
+    const stream = await fetch(
+      `${fixture.url}api/artnet-preview/stream?pixels=1&startUniverse=1&fingerprint=73b36d49`,
+      { headers: { "X-LOO-UME-ArtNet-Preview": "1" } },
+    );
+    expect(stream.status).toBe(200);
+    const status = fixture.handler.status();
+    expect(status.bindAddress).toBe("127.0.0.2");
+    expect(status.port).toBe(udpPort);
+    await stream.body?.cancel();
   });
 
   it("requires a valid mapping fingerprint and only one active stream", async () => {
