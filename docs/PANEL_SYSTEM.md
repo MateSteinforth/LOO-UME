@@ -56,10 +56,30 @@ grid and back-view corner anchors exactly. This compatible seam lets a flexible
 1×N strip or ring use mapping, wiring, simulation, and WLED without pretending
 that its LEDs form a rectangular physical carrier.
 
-Carrier outlines, flexible path rendering, automatic-placement capability
-gates, and fabrication support are separate work. Until those capabilities are
-present, explicit emitter geometry does not authorize rectangular placement or
-print generation for a non-rectangular fixture.
+Carrier rendering and capability gates are described below. Dedicated
+non-rectangular automatic placement and fabrication remain separate work;
+explicit emitter geometry alone does not authorize rectangular placement or
+print generation.
+
+The optional `carrier` field now distinguishes three display contracts:
+
+- absent or `rectangular`: the historical rigid width × height carrier;
+- `planar-outline`: one validated simple pose-local XY polygon;
+- `flexible-path`: a validated open or closed pose-local XYZ path with ribbon
+  width and thickness.
+
+The browser triangulates planar outlines and renders flexible paths as bounded
+ribbon segments. Carrier coordinates must stay inside `dimensions`, which
+remains the camera, selection, and portability envelope. Mapping, wiring,
+simulation, MadMapper export, ESP32 setup, project save, and project reload are
+carrier-independent.
+
+Automatic surface placement, planar closures, connector ribbons, and
+LED-surface bridges still use rigid rectangular PCB assumptions. Their browser
+controls are disabled for other carrier kinds, and the CAD entry points repeat
+the same fail-closed check. This is a capability boundary, not a claim that a
+flexible strip cannot eventually receive dedicated placement or fabrication
+tools.
 
 ## Placement and editing
 

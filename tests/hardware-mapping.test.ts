@@ -171,6 +171,21 @@ describe("hardware mapping contract", () => {
     const definition = structuredClone(PROJECT.sculpture);
     const profile = structuredClone(PANEL_PROFILE_INPUT);
     profile.id = "test-flexible-ring-1x12";
+    profile.dimensions = { width: 70, height: 70, thickness: 1 };
+    profile.carrier = {
+      kind: "flexible-path",
+      path: Array.from({ length: 12 }, (_, index) => {
+        const radians = -index * Math.PI / 6;
+        return [
+          Math.cos(radians) * 30,
+          Math.sin(radians) * 30,
+          0,
+        ];
+      }),
+      closed: true,
+      width: 6,
+      thickness: 1,
+    };
     profile.pixelGrid.columns = 12;
     profile.pixelGrid.rows = 1;
     profile.pixelGrid.localEmitterPositions = Array.from(

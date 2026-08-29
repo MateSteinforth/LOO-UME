@@ -33,6 +33,8 @@ edit marks derived mechanics stale but does not stop those functions.
    grid-coordinate emitter list or derives the legacy rectangular grid.
    `createPanelAssemblyMapping()` expands those positions through authoritative
    poses into LED world positions, logical indices, and mapping metadata.
+   The separate optional carrier contract affects display geometry and tool
+   capability only; it does not become a second address authority.
 3. `optimizeAutomaticWiring()` can write a deterministic balanced route, GPIO
    set, and physical local-Z panel orientation. `createProvisionalWiringPreview()`
    uses that saved route or creates a labelled legacy draft suggestion.

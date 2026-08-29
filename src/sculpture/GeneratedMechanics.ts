@@ -209,6 +209,7 @@ export function createGeneratedMechanicsFingerprint(
       id: profile.id,
       units: profile.units,
       dimensions: profile.dimensions,
+      carrier: profile.carrier,
       mounting: {
         cornerHoleInset: profile.mounting.cornerHoleInset,
         middleHoleOffsetFromOuter: profile.mounting.middleHoleOffsetFromOuter,

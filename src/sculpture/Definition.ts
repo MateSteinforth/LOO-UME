@@ -1,3 +1,9 @@
+import {
+  validatePanelCarrier,
+  type PanelCarrierDefinition,
+} from "./PanelCarrier.ts";
+export type { PanelCarrierDefinition } from "./PanelCarrier.ts";
+
 export type FactStatus = "unknown" | "provisional" | "measured";
 
 export type PanelCorner =
@@ -58,6 +64,7 @@ export interface PanelHardwareProfile {
     height: number;
     thickness: number;
   };
+  carrier?: PanelCarrierDefinition;
   pixelGrid: {
     columns: number;
     rows: number;
@@ -350,6 +357,11 @@ export function parsePanelHardwareProfile(
   requirePositiveNumber(dimensions, "width");
   requirePositiveNumber(dimensions, "height");
   requirePositiveNumber(dimensions, "thickness");
+  validatePanelCarrier(profileInput.carrier, dimensions as unknown as {
+    width: number;
+    height: number;
+    thickness: number;
+  });
   const pixelGrid = requireRecord(profileInput, "pixelGrid");
   const columns = requirePositiveNumber(pixelGrid, "columns");
   const rows = requirePositiveNumber(pixelGrid, "rows");

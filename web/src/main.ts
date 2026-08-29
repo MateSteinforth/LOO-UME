@@ -90,6 +90,10 @@ import { createMadMapperPackageZip } from "./MadMapperPackage.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
 import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
 import {
+  assertRectangularPanelTools,
+  supportsRectangularPanelTools,
+} from "../../src/sculpture/PanelCarrier.ts";
+import {
   getGeneratedStructuralState,
   normalizeStructuralDesign,
   STRUCTURAL_CONNECTOR_DEFAULTS,
@@ -654,10 +658,7 @@ async function start(): Promise<void> {
     const outputLayerVisibility = new Map<number, boolean>();
     let routeEditorModel: WiringRouteEditorModel | null =
       createWiringRouteEditorModel(editorDefinition, wiringPreview);
-    renderer = new SphereRenderer(viewerElement, mapping);
-    renderer.setPanelProfileThickness(
-      editorProject.panelProfile.dimensions.thickness,
-    );
+    renderer = new SphereRenderer(viewerElement, mapping, editorProject.panelProfile);
     renderer.setShellTransparency(
       DEFAULT_SHELL_TRANSPARENCY,
     );
@@ -1007,7 +1008,8 @@ async function start(): Promise<void> {
 
     const updatePipelineAvailability = (): void => {
       const capabilities = deriveEditorCapabilities(
-        editorDefinition, activePlacementSurface !== undefined, pipelineAvailable,
+        editorDefinition, activePlacementSurface !== undefined,
+        pipelineAvailable, editorProject.panelProfile,
       );
       renderer?.setEditorCapabilities(capabilities);
       const packageIsCurrent = verifiedGeneratedMechanics !== undefined;
@@ -1018,24 +1020,30 @@ async function start(): Promise<void> {
         (!packageIsCurrent && !capabilities.canGenerateGenericMechanics);
       assemblyPackageButton.title = packageIsCurrent
         ? "Download the current project, verified geometry, manual, and guarded deployment export."
-        : "Build current boundary and part STLs. The button changes to Download when they are verified.";
+        : capabilities.canGenerateGenericMechanics
+          ? "Build current boundary and part STLs. The button changes to Download when they are verified."
+          : "Panel closure generation currently supports only rigid rectangular panel carriers.";
       downloadMadMapperPackageButton.disabled =
         !hardwareContract.readiness.mappingReady;
       downloadMadMapperPackageButton.title = hardwareContract.readiness.mappingReady
         ? "Download the MadMapper SVG, patch information, manifest, and setup PDF."
         : "Confirm the authored route and panel addressing before MadMapper export.";
       generateStructureButton.disabled =
-        editorDefinition.panels.length === 0;
+        !capabilities.canGenerateStructuralMechanics;
       generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
-      generateStructureButton.title =
-        "Generate nearest-hole connector ribbons, STL, 3MF, and an optional load-path report.";
-      generateSurfaceStructureButton.title =
-        "Generate 2 mm full-edge bridges at the panel LED planes, STL, 3MF, and an optional load-path report.";
+      generateStructureButton.title = capabilities.canGenerateStructuralMechanics
+        ? "Generate nearest-hole connector ribbons, STL, 3MF, and an optional load-path report."
+        : "Connector generation currently supports only rigid rectangular panel carriers.";
+      generateSurfaceStructureButton.title = capabilities.canGenerateStructuralMechanics
+        ? "Generate 2 mm full-edge bridges at the panel LED planes, STL, 3MF, and an optional load-path report."
+        : "Bridge generation currently supports only rigid rectangular panel carriers.";
       automaticPanelPlacementControls.hidden = false;
       automaticallyPlacePanelsButton.disabled =
         !capabilities.canAutomaticallySeed;
       automaticallyPlacePanelsButton.title = activePlacementSurface
-          ? "Seed panels evenly across the active placement surface."
+          ? capabilities.canAutomaticallySeed
+            ? "Seed panels evenly across the active placement surface."
+            : "Automatic placement currently supports only rigid rectangular panel carriers."
           : "Load a GLB or sculpture JSON shell first.";
     };
 
@@ -1478,7 +1486,8 @@ async function start(): Promise<void> {
     };
 
     const renderEditorFaces = (): void => {
-      const options = mechanicalShellIsCurrent() && editorDefinition.closures
+      const options = supportsRectangularPanelTools(editorProject.panelProfile) &&
+          mechanicalShellIsCurrent() && editorDefinition.closures
         ? editorDefinition.closures.faceIds.flatMap((faceId) => {
         try {
           addPanelToClosureFace(
@@ -1539,9 +1548,7 @@ async function start(): Promise<void> {
       engine.resize(mapping.entries.length);
       tryReconnectSimulatorLink();
       ledCountInput.value = String(mapping.entries.length);
-      renderer?.setPanelProfileThickness(
-        selected.project.panelProfile.dimensions.thickness,
-      );
+      renderer?.setPanelProfile(selected.project.panelProfile);
       renderer?.setMapping(mapping);
       renderer?.setWiringPreview(wiringPreview);
       renderAssemblyTutorialControls();
@@ -1839,7 +1846,8 @@ async function start(): Promise<void> {
           );
         }
         const capabilities = deriveEditorCapabilities(
-          editorDefinition, activePlacementSurface !== undefined, pipelineAvailable,
+          editorDefinition, activePlacementSurface !== undefined,
+          pipelineAvailable, editorProject.panelProfile,
         );
         if (panelId) {
           const free3d = currentPanelTransformMode() === "free-3d";
@@ -2421,6 +2429,10 @@ async function start(): Promise<void> {
 
     automaticallyPlacePanelsButton.addEventListener("click", () => {
       try {
+        assertRectangularPanelTools(
+          editorProject.panelProfile,
+          "Automatic surface placement",
+        );
         if (!activePlacementSurface) {
           throw new Error("Load a GLB or sculpture JSON shell first.");
         }
@@ -2458,6 +2470,10 @@ async function start(): Promise<void> {
     });
     addPanelButton.addEventListener("click", () => {
       try {
+        assertRectangularPanelTools(
+          editorProject.panelProfile,
+          "Closure-face panel placement",
+        );
         const faceId = addPanelFaceSelect.value;
         if (!faceId) throw new Error("Choose an available closure face.");
         const edited = addPanelToClosureFace(

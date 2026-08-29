@@ -56,6 +56,59 @@
         }
       }
     },
+    "carrier": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": { "const": "rectangular" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "outline"],
+          "properties": {
+            "kind": { "const": "planar-outline" },
+            "outline": {
+              "type": "array",
+              "minItems": 3,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/localPosition2" }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "path", "closed", "width", "thickness"],
+          "properties": {
+            "kind": { "const": "flexible-path" },
+            "path": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "#/$defs/localPosition3" }
+            },
+            "closed": { "type": "boolean" },
+            "width": { "type": "number", "exclusiveMinimum": 0 },
+            "thickness": { "type": "number", "exclusiveMinimum": 0 }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": { "closed": { "const": true } },
+                "required": ["closed"]
+              },
+              "then": {
+                "properties": { "path": { "minItems": 3 } }
+              }
+            }
+          ]
+        }
+      ]
+    },
     "pixelGrid": {
       "type": "object",
       "additionalProperties": false,
@@ -521,6 +574,15 @@
     }
   },
   "$defs": {
+    "localPosition2": {
+      "type": "array",
+      "minItems": 2,
+      "prefixItems": [
+        { "type": "number" },
+        { "type": "number" }
+      ],
+      "items": false
+    },
     "localPosition3": {
       "type": "array",
       "minItems": 3,

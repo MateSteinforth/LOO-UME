@@ -18,6 +18,7 @@ import type {
   Vector3Data,
 } from "../../web/src/LedMapping.ts";
 import { GENERATED_CLOSURE_PLANARITY_MM } from "./PanelBoundaryTolerances.ts";
+import { supportsRectangularPanelTools } from "./PanelCarrier.ts";
 
 import {
   assertProjectAssetReference,
@@ -1860,7 +1861,8 @@ export function createPanelAssemblyMapping(
   assembly?: CompiledPanelAssembly,
 ): LedMapping {
   const resolvedAssembly = assembly ??
-    (!project.sculpture.mechanicalShell ||
+    (!supportsRectangularPanelTools(project.panelProfile) ||
+        !project.sculpture.mechanicalShell ||
         !project.sculpture.closures ||
         project.sculpture.mechanicalShell.derivationStatus === "requires-regeneration"
       ? null

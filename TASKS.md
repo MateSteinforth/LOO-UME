@@ -35,20 +35,6 @@ No tasks.
 
 ## Ready
 
-### `P1 · FIXTURE-011` Add arbitrary carriers and flexible paths
-
-- Scope: extend the normalized fixture contract with optional planar carrier
-  outlines and flexible emitter paths, render those carriers and emitters, and
-  make placement and fabrication tools advertise and enforce their actual
-  capabilities instead of assuming every fixture is rectangular and rigid.
-- Acceptance: one tracked arbitrary-outline fixture and one 1×N ring/strip
-  fixture load, render, map, wire, simulate, and configure WLED; rectangular
-  automatic placement and unsupported fabrication actions fail closed with a
-  clear message; the current 41-panel project remains unchanged.
-- Dependency: `FIXTURE-010`.
-- Conflict risk: panel rendering, placement footprints, fabrication capability
-  gates, and the panel-profile/schema contract.
-
 ### `P1 · UI-026` Replace the numbered workflow with capability toolboxes
 
 - Scope: remove the forced 1–6 presentation and group the existing controls as
@@ -128,6 +114,23 @@ No tasks.
 No tasks.
 
 ## Ready to Merge
+
+### `P1 · FIXTURE-011` Add arbitrary carriers and flexible paths
+
+- Result: optional planar outlines and flexible 3D paths now define visible
+  carrier geometry without changing emitter addressing. Non-rectangular
+  fixtures retain mapping, wiring, simulation, ESP32 setup, and export while
+  rectangular placement and fabrication operations fail closed.
+- Evidence: focused arbitrary-outline, vertical-path, 1×12 ring, mapping, and
+  boundary checks passed 42/42; TypeScript and diff checks passed; the current
+  flagship mapping and fabrication fingerprints remain byte-identical;
+  independent QUALITY review passed.
+- Reusable catalog presets remain out of scope until their actual carrier and
+  hardware facts are supplied; this slice does not invent physical products.
+- Dependency: reviewed `FIXTURE-010` commit `790f0b2`; both branches remain
+  separate from `main` until authorized integration.
+- Owner: `codex/fixture-011-arbitrary-carriers` in
+  `/home/mate/Documents/led-rhombicosidodecahedron-fixture-011`.
 
 ### `P1 · FIXTURE-010` Normalize explicit emitter and connector positions
 

@@ -1521,3 +1521,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   non-legacy 2,624-LED regression retains finite current limits; legacy setup
   tests remain byte-equivalent.
 - **Status:** Resolved by FIXTURE-010.
+
+### F-083 — Rectangular display assumptions leaked into fixture capabilities
+
+- **Date:** 2026-08-29
+- **Context:** Arbitrary planar carriers and flexible 1×N strip/ring profiles.
+- **Symptom:** Explicit emitter positions could map and reach WLED, but the
+  viewer still drew a rectangular PCB and rectangular placement/fabrication
+  actions appeared available.
+- **Cause:** Carrier display geometry and tool capability were inferred from
+  `dimensions` instead of represented as an optional profile contract.
+- **Correction:** Add validated rectangular, planar-outline, and flexible-path
+  carrier kinds. Render the latter two directly, disable incompatible browser
+  actions, and repeat the rigid-rectangle gate at CAD entry points.
+- **Prevention:** Keep address geometry, display carrier geometry, and
+  fabrication support as separate contracts. A new carrier must not inherit a
+  tool capability merely because it has a bounding width and height.
+- **Evidence:** Focused outline/ribbon geometry, parser, capability, CAD-gate,
+  mapping, WLED, and legacy-profile tests.
+- **Status:** Resolved by FIXTURE-011.
