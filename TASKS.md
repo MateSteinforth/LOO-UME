@@ -105,7 +105,15 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `UI-028` Stabilize project switching and direct viewport setup
+
+- Scope: no automatic viewport rotation; exact saved controller XYZ with a
+  suggested-position reset; reusable Project Library cards; clear library,
+  ZIP, folder, and JSON action labels.
+- Verification: 475 unit tests, TypeScript, production build, and nine focused
+  Chromium journeys passed on `codex/ui-project-reliability`.
+- Owner: `codex/ui-project-reliability` in
+  `/tmp/led-rhombo-ui-project-reliability`.
 
 ## Done
 

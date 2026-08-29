@@ -168,9 +168,8 @@ normal. Explicit radial-frame flexible-path emitters define their physical
 outside surface positions and receive no additional panel-normal offset. Both rules are
 display-only and do not change mapping or saved poses. The transparent WebGL
 canvas uses the viewer's radial and linear CSS gradient as its world backdrop.
-Selecting a panel through the viewport, its label, or a route row stops slow
-auto-rotation and clears the matching View checkbox. This is view state only;
-selection and rotation never change a saved pose.
+The viewport does not rotate automatically. Manual orbit is view state only;
+selection and camera movement never change a saved pose.
 Panel ID labels use the DIN marker from the current wiring preview instead
 of the panel center. This renderer placement and the printable label PDF do not
 change the panel pose or the route.

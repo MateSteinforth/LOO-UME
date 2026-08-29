@@ -176,6 +176,7 @@ export function createWiringControllerLayout(
   const geometry = wiringControllerGeometry(
     points.map(({ x, y, z }) => [x, y, z]),
     preview.outputs.length,
+    preview.controller?.position,
   );
   const position = vector(...geometry.position);
   return {

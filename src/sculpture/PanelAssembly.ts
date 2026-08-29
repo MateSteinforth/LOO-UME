@@ -628,9 +628,12 @@ function validateWiring(
   const controller = record(wiring, "controller");
   if (
     controller.placement !== "near-top" ||
-    (controller.status !== "provisional" && controller.status !== "measured")
+    (controller.status !== "provisional" && controller.status !== "measured") ||
+    (controller.position !== undefined && !isFiniteVector3(controller.position))
   ) {
-    throw new Error("Panel assemblies require a near-top controller with a known lifecycle state.");
+    throw new Error(
+      "Panel assemblies require a near-top controller, an optional finite XYZ position, and a known lifecycle state.",
+    );
   }
   if (
     (wiring.status !== "provisional" &&

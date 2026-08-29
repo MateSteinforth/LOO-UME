@@ -103,8 +103,8 @@ Historical Schema 1 inputs are available only through Git history.
 - Keep both panel edit modes. Surface mode constrains translation to the active
   surface, or to saved local XY without a surface. Free 6DOF mode writes one
   independent right-handed pose and removes its stale surface attachment.
-- A successful panel selection stops slow auto-rotation and synchronizes the
-  View checkbox. Selection must leave the chosen panel stationary for editing.
+- The viewport does not rotate automatically. Operators keep direct orbit and
+  zoom control, and panel selection leaves the chosen panel stationary.
 - The saved route, GPIOs, and optimized installed quarter turns are authorized
   assumptions. The straight row-major pixel order and GRB color order are
   measured panel facts. Together these facts and assumptions make the current

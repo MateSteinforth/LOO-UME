@@ -71,17 +71,28 @@ test("edits, saves, and reopens an authored wiring route", async ({ page }) => {
   );
   await expect(page.locator(".route-panel").first()).toContainText("Controller →");
 
+  await page.getByText("Controller position", { exact: true }).click();
+  await page.locator("#controller-position-x").fill("-120");
+  await page.locator("#controller-position-y").fill("80");
+  await page.locator("#controller-position-z").fill("45");
+  await page.locator("#apply-controller-position").click();
+  await expect(page.locator("#controller-position-status")).toContainText(
+    "saved in the project",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-controller-position",
+    "-120,80,45",
+  );
+
   const selectedPanelId = await page.locator(".route-panel").first()
     .getAttribute("data-panel-id");
   if (!selectedPanelId) throw new Error("The first route row has no panel ID.");
-  await page.locator("#auto-rotate").check();
-  await expect(page.locator("#auto-rotate")).toBeChecked();
-  await expect(page.locator("#viewer")).toHaveAttribute("data-auto-rotate", "true");
+  await expect(page.locator("#auto-rotate")).toHaveCount(0);
+  await expect(page.locator("#viewer")).toHaveAttribute("data-auto-rotate", "false");
   await page.locator(".route-panel").first().click();
   await expect(page.locator("#pipeline-status")).toContainText(
     `Selected ${selectedPanelId}`,
   );
-  await expect(page.locator("#auto-rotate")).not.toBeChecked();
   await expect(page.locator("#viewer")).toHaveAttribute("data-auto-rotate", "false");
   await expect(page.getByRole("button", {
     name: `Delete selected panel ${selectedPanelId}`,
@@ -148,7 +159,7 @@ test("optimizes the loaded project while keeping manual routing advanced", async
     "No authoring surface is referenced",
   );
   await expect(page.locator("#wiring-optimization-summary")).toContainText(
-    "1 output · 3 panels · GPIO 16",
+    "1 output · 3 panels · GPIO unassigned",
   );
   await expect(page.locator("#route-editor-section")).not.toHaveAttribute("open", "");
   await page.locator("#optimize-wiring").click();

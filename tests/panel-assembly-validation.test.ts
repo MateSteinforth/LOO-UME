@@ -20,10 +20,18 @@ describe("central Schema 2 runtime validation", () => {
     ["calibration field", (value: Record<string, any>) => { delete value.calibration.panelPixelOrder; }, /Calibration.*lifecycle/],
     ["calibration value", (value: Record<string, any>) => { value.calibration.physicalChains = "verified"; }, /Calibration.*lifecycle/],
     ["root notes", (value: Record<string, any>) => { value.notes = [false]; }, /Notes.*strings/],
+    ["controller position", (value: Record<string, any>) => { value.wiring.controller.position = [1, 2]; }, /optional finite XYZ position/],
   ])("rejects invalid nested %s", async (_label, mutate, message) => {
     const definition = await fixture("sculptures/pose-only-two-panel/sculpture.json");
     mutate(definition);
     expect(() => parsePanelAssemblyDefinition(definition)).toThrow(message);
+  });
+
+  it("accepts an exact finite controller position", async () => {
+    const definition = await fixture("sculptures/pose-only-two-panel/sculpture.json");
+    definition.wiring.controller.position = [-120, 80, 45];
+    expect(parsePanelAssemblyDefinition(definition).wiring.controller.position)
+      .toEqual([-120, 80, 45]);
   });
 
   it("rejects repeated boundary corner references during load", async () => {

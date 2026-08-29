@@ -13,6 +13,7 @@ describe("ZIP project package", () => {
     const definition = parsePanelAssemblyDefinition(JSON.parse(
       await readFile("sculptures/rhombicosidodecahedron/sculpture.json", "utf8"),
     ));
+    definition.wiring.controller.position = [-120, 80, 45];
     const first = createProjectPackageZip(definition, new Map());
     const second = createProjectPackageZip(definition, new Map());
     expect(first).toEqual(second);
@@ -33,6 +34,9 @@ describe("ZIP project package", () => {
       { create: () => "blob:test", revoke: () => undefined },
     );
     expect(reopened.project.sculpture.id).toBe(definition.id);
+    expect(reopened.project.sculpture.wiring.controller.position).toEqual([
+      -120, 80, 45,
+    ]);
     reopened.dispose();
   });
 

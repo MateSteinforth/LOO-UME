@@ -209,7 +209,11 @@ function controllerPins(
     },
     definition.wiring.connector.surfaceOffset,
   ));
-  return wiringControllerGeometry(positions, outputCount).pinPositions;
+  return wiringControllerGeometry(
+    positions,
+    outputCount,
+    definition.wiring.controller.position,
+  ).pinPositions;
 }
 
 export function calculatePoseOwnedWiringCableLength(
