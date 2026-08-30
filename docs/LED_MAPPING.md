@@ -116,6 +116,10 @@ manifest, **Developer utilities → Restrict wiring rotation to 0/180°** stores
 `wiring.panelRotationConstraint: "half-turns-only"`. This operator gate has the
 same optimization limit and persists through project export/reload. Removing it
 cannot weaken a gate supplied by an existing generated-parts manifest.
+When this explicit legacy-project gate is active without a generated-parts
+manifest, the current saved poses are the fabricated authority. Optimization
+discards assumed address-only quarter turns instead of migrating them into the
+pose, then evaluates only 0/180-degree pose deltas. Mirroring still fails closed.
 
 ## Browser route editor
 

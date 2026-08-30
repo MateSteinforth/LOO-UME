@@ -33,6 +33,7 @@ export interface AutomaticWiringOptimizationResult {
   estimatedCableLengthMm: number;
   orientationPolicy: "quarter-turns" | "half-turns-only";
   poseQuarterTurnsByPanel: Record<string, QuarterTurn>;
+  discardedLegacyAddressTurnPanelIds: string[];
 }
 
 export interface AutomaticWiringOutputPolicy {
@@ -401,12 +402,25 @@ function optimizeRoutes(
 function foldLegacyInstalledTurns(
   definition: PanelAssemblyDefinition,
   halfTurnGateActive: boolean,
-): void {
+  useCurrentPosesAsFabricated: boolean,
+): string[] {
+  const discardedPanelIds: string[] = [];
   for (const panel of definition.panels) {
     const transform = panel.installedAddressTransform;
     if (!transform) continue;
     if (transform.mirrored) {
       throw new Error(`Automatic wiring cannot fold mirrored address calibration on ${panel.id} into a right-handed pose.`);
+    }
+    if (useCurrentPosesAsFabricated) {
+      if (transform.quarterTurnsClockwise !== 0) discardedPanelIds.push(panel.id);
+      panel.installedAddressTransform = {
+        status: "assumed",
+        referenceView: "back",
+        quarterTurnsClockwise: 0,
+        mirrored: false,
+        selectionMethod: "manual",
+      };
+      continue;
     }
     if (halfTurnGateActive && transform.quarterTurnsClockwise % 2 !== 0) {
       throw new Error(
@@ -425,6 +439,7 @@ function foldLegacyInstalledTurns(
       selectionMethod: "manual",
     };
   }
+  return discardedPanelIds;
 }
 
 function physicalPosesChanged(
@@ -451,9 +466,18 @@ export function optimizeAutomaticWiring(
     throw new Error("Automatic wiring does not rewrite measured or hardware-verified installation evidence.");
   }
   const definition = structuredClone(source);
+  const generatedManifestGate = Boolean(
+    definition.generatedMechanics || definition.generatedStructure,
+  );
+  const manualGate =
+    definition.wiring.panelRotationConstraint === "half-turns-only";
   const orientationPolicy = automaticWiringOrientationPolicy(definition);
   const halfTurnGateActive = orientationPolicy === "half-turns-only";
-  foldLegacyInstalledTurns(definition, halfTurnGateActive);
+  const discardedLegacyAddressTurnPanelIds = foldLegacyInstalledTurns(
+    definition,
+    halfTurnGateActive,
+    manualGate && !generatedManifestGate,
+  );
   const allowedTurns: readonly QuarterTurn[] = halfTurnGateActive
     ? [0, 2]
     : [0, 1, 2, 3];
@@ -522,6 +546,11 @@ export function optimizeAutomaticWiring(
   definition.notes.push(
     `Automatic wiring revision ${definition.wiring.routeRevision} selected ${outputCount} balanced output${outputCount === 1 ? "" : "s"}, GPIO ${OUTPUT_GPIOS.slice(0, outputCount).join("/")}, and ${orientationPolicy === "quarter-turns" ? "quarter-turn" : "0/180-degree"} physical panel poses; estimated data cable ${estimatedCableLengthMm.toFixed(1)} mm.`,
   );
+  if (discardedLegacyAddressTurnPanelIds.length > 0) {
+    definition.notes.push(
+      `The manual 0/180-degree rotation gate used current saved poses as fabricated authority and discarded assumed legacy address-only turns on ${discardedLegacyAddressTurnPanelIds.join(", ")}.`,
+    );
+  }
   return {
     definition,
     outputCount,
@@ -530,5 +559,6 @@ export function optimizeAutomaticWiring(
     estimatedCableLengthMm,
     orientationPolicy,
     poseQuarterTurnsByPanel,
+    discardedLegacyAddressTurnPanelIds,
   };
 }

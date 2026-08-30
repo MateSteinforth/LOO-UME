@@ -14,7 +14,7 @@ test("persists the manual wiring rotation gate from Developer utilities", async 
   });
   const gate = page.locator("#toggle-wiring-rotation-gate");
   await expect(gate).toHaveAttribute("aria-pressed", "false");
-  await expect(gate).toHaveText("Use manual 0/180° rotation gate");
+  await expect(gate).toHaveText("Use current poses + 0/180° gate");
   await gate.click();
   await expect(gate).toHaveAttribute("aria-pressed", "true");
   await expect(gate).toHaveText("Remove manual 0/180° rotation gate");

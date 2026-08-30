@@ -20,6 +20,8 @@ balanced outputs, GPIOs, routes, and allowed local-Z panel rotations; the
 drag-and-drop route editor is under **Advanced route editor**. A generated-part
 manifest, or the explicit manual gate for older fabricated projects, narrows
 later rotation choices to 0/180 degrees.
+The manual/no-manifest path uses current saved poses as fabricated authority and
+discards assumed legacy address turns during optimization.
 
 The local host also provides the receipt-gated ESP32 image, bounded private-WLED
 HTTP proxy, and mapped DDP sender. The browser verifies config, ledmap, preset,

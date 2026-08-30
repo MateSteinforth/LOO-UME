@@ -436,18 +436,33 @@ describe("automatic wiring optimizer", () => {
   it("keeps the 41-panel project to 0/180-degree deltas under the manual gate", () => {
     const sourcePath = "sculptures/rhombicosidodecahedron/sculpture.json";
     const loaded = load(sourcePath);
-    const source = identityTransforms(loaded.definition);
+    const source = structuredClone(loaded.definition);
     source.wiring.panelRotationConstraint = "half-turns-only";
+    const sourceSnapshot = structuredClone(source);
+    const expectedDiscardedPanelIds = source.panels
+      .filter((panel) =>
+        panel.installedAddressTransform?.quarterTurnsClockwise !== 0
+      )
+      .map((panel) => panel.id);
     const reopened = parsePanelAssemblyDefinition(
       JSON.parse(JSON.stringify(source)),
     );
     expect(reopened.wiring.panelRotationConstraint).toBe("half-turns-only");
     const optimized = optimizeAutomaticWiring(reopened, loaded.profile);
+    expect(source).toEqual(sourceSnapshot);
     expect(optimized.orientationPolicy).toBe("half-turns-only");
     expect(Object.values(optimized.poseQuarterTurnsByPanel).every((turns) =>
       turns === 0 || turns === 2
     )).toBe(true);
     expect(optimized.definition.wiring.panelRotationConstraint)
       .toBe("half-turns-only");
+    expect(optimized.discardedLegacyAddressTurnPanelIds).toContain("SQ-04");
+    expect(optimized.discardedLegacyAddressTurnPanelIds)
+      .toEqual(expectedDiscardedPanelIds);
+    expect(expectedDiscardedPanelIds).toHaveLength(29);
+    expect(optimized.definition.panels.every((panel) =>
+      panel.installedAddressTransform?.quarterTurnsClockwise === 0 &&
+      panel.installedAddressTransform.mirrored === false
+    )).toBe(true);
   }, 20_000);
 });

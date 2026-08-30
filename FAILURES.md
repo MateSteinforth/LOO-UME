@@ -2080,7 +2080,9 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   can have neither manifest.
 - **Correction:** Add an optional saved `wiring.panelRotationConstraint` and a
   Developer utilities button that sets it to `half-turns-only`. Combine this
-  operator gate with the existing generated-manifest gate.
+  operator gate with the existing generated-manifest gate. In the explicit
+  manual/no-manifest mode, use current saved poses as fabricated authority and
+  discard assumed legacy address-only turns before the 0/180-degree search.
 - **Prevention:** Do not infer all physical lifecycle state from derived-asset
   manifests. When older real hardware is authoritative, provide a persistent,
   explicit operator constraint. A manual override may strengthen an automatic

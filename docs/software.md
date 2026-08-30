@@ -46,6 +46,8 @@ editor is an Advanced control. A generated-part manifest permanently narrows
 later automatic orientation changes from all quarter turns to 0/180 degrees.
 Developer utilities can save the same gate for older fabricated projects that
 do not contain a generated-parts manifest.
+That explicit legacy mode uses current saved poses as fabrication authority and
+removes assumed address-only turns during the next optimization.
 DIN/DOUT rendering and route cost use the same pose-owned connector geometry.
 
 The canonical map has one record per LED and joins:

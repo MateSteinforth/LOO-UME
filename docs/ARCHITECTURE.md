@@ -241,6 +241,10 @@ An optional `wiring.panelRotationConstraint: "half-turns-only"` supplies the
 same durable limit when physical parts predate generated-manifest tracking. The
 Developer utilities button is the explicit operator authority for that case;
 the optional field keeps older Schema 2 projects compatible.
+For this manual-gate/no-manifest case only, optimization treats current saved
+poses as fabricated authority and replaces assumed legacy address-only turns
+with identity before its 0/180-degree search. Manifest-backed projects retain
+strict conflict rejection.
 
 Mapping readiness is separate from electrical approval. A production bundle
 must bind the current project, route, ledmap, WLED bus fragment, target identity,

@@ -441,7 +441,7 @@ app.innerHTML = `
                   <button id="apply-count" type="button">Apply</button>
                 </div>
               </label>
-              <button id="toggle-wiring-rotation-gate" type="button" aria-pressed="false">Use manual 0/180° rotation gate</button>
+              <button id="toggle-wiring-rotation-gate" type="button" aria-pressed="false">Use current poses + 0/180° gate</button>
             </div>
           </details>
           <div id="pipeline-status" class="pipeline-status pipeline-status--history" role="log" aria-live="polite" aria-label="Activity log">
@@ -1379,7 +1379,7 @@ async function start(): Promise<void> {
       );
       toggleWiringRotationGateButton.textContent = manualRotationGate
         ? "Remove manual 0/180° rotation gate"
-        : "Use manual 0/180° rotation gate";
+        : "Use current poses + 0/180° gate";
       wiringOptimizationSummary.textContent = isPanelized
         ? `${wiringPreview.outputs.length} output${wiringPreview.outputs.length === 1 ? "" : "s"} · ${editorDefinition.panels.length} panels · GPIO ${wiringPreview.outputs.map((output) => output.gpio ?? "unassigned").join("/")} · ${orientationPolicy === "half-turns-only" ? `${manualRotationGate ? "manual " : "fabrication "}0/180° orientation gate` : "0/90/180/270° before fabrication"}.`
         : "Automatic wiring requires a panelized Schema 2 project.";
@@ -2405,7 +2405,7 @@ async function start(): Promise<void> {
           await applyLoadedSculpture(createLoadedSculpture(project));
           currentProjectName.textContent = project.sculpture.name;
           setLogMessage(
-            `Optimized wiring revision ${result.definition.wiring.routeRevision}: ${result.outputCount} output${result.outputCount === 1 ? "" : "s"}, ${result.chainLengths.join("/")} panels, GPIO ${result.gpios.join("/")}, approximately ${result.estimatedCableLengthMm.toFixed(1)} mm data cable. ${result.orientationPolicy === "quarter-turns" ? "Panel orientation could use 0°, 90°, 180°, or 270°." : "The active rotation gate limited panel orientation changes to 0° or 180°."}`,
+            `Optimized wiring revision ${result.definition.wiring.routeRevision}: ${result.outputCount} output${result.outputCount === 1 ? "" : "s"}, ${result.chainLengths.join("/")} panels, GPIO ${result.gpios.join("/")}, approximately ${result.estimatedCableLengthMm.toFixed(1)} mm data cable. ${result.orientationPolicy === "quarter-turns" ? "Panel orientation could use 0°, 90°, 180°, or 270°." : "The active rotation gate limited panel orientation changes to 0° or 180°."}${result.discardedLegacyAddressTurnPanelIds.length > 0 ? ` Current saved poses were used as fabricated authority; ${result.discardedLegacyAddressTurnPanelIds.length} assumed legacy address-only turns were discarded.` : ""}`,
           );
         } catch (error) {
           setLogMessage(error instanceof Error ? error.message : String(error), true);
@@ -2427,7 +2427,7 @@ async function start(): Promise<void> {
       );
       void applyLoadedSculpture(createLoadedSculpture(project)).then(() => {
         setLogMessage(enable
-          ? "Manual wiring rotation gate enabled. Optimize wiring can now keep each panel orientation or add 180 degrees only."
+          ? "Manual wiring rotation gate enabled. Optimize wiring will use current saved poses as fabricated authority, discard assumed legacy address-only turns, and apply only 0/180-degree pose changes."
           : "Manual wiring rotation gate removed. Generated-part manifests still enforce 0/180-degree optimization when present.");
       }).catch((error) => {
         setLogMessage(error instanceof Error ? error.message : String(error), true);

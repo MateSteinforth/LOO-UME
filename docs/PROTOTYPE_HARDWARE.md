@@ -74,6 +74,9 @@ The one-panel test on 2026-08-25 measured this convention:
   pose before fabrication. A generated-part manifest or the saved manual
   `half-turns-only` gate permits only the current pose or a 180-degree turn.
   Mirroring remains false.
+  For the legacy 41-panel project, enable the manual gate before re-optimization
+  so the saved poses remain the printed authority and assumed address turns do
+  not migrate into physical rotations.
 
 The older address-only orientation study reduced its inter-panel estimate from
 2,795.8 mm for identity orientation to 1,245.8 mm. That result is historical

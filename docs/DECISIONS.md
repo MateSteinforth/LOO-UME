@@ -261,6 +261,9 @@ quarter turns are eligible. A mechanics/structural manifest, including when
 stale, or `wiring.panelRotationConstraint: "half-turns-only"` limits choices to
 the current pose and a 180-degree turn. Manual route editing is an Advanced
 exception, not the normal workflow.
+For an older fabricated project with the manual gate but no generated manifest,
+the current saved poses are explicit fabrication authority. The optimizer
+discards assumed legacy address-only turns before applying the limited search.
 
 ## D32 — Export a supported MadMapper information package
 
