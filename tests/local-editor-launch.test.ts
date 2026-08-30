@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { localBrowserCommand } from "../scripts/local-editor-server.ts";
+import {
+  localApplicationRestartCommand,
+  localBrowserCommand,
+} from "../scripts/local-editor-server.ts";
 
 describe("local editor browser launch", () => {
   it("uses the native macOS opener", () => {
@@ -11,5 +14,20 @@ describe("local editor browser launch", () => {
       "/usr/bin/xdg-open",
     ]);
     expect(localBrowserCommand("linux", {})).toBeUndefined();
+  });
+
+  it("restarts through the process-owning launcher only for managed installs", () => {
+    expect(localApplicationRestartCommand("/application", {
+      LOO_UME_MANAGED_LAUNCHER: "1",
+    })).toEqual([
+      "/bin/sh",
+      "/application/scripts/looume.sh",
+      "--restart-after-update",
+    ]);
+    expect(localApplicationRestartCommand("/checkout", {})).toEqual([
+      "/bin/sh",
+      "/checkout/bootstrap.sh",
+      "launch",
+    ]);
   });
 });

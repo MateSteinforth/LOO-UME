@@ -71,7 +71,8 @@ describe("clean-checkout bootstrap", () => {
   it("defines one-command launch and guarded update contracts", () => {
     const bootstrap = readFileSync("bootstrap.sh", "utf8");
     expect(bootstrap).toContain("launch)");
-    expect(bootstrap).toContain("run start:desktop -- --open-browser");
+    expect(bootstrap).toContain("scripts/local-editor-server.ts\" --open-browser");
+    expect(bootstrap).toContain("LOO_UME_OPEN_BROWSER-1");
     expect(bootstrap).toContain("update)");
     expect(bootstrap).toContain("bootstrap-update-apply.sh");
     const update = readFileSync("scripts/bootstrap-update-apply.sh", "utf8");

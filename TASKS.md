@@ -4,8 +4,8 @@ Last reconciled: 2026-08-30
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: prove direct Art-Net behavior and static address/RGB parity
-on physical hardware.
+Current milestone: add a self-installing Mac launcher while direct Art-Net and
+complete address/RGB proof wait for their physical hardware.
 
 ## Control rules
 
@@ -47,7 +47,26 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `P1 · INSTALL-016` Add a self-installing Mac launcher release
+
+- Scope: publish a lightweight `LOO UME.app` that copies itself to
+  `~/Applications` on first launch, installs a canonical `main` checkout below
+  `~/Library/Application Support/LOO-UME/`, runs the existing verified setup
+  internally, and opens the browser editor. Add one `looume` launcher boundary
+  with launch, update, stop, and status commands while keeping direct
+  `bootstrap.sh` use available for developers.
+- Acceptance: the normal Mac path requires no Terminal command; first launch is
+  bounded, retryable, and never exposes a partial checkout as installed;
+  subsequent launches reuse one running server or start one verified server;
+  UI and command updates use the existing canonical-main fast-forward gate;
+  projects survive updates; the application can stop its owned server; a tagged
+  GitHub workflow publishes the exact launcher ZIP as a separate release asset.
+- Evidence: focused launcher/bootstrap/restart tests pass 18/18; shell syntax,
+  TypeScript, GitHub Actions YAML lint, and diff checks pass. Independent review
+  found no remaining blocker. Native first-launch review remains required after
+  the first tagged artifact is built.
+- Owner: `codex/install-016-mac-launcher` in
+  `/tmp/loo-ume-install-016`.
 
 ## In Progress
 

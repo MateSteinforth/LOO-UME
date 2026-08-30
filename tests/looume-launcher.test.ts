@@ -1,0 +1,462 @@
+import { execFile, spawn } from "node:child_process";
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readlink,
+  readdir,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
+import { createServer as createHttpServer } from "node:http";
+import { createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { promisify } from "node:util";
+import { afterEach, describe, expect, it } from "vitest";
+
+const execFileAsync = promisify(execFile);
+const temporaryDirectories: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(temporaryDirectories.splice(0).map((directory) =>
+    rm(directory, { recursive: true, force: true })
+  ));
+});
+
+async function freePort(): Promise<number> {
+  return await new Promise<number>((resolvePromise, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        reject(new Error("Unable to reserve a test port."));
+        return;
+      }
+      server.close(() => resolvePromise(address.port));
+    });
+  });
+}
+
+async function launcherFixture(): Promise<{
+  root: string;
+  launcher: string;
+  environment: NodeJS.ProcessEnv;
+  actions: string;
+  opened: string;
+  state: string;
+}> {
+  const root = await mkdtemp(join(tmpdir(), "looume-launcher-"));
+  temporaryDirectories.push(root);
+  const scripts = join(root, "scripts");
+  const state = join(root, "state");
+  await mkdir(scripts, { recursive: true });
+  const launcher = join(scripts, "looume.sh");
+  await copyFile(resolve("scripts/looume.sh"), launcher);
+  await chmod(launcher, 0o755);
+  const actions = join(root, "actions.log");
+  const opened = join(root, "opened.log");
+  const server = join(scripts, "local-editor-server.ts");
+  await writeFile(server, [
+    'import { createServer } from "node:http";',
+    'const server = createServer((_request, response) => {',
+    '  response.setHeader("Content-Type", "application/json");',
+    '  response.end(JSON.stringify({ schemaVersion: "1.0.0", generator: "manifold" }));',
+    '});',
+    'server.listen(Number(process.env.ORBITAL_LAB_PORT), "127.0.0.1");',
+    'process.once("SIGTERM", () => server.close(() => process.exit(0)));',
+    "",
+  ].join("\n"));
+  const bootstrap = join(root, "bootstrap.sh");
+  await writeFile(bootstrap, [
+    "#!/bin/sh",
+    "set -eu",
+    `printf '%s\\n' \"\${1-}\" >> '${actions}'`,
+    `exec '${process.execPath}' '${server}'`,
+    "",
+  ].join("\n"));
+  await chmod(bootstrap, 0o755);
+  const open = join(root, "open.sh");
+  await writeFile(open, [
+    "#!/bin/sh",
+    "set -eu",
+    `printf '%s\\n' \"\$1\" >> '${opened}'`,
+    "",
+  ].join("\n"));
+  await chmod(open, 0o755);
+  const port = await freePort();
+  return {
+    root,
+    launcher,
+    actions,
+    opened,
+    state,
+    environment: {
+      ...process.env,
+      LOO_UME_STATE_DIRECTORY: state,
+      LOO_UME_PORT: String(port),
+      LOO_UME_CURL_COMMAND: process.env.CURL ?? "/usr/bin/curl",
+      LOO_UME_OPEN_COMMAND: open,
+    },
+  };
+}
+
+describe("LOO/UME managed launcher", () => {
+  it("serializes concurrent starts, reopens one server, reports status, and stops it", async () => {
+    const fixture = await launcherFixture();
+    await mkdir(fixture.state, { recursive: true });
+    await symlink("999999", join(fixture.state, "launch.lock.claim.1.999999"));
+    await mkdir(join(fixture.state, "launch.lock"));
+    await writeFile(join(fixture.state, "launch.lock", "owner.pid"), "999999\n");
+    const [first, concurrent] = await Promise.all([
+      execFileAsync("sh", [fixture.launcher], {
+        env: fixture.environment,
+        timeout: 15_000,
+      }),
+      execFileAsync("sh", [fixture.launcher], {
+        env: fixture.environment,
+        timeout: 15_000,
+      }),
+    ]);
+    expect(`${first.stdout}${concurrent.stdout}`).toContain(
+      "LOO/UME is running at http://127.0.0.1:",
+    );
+    expect(`${first.stdout}${concurrent.stdout}`).toContain("already running");
+    const second = await execFileAsync("sh", [fixture.launcher], {
+      env: fixture.environment,
+      timeout: 5_000,
+    });
+    expect(second.stdout).toContain("already running");
+    const statusResult = await execFileAsync("sh", [fixture.launcher, "--status"], {
+      env: fixture.environment,
+      timeout: 5_000,
+    });
+    expect(statusResult.stdout).toMatch(/running at .* \(PID \d+\)/);
+    expect((await readFile(fixture.actions, "utf8")).trim().split("\n")).toEqual([
+      "launch",
+    ]);
+    expect((await readdir(fixture.state)).some((name) => name.startsWith("launch.lock.claim.")))
+      .toBe(false);
+    expect((await readFile(fixture.opened, "utf8")).trim().split("\n")).toHaveLength(3);
+    const stopped = await execFileAsync("sh", [fixture.launcher, "--stop"], {
+      env: fixture.environment,
+      timeout: 25_000,
+    });
+    expect(stopped.stdout).toContain("LOO/UME stopped.");
+  });
+
+  it("does not steal an atomically published live launch lock", async () => {
+    const fixture = await launcherFixture();
+    const acquired = join(fixture.root, "lock-acquired");
+    const release = join(fixture.root, "release-lock");
+    const hook = join(fixture.root, "hold-lock.sh");
+    await writeFile(hook, [
+      "#!/bin/sh",
+      "set -eu",
+      `touch '${acquired}'`,
+      `while [ ! -f '${release}' ]; do sleep 0.05; done`,
+      "",
+    ].join("\n"));
+    await chmod(hook, 0o755);
+
+    const first = spawn("sh", [fixture.launcher], {
+      env: {
+        ...fixture.environment,
+        LOO_UME_TEST_AFTER_LOCK_ACQUIRE: hook,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try {
+        await stat(acquired);
+        break;
+      } catch {
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 20));
+      }
+    }
+    expect((await stat(acquired)).isFile()).toBe(true);
+    const lockClaim = (await readdir(fixture.state)).find((name) =>
+      name.startsWith("launch.lock.claim.")
+    );
+    expect(lockClaim).toBeDefined();
+    const lockPath = join(fixture.state, lockClaim!);
+    expect(await readlink(lockPath)).toBe(String(first.pid));
+
+    await expect(execFileAsync("sh", [fixture.launcher], {
+      env: {
+        ...fixture.environment,
+        LOO_UME_LOCK_WAIT_SECONDS: "1",
+      },
+      timeout: 5_000,
+    })).rejects.toMatchObject({
+      stderr: expect.stringContaining("another launch did not finish within 1 seconds"),
+    });
+    expect(await readlink(lockPath)).toBe(String(first.pid));
+
+    await writeFile(release, "release\n");
+    const firstResult = await new Promise<{ code: number | null; stderr: string }>(
+      (resolvePromise) => {
+        let stderr = "";
+        first.stderr.on("data", (chunk) => { stderr += String(chunk); });
+        first.once("close", (code) => resolvePromise({ code, stderr }));
+      },
+    );
+    expect(firstResult).toEqual({ code: 0, stderr: "" });
+    expect((await readFile(fixture.actions, "utf8")).trim()).toBe("launch");
+    await execFileAsync("sh", [fixture.launcher, "--stop"], {
+      env: fixture.environment,
+      timeout: 25_000,
+    });
+  }, 10_000);
+
+  it("honors a verified live legacy owner lock", async () => {
+    const fixture = await launcherFixture();
+    await mkdir(join(fixture.state, "launch.lock"), { recursive: true });
+    const holder = spawn("sh", ["-c", "sleep 30", fixture.launcher], {
+      stdio: "ignore",
+    });
+    try {
+      await writeFile(
+        join(fixture.state, "launch.lock", "owner.pid"),
+        `${holder.pid}\n`,
+      );
+      await expect(execFileAsync("sh", [fixture.launcher], {
+        env: {
+          ...fixture.environment,
+          LOO_UME_LOCK_WAIT_SECONDS: "1",
+        },
+        timeout: 5_000,
+      })).rejects.toMatchObject({
+        stderr: expect.stringContaining("another launch did not finish within 1 seconds"),
+      });
+      expect((await readFile(fixture.actions, "utf8").catch(() => ""))).toBe("");
+      expect(await readFile(join(fixture.state, "launch.lock", "owner.pid"), "utf8"))
+        .toBe(`${holder.pid}\n`);
+    } finally {
+      holder.kill("SIGTERM");
+      await new Promise((resolvePromise) => holder.once("close", resolvePromise));
+    }
+  });
+
+  it("routes an update through the existing bootstrap update boundary", async () => {
+    const fixture = await launcherFixture();
+    await execFileAsync("sh", [fixture.launcher, "--update"], {
+      env: fixture.environment,
+      timeout: 15_000,
+    });
+    expect((await readFile(fixture.actions, "utf8")).trim()).toBe("update");
+    await execFileAsync("sh", [fixture.launcher, "--stop"], {
+      env: fixture.environment,
+      timeout: 25_000,
+    });
+  });
+
+  it("rejects an invalid port before starting anything", async () => {
+    const fixture = await launcherFixture();
+    await expect(execFileAsync("sh", [fixture.launcher], {
+      env: { ...fixture.environment, LOO_UME_PORT: "invalid" },
+      timeout: 5_000,
+    })).rejects.toMatchObject({
+      stderr: expect.stringContaining("LOO_UME_PORT must be an integer"),
+    });
+    await expect(stat(fixture.actions)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("rejects an unrelated HTTP service on the selected port", async () => {
+    const fixture = await launcherFixture();
+    const port = await freePort();
+    const unrelated = createHttpServer((_request, response) => response.end("other"));
+    await new Promise<void>((resolvePromise, reject) => {
+      unrelated.once("error", reject);
+      unrelated.listen(port, "127.0.0.1", resolvePromise);
+    });
+    try {
+      await expect(execFileAsync("sh", [fixture.launcher], {
+        env: { ...fixture.environment, LOO_UME_PORT: String(port) },
+        timeout: 5_000,
+      })).rejects.toMatchObject({
+        stderr: expect.stringContaining("is in use by a process that is not"),
+      });
+      await expect(stat(fixture.actions)).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await new Promise<void>((resolvePromise) => unrelated.close(() => resolvePromise()));
+    }
+  });
+
+  it("defines the self-installing application and tagged release contract", async () => {
+    const application = await readFile(
+      "macos/launcher/Contents/MacOS/LOO-UME",
+      "utf8",
+    );
+    const plist = await readFile("macos/launcher/Contents/Info.plist", "utf8");
+    const workflow = await readFile(
+      ".github/workflows/macos-launcher-release.yml",
+      "utf8",
+    );
+    expect(application).toContain("$HOME/Library/Application Support/LOO-UME");
+    expect(application).toContain("$HOME/Applications");
+    expect(application).toContain('"$git_command" clone --branch main --single-branch');
+    expect(application).toContain(".application.stage");
+    expect(application).toContain("scripts/looume.sh\" launch");
+    expect(application).not.toContain(".zprofile");
+    expect(application).toContain('ln -s "$$" "$acquired_lock_claim"');
+    expect(application).not.toContain('mkdir "$lock_path"');
+    expect(plist).toContain("art.loo-ume.launcher");
+    expect(plist).toContain("AppIcon");
+    expect(workflow).toContain('tags:\n      - "mac-launcher-v*"');
+    expect(workflow).toContain("LOO-UME-Mac-Launcher.zip");
+    expect(workflow).toContain("gh release create");
+    expect(workflow).toContain("git merge-base --is-ancestor HEAD refs/remotes/origin/main");
+    expect(workflow).toContain("permissions:\n  contents: read");
+    expect(workflow).toContain("permissions:\n      contents: write");
+  });
+
+  it("installs a verified checkout atomically and creates the Mac command", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-home-"));
+    temporaryDirectories.push(home);
+    const support = join(home, "Library", "Application Support", "LOO-UME");
+    const applications = join(home, "Applications");
+    const fakeGit = join(home, "git.sh");
+    const launchLog = join(home, "launch.log");
+    await mkdir(support, { recursive: true });
+    await mkdir(join(support, "install.lock"));
+    await writeFile(join(support, "install.lock", "owner.pid"), "999999\n");
+    await mkdir(join(support, ".application.stage"));
+    await writeFile(join(support, ".application.stage", "partial"), "partial");
+    await writeFile(fakeGit, [
+      "#!/bin/sh",
+      "set -eu",
+      'if [ "${1-}" = --version ]; then echo "git version test"; exit 0; fi',
+      'if [ "${1-}" = clone ]; then',
+      "  for destination do :; done",
+      '  mkdir -p "$destination/.git" "$destination/scripts"',
+      '  printf \'%s\\n\' \'#!/bin/sh\' \'printf "%s\\n" "$1" >> "$FAKE_LAUNCH_LOG"\' > "$destination/scripts/looume.sh"',
+      "  exit 0",
+      "fi",
+      'if [ "${1-}" = -C ] && [ "${3-}" = remote ]; then',
+      '  echo "https://github.com/MateSteinforth/LOO-UME.git"',
+      "  exit 0",
+      "fi",
+      'if [ "${1-}" = -C ] && [ "${3-}" = branch ]; then echo main; exit 0; fi',
+      "exit 1",
+      "",
+    ].join("\n"));
+    await chmod(fakeGit, 0o755);
+    await execFileAsync("sh", ["macos/launcher/Contents/MacOS/LOO-UME"], {
+      env: {
+        ...process.env,
+        HOME: home,
+        FAKE_LAUNCH_LOG: launchLog,
+        LOO_UME_SUPPORT_ROOT: support,
+        LOO_UME_APPLICATIONS_ROOT: applications,
+        LOO_UME_SKIP_APP_COPY: "1",
+        LOO_UME_GIT_COMMAND: fakeGit,
+        LOO_UME_OSASCRIPT_COMMAND: "/bin/false",
+        LOO_UME_XCODE_SELECT_COMMAND: "/bin/false",
+      },
+      timeout: 5_000,
+    });
+    expect(await readFile(launchLog, "utf8")).toBe("launch\n");
+    expect((await stat(join(support, "application", ".git"))).isDirectory()).toBe(true);
+    expect(await readlink(join(home, ".local", "bin", "looume"))).toBe(
+      `${support}/bin/looume`,
+    );
+    expect((await readdir(support)).some((name) => name.startsWith("install.lock.claim.")))
+      .toBe(false);
+    expect((await readdir(support)).some((name) => name.startsWith(".application.stage")))
+      .toBe(false);
+  });
+
+  it("recovers an interrupted application copy before replacing the launcher", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-copy-"));
+    temporaryDirectories.push(home);
+    const applications = join(home, "Applications");
+    const support = join(home, "support");
+    const copyLock = join(applications, ".LOO-UME.copy.lock");
+    const backup = join(applications, ".LOO-UME.app.backup");
+    await mkdir(applications, { recursive: true });
+    await mkdir(copyLock);
+    await writeFile(join(copyLock, "owner.pid"), "999999\n");
+    await mkdir(backup);
+    await writeFile(join(backup, "previous"), "previous");
+    await mkdir(join(applications, ".LOO-UME.app.stage"));
+    await writeFile(join(applications, ".LOO-UME.app.stage", "partial"), "partial");
+    const fakeDitto = join(home, "ditto.sh");
+    await writeFile(fakeDitto, [
+      "#!/bin/sh",
+      "set -eu",
+      'cp -R "$1" "$2"',
+      "",
+    ].join("\n"));
+    await chmod(fakeDitto, 0o755);
+    const openLog = join(home, "open.log");
+    const fakeOpen = join(home, "open.sh");
+    await writeFile(fakeOpen, [
+      "#!/bin/sh",
+      `printf '%s\\n' \"\$1\" > '${openLog}'`,
+      "",
+    ].join("\n"));
+    await chmod(fakeOpen, 0o755);
+    await execFileAsync("sh", ["macos/launcher/Contents/MacOS/LOO-UME"], {
+      env: {
+        ...process.env,
+        HOME: home,
+        LOO_UME_SUPPORT_ROOT: support,
+        LOO_UME_APPLICATIONS_ROOT: applications,
+        LOO_UME_DITTO_COMMAND: fakeDitto,
+        LOO_UME_APP_OPEN_COMMAND: fakeOpen,
+        LOO_UME_OSASCRIPT_COMMAND: "/bin/false",
+      },
+      timeout: 5_000,
+    });
+    const installed = join(applications, "LOO UME.app");
+    expect(await readFile(join(installed, "Contents", "Info.plist"), "utf8"))
+      .toContain("art.loo-ume.launcher");
+    expect(await readFile(openLog, "utf8")).toBe(`${installed}\n`);
+    expect((await readdir(applications)).some((name) =>
+      name.startsWith(".LOO-UME.copy.lock.claim.")))
+      .toBe(false);
+    expect(await readdir(applications)).not.toContain(".LOO-UME.app.stage");
+    expect(await readdir(applications)).not.toContain(".LOO-UME.app.backup");
+  });
+
+  it("removes a failed first-install staging checkout", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-failure-"));
+    temporaryDirectories.push(home);
+    const support = join(home, "support");
+    const fakeGit = join(home, "git.sh");
+    await writeFile(fakeGit, [
+      "#!/bin/sh",
+      'if [ "${1-}" = --version ]; then exit 0; fi',
+      'if [ "${1-}" = clone ]; then mkdir -p "${6-}"; exit 1; fi',
+      "exit 1",
+      "",
+    ].join("\n"));
+    await chmod(fakeGit, 0o755);
+    await expect(execFileAsync("sh", ["macos/launcher/Contents/MacOS/LOO-UME"], {
+      env: {
+        ...process.env,
+        HOME: home,
+        LOO_UME_SUPPORT_ROOT: support,
+        LOO_UME_APPLICATIONS_ROOT: join(home, "Applications"),
+        LOO_UME_SKIP_APP_COPY: "1",
+        LOO_UME_GIT_COMMAND: fakeGit,
+        LOO_UME_OSASCRIPT_COMMAND: "/bin/false",
+        LOO_UME_XCODE_SELECT_COMMAND: "/bin/false",
+      },
+      timeout: 5_000,
+    })).rejects.toMatchObject({
+      stderr: expect.stringContaining("application download failed"),
+    });
+    expect(await readdir(support)).not.toContain("application");
+    expect((await readdir(support)).some((name) => name.startsWith("install.lock.claim.")))
+      .toBe(false);
+    expect((await readdir(support)).some((name) => name.startsWith(".application.stage")))
+      .toBe(false);
+  });
+});

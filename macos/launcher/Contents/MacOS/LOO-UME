@@ -1,0 +1,219 @@
+#!/bin/sh
+set -eu
+
+application_name="LOO UME.app"
+support_root=${LOO_UME_SUPPORT_ROOT:-$HOME/Library/Application Support/LOO-UME}
+checkout_root=$support_root/application
+applications_root=${LOO_UME_APPLICATIONS_ROOT:-$HOME/Applications}
+installed_app=$applications_root/$application_name
+repository_url=https://github.com/MateSteinforth/LOO-UME.git
+source_app=$(CDPATH= cd -- "${0%/*}/../.." && pwd -P)
+log_directory=$support_root/logs
+install_log=$log_directory/install.log
+ditto_command=${LOO_UME_DITTO_COMMAND:-/usr/bin/ditto}
+git_command=${LOO_UME_GIT_COMMAND:-/usr/bin/git}
+open_command=${LOO_UME_APP_OPEN_COMMAND:-/usr/bin/open}
+osascript_command=${LOO_UME_OSASCRIPT_COMMAND:-/usr/bin/osascript}
+xcode_select_command=${LOO_UME_XCODE_SELECT_COMMAND:-/usr/bin/xcode-select}
+
+show_error() {
+  message=$1
+  if [ -x "$osascript_command" ]; then
+    "$osascript_command" -e 'on run argv' \
+      -e 'display alert "LOO/UME could not start" message (item 1 of argv) as critical' \
+      -e 'end run' -- "$message" >/dev/null 2>&1 || true
+  fi
+  echo "LOO/UME: $message" >&2
+}
+
+notify() {
+  message=$1
+  if [ -x "$osascript_command" ]; then
+    "$osascript_command" -e 'on run argv' \
+      -e 'display notification (item 1 of argv) with title "LOO/UME"' \
+      -e 'end run' -- "$message" >/dev/null 2>&1 || true
+  fi
+}
+
+lock_claim_owner_is_live() {
+  claim_path=$1
+  [ -L "$claim_path" ] || return 1
+  lock_pid=$(readlink "$claim_path") || return 1
+  case $lock_pid in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  kill -0 "$lock_pid" 2>/dev/null || return 1
+  lock_command=$(/bin/ps -p "$lock_pid" -o command= 2>/dev/null || true)
+  case $lock_command in
+    *"/Contents/MacOS/LOO-UME"*|*"macos/launcher/Contents/MacOS/LOO-UME"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+legacy_lock_owner_is_live() {
+  legacy_lock_path=$1
+  [ -f "$legacy_lock_path/owner.pid" ] || return 1
+  IFS= read -r lock_pid < "$legacy_lock_path/owner.pid" || return 1
+  case $lock_pid in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  kill -0 "$lock_pid" 2>/dev/null || return 1
+  lock_command=$(/bin/ps -p "$lock_pid" -o command= 2>/dev/null || true)
+  case $lock_command in
+    *"/Contents/MacOS/LOO-UME"*|*"macos/launcher/Contents/MacOS/LOO-UME"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+remove_stale_lock_claims() {
+  claims_base=$1
+  if [ -d "$claims_base" ] && ! legacy_lock_owner_is_live "$claims_base"; then
+    rm -f "$claims_base/owner.pid"
+    rmdir "$claims_base" 2>/dev/null || true
+  fi
+  for claim_candidate in "$claims_base".claim.*; do
+    [ -L "$claim_candidate" ] || continue
+    if ! lock_claim_owner_is_live "$claim_candidate"; then
+      rm -f "$claim_candidate"
+    fi
+  done
+}
+
+acquire_lock() {
+  lock_path=$1
+  remove_stale_lock_claims "$lock_path"
+  [ -d "$lock_path" ] && return 1
+  lock_timestamp=$(date +%s)
+  acquired_lock_claim=$lock_path.claim.$lock_timestamp.$$
+  ln -s "$$" "$acquired_lock_claim" 2>/dev/null || return 1
+  sleep 1
+  remove_stale_lock_claims "$lock_path"
+  if [ -d "$lock_path" ]; then
+    rm -f "$acquired_lock_claim"
+    acquired_lock_claim=
+    return 1
+  fi
+  first_lock_claim=
+  for claim_candidate in "$lock_path".claim.*; do
+    [ -L "$claim_candidate" ] || continue
+    first_lock_claim=$claim_candidate
+    break
+  done
+  if [ "$first_lock_claim" = "$acquired_lock_claim" ]; then return 0; fi
+  rm -f "$acquired_lock_claim"
+  acquired_lock_claim=
+  return 1
+}
+
+release_lock() {
+  lock_claim=$1
+  if [ -n "$lock_claim" ] && [ -L "$lock_claim" ] &&
+     [ "$(readlink "$lock_claim")" = "$$" ]; then
+    rm -f "$lock_claim"
+  fi
+}
+
+install_application_bundle() {
+  if [ "${LOO_UME_SKIP_APP_COPY:-0}" = 1 ] || [ "$source_app" = "$installed_app" ]; then
+    return 0
+  fi
+  mkdir -p "$applications_root"
+  copy_lock=$applications_root/.LOO-UME.copy.lock
+  staging_app=$applications_root/.LOO-UME.app.stage
+  backup_app=$applications_root/.LOO-UME.app.backup
+  if ! acquire_lock "$copy_lock"; then
+    show_error "Another LOO/UME application copy is already running."
+    exit 1
+  fi
+  copy_lock_claim=$acquired_lock_claim
+  if [ ! -e "$installed_app" ] && [ -e "$backup_app" ]; then
+    mv "$backup_app" "$installed_app"
+  fi
+  rm -rf "$staging_app"
+  if [ -e "$installed_app" ] && [ -e "$backup_app" ]; then rm -rf "$backup_app"; fi
+  copy_committed=false
+  cleanup_copy() {
+    rm -rf "$staging_app"
+    if [ "$copy_committed" != true ] && [ ! -e "$installed_app" ] && [ -e "$backup_app" ]; then
+      mv "$backup_app" "$installed_app" 2>/dev/null || true
+    fi
+    if [ "$copy_committed" = true ]; then rm -rf "$backup_app"; fi
+    release_lock "$copy_lock_claim"
+  }
+  trap cleanup_copy EXIT
+  trap 'exit 130' HUP INT TERM
+  "$ditto_command" "$source_app" "$staging_app"
+  if [ -e "$installed_app" ]; then mv "$installed_app" "$backup_app"; fi
+  if ! mv "$staging_app" "$installed_app"; then
+    show_error "The application could not be copied to $applications_root."
+    exit 1
+  fi
+  copy_committed=true
+  rm -rf "$backup_app"
+  release_lock "$copy_lock_claim"
+  trap - EXIT HUP INT TERM
+  LOO_UME_SKIP_APP_COPY=1 "$open_command" "$installed_app"
+  exit 0
+}
+
+install_checkout() {
+  lock_directory=$support_root/install.lock
+  remove_stale_lock_claims "$lock_directory"
+  if [ -d "$checkout_root/.git" ]; then return 0; fi
+  mkdir -p "$support_root" "$log_directory"
+  if ! acquire_lock "$lock_directory"; then
+    show_error "Another installation is already running. Wait, then open LOO/UME again."
+    exit 1
+  fi
+  install_lock_claim=$acquired_lock_claim
+  staging_root=$support_root/.application.stage
+  rm -rf "$staging_root"
+  cleanup_install() {
+    rm -rf "$staging_root"
+    release_lock "$install_lock_claim"
+  }
+  trap cleanup_install EXIT
+  trap 'exit 130' HUP INT TERM
+  if [ -e "$checkout_root" ]; then
+    show_error "The application folder exists but is incomplete: $checkout_root"
+    exit 1
+  fi
+  if [ ! -x "$git_command" ] || ! "$git_command" --version >/dev/null 2>&1; then
+    if [ -x "$xcode_select_command" ]; then "$xcode_select_command" --install >/dev/null 2>&1 || true; fi
+    show_error "macOS must finish installing its Command Line Tools. Then open LOO/UME again."
+    exit 1
+  fi
+  notify "Installing the verified application. The first launch can take several minutes."
+  : > "$install_log"
+  if ! "$git_command" clone --branch main --single-branch "$repository_url" \
+      "$staging_root" >> "$install_log" 2>&1; then
+    show_error "The application download failed. See $install_log"
+    exit 1
+  fi
+  if [ "$("$git_command" -C "$staging_root" remote get-url origin)" != "$repository_url" ] ||
+     [ "$("$git_command" -C "$staging_root" branch --show-current)" != main ]; then
+    show_error "The downloaded checkout did not match the approved main branch."
+    exit 1
+  fi
+  mv "$staging_root" "$checkout_root"
+  trap - EXIT HUP INT TERM
+  release_lock "$install_lock_claim"
+}
+
+install_command_link() {
+  command_root=$support_root/bin
+  user_bin=$HOME/.local/bin
+  mkdir -p "$command_root" "$user_bin"
+  command_path=$command_root/looume
+  temporary_command=$command_root/.looume.$$
+  printf '%s\n' '#!/bin/sh' \
+    "exec /bin/sh '$checkout_root/scripts/looume.sh' \"\$@\"" > "$temporary_command"
+  chmod 755 "$temporary_command"
+  mv "$temporary_command" "$command_path"
+  ln -sfn "$command_path" "$user_bin/looume"
+}
+
+install_application_bundle
+install_checkout
+install_command_link
+exec /bin/sh "$checkout_root/scripts/looume.sh" launch

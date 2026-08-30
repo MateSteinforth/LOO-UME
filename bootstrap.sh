@@ -121,7 +121,12 @@ case "${1-}" in
     fi
     install_and_build_if_required
     cd "$repository_root"
-    exec "$node_executable" "$npm_cli" run start:desktop -- --open-browser
+    if [ "${LOO_UME_OPEN_BROWSER-1}" = 0 ]; then
+      exec "$node_executable" "$repository_root/node_modules/tsx/dist/cli.mjs" \
+        "$repository_root/scripts/local-editor-server.ts"
+    fi
+    exec "$node_executable" "$repository_root/node_modules/tsx/dist/cli.mjs" \
+      "$repository_root/scripts/local-editor-server.ts" --open-browser
     ;;
   update)
     if [ "$#" -ne 1 ]; then

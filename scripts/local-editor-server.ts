@@ -312,6 +312,15 @@ export async function openLocalEditorBrowser(url: string): Promise<boolean> {
   });
 }
 
+export function localApplicationRestartCommand(
+  rootDirectory: string,
+  environment: NodeJS.ProcessEnv = process.env,
+): readonly [string, string, string] {
+  return environment.LOO_UME_MANAGED_LAUNCHER === "1"
+    ? ["/bin/sh", resolve(rootDirectory, "scripts/looume.sh"), "--restart-after-update"]
+    : ["/bin/sh", resolve(rootDirectory, "bootstrap.sh"), "launch"];
+}
+
 async function main(): Promise<void> {
   const argumentsList = process.argv.slice(2);
   const openBrowser = argumentsList.length === 1 &&
@@ -325,9 +334,10 @@ async function main(): Promise<void> {
       const toolsDirectory = resolve(process.cwd(), ".tools");
       mkdirSync(toolsDirectory, { recursive: true, mode: 0o700 });
       const log = openSync(resolve(toolsDirectory, "application-update.log"), "a", 0o600);
+      const [command, script, action] = localApplicationRestartCommand(process.cwd());
       const child = spawn(
-        "/bin/sh",
-        [resolve(process.cwd(), "bootstrap.sh"), "launch"],
+        command,
+        [script, action],
         { cwd: process.cwd(), detached: true, stdio: ["ignore", log, log] },
       );
       child.unref();
