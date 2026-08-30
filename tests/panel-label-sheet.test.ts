@@ -6,7 +6,7 @@ import {
 } from "../web/src/PanelLabelSheet.ts";
 
 describe("HERMA 4385 panel label sheet", () => {
-  it("uses the measured stock grid and separate printer registration correction", () => {
+  it("uses the measured stock grid with symmetric page margins", () => {
     expect(HERMA_4385_SHEET).toMatchObject({
       articleNumber: "4385",
       pageWidthMm: 210,
@@ -20,8 +20,6 @@ describe("HERMA 4385 panel label sheet", () => {
       rightMarginMm: 10,
       topMarginMm: 15,
       bottomMarginMm: 15,
-      printCalibrationXmm: -4,
-      printCalibrationYmm: 0,
     });
     const placements = layoutHerma4385PanelLabels(
       Array.from({ length: 315 }, (_, index) => `P-${index + 1}`),
@@ -30,7 +28,7 @@ describe("HERMA 4385 panel label sheet", () => {
       pageIndex: 0,
       column: 0,
       row: 0,
-      centerXmm: 11,
+      centerXmm: 15,
       centerYmmFromTop: 20,
     });
     expect(placements.at(-1)).toMatchObject({
@@ -39,11 +37,12 @@ describe("HERMA 4385 panel label sheet", () => {
       row: 20,
       centerYmmFromTop: 277,
     });
-    expect(placements.at(-1)!.centerXmm).toBeCloseTo(191, 10);
-    expect(placements[0]!.centerXmm - HERMA_4385_SHEET.printCalibrationXmm)
-      .toBe(15);
-    expect(placements.at(-1)!.centerXmm - HERMA_4385_SHEET.printCalibrationXmm)
-      .toBeCloseTo(195, 10);
+    expect(placements.at(-1)!.centerXmm).toBeCloseTo(195, 10);
+    expect(placements[0]!.centerXmm - HERMA_4385_SHEET.labelDiameterMm / 2)
+      .toBe(HERMA_4385_SHEET.leftMarginMm);
+    expect(HERMA_4385_SHEET.pageWidthMm -
+      placements.at(-1)!.centerXmm - HERMA_4385_SHEET.labelDiameterMm / 2)
+      .toBeCloseTo(HERMA_4385_SHEET.rightMarginMm, 10);
   });
 
   it("creates a deterministic one-page PDF for the 41-panel sculpture", () => {
@@ -72,7 +71,7 @@ describe("HERMA 4385 panel label sheet", () => {
       pageIndex: 1,
       column: 0,
       row: 0,
-      centerXmm: 11,
+      centerXmm: 15,
       centerYmmFromTop: 20,
     });
     expect(new TextDecoder().decode(

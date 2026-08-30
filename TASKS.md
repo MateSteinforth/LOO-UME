@@ -58,14 +58,14 @@ No tasks.
 ### `P1 · LABEL-011` Calibrate HERMA 4385 physical printing
 
 - Scope: use the operator-measured 10 mm side and 15 mm top/bottom stock
-  margins, derive the pitch across the fixed 15 × 21 grid, and compensate the
-  measured 4 mm rightward printer displacement separately.
+  margins and derive the pitch across the fixed 15 × 21 grid. Keep the PDF
+  symmetric; do not encode printer displacement in document coordinates.
 - Acceptance: the PDF keeps A4/100% scale, label order, and pagination; tests
   pin both stock target centres and calibrated PDF centres; a new physical
   print confirms registration.
-- Integration: calibration code is on `main` as of 2026-08-30. Human Review
-  remains open only for a 100%/Actual-size physical reprint on the measured
-  printer and HERMA stock.
+- Correction: `codex/label-011-symmetric-grid` removes the rejected page offset
+  and restores exact 10 mm left/right edge margins. Integration awaits operator
+  approval; Human Review remains open for a 100%/Actual-size physical reprint.
 
 ## Blocked
 

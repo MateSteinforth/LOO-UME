@@ -1512,15 +1512,17 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   contract. It did not distinguish physical stock dimensions from printer
   registration.
 - **Correction:** Record the measured 10 mm side and 15 mm top/bottom stock
-  margins, derive the pitch across 15 × 21 labels, and apply the measured −4 mm
-  horizontal printer correction as a separate value. Keep the PDF at 100%
-  scale and omit guide circles.
-- **Prevention:** Never hide a printer correction inside label-stock geometry.
-  Pin both contracts, disable page fitting, and require a physical reprint when
-  either value changes.
+  margins and derive the pitch across 15 × 21 labels. An attempted −4 mm PDF
+  correction made the document margins visibly asymmetric and was removed.
+  Keep the PDF at 100% scale and omit guide circles.
+- **Prevention:** Never bake a printer displacement into label-stock document
+  geometry. The PDF must remain symmetric and independently inspectable;
+  printer registration belongs in the printer workflow. Disable page fitting
+  and require a physical reprint when stock geometry changes.
 - **Evidence:** HERMA article 4385, its punch template, and the operator's
   2026-08-30 physical print measurement.
-- **Status:** Corrected in LABEL-011; physical reprint pending.
+- **Status:** Symmetric-grid correction integrated in LABEL-011; physical
+  reprint pending.
 
 ### F-083 — A 64-pixel setup gate blocked generalized fixtures
 
