@@ -42,7 +42,7 @@ describe("deterministic WLED hardware diagnostics", () => {
 
     expect(first.planFingerprint).toBe(second.planFingerprint);
     expect(first.frames).toHaveLength(2_624 * 3);
-    expect(first.mappingFingerprint).toBe("73b36d49");
+    expect(first.mappingFingerprint).toBe("ca60c1b1");
     expect(first.mappingFingerprintVersion).toBe("fnv1a32-u32le-v2");
     expect(new Set(first.frames.map((frame) => frame.sequence)).size)
       .toBe(first.frames.length);
@@ -62,8 +62,8 @@ describe("deterministic WLED hardware diagnostics", () => {
     )).toBe(true);
     expect(first.frames[0]).toMatchObject({
       sequence: 0,
-      outputIndex: 0,
-      gpio: 16,
+      outputIndex: 3,
+      gpio: 19,
       logicalIndex: 0,
       rgbChannel: "red",
     });

@@ -189,6 +189,9 @@ facts. The shared conversion mirrors profile-local X when those facts enter the
 right-handed pose whose normal points outward through the LEDs. It applies to
 compiled planar-closure holes, eligible structural screw anchors, and blocked
 DIN/DOUT points.
+The renderer applies the same conversion when it cuts mounting holes from the
+virtual PCB surface. Stable legacy IDs do not override their measured 3-column
+x 2-row coordinates.
 The generated-mechanics fingerprint includes this fabrication-coordinate
 contract. Parts made before the conversion become stale and must regenerate.
 Final ribbon and LED-surface bridge solids must fail if they enter a

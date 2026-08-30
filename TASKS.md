@@ -47,17 +47,25 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · WIRE-017` Add a manual post-fabrication rotation gate
+### `P1 · WIRE-017` Align post-fabrication wiring with the printed mounts
 
-- Scope: add an optional Schema 2 wiring constraint and a Developer utilities
-  button that restricts automatic wiring orientation changes to 0/180 degrees
-  when physical parts exist without a generated-parts manifest.
-- Acceptance: the constraint persists through save/reload, never weakens the
-  existing manifest gate, the 41-panel optimizer uses only 0/180-degree deltas
-  when enabled, and the UI clearly shows the active policy.
+- Scope: retain the optional 0/180-degree wiring constraint, correct the
+  flagship PCB to its photographed and printed-CAD six-hole 3-column x 2-row
+  pattern, cut those exact holes into the virtual PCB surfaces, and save one
+  optimized 41-panel route whose mapping uses the same physical poses.
+- Acceptance: the constraint persists through save/reload and never weakens a
+  manifest gate; the four usable holes match the printed U-frame plus bridge
+  under both 0 and 180 degrees; the virtual panel surfaces show all six true
+  openings from either side; and the saved route, identity installed-address
+  transforms, generated ledmap, and WLED buses agree for all 2,624 LEDs.
 - Owner: `codex/wire-017-manual-rotation-gate` in
   `/tmp/loo-ume-wire-017`. Likely conflicts: Schema 2 wiring, automatic wiring,
   Developer utilities, and wiring documentation/tests.
+- Evidence: the saved revision-3 route is an exact optimizer fixed point at
+  2,044.296 mm; all 41 installed transforms are identity; the generated
+  mapping/WLED/MadMapper artifacts use fingerprint `ca60c1b1`; 122 focused
+  Vitest assertions, TypeScript, sculpture validation, one focused Chromium
+  journey, diff-check, and independent review passed on 2026-08-30.
 
 ## In Progress
 
@@ -269,7 +277,9 @@ No tasks.
   the operator confirmed the 64-pixel GPIO16 smoke configuration, GRB colors,
   straight 0–63 row-major address walk, reboot persistence, and stable operation.
 - `CAL-011`: measured GRB/order-0 and front-view straight row-major addressing
-  are integrated in `main` at `80a1225`; mapping fingerprint is `73b36d49`.
+  were integrated in `main` at `80a1225`. WIRE-017 preserves those facts while
+  replacing that historical route fingerprint with the current optimized
+  mounting-aligned mapping fingerprint `ca60c1b1`.
 - `DIAG-010`, `ARCH-010`, `CAD-020`, `PLACE-010`, `FAB-022`, `SEC-010`, and
   `MAP-020`: the reviewed unblocked implementation batch is integrated in
   `main` at `d51e8bb`; integrated Vitest passed 348/348 with TypeScript and Vite.

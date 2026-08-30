@@ -50,8 +50,8 @@
       {
         "id": "middle-left",
         "localPosition": [
-          -25,
-          0
+          0,
+          24.5
         ],
         "mechanicalUse": "eligible"
       },
@@ -76,8 +76,8 @@
       {
         "id": "middle-right",
         "localPosition": [
-          25,
-          0
+          0,
+          -24.5
         ],
         "mechanicalUse": "eligible"
       },
@@ -104,12 +104,12 @@
   },
   "dataConnectors": {
     "referenceView": "back",
-    "orientationReference": "three-mounting-holes-vertical",
+    "orientationReference": "six-holes-three-columns-two-rows",
     "cornerAssignmentStatus": "measured",
     "dinCorner": "top-right",
     "doutCorner": "bottom-left",
     "padPositionStatus": "unknown",
-    "note": "Measured from the front with the three mounting holes vertical: DIN/pixel 0 is top-left and DOUT/pixel 63 is bottom-right. Stored back-view corners are DIN top-right and DOUT bottom-left; exact pad centres remain to be measured."
+    "note": "Measured from the front: the six mounting holes form three columns and two rows; DIN/pixel 0 is top-left and DOUT/pixel 63 is bottom-right. Stored back-view corners are DIN top-right and DOUT bottom-left; exact pad centres remain to be measured."
   },
   "power": {
     "status": "provisional",

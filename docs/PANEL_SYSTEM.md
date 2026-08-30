@@ -37,7 +37,7 @@ coordinates, offset), `mountFaceId` (current generated mechanics),
 | --- | --- |
 | PCB | 66 × 65 × 0.8 mm |
 | LED grid | 8 × 8, 64 emitters |
-| Mounting holes | six total; four mechanically eligible |
+| Mounting holes | six total in three columns x two rows; four mechanically eligible |
 | Blocked holes | top-right by DIN; bottom-left by DOUT (back view) |
 | Fastener / printed pilot | M2 / 1.6 mm |
 | Screw lead-in | 3.2 mm diameter × 0.7 mm deep |
@@ -47,6 +47,13 @@ Treat these as working physical facts. Exact electrical pad/keep-out geometry,
 power topology, and exact electrical pad centres remain incomplete. The
 front-view straight row-major pixel order and GRB color order are measured.
 Never use a blocked hole for a structural tab.
+
+The two middle hole IDs are retained as `middle-left` and `middle-right` for
+Schema 2 and generated-part compatibility. Their measured coordinates are the
+top-middle and bottom-middle holes. Coordinates, not the legacy ID words, are
+the geometry authority. The browser cuts the six 2.8 mm openings into each
+virtual PCB, so the mounting pattern and DIN/DOUT orientation can be checked
+from the front or back before assembly.
 
 The profile keeps `columns × rows` as the addressable coordinate grid, but
 emitter geometry can be explicit. Optional row-major `localEmitterPositions`
@@ -60,7 +67,8 @@ grid and back-view corner anchors exactly. This compatible seam lets a flexible
 that its LEDs form a rectangular physical carrier.
 
 `dataConnectors.orientationReference` distinguishes the historical
-`three-mounting-holes-vertical` board convention from
+`three-mounting-holes-vertical` legacy board convention,
+`six-holes-three-columns-two-rows` measured flagship convention, and
 `pose-local-explicit-connectors`. The latter requires explicit pose-local DIN
 and DOUT positions and is suitable for carriers that do not share the legacy
 mounting-hole orientation. Profile evidence remains explicit: provisional

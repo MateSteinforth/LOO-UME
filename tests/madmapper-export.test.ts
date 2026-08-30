@@ -47,7 +47,7 @@ describe("MadMapper fixture export", () => {
 
     expect(bundle.manifest).toMatchObject({
       minimumMadMapperVersion: "6.1",
-      mappingFingerprint: "73b36d49",
+      mappingFingerprint: "ca60c1b1",
       addressOrder: "physical-wire-order",
       fixtureLayout: "individual-physical-pixels",
       panelFixtureCount: 41,
@@ -64,7 +64,7 @@ describe("MadMapper fixture export", () => {
       },
     });
     expect(bundle.manifest.panels[0]).toMatchObject({
-      id: "SQ-03",
+      id: "SQ-04",
       outputIndex: 0,
       chainPosition: 0,
       physicalStart: 0,
@@ -73,7 +73,7 @@ describe("MadMapper fixture export", () => {
       endAddress: { universe: 1, channel: 190 },
     });
     expect(bundle.manifest.panels[2]).toMatchObject({
-      id: "PC-04",
+      id: "SQ-08",
       physicalStart: 128,
       physicalEnd: 191,
       startAddress: { universe: 1, channel: 385 },
@@ -92,9 +92,9 @@ describe("MadMapper fixture export", () => {
   it("preserves different panel pose rotations in individual fixture positions", async () => {
     const bundle = createMadMapperFixtureBundle(await flagshipContract());
 
-    expect(fixtureRowAngle(bundle.svg, "SQ-03")).toBeCloseTo(0, 1);
-    expect(fixtureRowAngle(bundle.svg, "SQ-11")).toBeCloseTo(31.6, 1);
-    expect(fixtureRowAngle(bundle.svg, "SQ-20")).toBeCloseTo(-31.6, 1);
+    expect(fixtureRowAngle(bundle.svg, "SQ-03")).toBeCloseTo(180, 1);
+    expect(fixtureRowAngle(bundle.svg, "SQ-11")).toBeCloseTo(-148.4, 1);
+    expect(fixtureRowAngle(bundle.svg, "SQ-20")).toBeCloseTo(148.4, 1);
   });
 
   it("never splits one RGB pixel across universes", () => {

@@ -55,32 +55,32 @@ describe("printable wiring assembly manual", () => {
     );
 
     expect(model).toMatchObject({
-      routeRevision: 1,
+      routeRevision: 3,
       wiringStatus: "authored",
       routeSource: "authored-route",
       mappingReady: true,
-      mappingFingerprint: "73b36d49",
-      optimizationFingerprint: "b2148e665f6ca16b",
+      mappingFingerprint: "ca60c1b1",
+      optimizationFingerprint: "3cde5fa90c4ae17a",
       totalPixels: 2_624,
       colorOrder: "GRB",
       pixelOrder: "8 × 8 straight rows",
     });
     expect(model.outputs.map((output) => output.gpio)).toEqual([16, 17, 18, 19]);
     expect(model.outputs.map((output) => output.color)).toEqual([
-      "#36e0d0", "#ff9d5c", "#b58cff", "#c6ed68",
+      "#36e0d0", "#ff9d5c", "#a78bfa", "#f472b6",
     ]);
     expect(model.outputs.map((output) => output.panels.length)).toEqual([11, 10, 10, 10]);
     expect(model.outputs.map((output) => [output.physicalStart, output.physicalEnd]))
       .toEqual([[0, 703], [704, 1_343], [1_344, 1_983], [1_984, 2_623]]);
     expect(model.outputs[0]!.panels.map((panel) => panel.id)).toEqual([
-      "SQ-03", "SQ-04", "PC-04", "SQ-08", "SQ-16", "PC-08",
-      "SQ-28", "SQ-23", "SQ-24", "SQ-17", "SQ-18",
+      "SQ-04", "PC-04", "SQ-08", "PC-03", "SQ-16", "SQ-23",
+      "SQ-28", "PC-08", "SQ-24", "SQ-18", "SQ-17",
     ]);
     expect(model.outputs[0]!.panels[0]).toMatchObject({
       physicalStart: 0,
       physicalEnd: 63,
       dataIn: "Controller GPIO 16",
-      dataOut: "SQ-04 DIN",
+      dataOut: "PC-04 DIN",
       turnDegrees: 0,
       mirrored: false,
       dinCorner: "top-left",
@@ -164,7 +164,7 @@ describe("printable wiring assembly manual", () => {
     expect(html).toContain('class="route-arrows"');
     expect(html).toContain('marker-end="url(#arrow-right-');
     expect(html).toContain("GPIO 16");
-    expect(html).toContain("SQ-03 → SQ-18");
+    expect(html).toContain("SQ-04 → SQ-17");
     expect(html).toContain("sculpture.json&lt;unsafe&gt;");
     expect(html).not.toContain("sculpture.json<unsafe>");
     for (const output of model.outputs) {

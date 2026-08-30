@@ -70,19 +70,23 @@ The one-panel test on 2026-08-25 measured this convention:
   is bottom-right.
 - Back view: DIN/pixel 0 is top-right, each row runs right-to-left, and
   DOUT/pixel 63 is bottom-left.
+- The six mounting holes use three columns and two rows. The blocked DIN and
+  DOUT corner holes leave four usable holes that match the printed pentagon
+  U-frame plus bridge in either allowed 0 or 180-degree orientation.
 - The automatic route writes each selected physical quarter turn into the panel
   pose before fabrication. A generated-part manifest or the saved manual
   `half-turns-only` gate permits only the current pose or a 180-degree turn.
   Mirroring remains false.
-  For the legacy 41-panel project, enable the manual gate before re-optimization
-  so the saved poses remain the printed authority and assumed address turns do
-  not migrate into physical rotations.
+  The 41-panel project stores this manual gate because its parts are printed.
 
 The older address-only orientation study reduced its inter-panel estimate from
 2,795.8 mm for identity orientation to 1,245.8 mm. That result is historical
 comparison data. The current automatic route also includes each controller pin
 to the first DIN and writes every selected physical turn into the panel pose.
-Both estimates use named connector corners because exact pad centres are not in
+The current saved 41-panel automatic route is approximately 2,044.3 mm,
+including each controller pin to the first DIN. It uses GPIO 16 through 19,
+identity installed-address transforms, and mapping fingerprint `ca60c1b1`.
+All estimates use named connector corners because exact pad centres are not in
 the profile.
 
 Install each PCB with the saved pose orientation. If a frame or connector

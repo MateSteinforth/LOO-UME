@@ -32,7 +32,7 @@ describe("panel hardware profile", () => {
     });
     expect(profile.dataConnectors).toMatchObject({
       referenceView: "back",
-      orientationReference: "three-mounting-holes-vertical",
+      orientationReference: "six-holes-three-columns-two-rows",
       cornerAssignmentStatus: "measured",
       dinCorner: "top-right",
       doutCorner: "bottom-left",
@@ -45,12 +45,12 @@ describe("panel hardware profile", () => {
       note: expect.stringContaining("2026-08-25"),
     });
     expect(profile.mounting.holes).toMatchObject([
-      { id: "top-left", mechanicalUse: "eligible" },
-      { id: "middle-left", mechanicalUse: "eligible" },
-      { id: "bottom-left", mechanicalUse: "blocked", blockedBy: "DOUT" },
-      { id: "top-right", mechanicalUse: "blocked", blockedBy: "DIN" },
-      { id: "middle-right", mechanicalUse: "eligible" },
-      { id: "bottom-right", mechanicalUse: "eligible" },
+      { id: "top-left", localPosition: [-25, 24.5], mechanicalUse: "eligible" },
+      { id: "middle-left", localPosition: [0, 24.5], mechanicalUse: "eligible" },
+      { id: "bottom-left", localPosition: [-25, -24.5], mechanicalUse: "blocked", blockedBy: "DOUT" },
+      { id: "top-right", localPosition: [25, 24.5], mechanicalUse: "blocked", blockedBy: "DIN" },
+      { id: "middle-right", localPosition: [0, -24.5], mechanicalUse: "eligible" },
+      { id: "bottom-right", localPosition: [25, -24.5], mechanicalUse: "eligible" },
     ]);
     expect(profile.mounting.physicalCorrections).toMatchObject({
       holeEdge: 0.2,
@@ -69,6 +69,24 @@ describe("panel hardware profile", () => {
       serpentine: false,
       firstLineDirection: "right-to-left",
     });
+  });
+
+  it("matches the printed U-frame and bridge under either allowed half-turn", () => {
+    const profile = loadProfile();
+    const eligible = profile.mounting.holes
+      .filter((hole) => hole.mechanicalUse === "eligible")
+      .map((hole) => panelBackViewPointToOutwardPoseLocal(hole.localPosition));
+    const key = ([x, y]: [number, number]): string => `${x},${y}`;
+    const printedPilotSet = [
+      [-25, -24.5],
+      [0, -24.5],
+      [25, 24.5],
+      [0, 24.5],
+    ] as Array<[number, number]>;
+
+    expect(eligible.map(key).sort()).toEqual(printedPilotSet.map(key).sort());
+    expect(eligible.map(([x, y]) => key([-x, -y])).sort())
+      .toEqual(printedPilotSet.map(key).sort());
   });
 
   it("rejects a WLED value that contradicts the channel sequence", () => {

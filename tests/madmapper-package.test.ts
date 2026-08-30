@@ -43,7 +43,7 @@ describe("MadMapper package", () => {
     expect(pdf).toMatch(/startxref\n\d+\n%%EOF\n$/);
     const manifest = JSON.parse(new TextDecoder().decode(files.get("manifest.json")));
     expect(manifest).toMatchObject({
-      mappingFingerprint: "73b36d49",
+      mappingFingerprint: "ca60c1b1",
       panelFixtureCount: 41,
       pixelFixtureCount: 2_624,
       pixelCount: 2_624,

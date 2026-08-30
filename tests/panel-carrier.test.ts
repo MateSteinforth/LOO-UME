@@ -17,6 +17,7 @@ import { preflightPanelBoundaryParts } from "../src/cad/CompilePanelBoundaryBund
 import { runStructuralPipeline } from "../src/structure/StructuralPipeline.ts";
 import {
   createLocalPanelCarrierGeometry,
+  panelCarrierMountingHoleCenters,
   usesExplicitRadialCarrierEmitters,
 } from "../web/src/PanelCarrierGeometry.ts";
 import { deriveEditorCapabilities } from "../web/src/EditorCapabilities.ts";
@@ -95,6 +96,18 @@ function projectWith(profile: ReturnType<typeof ringProfile>) {
   return createPanelAssemblyProject(definition, THREE_PANEL_SOURCE, profile);
 }
 
+function triangleContainsPoint(
+  triangle: Array<[number, number, number]>,
+  point: [number, number],
+): boolean {
+  const [[ax, ay], [bx, by], [cx, cy]] = triangle;
+  const area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+  const first = ((bx - ax) * (point[1] - ay) - (by - ay) * (point[0] - ax)) / area;
+  const second = ((cx - bx) * (point[1] - by) - (cy - by) * (point[0] - bx)) / area;
+  const third = ((ax - cx) * (point[1] - cy) - (ay - cy) * (point[0] - cx)) / area;
+  return first >= -1e-9 && second >= -1e-9 && third >= -1e-9;
+}
+
 describe("generalized panel carriers", () => {
   it("normalizes a legacy profile to the rigid rectangular carrier", () => {
     const profile = parsePanelHardwareProfile(BASE_PROFILE);
@@ -102,8 +115,24 @@ describe("generalized panel carriers", () => {
     expect(supportsRectangularPanelTools(profile)).toBe(true);
     expect(supportsRectangularPanelFabrication(profile)).toBe(true);
     const geometry = createLocalPanelCarrierGeometry(profile);
-    expect(geometry.triangles).toHaveLength(6);
+    expect(geometry.triangles.length).toBeGreaterThan(6);
     expect(geometry.outlineSegments).toHaveLength(4);
+    expect(panelCarrierMountingHoleCenters(profile)).toEqual([
+      [25, 24.5],
+      [0, 24.5],
+      [25, -24.5],
+      [-25, 24.5],
+      [0, -24.5],
+      [-25, -24.5],
+    ]);
+    const triangles = Array.from(
+      { length: geometry.triangles.length / 3 },
+      (_, index) => geometry.triangles.slice(index * 3, index * 3 + 3),
+    );
+    for (const center of panelCarrierMountingHoleCenters(profile)) {
+      expect(triangles.some((triangle) => triangleContainsPoint(triangle, center)))
+        .toBe(false);
+    }
   });
 
   it("keeps rectangular mapping available but gates provisional fit fabrication", () => {
@@ -132,7 +161,7 @@ describe("generalized panel carriers", () => {
     const geometry = createLocalPanelCarrierGeometry(profile);
     expect(reparsed.carrier).toEqual(profile.carrier);
     expect(profile.carrier?.kind).toBe("planar-outline");
-    expect(geometry.triangles).toHaveLength(12);
+    expect(geometry.triangles.length).toBeGreaterThan(12);
     expect(geometry.outlineSegments).toHaveLength(6);
     expect(supportsRectangularPanelTools(profile)).toBe(false);
   });

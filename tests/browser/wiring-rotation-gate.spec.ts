@@ -8,6 +8,8 @@ test("persists the manual wiring rotation gate from Developer utilities", async 
     "/?sculptureJson=.%2Fsculptures%2Fpose-only-two-panel%2Fsculpture.json",
   );
   await expect(page.locator("#optimize-wiring")).toBeEnabled();
+  await expect(page.locator("#viewer"))
+    .toHaveAttribute("data-panel-mounting-hole-count", "12");
 
   await page.locator("#developer-utilities").evaluate((details) => {
     (details as HTMLDetailsElement).open = true;

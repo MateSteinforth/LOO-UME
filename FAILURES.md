@@ -2088,3 +2088,25 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   explicit operator constraint. A manual override may strengthen an automatic
   safety gate but must never weaken a manifest gate.
 - **Status:** Implemented by WIRE-017; focused operator review remains pending.
+
+### F-113 — Mounting-hole names concealed a transposed PCB pattern
+
+- **Date:** 2026-08-30
+- **Context:** Checking the optimized 41-panel wiring against already-printed
+  U-frame parts before PCB installation.
+- **Symptom:** The virtual profile showed two columns of three holes, while the
+  printed U-frame pilots did not align with that pattern.
+- **Cause:** The profile coordinates followed the legacy `middle-left` and
+  `middle-right` ID words instead of the photographed PCB and original printed
+  CAD. The real board has three columns and two rows.
+- **Correction:** Keep the stable IDs for compatibility, but move their
+  authoritative coordinates to top-middle and bottom-middle. Use the shared
+  back-view X reflection to cut all six holes into the virtual PCB. Preserve
+  the diagonal DIN/DOUT blocks; the four usable holes then match the printed
+  U-frame plus bridge and remain invariant under 180-degree rotation.
+- **Prevention:** Never infer physical geometry from a mounting-hole ID. Compare
+  the complete coordinate set with the PCB evidence and printed pilot set, and
+  render actual openings before accepting a post-fabrication orientation rule.
+- **Evidence:** Flagship PCB photographs, historical `pentagon_u.scad` pilot
+  coordinates, the panel-profile regression, and the 41-panel wiring test.
+- **Status:** Implemented by WIRE-017; visual and physical fit review pending.

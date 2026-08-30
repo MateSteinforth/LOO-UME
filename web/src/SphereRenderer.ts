@@ -40,7 +40,10 @@ import {
   type SurfacePanelPlacement,
   type SurfacePlacement,
 } from "./SurfacePlacementController";
-import type { PanelHardwareProfile } from "../../src/sculpture/Definition.ts";
+import {
+  panelBackViewPointToOutwardPoseLocal,
+  type PanelHardwareProfile,
+} from "../../src/sculpture/Definition.ts";
 import {
   createLocalPanelCarrierGeometry,
   usesExplicitRadialCarrierEmitters,
@@ -851,6 +854,7 @@ export class SphereRenderer {
   ): void {
     this.clearPanelDecorations();
     this.disposeGroup(this.printableLayer);
+    delete this.container.dataset.panelMountingHoleCount;
     if (panels.length === 0) return;
 
     const positions: number[] = [];
@@ -862,6 +866,9 @@ export class SphereRenderer {
     const panelSurfacePositions: number[] = [];
     const panelSurfaceColors: number[] = [];
     const panelSurfaceIds: Array<string | null> = [];
+    const mountingHoleRingPositions: number[] = [];
+    const mountingHoleRingColors: number[] = [];
+    const mountingHoleRingPanelIds: Array<string | null> = [];
     const mountPositions: number[] = [];
     const printableClosureIds = new Set(
       printableClosures.map((closure) => closure.id),
@@ -931,6 +938,41 @@ export class SphereRenderer {
           surfaceColor.b,
         );
         panelSurfaceIds.push(panel.id);
+      }
+      if (this.panelProfile?.mounting) {
+        const innerRadius = this.panelProfile.mounting.pcbHolePreviewDiameter / 2;
+        const outerRadius = innerRadius + 0.9;
+        const faceOffset = this.panelThickness / 2 + 0.16;
+        for (const hole of this.panelProfile.mounting.holes) {
+          const center = panelBackViewPointToOutwardPoseLocal(hole.localPosition);
+          const ringColor = new THREE.Color(
+            hole.mechanicalUse === "eligible" ? 0xffc857 : 0xff4d6d,
+          );
+          for (const side of [-1, 1]) {
+            for (let segment = 0; segment < 20; segment += 1) {
+              const startAngle = 2 * Math.PI * segment / 20;
+              const endAngle = 2 * Math.PI * (segment + 1) / 20;
+              const localPoints = [
+                [center[0] + Math.cos(startAngle) * innerRadius, center[1] + Math.sin(startAngle) * innerRadius, side * faceOffset],
+                [center[0] + Math.cos(startAngle) * outerRadius, center[1] + Math.sin(startAngle) * outerRadius, side * faceOffset],
+                [center[0] + Math.cos(endAngle) * outerRadius, center[1] + Math.sin(endAngle) * outerRadius, side * faceOffset],
+                [center[0] + Math.cos(startAngle) * innerRadius, center[1] + Math.sin(startAngle) * innerRadius, side * faceOffset],
+                [center[0] + Math.cos(endAngle) * outerRadius, center[1] + Math.sin(endAngle) * outerRadius, side * faceOffset],
+                [center[0] + Math.cos(endAngle) * innerRadius, center[1] + Math.sin(endAngle) * innerRadius, side * faceOffset],
+              ] as Array<readonly [number, number, number]>;
+              for (const localPoint of localPoints) {
+                const point = localToWorld(localPoint);
+                mountingHoleRingPositions.push(point.x, point.y, point.z);
+                mountingHoleRingColors.push(
+                  ringColor.r,
+                  ringColor.g,
+                  ringColor.b,
+                );
+                mountingHoleRingPanelIds.push(panel.id);
+              }
+            }
+          }
+        }
       }
       for (const [start, end] of carrierGeometry.outlineSegments) {
         const first = localToWorld(start, 0.35);
@@ -1046,6 +1088,39 @@ export class SphereRenderer {
       Float32Array.from(panelSurfacePositions);
     panelSurfaces.renderOrder = 0;
     this.panelLayer.add(panelSurfaces);
+    if (mountingHoleRingPositions.length > 0) {
+      const holeRingGeometry = new THREE.BufferGeometry();
+      holeRingGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(mountingHoleRingPositions, 3),
+      );
+      holeRingGeometry.setAttribute(
+        "color",
+        new THREE.Float32BufferAttribute(mountingHoleRingColors, 3),
+      );
+      const holeRings = new THREE.Mesh(
+        holeRingGeometry,
+        new THREE.MeshBasicMaterial({
+          vertexColors: true,
+          side: THREE.DoubleSide,
+          toneMapped: false,
+          depthTest: true,
+          depthWrite: false,
+        }),
+      );
+      holeRings.name = "panel-mounting-hole-rings";
+      holeRings.userData.selectionFocusVertexColors = true;
+      holeRings.userData.selectionFocusBaseColors =
+        Float32Array.from(mountingHoleRingColors);
+      holeRings.userData.selectionFocusPanelIds = mountingHoleRingPanelIds;
+      holeRings.userData.tutorialBasePositions =
+        Float32Array.from(mountingHoleRingPositions);
+      holeRings.renderOrder = 3;
+      this.panelLayer.add(holeRings);
+      this.container.dataset.panelMountingHoleCount = String(
+        panels.length * this.panelProfile!.mounting.holes.length,
+      );
+    }
     this.buildPrintableClosures(printableClosures, surfaceFaces);
 
     if (mechanicalMounts.length > 0) {

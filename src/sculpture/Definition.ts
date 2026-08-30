@@ -100,6 +100,7 @@ export interface PanelHardwareProfile {
     referenceView: "back";
     orientationReference:
       | "three-mounting-holes-vertical"
+      | "six-holes-three-columns-two-rows"
       | "pose-local-explicit-connectors";
     cornerAssignmentStatus: "provisional" | "measured";
     dinCorner: PanelCorner;
@@ -204,7 +205,7 @@ export function panelConnectorLocalPosition(
 export function panelBackViewPointToOutwardPoseLocal(
   localPosition: readonly [number, number],
 ): [number, number] {
-  return [-localPosition[0], localPosition[1]];
+  return [localPosition[0] === 0 ? 0 : -localPosition[0], localPosition[1]];
 }
 
 export type WiringLifecycleStatus =
@@ -551,6 +552,7 @@ export function parsePanelHardwareProfile(
   if (
     dataConnectors.referenceView !== "back" ||
     (dataConnectors.orientationReference !== "three-mounting-holes-vertical" &&
+      dataConnectors.orientationReference !== "six-holes-three-columns-two-rows" &&
       dataConnectors.orientationReference !== "pose-local-explicit-connectors")
   ) {
     throw new Error(

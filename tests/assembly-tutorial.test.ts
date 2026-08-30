@@ -42,16 +42,16 @@ describe("Schema 2 assembly tutorial", () => {
       routeWarning: "Saved data route",
     });
     expect(model.chains[0]!.panels[0]).toEqual({
-      id: "SQ-03",
+      id: "SQ-04",
       chainPosition: 0,
-      label: "SQ-03",
+      label: "SQ-04",
     });
     expect(model.chains[0]!.connections[0]!.instruction).toBe(
-      "Controller GPIO 16 → SQ-03 DIN (top-right, back view)",
+      "Controller GPIO 16 → SQ-04 DIN (top-right, back view)",
     );
     expect(model.chains[0]!.connections[0]!.start).not.toBeNull();
     expect(model.chains[0]!.connections[1]!.instruction).toBe(
-      "SQ-03 DOUT (bottom-left, back view) → SQ-04 DIN (top-right, back view)",
+      "SQ-04 DOUT (bottom-left, back view) → PC-04 DIN (top-right, back view)",
     );
     expect(model.chains.flatMap((chain) => chain.panels)).toHaveLength(41);
     expect(new Set(

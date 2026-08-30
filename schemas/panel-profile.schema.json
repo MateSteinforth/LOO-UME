@@ -371,6 +371,7 @@
         "orientationReference": {
           "enum": [
             "three-mounting-holes-vertical",
+            "six-holes-three-columns-two-rows",
             "pose-local-explicit-connectors"
           ]
         },

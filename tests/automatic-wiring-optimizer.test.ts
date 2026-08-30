@@ -433,11 +433,33 @@ describe("automatic wiring optimizer", () => {
     )).toBe(true);
   }, 20_000);
 
+  it("keeps the saved 41-panel route and fabricated poses at an optimizer fixed point", () => {
+    const sourcePath = "sculptures/rhombicosidodecahedron/sculpture.json";
+    const loaded = load(sourcePath);
+    const optimized = optimizeAutomaticWiring(loaded.definition, loaded.profile);
+
+    expect(optimized.definition.wiring.outputs.map((output) => output.panelIds))
+      .toEqual(loaded.definition.wiring.outputs.map((output) => output.panelIds));
+    expect(optimized.definition.panels.map((panel) => panel.pose))
+      .toEqual(loaded.definition.panels.map((panel) => panel.pose));
+    expect(Object.values(optimized.poseQuarterTurnsByPanel).every((turns) => turns === 0))
+      .toBe(true);
+    expect(optimized.estimatedCableLengthMm).toBeCloseTo(2044.2961879715865, 9);
+  }, 20_000);
+
   it("keeps the 41-panel project to 0/180-degree deltas under the manual gate", () => {
     const sourcePath = "sculptures/rhombicosidodecahedron/sculpture.json";
     const loaded = load(sourcePath);
     const source = structuredClone(loaded.definition);
     source.wiring.panelRotationConstraint = "half-turns-only";
+    const legacyPanel = source.panels.find((panel) => panel.id === "SQ-04")!;
+    legacyPanel.installedAddressTransform = {
+      status: "assumed",
+      referenceView: "back",
+      quarterTurnsClockwise: 3,
+      mirrored: false,
+      selectionMethod: "manual",
+    };
     const sourceSnapshot = structuredClone(source);
     const expectedDiscardedPanelIds = source.panels
       .filter((panel) =>
@@ -459,7 +481,7 @@ describe("automatic wiring optimizer", () => {
     expect(optimized.discardedLegacyAddressTurnPanelIds).toContain("SQ-04");
     expect(optimized.discardedLegacyAddressTurnPanelIds)
       .toEqual(expectedDiscardedPanelIds);
-    expect(expectedDiscardedPanelIds).toHaveLength(29);
+    expect(expectedDiscardedPanelIds).toEqual(["SQ-04"]);
     expect(optimized.definition.panels.every((panel) =>
       panel.installedAddressTransform?.quarterTurnsClockwise === 0 &&
       panel.installedAddressTransform.mirrored === false
