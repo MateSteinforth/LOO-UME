@@ -9,10 +9,10 @@ export const HERMA_4385_SHEET = {
   labelDiameterMm: 10,
   columns: 15,
   rows: 21,
-  horizontalGapMm: 20 / 7,
+  horizontalGapMm: 37 / 14,
   verticalGapMm: 2.85,
-  leftMarginMm: 10,
-  rightMarginMm: 10,
+  leftMarginMm: 12,
+  rightMarginMm: 11,
   topMarginMm: 15,
   bottomMarginMm: 15,
 } as const;

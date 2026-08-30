@@ -6,7 +6,7 @@ import {
 } from "../web/src/PanelLabelSheet.ts";
 
 describe("HERMA 4385 panel label sheet", () => {
-  it("uses the measured stock grid with symmetric page margins", () => {
+  it("uses the measured stock grid with fitted page margins", () => {
     expect(HERMA_4385_SHEET).toMatchObject({
       articleNumber: "4385",
       pageWidthMm: 210,
@@ -14,10 +14,10 @@ describe("HERMA 4385 panel label sheet", () => {
       labelDiameterMm: 10,
       columns: 15,
       rows: 21,
-      horizontalGapMm: 20 / 7,
+      horizontalGapMm: 37 / 14,
       verticalGapMm: 2.85,
-      leftMarginMm: 10,
-      rightMarginMm: 10,
+      leftMarginMm: 12,
+      rightMarginMm: 11,
       topMarginMm: 15,
       bottomMarginMm: 15,
     });
@@ -28,7 +28,7 @@ describe("HERMA 4385 panel label sheet", () => {
       pageIndex: 0,
       column: 0,
       row: 0,
-      centerXmm: 15,
+      centerXmm: 17,
       centerYmmFromTop: 20,
     });
     expect(placements.at(-1)).toMatchObject({
@@ -37,7 +37,7 @@ describe("HERMA 4385 panel label sheet", () => {
       row: 20,
       centerYmmFromTop: 277,
     });
-    expect(placements.at(-1)!.centerXmm).toBeCloseTo(195, 10);
+    expect(placements.at(-1)!.centerXmm).toBeCloseTo(194, 10);
     expect(placements[0]!.centerXmm - HERMA_4385_SHEET.labelDiameterMm / 2)
       .toBe(HERMA_4385_SHEET.leftMarginMm);
     expect(HERMA_4385_SHEET.pageWidthMm -
@@ -71,7 +71,7 @@ describe("HERMA 4385 panel label sheet", () => {
       pageIndex: 1,
       column: 0,
       row: 0,
-      centerXmm: 15,
+      centerXmm: 17,
       centerYmmFromTop: 20,
     });
     expect(new TextDecoder().decode(
