@@ -63,9 +63,9 @@ No tasks.
 - Acceptance: the PDF keeps A4/100% scale, label order, and pagination; tests
   pin both stock target centres and calibrated PDF centres; a new physical
   print confirms registration.
-- Owner: `codex/label-011-print-calibration` in `/tmp/loo-ume-label-011`;
-  likely conflicts are `web/src/PanelLabelSheet.ts`, label tests, and mapping
-  documentation.
+- Integration: calibration code is on `main` as of 2026-08-30. Human Review
+  remains open only for a 100%/Actual-size physical reprint on the measured
+  printer and HERMA stock.
 
 ## Blocked
 
