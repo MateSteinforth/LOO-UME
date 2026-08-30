@@ -47,30 +47,7 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · WIRE-017` Align post-fabrication wiring with the printed mounts
-
-- Scope: retain the optional 0/180-degree wiring constraint, correct the
-  flagship PCB to its photographed and printed-CAD six-hole 3-column x 2-row
-  pattern, anchor DIN bottom-right and DOUT top-left to the physical SQ-05 back
-  view, cut those exact holes into the virtual PCB surfaces, and save one
-  optimized 41-panel route whose mapping uses the same physical poses.
-- Acceptance: the constraint persists through save/reload and never weakens a
-  manifest gate; the four usable holes match the printed U-frame plus bridge
-  under both 0 and 180 degrees; the virtual panel surfaces show all six true
-  openings from either side; and the saved route, identity installed-address
-  transforms, generated ledmap, and WLED buses agree for all 2,624 LEDs.
-- Owner: `codex/wire-017-manual-rotation-gate` in
-  `/tmp/loo-ume-wire-017`. Likely conflicts: Schema 2 wiring, automatic wiring,
-  Developer utilities, and wiring documentation/tests.
-- Evidence: physical SQ-05 anchors back-view DIN bottom-right and DOUT
-  top-left. The saved revision-4 route is an exact optimizer fixed point at
-  2,302.399 mm; all 41 installed transforms are identity; generated mapping,
-  WLED, MadMapper, tutorial, and demo artifacts use fingerprint `e9fe0e65`;
-  139 focused Vitest assertions, TypeScript, sculpture validation, one focused
-  Chromium journey, diff-check, and independent review passed on 2026-08-30.
-  The final back-only ring overlay uses green DIN, red DOUT, and gold usable
-  holes; the shared rotation-gate button style, 32 focused assertions,
-  TypeScript, Chromium, diff-check, and follow-up review also passed.
+No tasks.
 
 ## In Progress
 
@@ -131,6 +108,15 @@ No tasks.
   four outputs, and RGB channels against the exact deployment identity.
 
 ## Done
+
+- `WIRE-017`: integrated the optimized post-fabrication wiring authority on
+  2026-08-30. The saved revision-4 flagship is an exact optimizer fixed point
+  at 2,302.399 mm with identity installed-address transforms and mapping
+  fingerprint `e9fe0e65`. The manual 0/180-degree gate preserves printed
+  mounts, while new pre-fabrication projects can use all four quarter turns.
+  Virtual PCBs show the six physical openings and back-only rings: DIN green,
+  DOUT red, and usable mounting holes gold. Focused tests, TypeScript,
+  sculpture validation, Chromium, diff-check, and independent review passed.
 
 - `LABEL-011`: calibrated the HERMA 4385 PDF to the physically confirmed stock
   geometry on 2026-08-30: 12 mm left margin, 11 mm right margin, and fourteen
