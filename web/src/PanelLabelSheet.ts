@@ -9,10 +9,14 @@ export const HERMA_4385_SHEET = {
   labelDiameterMm: 10,
   columns: 15,
   rows: 21,
-  horizontalGapMm: 2.7,
-  verticalGapMm: 2.7,
-  leftMarginMm: 11.1,
-  topMarginMm: 16.5,
+  horizontalGapMm: 20 / 7,
+  verticalGapMm: 2.85,
+  leftMarginMm: 10,
+  rightMarginMm: 10,
+  topMarginMm: 15,
+  bottomMarginMm: 15,
+  printCalibrationXmm: -4,
+  printCalibrationYmm: 0,
 } as const;
 
 export interface PanelLabelPlacement {
@@ -70,8 +74,10 @@ export function layoutHerma4385PanelLabels(
       column,
       row,
       centerXmm: HERMA_4385_SHEET.leftMarginMm +
+        HERMA_4385_SHEET.printCalibrationXmm +
         HERMA_4385_SHEET.labelDiameterMm / 2 + column * pitchX,
       centerYmmFromTop: HERMA_4385_SHEET.topMarginMm +
+        HERMA_4385_SHEET.printCalibrationYmm +
         HERMA_4385_SHEET.labelDiameterMm / 2 + row * pitchY,
     };
   });
@@ -101,7 +107,9 @@ function labelContent(placements: readonly PanelLabelPlacement[]): string {
 
 /**
  * Create a 100%-scale A4 label sheet for HERMA 4385.
- * Geometry comes from HERMA's official 4385 punch template:
+ * Stock geometry is calibrated from the operator's physical HERMA 4385 sheet.
+ * The printer registration correction stays separate from that geometry.
+ * Product reference:
  * https://www.herma.de/fileadmin/Buero-Zuhause/downloads/Stanzvorlagen/4385_SV.pdf
  */
 export function createHerma4385PanelLabelsPdf(

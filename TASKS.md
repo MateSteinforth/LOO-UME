@@ -53,6 +53,20 @@ No tasks.
 
 No tasks.
 
+## Human Review
+
+### `P1 · LABEL-011` Calibrate HERMA 4385 physical printing
+
+- Scope: use the operator-measured 10 mm side and 15 mm top/bottom stock
+  margins, derive the pitch across the fixed 15 × 21 grid, and compensate the
+  measured 4 mm rightward printer displacement separately.
+- Acceptance: the PDF keeps A4/100% scale, label order, and pagination; tests
+  pin both stock target centres and calibrated PDF centres; a new physical
+  print confirms registration.
+- Owner: `codex/label-011-print-calibration` in `/tmp/loo-ume-label-011`;
+  likely conflicts are `web/src/PanelLabelSheet.ts`, label tests, and mapping
+  documentation.
+
 ## Blocked
 
 ### `P1 · LIVE-010` Prove direct MadMapper Art-Net physical addressing
@@ -102,10 +116,6 @@ No tasks.
   the exact offline frame plan.
 - Needed: observe and record all 2,624 addresses, row transitions, corners,
   four outputs, and RGB channels against the exact deployment identity.
-
-## Human Review
-
-No tasks.
 
 ## Done
 

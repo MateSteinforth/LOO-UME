@@ -183,10 +183,12 @@ selector.
 ## Printable panel labels
 
 **Download fabrication ZIP** writes one current Schema 2 panel ID per label on
-the exact HERMA 4385 A4 grid. The manufacturer sheet has 315 removable white
-paper labels: 15 columns by 21 rows, 10 mm diameter, 2.7 mm gaps, 11.1 mm side
-margins, and 16.5 mm top and bottom margins. Print at **100%** or **Actual
-size**. Do not use **Fit to page**. The PDF continues to another sheet when a
+the calibrated HERMA 4385 A4 grid. The physical sheet has 315 removable white
+paper labels: 15 columns by 21 rows and 10 mm diameter. The operator measured
+10 mm side margins and 15 mm top/bottom margins; the fitted pitch gives about
+2.86 mm horizontal and 2.85 mm vertical gaps. The PDF separately applies the
+measured −4 mm horizontal correction for the current printer. Print at **100%**
+or **Actual size**. Do not use **Fit to page**. The PDF continues to another sheet when a
 project has more than 315 panels. Apply each printed ID at the DIN end of its
 matching physical PCB; the simulator uses the same DIN anchor.
 

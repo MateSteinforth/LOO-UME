@@ -52,7 +52,8 @@ edit marks derived mechanics stale but does not stop those functions.
    `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
    final network values remain evidence-gated.
 6. `createHerma4385PanelLabelsPdf()` places current Schema 2 panel IDs on the
-   manufacturer's exact 15 x 21 A4 punch grid. The simulator anchors the same
+   measured 15 x 21 A4 stock grid and applies the recorded printer-registration
+   offset separately. The simulator anchors the same
    ID at the wiring preview's DIN position; neither path creates saved state.
 7. `preflightPanelBoundaryParts()` is the shared browser/CLI fit gate. It
    derives or reuses corner-only gap cycles and validates the closed boundary,

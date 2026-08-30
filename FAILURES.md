@@ -1502,22 +1502,25 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   -31.6 degree panel-row regressions.
 - **Status:** Resolved in the exporter; awaiting package performance review.
 
-### F-082 — Label-sheet geometry must come from the manufacturer template
+### F-082 — Label stock geometry and printer registration are separate
 
 - **Date:** 2026-08-28
 - **Context:** Printing physical panel IDs on HERMA 4385 round labels.
-- **Symptom:** Diameter, A4 size, and labels per sheet do not uniquely define
-  printer-safe label centers. A centered estimate can miss all 315 die cuts.
-- **Cause:** Product summaries omit pitch gaps and safety margins.
-- **Correction:** Use the official HERMA 4385 punch template: 15 x 21 labels,
-  10 mm diameter, 2.7 mm horizontal and vertical gaps, 11.1 mm side margins,
-  and 16.5 mm top and bottom margins. Generate a 100%-scale A4 PDF without
-  printed guide circles.
-- **Prevention:** Never derive a physical label sheet from count and diameter.
-  Pin the manufacturer article and punch geometry, and tell the operator to
-  disable page fitting.
-- **Evidence:** HERMA article 4385 product page and official `4385_SV.pdf`.
-- **Status:** Resolved by LABEL-010.
+- **Symptom:** The first physical print put the text approximately 4 mm to the
+  right of the sticker centres, although the PDF declared 100% A4 output.
+- **Cause:** LABEL-010 treated the template geometry as the complete print
+  contract. It did not distinguish physical stock dimensions from printer
+  registration.
+- **Correction:** Record the measured 10 mm side and 15 mm top/bottom stock
+  margins, derive the pitch across 15 × 21 labels, and apply the measured −4 mm
+  horizontal printer correction as a separate value. Keep the PDF at 100%
+  scale and omit guide circles.
+- **Prevention:** Never hide a printer correction inside label-stock geometry.
+  Pin both contracts, disable page fitting, and require a physical reprint when
+  either value changes.
+- **Evidence:** HERMA article 4385, its punch template, and the operator's
+  2026-08-30 physical print measurement.
+- **Status:** Corrected in LABEL-011; physical reprint pending.
 
 ### F-083 — A 64-pixel setup gate blocked generalized fixtures
 

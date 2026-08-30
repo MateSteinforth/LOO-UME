@@ -6,7 +6,7 @@ import {
 } from "../web/src/PanelLabelSheet.ts";
 
 describe("HERMA 4385 panel label sheet", () => {
-  it("uses the exact official 15 by 21 A4 punch geometry", () => {
+  it("uses the measured stock grid and separate printer registration correction", () => {
     expect(HERMA_4385_SHEET).toMatchObject({
       articleNumber: "4385",
       pageWidthMm: 210,
@@ -14,10 +14,14 @@ describe("HERMA 4385 panel label sheet", () => {
       labelDiameterMm: 10,
       columns: 15,
       rows: 21,
-      horizontalGapMm: 2.7,
-      verticalGapMm: 2.7,
-      leftMarginMm: 11.1,
-      topMarginMm: 16.5,
+      horizontalGapMm: 20 / 7,
+      verticalGapMm: 2.85,
+      leftMarginMm: 10,
+      rightMarginMm: 10,
+      topMarginMm: 15,
+      bottomMarginMm: 15,
+      printCalibrationXmm: -4,
+      printCalibrationYmm: 0,
     });
     const placements = layoutHerma4385PanelLabels(
       Array.from({ length: 315 }, (_, index) => `P-${index + 1}`),
@@ -26,16 +30,20 @@ describe("HERMA 4385 panel label sheet", () => {
       pageIndex: 0,
       column: 0,
       row: 0,
-      centerXmm: 16.1,
-      centerYmmFromTop: 21.5,
+      centerXmm: 11,
+      centerYmmFromTop: 20,
     });
     expect(placements.at(-1)).toMatchObject({
       pageIndex: 0,
       column: 14,
       row: 20,
-      centerYmmFromTop: 275.5,
+      centerYmmFromTop: 277,
     });
-    expect(placements.at(-1)!.centerXmm).toBeCloseTo(193.9, 10);
+    expect(placements.at(-1)!.centerXmm).toBeCloseTo(191, 10);
+    expect(placements[0]!.centerXmm - HERMA_4385_SHEET.printCalibrationXmm)
+      .toBe(15);
+    expect(placements.at(-1)!.centerXmm - HERMA_4385_SHEET.printCalibrationXmm)
+      .toBeCloseTo(195, 10);
   });
 
   it("creates a deterministic one-page PDF for the 41-panel sculpture", () => {
@@ -64,8 +72,8 @@ describe("HERMA 4385 panel label sheet", () => {
       pageIndex: 1,
       column: 0,
       row: 0,
-      centerXmm: 16.1,
-      centerYmmFromTop: 21.5,
+      centerXmm: 11,
+      centerYmmFromTop: 20,
     });
     expect(new TextDecoder().decode(
       createHerma4385PanelLabelsPdf(panelIds),
