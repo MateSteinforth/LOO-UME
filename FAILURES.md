@@ -2067,3 +2067,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** LIB-016 handler regressions cover bundled rename, delete, and
   overwrite while the original demo bytes remain present.
 - **Status:** Resolved by LIB-016.
+
+### F-112 — A missing generated-parts manifest reopened unsafe quarter turns
+
+- **Date:** 2026-08-30
+- **Context:** Re-optimizing wiring for the physically fabricated 41-panel
+  rhombicosidodecahedron.
+- **Symptom:** Automatic wiring could rotate a panel by 90 or 270 degrees, so
+  its saved DIN/DOUT pose no longer matched the already-printed construction.
+- **Cause:** The post-fabrication 0/180-degree gate inferred physical parts only
+  from `generatedMechanics` or `generatedStructure`. Older fabricated projects
+  can have neither manifest.
+- **Correction:** Add an optional saved `wiring.panelRotationConstraint` and a
+  Developer utilities button that sets it to `half-turns-only`. Combine this
+  operator gate with the existing generated-manifest gate.
+- **Prevention:** Do not infer all physical lifecycle state from derived-asset
+  manifests. When older real hardware is authoritative, provide a persistent,
+  explicit operator constraint. A manual override may strengthen an automatic
+  safety gate but must never weaken a manifest gate.
+- **Status:** Implemented by WIRE-017; focused operator review remains pending.

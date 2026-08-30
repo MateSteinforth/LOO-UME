@@ -256,10 +256,11 @@ The normal Mapping action jointly chooses balanced chain membership/order,
 GPIOs, and local-Z panel orientation. It writes physical rotation into the
 authoritative pose and leaves the installed-address transform at optimized
 identity, so connector rendering and fabrication cannot disagree with mapping.
-Before any generated-part manifest exists, all four quarter turns are eligible.
-After a mechanics or structural manifest exists, including when stale, only the
-current pose and a 180-degree turn are eligible. Manual route editing is an
-Advanced exception, not the normal workflow.
+Before any generated-part manifest or explicit operator gate exists, all four
+quarter turns are eligible. A mechanics/structural manifest, including when
+stale, or `wiring.panelRotationConstraint: "half-turns-only"` limits choices to
+the current pose and a 180-degree turn. Manual route editing is an Advanced
+exception, not the normal workflow.
 
 ## D32 — Export a supported MadMapper information package
 

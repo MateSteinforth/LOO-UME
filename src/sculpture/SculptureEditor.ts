@@ -543,6 +543,20 @@ export function useSuggestedControllerPose(
   return definition;
 }
 
+/** Sets an operator-owned rotation gate without changing the current route or poses. */
+export function setWiringPanelRotationConstraint(
+  source: PanelAssemblyDefinition,
+  halfTurnsOnly: boolean,
+): PanelAssemblyDefinition {
+  const definition = structuredClone(source);
+  if (halfTurnsOnly) {
+    definition.wiring.panelRotationConstraint = "half-turns-only";
+  } else {
+    delete definition.wiring.panelRotationConstraint;
+  }
+  return definition;
+}
+
 /** Rotates one authoritative panel basis in its plane without moving it. */
 export function rotatePanelAroundLocalZ(
   source: PanelAssemblyDefinition,

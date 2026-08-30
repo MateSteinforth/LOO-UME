@@ -71,8 +71,9 @@ The one-panel test on 2026-08-25 measured this convention:
 - Back view: DIN/pixel 0 is top-right, each row runs right-to-left, and
   DOUT/pixel 63 is bottom-left.
 - The automatic route writes each selected physical quarter turn into the panel
-  pose before fabrication. After a generated-part manifest exists it permits
-  only the current pose or a 180-degree turn. Mirroring remains false.
+  pose before fabrication. A generated-part manifest or the saved manual
+  `half-turns-only` gate permits only the current pose or a 180-degree turn.
+  Mirroring remains false.
 
 The older address-only orientation study reduced its inter-panel estimate from
 2,795.8 mm for identity orientation to 1,245.8 mm. That result is historical

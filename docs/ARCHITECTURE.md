@@ -237,6 +237,10 @@ may evaluate all four quarter turns. Once `generatedMechanics` or
 `generatedStructure` exists, including a stale manifest, the durable gate allows
 only the current pose or a 180-degree turn. This prevents a stale fingerprint
 from reopening 90-degree choices after fabrication.
+An optional `wiring.panelRotationConstraint: "half-turns-only"` supplies the
+same durable limit when physical parts predate generated-manifest tracking. The
+Developer utilities button is the explicit operator authority for that case;
+the optional field keeps older Schema 2 projects compatible.
 
 Mapping readiness is separate from electrical approval. A production bundle
 must bind the current project, route, ledmap, WLED bus fragment, target identity,

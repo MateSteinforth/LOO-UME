@@ -596,6 +596,9 @@
             "manual-authored-route"
           ]
         },
+        "panelRotationConstraint": {
+          "const": "half-turns-only"
+        },
         "chainLengths": {
           "type": "array",
           "minItems": 1,

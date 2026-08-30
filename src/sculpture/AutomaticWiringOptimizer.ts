@@ -41,6 +41,19 @@ export interface AutomaticWiringOutputPolicy {
   gpios: number[];
 }
 
+export function automaticWiringOrientationPolicy(
+  definition: Pick<
+    PanelAssemblyDefinition,
+    "generatedMechanics" | "generatedStructure" | "wiring"
+  >,
+): AutomaticWiringOptimizationResult["orientationPolicy"] {
+  return definition.generatedMechanics ||
+      definition.generatedStructure ||
+      definition.wiring.panelRotationConstraint === "half-turns-only"
+    ? "half-turns-only"
+    : "quarter-turns";
+}
+
 const MAXIMUM_PANELS_PER_OUTPUT = 11;
 const OUTPUT_GPIOS = [16, 17, 18, 19] as const;
 const OUTPUT_COLORS = ["#36e0d0", "#ff9d5c", "#a78bfa", "#f472b6"] as const;
@@ -387,7 +400,7 @@ function optimizeRoutes(
 
 function foldLegacyInstalledTurns(
   definition: PanelAssemblyDefinition,
-  fabricationLocked: boolean,
+  halfTurnGateActive: boolean,
 ): void {
   for (const panel of definition.panels) {
     const transform = panel.installedAddressTransform;
@@ -395,9 +408,9 @@ function foldLegacyInstalledTurns(
     if (transform.mirrored) {
       throw new Error(`Automatic wiring cannot fold mirrored address calibration on ${panel.id} into a right-handed pose.`);
     }
-    if (fabricationLocked && transform.quarterTurnsClockwise % 2 !== 0) {
+    if (halfTurnGateActive && transform.quarterTurnsClockwise % 2 !== 0) {
       throw new Error(
-        `Printable parts exist and ${panel.id} has a 90-degree address-only orientation. Remove or regenerate the parts before migrating it into the physical pose.`,
+        `The 0/180-degree rotation gate is active and ${panel.id} has a 90-degree address-only orientation. Clear that legacy turn before migrating it into the physical pose.`,
       );
     }
     panel.pose.orientation = rotateBasis(
@@ -438,10 +451,12 @@ export function optimizeAutomaticWiring(
     throw new Error("Automatic wiring does not rewrite measured or hardware-verified installation evidence.");
   }
   const definition = structuredClone(source);
-  const fabricationLocked = Boolean(definition.generatedMechanics || definition.generatedStructure);
-  const orientationPolicy = fabricationLocked ? "half-turns-only" : "quarter-turns";
-  foldLegacyInstalledTurns(definition, fabricationLocked);
-  const allowedTurns: readonly QuarterTurn[] = fabricationLocked ? [0, 2] : [0, 1, 2, 3];
+  const orientationPolicy = automaticWiringOrientationPolicy(definition);
+  const halfTurnGateActive = orientationPolicy === "half-turns-only";
+  foldLegacyInstalledTurns(definition, halfTurnGateActive);
+  const allowedTurns: readonly QuarterTurn[] = halfTurnGateActive
+    ? [0, 2]
+    : [0, 1, 2, 3];
   const { outputCount, chainLengths } = outputPolicy;
   const pins = controllerPins(definition, outputCount);
   const panelById = new Map(definition.panels.map((panel) => [panel.id, panel]));

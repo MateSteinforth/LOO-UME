@@ -20,6 +20,7 @@ import {
   projectPanelOrientationOntoSurface,
   rotatePanelAroundLocalZ,
   setPanelWorldPose,
+  setWiringPanelRotationConstraint,
 } from "../src/sculpture/SculptureEditor.ts";
 import { regenerateMechanicalShell } from "../src/sculpture/MechanicalShellRegenerator.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
@@ -49,6 +50,24 @@ function expectVectorClose(
 }
 
 describe("browser sculpture editor", () => {
+  it("sets and removes the manual wiring rotation gate without other edits", async () => {
+    const source = parsePanelAssemblyDefinition(JSON.parse(
+      await readFile("sculptures/pose-only-two-panel/sculpture.json", "utf8"),
+    ));
+    const enabled = setWiringPanelRotationConstraint(source, true);
+    expect(source.wiring.panelRotationConstraint).toBeUndefined();
+    expect(enabled.wiring.panelRotationConstraint).toBe("half-turns-only");
+    expect({ ...enabled, wiring: undefined }).toEqual({
+      ...source,
+      wiring: undefined,
+    });
+    expect({ ...enabled.wiring, panelRotationConstraint: undefined }).toEqual({
+      ...source.wiring,
+      panelRotationConstraint: undefined,
+    });
+    expect(setWiringPanelRotationConstraint(enabled, false)).toEqual(source);
+  });
+
   it("stores a free translated and compound-rotated world pose", async () => {
     const source = parsePanelAssemblyDefinition(JSON.parse(
       await readFile("sculptures/cuboctahedron/sculpture.json", "utf8"),

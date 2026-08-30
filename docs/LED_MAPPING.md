@@ -111,6 +111,11 @@ transform. Before a generated mechanics or structural manifest exists, it can
 evaluate 0/90/180/270 degrees. After either manifest exists, even when stale,
 it can keep the current pose or add 180 degrees only. A mirrored transform or a
 post-fabrication legacy 90-degree address-only turn fails closed.
+For an already-built sculpture whose older project has no generated-parts
+manifest, **Developer utilities → Restrict wiring rotation to 0/180°** stores
+`wiring.panelRotationConstraint: "half-turns-only"`. This operator gate has the
+same optimization limit and persists through project export/reload. Removing it
+cannot weaken a gate supplied by an existing generated-parts manifest.
 
 ## Browser route editor
 

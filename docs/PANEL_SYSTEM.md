@@ -14,8 +14,9 @@ The pose also owns physical PCB rotation around that normal. Automatic wiring
 writes the selected local-Z rotation into `xAxis`/`yAxis`, so DIN/DOUT, LED
 positions, tutorial cables, and fabrication share one physical frame. New
 automatic results keep the separate installed-address transform at identity.
-Before a generated-part manifest exists, routing can test 0/90/180/270 degrees.
-After a manifest exists, routing can keep the pose or add 180 degrees only.
+Before a generated-part manifest or manual rotation gate exists, routing can
+test 0/90/180/270 degrees. A manifest or saved `half-turns-only` wiring
+constraint lets routing keep the pose or add 180 degrees only.
 
 The axes must be finite, unit length, mutually perpendicular, and right-handed
 (`xAxis × yAxis = normal`). Mechanical faces and GLB attachments locate or

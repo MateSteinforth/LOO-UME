@@ -222,6 +222,8 @@ export interface WiringDefinition {
     | "face-adjacency-nearest-neighbor"
     | "balanced-oriented-cable-optimizer"
     | "manual-authored-route";
+  /** Optional operator gate for already-fabricated projects without manifests. */
+  panelRotationConstraint?: "half-turns-only";
   chainLengths: number[];
   controller: {
     placement: "near-top";

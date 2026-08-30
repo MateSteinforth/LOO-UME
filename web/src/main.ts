@@ -11,7 +11,10 @@ import {
   createPanelAssemblyProject,
   getGeneratedMechanicsState,
 } from "../../src/sculpture/PanelAssembly";
-import { optimizeAutomaticWiring } from "../../src/sculpture/AutomaticWiringOptimizer.ts";
+import {
+  automaticWiringOrientationPolicy,
+  optimizeAutomaticWiring,
+} from "../../src/sculpture/AutomaticWiringOptimizer.ts";
 import {
   addPanelOnDesignSurface,
   addPanelToClosureFace,
@@ -22,6 +25,7 @@ import {
   rotatePanelAroundLocalZ,
   setControllerWorldPose,
   setPanelWorldPose,
+  setWiringPanelRotationConstraint,
   sculptureJson,
   useSuggestedControllerPose,
 } from "../../src/sculpture/SculptureEditor";
@@ -437,6 +441,7 @@ app.innerHTML = `
                   <button id="apply-count" type="button">Apply</button>
                 </div>
               </label>
+              <button id="toggle-wiring-rotation-gate" type="button" aria-pressed="false">Use manual 0/180° rotation gate</button>
             </div>
           </details>
           <div id="pipeline-status" class="pipeline-status pipeline-status--history" role="log" aria-live="polite" aria-label="Activity log">
@@ -555,6 +560,8 @@ const loadSculptureButton = query<HTMLButtonElement>("#load-sculpture");
 const developerUtilities = query<HTMLDetailsElement>("#developer-utilities");
 const ledCountInput = query<HTMLInputElement>("#led-count");
 const applyCountButton = query<HTMLButtonElement>("#apply-count");
+const toggleWiringRotationGateButton =
+  query<HTMLButtonElement>("#toggle-wiring-rotation-gate");
 const displayMode = query<HTMLSelectElement>("#display-mode");
 const panelLabelsToggle = query<HTMLInputElement>("#panel-labels");
 const printableLayerToggle = query<HTMLInputElement>("#printable-layer");
@@ -1361,11 +1368,20 @@ async function start(): Promise<void> {
       optimizeWiringButton.hidden = !isPanelized;
       optimizeWiringButton.disabled = !isPanelized || editorDefinition.panels.length === 0 ||
         wiringPreview.status === "measured" || wiringPreview.status === "hardware-verified";
-      const fabricationLocked = Boolean(
-        editorDefinition.generatedMechanics || editorDefinition.generatedStructure,
+      const orientationPolicy = automaticWiringOrientationPolicy(editorDefinition);
+      const manualRotationGate =
+        editorDefinition.wiring.panelRotationConstraint === "half-turns-only";
+      toggleWiringRotationGateButton.hidden = !isPanelized;
+      toggleWiringRotationGateButton.disabled = !isPanelized;
+      toggleWiringRotationGateButton.setAttribute(
+        "aria-pressed",
+        String(manualRotationGate),
       );
+      toggleWiringRotationGateButton.textContent = manualRotationGate
+        ? "Remove manual 0/180° rotation gate"
+        : "Use manual 0/180° rotation gate";
       wiringOptimizationSummary.textContent = isPanelized
-        ? `${wiringPreview.outputs.length} output${wiringPreview.outputs.length === 1 ? "" : "s"} · ${editorDefinition.panels.length} panels · GPIO ${wiringPreview.outputs.map((output) => output.gpio ?? "unassigned").join("/")} · ${fabricationLocked ? "0/180° orientation gate" : "0/90/180/270° before fabrication"}.`
+        ? `${wiringPreview.outputs.length} output${wiringPreview.outputs.length === 1 ? "" : "s"} · ${editorDefinition.panels.length} panels · GPIO ${wiringPreview.outputs.map((output) => output.gpio ?? "unassigned").join("/")} · ${orientationPolicy === "half-turns-only" ? `${manualRotationGate ? "manual " : "fabrication "}0/180° orientation gate` : "0/90/180/270° before fabrication"}.`
         : "Automatic wiring requires a panelized Schema 2 project.";
       if (!isPanelized || !routeEditorModel) {
         routeEditor.replaceChildren();
@@ -2389,13 +2405,33 @@ async function start(): Promise<void> {
           await applyLoadedSculpture(createLoadedSculpture(project));
           currentProjectName.textContent = project.sculpture.name;
           setLogMessage(
-            `Optimized wiring revision ${result.definition.wiring.routeRevision}: ${result.outputCount} output${result.outputCount === 1 ? "" : "s"}, ${result.chainLengths.join("/")} panels, GPIO ${result.gpios.join("/")}, approximately ${result.estimatedCableLengthMm.toFixed(1)} mm data cable. ${result.orientationPolicy === "quarter-turns" ? "No printable parts exist, so panel orientation could use 0°, 90°, 180°, or 270°." : "Printable parts exist, so panel orientation changes were limited to 0° or 180°."}`,
+            `Optimized wiring revision ${result.definition.wiring.routeRevision}: ${result.outputCount} output${result.outputCount === 1 ? "" : "s"}, ${result.chainLengths.join("/")} panels, GPIO ${result.gpios.join("/")}, approximately ${result.estimatedCableLengthMm.toFixed(1)} mm data cable. ${result.orientationPolicy === "quarter-turns" ? "Panel orientation could use 0°, 90°, 180°, or 270°." : "The active rotation gate limited panel orientation changes to 0° or 180°."}`,
           );
         } catch (error) {
           setLogMessage(error instanceof Error ? error.message : String(error), true);
           renderRouteEditor();
         }
       })();
+    });
+    toggleWiringRotationGateButton.addEventListener("click", () => {
+      const enable =
+        editorDefinition.wiring.panelRotationConstraint !== "half-turns-only";
+      const nextDefinition = setWiringPanelRotationConstraint(
+        editorDefinition,
+        enable,
+      );
+      const project = createPanelAssemblyProject(
+        nextDefinition,
+        editorProject.source,
+        editorProject.panelProfile,
+      );
+      void applyLoadedSculpture(createLoadedSculpture(project)).then(() => {
+        setLogMessage(enable
+          ? "Manual wiring rotation gate enabled. Optimize wiring can now keep each panel orientation or add 180 degrees only."
+          : "Manual wiring rotation gate removed. Generated-part manifests still enforce 0/180-degree optimization when present.");
+      }).catch((error) => {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
+      });
     });
     routeActionButton.addEventListener("click", () => {
       void (async () => {

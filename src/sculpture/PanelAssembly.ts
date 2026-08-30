@@ -665,6 +665,8 @@ function validateWiring(
       wiring.routeStrategy !== "longitude-sectors-nearest-neighbor" &&
       wiring.routeStrategy !== "balanced-oriented-cable-optimizer" &&
       wiring.routeStrategy !== "manual-authored-route") ||
+    (wiring.panelRotationConstraint !== undefined &&
+      wiring.panelRotationConstraint !== "half-turns-only") ||
     !Array.isArray(wiring.chainLengths) ||
     !Array.isArray(wiring.outputs)
   ) {

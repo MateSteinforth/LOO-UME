@@ -18,7 +18,8 @@ rules for Optimize wiring, fabrication actions, Set up ESP32, or Export.
 Mapping normally uses the deterministic pose-owned wiring optimizer. It selects
 balanced outputs, GPIOs, routes, and allowed local-Z panel rotations; the
 drag-and-drop route editor is under **Advanced route editor**. A generated-part
-manifest narrows later rotation choices to 0/180 degrees.
+manifest, or the explicit manual gate for older fabricated projects, narrows
+later rotation choices to 0/180 degrees.
 
 The local host also provides the receipt-gated ESP32 image, bounded private-WLED
 HTTP proxy, and mapped DDP sender. The browser verifies config, ledmap, preset,

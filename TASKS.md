@@ -47,7 +47,17 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `P1 · WIRE-017` Add a manual post-fabrication rotation gate
+
+- Scope: add an optional Schema 2 wiring constraint and a Developer utilities
+  button that restricts automatic wiring orientation changes to 0/180 degrees
+  when physical parts exist without a generated-parts manifest.
+- Acceptance: the constraint persists through save/reload, never weakens the
+  existing manifest gate, the 41-panel optimizer uses only 0/180-degree deltas
+  when enabled, and the UI clearly shows the active policy.
+- Owner: `codex/wire-017-manual-rotation-gate` in
+  `/tmp/loo-ume-wire-017`. Likely conflicts: Schema 2 wiring, automatic wiring,
+  Developer utilities, and wiring documentation/tests.
 
 ## In Progress
 

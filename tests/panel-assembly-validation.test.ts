@@ -24,6 +24,8 @@ describe("central Schema 2 runtime validation", () => {
     expect(schema.$defs.orientation.required).toEqual([
       "xAxis", "yAxis", "normal",
     ]);
+    expect(schema.properties.wiring.properties.panelRotationConstraint)
+      .toEqual({ const: "half-turns-only" });
   });
 
   it.each([
@@ -34,6 +36,7 @@ describe("central Schema 2 runtime validation", () => {
     ["calibration value", (value: Record<string, any>) => { value.calibration.physicalChains = "verified"; }, /Calibration.*lifecycle/],
     ["root notes", (value: Record<string, any>) => { value.notes = [false]; }, /Notes.*strings/],
     ["controller position", (value: Record<string, any>) => { value.wiring.controller.position = [1, 2]; }, /optional finite right-handed world pose/],
+    ["wiring rotation constraint", (value: Record<string, any>) => { value.wiring.panelRotationConstraint = "quarter-turns"; }, /supported wiring lifecycle and route strategy/],
     ["controller orientation", (value: Record<string, any>) => {
       value.wiring.controller.position = [1, 2, 3];
       value.wiring.controller.orientation = {

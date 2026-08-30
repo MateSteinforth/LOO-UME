@@ -398,7 +398,7 @@ describe("automatic wiring optimizer", () => {
 
     unsafe.panels[0]!.installedAddressTransform!.quarterTurnsClockwise = 1;
     expect(() => optimizeAutomaticWiring(unsafe, loaded.profile)).toThrow(
-      /Printable parts exist.*90-degree address-only orientation/,
+      /0\/180-degree rotation gate.*90-degree address-only orientation/,
     );
 
     const mirrored = identityTransforms(loaded.definition);
@@ -431,5 +431,23 @@ describe("automatic wiring optimizer", () => {
       panel.installedAddressTransform?.quarterTurnsClockwise === 0 &&
       panel.installedAddressTransform.selectionMethod === "route-optimized"
     )).toBe(true);
+  }, 20_000);
+
+  it("keeps the 41-panel project to 0/180-degree deltas under the manual gate", () => {
+    const sourcePath = "sculptures/rhombicosidodecahedron/sculpture.json";
+    const loaded = load(sourcePath);
+    const source = identityTransforms(loaded.definition);
+    source.wiring.panelRotationConstraint = "half-turns-only";
+    const reopened = parsePanelAssemblyDefinition(
+      JSON.parse(JSON.stringify(source)),
+    );
+    expect(reopened.wiring.panelRotationConstraint).toBe("half-turns-only");
+    const optimized = optimizeAutomaticWiring(reopened, loaded.profile);
+    expect(optimized.orientationPolicy).toBe("half-turns-only");
+    expect(Object.values(optimized.poseQuarterTurnsByPanel).every((turns) =>
+      turns === 0 || turns === 2
+    )).toBe(true);
+    expect(optimized.definition.wiring.panelRotationConstraint)
+      .toBe("half-turns-only");
   }, 20_000);
 });
