@@ -34,8 +34,8 @@ describe("panel hardware profile", () => {
       referenceView: "back",
       orientationReference: "six-holes-three-columns-two-rows",
       cornerAssignmentStatus: "measured",
-      dinCorner: "top-right",
-      doutCorner: "bottom-left",
+      dinCorner: "bottom-right",
+      doutCorner: "top-left",
       padPositionStatus: "unknown",
     });
     expect(profile.pixelGrid.colorOrder).toEqual({
@@ -45,12 +45,12 @@ describe("panel hardware profile", () => {
       note: expect.stringContaining("2026-08-25"),
     });
     expect(profile.mounting.holes).toMatchObject([
-      { id: "top-left", localPosition: [-25, 24.5], mechanicalUse: "eligible" },
+      { id: "top-left", localPosition: [-25, 24.5], mechanicalUse: "blocked", blockedBy: "DOUT" },
       { id: "middle-left", localPosition: [0, 24.5], mechanicalUse: "eligible" },
-      { id: "bottom-left", localPosition: [-25, -24.5], mechanicalUse: "blocked", blockedBy: "DOUT" },
-      { id: "top-right", localPosition: [25, 24.5], mechanicalUse: "blocked", blockedBy: "DIN" },
+      { id: "bottom-left", localPosition: [-25, -24.5], mechanicalUse: "eligible" },
+      { id: "top-right", localPosition: [25, 24.5], mechanicalUse: "eligible" },
       { id: "middle-right", localPosition: [0, -24.5], mechanicalUse: "eligible" },
-      { id: "bottom-right", localPosition: [25, -24.5], mechanicalUse: "eligible" },
+      { id: "bottom-right", localPosition: [25, -24.5], mechanicalUse: "blocked", blockedBy: "DIN" },
     ]);
     expect(profile.mounting.physicalCorrections).toMatchObject({
       holeEdge: 0.2,
@@ -63,9 +63,9 @@ describe("panel hardware profile", () => {
     });
     expect(profile.pixelGrid.provisionalOrder).toMatchObject({
       status: "measured",
-      pixelZeroCorner: "top-right",
+      pixelZeroCorner: "bottom-right",
       traversalAxis: "rows",
-      lineProgression: "top-to-bottom",
+      lineProgression: "bottom-to-top",
       serpentine: false,
       firstLineDirection: "right-to-left",
     });
@@ -73,9 +73,9 @@ describe("panel hardware profile", () => {
 
   it("matches the printed U-frame and bridge under either allowed half-turn", () => {
     const profile = loadProfile();
-    const eligible = profile.mounting.holes
+    const eligibleBackView = profile.mounting.holes
       .filter((hole) => hole.mechanicalUse === "eligible")
-      .map((hole) => panelBackViewPointToOutwardPoseLocal(hole.localPosition));
+      .map((hole) => hole.localPosition);
     const key = ([x, y]: [number, number]): string => `${x},${y}`;
     const printedPilotSet = [
       [-25, -24.5],
@@ -84,8 +84,8 @@ describe("panel hardware profile", () => {
       [0, 24.5],
     ] as Array<[number, number]>;
 
-    expect(eligible.map(key).sort()).toEqual(printedPilotSet.map(key).sort());
-    expect(eligible.map(([x, y]) => key([-x, -y])).sort())
+    expect(eligibleBackView.map(key).sort()).toEqual(printedPilotSet.map(key).sort());
+    expect(eligibleBackView.map(([x, y]) => key([-x, -y])).sort())
       .toEqual(printedPilotSet.map(key).sort());
   });
 
@@ -117,17 +117,17 @@ describe("panel hardware profile", () => {
     expect(emitters).toHaveLength(64);
     expect(emitters[0]).toEqual([-25.666666666666664, 25.27777777777778, 1.2]);
     expect(emitters[63]).toEqual([25.666666666666664, -25.27777777777778, 1.2]);
-    expect(panelConnectorLocalPosition(profile, 4, "din")).toEqual([-29, 28.5, 0]);
-    expect(panelConnectorLocalPosition(profile, 4, "dout")).toEqual([29, -28.5, 0]);
+    expect(panelConnectorLocalPosition(profile, 4, "din")).toEqual([-29, -28.5, 0]);
+    expect(panelConnectorLocalPosition(profile, 4, "dout")).toEqual([29, 28.5, 0]);
   });
 
   it("accepts one explicit pose-local emitter and connector position per address", () => {
     const profile = structuredClone(loadProfile());
     profile.pixelGrid.columns = 12;
     profile.pixelGrid.rows = 1;
-    profile.pixelGrid.provisionalOrder.pixelZeroCorner = "top-right";
+    profile.pixelGrid.provisionalOrder.pixelZeroCorner = "bottom-right";
     profile.pixelGrid.provisionalOrder.traversalAxis = "rows";
-    profile.pixelGrid.provisionalOrder.lineProgression = "top-to-bottom";
+    profile.pixelGrid.provisionalOrder.lineProgression = "bottom-to-top";
     profile.pixelGrid.provisionalOrder.firstLineDirection = "right-to-left";
     profile.pixelGrid.provisionalOrder.serpentine = false;
     profile.pixelGrid.localEmitterPositions = Array.from(
@@ -141,13 +141,6 @@ describe("panel hardware profile", () => {
         ] as [number, number, number];
       },
     );
-    profile.dataConnectors.doutCorner = "top-left";
-    const oldDout = profile.mounting.holes.find(({ id }) => id === "bottom-left")!;
-    oldDout.mechanicalUse = "eligible";
-    delete oldDout.blockedBy;
-    const newDout = profile.mounting.holes.find(({ id }) => id === "top-left")!;
-    newDout.mechanicalUse = "blocked";
-    newDout.blockedBy = "DOUT";
     profile.dataConnectors.localPositions = {
       coordinateFrame: "pose-local",
       din: [159, 0, 0],
@@ -184,13 +177,13 @@ describe("panel hardware profile", () => {
 
   it("requires measured pixel zero at DIN and the final pixel at DOUT", () => {
     const wrongDin = structuredClone(loadProfile());
-    wrongDin.dataConnectors.dinCorner = "bottom-right";
+    wrongDin.dataConnectors.dinCorner = "top-right";
     expect(() => parsePanelHardwareProfile(wrongDin)).toThrow(
       "pixel zero must be at DIN",
     );
 
     const wrongDout = structuredClone(loadProfile());
-    wrongDout.dataConnectors.doutCorner = "top-left";
+    wrongDout.dataConnectors.doutCorner = "bottom-left";
     expect(() => parsePanelHardwareProfile(wrongDout)).toThrow(
       "final pixel must be at DOUT",
     );
@@ -223,7 +216,7 @@ describe("panel hardware profile", () => {
   it("rejects use of a connector-blocked mounting hole", () => {
     const profile = loadProfile();
     profile.mounting.holes.find(
-      (hole) => hole.id === "bottom-left",
+      (hole) => hole.id === "bottom-right",
     )!.mechanicalUse = "eligible";
 
     expect(() => parsePanelHardwareProfile(profile)).toThrow(

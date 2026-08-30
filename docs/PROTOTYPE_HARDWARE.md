@@ -62,14 +62,14 @@ orientation.
 
 ## Panel address convention
 
-The one-panel test on 2026-08-25 measured this convention:
+The one-panel test on 2026-08-25 measured the straight row order. A physical
+SQ-05 check on 2026-08-30 anchored it to the mounting pattern:
 
-- Front view: DIN and pixel 0 are at top-left.
-- Front view: every row runs left-to-right without serpentine reversal.
-- Front view: rows progress downward; pixel 56 is bottom-left and pixel 63/DOUT
-  is bottom-right.
-- Back view: DIN/pixel 0 is top-right, each row runs right-to-left, and
-  DOUT/pixel 63 is bottom-left.
+- Back view with the three-hole reference at the top: DIN/pixel 0 is
+  bottom-right, each row runs right-to-left, rows progress upward, and
+  DOUT/pixel 63 is top-left.
+- Reflected front view: DIN/pixel 0 is bottom-left, each row runs left-to-right,
+  rows progress upward, and DOUT/pixel 63 is top-right.
 - The six mounting holes use three columns and two rows. The blocked DIN and
   DOUT corner holes leave four usable holes that match the printed pentagon
   U-frame plus bridge in either allowed 0 or 180-degree orientation.
@@ -83,9 +83,9 @@ The older address-only orientation study reduced its inter-panel estimate from
 2,795.8 mm for identity orientation to 1,245.8 mm. That result is historical
 comparison data. The current automatic route also includes each controller pin
 to the first DIN and writes every selected physical turn into the panel pose.
-The current saved 41-panel automatic route is approximately 2,044.3 mm,
+The current saved 41-panel automatic route is approximately 2,302.4 mm,
 including each controller pin to the first DIN. It uses GPIO 16 through 19,
-identity installed-address transforms, and mapping fingerprint `ca60c1b1`.
+identity installed-address transforms, and mapping fingerprint `e9fe0e65`.
 All estimates use named connector corners because exact pad centres are not in
 the profile.
 

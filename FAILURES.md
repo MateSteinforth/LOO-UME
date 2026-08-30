@@ -2101,12 +2101,33 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   CAD. The real board has three columns and two rows.
 - **Correction:** Keep the stable IDs for compatibility, but move their
   authoritative coordinates to top-middle and bottom-middle. Use the shared
-  back-view X reflection to cut all six holes into the virtual PCB. Preserve
-  the diagonal DIN/DOUT blocks; the four usable holes then match the printed
-  U-frame plus bridge and remain invariant under 180-degree rotation.
+  back-view X reflection to cut all six holes into the virtual PCB. Anchor the
+  diagonal connector assignment to physical SQ-05: with the three-hole
+  reference at the top in back view, DIN is bottom-right and DOUT is top-left.
+  The remaining four holes match the printed U-frame plus bridge and remain
+  invariant under 180-degree rotation.
 - **Prevention:** Never infer physical geometry from a mounting-hole ID. Compare
   the complete coordinate set with the PCB evidence and printed pilot set, and
   render actual openings before accepting a post-fabrication orientation rule.
 - **Evidence:** Flagship PCB photographs, historical `pentagon_u.scad` pilot
   coordinates, the panel-profile regression, and the 41-panel wiring test.
 - **Status:** Implemented by WIRE-017; visual and physical fit review pending.
+
+### F-114 — Electrical address evidence was 180-degree ambiguous without a mechanical reference
+
+- **Date:** 2026-08-30
+- **Context:** Comparing the virtual SQ-05 DIN/DOUT labels with the physical PCB
+  after the numbered address test had already established straight row order.
+- **Symptom:** The virtual back view placed DIN top-right and DOUT bottom-left,
+  but physical SQ-05 with its three-hole reference at the top has DIN
+  bottom-right and DOUT top-left.
+- **Cause:** The address walk was recorded relative to an unanchored panel
+  orientation. Rotating the PCB 180 degrees preserves the measured straight
+  walk but swaps both named connector corners relative to the mounting holes.
+- **Correction:** Store the mounting-pattern reference with the measured pixel
+  order, connector corners, and blocked holes. Regenerate the physical poses,
+  route, ledmap, WLED deployment, and tutorial from that complete contract.
+- **Prevention:** A physical pixel-order test must photograph or record one
+  asymmetric mechanical reference. Pixel 0 and DOUT alone do not distinguish
+  two panel orientations separated by 180 degrees.
+- **Status:** Resolved by WIRE-017.

@@ -51,7 +51,8 @@ No tasks.
 
 - Scope: retain the optional 0/180-degree wiring constraint, correct the
   flagship PCB to its photographed and printed-CAD six-hole 3-column x 2-row
-  pattern, cut those exact holes into the virtual PCB surfaces, and save one
+  pattern, anchor DIN bottom-right and DOUT top-left to the physical SQ-05 back
+  view, cut those exact holes into the virtual PCB surfaces, and save one
   optimized 41-panel route whose mapping uses the same physical poses.
 - Acceptance: the constraint persists through save/reload and never weakens a
   manifest gate; the four usable holes match the printed U-frame plus bridge
@@ -61,11 +62,12 @@ No tasks.
 - Owner: `codex/wire-017-manual-rotation-gate` in
   `/tmp/loo-ume-wire-017`. Likely conflicts: Schema 2 wiring, automatic wiring,
   Developer utilities, and wiring documentation/tests.
-- Evidence: the saved revision-3 route is an exact optimizer fixed point at
-  2,044.296 mm; all 41 installed transforms are identity; the generated
-  mapping/WLED/MadMapper artifacts use fingerprint `ca60c1b1`; 122 focused
-  Vitest assertions, TypeScript, sculpture validation, one focused Chromium
-  journey, diff-check, and independent review passed on 2026-08-30.
+- Evidence: physical SQ-05 anchors back-view DIN bottom-right and DOUT
+  top-left. The saved revision-4 route is an exact optimizer fixed point at
+  2,302.399 mm; all 41 installed transforms are identity; generated mapping,
+  WLED, MadMapper, tutorial, and demo artifacts use fingerprint `e9fe0e65`;
+  139 focused Vitest assertions, TypeScript, sculpture validation, one focused
+  Chromium journey, diff-check, and independent review passed on 2026-08-30.
 
 ## In Progress
 
@@ -279,7 +281,7 @@ No tasks.
 - `CAL-011`: measured GRB/order-0 and front-view straight row-major addressing
   were integrated in `main` at `80a1225`. WIRE-017 preserves those facts while
   replacing that historical route fingerprint with the current optimized
-  mounting-aligned mapping fingerprint `ca60c1b1`.
+  mounting-aligned mapping fingerprint `e9fe0e65`.
 - `DIAG-010`, `ARCH-010`, `CAD-020`, `PLACE-010`, `FAB-022`, `SEC-010`, and
   `MAP-020`: the reviewed unblocked implementation batch is integrated in
   `main` at `d51e8bb`; integrated Vitest passed 348/348 with TypeScript and Vite.

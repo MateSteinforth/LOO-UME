@@ -47,7 +47,7 @@ describe("MadMapper fixture export", () => {
 
     expect(bundle.manifest).toMatchObject({
       minimumMadMapperVersion: "6.1",
-      mappingFingerprint: "ca60c1b1",
+      mappingFingerprint: "e9fe0e65",
       addressOrder: "physical-wire-order",
       fixtureLayout: "individual-physical-pixels",
       panelFixtureCount: 41,
@@ -92,8 +92,8 @@ describe("MadMapper fixture export", () => {
   it("preserves different panel pose rotations in individual fixture positions", async () => {
     const bundle = createMadMapperFixtureBundle(await flagshipContract());
 
-    expect(fixtureRowAngle(bundle.svg, "SQ-03")).toBeCloseTo(180, 1);
-    expect(fixtureRowAngle(bundle.svg, "SQ-11")).toBeCloseTo(-148.4, 1);
+    expect(fixtureRowAngle(bundle.svg, "SQ-03")).toBeCloseTo(0, 1);
+    expect(fixtureRowAngle(bundle.svg, "SQ-11")).toBeCloseTo(31.6, 1);
     expect(fixtureRowAngle(bundle.svg, "SQ-20")).toBeCloseTo(148.4, 1);
   });
 

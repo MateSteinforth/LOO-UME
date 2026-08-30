@@ -50,14 +50,18 @@ not a prerequisite.
 
 The active profile's measured order is:
 
-- front view: pixel 0/DIN at top-left, every row left-to-right, rows downward;
-- front view: pixel 56 at bottom-left and pixel 63/DOUT at bottom-right;
-- back view: pixel 0/DIN at top-right, every row right-to-left, rows downward;
-- back view: pixel 56 at bottom-right and pixel 63/DOUT at bottom-left.
+- front view: with the three-hole reference at the top, pixel 0/DIN is at
+  bottom-left, every row runs left-to-right, and rows progress upward;
+- front view: pixel 56 is top-left and pixel 63/DOUT is top-right;
+- back view: pixel 0/DIN is bottom-right, every row runs right-to-left, and
+  rows progress upward;
+- back view: pixel 56 is top-right and pixel 63/DOUT is top-left.
 
-The code/profile mark this order `measured` from the numbered one-panel test on
-2026-08-25. Exact pad centres remain unknown. This correction changes every
-physical index, connector-dependent installed turn, and deployment identity.
+The numbered one-panel test on 2026-08-25 measured the straight row order. The
+physical SQ-05 check on 2026-08-30 anchored that order to the mounting pattern:
+three-hole reference at the top, DIN bottom-right and DOUT top-left in back
+view. Exact pad centres remain unknown. This correction changes every physical
+index, connector-dependent installed turn, and deployment identity.
 
 ## Draft and authored wiring routes
 

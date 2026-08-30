@@ -141,14 +141,14 @@ describe("provisional wiring preview", () => {
       expect(Number.isFinite(node.dout.z)).toBe(true);
       expect(node.din).not.toEqual(node.dout);
       expect(local(dinRelative, panel.xAxis)).toBeLessThan(0);
-      expect(local(dinRelative, panel.yAxis)).toBeGreaterThan(0);
+      expect(local(dinRelative, panel.yAxis)).toBeLessThan(0);
       expect(local(doutRelative, panel.xAxis)).toBeGreaterThan(0);
-      expect(local(doutRelative, panel.yAxis)).toBeLessThan(0);
+      expect(local(doutRelative, panel.yAxis)).toBeGreaterThan(0);
       expect(local(dinRelative, panel.normal)).toBeLessThan(0);
       expect(local(doutRelative, panel.normal)).toBeLessThan(0);
       expect(node.connectorReferenceView).toBe("back");
-      expect(node.dinCorner).toBe("top-right");
-      expect(node.doutCorner).toBe("bottom-left");
+      expect(node.dinCorner).toBe("bottom-right");
+      expect(node.doutCorner).toBe("top-left");
       expect(node.dinDoutAssignmentStatus).toBe("measured");
     }
   });

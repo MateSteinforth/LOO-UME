@@ -38,7 +38,7 @@ coordinates, offset), `mountFaceId` (current generated mechanics),
 | PCB | 66 × 65 × 0.8 mm |
 | LED grid | 8 × 8, 64 emitters |
 | Mounting holes | six total in three columns x two rows; four mechanically eligible |
-| Blocked holes | top-right by DIN; bottom-left by DOUT (back view) |
+| Blocked holes | bottom-right by DIN; top-left by DOUT (back view, three-hole reference at top) |
 | Fastener / printed pilot | M2 / 1.6 mm |
 | Screw lead-in | 3.2 mm diameter × 0.7 mm deep |
 | Proven corrections | 0.20 mm hole-edge; 0.50 mm surface-flush |

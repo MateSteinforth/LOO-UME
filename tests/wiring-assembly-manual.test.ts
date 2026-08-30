@@ -55,12 +55,12 @@ describe("printable wiring assembly manual", () => {
     );
 
     expect(model).toMatchObject({
-      routeRevision: 3,
+      routeRevision: 4,
       wiringStatus: "authored",
       routeSource: "authored-route",
       mappingReady: true,
-      mappingFingerprint: "ca60c1b1",
-      optimizationFingerprint: "3cde5fa90c4ae17a",
+      mappingFingerprint: "e9fe0e65",
+      optimizationFingerprint: "1cedb204fd0e5012",
       totalPixels: 2_624,
       colorOrder: "GRB",
       pixelOrder: "8 × 8 straight rows",
@@ -73,8 +73,8 @@ describe("printable wiring assembly manual", () => {
     expect(model.outputs.map((output) => [output.physicalStart, output.physicalEnd]))
       .toEqual([[0, 703], [704, 1_343], [1_344, 1_983], [1_984, 2_623]]);
     expect(model.outputs[0]!.panels.map((panel) => panel.id)).toEqual([
-      "SQ-04", "PC-04", "SQ-08", "PC-03", "SQ-16", "SQ-23",
-      "SQ-28", "PC-08", "SQ-24", "SQ-18", "SQ-17",
+      "SQ-04", "PC-04", "SQ-08", "SQ-17", "SQ-18", "SQ-24",
+      "SQ-28", "SQ-27", "PC-08", "SQ-16", "PC-03",
     ]);
     expect(model.outputs[0]!.panels[0]).toMatchObject({
       physicalStart: 0,
@@ -83,8 +83,8 @@ describe("printable wiring assembly manual", () => {
       dataOut: "PC-04 DIN",
       turnDegrees: 0,
       mirrored: false,
-      dinCorner: "top-left",
-      doutCorner: "bottom-right",
+      dinCorner: "bottom-left",
+      doutCorner: "top-right",
     });
     const physicalQuarterTurns = model.outputs[0]!.panels[0]!.turnDegrees / 90;
     let dinCoordinate = { x: 0, y: 0 };
@@ -164,7 +164,7 @@ describe("printable wiring assembly manual", () => {
     expect(html).toContain('class="route-arrows"');
     expect(html).toContain('marker-end="url(#arrow-right-');
     expect(html).toContain("GPIO 16");
-    expect(html).toContain("SQ-04 → SQ-17");
+    expect(html).toContain("SQ-04 → PC-03");
     expect(html).toContain("sculpture.json&lt;unsafe&gt;");
     expect(html).not.toContain("sculpture.json<unsafe>");
     for (const output of model.outputs) {

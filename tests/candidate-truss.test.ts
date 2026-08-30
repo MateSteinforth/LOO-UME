@@ -57,15 +57,15 @@ describe("deterministic candidate truss", () => {
     expect(candidate.members.filter(({ kind }) => kind === "panel-tie")).toHaveLength(12);
     expect(candidate.members.filter(({ kind }) => kind === "inter-panel")).toHaveLength(9);
     expect(candidate.anchors.some(({ holeId }) =>
-      holeId === "bottom-left" || holeId === "top-right"
+      holeId === "top-left" || holeId === "bottom-right"
     )).toBe(false);
-    expect(candidate.brackets.find(({ id }) => id === "bracket:P-01:top-left"))
+    expect(candidate.brackets.find(({ id }) => id === "bracket:P-01:bottom-left"))
       .toMatchObject({
         panelId: "P-01",
-        anchorId: "P-01:top-left",
-        hubNodeId: "hub:P-01:top-left",
-        anchorPositionMm: [25, 50, -24.5],
-        hubPositionMm: [25, 42, -24.5],
+        anchorId: "P-01:bottom-left",
+        hubNodeId: "hub:P-01:bottom-left",
+        anchorPositionMm: [25, 50, 24.5],
+        hubPositionMm: [25, 42, 24.5],
         lengthMm: 8,
       });
     expect(candidate.validation).toEqual({
@@ -92,7 +92,7 @@ describe("deterministic candidate truss", () => {
     expect(candidate.connectorCells).toHaveLength(40);
     expect(new Set(candidate.connectorCells.flatMap(({ junctionId }) =>
       junctionId ? [junctionId] : []
-    )).size).toBe(3);
+    )).size).toBe(11);
     expect(Math.max(...candidate.panelAttachments.map((attachment) =>
       candidate.connectorCells.filter((cell) => cell.panelIds.includes(attachment.panelId)).length
     ))).toBeLessThanOrEqual(2);

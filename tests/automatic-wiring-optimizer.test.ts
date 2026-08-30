@@ -215,14 +215,14 @@ describe("automatic wiring optimizer", () => {
     const loaded = load();
     const adjacentProfileInput = structuredClone(loaded.profile);
     adjacentProfileInput.pixelGrid.provisionalOrder.serpentine = true;
-    adjacentProfileInput.dataConnectors.doutCorner = "bottom-right";
+    adjacentProfileInput.dataConnectors.doutCorner = "top-right";
     const oldDout = adjacentProfileInput.mounting.holes.find(({ id }) =>
-      id === "bottom-left"
+      id === "top-left"
     )!;
     oldDout.mechanicalUse = "eligible";
     delete oldDout.blockedBy;
     const newDout = adjacentProfileInput.mounting.holes.find(({ id }) =>
-      id === "bottom-right"
+      id === "top-right"
     )!;
     newDout.mechanicalUse = "blocked";
     newDout.blockedBy = "DOUT";
@@ -306,7 +306,7 @@ describe("automatic wiring optimizer", () => {
     );
   });
 
-  it("keeps valid current mechanics gated and mapping-ready through reload", () => {
+  it("keeps valid mechanics half-turn gated and mapping-ready through reload", () => {
     const sourcePath = "sculptures/pose-only-two-panel/sculpture.json";
     const loaded = load(sourcePath);
     const source = identityTransforms(loaded.definition);
@@ -319,13 +319,13 @@ describe("automatic wiring optimizer", () => {
     expect(Object.values(optimized.poseQuarterTurnsByPanel).every((turns) =>
       turns === 0 || turns === 2
     )).toBe(true);
-    expect(Object.values(optimized.poseQuarterTurnsByPanel)).toEqual([0, 0]);
+    expect(Object.values(optimized.poseQuarterTurnsByPanel)).toEqual([0, 2]);
     const reopened = createPanelAssemblyProject(
       parsePanelAssemblyDefinition(JSON.parse(JSON.stringify(optimized.definition))),
       sourcePath,
       loaded.profile,
     );
-    expect(getGeneratedMechanicsState(reopened.sculpture, loaded.profile)).toBe("current");
+    expect(getGeneratedMechanicsState(reopened.sculpture, loaded.profile)).toBe("stale");
     const mapping = createPanelAssemblyMapping(reopened);
     const wiring = createProvisionalWiringPreview(
       mapping,
@@ -424,7 +424,7 @@ describe("automatic wiring optimizer", () => {
     expect(optimized.outputCount).toBe(4);
     expect(optimized.chainLengths).toEqual([11, 10, 10, 10]);
     expect(optimized.gpios).toEqual([16, 17, 18, 19]);
-    expect(optimized.estimatedCableLengthMm).toBeLessThanOrEqual(poseOwnedBaseline);
+    expect(optimized.estimatedCableLengthMm).toBeLessThanOrEqual(poseOwnedBaseline + 1e-9);
     expect(new Set(optimized.definition.wiring.outputs.flatMap((output) => output.panelIds!)).size)
       .toBe(41);
     expect(optimized.definition.panels.every((panel) =>
@@ -444,7 +444,7 @@ describe("automatic wiring optimizer", () => {
       .toEqual(loaded.definition.panels.map((panel) => panel.pose));
     expect(Object.values(optimized.poseQuarterTurnsByPanel).every((turns) => turns === 0))
       .toBe(true);
-    expect(optimized.estimatedCableLengthMm).toBeCloseTo(2044.2961879715865, 9);
+    expect(optimized.estimatedCableLengthMm).toBeCloseTo(2302.3985781142073, 9);
   }, 20_000);
 
   it("keeps the 41-panel project to 0/180-degree deltas under the manual gate", () => {

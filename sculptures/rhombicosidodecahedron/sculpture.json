@@ -21,14 +21,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -0.5877852522924731,
+            0.5877852522924731,
             0,
-            0.8090169943749477
+            -0.8090169943749477
           ],
           "yAxis": [
-            0.6881909602355868,
-            0.5257311121191337,
-            0.49999999999999994
+            -0.6881909602355868,
+            -0.5257311121191337,
+            -0.49999999999999994
           ],
           "normal": [
             -0.42532540417601994,
@@ -48,7 +48,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -89,7 +89,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -105,11 +105,11 @@
           "xAxis": [
             0,
             0,
-            -1
+            1
           ],
           "yAxis": [
-            -0.85065080835204,
-            0.5257311121191337,
+            0.85065080835204,
+            -0.5257311121191337,
             0
           ],
           "normal": [
@@ -130,7 +130,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -144,14 +144,14 @@
         ],
         "orientation": {
           "xAxis": [
-            0.9510565162951536,
+            -0.9510565162951536,
             0,
-            -0.30901699437494745
+            0.30901699437494745
           ],
           "yAxis": [
-            -0.26286555605956685,
-            0.5257311121191337,
-            -0.8090169943749475
+            0.26286555605956685,
+            -0.5257311121191337,
+            0.8090169943749475
           ],
           "normal": [
             0.1624598481164532,
@@ -171,7 +171,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -185,14 +185,14 @@
         ],
         "orientation": {
           "xAxis": [
-            0.5877852522924734,
-            -2.775557561562892e-17,
-            0.8090169943749475
+            -0.5877852522924734,
+            2.775557561562892e-17,
+            -0.8090169943749475
           ],
           "yAxis": [
-            0.6881909602355867,
-            0.5257311121191337,
-            -0.5000000000000001
+            -0.6881909602355867,
+            -0.5257311121191337,
+            0.5000000000000001
           ],
           "normal": [
             -0.4253254041760199,
@@ -212,7 +212,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -226,14 +226,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -0.16245984811645328,
-            -0.85065080835204,
-            -0.49999999999999994
+            0.16245984811645328,
+            0.85065080835204,
+            0.49999999999999994
           ],
           "yAxis": [
-            -0.9510565162951535,
+            0.9510565162951535,
             0,
-            0.3090169943749477
+            -0.3090169943749477
           ],
           "normal": [
             -0.2628655560595669,
@@ -254,7 +254,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -296,7 +296,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -310,14 +310,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -0.4253254041760199,
-            0.8506508083520399,
-            -0.30901699437494734
+            0.4253254041760199,
+            -0.8506508083520399,
+            0.30901699437494734
           ],
           "yAxis": [
-            -0.5877852522924731,
+            0.5877852522924731,
             0,
-            0.8090169943749475
+            -0.8090169943749475
           ],
           "normal": [
             0.6881909602355869,
@@ -338,7 +338,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -380,7 +380,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -422,7 +422,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -436,14 +436,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -0.2628655560595667,
-            0.5257311121191336,
-            0.8090169943749476
+            0.2628655560595667,
+            -0.5257311121191336,
+            -0.8090169943749476
           ],
           "yAxis": [
-            0.1624598481164532,
-            0.85065080835204,
-            -0.5
+            -0.1624598481164532,
+            -0.85065080835204,
+            0.5
           ],
           "normal": [
             -0.9510565162951536,
@@ -464,7 +464,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -506,7 +506,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -548,7 +548,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -562,14 +562,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -0.6881909602355869,
-            -0.5257311121191336,
-            -0.49999999999999983
+            0.6881909602355869,
+            0.5257311121191336,
+            0.49999999999999983
           ],
           "yAxis": [
-            -0.42532540417602005,
-            0.85065080835204,
-            -0.3090169943749473
+            0.42532540417602005,
+            -0.85065080835204,
+            0.3090169943749473
           ],
           "normal": [
             0.5877852522924729,
@@ -590,7 +590,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -632,7 +632,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -674,7 +674,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -688,14 +688,14 @@
         ],
         "orientation": {
           "xAxis": [
-            0.6881909602355869,
-            0.5257311121191336,
-            -0.5000000000000001
+            -0.6881909602355869,
+            -0.5257311121191336,
+            0.5000000000000001
           ],
           "yAxis": [
-            -0.42532540417601994,
-            0.85065080835204,
-            0.3090169943749474
+            0.42532540417601994,
+            -0.85065080835204,
+            -0.3090169943749474
           ],
           "normal": [
             0.5877852522924731,
@@ -716,7 +716,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -758,7 +758,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -772,14 +772,14 @@
         ],
         "orientation": {
           "xAxis": [
-            0.6881909602355869,
-            0.5257311121191336,
-            0.49999999999999994
+            -0.6881909602355869,
+            -0.5257311121191336,
+            -0.49999999999999994
           ],
           "yAxis": [
-            -0.42532540417601994,
-            0.85065080835204,
-            -0.3090169943749474
+            0.42532540417601994,
+            -0.85065080835204,
+            0.3090169943749474
           ],
           "normal": [
             -0.587785252292473,
@@ -800,7 +800,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -842,7 +842,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -856,14 +856,14 @@
         ],
         "orientation": {
           "xAxis": [
-            0.42532540417602005,
-            -0.85065080835204,
-            0.30901699437494734
+            -0.42532540417602005,
+            0.85065080835204,
+            -0.30901699437494734
           ],
           "yAxis": [
-            -0.587785252292473,
+            0.587785252292473,
             0,
-            0.8090169943749476
+            -0.8090169943749476
           ],
           "normal": [
             -0.6881909602355869,
@@ -884,7 +884,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -926,7 +926,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -968,7 +968,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1010,7 +1010,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1024,14 +1024,14 @@
         ],
         "orientation": {
           "xAxis": [
-            0.42532540417602,
-            -0.85065080835204,
-            -0.30901699437494745
+            -0.42532540417602,
+            0.85065080835204,
+            0.30901699437494745
           ],
           "yAxis": [
-            0.5877852522924732,
+            -0.5877852522924732,
             0,
-            0.8090169943749475
+            -0.8090169943749475
           ],
           "normal": [
             -0.6881909602355867,
@@ -1052,7 +1052,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1066,14 +1066,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -0.9510565162951536,
+            0.9510565162951536,
             0,
-            0.30901699437494756
+            -0.30901699437494756
           ],
           "yAxis": [
-            -0.2628655560595669,
-            0.5257311121191337,
-            -0.8090169943749475
+            0.2628655560595669,
+            -0.5257311121191337,
+            0.8090169943749475
           ],
           "normal": [
             -0.16245984811645323,
@@ -1094,7 +1094,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1136,7 +1136,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1150,14 +1150,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -0.587785252292473,
+            0.587785252292473,
             0,
-            0.8090169943749472
+            -0.8090169943749472
           ],
           "yAxis": [
-            -0.6881909602355868,
-            -0.5257311121191337,
-            -0.5
+            0.6881909602355868,
+            0.5257311121191337,
+            0.5
           ],
           "normal": [
             0.42532540417601994,
@@ -1178,7 +1178,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1220,7 +1220,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1234,14 +1234,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -1.2246467991473532e-16,
+            1.2246467991473532e-16,
             0,
-            -1
+            1
           ],
           "yAxis": [
-            0.85065080835204,
-            -0.5257311121191337,
-            -1.0417467896404344e-16
+            -0.85065080835204,
+            0.5257311121191337,
+            1.0417467896404344e-16
           ],
           "normal": [
             -0.5257311121191336,
@@ -1262,7 +1262,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1307,7 +1307,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1321,14 +1321,14 @@
         ],
         "orientation": {
           "xAxis": [
-            0.9510565162951536,
-            1.3877787807814457e-17,
-            0.30901699437494723
+            -0.9510565162951536,
+            -1.3877787807814457e-17,
+            -0.30901699437494723
           ],
           "yAxis": [
-            0.13819660112501042,
-            -0.894427190999916,
-            -0.42532540417601994
+            -0.13819660112501042,
+            0.894427190999916,
+            0.42532540417601994
           ],
           "normal": [
             0.27639320225002084,
@@ -1352,7 +1352,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1397,7 +1397,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1442,7 +1442,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1456,14 +1456,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -0.5877852522924734,
+            0.5877852522924734,
             0,
-            -0.8090169943749475
+            0.8090169943749475
           ],
           "yAxis": [
-            -0.3618033988749892,
-            -0.8944271909999161,
-            0.2628655560595667
+            0.3618033988749892,
+            0.8944271909999161,
+            -0.2628655560595667
           ],
           "normal": [
             -0.7236067977499788,
@@ -1487,7 +1487,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1532,7 +1532,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1546,14 +1546,14 @@
         ],
         "orientation": {
           "xAxis": [
-            0.5877852522924734,
+            -0.5877852522924734,
             0,
-            0.8090169943749472
+            -0.8090169943749472
           ],
           "yAxis": [
-            -0.36180339887498936,
-            -0.894427190999916,
-            0.26286555605956685
+            0.36180339887498936,
+            0.894427190999916,
+            -0.26286555605956685
           ],
           "normal": [
             0.7236067977499788,
@@ -1577,7 +1577,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1591,14 +1591,14 @@
         ],
         "orientation": {
           "xAxis": [
-            -0.5877852522924731,
-            2.7755575615628907e-17,
-            0.8090169943749473
+            0.5877852522924731,
+            -2.7755575615628907e-17,
+            -0.8090169943749473
           ],
           "yAxis": [
-            -0.3618033988749895,
-            -0.8944271909999161,
-            -0.2628655560595668
+            0.3618033988749895,
+            0.8944271909999161,
+            0.2628655560595668
           ],
           "normal": [
             0.7236067977499789,
@@ -1622,7 +1622,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1667,7 +1667,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1712,7 +1712,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     },
     {
@@ -1757,7 +1757,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "3cde5fa90c4ae17a"
+        "optimizationFingerprint": "1cedb204fd0e5012"
       }
     }
   ],
@@ -1768,7 +1768,7 @@
       "The north-pole pentagon is intentionally unpopulated: 30 square panels plus 11 pentagon-centre panels.",
       "Northern centre panels present their top edge toward the pole; southern centre panels present their bottom edge toward the pole.",
       "Logical effect indices run from global north to south; deployment physical indices follow the saved output route and WLED bus ranges.",
-      "The measured panel contract uses front-view pixel 0/DIN at top-left, straight left-to-right rows progressing downward, pixel 63/DOUT at bottom-right, and WLED GRB order 0.",
+      "The measured panel contract is anchored with the three-hole reference at the top: back-view pixel 0/DIN is bottom-right, straight rows progress upward to pixel 63/DOUT at top-left, and WLED uses GRB order 0.",
       "The saved output route and GPIOs are the assumed prototype assembly contract; they are authored but not measured."
     ]
   },
@@ -1786,7 +1786,7 @@
       10,
       10
     ],
-    "routeRevision": 3,
+    "routeRevision": 4,
     "connector": {
       "edgeInset": 4,
       "surfaceOffset": 2.4
@@ -1801,14 +1801,14 @@
           "SQ-04",
           "PC-04",
           "SQ-08",
-          "PC-03",
-          "SQ-16",
-          "SQ-23",
-          "SQ-28",
-          "PC-08",
-          "SQ-24",
+          "SQ-17",
           "SQ-18",
-          "SQ-17"
+          "SQ-24",
+          "SQ-28",
+          "SQ-27",
+          "PC-08",
+          "SQ-16",
+          "PC-03"
         ]
       },
       {
@@ -1818,10 +1818,10 @@
         "color": "#ff9d5c",
         "panelIds": [
           "SQ-05",
-          "SQ-09",
-          "PC-05",
           "SQ-10",
           "SQ-20",
+          "PC-05",
+          "SQ-09",
           "SQ-19",
           "PC-09",
           "SQ-29",
@@ -1854,15 +1854,15 @@
         "color": "#f472b6",
         "panelIds": [
           "SQ-03",
-          "SQ-02",
-          "PC-02",
           "SQ-07",
-          "SQ-14",
-          "SQ-13",
-          "SQ-22",
-          "SQ-27",
+          "SQ-15",
+          "SQ-23",
           "PC-07",
-          "SQ-15"
+          "SQ-22",
+          "SQ-13",
+          "SQ-14",
+          "PC-02",
+          "SQ-02"
         ]
       }
     ]
@@ -1880,6 +1880,7 @@
     "Panel poses were migrated once from the legacy named-solid compiler and are now authoritative.",
     "Automatic wiring revision 2 selected 4 balanced outputs, GPIO 16/17/18/19, and 0/180-degree physical panel poses; estimated data cable 2088.7 mm.",
     "The manual 0/180-degree rotation gate used current saved poses as fabricated authority and discarded assumed legacy address-only turns on SQ-01, SQ-02, SQ-04, SQ-05, SQ-06, SQ-07, SQ-08, SQ-09, SQ-10, SQ-11, SQ-12, SQ-14, SQ-15, SQ-16, SQ-18, SQ-19, SQ-23, SQ-25, SQ-26, SQ-27, SQ-28, PC-01, PC-02, PC-03, PC-06, PC-07, PC-08, PC-10, PC-11.",
-    "Automatic wiring revision 3 selected 4 balanced outputs, GPIO 16/17/18/19, and 0/180-degree physical panel poses; estimated data cable 2044.3 mm."
+    "Automatic wiring revision 3 selected 4 balanced outputs, GPIO 16/17/18/19, and 0/180-degree physical panel poses; estimated data cable 2044.3 mm.",
+    "Automatic wiring revision 4 selected 4 balanced outputs, GPIO 16/17/18/19, and 0/180-degree physical panel poses; estimated data cable 2302.4 mm."
   ]
 }

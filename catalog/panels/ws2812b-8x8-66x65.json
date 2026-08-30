@@ -21,12 +21,12 @@
     },
     "provisionalOrder": {
       "status": "measured",
-      "pixelZeroCorner": "top-right",
+      "pixelZeroCorner": "bottom-right",
       "traversalAxis": "rows",
-      "lineProgression": "top-to-bottom",
+      "lineProgression": "bottom-to-top",
       "serpentine": false,
       "firstLineDirection": "right-to-left",
-      "description": "Measured row-major order: front view starts at DIN/pixel 0 at top-left, each row runs left-to-right, rows progress downward, and pixel 63/DOUT is bottom-right. In the stored back view this is top-right to bottom-left with every row right-to-left."
+      "description": "Measured row-major order anchored with the three-hole reference at the top: back view starts at DIN/pixel 0 at bottom-right, each row runs right-to-left, rows progress upward, and pixel 63/DOUT is top-left. The reflected front view starts at bottom-left and runs left-to-right upward."
     }
   },
   "mounting": {
@@ -45,7 +45,8 @@
           -25,
           24.5
         ],
-        "mechanicalUse": "eligible"
+        "mechanicalUse": "blocked",
+        "blockedBy": "DOUT"
       },
       {
         "id": "middle-left",
@@ -61,8 +62,7 @@
           -25,
           -24.5
         ],
-        "mechanicalUse": "blocked",
-        "blockedBy": "DOUT"
+        "mechanicalUse": "eligible"
       },
       {
         "id": "top-right",
@@ -70,8 +70,7 @@
           25,
           24.5
         ],
-        "mechanicalUse": "blocked",
-        "blockedBy": "DIN"
+        "mechanicalUse": "eligible"
       },
       {
         "id": "middle-right",
@@ -87,7 +86,8 @@
           25,
           -24.5
         ],
-        "mechanicalUse": "eligible"
+        "mechanicalUse": "blocked",
+        "blockedBy": "DIN"
       }
     ],
     "capAllocation": {
@@ -106,10 +106,10 @@
     "referenceView": "back",
     "orientationReference": "six-holes-three-columns-two-rows",
     "cornerAssignmentStatus": "measured",
-    "dinCorner": "top-right",
-    "doutCorner": "bottom-left",
+    "dinCorner": "bottom-right",
+    "doutCorner": "top-left",
     "padPositionStatus": "unknown",
-    "note": "Measured from the front: the six mounting holes form three columns and two rows; DIN/pixel 0 is top-left and DOUT/pixel 63 is bottom-right. Stored back-view corners are DIN top-right and DOUT bottom-left; exact pad centres remain to be measured."
+    "note": "Measured on physical SQ-05 from the back with the three-hole reference at the top: DIN/pixel 0 is bottom-right and DOUT/pixel 63 is top-left. Exact pad centres remain to be measured."
   },
   "power": {
     "status": "provisional",

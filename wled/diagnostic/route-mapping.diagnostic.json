@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "status": "authored",
   "routeSource": "authored-route",
-  "mappingFingerprint": "ca60c1b1",
+  "mappingFingerprint": "e9fe0e65",
   "mappingFingerprintVersion": "fnv1a32-u32le-v2",
   "wledColorOrder": {
     "status": "measured",
@@ -21,14 +21,14 @@
         "SQ-04",
         "PC-04",
         "SQ-08",
-        "PC-03",
-        "SQ-16",
-        "SQ-23",
-        "SQ-28",
-        "PC-08",
-        "SQ-24",
+        "SQ-17",
         "SQ-18",
-        "SQ-17"
+        "SQ-24",
+        "SQ-28",
+        "SQ-27",
+        "PC-08",
+        "SQ-16",
+        "PC-03"
       ]
     },
     {
@@ -38,10 +38,10 @@
       "pixelCount": 640,
       "panelIds": [
         "SQ-05",
-        "SQ-09",
-        "PC-05",
         "SQ-10",
         "SQ-20",
+        "PC-05",
+        "SQ-09",
         "SQ-19",
         "PC-09",
         "SQ-29",
@@ -74,15 +74,15 @@
       "pixelCount": 640,
       "panelIds": [
         "SQ-03",
-        "SQ-02",
-        "PC-02",
         "SQ-07",
-        "SQ-14",
-        "SQ-13",
-        "SQ-22",
-        "SQ-27",
+        "SQ-15",
+        "SQ-23",
         "PC-07",
-        "SQ-15"
+        "SQ-22",
+        "SQ-13",
+        "SQ-14",
+        "PC-02",
+        "SQ-02"
       ]
     }
   ],

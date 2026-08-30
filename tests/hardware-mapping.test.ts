@@ -311,14 +311,14 @@ describe("hardware mapping contract", () => {
 
   it("uses the documented back-view corner and row-transition vectors", () => {
     const pixelZeroByTransform = [
-      { turns: 0, mirrored: false, local: [0, 0] },
-      { turns: 0, mirrored: true, local: [7, 0] },
-      { turns: 1, mirrored: false, local: [7, 0] },
-      { turns: 1, mirrored: true, local: [0, 0] },
-      { turns: 2, mirrored: false, local: [7, 7] },
-      { turns: 2, mirrored: true, local: [0, 7] },
-      { turns: 3, mirrored: false, local: [0, 7] },
-      { turns: 3, mirrored: true, local: [7, 7] },
+      { turns: 0, mirrored: false, local: [0, 7] },
+      { turns: 0, mirrored: true, local: [7, 7] },
+      { turns: 1, mirrored: false, local: [0, 0] },
+      { turns: 1, mirrored: true, local: [7, 0] },
+      { turns: 2, mirrored: false, local: [7, 0] },
+      { turns: 2, mirrored: true, local: [0, 0] },
+      { turns: 3, mirrored: false, local: [7, 7] },
+      { turns: 3, mirrored: true, local: [0, 7] },
     ] as const;
     for (const vector of pixelZeroByTransform) {
       const geometry = createFixtureMapping();
@@ -339,16 +339,16 @@ describe("hardware mapping contract", () => {
         )!.physicalIndex;
       expect(physicalAt(vector.local[0], vector.local[1])).toBe(0);
       if (vector.turns === 0 && !vector.mirrored) {
-        expect(physicalAt(7, 0)).toBe(7);
-        expect(physicalAt(0, 1)).toBe(8);
-        expect(physicalAt(7, 1)).toBe(15);
-        expect(physicalAt(0, 2)).toBe(16);
-        expect(physicalAt(0, 7)).toBe(56);
-        expect(physicalAt(7, 7)).toBe(63);
+        expect(physicalAt(7, 7)).toBe(7);
+        expect(physicalAt(0, 6)).toBe(8);
+        expect(physicalAt(7, 6)).toBe(15);
+        expect(physicalAt(0, 5)).toBe(16);
+        expect(physicalAt(0, 0)).toBe(56);
+        expect(physicalAt(7, 0)).toBe(63);
       }
       if (vector.turns === 3 && vector.mirrored) {
-        expect(physicalAt(7, 0)).toBe(7);
-        expect(physicalAt(6, 7)).toBe(8);
+        expect(physicalAt(0, 0)).toBe(7);
+        expect(physicalAt(1, 7)).toBe(8);
       }
     }
   });

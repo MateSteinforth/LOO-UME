@@ -47,11 +47,11 @@ describe("Schema 2 assembly tutorial", () => {
       label: "SQ-04",
     });
     expect(model.chains[0]!.connections[0]!.instruction).toBe(
-      "Controller GPIO 16 → SQ-04 DIN (top-right, back view)",
+      "Controller GPIO 16 → SQ-04 DIN (bottom-right, back view)",
     );
     expect(model.chains[0]!.connections[0]!.start).not.toBeNull();
     expect(model.chains[0]!.connections[1]!.instruction).toBe(
-      "SQ-04 DOUT (bottom-left, back view) → PC-04 DIN (top-right, back view)",
+      "SQ-04 DOUT (top-left, back view) → PC-04 DIN (bottom-right, back view)",
     );
     expect(model.chains.flatMap((chain) => chain.panels)).toHaveLength(41);
     expect(new Set(

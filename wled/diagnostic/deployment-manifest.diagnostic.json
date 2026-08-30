@@ -9,10 +9,10 @@
   },
   "sourceProject": {
     "path": "sculpture.json",
-    "byteLength": 46105,
-    "sha256": "3cca17c13ff0695113129890cfdd125f68271c71879e0b40a633145d138d2b2d"
+    "byteLength": 46288,
+    "sha256": "2db4099fee3e762a57e1ad656efb6c4f713b703bc757bf7e13e6e4b4965f3163"
   },
-  "mappingFingerprint": "ca60c1b1",
+  "mappingFingerprint": "e9fe0e65",
   "mappingFingerprintVersion": "fnv1a32-u32le-v2",
   "wledColorOrder": {
     "status": "measured",
@@ -24,12 +24,12 @@
     {
       "path": "wled/diagnostic/ledmap.diagnostic.json",
       "byteLength": 12020,
-      "sha256": "5567d4d8f5ecb24a5768389d00148b728a1ec91a5878fead4bd9b3445a46292d"
+      "sha256": "f24b88c6ca478e8d7faf4a1cd8cd6d270feb24621d980d857e38108cd3c3ccfb"
     },
     {
       "path": "wled/diagnostic/route-mapping.diagnostic.json",
       "byteLength": 1933,
-      "sha256": "f0e26bcc5b8686cb3f9b77fde7edeec7043d441d35a924412c46947f48563eb7"
+      "sha256": "0eab8b002d6195b3be090c693f154d1ce83b9a9ab32980a9dfa1440239b2eddb"
     }
   ]
 }
