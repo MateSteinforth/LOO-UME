@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-29
+Last reconciled: 2026-08-30
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -55,17 +55,7 @@ No tasks.
 
 ## Human Review
 
-### `P1 · LABEL-011` Calibrate HERMA 4385 physical printing
-
-- Scope: use the operator-measured 12 mm left, 11 mm right, and 15 mm
-  top/bottom stock margins. Fit the 14 gaps across the fixed 15-column grid;
-  do not encode printer displacement in document coordinates.
-- Acceptance: the PDF keeps A4/100% scale, label order, and pagination; tests
-  pin both stock target centres and calibrated PDF centres; a new physical
-  print confirms registration.
-- Correction: `codex/label-011-symmetric-grid` removes the rejected printer
-  offset and applies the measured stock geometry. Integration awaits operator
-  approval; Human Review remains open for a 100%/Actual-size physical reprint.
+No tasks.
 
 ## Blocked
 
@@ -118,6 +108,13 @@ No tasks.
   four outputs, and RGB channels against the exact deployment identity.
 
 ## Done
+
+- `LABEL-011`: calibrated the HERMA 4385 PDF to the physically confirmed stock
+  geometry on 2026-08-30: 12 mm left margin, 11 mm right margin, and fourteen
+  equal 37/14 mm horizontal gaps across fifteen 10 mm labels. The PDF keeps
+  printer displacement outside its document coordinates. Focused tests,
+  TypeScript, A4/PDF inspection, independent review, and operator print review
+  passed.
 
 - `UI-031`: integrated the compact Project Library action area on 2026-08-29.
   The filename is the only full-width row; Save, Open/Import, and

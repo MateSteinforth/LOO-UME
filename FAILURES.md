@@ -1522,8 +1522,8 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   page fitting and require a physical reprint when stock geometry changes.
 - **Evidence:** HERMA article 4385, its punch template, and the operator's
   2026-08-30 physical print measurement.
-- **Status:** Measured-grid correction implemented in LABEL-011; physical
-  reprint pending.
+- **Status:** Resolved in LABEL-011; the operator confirmed the corrected
+  physical print on 2026-08-30.
 
 ### F-083 — A 64-pixel setup gate blocked generalized fixtures
 
