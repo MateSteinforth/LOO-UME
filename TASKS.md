@@ -47,7 +47,31 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `P1 · UI-032` Add panel-by-panel physical assembly focus
+
+- Scope: extend the existing data-chain tutorial with Previous/Next panel
+  navigation. For the selected panel, show the data cable or cables that must
+  be soldered to that panel and any current referenced printable parts that
+  attach to it. Keep the remaining selected-chain panels, cables, and printable
+  parts visible as muted assembly context.
+- Acceptance: panel navigation is bounded, crosses nonempty output chains in
+  route order, and keeps chain and wire navigation coherent; the selected
+  panel and its incident data connections are visually active while all other
+  selected-chain geometry is gray; current referenced printable parts follow
+  the same focus when reliable panel ownership exists and remain safely visible
+  when ownership is unavailable; exit restores all prior layer visibility and
+  materials; the tutorial remains view-only and works for arbitrary Schema 2
+  routes without changing poses, routes, mapping, or fabrication artifacts.
+- Owner: `codex/ui-032-panel-assembly` in `/tmp/loo-ume-ui-032`.
+  Likely conflicts: assembly tutorial model/navigation, renderer tutorial
+  materials and printable metadata, Fabrication controls, focused tutorial
+  tests, LED mapping/architecture guidance, and failure learnings.
+- Verification: focused tutorial unit tests pass 9/9; TypeScript build and
+  diff check pass; the dedicated Chromium tutorial journey passes 5/5,
+  including real printable-closure material restoration after a selected-panel
+  entry/exit cycle.
+- Review: independent QUALITY review found no remaining blocker. Physical use
+  on the next assembled chain remains an operator review, not a merge gate.
 
 ## In Progress
 

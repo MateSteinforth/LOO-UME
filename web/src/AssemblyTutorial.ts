@@ -14,6 +14,7 @@ export interface AssemblyTutorialPanel {
   id: string;
   chainPosition: number;
   label: string;
+  connectionIndices: number[];
 }
 
 export interface AssemblyTutorialConnection {
@@ -44,6 +45,57 @@ export interface AssemblyTutorialModel {
 export interface AssemblyTutorialStepState {
   chainIndex: number;
   connectionIndex: number | null;
+}
+
+export interface AssemblyTutorialPanelStepState {
+  chainIndex: number;
+  panelIndex: number;
+}
+
+export type TutorialAttachmentState =
+  | "active"
+  | "muted"
+  | "context"
+  | "hidden"
+  | "unknown";
+
+export function tutorialAttachmentState(
+  ownerPanelIds: readonly string[] | undefined,
+  chainPanelIds: ReadonlySet<string>,
+  focusedPanelId: string | null,
+): TutorialAttachmentState {
+  if (!ownerPanelIds || ownerPanelIds.length === 0) return "unknown";
+  if (!ownerPanelIds.some((panelId) => chainPanelIds.has(panelId))) return "hidden";
+  if (focusedPanelId === null) return "context";
+  return ownerPanelIds.includes(focusedPanelId) ? "active" : "muted";
+}
+
+export function nextAssemblyTutorialPanel(
+  model: AssemblyTutorialModel,
+  state: AssemblyTutorialPanelStepState,
+): AssemblyTutorialPanelStepState {
+  const chain = model.chains[state.chainIndex];
+  if (!chain) return state;
+  if (state.panelIndex < chain.panels.length - 1) {
+    return { ...state, panelIndex: state.panelIndex + 1 };
+  }
+  if (state.chainIndex >= model.chains.length - 1) return state;
+  return { chainIndex: state.chainIndex + 1, panelIndex: 0 };
+}
+
+export function previousAssemblyTutorialPanel(
+  model: AssemblyTutorialModel,
+  state: AssemblyTutorialPanelStepState,
+): AssemblyTutorialPanelStepState {
+  if (state.panelIndex > 0) {
+    return { ...state, panelIndex: state.panelIndex - 1 };
+  }
+  if (state.chainIndex <= 0) return state;
+  const chainIndex = state.chainIndex - 1;
+  return {
+    chainIndex,
+    panelIndex: model.chains[chainIndex]!.panels.length - 1,
+  };
 }
 
 export function nextAssemblyTutorialWire(
@@ -157,6 +209,10 @@ export function createAssemblyTutorialModel(
         id: node.panelId,
         chainPosition,
         label: node.panelId,
+        connectionIndices: [
+          chainPosition,
+          ...(chainPosition < nodes.length - 1 ? [chainPosition + 1] : []),
+        ],
       }));
       const connections = nodes.map((node, index) => {
         const previous = nodes[index - 1] ?? null;

@@ -6,9 +6,12 @@ import {
   createAssemblyTutorialModel,
   maskedPanelPositions,
   nextAssemblyTutorialChain,
+  nextAssemblyTutorialPanel,
   nextAssemblyTutorialWire,
   previousAssemblyTutorialChain,
+  previousAssemblyTutorialPanel,
   previousAssemblyTutorialWire,
+  tutorialAttachmentState,
 } from "../web/src/AssemblyTutorial.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 import type { WiringPreview } from "../web/src/WiringPreview.ts";
@@ -45,6 +48,7 @@ describe("Schema 2 assembly tutorial", () => {
       id: "SQ-04",
       chainPosition: 0,
       label: "SQ-04",
+      connectionIndices: [0, 1],
     });
     expect(model.chains[0]!.connections[0]!.instruction).toBe(
       "Controller GPIO 16 → SQ-04 DIN (bottom-right, back view)",
@@ -104,6 +108,39 @@ describe("Schema 2 assembly tutorial", () => {
       chainIndex: 0,
       connectionIndex: 0,
     })).toEqual({ chainIndex: 0, connectionIndex: 0 });
+  });
+
+  it("steps through panels and crosses nonempty chains in route order", async () => {
+    const model = await tutorialFor(
+      "sculptures/rhombicosidodecahedron/sculpture.json",
+    );
+    expect(model.chains[0]!.panels.at(-1)!.connectionIndices).toEqual([10]);
+    expect(nextAssemblyTutorialPanel(model, {
+      chainIndex: 0,
+      panelIndex: 10,
+    })).toEqual({ chainIndex: 1, panelIndex: 0 });
+    expect(previousAssemblyTutorialPanel(model, {
+      chainIndex: 1,
+      panelIndex: 0,
+    })).toEqual({ chainIndex: 0, panelIndex: 10 });
+    expect(previousAssemblyTutorialPanel(model, {
+      chainIndex: 0,
+      panelIndex: 0,
+    })).toEqual({ chainIndex: 0, panelIndex: 0 });
+    expect(nextAssemblyTutorialPanel(model, {
+      chainIndex: 3,
+      panelIndex: 9,
+    })).toEqual({ chainIndex: 3, panelIndex: 9 });
+  });
+
+  it("focuses only printable attachments with reliable selected-chain ownership", () => {
+    const chain = new Set(["P-01", "P-02", "P-03"]);
+    expect(tutorialAttachmentState(undefined, chain, "P-02")).toBe("unknown");
+    expect(tutorialAttachmentState(["P-04"], chain, "P-02")).toBe("hidden");
+    expect(tutorialAttachmentState(["P-01"], chain, null)).toBe("context");
+    expect(tutorialAttachmentState(["P-01", "P-02"], chain, "P-02"))
+      .toBe("active");
+    expect(tutorialAttachmentState(["P-03"], chain, "P-02")).toBe("muted");
   });
 
   it("keeps the stronger warning for every review-required route source", async () => {

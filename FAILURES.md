@@ -2131,3 +2131,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   asymmetric mechanical reference. Pixel 0 and DOUT alone do not distinguish
   two panel orientations separated by 180 degrees.
 - **Status:** Resolved by WIRE-017.
+
+### F-117 — Cable-first assembly made PCB contacts difficult to reach
+
+- **Date:** 2026-08-30
+- **Context:** Physical assembly and soldering of the first 41-panel data chain.
+- **Symptom:** The operator assembled the complete chain before soldering, so
+  neighboring panels and printed parts obstructed access to PCB contacts.
+- **Cause:** The tutorial focused on one cable at a time but did not show all
+  solder and screw work for one panel before advancing.
+- **Correction:** Add panel navigation. Highlight the selected panel, both of
+  its incident data cables, and printable closures that identify that panel in
+  their screw-tab ownership. Keep other selected-chain geometry visible but
+  muted.
+- **Prevention:** A physical assembly tutorial must group operations by the
+  part whose contacts can become inaccessible. Do not infer printable-part
+  ownership when a combined artifact has no panel association.
+- **Evidence:** UI-032 focused navigation/unit checks and the dedicated
+  Chromium assembly-tutorial journey.
+- **Status:** Implemented by UI-032; physical second-chain review remains.

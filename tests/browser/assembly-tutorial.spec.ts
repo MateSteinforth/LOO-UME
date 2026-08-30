@@ -76,7 +76,11 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
 
   await page.locator("#assembly-tutorial-start").click();
   await expect(page.locator("#assembly-tutorial-step")).toHaveText(
-    "Spatial trail output · wire 1 / 3",
+    "Spatial trail output · panel 1 / 3",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-panel-focus",
+    "P-02",
   );
   await expect(page.locator(".panel-label:visible")).toHaveCount(3);
   await expect(page.locator(".wiring-controller-label:visible")).toHaveText(
@@ -94,8 +98,12 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "0",
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-active-connections",
+    "0,1",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
     "data-tutorial-muted-connections",
-    "2",
+    "1",
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-tutorial-active-material",
@@ -105,6 +113,16 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "data-tutorial-muted-material",
     "8290a3,0.62,true,false",
   );
+  const panelFocusColors = await page.locator("#viewer").evaluate((element) => ({
+    active: element.getAttribute("data-tutorial-active-panel-color"),
+    muted: element.getAttribute("data-tutorial-muted-panel-color"),
+  }));
+  expect(panelFocusColors.active).not.toBe("missing");
+  expect(panelFocusColors.muted).not.toBe("missing");
+  expect(panelFocusColors.active).not.toBe(panelFocusColors.muted);
+  const mutedChannels = panelFocusColors.muted!.split(",").map(Number);
+  expect(mutedChannels[0]).toBe(mutedChannels[1]);
+  expect(mutedChannels[1]).toBe(mutedChannels[2]);
   await page.locator("#connector-layer").uncheck();
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-connector-layer-visible",
@@ -134,9 +152,22 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "P-03",
   ]);
 
-  await expect(page.locator("#assembly-tutorial-instruction")).toHaveText(
-    "Controller output 1 (GPIO unassigned) → P-02 DIN (top-right, back view)",
+  await expect(page.locator("#assembly-tutorial-instruction")).toContainText(
+    "P-02: solder Controller output 1",
   );
+  await expect(page.locator("#assembly-tutorial-instruction")).toContainText(
+    "P-02 DOUT",
+  );
+  await expect(page.locator(".panel-label--tutorial-active:visible")).toHaveCount(1);
+  await page.locator("#assembly-tutorial-next-panel").click();
+  await expect(page.locator("#assembly-tutorial-step")).toHaveText(
+    "Spatial trail output · panel 2 / 3",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-active-connections",
+    "1,2",
+  );
+  await page.locator("#assembly-tutorial-previous-panel").click();
   await page.locator("#assembly-tutorial-next-wire").evaluate((element) => {
     (element as HTMLButtonElement).click();
   });
@@ -189,6 +220,8 @@ test("isolates and steps through a Schema 2 data chain", async ({ page }) => {
     "data-wiring-restored-connections",
     "3",
   );
+  await expect(page.locator("#viewer"))
+    .not.toHaveAttribute("data-tutorial-active-panel-color", /.+/);
   await expect(page.locator("#connector-layer")).not.toBeChecked();
   await expect(page.locator("#wiring-layer")).not.toBeChecked();
   await expect(page.locator("#viewer")).toHaveAttribute(
@@ -263,6 +296,57 @@ test("uses the chain buttons and skips empty outputs", async ({ page }) => {
   );
   await page.locator("#assembly-tutorial-exit").click();
   await expect(page.locator("#assembly-tutorial-controls")).toBeHidden();
+});
+
+test("restores selected-panel focus on printable attachments after exit", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto(
+    "/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json",
+  );
+  await expect(page.locator("#pipeline-status")).toContainText("watertight");
+  const source = JSON.parse(await readFile(
+    "sculptures/panel-outline-prism/sculpture.json",
+    "utf8",
+  )) as Record<string, unknown>;
+  delete source.boundaryTopology;
+  delete source.generatedMechanics;
+  await page.locator("#project-file").setInputFiles({
+    name: "panel-outline-prism.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(`${JSON.stringify(source)}\n`),
+  });
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Loaded panel-outline-prism.json",
+  );
+  await expect(page.locator("#assembly-tutorial-start")).toBeEnabled();
+  await expect(page.locator("#assembly-package")).toBeEnabled();
+  await page.locator("#assembly-package").click();
+  await expect(page.locator("#assembly-package")).toHaveText(
+    "Download panel closures package",
+    { timeout: 120_000 },
+  );
+  await expect(page.locator("#viewer")).not.toHaveAttribute(
+    "data-printable-material-state", "",
+  );
+
+  await page.locator(".route-panel").first().evaluate((element) => {
+    (element as HTMLElement).click();
+  });
+  const selectedState = await page.locator("#viewer").getAttribute(
+    "data-printable-material-state",
+  );
+  expect(selectedState).toBeTruthy();
+
+  await page.locator("#assembly-tutorial-start").click();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-tutorial-panel-focus",
+    /^P-/,
+  );
+  await page.locator("#assembly-tutorial-exit").click();
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-printable-material-state",
+    selectedState!,
+  );
 });
 
 test("restores a surface-backed viewport after the tutorial", async ({ page }) => {

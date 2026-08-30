@@ -49,8 +49,10 @@ import {
 import {
   createAssemblyTutorialModel,
   nextAssemblyTutorialChain,
+  nextAssemblyTutorialPanel,
   nextAssemblyTutorialWire,
   previousAssemblyTutorialChain,
+  previousAssemblyTutorialPanel,
   previousAssemblyTutorialWire,
   type AssemblyTutorialChain,
   type AssemblyTutorialModel,
@@ -400,13 +402,15 @@ app.innerHTML = `
             </div>
             <div id="assembly-tutorial-section" class="assembly-tutorial assembly-tutorial--workflow">
               <p id="assembly-tutorial-warning" class="assembly-tutorial__warning"></p>
-              <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">Isolate a data chain and step through each cable in order.</p>
+              <p id="assembly-tutorial-instruction" class="assembly-tutorial__instruction">Isolate a data chain and step through each panel or cable in order.</p>
               <button id="assembly-tutorial-start" class="editor-button assembly-tutorial__start" type="button">Isolate chain</button>
               <div id="assembly-tutorial-controls" class="assembly-tutorial__controls" hidden>
                 <output id="assembly-tutorial-step">Cable</output>
                 <div class="assembly-tutorial__actions">
                   <button id="assembly-tutorial-previous-chain" type="button">Previous chain</button>
                   <button id="assembly-tutorial-next-chain" type="button">Next chain</button>
+                  <button id="assembly-tutorial-previous-panel" type="button">Previous panel</button>
+                  <button id="assembly-tutorial-next-panel" type="button">Next panel</button>
                   <button id="assembly-tutorial-previous-wire" type="button">Previous wire</button>
                   <button id="assembly-tutorial-next-wire" type="button">Next wire</button>
                   <button id="assembly-tutorial-exit" class="assembly-tutorial__exit" type="button">Show all</button>
@@ -583,6 +587,10 @@ const assemblyTutorialPreviousChainButton =
   query<HTMLButtonElement>("#assembly-tutorial-previous-chain");
 const assemblyTutorialNextChainButton =
   query<HTMLButtonElement>("#assembly-tutorial-next-chain");
+const assemblyTutorialPreviousPanelButton =
+  query<HTMLButtonElement>("#assembly-tutorial-previous-panel");
+const assemblyTutorialNextPanelButton =
+  query<HTMLButtonElement>("#assembly-tutorial-next-panel");
 const assemblyTutorialPreviousWireButton =
   query<HTMLButtonElement>("#assembly-tutorial-previous-wire");
 const assemblyTutorialNextWireButton =
@@ -801,6 +809,7 @@ async function start(): Promise<void> {
     let assemblyTutorialActive = false;
     let assemblyTutorialChainIndex = 0;
     let assemblyTutorialConnectionIndex: number | null = null;
+    let assemblyTutorialPanelIndex: number | null = null;
     let assemblyTutorialOutputVisibility: Map<number, boolean> | null = null;
     const outputLayerVisibility = new Map<number, boolean>();
     let routeEditorModel: WiringRouteEditorModel | null =
@@ -1292,15 +1301,32 @@ async function start(): Promise<void> {
         renderer?.setAssemblyTutorial(null);
         return;
       }
-      renderer?.setAssemblyTutorial(chain, assemblyTutorialConnectionIndex);
+      renderer?.setAssemblyTutorial(
+        chain,
+        assemblyTutorialConnectionIndex,
+        assemblyTutorialPanelIndex,
+      );
       assemblyTutorialWarning.textContent = chain.routeWarning;
       assemblyTutorialWarning.dataset.status = chain.routeStatus;
       const connectionIndex = assemblyTutorialConnectionIndex ?? 0;
-      const connection = chain.connections[connectionIndex];
-      assemblyTutorialStep.value =
-        `${chain.label} · wire ${connectionIndex + 1} / ${chain.connections.length}`;
-      assemblyTutorialInstruction.textContent = connection?.instruction ??
-        "This connection is unavailable.";
+      const panelIndex = assemblyTutorialPanelIndex;
+      const panel = panelIndex === null ? null : chain.panels[panelIndex] ?? null;
+      if (panel) {
+        const cableInstructions = panel.connectionIndices
+          .map((index) => chain.connections[index]?.instruction)
+          .filter((instruction): instruction is string => instruction !== undefined);
+        assemblyTutorialStep.value =
+          `${chain.label} · panel ${panel.chainPosition + 1} / ${chain.panels.length}`;
+        assemblyTutorialInstruction.textContent =
+          `${panel.label}: solder ${cableInstructions.join("; ")}. ` +
+          "If a printable part is highlighted, fit it before the contacts become difficult to reach.";
+      } else {
+        const connection = chain.connections[connectionIndex];
+        assemblyTutorialStep.value =
+          `${chain.label} · wire ${connectionIndex + 1} / ${chain.connections.length}`;
+        assemblyTutorialInstruction.textContent = connection?.instruction ??
+          "This connection is unavailable.";
+      }
       assemblyTutorialPreviousChainButton.disabled = assemblyTutorialChainIndex === 0;
       assemblyTutorialNextChainButton.disabled =
         assemblyTutorialChainIndex === assemblyTutorialModel.chains.length - 1;
@@ -1309,6 +1335,11 @@ async function start(): Promise<void> {
         connectionIndex === chain.connections.length - 1;
       assemblyTutorialPreviousWireButton.disabled =
         assemblyTutorialChainIndex === 0 && connectionIndex === 0;
+      assemblyTutorialNextPanelButton.disabled =
+        assemblyTutorialChainIndex === assemblyTutorialModel.chains.length - 1 &&
+        (panelIndex ?? connectionIndex) === chain.panels.length - 1;
+      assemblyTutorialPreviousPanelButton.disabled =
+        assemblyTutorialChainIndex === 0 && (panelIndex ?? connectionIndex) === 0;
     };
 
     const exitAssemblyTutorial = (announce = true): void => {
@@ -1316,6 +1347,7 @@ async function start(): Promise<void> {
       assemblyTutorialActive = false;
       assemblyTutorialChainIndex = 0;
       assemblyTutorialConnectionIndex = null;
+      assemblyTutorialPanelIndex = null;
       renderer?.setAssemblyTutorial(null);
       if (assemblyTutorialOutputVisibility) {
         for (const output of wiringPreview.outputs) {
@@ -1341,6 +1373,20 @@ async function start(): Promise<void> {
       );
       const chain = selectedAssemblyTutorialChain();
       const available = chain !== null && chain.panels.length > 0;
+      if (chain) {
+        if (assemblyTutorialPanelIndex !== null) {
+          assemblyTutorialPanelIndex = Math.min(
+            assemblyTutorialPanelIndex,
+            chain.panels.length - 1,
+          );
+        }
+        if (assemblyTutorialConnectionIndex !== null) {
+          assemblyTutorialConnectionIndex = Math.min(
+            assemblyTutorialConnectionIndex,
+            chain.connections.length - 1,
+          );
+        }
+      }
       assemblyTutorialStartButton.disabled = !available;
       if (!chain) {
         assemblyTutorialWarning.textContent = "No data chain is available.";
@@ -1356,7 +1402,7 @@ async function start(): Promise<void> {
         assemblyTutorialInstruction.textContent =
           `Isolate ${assemblyTutorialModel.chains.length} data ${
             assemblyTutorialModel.chains.length === 1 ? "chain" : "chains"
-          } and step through every cable.`;
+          } and step through every panel or cable.`;
       } else {
         applyAssemblyTutorialView();
       }
@@ -2327,12 +2373,13 @@ async function start(): Promise<void> {
         ]),
       );
       assemblyTutorialConnectionIndex = 0;
+      assemblyTutorialPanelIndex = 0;
       assemblyTutorialStartButton.hidden = true;
       assemblyTutorialControls.hidden = false;
       syncAssemblyTutorialOutputControls();
       applyAssemblyTutorialView();
       setLogMessage(
-        `Isolated ${chain.label}: ${chain.panels.length} panels. This tutorial labels the data chain only.`,
+        `Isolated ${chain.label}: ${chain.panels.length} panels. Panel mode shows solder cables and current printable attachments.`,
       );
     });
     assemblyTutorialPreviousChainButton.addEventListener("click", () => {
@@ -2342,6 +2389,9 @@ async function start(): Promise<void> {
       });
       assemblyTutorialChainIndex = previous.chainIndex;
       assemblyTutorialConnectionIndex = previous.connectionIndex;
+      assemblyTutorialPanelIndex = assemblyTutorialPanelIndex === null
+        ? null
+        : assemblyTutorialModel.chains[previous.chainIndex]!.panels.length - 1;
       syncAssemblyTutorialOutputControls();
       applyAssemblyTutorialView();
     });
@@ -2352,6 +2402,29 @@ async function start(): Promise<void> {
       });
       assemblyTutorialChainIndex = next.chainIndex;
       assemblyTutorialConnectionIndex = next.connectionIndex;
+      assemblyTutorialPanelIndex = assemblyTutorialPanelIndex === null ? null : 0;
+      syncAssemblyTutorialOutputControls();
+      applyAssemblyTutorialView();
+    });
+    assemblyTutorialPreviousPanelButton.addEventListener("click", () => {
+      const previous = previousAssemblyTutorialPanel(assemblyTutorialModel, {
+        chainIndex: assemblyTutorialChainIndex,
+        panelIndex: assemblyTutorialPanelIndex ?? assemblyTutorialConnectionIndex ?? 0,
+      });
+      assemblyTutorialChainIndex = previous.chainIndex;
+      assemblyTutorialPanelIndex = previous.panelIndex;
+      assemblyTutorialConnectionIndex = previous.panelIndex;
+      syncAssemblyTutorialOutputControls();
+      applyAssemblyTutorialView();
+    });
+    assemblyTutorialNextPanelButton.addEventListener("click", () => {
+      const next = nextAssemblyTutorialPanel(assemblyTutorialModel, {
+        chainIndex: assemblyTutorialChainIndex,
+        panelIndex: assemblyTutorialPanelIndex ?? assemblyTutorialConnectionIndex ?? 0,
+      });
+      assemblyTutorialChainIndex = next.chainIndex;
+      assemblyTutorialPanelIndex = next.panelIndex;
+      assemblyTutorialConnectionIndex = next.panelIndex;
       syncAssemblyTutorialOutputControls();
       applyAssemblyTutorialView();
     });
@@ -2362,6 +2435,7 @@ async function start(): Promise<void> {
       });
       assemblyTutorialChainIndex = previous.chainIndex;
       assemblyTutorialConnectionIndex = previous.connectionIndex;
+      assemblyTutorialPanelIndex = null;
       syncAssemblyTutorialOutputControls();
       applyAssemblyTutorialView();
     });
@@ -2372,6 +2446,7 @@ async function start(): Promise<void> {
       });
       assemblyTutorialChainIndex = next.chainIndex;
       assemblyTutorialConnectionIndex = next.connectionIndex;
+      assemblyTutorialPanelIndex = null;
       syncAssemblyTutorialOutputControls();
       applyAssemblyTutorialView();
     });

@@ -156,13 +156,12 @@ mapping/wiring**.
 
 The browser **Fabrication** assembly control derives every connection label from
 the same Schema 2 wiring preview used by the normal wiring layers. **Isolate
-chain** starts with the first output. Previous and Next move through its cables
-and then continue across the remaining outputs. Separate Previous/Next chain
-controls select an output without showing redundant output checkboxes. Wire
-navigation crosses output boundaries and selects the owning chain. Next chain
-starts at its first wire; Previous chain starts at its last wire. Only the
-selected chain remains visible. Its current solder connection is bright red;
-its other cables are muted gray for context. The tutorial never
+chain** starts with the first panel of the first output. Panel and wire controls
+move through their respective route items and continue across the remaining
+outputs. Separate Previous/Next chain controls select an output without showing
+redundant output checkboxes and preserve the active panel-or-wire mode. Only the
+selected chain remains visible. The active panel's incident connections or the
+selected wire are bright red; its other cables are muted gray for context. The tutorial never
 moves the camera; the operator keeps orbit and unlimited zoom control. A schematic
 controller sits above the sculpture and labels each output pin. DIN, DOUT, and
 cable endpoints are behind each PCB in the profile's back-view convention.
@@ -183,6 +182,18 @@ Current referenced printable assets remain visible during chain isolation. A
 Schema 2 project with no `generatedMechanics` or `generatedStructure` references
 has no printable geometry for the tutorial to show. The 41-panel project is
 currently in that pose-and-wiring-only state.
+
+Panel navigation is the default physical-build view. Previous/Next panel walks
+the saved route across every nonempty output. It keeps the complete selected
+chain visible, colors only the current panel normally, and mutes the other chain
+panels. Both data cables incident to that panel are bright red: its incoming
+controller-or-panel cable and, except at the end of a chain, its outgoing cable.
+Printable closures carry the panel IDs from their screw-tab connectors. A
+closure attached to the current panel stays in its normal material; other
+selected-chain closures are gray and translucent. A combined STL with no
+reliable per-panel ownership stays visible and is not presented as a specific
+panel attachment. Wire navigation remains available for one-cable-at-a-time
+inspection. Neither mode changes saved project or fabrication data.
 
 The persistent **View** section owns the DIN/DOUT and panel-wiring layers. The
 **Fabrication** owns the complete fabrication ZIP, chain/wire isolation, and ESP32 setup

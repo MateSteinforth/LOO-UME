@@ -162,9 +162,12 @@ runtime handling.
 `AssemblyTutorial.ts` is a stateless view model over `WiringPreview`; it adds no
 saved route or tutorial state. `SphereRenderer.ts` applies its temporary panel
 visibility mask, reuses the normal back-side connector and cable layers, shows
-one bright-red solder connection while muting the other selected-chain cables,
-keeps referenced printable assets
-visible, and does not mutate the user-controlled camera. Cable curves use a
+one or two bright-red incident solder connections for panel focus while muting
+the other selected-chain cables, and grays non-active chain panels. Printable
+closure ownership comes only from its screw-tab panel IDs; combined assets with
+no reliable ownership stay visible without a false attachment claim. The
+renderer keeps referenced printable assets visible and does not mutate the
+user-controlled camera. Cable curves use a
 control point inside the endpoint radius relative to the current sculpture
 center. The
 controller defaults to a schematic near-top placement derived from the complete

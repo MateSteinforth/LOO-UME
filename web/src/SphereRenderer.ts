@@ -30,6 +30,7 @@ import {
 } from "./ViewportCamera.ts";
 import {
   maskedPanelPositions,
+  tutorialAttachmentState,
   type AssemblyTutorialChain,
 } from "./AssemblyTutorial.ts";
 import {
@@ -149,8 +150,9 @@ export class SphereRenderer {
   private viewBoundsRadius = 80;
   private tutorialPanelIds: Set<string> | null = null;
   private tutorialActivePanelIds = new Set<string>();
+  private tutorialPanelFocusId: string | null = null;
+  private tutorialActiveConnectionIndices = new Set<number>();
   private tutorialOutputIndex: number | null = null;
-  private tutorialConnectionIndex: number | null = null;
   private tutorialAutoRotate: boolean | null = null;
   private tutorialLayerState: TutorialLayerState | null = null;
 
@@ -321,7 +323,7 @@ export class SphereRenderer {
       const display = selectionDisplayColor(
         this.color,
         entry.panelId,
-        this.tutorialPanelIds ? null : this.selectedPanelId,
+        this.tutorialPanelIds ? this.tutorialPanelFocusId : this.selectedPanelId,
       );
       attribute.setXYZ(
         physical,
@@ -725,7 +727,7 @@ export class SphereRenderer {
     this.wiringLayer.visible = visible;
     this.container.dataset.wiringLayerVisible = String(visible);
     if (this.tutorialPanelIds) {
-      this.applyTutorialConnectionVisibility(this.tutorialConnectionIndex);
+      this.applyTutorialConnectionVisibility();
     }
   }
 
@@ -746,6 +748,7 @@ export class SphereRenderer {
   setAssemblyTutorial(
     chain: AssemblyTutorialChain | null,
     connectionIndex: number | null = null,
+    panelIndex: number | null = null,
   ): void {
     if (!chain) {
       this.clearAssemblyTutorial();
@@ -762,13 +765,24 @@ export class SphereRenderer {
       };
     }
     this.tutorialOutputIndex = chain.outputIndex;
-    this.tutorialConnectionIndex = connectionIndex;
     this.tutorialPanelIds = new Set(chain.panels.map((panel) => panel.id));
-    const connection = connectionIndex === null
+    const panel = panelIndex === null ? null : chain.panels[panelIndex] ?? null;
+    const connection = panel || connectionIndex === null
       ? null
       : chain.connections[connectionIndex] ?? null;
+    this.tutorialPanelFocusId = panel?.id ?? null;
+    if (this.tutorialPanelFocusId) {
+      this.container.dataset.tutorialPanelFocus = this.tutorialPanelFocusId;
+    } else {
+      delete this.container.dataset.tutorialPanelFocus;
+    }
+    this.tutorialActiveConnectionIndices = new Set(
+      panel?.connectionIndices ?? (connectionIndex === null ? [] : [connectionIndex]),
+    );
     this.tutorialActivePanelIds = new Set(
-      connection
+      panel
+        ? [panel.id]
+        : connection
         ? [connection.fromPanelId, connection.toPanelId].filter(
           (panelId): panelId is string => panelId !== null,
         )
@@ -784,6 +798,10 @@ export class SphereRenderer {
         "panel-label--tutorial-active",
         this.tutorialActivePanelIds.has(panelId),
       );
+      label.element.classList.toggle(
+        "panel-label--unfocused",
+        this.tutorialPanelFocusId !== null && panelId !== this.tutorialPanelFocusId,
+      );
     }
     this.disposeTutorialLabels();
     this.boundaryPreviewLayer.visible = false;
@@ -794,7 +812,7 @@ export class SphereRenderer {
     this.applyTutorialPanelMask();
     this.applyTutorialOutputVisibility();
     this.applySelectionFocus();
-    this.applyTutorialConnectionVisibility(connectionIndex);
+    this.applyTutorialConnectionVisibility();
   }
 
   dispose(): void {
@@ -1207,6 +1225,9 @@ export class SphereRenderer {
       const closureGroup = new THREE.Group();
       closureGroup.name = "printable-" + closure.id;
       closureGroup.userData.cadMeshAsset = closure.cadMeshAsset;
+      closureGroup.userData.tutorialAttachmentPanelIds = [
+        ...new Set(closure.connectors.map((connector) => connector.panelId)),
+      ];
       this.printableLayer.add(closureGroup);
 
       const coverMaterial = createPrintedPlaMaterial({ clippingPlanes });
@@ -1619,9 +1640,7 @@ export class SphereRenderer {
     }
   }
 
-  private applyTutorialConnectionVisibility(
-    connectionIndex: number | null,
-  ): void {
+  private applyTutorialConnectionVisibility(): void {
     let visibleConnections = 0;
     let mutedConnections = 0;
     let restoredConnections = 0;
@@ -1632,8 +1651,9 @@ export class SphereRenderer {
         const index = child.userData.tutorialConnectionIndex as number | undefined;
         if (index === undefined) continue;
         const baseColor = child.userData.tutorialBaseColor as number | undefined;
-        const active = connectionIndex === null || (
-          outputIndex === this.tutorialOutputIndex && index === connectionIndex
+        const active = this.tutorialPanelIds === null || (
+          outputIndex === this.tutorialOutputIndex &&
+          this.tutorialActiveConnectionIndices.has(index)
         );
         child.visible = true;
         child.traverse((object) => {
@@ -1704,7 +1724,13 @@ export class SphereRenderer {
     }
     if (this.tutorialPanelIds) {
       this.container.dataset.tutorialVisibleConnections = String(visibleConnections);
-      this.container.dataset.tutorialActiveConnection = String(connectionIndex ?? 0);
+      const activeConnections = [...this.tutorialActiveConnectionIndices].sort(
+        (left, right) => left - right,
+      );
+      this.container.dataset.tutorialActiveConnection = String(
+        activeConnections[0] ?? 0,
+      );
+      this.container.dataset.tutorialActiveConnections = activeConnections.join(",");
       this.container.dataset.tutorialMutedConnections = String(mutedConnections);
       this.container.dataset.tutorialActiveMaterial = activeMaterialState ?? "missing";
       this.container.dataset.tutorialMutedMaterial = mutedMaterialState ?? "missing";
@@ -1712,6 +1738,7 @@ export class SphereRenderer {
     } else {
       delete this.container.dataset.tutorialVisibleConnections;
       delete this.container.dataset.tutorialActiveConnection;
+      delete this.container.dataset.tutorialActiveConnections;
       delete this.container.dataset.tutorialMutedConnections;
       delete this.container.dataset.tutorialActiveMaterial;
       delete this.container.dataset.tutorialMutedMaterial;
@@ -1732,16 +1759,19 @@ export class SphereRenderer {
     if (this.tutorialPanelIds === null) return;
     this.tutorialPanelIds = null;
     this.tutorialActivePanelIds.clear();
+    this.tutorialPanelFocusId = null;
+    delete this.container.dataset.tutorialPanelFocus;
+    this.tutorialActiveConnectionIndices.clear();
     this.tutorialOutputIndex = null;
-    this.tutorialConnectionIndex = null;
     for (const label of this.panelLabels) {
       label.element.textContent = label.element.dataset.panelId ?? "";
       label.element.classList.remove("panel-label--tutorial-active");
+      label.element.classList.remove("panel-label--unfocused");
     }
     this.disposeTutorialLabels();
     this.applyTutorialPanelMask();
     this.applyTutorialOutputVisibility();
-    this.applyTutorialConnectionVisibility(null);
+    this.applyTutorialConnectionVisibility();
     this.surfacePlacement.setInteractionEnabled(true);
     if (this.tutorialLayerState) {
       this.boundaryPreviewLayer.visible = this.tutorialLayerState.boundary;
@@ -1782,6 +1812,7 @@ export class SphereRenderer {
   }
 
   private applySelectionFocus(): void {
+    if (!this.tutorialPanelIds) this.restoreTutorialPrintableState();
     this.applyLedSelectionFocus();
     this.updatePanelLabelSelection();
     for (const layer of [
@@ -1806,6 +1837,130 @@ export class SphereRenderer {
         for (const material of materials) this.applyMaterialSelectionFocus(material);
       });
     }
+    if (this.tutorialPanelIds) this.applyTutorialPrintableFocus();
+    this.updatePrintableMaterialDiagnostic();
+  }
+
+  private updatePrintableMaterialDiagnostic(): void {
+    const states: string[] = [];
+    this.printableLayer.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+      for (const material of materials) {
+        const colored = material as THREE.Material & { color?: THREE.Color };
+        states.push([
+          object.name || "mesh",
+          colored.color?.getHexString() ?? "none",
+          material.opacity,
+          material.transparent,
+          material.depthWrite,
+        ].join(","));
+      }
+    });
+    this.container.dataset.printableMaterialState = states.join(";");
+  }
+
+  private restoreTutorialPrintableState(): void {
+    for (const child of this.printableLayer.children) {
+      if (typeof child.userData.tutorialPrintableBaseVisible === "boolean") {
+        child.visible = child.userData.tutorialPrintableBaseVisible;
+        delete child.userData.tutorialPrintableBaseVisible;
+      }
+      child.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(object.material)
+          ? object.material
+          : [object.material];
+        for (const material of materials) {
+          const colored = material as THREE.Material & { color?: THREE.Color };
+          const baseColor = material.userData.tutorialPrintableBaseColor as
+            THREE.Color | undefined;
+          if (colored.color && baseColor) colored.color.copy(baseColor);
+          if (typeof material.userData.tutorialPrintableBaseOpacity === "number") {
+            material.opacity = material.userData.tutorialPrintableBaseOpacity;
+          }
+          if (typeof material.userData.tutorialPrintableBaseTransparent === "boolean") {
+            material.transparent = material.userData.tutorialPrintableBaseTransparent;
+          }
+          if (typeof material.userData.tutorialPrintableBaseDepthWrite === "boolean") {
+            material.depthWrite = material.userData.tutorialPrintableBaseDepthWrite;
+          }
+          material.needsUpdate = true;
+          delete material.userData.tutorialPrintableBaseColor;
+          delete material.userData.tutorialPrintableBaseOpacity;
+          delete material.userData.tutorialPrintableBaseTransparent;
+          delete material.userData.tutorialPrintableBaseDepthWrite;
+        }
+      });
+    }
+    delete this.container.dataset.tutorialActivePrintableParts;
+    delete this.container.dataset.tutorialMutedPrintableParts;
+    delete this.container.dataset.tutorialUnknownPrintableParts;
+  }
+
+  private applyTutorialPrintableFocus(): void {
+    let activeParts = 0;
+    let mutedParts = 0;
+    let unknownParts = 0;
+    for (const child of this.printableLayer.children) {
+      const owners = child.userData.tutorialAttachmentPanelIds as
+        string[] | undefined;
+      const attachmentState = this.tutorialPanelIds
+        ? tutorialAttachmentState(
+          owners,
+          this.tutorialPanelIds,
+          this.tutorialPanelFocusId,
+        )
+        : null;
+      if (this.tutorialPanelIds) {
+        child.userData.tutorialPrintableBaseVisible ??= child.visible;
+        if (attachmentState === "hidden") {
+          child.visible = false;
+        } else {
+          child.visible = child.userData.tutorialPrintableBaseVisible as boolean;
+          if (attachmentState === "unknown") unknownParts += child.visible ? 1 : 0;
+        }
+      }
+
+      const muted = attachmentState === "muted" && child.visible;
+      const active = attachmentState === "active" && child.visible;
+      if (muted) mutedParts += 1;
+      if (active) activeParts += 1;
+
+      child.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(object.material)
+          ? object.material
+          : [object.material];
+        for (const material of materials) {
+          const colored = material as THREE.Material & { color?: THREE.Color };
+          if (!colored.color) continue;
+          material.userData.tutorialPrintableBaseColor ??= colored.color.clone();
+          material.userData.tutorialPrintableBaseOpacity ??= material.opacity;
+          material.userData.tutorialPrintableBaseTransparent ??= material.transparent;
+          material.userData.tutorialPrintableBaseDepthWrite ??= material.depthWrite;
+          if (muted) {
+            colored.color.setHex(0x8290a3);
+            material.opacity = 0.38;
+            material.transparent = true;
+            material.depthWrite = false;
+          } else {
+            colored.color.copy(material.userData.tutorialPrintableBaseColor as THREE.Color);
+            material.opacity = material.userData.tutorialPrintableBaseOpacity as number;
+            material.transparent =
+              material.userData.tutorialPrintableBaseTransparent as boolean;
+            material.depthWrite =
+              material.userData.tutorialPrintableBaseDepthWrite as boolean;
+          }
+          material.needsUpdate = true;
+        }
+      });
+    }
+    this.container.dataset.tutorialActivePrintableParts = String(activeParts);
+    this.container.dataset.tutorialMutedPrintableParts = String(mutedParts);
+    this.container.dataset.tutorialUnknownPrintableParts = String(unknownParts);
   }
 
   private applyLedSelectionFocus(): void {
@@ -1823,7 +1978,7 @@ export class SphereRenderer {
       const display = selectionDisplayColor(
         base,
         entry.panelId,
-        this.tutorialPanelIds ? null : this.selectedPanelId,
+        this.tutorialPanelIds ? this.tutorialPanelFocusId : this.selectedPanelId,
       );
       attribute.setXYZ(
         physical,
@@ -1848,11 +2003,33 @@ export class SphereRenderer {
       const display = selectionDisplayColor(
         color,
         panelIds[index] ?? null,
-        this.tutorialPanelIds ? null : this.selectedPanelId,
+        this.tutorialPanelIds ? this.tutorialPanelFocusId : this.selectedPanelId,
       );
       attribute.setXYZ(index, display.r, display.g, display.b);
     }
     attribute.needsUpdate = true;
+    if (object.name === "opaque-glossy-pcb-surfaces") {
+      if (this.tutorialPanelFocusId) {
+        const activeIndex = panelIds.findIndex((panelId) =>
+          panelId === this.tutorialPanelFocusId
+        );
+        const mutedIndex = panelIds.findIndex((panelId) =>
+          panelId !== null &&
+          panelId !== this.tutorialPanelFocusId &&
+          this.tutorialPanelIds?.has(panelId)
+        );
+        const colorAt = (index: number): string => index < 0
+          ? "missing"
+          : [attribute.getX(index), attribute.getY(index), attribute.getZ(index)]
+            .map((value) => value.toFixed(4))
+            .join(",");
+        this.container.dataset.tutorialActivePanelColor = colorAt(activeIndex);
+        this.container.dataset.tutorialMutedPanelColor = colorAt(mutedIndex);
+      } else {
+        delete this.container.dataset.tutorialActivePanelColor;
+        delete this.container.dataset.tutorialMutedPanelColor;
+      }
+    }
   }
 
   private applyMaterialSelectionFocus(material: THREE.Material): void {
