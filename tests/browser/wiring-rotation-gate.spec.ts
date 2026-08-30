@@ -10,11 +10,18 @@ test("persists the manual wiring rotation gate from Developer utilities", async 
   await expect(page.locator("#optimize-wiring")).toBeEnabled();
   await expect(page.locator("#viewer"))
     .toHaveAttribute("data-panel-mounting-hole-count", "12");
+  await expect(page.locator("#viewer"))
+    .toHaveAttribute("data-panel-mounting-hole-faces", "back-only");
+  await expect(page.locator("#viewer"))
+    .toHaveAttribute("data-panel-din-hole-color", "4ade80");
+  await expect(page.locator("#viewer"))
+    .toHaveAttribute("data-panel-dout-hole-color", "ff4d6d");
 
   await page.locator("#developer-utilities").evaluate((details) => {
     (details as HTMLDetailsElement).open = true;
   });
   const gate = page.locator("#toggle-wiring-rotation-gate");
+  await expect(gate).toHaveClass(/editor-button/);
   await expect(gate).toHaveAttribute("aria-pressed", "false");
   await expect(gate).toHaveText("Use current poses + 0/180° gate");
   await gate.click();

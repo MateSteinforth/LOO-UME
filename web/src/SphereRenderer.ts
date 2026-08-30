@@ -855,6 +855,9 @@ export class SphereRenderer {
     this.clearPanelDecorations();
     this.disposeGroup(this.printableLayer);
     delete this.container.dataset.panelMountingHoleCount;
+    delete this.container.dataset.panelMountingHoleFaces;
+    delete this.container.dataset.panelDinHoleColor;
+    delete this.container.dataset.panelDoutHoleColor;
     if (panels.length === 0) return;
 
     const positions: number[] = [];
@@ -946,9 +949,13 @@ export class SphereRenderer {
         for (const hole of this.panelProfile.mounting.holes) {
           const center = panelBackViewPointToOutwardPoseLocal(hole.localPosition);
           const ringColor = new THREE.Color(
-            hole.mechanicalUse === "eligible" ? 0xffc857 : 0xff4d6d,
+            hole.blockedBy === "DIN"
+              ? 0x4ade80
+              : hole.blockedBy === "DOUT"
+                ? 0xff4d6d
+                : 0xffc857,
           );
-          for (const side of [-1, 1]) {
+          for (const side of [-1]) {
             for (let segment = 0; segment < 20; segment += 1) {
               const startAngle = 2 * Math.PI * segment / 20;
               const endAngle = 2 * Math.PI * (segment + 1) / 20;
@@ -1120,6 +1127,9 @@ export class SphereRenderer {
       this.container.dataset.panelMountingHoleCount = String(
         panels.length * this.panelProfile!.mounting.holes.length,
       );
+      this.container.dataset.panelMountingHoleFaces = "back-only";
+      this.container.dataset.panelDinHoleColor = "4ade80";
+      this.container.dataset.panelDoutHoleColor = "ff4d6d";
     }
     this.buildPrintableClosures(printableClosures, surfaceFaces);
 

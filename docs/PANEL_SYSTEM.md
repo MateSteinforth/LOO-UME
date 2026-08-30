@@ -46,6 +46,8 @@ coordinates, offset), `mountFaceId` (current generated mechanics),
 Treat these as working physical facts. Exact electrical pad/keep-out geometry,
 power topology, and exact electrical pad centres remain incomplete. The
 front-view straight row-major pixel order and GRB color order are measured.
+The editor shows mounting rings only on the PCB back: DIN is green, DOUT is
+red, and the four usable screw holes are gold.
 Never use a blocked hole for a structural tab.
 
 The two middle hole IDs are retained as `middle-left` and `middle-right` for

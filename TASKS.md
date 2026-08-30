@@ -68,6 +68,9 @@ No tasks.
   WLED, MadMapper, tutorial, and demo artifacts use fingerprint `e9fe0e65`;
   139 focused Vitest assertions, TypeScript, sculpture validation, one focused
   Chromium journey, diff-check, and independent review passed on 2026-08-30.
+  The final back-only ring overlay uses green DIN, red DOUT, and gold usable
+  holes; the shared rotation-gate button style, 32 focused assertions,
+  TypeScript, Chromium, diff-check, and follow-up review also passed.
 
 ## In Progress
 

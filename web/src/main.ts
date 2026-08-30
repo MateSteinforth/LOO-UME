@@ -441,7 +441,7 @@ app.innerHTML = `
                   <button id="apply-count" type="button">Apply</button>
                 </div>
               </label>
-              <button id="toggle-wiring-rotation-gate" type="button" aria-pressed="false">Use current poses + 0/180° gate</button>
+              <button id="toggle-wiring-rotation-gate" class="editor-button" type="button" aria-pressed="false">Use current poses + 0/180° gate</button>
             </div>
           </details>
           <div id="pipeline-status" class="pipeline-status pipeline-status--history" role="log" aria-live="polite" aria-label="Activity log">
