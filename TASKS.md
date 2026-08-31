@@ -54,8 +54,10 @@ No tasks.
   The operator can accept the expected virtual panel, click a different panel
   in the 3D view, and rotate its installed address calibration in 90-degree
   steps before applying the complete reviewed route.
-- Acceptance: review is available only for a current mapping-ready WLED link;
-  one complete physical panel block is active and all other LEDs are black;
+- Acceptance: hardware review is available only for a current mapping-ready
+  WLED link; a hardware-free demo provides the same assignment, rotation, and
+  navigation workflow but cannot apply or mutate project/device data; one
+  complete physical panel block is active and all other LEDs are black;
   every physical slot is assigned to one unique existing panel; rotation
   changes address calibration only; cancel restores live preview without saved
   mutations; apply changes only route panel IDs, installed address transforms,
@@ -68,10 +70,12 @@ No tasks.
   Likely conflicts: mapping controls/orchestration, renderer selection,
   hardware-frame transport, route/calibration mutation, focused browser/unit
   tests, mapping architecture, and physical-diagnostic learnings.
-- Verification: 19 focused unit tests, TypeScript, the focused Chromium
-  selection/cancel/apply/failure-reconciliation journey, diff-check, and
-  independent QUALITY review passed. Physical 41-panel use remains operator
-  review and does not block the task branch.
+- Verification: 19 focused unit tests, TypeScript, two focused Chromium
+  journeys covering hardware-free demo plus physical
+  selection/cancel/apply/failure reconciliation, diff-check, an independent
+  QUALITY review of the transactional device path, and final integrated review
+  passed. Physical 41-panel use remains operator review and does not block the
+  task branch.
 
 ## In Progress
 

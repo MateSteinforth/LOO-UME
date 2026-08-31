@@ -58,6 +58,56 @@ const config = createSimulatorSetupConfig(
 ) as Record<string, unknown>;
 (config as { id?: unknown }).id = { mdns: "loo-ume", name: "LOO/UME" };
 
+async function routeThreePanelProject(page: import("@playwright/test").Page): Promise<void> {
+  await page.route("**/physical-route-review.json", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(sourceDefinition),
+    });
+  });
+}
+
+test("runs the physical review workflow without hardware in demo mode", async ({ page }) => {
+  let hardwareFrames = 0;
+  await routeThreePanelProject(page);
+  await page.route("**/api/esp32-frame?**", async (route) => {
+    hardwareFrames += 1;
+    await route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
+  });
+  await page.goto("/?sculptureJson=.%2Fphysical-route-review.json");
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "No authoring surface is referenced",
+  );
+  await expect(page.locator("#open-physical-route-review")).toBeDisabled();
+  const demoButton = page.locator("#open-physical-route-review-demo");
+  await expect(demoButton).toBeEnabled();
+  await demoButton.click();
+  const dialog = page.locator("#physical-route-review-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("data-mode", "demo");
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-physical-route-review-demo-pixels",
+    "64",
+  );
+  await page.locator("#physical-route-review-confirm").click();
+  await expect(page.locator("#physical-route-review-step")).toContainText("2 / 3");
+  await page.locator("#physical-route-review-confirm").click();
+  await page.locator("#physical-route-review-confirm").click();
+  await expect(page.locator("#physical-route-review-summary")).toBeVisible();
+  await expect(page.locator("#physical-route-review-summary-note")).toContainText(
+    "Demo complete",
+  );
+  await expect(page.locator("#physical-route-review-apply")).toBeHidden();
+  expect(hardwareFrames).toBe(0);
+  await page.locator("#physical-route-review-cancel").click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator("#viewer")).not.toHaveAttribute(
+    "data-physical-route-review-demo-pixels",
+    /.+/,
+  );
+});
+
 test("reviews a physical panel while keeping the viewport selectable", async ({ page }) => {
   const frames: Buffer[] = [];
   const applyEvents: string[] = [];
@@ -167,13 +217,7 @@ test("reviews a physical panel while keeping the viewport selectable", async ({ 
     await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
   });
 
-  await page.route("**/physical-route-review.json", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(sourceDefinition),
-    });
-  });
+  await routeThreePanelProject(page);
   await page.goto("/?sculptureJson=.%2Fphysical-route-review.json");
   const browserContract = await page.evaluate(async () => {
     const modulePath = "/src/ProjectLoader.ts";

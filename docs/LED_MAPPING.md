@@ -319,6 +319,11 @@ panel block at a time. All other LEDs stay black. Pixel 0 is green at DIN, and
 the low-brightness gradient ends in purple at DOUT. The matching virtual panel
 shows the proposed DIN direction.
 
+**Demo physical review** runs the same panel assignment, orientation, and
+navigation workflow without a controller. It shows the diagnostic pixels only
+on the virtual sculpture. Demo mode cannot apply changes, write a ledmap, or
+change project data. It is a rehearsal tool, not physical address evidence.
+
 The operator can confirm the expected panel or click the panel that is actually
 lit. A different choice swaps complete panel assignments so every physical
 slot stays unique, then waits for orientation confirmation. The rotation

@@ -174,6 +174,10 @@ controller defaults to a schematic near-top placement derived from the complete
 current route. The operator can select its body or label and save an exact 6DOF
 pose with the standard transform controls. This pose moves the body, label,
 pins, and cable starts; it is not a second saved wiring-route authority.
+`PhysicalRouteReview.ts` owns the stateless physical-slot review model. The
+hardware path sends its diagnostic through the bounded framebuffer broker. Its
+hardware-free demo maps the same physical diagnostic back to logical renderer
+pixels and never calls the device broker or exposes Apply.
 The populated 41-panel Schema 2 project is the browser default. The Project
 Library is the single project-file surface: it displays every tracked demo and
 local ZIP as a newest-first thumbnail browser and contains JSON/ZIP/folder open plus

@@ -335,6 +335,7 @@ app.innerHTML = `
           <p id="wiring-optimization-summary" class="mapping-note"></p>
           <button id="optimize-wiring" class="editor-button" type="button">Optimize wiring</button>
           <button id="open-physical-route-review" class="editor-button" type="button" disabled>Review physical wiring</button>
+          <button id="open-physical-route-review-demo" class="editor-button" type="button" disabled>Demo physical review</button>
           <p id="physical-route-review-availability" class="mapping-note">Connect the configured ESP32 to review its installed panel order.</p>
           <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
           <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper preview</button>
@@ -702,6 +703,8 @@ const madMapperPreviewStatus = query<HTMLOutputElement>("#madmapper-preview-stat
 const controlPanel = query<HTMLElement>(".control-panel");
 const openPhysicalRouteReviewButton =
   query<HTMLButtonElement>("#open-physical-route-review");
+const openPhysicalRouteReviewDemoButton =
+  query<HTMLButtonElement>("#open-physical-route-review-demo");
 const physicalRouteReviewAvailability =
   query<HTMLElement>("#physical-route-review-availability");
 const physicalRouteReviewDialog =
@@ -941,6 +944,8 @@ async function start(): Promise<void> {
     let physicalRouteReviewFrameRequest: Promise<void> | undefined;
     let physicalRouteReviewProgrammaticSelection = false;
     let physicalRouteReviewApplying = false;
+    let physicalRouteReviewDemo = false;
+    let physicalRouteReviewDemoPixels: Uint32Array | undefined;
     let physicalRouteReviewPendingApply: {
       session: PhysicalRouteReviewSession;
       deviceUrl: URL;
@@ -1143,14 +1148,21 @@ async function start(): Promise<void> {
         !simulatorSetupActive &&
         physicalRouteReviewSession === undefined;
       openPhysicalRouteReviewButton.disabled = !available;
+      openPhysicalRouteReviewDemoButton.disabled =
+        !hardwareContract.readiness.mappingReady ||
+        simulatorSetupActive ||
+        physicalRouteReviewSession !== undefined;
       physicalRouteReviewAvailability.textContent = available
         ? `Ready to review ${hardwareContract.outputs.reduce((sum, output) => sum + output.panelIds.length, 0)} physical panels at ${simulatorDeviceUrl!.host}.`
         : physicalRouteReviewSession
-        ? "Physical wiring review is active."
+        ? physicalRouteReviewDemo
+          ? "Physical wiring review demo is active."
+          : "Physical wiring review is active."
         : !hardwareContract.readiness.mappingReady
         ? "Regenerate mapping/wiring before reviewing physical panel order."
-        : "Connect the configured ESP32 to review its installed panel order.";
+        : "Demo mode is ready. Connect the configured ESP32 to review its installed panel order.";
     };
+    updatePhysicalRouteReviewAvailability();
 
     const setPhysicalRouteReviewBusy = (busy: boolean): void => {
       for (const button of [
@@ -1175,6 +1187,16 @@ async function start(): Promise<void> {
     const sendPhysicalRouteReviewFrame = async (
       pixels: Array<[number, number, number]>,
     ): Promise<void> => {
+      if (physicalRouteReviewDemo) {
+        physicalRouteReviewDemoPixels = physicalRgbToLogicalPixels(
+          Uint8Array.from(pixels.flat()),
+          hardwareContract.mapping.entries,
+        );
+        viewerElement.dataset.physicalRouteReviewDemoPixels = String(
+          pixels.filter((pixel) => pixel.some((channel) => channel !== 0)).length,
+        );
+        return;
+      }
       const deviceUrl = physicalRouteReviewDeviceUrl;
       if (!deviceUrl) throw new Error("The reviewed ESP32 connection is unavailable.");
       await physicalRouteReviewFrameRequest?.catch(() => undefined);
@@ -1194,12 +1216,16 @@ async function start(): Promise<void> {
       if (!session) return;
       physicalRouteReviewControls.hidden = true;
       physicalRouteReviewSummary.hidden = false;
-      physicalRouteReviewApplyButton.hidden = false;
+      physicalRouteReviewApplyButton.hidden = physicalRouteReviewDemo;
       physicalRouteReviewSummaryBackButton.disabled = false;
       selectPhysicalRouteReviewPanel(null);
       const changes = physicalRouteReviewChanges(session, editorDefinition);
       physicalRouteReviewSummaryNote.textContent = changes.length === 0
-        ? "All physical panel identities and address orientations match the current project. Applying records the completed physical review."
+        ? physicalRouteReviewDemo
+          ? "Demo complete. No project or device data changed."
+          : "All physical panel identities and address orientations match the current project. Applying records the completed physical review."
+        : physicalRouteReviewDemo
+        ? `${changes.length} simulated mapping ${changes.length === 1 ? "change" : "changes"}. Demo mode cannot apply them.`
         : `${changes.length} mapping ${changes.length === 1 ? "change" : "changes"} will be applied. Panel poses and fabrication data will not change.`;
       physicalRouteReviewChangeList.replaceChildren(
         ...(changes.length === 0
@@ -1276,6 +1302,9 @@ async function start(): Promise<void> {
       physicalRouteReviewDeviceUrl = undefined;
       physicalRouteReviewApplying = false;
       physicalRouteReviewPendingApply = undefined;
+      physicalRouteReviewDemo = false;
+      physicalRouteReviewDemoPixels = undefined;
+      delete viewerElement.dataset.physicalRouteReviewDemoPixels;
       appRoot.classList.remove("app--physical-route-review");
       controlPanel.inert = false;
       selectPhysicalRouteReviewPanel(null);
@@ -1294,8 +1323,8 @@ async function start(): Promise<void> {
       updatePhysicalRouteReviewAvailability();
     };
 
-    const beginPhysicalRouteReview = async (): Promise<void> => {
-      if (!simulatorDeviceUrl) {
+    const beginPhysicalRouteReview = async (demo = false): Promise<void> => {
+      if (!demo && !simulatorDeviceUrl) {
         throw new Error("Connect the configured ESP32 before reviewing physical wiring.");
       }
       if (!hardwareContract.readiness.mappingReady) {
@@ -1319,17 +1348,22 @@ async function start(): Promise<void> {
         editorDefinition,
         hardwareContract,
       );
-      physicalRouteReviewDeviceUrl = simulatorDeviceUrl;
+      physicalRouteReviewDemo = demo;
+      physicalRouteReviewDemoPixels = undefined;
+      physicalRouteReviewDeviceUrl = demo ? undefined : simulatorDeviceUrl;
       physicalRouteReviewPendingApply = undefined;
       physicalRouteReviewApplyButton.textContent = "Apply and regenerate mapping";
       physicalRouteReviewCancelButton.disabled = false;
       appRoot.classList.add("app--physical-route-review");
       controlPanel.inert = true;
       physicalRouteReviewDialog.show();
+      physicalRouteReviewDialog.dataset.mode = demo ? "demo" : "device";
       updatePhysicalRouteReviewAvailability();
       await showPhysicalRouteReviewSlot(0);
       setLogMessage(
-        "Physical wiring review started. Only the selected physical panel is lit.",
+        demo
+          ? "Physical wiring review demo started. The diagnostic panel is shown only in the virtual sculpture."
+          : "Physical wiring review started. Only the selected physical panel is lit.",
       );
     };
 
@@ -2642,6 +2676,12 @@ async function start(): Promise<void> {
         await closePhysicalRouteReview(true);
       });
     });
+    openPhysicalRouteReviewDemoButton.addEventListener("click", () => {
+      void beginPhysicalRouteReview(true).catch(async (error) => {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
+        await closePhysicalRouteReview(false);
+      });
+    });
     physicalRouteReviewPreviousButton.addEventListener("click", () => {
       const session = physicalRouteReviewSession;
       if (!session || physicalRouteReviewApplying || session.currentSlotIndex <= 0) return;
@@ -2708,6 +2748,7 @@ async function start(): Promise<void> {
       });
     });
     physicalRouteReviewApplyButton.addEventListener("click", () => {
+      if (physicalRouteReviewDemo) return;
       void (async () => {
         const session = physicalRouteReviewSession;
         const deviceUrl = physicalRouteReviewDeviceUrl;
@@ -4010,8 +4051,11 @@ async function start(): Promise<void> {
         madMapperPreviewStatus.textContent = "Signal timeout · native simulation shown";
       }
       renderer?.updateColors(
-        artNetFrameIsCurrent ? artNetPreviewPixels! : engine.pixels,
-        artNetFrameIsCurrent ? "wled" : currentDisplayMode,
+        physicalRouteReviewDemoPixels ??
+          (artNetFrameIsCurrent ? artNetPreviewPixels! : engine.pixels),
+        physicalRouteReviewDemoPixels !== undefined || artNetFrameIsCurrent
+          ? "wled"
+          : currentDisplayMode,
       );
       renderer?.render();
 
