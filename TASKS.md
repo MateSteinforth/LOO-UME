@@ -55,8 +55,9 @@ No tasks.
   in the 3D view, and rotate its installed address calibration in 90-degree
   steps before applying the complete reviewed route.
 - Acceptance: hardware review is available only for a current mapping-ready
-  WLED link; a hardware-free demo provides the same assignment, rotation, and
-  navigation workflow but cannot apply or mutate project/device data; one
+  WLED link; without that link the same action automatically provides the
+  assignment, rotation, and navigation workflow on the virtual sculpture but
+  cannot apply or mutate project/device data; one
   complete physical panel block is active and all other LEDs are black;
   every physical slot is assigned to one unique existing panel; rotation
   changes address calibration only; cancel restores live preview without saved

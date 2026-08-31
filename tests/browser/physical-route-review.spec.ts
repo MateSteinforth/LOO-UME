@@ -79,10 +79,10 @@ test("runs the physical review workflow without hardware in demo mode", async ({
   await expect(page.locator("#pipeline-status")).toContainText(
     "No authoring surface is referenced",
   );
-  await expect(page.locator("#open-physical-route-review")).toBeDisabled();
-  const demoButton = page.locator("#open-physical-route-review-demo");
-  await expect(demoButton).toBeEnabled();
-  await demoButton.click();
+  const reviewButton = page.locator("#open-physical-route-review");
+  await expect(reviewButton).toBeEnabled();
+  await expect(page.locator("#open-physical-route-review-demo")).toHaveCount(0);
+  await reviewButton.click();
   const dialog = page.locator("#physical-route-review-dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute("data-mode", "demo");

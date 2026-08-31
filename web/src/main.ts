@@ -335,7 +335,6 @@ app.innerHTML = `
           <p id="wiring-optimization-summary" class="mapping-note"></p>
           <button id="optimize-wiring" class="editor-button" type="button">Optimize wiring</button>
           <button id="open-physical-route-review" class="editor-button" type="button" disabled>Review physical wiring</button>
-          <button id="open-physical-route-review-demo" class="editor-button" type="button" disabled>Demo physical review</button>
           <p id="physical-route-review-availability" class="mapping-note">Connect the configured ESP32 to review its installed panel order.</p>
           <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
           <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper preview</button>
@@ -703,8 +702,6 @@ const madMapperPreviewStatus = query<HTMLOutputElement>("#madmapper-preview-stat
 const controlPanel = query<HTMLElement>(".control-panel");
 const openPhysicalRouteReviewButton =
   query<HTMLButtonElement>("#open-physical-route-review");
-const openPhysicalRouteReviewDemoButton =
-  query<HTMLButtonElement>("#open-physical-route-review-demo");
 const physicalRouteReviewAvailability =
   query<HTMLElement>("#physical-route-review-availability");
 const physicalRouteReviewDialog =
@@ -1143,24 +1140,19 @@ async function start(): Promise<void> {
 
     const updatePhysicalRouteReviewAvailability = (): void => {
       const available =
-        simulatorDeviceUrl !== undefined &&
         hardwareContract.readiness.mappingReady &&
         !simulatorSetupActive &&
         physicalRouteReviewSession === undefined;
       openPhysicalRouteReviewButton.disabled = !available;
-      openPhysicalRouteReviewDemoButton.disabled =
-        !hardwareContract.readiness.mappingReady ||
-        simulatorSetupActive ||
-        physicalRouteReviewSession !== undefined;
-      physicalRouteReviewAvailability.textContent = available
-        ? `Ready to review ${hardwareContract.outputs.reduce((sum, output) => sum + output.panelIds.length, 0)} physical panels at ${simulatorDeviceUrl!.host}.`
-        : physicalRouteReviewSession
+      physicalRouteReviewAvailability.textContent = physicalRouteReviewSession
         ? physicalRouteReviewDemo
-          ? "Physical wiring review demo is active."
+          ? "Physical wiring review is active in virtual-only mode."
           : "Physical wiring review is active."
         : !hardwareContract.readiness.mappingReady
         ? "Regenerate mapping/wiring before reviewing physical panel order."
-        : "Demo mode is ready. Connect the configured ESP32 to review its installed panel order.";
+        : simulatorDeviceUrl
+        ? `Ready to review ${hardwareContract.outputs.reduce((sum, output) => sum + output.panelIds.length, 0)} physical panels at ${simulatorDeviceUrl!.host}.`
+        : "No ESP32 is connected. Review will run on the virtual sculpture only.";
     };
     updatePhysicalRouteReviewAvailability();
 
@@ -2671,15 +2663,10 @@ async function start(): Promise<void> {
     });
 
     openPhysicalRouteReviewButton.addEventListener("click", () => {
-      void beginPhysicalRouteReview().catch(async (error) => {
+      const demo = simulatorDeviceUrl === undefined;
+      void beginPhysicalRouteReview(demo).catch(async (error) => {
         setLogMessage(error instanceof Error ? error.message : String(error), true);
-        await closePhysicalRouteReview(true);
-      });
-    });
-    openPhysicalRouteReviewDemoButton.addEventListener("click", () => {
-      void beginPhysicalRouteReview(true).catch(async (error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
-        await closePhysicalRouteReview(false);
+        await closePhysicalRouteReview(!demo);
       });
     });
     physicalRouteReviewPreviousButton.addEventListener("click", () => {
