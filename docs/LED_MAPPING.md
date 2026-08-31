@@ -311,6 +311,35 @@ changes their status to assumed and changes the global installed-orientation
 calibration to provisional. This makes invalidation explicit and prevents stale
 measurement status from silently passing readiness.
 
+### Physical route review
+
+The Mapping toolbox can review an already assembled route through a current
+WLED link. The tool suspends normal DDP output and sends one complete physical
+panel block at a time. All other LEDs stay black. Pixel 0 is green at DIN, and
+the low-brightness gradient ends in purple at DOUT. The matching virtual panel
+shows the proposed DIN direction.
+
+The operator can confirm the expected panel or click the panel that is actually
+lit. A different choice swaps complete panel assignments so every physical
+slot stays unique, then waits for orientation confirmation. The rotation
+buttons change only the explicit back-view
+installed-address transform. Square fixtures use 90-degree steps. Non-square
+fixtures use 180-degree steps because a quarter turn cannot preserve their
+address grid. Mirrored input is rejected; the review does not infer a mirror.
+
+The review is transactional. Cancel sends the current simulator frame again
+and does not change project data. Apply requires every slot to be confirmed,
+shows the proposed route and orientation changes, and preserves panel poses,
+mechanics, fabrication data, controller pose, GPIOs, and panel-profile facts.
+It writes a new authored route revision with manual measured address
+transforms, regenerates the ledmap, uploads and activates map 0, and reads the
+exact map back before DDP resumes. This is address evidence. It is not power,
+connector, controller-position, or complete hardware proof.
+If an upload or activation result is ambiguous, the review stays frozen. Cancel
+and Escape stay disabled, the old project cannot resume, and the operator must
+retry exact activation and read-back. The retry reuses the same reviewed target
+and does not create another project mutation.
+
 The legacy maintenance command `npm run optimize:wiring-orientation` evaluates
 four non-mirrored address-only quarter turns
 per panel and uses dynamic programming to minimize the complete set of
@@ -353,7 +382,9 @@ artifact.
 `assessHardwareReadiness()` exposes `currentChecksPass` for the existing
 transforms/UVs, chains, GPIOs, pixel order, and installed-address checks. It is
 not electrical approval. `mappingReady` depends only on a complete authored
-route, assigned GPIOs, complete panel order, and route-optimized transforms.
+route, assigned GPIOs, complete panel order, and one accepted installed-address
+authority per panel. An accepted transform is either route-optimized or an
+explicit measured manual transform from physical route review.
 Draft, requires-review, and inactive hardware-verified routes report a
 lifecycle blocker. The flagship route, GPIOs, and optimized address transforms
 are authored assumptions. Pixel traversal is measured straight row-major,

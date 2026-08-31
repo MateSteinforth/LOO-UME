@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-08-30
+Last reconciled: 2026-08-31
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -47,7 +47,31 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `P1 · CAL-012` Review and correct the installed physical route
+
+- Scope: add a transactional hardware-review mode that lights one physical
+  panel address block at a time with a low-brightness DIN-to-DOUT gradient.
+  The operator can accept the expected virtual panel, click a different panel
+  in the 3D view, and rotate its installed address calibration in 90-degree
+  steps before applying the complete reviewed route.
+- Acceptance: review is available only for a current mapping-ready WLED link;
+  one complete physical panel block is active and all other LEDs are black;
+  every physical slot is assigned to one unique existing panel; rotation
+  changes address calibration only; cancel restores live preview without saved
+  mutations; apply changes only route panel IDs, installed address transforms,
+  calibration/lifecycle evidence, and derived mapping identity. Panel poses,
+  mechanics, structural/fabrication data, controller pose, output GPIOs, and
+  profile facts remain byte-identical. The proposed diff is visible before one
+  final confirmation and the regenerated ledmap is activated and read back
+  before live preview resumes.
+- Owner: `codex/cal-012-physical-route-review` in `/tmp/loo-ume-cal-012`.
+  Likely conflicts: mapping controls/orchestration, renderer selection,
+  hardware-frame transport, route/calibration mutation, focused browser/unit
+  tests, mapping architecture, and physical-diagnostic learnings.
+- Verification: 19 focused unit tests, TypeScript, the focused Chromium
+  selection/cancel/apply/failure-reconciliation journey, diff-check, and
+  independent QUALITY review passed. Physical 41-panel use remains operator
+  review and does not block the task branch.
 
 ## In Progress
 

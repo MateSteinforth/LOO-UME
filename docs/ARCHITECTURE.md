@@ -257,6 +257,25 @@ must bind the current project, route, ledmap, WLED bus fragment, target identity
 and exact file hashes. Complete hardware-verified state remains blocked until
 accepted `PROOF-010` evidence exists for all 2,624 addresses.
 
+`PhysicalRouteReview.ts` is a temporary address-audit model over the current
+mapping-ready contract. It flattens each output into unique physical fixture
+blocks and holds proposed panel IDs and back-view address turns outside the
+authored project. `main.ts` pauses ordinary frames, reconnects no other work,
+locks the control panel, and leaves only panel selection active in the 3D
+viewport. The review frame uses the fixed private-device DDP broker and lights
+one block; it does not write WLED state or project data.
+
+Cancel discards the model. Apply creates one new manual authored route revision
+and measured installed-address transforms, then recompiles the normal hardware
+contract. It does not mutate panel poses, generated mechanics, structural
+artifacts, controller geometry, GPIO assignments, or the panel profile. The
+existing ledmap synchronization seam must upload, activate, and read back the
+exact changed map before the editor enables live preview again.
+An ambiguous device failure retains the reviewed target and keeps ordinary
+editing and live output locked. A bounded retry reconciles the same bytes; it
+does not discard the transaction or resume the old mapping after a possible
+device mutation.
+
 The local editor serves the receipt-bound flash image and brokers the later
 WLED HTTP configuration/read-back calls. The browser supplies only the private
 IPv4 address returned by the verified Improv session and a fixed WLED operation.

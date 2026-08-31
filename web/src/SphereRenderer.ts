@@ -105,6 +105,7 @@ export class SphereRenderer {
   private readonly connectorLayer = new THREE.Group();
   private readonly wiringLayer = new THREE.Group();
   private readonly tutorialLayer = new THREE.Group();
+  private readonly physicalRouteReviewLayer = new THREE.Group();
   private readonly connectorOutputLayers = new Map<number, THREE.Group>();
   private readonly wiringOutputLayers = new Map<number, THREE.Group>();
   private readonly outputVisibility = new Map<number, boolean>([
@@ -210,6 +211,7 @@ export class SphereRenderer {
       this.wiringLayer,
       this.connectorLayer,
       this.tutorialLayer,
+      this.physicalRouteReviewLayer,
       this.points,
     );
     this.layoutGrid(new THREE.Sphere(new THREE.Vector3(0, 0, 0), 80));
@@ -529,6 +531,59 @@ export class SphereRenderer {
 
   selectEditorController(): void {
     this.surfacePlacement.selectController();
+  }
+
+  setPhysicalRouteReview(
+    panelId: string | null,
+    quarterTurnsClockwise: 0 | 1 | 2 | 3 = 0,
+  ): void {
+    this.disposeGroup(this.physicalRouteReviewLayer);
+    const active = panelId !== null;
+    this.surfacePlacement.setSelectionOnly(active);
+    if (active) {
+      this.container.dataset.physicalRouteReviewPanel = panelId;
+      this.container.dataset.physicalRouteReviewTurns = String(quarterTurnsClockwise);
+      this.surfacePlacement.selectPanel(panelId);
+      const panel = this.mapping.panels.find((candidate) => candidate.id === panelId);
+      const profile = this.panelProfile;
+      if (!panel || !profile) return;
+      const corner = profile.dataConnectors.dinCorner;
+      let backX = corner.endsWith("right") ? 1 : -1;
+      let backY = corner.startsWith("top") ? 1 : -1;
+      for (let turn = 0; turn < quarterTurnsClockwise; turn += 1) {
+        [backX, backY] = [backY, -backX];
+      }
+      const direction = this.toThree(panel.xAxis).multiplyScalar(-backX)
+        .addScaledVector(this.toThree(panel.yAxis), backY)
+        .normalize();
+      const origin = this.toThree(panel.position).addScaledVector(
+        this.toThree(panel.normal),
+        profile.dimensions.thickness / 2 + 4,
+      );
+      const arrow = new THREE.ArrowHelper(
+        direction,
+        origin,
+        Math.min(profile.dimensions.width, profile.dimensions.height) * 0.38,
+        0x4ade80,
+        7,
+        4,
+      );
+      arrow.name = "physical-route-review-din-direction";
+      arrow.traverse((object) => { object.renderOrder = 30; });
+      this.physicalRouteReviewLayer.add(arrow);
+      const label = document.createElement("span");
+      label.className = "physical-route-review-din-label";
+      label.textContent = "DIN";
+      const labelObject = new CSS2DObject(label);
+      labelObject.position.copy(origin).addScaledVector(
+        direction,
+        Math.min(profile.dimensions.width, profile.dimensions.height) * 0.43,
+      );
+      this.physicalRouteReviewLayer.add(labelObject);
+    } else {
+      delete this.container.dataset.physicalRouteReviewPanel;
+      delete this.container.dataset.physicalRouteReviewTurns;
+    }
   }
 
   setPanelLabelsVisible(visible: boolean): void {

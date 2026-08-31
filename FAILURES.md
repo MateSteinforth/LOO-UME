@@ -2150,3 +2150,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** UI-032 focused navigation/unit checks and the dedicated
   Chromium assembly-tutorial journey.
 - **Status:** Implemented by UI-032; physical second-chain review remains.
+
+### F-118 — A wrong installed route must not require pose edits or resoldering
+
+- **Date:** 2026-08-31
+- **Context:** Review of physical panel order after partial 41-panel assembly.
+- **Symptom:** A panel can be installed at a different chain position or with a
+  different address orientation than the saved route. Rebuilding the physical
+  assembly is not always necessary.
+- **Cause:** The editor had no bounded way to identify one physical address
+  block and relate it to one virtual panel after assembly.
+- **Correction:** Add a transactional physical route review. Light one fixture
+  block with a DIN-to-DOUT gradient, accept the expected panel or select the
+  actual panel, and adjust only its installed address transform. Apply one
+  complete unique assignment and synchronize the exact regenerated ledmap.
+- **Prevention:** Keep physical chain identity, installed address calibration,
+  and world pose as separate authorities. Never repair an address mismatch by
+  moving a panel pose, changing GPIOs, or weakening fabrication evidence.
+- **Evidence:** CAL-012 unit and focused Chromium review journeys.
+- **Status:** Implemented by CAL-012; physical 41-panel review remains.

@@ -704,9 +704,16 @@ export function assessHardwareReadiness(
     currentCheckBlockers.add("Panel pixel-zero or within-panel order is incomplete.");
   }
   if (mapping.panels.some(
-    (panel) => panel.installedAddressTransform.selectionMethod !== "route-optimized",
+    (panel) =>
+      panel.installedAddressTransform.selectionMethod !== "route-optimized" &&
+      !(
+        panel.installedAddressTransform.status === "measured" &&
+        panel.installedAddressTransform.selectionMethod === "manual"
+      ),
   )) {
-    currentCheckBlockers.add("Installed panel orientations are not route-optimized.");
+    currentCheckBlockers.add(
+      "Installed panel orientations are neither route-optimized nor manually measured.",
+    );
   }
   const currentChecksPass = currentCheckBlockers.size === 0;
   const blockers = new Set(currentCheckBlockers);

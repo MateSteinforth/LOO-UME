@@ -30,6 +30,7 @@
     "web/src/PanelCarrierGeometry.ts",
     "web/src/WiringAssemblyManual.ts",
     "web/src/AssemblyTutorial.ts",
+    "web/src/PhysicalRouteReview.ts",
     "web/src/ManualHandshake.ts",
     "web/src/EditorCapabilities.ts",
     "web/src/EditorPipelineResponse.ts",

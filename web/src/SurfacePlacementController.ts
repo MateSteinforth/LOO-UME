@@ -239,6 +239,7 @@ export class SurfacePlacementController {
   private activeTransformControls: TransformControls | null = null;
   private transformMode: PanelTransformMode = "surface";
   private interactionEnabled = true;
+  private selectionOnly = false;
 
   onSelectionChange?: (panelId: string | null) => void;
   onControllerSelectionChange?: (selected: boolean) => void;
@@ -298,6 +299,11 @@ export class SurfacePlacementController {
   setInteractionEnabled(enabled: boolean): void {
     this.interactionEnabled = enabled;
     this.layer.visible = enabled;
+    this.updateGizmo();
+  }
+
+  setSelectionOnly(enabled: boolean): void {
+    this.selectionOnly = enabled;
     this.updateGizmo();
   }
 
@@ -523,7 +529,7 @@ export class SurfacePlacementController {
       return;
     }
 
-    const controllerHit = this.controllerLayerVisible && this.controllerTarget &&
+    const controllerHit = !this.selectionOnly && this.controllerLayerVisible && this.controllerTarget &&
       isObjectEffectivelyVisible(this.controllerTarget)
       ? this.raycaster.intersectObject(this.controllerTarget, true)[0]
       : undefined;
@@ -546,6 +552,8 @@ export class SurfacePlacementController {
       this.capturePointer(event);
       return;
     }
+
+    if (this.selectionOnly) return;
 
     const surfaceHit = this.surface
       ? this.raycaster.intersectObject(this.surface, false)[0]
@@ -936,7 +944,7 @@ export class SurfacePlacementController {
 
   private updateGizmo(): void {
     this.disposeGizmo();
-    if (!this.interactionEnabled) {
+    if (!this.interactionEnabled || this.selectionOnly) {
       this.gizmo.visible = false;
       this.translateControls.detach();
       this.rotateControls.detach();

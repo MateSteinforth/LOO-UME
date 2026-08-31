@@ -138,8 +138,20 @@ import {
   retainAutomaticReconnectEligibility,
   sendSimulatorFramebuffer,
   settleSimulatorDeviceWork,
+  synchronizeDeviceLedmap,
   type Esp32SetupPayload,
 } from "./Esp32Setup.ts";
+import {
+  applyPhysicalRouteReview,
+  assignPhysicalRouteReviewPanel,
+  confirmPhysicalRouteReviewSlot,
+  createPhysicalPanelReviewFrame,
+  createPhysicalRouteReviewSession,
+  nextPhysicalRouteReviewSlot,
+  physicalRouteReviewChanges,
+  rotatePhysicalRouteReviewPanel,
+  type PhysicalRouteReviewSession,
+} from "./PhysicalRouteReview.ts";
 import smokeConfig from "../../firmware/one-panel-smoke-cfg.json" with { type: "json" };
 import {
   createLoadedSculpture,
@@ -169,6 +181,7 @@ const initialSculptureSource =
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) throw new Error("Missing #app");
+const appRoot = app;
 
 app.innerHTML = `
   <div class="app-shell">
@@ -321,6 +334,8 @@ app.innerHTML = `
           </div>
           <p id="wiring-optimization-summary" class="mapping-note"></p>
           <button id="optimize-wiring" class="editor-button" type="button">Optimize wiring</button>
+          <button id="open-physical-route-review" class="editor-button" type="button" disabled>Review physical wiring</button>
+          <p id="physical-route-review-availability" class="mapping-note">Connect the configured ESP32 to review its installed panel order.</p>
           <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
           <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper preview</button>
           <output id="madmapper-preview-status" class="mapping-note" aria-live="polite">Stopped</output>
@@ -494,6 +509,30 @@ app.innerHTML = `
         </div>
       </form>
     </dialog>
+    <dialog id="physical-route-review-dialog" class="physical-route-review-dialog">
+      <div class="physical-route-review-shell">
+        <div class="section-heading"><span>Review physical wiring</span><small>Address-only calibration</small></div>
+        <p class="mapping-note">Only one physical panel is lit. Green marks DIN and the gradient runs toward purple at DOUT. Confirm the expected panel, or click the actual virtual panel, set its address orientation, and confirm.</p>
+        <output id="physical-route-review-step" class="physical-route-review-step"></output>
+        <div id="physical-route-review-current" class="physical-route-review-current"></div>
+        <div id="physical-route-review-controls" class="physical-route-review-controls">
+          <button id="physical-route-review-previous" class="editor-button" type="button">Previous physical panel</button>
+          <button id="physical-route-review-confirm" class="pipeline-button" type="button">OK — panel matches</button>
+          <button id="physical-route-review-rotate-left" class="editor-button" type="button" aria-label="Rotate address mapping 90 degrees counter-clockwise">↶ 90°</button>
+          <button id="physical-route-review-rotate-right" class="editor-button" type="button" aria-label="Rotate address mapping 90 degrees clockwise">↷ 90°</button>
+        </div>
+        <section id="physical-route-review-summary" class="physical-route-review-summary" hidden>
+          <strong>Review complete</strong>
+          <p id="physical-route-review-summary-note"></p>
+          <ol id="physical-route-review-change-list"></ol>
+          <button id="physical-route-review-summary-back" class="editor-button" type="button">Review last panel</button>
+        </section>
+        <div class="dialog-actions">
+          <button id="physical-route-review-apply" class="pipeline-button" type="button" hidden>Apply and regenerate mapping</button>
+          <button id="physical-route-review-cancel" class="editor-button" type="button">Cancel</button>
+        </div>
+      </div>
+    </dialog>
     <dialog id="esp32-setup-dialog" class="esp32-setup-dialog">
       <form method="dialog" class="esp32-setup-form">
         <div class="section-heading"><span>Set up ESP32</span><small>USB + Wi-Fi</small></div>
@@ -660,6 +699,39 @@ const downloadPanelLabelsButton =
   query<HTMLButtonElement>("#download-panel-labels");
 const madMapperPreviewButton = query<HTMLButtonElement>("#madmapper-preview");
 const madMapperPreviewStatus = query<HTMLOutputElement>("#madmapper-preview-status");
+const controlPanel = query<HTMLElement>(".control-panel");
+const openPhysicalRouteReviewButton =
+  query<HTMLButtonElement>("#open-physical-route-review");
+const physicalRouteReviewAvailability =
+  query<HTMLElement>("#physical-route-review-availability");
+const physicalRouteReviewDialog =
+  query<HTMLDialogElement>("#physical-route-review-dialog");
+const physicalRouteReviewStep =
+  query<HTMLOutputElement>("#physical-route-review-step");
+const physicalRouteReviewCurrent =
+  query<HTMLElement>("#physical-route-review-current");
+const physicalRouteReviewControls =
+  query<HTMLElement>("#physical-route-review-controls");
+const physicalRouteReviewPreviousButton =
+  query<HTMLButtonElement>("#physical-route-review-previous");
+const physicalRouteReviewConfirmButton =
+  query<HTMLButtonElement>("#physical-route-review-confirm");
+const physicalRouteReviewRotateLeftButton =
+  query<HTMLButtonElement>("#physical-route-review-rotate-left");
+const physicalRouteReviewRotateRightButton =
+  query<HTMLButtonElement>("#physical-route-review-rotate-right");
+const physicalRouteReviewSummary =
+  query<HTMLElement>("#physical-route-review-summary");
+const physicalRouteReviewSummaryNote =
+  query<HTMLElement>("#physical-route-review-summary-note");
+const physicalRouteReviewChangeList =
+  query<HTMLOListElement>("#physical-route-review-change-list");
+const physicalRouteReviewSummaryBackButton =
+  query<HTMLButtonElement>("#physical-route-review-summary-back");
+const physicalRouteReviewApplyButton =
+  query<HTMLButtonElement>("#physical-route-review-apply");
+const physicalRouteReviewCancelButton =
+  query<HTMLButtonElement>("#physical-route-review-cancel");
 const runEsp32SetupButton = query<HTMLButtonElement>("#run-esp32-setup");
 const closeEsp32SetupButton = query<HTMLButtonElement>("#close-esp32-setup");
 const esp32WifiSsidInput = query<HTMLInputElement>("#esp32-wifi-ssid");
@@ -863,6 +935,17 @@ async function start(): Promise<void> {
     let simulatorSetupActive = false;
     let simulatorLedmapUpdateAuthorized = false;
     let simulatorReconnectEnabled = false;
+    let physicalRouteReviewSession: PhysicalRouteReviewSession | undefined;
+    let physicalRouteReviewDeviceUrl: URL | undefined;
+    let physicalRouteReviewOriginalSelection: string | null = null;
+    let physicalRouteReviewFrameRequest: Promise<void> | undefined;
+    let physicalRouteReviewProgrammaticSelection = false;
+    let physicalRouteReviewApplying = false;
+    let physicalRouteReviewPendingApply: {
+      session: PhysicalRouteReviewSession;
+      deviceUrl: URL;
+      reviewedSculpture: LoadedSculpture;
+    } | undefined;
     const artNetPreviewClient = new ArtNetPreviewClient();
     let artNetPreviewPixels: Uint32Array | undefined;
     let artNetPreviewLastFrameAt = 0;
@@ -1050,10 +1133,208 @@ async function start(): Promise<void> {
       setLogMessage(
         `${reconnected ? "Reconnected" : "Standalone animation saved and live preview started"} at ${deviceUrl.host} for ${panelCount} panel${panelCount === 1 ? "" : "s"} (${ledCount} LEDs) on GPIO ${outputs.map((output) => output.gpio).join(", ")}.`,
       );
+      updatePhysicalRouteReviewAvailability();
+    };
+
+    const updatePhysicalRouteReviewAvailability = (): void => {
+      const available =
+        simulatorDeviceUrl !== undefined &&
+        hardwareContract.readiness.mappingReady &&
+        !simulatorSetupActive &&
+        physicalRouteReviewSession === undefined;
+      openPhysicalRouteReviewButton.disabled = !available;
+      physicalRouteReviewAvailability.textContent = available
+        ? `Ready to review ${hardwareContract.outputs.reduce((sum, output) => sum + output.panelIds.length, 0)} physical panels at ${simulatorDeviceUrl!.host}.`
+        : physicalRouteReviewSession
+        ? "Physical wiring review is active."
+        : !hardwareContract.readiness.mappingReady
+        ? "Regenerate mapping/wiring before reviewing physical panel order."
+        : "Connect the configured ESP32 to review its installed panel order.";
+    };
+
+    const setPhysicalRouteReviewBusy = (busy: boolean): void => {
+      for (const button of [
+        physicalRouteReviewPreviousButton,
+        physicalRouteReviewConfirmButton,
+        physicalRouteReviewRotateLeftButton,
+        physicalRouteReviewRotateRightButton,
+        physicalRouteReviewSummaryBackButton,
+      ]) button.disabled = busy;
+    };
+
+    const selectPhysicalRouteReviewPanel = (
+      panelId: string | null,
+      quarterTurnsClockwise: 0 | 1 | 2 | 3 = 0,
+    ): void => {
+      physicalRouteReviewProgrammaticSelection = true;
+      renderer?.setPhysicalRouteReview(panelId, quarterTurnsClockwise);
+      if (panelId === null) renderer?.selectEditorPanel(physicalRouteReviewOriginalSelection);
+      physicalRouteReviewProgrammaticSelection = false;
+    };
+
+    const sendPhysicalRouteReviewFrame = async (
+      pixels: Array<[number, number, number]>,
+    ): Promise<void> => {
+      const deviceUrl = physicalRouteReviewDeviceUrl;
+      if (!deviceUrl) throw new Error("The reviewed ESP32 connection is unavailable.");
+      await physicalRouteReviewFrameRequest?.catch(() => undefined);
+      const request = sendSimulatorFramebuffer(deviceUrl, pixels);
+      physicalRouteReviewFrameRequest = request;
+      try {
+        await request;
+      } finally {
+        if (physicalRouteReviewFrameRequest === request) {
+          physicalRouteReviewFrameRequest = undefined;
+        }
+      }
+    };
+
+    const showPhysicalRouteReviewSummary = async (): Promise<void> => {
+      const session = physicalRouteReviewSession;
+      if (!session) return;
+      physicalRouteReviewControls.hidden = true;
+      physicalRouteReviewSummary.hidden = false;
+      physicalRouteReviewApplyButton.hidden = false;
+      physicalRouteReviewSummaryBackButton.disabled = false;
+      selectPhysicalRouteReviewPanel(null);
+      const changes = physicalRouteReviewChanges(session, editorDefinition);
+      physicalRouteReviewSummaryNote.textContent = changes.length === 0
+        ? "All physical panel identities and address orientations match the current project. Applying records the completed physical review."
+        : `${changes.length} mapping ${changes.length === 1 ? "change" : "changes"} will be applied. Panel poses and fabrication data will not change.`;
+      physicalRouteReviewChangeList.replaceChildren(
+        ...(changes.length === 0
+          ? [Object.assign(document.createElement("li"), { textContent: "No route or orientation corrections." })]
+          : changes.map((change) =>
+            Object.assign(document.createElement("li"), { textContent: change })
+          )),
+      );
+      await sendPhysicalRouteReviewFrame(
+        Array.from({ length: session.ledCount }, () => [0, 0, 0] as [number, number, number]),
+      );
+    };
+
+    const showPhysicalRouteReviewSlot = async (
+      slotIndex: number,
+      sendFrame = true,
+    ): Promise<void> => {
+      const session = physicalRouteReviewSession;
+      if (!session) return;
+      const slot = session.slots[slotIndex];
+      if (!slot) {
+        await showPhysicalRouteReviewSummary();
+        return;
+      }
+      session.currentSlotIndex = slotIndex;
+      physicalRouteReviewControls.hidden = false;
+      physicalRouteReviewSummary.hidden = true;
+      physicalRouteReviewApplyButton.hidden = true;
+      physicalRouteReviewStep.value =
+        `${slot.outputLabel} · physical panel ${slot.chainPosition + 1} · ` +
+        `${slotIndex + 1} / ${session.slots.length}`;
+      physicalRouteReviewCurrent.textContent =
+        `Expected ${slot.expectedPanelId}. Assigned ${slot.panelId}. ` +
+        `Address orientation ${slot.quarterTurnsClockwise * 90}° clockwise in PCB back view.`;
+      const rotationDegrees = session.rotationStepQuarterTurns * 90;
+      physicalRouteReviewRotateLeftButton.textContent = `↶ ${rotationDegrees}°`;
+      physicalRouteReviewRotateRightButton.textContent = `↷ ${rotationDegrees}°`;
+      physicalRouteReviewRotateLeftButton.setAttribute(
+        "aria-label",
+        `Rotate address mapping ${rotationDegrees} degrees counter-clockwise`,
+      );
+      physicalRouteReviewRotateRightButton.setAttribute(
+        "aria-label",
+        `Rotate address mapping ${rotationDegrees} degrees clockwise`,
+      );
+      selectPhysicalRouteReviewPanel(slot.panelId, slot.quarterTurnsClockwise);
+      physicalRouteReviewPreviousButton.disabled = slotIndex === 0;
+      if (!sendFrame) return;
+      setPhysicalRouteReviewBusy(true);
+      try {
+        await sendPhysicalRouteReviewFrame(
+          createPhysicalPanelReviewFrame(session, slotIndex),
+        );
+      } finally {
+        setPhysicalRouteReviewBusy(false);
+        physicalRouteReviewPreviousButton.disabled = slotIndex === 0;
+      }
+    };
+
+    const advancePhysicalRouteReview = async (): Promise<void> => {
+      const session = physicalRouteReviewSession;
+      if (!session) return;
+      const next = nextPhysicalRouteReviewSlot(session);
+      if (next === null) await showPhysicalRouteReviewSummary();
+      else await showPhysicalRouteReviewSlot(next);
+    };
+
+    const closePhysicalRouteReview = async (
+      resumeLivePreview: boolean,
+    ): Promise<void> => {
+      const deviceUrl = physicalRouteReviewDeviceUrl;
+      await physicalRouteReviewFrameRequest?.catch(() => undefined);
+      physicalRouteReviewSession = undefined;
+      physicalRouteReviewDeviceUrl = undefined;
+      physicalRouteReviewApplying = false;
+      physicalRouteReviewPendingApply = undefined;
+      appRoot.classList.remove("app--physical-route-review");
+      controlPanel.inert = false;
+      selectPhysicalRouteReviewPanel(null);
+      physicalRouteReviewOriginalSelection = null;
+      if (physicalRouteReviewDialog.open) physicalRouteReviewDialog.close();
+      if (resumeLivePreview && deviceUrl && simulatorDeviceUrl) {
+        try {
+          await sendSimulatorFramebuffer(deviceUrl, physicalSimulatorFramebuffer());
+        } catch (error) {
+          setLogMessage(
+            `Live preview did not resume: ${error instanceof Error ? error.message : String(error)}`,
+            true,
+          );
+        }
+      }
+      updatePhysicalRouteReviewAvailability();
+    };
+
+    const beginPhysicalRouteReview = async (): Promise<void> => {
+      if (!simulatorDeviceUrl) {
+        throw new Error("Connect the configured ESP32 before reviewing physical wiring.");
+      }
+      if (!hardwareContract.readiness.mappingReady) {
+        throw new Error("Regenerate mapping/wiring before reviewing physical wiring.");
+      }
+      exitAssemblyTutorial(false);
+      if (artNetPreviewClient.active) {
+        stopMadMapperPreview("MadMapper preview stopped for physical wiring review.");
+      }
+      if (standaloneSaveTimer) {
+        clearTimeout(standaloneSaveTimer);
+        standaloneSaveTimer = undefined;
+      }
+      await settleSimulatorDeviceWork([
+        simulatorReconnectRequest,
+        standaloneSaveRequest,
+        simulatorFrameRequest,
+      ]);
+      physicalRouteReviewOriginalSelection = selectedEditorPanelId;
+      physicalRouteReviewSession = createPhysicalRouteReviewSession(
+        editorDefinition,
+        hardwareContract,
+      );
+      physicalRouteReviewDeviceUrl = simulatorDeviceUrl;
+      physicalRouteReviewPendingApply = undefined;
+      physicalRouteReviewApplyButton.textContent = "Apply and regenerate mapping";
+      physicalRouteReviewCancelButton.disabled = false;
+      appRoot.classList.add("app--physical-route-review");
+      controlPanel.inert = true;
+      physicalRouteReviewDialog.show();
+      updatePhysicalRouteReviewAvailability();
+      await showPhysicalRouteReviewSlot(0);
+      setLogMessage(
+        "Physical wiring review started. Only the selected physical panel is lit.",
+      );
     };
 
     const scheduleStandaloneSave = (): void => {
-      if (!simulatorDeviceUrl || simulatorSetupActive) return;
+      if (!simulatorDeviceUrl || simulatorSetupActive || physicalRouteReviewSession) return;
       if (standaloneSaveTimer) clearTimeout(standaloneSaveTimer);
       standaloneSaveTimer = setTimeout(() => {
         standaloneSaveTimer = undefined;
@@ -1084,6 +1365,7 @@ async function start(): Promise<void> {
       if (
         !simulatorReconnectEnabled ||
         simulatorSetupActive ||
+        physicalRouteReviewSession ||
         simulatorDeviceUrl ||
         simulatorReconnectRequest
       ) return;
@@ -1157,9 +1439,11 @@ async function start(): Promise<void> {
       getPayload: setupPayload,
       onSetupActiveChange: async (active) => {
         simulatorSetupActive = active;
+        updatePhysicalRouteReviewAvailability();
         if (!active) return;
         simulatorDeviceUrl = undefined;
         simulatorLinkFailed = false;
+        updatePhysicalRouteReviewAvailability();
         if (standaloneSaveTimer) {
           clearTimeout(standaloneSaveTimer);
           standaloneSaveTimer = undefined;
@@ -1815,6 +2099,7 @@ async function start(): Promise<void> {
           physicalAddressContractKey(selected.contract);
       simulatorDeviceUrl = undefined;
       simulatorLinkFailed = false;
+      updatePhysicalRouteReviewAvailability();
       if (standaloneSaveTimer) {
         clearTimeout(standaloneSaveTimer);
         standaloneSaveTimer = undefined;
@@ -2138,6 +2423,36 @@ async function start(): Promise<void> {
 
     renderer?.setSurfaceEditorCallbacks({
       onSelectionChange: (panelId) => {
+        if (physicalRouteReviewSession) {
+          if (
+            physicalRouteReviewProgrammaticSelection ||
+            physicalRouteReviewApplying ||
+            panelId === null
+          ) return;
+          try {
+            const currentSlotIndex = physicalRouteReviewSession.currentSlotIndex;
+            const changesIdentity =
+              physicalRouteReviewSession.slots[currentSlotIndex]?.panelId !== panelId;
+            physicalRouteReviewSession = assignPhysicalRouteReviewPanel(
+              physicalRouteReviewSession,
+              currentSlotIndex,
+              panelId,
+              !changesIdentity,
+            );
+            const nextAction = changesIdentity
+              ? showPhysicalRouteReviewSlot(currentSlotIndex, false)
+              : advancePhysicalRouteReview();
+            void nextAction.catch((error) => {
+              setLogMessage(
+                error instanceof Error ? error.message : String(error),
+                true,
+              );
+            });
+          } catch (error) {
+            setLogMessage(error instanceof Error ? error.message : String(error), true);
+          }
+          return;
+        }
         selectedEditorPanelId = panelId;
         for (const row of routeEditor.querySelectorAll<HTMLElement>(".route-panel")) {
           row.classList.toggle(
@@ -2319,6 +2634,141 @@ async function start(): Promise<void> {
           setLogMessage(message, true);
         }
       },
+    });
+
+    openPhysicalRouteReviewButton.addEventListener("click", () => {
+      void beginPhysicalRouteReview().catch(async (error) => {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
+        await closePhysicalRouteReview(true);
+      });
+    });
+    physicalRouteReviewPreviousButton.addEventListener("click", () => {
+      const session = physicalRouteReviewSession;
+      if (!session || physicalRouteReviewApplying || session.currentSlotIndex <= 0) return;
+      void showPhysicalRouteReviewSlot(session.currentSlotIndex - 1).catch((error) => {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
+      });
+    });
+    physicalRouteReviewSummaryBackButton.addEventListener("click", () => {
+      const session = physicalRouteReviewSession;
+      if (!session || physicalRouteReviewApplying || session.slots.length === 0) return;
+      void showPhysicalRouteReviewSlot(session.slots.length - 1).catch((error) => {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
+      });
+    });
+    physicalRouteReviewConfirmButton.addEventListener("click", () => {
+      if (!physicalRouteReviewSession || physicalRouteReviewApplying) return;
+      physicalRouteReviewSession = confirmPhysicalRouteReviewSlot(
+        physicalRouteReviewSession,
+        physicalRouteReviewSession.currentSlotIndex,
+      );
+      void advancePhysicalRouteReview().catch((error) => {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
+      });
+    });
+    const rotatePhysicalRouteReview = (delta: -1 | 1): void => {
+      if (!physicalRouteReviewSession || physicalRouteReviewApplying) return;
+      physicalRouteReviewSession = rotatePhysicalRouteReviewPanel(
+        physicalRouteReviewSession,
+        physicalRouteReviewSession.currentSlotIndex,
+        delta,
+      );
+      void showPhysicalRouteReviewSlot(
+        physicalRouteReviewSession.currentSlotIndex,
+        false,
+      );
+    };
+    physicalRouteReviewRotateLeftButton.addEventListener("click", () =>
+      rotatePhysicalRouteReview(-1)
+    );
+    physicalRouteReviewRotateRightButton.addEventListener("click", () =>
+      rotatePhysicalRouteReview(1)
+    );
+    physicalRouteReviewCancelButton.addEventListener("click", () => {
+      void closePhysicalRouteReview(true).then(() => {
+        setLogMessage("Physical wiring review cancelled. No project data changed.");
+      });
+    });
+    physicalRouteReviewDialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      if (physicalRouteReviewApplying) return;
+      void closePhysicalRouteReview(true).then(() => {
+        setLogMessage("Physical wiring review cancelled. No project data changed.");
+      });
+    });
+    document.addEventListener("keydown", (event) => {
+      if (
+        event.key !== "Escape" ||
+        !physicalRouteReviewSession ||
+        physicalRouteReviewApplying
+      ) return;
+      event.preventDefault();
+      void closePhysicalRouteReview(true).then(() => {
+        setLogMessage("Physical wiring review cancelled. No project data changed.");
+      });
+    });
+    physicalRouteReviewApplyButton.addEventListener("click", () => {
+      void (async () => {
+        const session = physicalRouteReviewSession;
+        const deviceUrl = physicalRouteReviewDeviceUrl;
+        if (!session || !deviceUrl) {
+          throw new Error("The physical wiring review is no longer active.");
+        }
+        physicalRouteReviewApplying = true;
+        setPhysicalRouteReviewBusy(true);
+        physicalRouteReviewApplyButton.disabled = true;
+        physicalRouteReviewCancelButton.disabled = true;
+        const pending = physicalRouteReviewPendingApply ?? (() => {
+          const reviewedDefinition = applyPhysicalRouteReview(editorDefinition, session);
+          const reviewedProject = createPanelAssemblyProject(
+            reviewedDefinition,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          return {
+            session,
+            deviceUrl,
+            reviewedSculpture: createLoadedSculpture(reviewedProject),
+          };
+        })();
+        physicalRouteReviewPendingApply = pending;
+        await physicalRouteReviewFrameRequest?.catch(() => undefined);
+        await synchronizeDeviceLedmap(
+          pending.deviceUrl,
+          `${JSON.stringify(pending.reviewedSculpture.contract.ledmap)}\n`,
+          true,
+          () =>
+            physicalRouteReviewSession === pending.session && physicalRouteReviewApplying,
+          setLogMessage,
+        );
+        await applyLoadedSculpture(pending.reviewedSculpture);
+        physicalRouteReviewSession = undefined;
+        physicalRouteReviewDeviceUrl = undefined;
+        physicalRouteReviewApplying = false;
+        physicalRouteReviewPendingApply = undefined;
+        appRoot.classList.remove("app--physical-route-review");
+        controlPanel.inert = false;
+        selectPhysicalRouteReviewPanel(null);
+        physicalRouteReviewOriginalSelection = null;
+        physicalRouteReviewDialog.close();
+        physicalRouteReviewApplyButton.disabled = false;
+        physicalRouteReviewCancelButton.disabled = false;
+        physicalRouteReviewApplyButton.textContent = "Apply and regenerate mapping";
+        enableSimulatorLink(pending.deviceUrl, true);
+        setLogMessage(
+          "Physical panel order and address orientation were saved. The exact ESP32 ledmap was regenerated, activated, and read back.",
+        );
+      })().catch((error) => {
+        physicalRouteReviewApplyButton.disabled = false;
+        physicalRouteReviewApplyButton.textContent = "Retry exact ESP32 verification";
+        physicalRouteReviewCancelButton.disabled = true;
+        physicalRouteReviewSummaryNote.textContent =
+          "The ESP32 update is not yet verified. The old project cannot resume because the device might already use the reviewed map. Retry until exact activation and read-back succeed.";
+        setLogMessage(
+          `Physical wiring apply is frozen until exact ESP32 verification succeeds: ${error instanceof Error ? error.message : String(error)}`,
+          true,
+        );
+      });
     });
 
     effectSelect.addEventListener("change", () => {
@@ -3567,6 +4017,7 @@ async function start(): Promise<void> {
 
       if (
         !simulatorSetupActive &&
+        !physicalRouteReviewSession &&
         !standaloneSaveRequest &&
         simulatorDeviceUrl &&
         !simulatorFrameRequest &&
