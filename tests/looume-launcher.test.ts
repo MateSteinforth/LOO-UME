@@ -318,6 +318,8 @@ describe("LOO/UME managed launcher", () => {
     expect(application).toContain("LOO_UME_FOLLOW_LOG=1");
     expect(application).toContain("LOO_UME_RESUMED_AFTER_COPY=1");
     expect(application).toContain("recover_orphaned_server_record");
+    expect(application.indexOf("recover_orphaned_server_record\n  progress \"Stopping"))
+      .toBeLessThan(application.indexOf('"$checkout_root/scripts/looume.sh" --stop'));
     expect(application).toContain("--uninstall) uninstall_application");
     expect(plist).toContain("art.loo-ume.launcher");
     expect(plist).toContain("AppIcon");

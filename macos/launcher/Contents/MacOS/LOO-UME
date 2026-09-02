@@ -57,6 +57,39 @@ open_progress_terminal() {
     -e 'end run' -- "$0" >/dev/null 2>&1
 }
 
+recover_orphaned_server_record() {
+  state_directory=$checkout_root/.tools/looume
+  server_pid_file=$state_directory/server.pid
+  [ ! -f "$server_pid_file" ] || return 0
+  [ -x "$curl_command" ] || return 0
+  [ -x "$lsof_command" ] || return 0
+  readiness=$(
+    "$curl_command" --fail --silent --show-error --max-time 2 \
+      "http://127.0.0.1:$port/api/generator-status" 2>/dev/null
+  ) || return 0
+  printf '%s' "$readiness" | /usr/bin/grep -Fq '"schemaVersion":"1.0.0"' || return 0
+  printf '%s' "$readiness" | /usr/bin/grep -Fq '"generator":"manifold"' || return 0
+  candidate_pids=$(
+    "$lsof_command" -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true
+  )
+  candidate_pid=
+  for discovered_pid in $candidate_pids; do
+    case $discovered_pid in ''|*[!0-9]*) continue ;; esac
+    [ -z "$candidate_pid" ] || return 0
+    candidate_pid=$discovered_pid
+  done
+  [ -n "$candidate_pid" ] || return 0
+  candidate_command=$(/bin/ps -p "$candidate_pid" -o command= 2>/dev/null || true)
+  case $candidate_command in
+    *"$checkout_root/bootstrap.sh launch"*|*"$checkout_root/bootstrap.sh update"*|*"$checkout_root/scripts/local-editor-server.ts"*) ;;
+    *) return 0 ;;
+  esac
+  mkdir -p "$state_directory"
+  chmod 700 "$state_directory"
+  printf '%s\n' "$candidate_pid" > "$server_pid_file"
+  progress "Recovered the existing managed LOO/UME server on port $port."
+}
+
 confirm_uninstall() {
   [ "${LOO_UME_CONFIRM_UNINSTALL:-0}" != 1 ] || return 0
   if [ -x "$osascript_command" ]; then
@@ -80,6 +113,7 @@ uninstall_application() {
   fi
   case $support_root in ''|/|"$HOME") show_error "The managed support path is unsafe."; exit 1 ;; esac
   case $installed_app in ''|/|"$HOME") show_error "The application path is unsafe."; exit 1 ;; esac
+  recover_orphaned_server_record
   progress "Stopping the managed server."
   if [ -x "$checkout_root/scripts/looume.sh" ]; then
     /bin/sh "$checkout_root/scripts/looume.sh" --stop || {
@@ -310,39 +344,6 @@ install_command_link() {
   chmod 755 "$temporary_command"
   mv "$temporary_command" "$command_path"
   ln -sfn "$command_path" "$user_bin/looume"
-}
-
-recover_orphaned_server_record() {
-  state_directory=$checkout_root/.tools/looume
-  server_pid_file=$state_directory/server.pid
-  [ ! -f "$server_pid_file" ] || return 0
-  [ -x "$curl_command" ] || return 0
-  [ -x "$lsof_command" ] || return 0
-  readiness=$(
-    "$curl_command" --fail --silent --show-error --max-time 2 \
-      "http://127.0.0.1:$port/api/generator-status" 2>/dev/null
-  ) || return 0
-  printf '%s' "$readiness" | /usr/bin/grep -Fq '"schemaVersion":"1.0.0"' || return 0
-  printf '%s' "$readiness" | /usr/bin/grep -Fq '"generator":"manifold"' || return 0
-  candidate_pids=$(
-    "$lsof_command" -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true
-  )
-  candidate_pid=
-  for discovered_pid in $candidate_pids; do
-    case $discovered_pid in ''|*[!0-9]*) continue ;; esac
-    [ -z "$candidate_pid" ] || return 0
-    candidate_pid=$discovered_pid
-  done
-  [ -n "$candidate_pid" ] || return 0
-  candidate_command=$(/bin/ps -p "$candidate_pid" -o command= 2>/dev/null || true)
-  case $candidate_command in
-    *"$checkout_root/bootstrap.sh launch"*|*"$checkout_root/bootstrap.sh update"*|*"$checkout_root/scripts/local-editor-server.ts"*) ;;
-    *) return 0 ;;
-  esac
-  mkdir -p "$state_directory"
-  chmod 700 "$state_directory"
-  printf '%s\n' "$candidate_pid" > "$server_pid_file"
-  progress "Recovered the existing managed LOO/UME server on port $port."
 }
 
 install_application_bundle
