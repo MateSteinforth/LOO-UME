@@ -345,3 +345,17 @@ Finder launch uses a visible Terminal progress session because browser and
 notification-only startup did not show whether a long first installation was
 working. Uninstall is a separate command file in the release. It preserves the
 local Project Library in Documents before it removes managed files.
+
+## D37 — Reuse the editor and local services inside Electron
+
+The Electron application is a packaging boundary, not a second editor. It
+serves the existing production browser build from an ephemeral loopback port
+and reuses the project-library, fabrication, Art-Net, WLED HTTP, and DDP service
+modules. The renderer has no Node integration. Web Serial permission stays in
+the Electron main process and accepts only the approved CP2102 identity.
+
+Electron updates are release-artifact updates, not Git checkout updates. Only a
+Developer-ID-signed and notarized `electron-v*` tag contained in canonical
+`main` can publish the latest update feed. Manual workflow runs build an
+unsigned review package only. Mutable projects and generated files stay in the
+application user-data directory and are not part of the replaceable bundle.

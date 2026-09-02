@@ -161,7 +161,7 @@ jobs:
               --target "$GITHUB_SHA" \
               --title "LOO/UME Mac Launcher $release_tag" \
               --generate-notes \
-              --latest
+              --latest=false
           fi
 
   publish-review-download:

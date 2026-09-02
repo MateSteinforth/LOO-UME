@@ -146,6 +146,39 @@ also publishes one unique prerelease with a direct, single-ZIP review download;
 it does not replace the latest public release. Apple notarization is not
 claimed.
 
+The Electron desktop package reuses the compiled browser editor and the Node
+service modules in one application process. Its internal HTTP server listens
+on a random loopback port. The Electron main process owns Project Library
+storage below the application user-data directory, generated files, logs, the
+loopback Art-Net receiver, private-network WLED HTTP/DDP access, and shutdown.
+Closing the last window on macOS keeps the normal application process available
+in the Dock; reopening the application creates a new window, and Quit closes
+the local service. Browser/LAN and managed-checkout launch modes remain
+supported review and development paths.
+
+Electron grants Web Serial only to its own loopback editor origin and only for
+the approved Silicon Labs CP2102 USB identity. MadMapper or TouchDesigner still
+sends Art-Net to `127.0.0.1:6454`; the existing mapping and preview path consumes
+that frame. The existing private-device DDP broker separately sends simulator
+frames to WLED. Electron does not add a second mapping or transport
+implementation. The direct Art-Net-to-DDP forwarding path remains `LIVE-020`;
+when that shared service is implemented, Electron consumes it without a second
+desktop-specific bridge.
+
+Packaged Electron updates reuse the update-notice HTTP contract through
+`electron-updater`. A release tag must be contained in canonical `main`, and a
+public Mac update must have a stable Developer ID signature and Apple
+notarization. Unsigned manual workflow builds are review artifacts, not the
+update feed; each manual run publishes one direct prerelease DMG for review.
+Project Library data remains outside the replaceable application
+bundle. A first desktop launch imports the earlier managed Mac Project Library
+only when the Electron library is empty.
+After the signed Electron cutover, Electron owns the repository's latest
+release because its updater reads that feed. The older managed-checkout
+launcher can still publish archived releases, but those releases are explicitly
+non-latest. The README download must change to the stable Electron DMG in the
+same cutover.
+
 A normal Finder launch first copies the small app wrapper to `/Applications`,
 then hands control from that stable path to one visible Terminal session. It
 never asks Terminal to reopen an ephemeral App Translocation path. The terminal

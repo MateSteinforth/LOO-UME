@@ -109,6 +109,20 @@ the tracked example unchanged, so a later application update stays safe.
 The local production server listens on `127.0.0.1:4173` by default. Use
 `ORBITAL_LAB_PORT` to select another port.
 
+To build and open the Electron desktop application from a checkout, use:
+
+```bash
+npm run electron
+```
+
+Electron embeds the same editor and local services. Art-Net still listens on
+loopback for MadMapper or TouchDesigner, DDP still targets the private WLED
+address, and Web Serial still requires selection of the approved CP2102 device.
+Projects are stored outside the replaceable application bundle. On macOS,
+`npm run package:electron:mac` creates the DMG and update ZIP. Unsigned manual
+workflow packages are for review only; in-application desktop updates require a
+Developer-ID-signed and notarized `electron-v*` release.
+
 For a laptop or phone on the same local network, run:
 
 ```bash
