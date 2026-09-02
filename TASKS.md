@@ -152,8 +152,10 @@ No tasks.
   Human Review after integration. The first native run exposed hidden Git
   progress and an orphaned managed listener after removal. The app performs the
   ownership-record migration before delegating, so a branch review artifact
-  also works against the older `main` checkout. These corrections need a new
-  native artifact review.
+  also works against the older `main` checkout. The command-file uninstaller
+  invokes the quarantined launcher through `/bin/sh`, and duplicate `lsof`
+  records for one PID remain one owner. These corrections need a new native
+  artifact review.
 
 ## In Progress
 

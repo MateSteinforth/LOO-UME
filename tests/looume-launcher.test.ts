@@ -348,6 +348,8 @@ describe("LOO/UME managed launcher", () => {
     expect(uninstaller.indexOf('if [ -x "$packaged_launcher" ]')).toBeLessThan(
       uninstaller.indexOf('if [ -x "$installed_launcher" ]'),
     );
+    expect(uninstaller).toContain('exec /bin/sh "$packaged_launcher" --uninstall');
+    expect(uninstaller).toContain('exec /bin/sh "$installed_launcher" --uninstall');
   });
 
   it("recovers and stops an orphaned managed server after its PID record was lost", async () => {
@@ -361,6 +363,7 @@ describe("LOO/UME managed launcher", () => {
     const fakeLsof = join(fixture.root, "lsof.sh");
     await writeFile(fakeLsof, [
       "#!/bin/sh",
+      `printf '%s\\n' '${server.pid}'`,
       `printf '%s\\n' '${server.pid}'`,
       "",
     ].join("\n"));

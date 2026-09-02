@@ -63,7 +63,9 @@ discover_owned_pid() {
     case $discovered_pid in
       ''|*[!0-9]*) continue ;;
     esac
-    if [ -n "$candidate_pid" ]; then return 1; fi
+    if [ -n "$candidate_pid" ] && [ "$candidate_pid" != "$discovered_pid" ]; then
+      return 1
+    fi
     candidate_pid=$discovered_pid
   done
   [ -n "$candidate_pid" ] || return 1

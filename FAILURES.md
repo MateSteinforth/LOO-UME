@@ -2303,15 +2303,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Symptom:** The removal Terminal ended with `zsh: killed`. Reinstall then
   rejected port 4173 even though its LOO/UME readiness endpoint was active.
   Git also printed only its first clone line to the file log.
-- **Cause:** The native removal ended before it verified that the listener was
-  gone. Its managed PID record did not survive, so the remaining server became
-  an orphan. The launcher correctly rejected an unowned port, but had no narrow
-  recovery path. Git clone progress was redirected away from the visible
-  installer Terminal.
-- **Correction:** Recover an orphan only when one listening PID has the exact
+- **Cause:** The command file executed a quarantined nested app executable
+  directly, while the working install path explicitly used `/bin/sh`; macOS
+  killed that direct invocation before the first progress message. The managed
+  PID record did not survive, so the remaining server became an orphan. Its
+  listener PID can also occur more than once in `lsof` output. The launcher
+  interpreted a duplicate as multiple processes and skipped safe recovery. Git
+  clone progress was redirected away from the visible installer Terminal.
+- **Correction:** Run the packaged and installed uninstall scripts explicitly
+  through `/bin/sh`. Recover an orphan only when one unique listening PID has the exact
   managed checkout command path and the endpoint returns the LOO/UME readiness
-  contract. Recreate the PID record before reuse or removal. Run Git clone with
-  forced progress directly in the visible Terminal.
+  contract; accept repeated records of that same PID. Recreate the PID record
+  before reuse or removal. Run Git clone with forced progress directly in the
+  visible Terminal.
 - **Prevention:** Ownership recovery must combine process identity and an
   application-specific readiness response. Never adopt a port from HTTP
   response alone. Removal must stop if an active port cannot be owned or stays

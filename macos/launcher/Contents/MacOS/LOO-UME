@@ -75,14 +75,20 @@ recover_orphaned_server_record() {
   candidate_pid=
   for discovered_pid in $candidate_pids; do
     case $discovered_pid in ''|*[!0-9]*) continue ;; esac
-    [ -z "$candidate_pid" ] || return 0
+    if [ -n "$candidate_pid" ] && [ "$candidate_pid" != "$discovered_pid" ]; then
+      progress "Port $port has more than one listening process. Ownership was not changed."
+      return 0
+    fi
     candidate_pid=$discovered_pid
   done
   [ -n "$candidate_pid" ] || return 0
   candidate_command=$(/bin/ps -p "$candidate_pid" -o command= 2>/dev/null || true)
   case $candidate_command in
     *"$checkout_root/bootstrap.sh launch"*|*"$checkout_root/bootstrap.sh update"*|*"$checkout_root/scripts/local-editor-server.ts"*) ;;
-    *) return 0 ;;
+    *)
+      progress "Port $port belongs to a LOO/UME-compatible process outside this managed installation. Ownership was not changed."
+      return 0
+      ;;
   esac
   mkdir -p "$state_directory"
   chmod 700 "$state_directory"
