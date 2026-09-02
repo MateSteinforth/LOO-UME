@@ -130,6 +130,12 @@ restarts through this launcher so the PID does not become stale. Developer
 checkouts continue to restart directly through `bootstrap.sh`. Launch, first
 install, and application-copy serialization use unique atomic PID claims;
 stale cleanup never deletes a reusable shared lock path.
+When a downloaded launcher differs from an existing installed bundle, the app
+replacement leaves a durable pending-upgrade marker. The stable installed app
+then uses `looume --update`, which stops the verified owned server before the
+fast-forward update and restarts one current server. The marker is cleared only
+after success. An identical translocated or installed bundle skips this path
+and reuses the running service.
 
 The Mac launcher ZIP is an independent GitHub release asset. Every canonical
 `main` push and every explicit `mac-launcher-v*` tag runs the macOS-only job,

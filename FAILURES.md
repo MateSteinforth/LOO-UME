@@ -2390,3 +2390,26 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   final installation location in the visible progress log.
 - **Status:** Implemented by INSTALL-018; native system-folder install and
   reopen remain Human Review after a new release is published.
+
+### F-128 — Replacing the app did not update the running installation
+
+- **Date:** 2026-09-02
+- **Context:** Native review of a newer downloaded Mac launcher over an
+  existing installation.
+- **Symptom:** A replacement wrapper could coexist with the old managed server
+  and checkout, so opening the new icon did not prove that the running editor
+  used the new application version.
+- **Cause:** App-bundle replacement and managed-checkout update were separate
+  workflows. `install_checkout()` correctly preserved an existing checkout,
+  but the launcher then used the ordinary `launch` action and reused its
+  already-running server.
+- **Correction:** A different app replacement now records a durable pending
+  upgrade when a managed checkout exists. The stable installed wrapper invokes
+  the existing `looume --update` boundary, which stops the verified server,
+  applies the guarded in-place update, and starts one new server. The marker is
+  removed only after success. An identical app performs an ordinary reopen.
+- **Prevention:** Treat app replacement and service version activation as one
+  recoverable transaction. Do not delete the Project Library to obtain a clean
+  upgrade, and do not restart or replace an unverified process.
+- **Status:** Implemented by INSTALL-018; native replacement over a running
+  prior release remains Human Review.

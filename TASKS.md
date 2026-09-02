@@ -141,11 +141,14 @@ No tasks.
   app again opens a valid editor; an API-only stale managed server is stopped
   and rebuilt, while an unrelated process is never adopted or stopped;
   uninstall removes the managed system app through the same bounded macOS
-  authorization boundary.
+  authorization boundary. A newer installer stops the verified existing
+  service, updates the managed checkout in place without removing local
+  projects, and starts only the updated service; reopening an identical app
+  continues to reuse the running service.
 - Owner: `codex/install-018-reopen-lifecycle` in
   `/tmp/loo-ume-install-018`. Likely conflicts: Mac launcher lifecycle,
   managed-server readiness, launcher regressions, and install documentation.
-- Verification: 17 focused launcher lifecycle tests, shell syntax, diff-check,
+- Verification: 18 focused launcher lifecycle tests, shell syntax, diff-check,
   and final integrated diff review passed. Native `/Applications`
   authorization, migration, reopen, and removal remain operator review after
   the next Mac release is published.

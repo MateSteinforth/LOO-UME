@@ -33,6 +33,10 @@ again to reopen the editor. Use `looume --stop` only when you want to stop the
 local service completely; the next icon launch starts it again. After the first
 successful installation, delete the downloaded ZIP and its extracted launcher
 folder so `/Applications/LOO UME.app` is the only copy you use.
+Opening a newer downloaded launcher replaces the app, stops the existing
+managed server through its verified ownership boundary, updates the managed
+checkout in place, and starts one current server. It does not remove local
+Project Library files.
 
 The application also installs an optional command link at
 `~/.local/bin/looume`. If that directory is already in the user's shell path,

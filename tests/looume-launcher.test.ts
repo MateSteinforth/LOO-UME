@@ -795,6 +795,60 @@ describe("LOO/UME managed launcher", () => {
       .toBe(false);
   });
 
+  it("updates an existing managed installation after replacing its app", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-upgrade-"));
+    temporaryDirectories.push(home);
+    const support = join(home, "support");
+    const checkout = join(support, "application");
+    const applications = join(home, "Applications");
+    const installedApp = join(applications, "LOO UME.app");
+    const actionLog = join(home, "managed-action.log");
+    const fakeDitto = join(home, "ditto.sh");
+    await mkdir(join(checkout, ".git"), { recursive: true });
+    await mkdir(join(checkout, "scripts"), { recursive: true });
+    await mkdir(installedApp, { recursive: true });
+    await writeFile(join(installedApp, "old-launcher"), "old\n");
+    await writeFile(join(checkout, "scripts", "looume.sh"), [
+      "#!/bin/sh",
+      'printf \'%s\\n\' "$1" >> "$FAKE_ACTION_LOG"',
+      "",
+    ].join("\n"));
+    await chmod(join(checkout, "scripts", "looume.sh"), 0o755);
+    await writeFile(fakeDitto, [
+      "#!/bin/sh",
+      "set -eu",
+      'cp -R "$1" "$2"',
+      "",
+    ].join("\n"));
+    await chmod(fakeDitto, 0o755);
+    const result = await execFileAsync(
+      "sh",
+      ["macos/launcher/Contents/MacOS/LOO-UME"],
+      {
+        env: {
+          ...process.env,
+          HOME: home,
+          FAKE_ACTION_LOG: actionLog,
+          LOO_UME_APPLICATIONS_ROOT: applications,
+          LOO_UME_SUPPORT_ROOT: support,
+          LOO_UME_DITTO_COMMAND: fakeDitto,
+          LOO_UME_OSASCRIPT_COMMAND: "/bin/false",
+          LOO_UME_TERMINAL_SESSION: "1",
+          LOO_UME_READY_DELAY: "0",
+        },
+        timeout: 10_000,
+      },
+    );
+    expect(result.stdout).toContain("Updating the existing installation");
+    expect(await readFile(actionLog, "utf8")).toBe("--update\n");
+    await expect(stat(join(support, ".pending-installer-upgrade")))
+      .rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(
+      join(installedApp, "Contents", "Info.plist"),
+      "utf8",
+    )).toContain("art.loo-ume.launcher");
+  });
+
   it("recovers an interrupted application copy before replacing the launcher", async () => {
     const home = await mkdtemp(join(tmpdir(), "looume-mac-copy-"));
     temporaryDirectories.push(home);
