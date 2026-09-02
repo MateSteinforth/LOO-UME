@@ -213,9 +213,11 @@ No tasks.
 - Evidence: TypeScript, the focused Electron boundary tests, the Electron main
   build, the production web build, shell syntax, workflow YAML, a Linux package
   inventory, and a bounded packaged-process launch pass. Native universal Mac
-  DMG installation, CP2102 selection, Art-Net-to-DDP parity, signing,
-  notarization, and update installation remain Human Review. The signed release
-  tag cannot be published until the five Apple signing secrets are configured.
+  DMG installation, CP2102 selection, the existing Art-Net preview and DDP
+  hardware mirror, signing, notarization, and update installation remain Human
+  Review. Direct Art-Net-to-DDP forwarding remains the separate `LIVE-020`
+  task. The signed release tag cannot be published until the five Apple signing
+  secrets are configured.
   A manual workflow run publishes a direct unsigned universal-DMG prerelease
   for the native review without changing the update feed.
 - Release cutover: before the first signed `electron-v*` tag becomes latest,

@@ -159,8 +159,11 @@ supported review and development paths.
 Electron grants Web Serial only to its own loopback editor origin and only for
 the approved Silicon Labs CP2102 USB identity. MadMapper or TouchDesigner still
 sends Art-Net to `127.0.0.1:6454`; the existing mapping and preview path consumes
-that frame, and the existing private-device DDP broker sends live frames to
-WLED. Electron does not add a second mapping or transport implementation.
+that frame. The existing private-device DDP broker separately sends simulator
+frames to WLED. Electron does not add a second mapping or transport
+implementation. The direct Art-Net-to-DDP forwarding path remains `LIVE-020`;
+when that shared service is implemented, Electron consumes it without a second
+desktop-specific bridge.
 
 Packaged Electron updates reuse the update-notice HTTP contract through
 `electron-updater`. A release tag must be contained in canonical `main`, and a
