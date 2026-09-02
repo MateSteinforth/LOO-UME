@@ -12,6 +12,7 @@
     "types": ["node", "w3c-web-serial"]
   },
   "include": [
+    "electron",
     "scripts",
     "src",
     "tests",

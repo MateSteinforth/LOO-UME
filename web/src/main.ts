@@ -796,7 +796,7 @@ async function showAvailableApplicationUpdate(): Promise<void> {
   applicationUpdateMessage.textContent = status.message;
   applyApplicationUpdateButton.disabled = !status.canApply;
   if (!status.canApply) {
-    applyApplicationUpdateButton.title = "Run ./bootstrap.sh update in the installation checkout.";
+    applyApplicationUpdateButton.title = "Use the update method for this LOO/UME installation.";
   }
 }
 
@@ -817,7 +817,7 @@ async function waitForUpdatedApplication(): Promise<void> {
     await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 1_000));
   }
   applicationUpdateMessage.textContent =
-    "The update did not restart automatically. Run ./bootstrap.sh launch.";
+    "The update did not restart automatically. Reopen LOO/UME.";
   applyApplicationUpdateButton.disabled = false;
 }
 

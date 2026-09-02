@@ -31,23 +31,6 @@ then prove direct Art-Net behavior and static address/RGB parity on hardware.
 
 ## Backlog
 
-### `P1 · INSTALL-019` Package LOO/UME as an Electron desktop application
-
-- Scope: wrap the existing Vite/TypeScript editor and Node-side local services
-  in Electron without rewriting the browser application. Keep the browser/LAN
-  workflow available for development and remote-device review.
-- Acceptance: one desktop process owns the application window, local APIs,
-  project-library storage, hardware transports, logs, shutdown, and restart;
-  closing and reopening has normal application behavior; the Mac build installs
-  through a standard DMG/Application workflow; updates use verified GitHub
-  Release artifacts; Web Serial, DDP, Art-Net, project import/export, and local
-  project preservation retain their existing security and data boundaries.
-- Migration boundary: reuse the current editor and service modules first. Do
-  not replace working browser behavior, remove the LAN mode, or expand into UI
-  redesign. Treat signing, notarization, updater behavior, hardware permission
-  prompts, and migration from the shell-managed installation as explicit
-  delivery requirements.
-
 ### `P1 · MAP-021` Make logical LED ordering cross-platform deterministic
 
 - Scope: replace exact raw-float ordering of symmetric LED positions with one
@@ -206,7 +189,39 @@ No tasks.
 
 ## Human Review
 
-No tasks.
+### `P1 · INSTALL-019` Package LOO/UME as an Electron desktop application
+
+- Scope: wrap the existing Vite/TypeScript editor and Node-side local services
+  in Electron without rewriting the browser application. Keep the browser/LAN
+  workflow available for development and remote-device review.
+- Acceptance: one desktop process owns the application window, local APIs,
+  project-library storage, hardware transports, logs, shutdown, and restart;
+  closing and reopening has normal application behavior; the Mac build installs
+  through a standard DMG/Application workflow; updates use verified GitHub
+  Release artifacts; Web Serial, DDP, Art-Net, project import/export, and local
+  project preservation retain their existing security and data boundaries.
+- Migration boundary: reuse the current editor and service modules first. Do
+  not replace working browser behavior, remove the LAN mode, or expand into UI
+  redesign. Electron serial selection must preserve the explicit CP2102 device
+  choice; the Art-Net/DDP services remain loopback/private-network bounded;
+  release updates remain unavailable until the Mac application has a stable
+  Developer ID signature and notarization because Squirrel.Mac requires it.
+- Owner: `codex/install-019-electron-desktop` in
+  `/tmp/loo-ume-install-019`. Likely conflicts: desktop server lifecycle,
+  application-update transport, package scripts and lockfile, Mac release
+  workflow, serial permissions, and installation documentation.
+- Evidence: TypeScript, the focused Electron boundary tests, the Electron main
+  build, the production web build, shell syntax, workflow YAML, a Linux package
+  inventory, and a bounded packaged-process launch pass. Native universal Mac
+  DMG installation, CP2102 selection, Art-Net-to-DDP parity, signing,
+  notarization, and update installation remain Human Review. The signed release
+  tag cannot be published until the five Apple signing secrets are configured.
+  A manual workflow run publishes a direct unsigned universal-DMG prerelease
+  for the native review without changing the update feed.
+- Release cutover: before the first signed `electron-v*` tag becomes latest,
+  replace the README's legacy `releases/latest` launcher link with the stable
+  Electron DMG link. Later launcher releases are already marked non-latest, so
+  they cannot replace the Electron update feed.
 
 ## Blocked
 

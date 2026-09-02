@@ -2413,3 +2413,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   upgrade, and do not restart or replace an unverified process.
 - **Status:** Implemented by INSTALL-018; native replacement over a running
   prior release remains Human Review.
+
+### F-129 — A desktop wrapper can silently fork working hardware paths
+
+- **Date:** 2026-09-02
+- **Context:** Packaging the browser editor as an Electron application.
+- **Risk:** Reimplementing serial, Art-Net, DDP, project storage, or update
+  logic in the renderer can produce a desktop UI that looks correct but has
+  different mapping, network, and persistence behavior.
+- **Correction:** Keep the compiled browser editor unchanged and host the
+  existing Node service modules in the Electron main process. Grant serial
+  permission only to the internal loopback origin and approved CP2102 identity.
+  Store mutable project and generated data under Electron user data. Use signed
+  release artifacts for Electron updates instead of Git mutation.
+- **Prevention:** Treat Electron as a process, permission, and packaging
+  boundary. Do not add a second mapping or hardware transport authority. Do not
+  publish an unsigned application as an update source.
+- **Status:** Implemented by INSTALL-019; native signed/notarized Mac release
+  evidence remains pending.
