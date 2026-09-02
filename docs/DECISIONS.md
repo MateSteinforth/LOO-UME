@@ -359,3 +359,8 @@ Developer-ID-signed and notarized `electron-v*` tag contained in canonical
 `main` can publish the latest update feed. Manual workflow runs build an
 unsigned review package only. Mutable projects and generated files stay in the
 application user-data directory and are not part of the replaceable bundle.
+
+The Electron window owns the desktop session. Closing the last window quits
+the application and its loopback services on macOS as well as other platforms.
+This differs from the normal document-based Mac convention because LOO/UME has
+no useful hidden state after its only editor window closes.

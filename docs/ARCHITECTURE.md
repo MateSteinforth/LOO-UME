@@ -151,10 +151,12 @@ service modules in one application process. Its internal HTTP server listens
 on a random loopback port. The Electron main process owns Project Library
 storage below the application user-data directory, generated files, logs, the
 loopback Art-Net receiver, private-network WLED HTTP/DDP access, and shutdown.
-Closing the last window on macOS keeps the normal application process available
-in the Dock; reopening the application creates a new window, and Quit closes
-the local service. Browser/LAN and managed-checkout launch modes remain
-supported review and development paths.
+Closing the last Electron window quits the application and closes its local
+service on every platform. A later icon launch starts one new process and one
+new window. This explicit lifecycle makes Finder removal unambiguous and does
+not leave a hidden Mac process after the operator closes the window.
+Browser/LAN and managed-checkout launch modes remain supported review and
+development paths.
 
 Electron grants Web Serial only to its own loopback editor origin and only for
 the approved Silicon Labs CP2102 USB identity. MadMapper or TouchDesigner still

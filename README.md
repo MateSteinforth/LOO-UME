@@ -118,7 +118,9 @@ npm run electron
 Electron embeds the same editor and local services. Art-Net still listens on
 loopback for MadMapper or TouchDesigner, DDP still targets the private WLED
 address, and Web Serial still requires selection of the approved CP2102 device.
-Projects are stored outside the replaceable application bundle. On macOS,
+Projects are stored outside the replaceable application bundle. Closing the
+Electron window quits the application and its local services; open the icon to
+start a new session. On macOS,
 `npm run package:electron:mac` creates the DMG and update ZIP. Unsigned manual
 workflow packages are for review only; in-application desktop updates require a
 Developer-ID-signed and notarized `electron-v*` release.

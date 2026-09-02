@@ -196,10 +196,11 @@ No tasks.
   workflow available for development and remote-device review.
 - Acceptance: one desktop process owns the application window, local APIs,
   project-library storage, hardware transports, logs, shutdown, and restart;
-  closing and reopening has normal application behavior; the Mac build installs
-  through a standard DMG/Application workflow; updates use verified GitHub
-  Release artifacts; Web Serial, DDP, Art-Net, project import/export, and local
-  project preservation retain their existing security and data boundaries.
+  closing the last window quits that process and its local services, and a
+  later icon launch starts one new window; the Mac build installs through a
+  standard DMG/Application workflow; updates use verified GitHub Release
+  artifacts; Web Serial, DDP, Art-Net, project import/export, and local project
+  preservation retain their existing security and data boundaries.
 - Migration boundary: reuse the current editor and service modules first. Do
   not replace working browser behavior, remove the LAN mode, or expand into UI
   redesign. Electron serial selection must preserve the explicit CP2102 device
@@ -220,6 +221,10 @@ No tasks.
   secrets are configured.
   A manual workflow run publishes a direct unsigned universal-DMG prerelease
   for the native review without changing the update feed.
+  Native review of `electron-review-2` found that the normal Mac last-window
+  behavior left a hidden process and made Finder removal unclear. The corrected
+  package must prove close-to-quit and a clean later launch before this task is
+  complete.
 - Release cutover: before the first signed `electron-v*` tag becomes latest,
   replace the README's legacy `releases/latest` launcher link with the stable
   Electron DMG link. Later launcher releases are already marked non-latest, so

@@ -2449,3 +2449,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   broad universal-merge exception for unused architecture-specific binaries.
 - **Status:** Implemented by INSTALL-019; the corrected universal workflow must
   pass before native review.
+
+### F-131 — Closing the Electron window left a hidden Mac process
+
+- **Date:** 2026-09-02
+- **Context:** Native review of the first unsigned Electron DMG.
+- **Symptom:** Closing the only window left LOO/UME open. Finder refused to
+  remove the application, and a later icon launch did not show a reliable new
+  window.
+- **Cause:** The Electron lifecycle copied the normal document-based macOS
+  convention and kept the application process alive after its last window
+  closed. LOO/UME has one editor window and owns local services in that process,
+  so the hidden process was not useful or visible.
+- **Correction:** Quit on `window-all-closed` on every platform. The existing
+  `before-quit` boundary closes the loopback service before process exit. A
+  later icon launch starts a fresh process and window.
+- **Prevention:** Desktop lifecycle must match the operator-visible ownership
+  model. Closing the only LOO/UME window closes the application; do not apply a
+  generic platform convention without native workflow evidence.
+- **Status:** Implemented by INSTALL-019; replacement DMG review is pending.
