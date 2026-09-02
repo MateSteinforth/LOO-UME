@@ -83,7 +83,9 @@
     "asar": true,
     "files": [
       "electron-dist/**",
-      "package.json"
+      "package.json",
+      "!node_modules/@img/**",
+      "!node_modules/sharp/**"
     ],
     "extraResources": [
       {

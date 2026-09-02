@@ -2431,3 +2431,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   publish an unsigned application as an update source.
 - **Status:** Implemented by INSTALL-019; native signed/notarized Mac release
   evidence remains pending.
+
+### F-130 — Universal Electron merge included both Sharp architectures
+
+- **Date:** 2026-09-02
+- **Context:** First unsigned universal-Mac Electron workflow run.
+- **Symptom:** Both architecture packages completed, but the universal merge
+  stopped on `@img/sharp-darwin-arm64` because the same native file existed in
+  both halves without an architecture ownership rule.
+- **Cause:** `manifold-3d` exposes optional GLTF tooling through its dependency
+  tree. Electron Builder copied the unused Sharp image stack even though the
+  desktop fabrication service imports only the root Manifold WASM runtime.
+- **Correction:** Exclude `sharp` and its `@img` optional native packages from
+  the Electron application. Keep the root `manifold-3d` package unpacked and
+  verify the packaged generator-status endpoint before release.
+- **Prevention:** Package the minimum runtime dependency surface. Do not use a
+  broad universal-merge exception for unused architecture-specific binaries.
+- **Status:** Implemented by INSTALL-019; the corrected universal workflow must
+  pass before native review.
