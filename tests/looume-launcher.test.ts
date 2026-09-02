@@ -299,6 +299,7 @@ describe("LOO/UME managed launcher", () => {
       "utf8",
     );
     const readme = await readFile("README.md", "utf8");
+    const uninstaller = await readFile("macos/Uninstall LOO UME.command", "utf8");
     expect(application).toContain("$HOME/Library/Application Support/LOO-UME");
     expect(application).toContain("$HOME/Applications");
     expect(application).toContain('"$git_command" clone --branch main --single-branch');
@@ -333,6 +334,9 @@ describe("LOO/UME managed launcher", () => {
     expect(workflow).toContain("permissions:\n      contents: write");
     expect(readme).toContain(
       "https://github.com/MateSteinforth/LOO-UME/releases/latest/download/LOO-UME-Mac-Launcher.zip",
+    );
+    expect(uninstaller.indexOf('if [ -x "$packaged_launcher" ]')).toBeLessThan(
+      uninstaller.indexOf('if [ -x "$installed_launcher" ]'),
     );
   });
 
