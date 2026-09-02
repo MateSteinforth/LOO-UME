@@ -317,6 +317,7 @@ describe("LOO/UME managed launcher", () => {
     expect(application).toContain('tell application "Terminal"');
     expect(application).toContain("LOO_UME_FOLLOW_LOG=1");
     expect(application).toContain("LOO_UME_RESUMED_AFTER_COPY=1");
+    expect(application).toContain("recover_orphaned_server_record");
     expect(application).toContain("--uninstall) uninstall_application");
     expect(plist).toContain("art.loo-ume.launcher");
     expect(plist).toContain("AppIcon");
@@ -397,6 +398,74 @@ describe("LOO/UME managed launcher", () => {
         if (server.exitCode !== null) resolvePromise();
         else server.once("close", () => resolvePromise());
       });
+    }
+  });
+
+  it("repairs an orphan record in the app before delegating to an older checkout", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-orphan-"));
+    temporaryDirectories.push(home);
+    const support = join(home, "support");
+    const checkout = join(support, "application");
+    const scripts = join(checkout, "scripts");
+    const serverScript = join(scripts, "local-editor-server.ts");
+    const delegatedLog = join(home, "delegated.log");
+    await mkdir(join(checkout, ".git"), { recursive: true });
+    await mkdir(scripts, { recursive: true });
+    await writeFile(serverScript, [
+      'import { createServer } from "node:http";',
+      'const server = createServer((_request, response) => {',
+      '  response.setHeader("Content-Type", "application/json");',
+      '  response.end(JSON.stringify({ schemaVersion: "1.0.0", generator: "manifold" }));',
+      '});',
+      'server.listen(Number(process.env.ORBITAL_LAB_PORT), "127.0.0.1");',
+      'process.once("SIGTERM", () => server.close(() => process.exit(0)));',
+      "",
+    ].join("\n"));
+    await writeFile(join(scripts, "looume.sh"), [
+      "#!/bin/sh",
+      `cat '${checkout}/.tools/looume/server.pid' > '${delegatedLog}'`,
+      "",
+    ].join("\n"));
+    await chmod(join(scripts, "looume.sh"), 0o755);
+    const port = await freePort();
+    const server = spawn(process.execPath, [serverScript], {
+      env: { ...process.env, ORBITAL_LAB_PORT: String(port) },
+      stdio: "ignore",
+    });
+    const fakeLsof = join(home, "lsof.sh");
+    await writeFile(fakeLsof, [
+      "#!/bin/sh",
+      `printf '%s\\n' '${server.pid}'`,
+      "",
+    ].join("\n"));
+    await chmod(fakeLsof, 0o755);
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try {
+        const response = await fetch(`http://127.0.0.1:${port}/api/generator-status`);
+        if (response.ok) break;
+      } catch {
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 20));
+      }
+    }
+    try {
+      const result = await execFileAsync("sh", ["macos/launcher/Contents/MacOS/LOO-UME"], {
+        env: {
+          ...process.env,
+          HOME: home,
+          LOO_UME_SUPPORT_ROOT: support,
+          LOO_UME_APPLICATIONS_ROOT: join(home, "Applications"),
+          LOO_UME_SKIP_APP_COPY: "1",
+          LOO_UME_OSASCRIPT_COMMAND: "/bin/false",
+          LOO_UME_LSOF_COMMAND: fakeLsof,
+          LOO_UME_PORT: String(port),
+        },
+        timeout: 5_000,
+      });
+      expect(result.stdout).toContain("Recovered the existing managed LOO/UME server");
+      expect(await readFile(delegatedLog, "utf8")).toBe(`${server.pid}\n`);
+    } finally {
+      server.kill("SIGTERM");
+      await new Promise<void>((resolvePromise) => server.once("close", () => resolvePromise()));
     }
   });
 

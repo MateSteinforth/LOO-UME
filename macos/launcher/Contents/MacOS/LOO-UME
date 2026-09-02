@@ -16,6 +16,9 @@ open_command=${LOO_UME_APP_OPEN_COMMAND:-/usr/bin/open}
 osascript_command=${LOO_UME_OSASCRIPT_COMMAND:-/usr/bin/osascript}
 xcode_select_command=${LOO_UME_XCODE_SELECT_COMMAND:-/usr/bin/xcode-select}
 documents_root=${LOO_UME_DOCUMENTS_ROOT:-$HOME/Documents}
+curl_command=${LOO_UME_CURL_COMMAND:-/usr/bin/curl}
+lsof_command=${LOO_UME_LSOF_COMMAND:-/usr/sbin/lsof}
+port=${LOO_UME_PORT:-4173}
 
 progress() {
   printf '\nLOO/UME — %s\n' "$1"
@@ -309,8 +312,42 @@ install_command_link() {
   ln -sfn "$command_path" "$user_bin/looume"
 }
 
+recover_orphaned_server_record() {
+  state_directory=$checkout_root/.tools/looume
+  server_pid_file=$state_directory/server.pid
+  [ ! -f "$server_pid_file" ] || return 0
+  [ -x "$curl_command" ] || return 0
+  [ -x "$lsof_command" ] || return 0
+  readiness=$(
+    "$curl_command" --fail --silent --show-error --max-time 2 \
+      "http://127.0.0.1:$port/api/generator-status" 2>/dev/null
+  ) || return 0
+  printf '%s' "$readiness" | /usr/bin/grep -Fq '"schemaVersion":"1.0.0"' || return 0
+  printf '%s' "$readiness" | /usr/bin/grep -Fq '"generator":"manifold"' || return 0
+  candidate_pids=$(
+    "$lsof_command" -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true
+  )
+  candidate_pid=
+  for discovered_pid in $candidate_pids; do
+    case $discovered_pid in ''|*[!0-9]*) continue ;; esac
+    [ -z "$candidate_pid" ] || return 0
+    candidate_pid=$discovered_pid
+  done
+  [ -n "$candidate_pid" ] || return 0
+  candidate_command=$(/bin/ps -p "$candidate_pid" -o command= 2>/dev/null || true)
+  case $candidate_command in
+    *"$checkout_root/bootstrap.sh launch"*|*"$checkout_root/bootstrap.sh update"*|*"$checkout_root/scripts/local-editor-server.ts"*) ;;
+    *) return 0 ;;
+  esac
+  mkdir -p "$state_directory"
+  chmod 700 "$state_directory"
+  printf '%s\n' "$candidate_pid" > "$server_pid_file"
+  progress "Recovered the existing managed LOO/UME server on port $port."
+}
+
 install_application_bundle
 install_checkout
+recover_orphaned_server_record
 progress "Preparing the local command and application service."
 install_command_link
 progress "Starting LOO/UME. Detailed setup output follows."
