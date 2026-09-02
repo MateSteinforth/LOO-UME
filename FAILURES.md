@@ -2467,4 +2467,25 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Prevention:** Desktop lifecycle must match the operator-visible ownership
   model. Closing the only LOO/UME window closes the application; do not apply a
   generic platform convention without native workflow evidence.
-- **Status:** Implemented by INSTALL-019; replacement DMG review is pending.
+- **Status:** Resolved in INSTALL-019; native `electron-review-3` close, remove,
+  and relaunch behavior passed.
+
+### F-132 — Two Mac installers competed for the primary download
+
+- **Date:** 2026-09-02
+- **Context:** Electron native review passed while the README and automatic
+  `main` workflow still promoted the older Terminal/browser launcher.
+- **Symptom:** The successful Electron application was not the default download,
+  and ordinary changes continued to package a second, more complex installation
+  path.
+- **Cause:** The Electron task added a review and future signed-release path but
+  did not complete the free unsigned distribution cutover.
+- **Correction:** Make the Electron DMG the primary README installation. Refresh
+  one fixed unsigned prerelease asset from canonical `main`, without updater
+  metadata. Retain the managed-checkout launcher only for explicit legacy tags
+  and manual recovery builds.
+- **Prevention:** One operator platform has one primary installation path.
+  Compatibility installers must be labelled legacy and must not publish on each
+  normal integration.
+- **Status:** Implemented by INSTALL-019; first canonical-main refresh remains
+  release evidence after integration.

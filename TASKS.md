@@ -4,8 +4,8 @@ Last reconciled: 2026-08-31
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: publish one current Mac launcher download automatically,
-then prove direct Art-Net behavior and static address/RGB parity on hardware.
+Current milestone: publish Electron as the default free Mac application, then
+prove direct Art-Net behavior and static address/RGB parity on hardware.
 
 ## Control rules
 
@@ -130,6 +130,49 @@ No tasks.
 
 ## Ready to Merge
 
+### `P1 · INSTALL-019` Package LOO/UME as an Electron desktop application
+
+- Scope: wrap the existing Vite/TypeScript editor and Node-side local services
+  in Electron without rewriting the browser application. Keep the browser/LAN
+  workflow available for development and remote-device review.
+- Acceptance: one desktop process owns the application window, local APIs,
+  project-library storage, hardware transports, logs, shutdown, and restart;
+  closing the last window quits that process and its local services, and a
+  later icon launch starts one new window; the Mac build installs through a
+  standard DMG/Application workflow; updates use verified GitHub Release
+  artifacts; Web Serial, DDP, Art-Net, project import/export, and local project
+  preservation retain their existing security and data boundaries.
+- Migration boundary: reuse the current editor and service modules first. Do
+  not replace working browser behavior, remove the LAN mode, or expand into UI
+  redesign. Electron serial selection must preserve the explicit CP2102 device
+  choice; the Art-Net/DDP services remain loopback/private-network bounded;
+  release updates remain unavailable until the Mac application has a stable
+  Developer ID signature and notarization because Squirrel.Mac requires it.
+- Owner: `codex/install-019-electron-desktop` in
+  `/tmp/loo-ume-install-019`. Likely conflicts: desktop server lifecycle,
+  application-update transport, package scripts and lockfile, Mac release
+  workflow, serial permissions, and installation documentation.
+- Evidence: TypeScript, the focused Electron boundary tests, the Electron main
+  build, the production web build, shell syntax, workflow YAML, a Linux package
+  inventory, and a bounded packaged-process launch pass. Native universal Mac
+  DMG installation, CP2102 selection, the existing Art-Net preview and DDP
+  hardware mirror, signing, notarization, and update installation remain Human
+  Review. Direct Art-Net-to-DDP forwarding remains the separate `LIVE-020`
+  task. The signed release tag cannot be published until the five Apple signing
+  secrets are configured.
+  A manual workflow run publishes a direct unsigned universal-DMG prerelease
+  for the native review without changing the update feed.
+  Native review of `electron-review-2` found that the normal Mac last-window
+  behavior left a hidden process and made Finder removal unclear. The corrected
+  `electron-review-3` package passed close-to-quit and clean later launch in
+  native operator review.
+- Release cutover: the fixed unsigned Electron prerelease DMG is now the
+  primary README download and refreshes after application-changing canonical
+  `main` pushes. Documentation-only and test-only pushes skip packaging. The
+  legacy launcher runs only for explicit tags or manual review. A later signed
+  `electron-v*` release can become the verified automatic-update feed without
+  changing Project Library ownership.
+
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 
 - Scope: install the Finder launcher in the standard system-wide
@@ -189,46 +232,7 @@ No tasks.
 
 ## Human Review
 
-### `P1 · INSTALL-019` Package LOO/UME as an Electron desktop application
-
-- Scope: wrap the existing Vite/TypeScript editor and Node-side local services
-  in Electron without rewriting the browser application. Keep the browser/LAN
-  workflow available for development and remote-device review.
-- Acceptance: one desktop process owns the application window, local APIs,
-  project-library storage, hardware transports, logs, shutdown, and restart;
-  closing the last window quits that process and its local services, and a
-  later icon launch starts one new window; the Mac build installs through a
-  standard DMG/Application workflow; updates use verified GitHub Release
-  artifacts; Web Serial, DDP, Art-Net, project import/export, and local project
-  preservation retain their existing security and data boundaries.
-- Migration boundary: reuse the current editor and service modules first. Do
-  not replace working browser behavior, remove the LAN mode, or expand into UI
-  redesign. Electron serial selection must preserve the explicit CP2102 device
-  choice; the Art-Net/DDP services remain loopback/private-network bounded;
-  release updates remain unavailable until the Mac application has a stable
-  Developer ID signature and notarization because Squirrel.Mac requires it.
-- Owner: `codex/install-019-electron-desktop` in
-  `/tmp/loo-ume-install-019`. Likely conflicts: desktop server lifecycle,
-  application-update transport, package scripts and lockfile, Mac release
-  workflow, serial permissions, and installation documentation.
-- Evidence: TypeScript, the focused Electron boundary tests, the Electron main
-  build, the production web build, shell syntax, workflow YAML, a Linux package
-  inventory, and a bounded packaged-process launch pass. Native universal Mac
-  DMG installation, CP2102 selection, the existing Art-Net preview and DDP
-  hardware mirror, signing, notarization, and update installation remain Human
-  Review. Direct Art-Net-to-DDP forwarding remains the separate `LIVE-020`
-  task. The signed release tag cannot be published until the five Apple signing
-  secrets are configured.
-  A manual workflow run publishes a direct unsigned universal-DMG prerelease
-  for the native review without changing the update feed.
-  Native review of `electron-review-2` found that the normal Mac last-window
-  behavior left a hidden process and made Finder removal unclear. The corrected
-  package must prove close-to-quit and a clean later launch before this task is
-  complete.
-- Release cutover: before the first signed `electron-v*` tag becomes latest,
-  replace the README's legacy `releases/latest` launcher link with the stable
-  Electron DMG link. Later launcher releases are already marked non-latest, so
-  they cannot replace the Electron update feed.
+No tasks.
 
 ## Blocked
 

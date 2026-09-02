@@ -18,54 +18,30 @@ panel outlines and validated flat gap caps.
 
 ### Mac application
 
-[**Download LOO/UME for Mac**](https://github.com/MateSteinforth/LOO-UME/releases/latest/download/LOO-UME-Mac-Launcher.zip)
+[**Download LOO/UME for Mac (universal DMG)**](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-macos-unsigned/LOO-UME-Electron-universal.dmg)
 
-Open `LOO UME.app` once from the downloaded ZIP. macOS asks permission to copy
-itself to `/Applications`, then it downloads the
-approved `main` checkout into
-`~/Library/Application Support/LOO-UME/application`, runs the verified setup,
-and opens the browser editor. A Terminal window shows download, setup, server,
-and ready messages; detailed setup output is streamed there. The first launch
-needs an internet connection and can take several minutes. Later launches show
-the same status window and reuse the verified installation. Closing the
-browser does not stop the local service. Open `/Applications/LOO UME.app`
-again to reopen the editor. Use `looume --stop` only when you want to stop the
-local service completely; the next icon launch starts it again. After the first
-successful installation, delete the downloaded ZIP and its extracted launcher
-folder so `/Applications/LOO UME.app` is the only copy you use.
-Opening a newer downloaded launcher replaces the app, stops the existing
-managed server through its verified ownership boundary, updates the managed
-checkout in place, and starts one current server. It does not remove local
-Project Library files.
+Open the DMG and drag **LOO UME** into **Applications**. This free build is not
+signed by Apple, so the first launch requires Control-click **LOO UME**, select
+**Open**, and confirm **Open**. If macOS still blocks it, use **System Settings
+→ Privacy & Security → Open Anyway**. The application then opens its own editor
+window; no Terminal or separate browser is required. Closing the last window
+quits LOO/UME and its local services. Open the Applications icon to start a new
+session. Project Library files stay outside the replaceable application bundle.
 
-The application also installs an optional command link at
-`~/.local/bin/looume`. If that directory is already in the user's shell path,
-the diagnostic commands are:
+Each application-changing push to canonical `main` refreshes this fixed unsigned
+DMG link. Documentation-only and test-only changes do not rebuild the package.
+Install a new download over the old application to update it. Reliable
+in-application updates require Apple Developer ID signing and notarization, so
+the free build does not claim that feature.
 
-```bash
-looume
-looume --update
-looume --status
-looume --stop
-```
+#### Legacy browser launcher
 
-The icon is the normal operator path; these commands are diagnostic
-alternatives. **Update** in the editor uses the same canonical-main,
-fast-forward-only update gate. Project Library data stays in the managed
-checkout and survives updates. The unsigned review launcher can require
-right-click **Open** on first use; a notarized public release remains separate
-work.
-
-To remove the managed installation, open `Uninstall LOO UME.command` from the
-downloaded launcher folder. It stops the owned server, copies the local Project
-Library to a timestamped folder in `~/Documents`, and removes the managed app,
-checkout, logs, and command link. It does not remove other exported files.
-
-Every push to canonical `main` builds the `.icns`, validates and ad-hoc signs
-the application bundle, and publishes a uniquely versioned GitHub Release with
-`LOO-UME-Mac-Launcher.zip` and its SHA-256 file. An explicit version tag such
-as `mac-launcher-v1.0.0` publishes the same permanent release format. A manual
-run produces review artifacts without creating a release.
+The earlier managed-checkout launcher is retained for recovery and compatibility
+only. It starts a background browser service through Terminal and is no longer
+the recommended installation. Its tagged or manually triggered workflow can
+still build `LOO-UME-Mac-Launcher.zip`; ordinary `main` pushes do not publish it.
+The `looume` command and `Uninstall LOO UME.command` apply only to that legacy
+installation, not to the Electron DMG.
 
 ### Developer checkout
 
@@ -188,8 +164,8 @@ checked-in WLED simulator, then runs the normal tests and builds. It does not
 need Python, Emscripten, or a WLED source checkout. `npm run verify:clean`
 proves the same path after a clean `npm ci`.
 
-`LOO UME.app` is the normal Mac operator path. `./bootstrap.sh launch` remains
-the normal clean-checkout developer path. Its first
+The Electron DMG is the normal Mac operator path. `./bootstrap.sh launch`
+remains the clean-checkout developer path. Its first
 run includes the production desktop-start and two-STL Manifold proof before the
 browser opens. `./bootstrap.sh setup` remains available for installation
 automation that must prepare without starting the server.

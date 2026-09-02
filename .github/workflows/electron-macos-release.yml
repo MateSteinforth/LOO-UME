@@ -3,6 +3,11 @@ name: Build Electron application for macOS
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+      - "tests/**"
     tags:
       - "electron-v*"
 
@@ -68,7 +73,7 @@ jobs:
           npm run build:electron-mac-icon
 
       - name: Package a review application
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npx electron-builder --mac dmg zip --universal --publish never --config.mac.notarize=false
@@ -102,6 +107,57 @@ jobs:
             release/SHA256SUMS
           if-no-files-found: error
           retention-days: 30
+
+  publish-unsigned:
+    name: Refresh the default unsigned Mac download
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: loo-ume-electron-macos
+          path: release
+
+      - name: Publish the stable unsigned download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          sha256sum --check release/SHA256SUMS
+          release_tag=electron-macos-unsigned
+          release_notes="Unsigned universal Mac build from canonical main at $GITHUB_SHA. Right-click Open is required once. This prerelease is not an automatic-update feed."
+          if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$release_tag" \
+              release/LOO-UME-Electron-universal.dmg \
+              release/LOO-UME-Electron-universal.zip \
+              release/SHA256SUMS \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+            gh release edit "$release_tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "LOO/UME for Mac — unsigned" \
+              --notes "$release_notes" \
+              --prerelease
+          else
+            gh release create "$release_tag" \
+              release/LOO-UME-Electron-universal.dmg \
+              release/LOO-UME-Electron-universal.zip \
+              release/SHA256SUMS \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "LOO/UME for Mac — unsigned" \
+              --notes "$release_notes" \
+              --prerelease \
+              --latest=false
+          fi
+          download_url="https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag/LOO-UME-Electron-universal.dmg"
+          printf '### Default unsigned Mac download\n\n[%s](%s)\n' \
+            'Download LOO-UME-Electron-universal.dmg' "$download_url" \
+            >> "$GITHUB_STEP_SUMMARY"
 
   publish:
     name: Publish signed Electron release

@@ -2,8 +2,6 @@ name: Publish Mac launcher
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "mac-launcher-v*"
   workflow_dispatch:
