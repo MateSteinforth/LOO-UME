@@ -18,12 +18,24 @@ import { deriveEditorCapabilities } from "../web/src/EditorCapabilities.ts";
 import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
 import {
   beginPanelPlaneDrag, cancelFreePanelTransform,
+  createPanelRaycastMaterial,
   freeControllerTransformFromObject, freePanelTransformFromObject,
   isObjectEffectivelyVisible, nearestEditorTarget,
   reconnectFreePanelTransformControls,
   updatePanelPlaneDrag,
 } from "../web/src/SurfacePlacementController.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
+
+describe("panel editor hit targets", () => {
+  it("remain raycastable without drawing rectangular panel envelopes", () => {
+    const material = createPanelRaycastMaterial();
+    expect(material.visible).toBe(true);
+    expect(material.colorWrite).toBe(false);
+    expect(material.opacity).toBe(0);
+    expect(material.depthWrite).toBe(false);
+    material.dispose();
+  });
+});
 
 async function loadManual() {
   return parsePanelAssemblyDefinition(JSON.parse(await readFile(

@@ -86,7 +86,8 @@ print generation.
 The optional `carrier` field now distinguishes three display contracts:
 
 - absent or `rectangular`: the historical rigid width × height carrier;
-- `planar-outline`: one validated simple pose-local XY polygon;
+- `planar-outline`: one validated simple pose-local XY polygon, with optional
+  validated circular display apertures;
 - `flexible-path`: a validated open or closed pose-local XYZ path with ribbon
   width and thickness.
 
@@ -95,6 +96,14 @@ ribbon segments. Carrier coordinates must stay inside `dimensions`, which
 remains the camera, selection, and portability envelope. Mapping, wiring,
 simulation, MadMapper export, ESP32 setup, project save, and project reload are
 carrier-independent.
+
+Editor hit targets are raycast-only. They never draw the rectangular width and
+height envelope behind the carrier. The exact planar outline or flexible path
+is the only visible PCB or strip geometry.
+
+Planar carrier apertures describe visible PCB cutouts only. They do not add
+mounting or fabrication authority. The separate legacy `mounting` contract
+continues to control the existing rectangular fabrication pipelines.
 
 `sculptures/one-metre-led-ring/sculpture.json` is the tracked flexible-path
 example. It models one 1,000 mm diameter hoop with 188 explicit outward-radial
@@ -118,6 +127,25 @@ stores a current automatic route: three equal 10-panel chains on GPIO 16, 17,
 and 18. The arrangement reproduces the supplied rendering for simulation and
 Project Browser review. It does not claim measured panel poses, enclosure fit,
 or fabrication geometry.
+
+`sculptures/kicad-diamond-panel/sculpture.json` is an image-derived KiCad
+study. It preserves the visible six-sided board outline, one apparent 8 by 8
+rhombic LED lattice, and nine circular apertures. The screenshot ruler supports
+a provisional 100 mm ideal golden-rhombus edge. This gives 170.130 mm and
+105.146 mm ideal diagonals; each acute corner is clipped 4 mm along its two
+edges. The exact outline, thickness, emitter and aperture centres, DIN/DOUT
+positions, address order, color order, and electrical values remain
+provisional. The project supports simulation, mapping, wiring, WLED setup,
+MadMapper export, and portable save/reload, but it does not authorize
+fabrication.
+
+`sculptures/kicad-diamond-panel/sculpture-rhombic-triacontahedron.json`
+places 30 copies on the exact face planes of a rhombic triacontahedron. Every
+shared ideal edge and retained PCB edge segment coincides. The 4 mm clips leave
+12 small five-way star openings. The saved automatic route is stable and uses
+three equal 10-panel chains on GPIO 16, 17, and 18. The half-turn-only wiring
+constraint is part of the geometry contract: a 90-degree local rotation would
+exchange the long and short diagonals and break edge alignment.
 
 The optional `radial-outward` flexible frame keeps strip thickness aligned with
 the radius from its declared center and strip width perpendicular to the path

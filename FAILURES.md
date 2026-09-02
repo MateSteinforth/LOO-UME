@@ -2169,3 +2169,63 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   moving a panel pose, changing GPIOs, or weakening fabrication evidence.
 - **Evidence:** CAL-012 unit and focused Chromium review journeys.
 - **Status:** Implemented by CAL-012; physical 41-panel review remains.
+
+### F-119 — Visible PCB apertures are not automatic mounting authority
+
+- **Date:** 2026-09-02
+- **Context:** Creating a reusable panel profile from one KiCad screenshot of a
+  custom diamond-shaped LED PCB.
+- **Symptom:** The profile contract required six legacy rectangular mounting
+  records, but the image visibly contained nine circular board apertures.
+- **Cause:** The historical mounting contract combines display, connector
+  blocking, and rectangular fabrication facts. Forcing nine image-derived
+  circles into that contract would invent mechanical and manufacturing facts.
+- **Correction:** Add optional validated circular apertures to the planar
+  carrier display contract. Use them for board triangulation and visualization,
+  while the unchanged mounting contract remains compatibility-only and
+  provisional. Keep rectangular-only fabrication disabled.
+- **Prevention:** Separate visible carrier cutouts from measured mounting and
+  fabrication authority. A photograph or CAD screenshot can support a visual
+  fixture, but it cannot prove tolerances, connector functions, or printable
+  attachment geometry.
+- **Status:** Implemented by FIXTURE-015; source measurements and electrical
+  facts remain provisional.
+
+### F-120 — Address optimization can break a non-square face fit
+
+- **Date:** 2026-09-02
+- **Context:** Placing the clipped golden-rhombus PCB on all 30 faces of a
+  rhombic triacontahedron.
+- **Symptom:** An unrestricted quarter-turn wiring search can exchange the
+  panel's long and short diagonals. DIN/DOUT may improve, but the physical PCB
+  edges no longer match the polyhedron face edges.
+- **Cause:** The address optimizer treats 0, 90, 180, and 270-degree rotations
+  as equivalent before fabrication. That assumption is valid for square
+  carriers, not for a non-square carrier constrained to one face shape.
+- **Correction:** Save the half-turn-only rotation constraint in the sculpture
+  before optimization. Generate exact face frames first, then let the optimizer
+  use only 0 or 180 degrees. Prove that every shared edge still coincides and
+  that another optimization pass changes no pose or route.
+- **Prevention:** Derive allowed physical rotations from the placement and
+  carrier symmetry. Never optimize connector distance with a rotation that
+  invalidates the mechanical face fit.
+- **Status:** Implemented by FIXTURE-016; physical PCB dimensions remain
+  provisional.
+
+### F-121 — Panel edit hitboxes appeared as transparent quadrilaterals
+
+- **Date:** 2026-09-02
+- **Context:** Visual review of the 30-panel image-derived rhombic
+  triacontahedron.
+- **Symptom:** Faint rectangular quadrilaterals extended beyond the clipped
+  diamond PCBs.
+- **Cause:** Panel selection used a width-by-height box with 2.5 percent
+  opacity. The box was intended as an edit hit target, but its corners became
+  visible outside a non-rectangular carrier.
+- **Correction:** Keep panel edit targets visible to raycasting but disable
+  their color writes and set their opacity to zero. The exact carrier remains
+  the only visible panel geometry and the existing selection focus shows the
+  selected panel.
+- **Prevention:** Interaction geometry must not write to the framebuffer.
+  Rendered carrier geometry and edit hit geometry have separate authority.
+- **Status:** Resolved in FIXTURE-016.

@@ -78,6 +78,41 @@ No tasks.
   passed. Physical 41-panel use remains operator review and does not block the
   task branch.
 
+### `P2 · FIXTURE-015` Add an image-derived KiCad diamond-panel fixture
+
+- Scope: model the operator-supplied KiCad screenshot as one provisional
+  Schema 2 panel profile and one Project Browser demo. Preserve the visible
+  clipped-diamond carrier, 8 by 8 rhombic emitter lattice, and nine board
+  apertures without turning image estimates into fabrication authority.
+- Acceptance: the source and bundled profile load and reload; mapping contains
+  64 unique emitters on one stable GPIO 16 route; all nine carrier apertures
+  cut the rendered board; rectangular-only placement and fabrication remain
+  disabled; every unproved connector, address, color, dimension, and electrical
+  fact stays provisional; the original reference image remains in the fixture.
+- Owner: `codex/fixture-015-kicad-diamond` in
+  `/tmp/loo-ume-fixture-015`. Likely conflicts: panel-carrier runtime/schema,
+  carrier rendering, Project Browser registry, and panel-system documentation.
+- Verification: focused carrier and fixture tests, TypeScript, schema/runtime
+  round trip, Project Library packaging, production build, diff-check, and a
+  separate QUALITY review passed.
+
+### `P2 · FIXTURE-016` Build the 30-panel KiCad rhombic triacontahedron
+
+- Scope: place 30 copies of the image-derived diamond PCB on one exact rhombic
+  triacontahedron. Align the shared ideal golden-rhombus edges and retain the
+  PCB's clipped-corner openings at each five-way star vertex.
+- Acceptance: all poses are finite right-handed face frames; every ideal shared
+  edge coincides within tolerance; the 30 PCB carriers do not overlap; vertex
+  openings remain visible; the saved automatic wiring route is stable; mapping
+  contains 1,920 unique emitters; the Project Library package loads and reloads
+  with its exact panel profile.
+- Owner: `codex/fixture-016-kicad-triacontahedron` in
+  `/tmp/loo-ume-fixture-016`. Likely conflicts: KiCad demo sources, project
+  registries/packages, fixture tests, and panel-system documentation.
+- Verification: exact polyhedron adjacency/edge tests, 23 focused fixture and
+  editor tests, TypeScript, production build, diff-check, a separate geometry
+  review, and a final rendered-image check without edit-hitbox quads passed.
+
 ## In Progress
 
 No tasks.

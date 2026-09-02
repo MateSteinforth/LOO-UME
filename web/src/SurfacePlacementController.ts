@@ -99,6 +99,16 @@ export function nearestEditorTarget(
   return controllerHit.distance <= panelHit.distance ? "controller" : "panel";
 }
 
+export function createPanelRaycastMaterial(): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    color: 0x6ef8ee,
+    colorWrite: false,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+}
+
 function freeTransformsDiffer(
   first: FreeControllerTransform,
   second: FreeControllerTransform,
@@ -366,12 +376,7 @@ export class SurfacePlacementController {
         panel.previewHeight,
         Math.max(thickness, 1.2),
       );
-      const material = new THREE.MeshBasicMaterial({
-        color: 0x6ef8ee,
-        transparent: true,
-        opacity: 0.025,
-        depthWrite: false,
-      });
+      const material = createPanelRaycastMaterial();
       const target = new THREE.Mesh(geometry, material);
       target.name = `surface-editor-panel-${panel.id}`;
       target.userData.panelId = panel.id;
@@ -932,7 +937,6 @@ export class SurfacePlacementController {
   private updateHighlight(): void {
     for (const [panelId, target] of this.panelTargets) {
       const material = target.material as THREE.MeshBasicMaterial;
-      material.opacity = panelId === this.selectedPanelId ? 0.3 : 0.025;
       material.color.set(panelId === this.selectedPanelId ? 0xffb35c : 0x6ef8ee);
       if ((this.selectedPanelId || this.controllerSelected) &&
         panelId !== this.selectedPanelId) {

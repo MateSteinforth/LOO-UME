@@ -1,0 +1,1156 @@
+{
+  "$schema": "../../schemas/panel-assembly.schema.json",
+  "schemaVersion": "2.0.0",
+  "id": "image-derived-kicad-rhombic-triacontahedron",
+  "name": "KiCad Diamond Rhombic Triacontahedron",
+  "units": "mm",
+  "status": "provisional",
+  "panelProfile": {
+    "id": "image-derived-wled-8x8-diamond-panel",
+    "source": "panel-profile.json"
+  },
+  "panels": [
+    {
+      "id": "DAVE-01",
+      "pose": {
+        "position": [
+          0,
+          0,
+          137.638192047
+        ],
+        "orientation": {
+          "xAxis": [
+            -1,
+            0,
+            0
+          ],
+          "yAxis": [
+            0,
+            -1,
+            0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-02",
+      "pose": {
+        "position": [
+          -42.532540418,
+          -68.819096024,
+          111.351636441
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5,
+            0.809016994,
+            0.309016994
+          ],
+          "yAxis": [
+            -0.809016994,
+            -0.309016994,
+            -0.5
+          ],
+          "normal": [
+            -0.309016994,
+            -0.5,
+            0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-03",
+      "pose": {
+        "position": [
+          42.532540418,
+          -68.819096024,
+          111.351636441
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5,
+            -0.809016994,
+            -0.309016994
+          ],
+          "yAxis": [
+            0.809016994,
+            -0.309016994,
+            -0.5
+          ],
+          "normal": [
+            0.309016994,
+            -0.5,
+            0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-04",
+      "pose": {
+        "position": [
+          -42.532540418,
+          68.819096024,
+          111.351636441
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5,
+            -0.809016994,
+            0.309016994
+          ],
+          "yAxis": [
+            0.809016994,
+            -0.309016994,
+            0.5
+          ],
+          "normal": [
+            -0.309016994,
+            0.5,
+            0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-05",
+      "pose": {
+        "position": [
+          42.532540418,
+          68.819096024,
+          111.351636441
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5,
+            0.809016994,
+            -0.309016994
+          ],
+          "yAxis": [
+            -0.809016994,
+            -0.309016994,
+            0.5
+          ],
+          "normal": [
+            0.309016994,
+            0.5,
+            0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-06",
+      "pose": {
+        "position": [
+          -111.351636441,
+          -42.532540418,
+          68.819096024
+        ],
+        "orientation": {
+          "xAxis": [
+            0.309016994,
+            0.5,
+            0.809016994
+          ],
+          "yAxis": [
+            -0.5,
+            0.809016994,
+            -0.309016994
+          ],
+          "normal": [
+            -0.809016994,
+            -0.309016994,
+            0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-07",
+      "pose": {
+        "position": [
+          111.351636441,
+          -42.532540418,
+          68.819096024
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.309016994,
+            0.5,
+            0.809016994
+          ],
+          "yAxis": [
+            -0.5,
+            -0.809016994,
+            0.309016994
+          ],
+          "normal": [
+            0.809016994,
+            -0.309016994,
+            0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-08",
+      "pose": {
+        "position": [
+          -111.351636441,
+          42.532540418,
+          68.819096024
+        ],
+        "orientation": {
+          "xAxis": [
+            0.309016994,
+            -0.5,
+            0.809016994
+          ],
+          "yAxis": [
+            0.5,
+            0.809016994,
+            0.309016994
+          ],
+          "normal": [
+            -0.809016994,
+            0.309016994,
+            0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-09",
+      "pose": {
+        "position": [
+          111.351636441,
+          42.532540418,
+          68.819096024
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.309016994,
+            -0.5,
+            0.809016994
+          ],
+          "yAxis": [
+            0.5,
+            -0.809016994,
+            -0.309016994
+          ],
+          "normal": [
+            0.809016994,
+            0.309016994,
+            0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-10",
+      "pose": {
+        "position": [
+          -68.819096024,
+          -111.351636441,
+          42.532540418
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.809016994,
+            0.309016994,
+            -0.5
+          ],
+          "yAxis": [
+            0.309016994,
+            -0.5,
+            -0.809016994
+          ],
+          "normal": [
+            -0.5,
+            -0.809016994,
+            0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-11",
+      "pose": {
+        "position": [
+          68.819096024,
+          -111.351636441,
+          42.532540418
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.809016994,
+            -0.309016994,
+            0.5
+          ],
+          "yAxis": [
+            -0.309016994,
+            -0.5,
+            -0.809016994
+          ],
+          "normal": [
+            0.5,
+            -0.809016994,
+            0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-12",
+      "pose": {
+        "position": [
+          -68.819096024,
+          111.351636441,
+          42.532540418
+        ],
+        "orientation": {
+          "xAxis": [
+            0.809016994,
+            0.309016994,
+            0.5
+          ],
+          "yAxis": [
+            0.309016994,
+            0.5,
+            -0.809016994
+          ],
+          "normal": [
+            -0.5,
+            0.809016994,
+            0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-13",
+      "pose": {
+        "position": [
+          68.819096024,
+          111.351636441,
+          42.532540418
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.809016994,
+            0.309016994,
+            0.5
+          ],
+          "yAxis": [
+            0.309016994,
+            -0.5,
+            0.809016994
+          ],
+          "normal": [
+            0.5,
+            0.809016994,
+            0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-14",
+      "pose": {
+        "position": [
+          0,
+          -137.638192047,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0,
+            1
+          ],
+          "yAxis": [
+            -1,
+            0,
+            0
+          ],
+          "normal": [
+            0,
+            -1,
+            0
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-15",
+      "pose": {
+        "position": [
+          -137.638192047,
+          0,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            -1,
+            0
+          ],
+          "yAxis": [
+            0,
+            0,
+            1
+          ],
+          "normal": [
+            -1,
+            0,
+            0
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-16",
+      "pose": {
+        "position": [
+          137.638192047,
+          0,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            1,
+            0
+          ],
+          "yAxis": [
+            0,
+            0,
+            1
+          ],
+          "normal": [
+            1,
+            0,
+            0
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-17",
+      "pose": {
+        "position": [
+          0,
+          137.638192047,
+          0
+        ],
+        "orientation": {
+          "xAxis": [
+            0,
+            0,
+            1
+          ],
+          "yAxis": [
+            1,
+            0,
+            0
+          ],
+          "normal": [
+            0,
+            1,
+            0
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-18",
+      "pose": {
+        "position": [
+          -68.819096024,
+          -111.351636441,
+          -42.532540418
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.809016994,
+            0.309016994,
+            0.5
+          ],
+          "yAxis": [
+            -0.309016994,
+            0.5,
+            -0.809016994
+          ],
+          "normal": [
+            -0.5,
+            -0.809016994,
+            -0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-19",
+      "pose": {
+        "position": [
+          68.819096024,
+          -111.351636441,
+          -42.532540418
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.809016994,
+            -0.309016994,
+            -0.5
+          ],
+          "yAxis": [
+            0.309016994,
+            0.5,
+            -0.809016994
+          ],
+          "normal": [
+            0.5,
+            -0.809016994,
+            -0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-20",
+      "pose": {
+        "position": [
+          -68.819096024,
+          111.351636441,
+          -42.532540418
+        ],
+        "orientation": {
+          "xAxis": [
+            0.809016994,
+            0.309016994,
+            -0.5
+          ],
+          "yAxis": [
+            -0.309016994,
+            -0.5,
+            -0.809016994
+          ],
+          "normal": [
+            -0.5,
+            0.809016994,
+            -0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-21",
+      "pose": {
+        "position": [
+          68.819096024,
+          111.351636441,
+          -42.532540418
+        ],
+        "orientation": {
+          "xAxis": [
+            0.809016994,
+            -0.309016994,
+            0.5
+          ],
+          "yAxis": [
+            0.309016994,
+            -0.5,
+            -0.809016994
+          ],
+          "normal": [
+            0.5,
+            0.809016994,
+            -0.309016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-22",
+      "pose": {
+        "position": [
+          -111.351636441,
+          -42.532540418,
+          -68.819096024
+        ],
+        "orientation": {
+          "xAxis": [
+            0.309016994,
+            0.5,
+            -0.809016994
+          ],
+          "yAxis": [
+            0.5,
+            -0.809016994,
+            -0.309016994
+          ],
+          "normal": [
+            -0.809016994,
+            -0.309016994,
+            -0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-23",
+      "pose": {
+        "position": [
+          111.351636441,
+          -42.532540418,
+          -68.819096024
+        ],
+        "orientation": {
+          "xAxis": [
+            0.309016994,
+            -0.5,
+            0.809016994
+          ],
+          "yAxis": [
+            -0.5,
+            -0.809016994,
+            -0.309016994
+          ],
+          "normal": [
+            0.809016994,
+            -0.309016994,
+            -0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-24",
+      "pose": {
+        "position": [
+          -111.351636441,
+          42.532540418,
+          -68.819096024
+        ],
+        "orientation": {
+          "xAxis": [
+            0.309016994,
+            -0.5,
+            -0.809016994
+          ],
+          "yAxis": [
+            -0.5,
+            -0.809016994,
+            0.309016994
+          ],
+          "normal": [
+            -0.809016994,
+            0.309016994,
+            -0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-25",
+      "pose": {
+        "position": [
+          111.351636441,
+          42.532540418,
+          -68.819096024
+        ],
+        "orientation": {
+          "xAxis": [
+            0.309016994,
+            0.5,
+            0.809016994
+          ],
+          "yAxis": [
+            0.5,
+            -0.809016994,
+            0.309016994
+          ],
+          "normal": [
+            0.809016994,
+            0.309016994,
+            -0.5
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-26",
+      "pose": {
+        "position": [
+          -42.532540418,
+          -68.819096024,
+          -111.351636441
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5,
+            0.809016994,
+            -0.309016994
+          ],
+          "yAxis": [
+            0.809016994,
+            0.309016994,
+            -0.5
+          ],
+          "normal": [
+            -0.309016994,
+            -0.5,
+            -0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-27",
+      "pose": {
+        "position": [
+          42.532540418,
+          -68.819096024,
+          -111.351636441
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5,
+            -0.809016994,
+            0.309016994
+          ],
+          "yAxis": [
+            -0.809016994,
+            0.309016994,
+            -0.5
+          ],
+          "normal": [
+            0.309016994,
+            -0.5,
+            -0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-28",
+      "pose": {
+        "position": [
+          -42.532540418,
+          68.819096024,
+          -111.351636441
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5,
+            -0.809016994,
+            -0.309016994
+          ],
+          "yAxis": [
+            -0.809016994,
+            0.309016994,
+            0.5
+          ],
+          "normal": [
+            -0.309016994,
+            0.5,
+            -0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-29",
+      "pose": {
+        "position": [
+          42.532540418,
+          68.819096024,
+          -111.351636441
+        ],
+        "orientation": {
+          "xAxis": [
+            -0.5,
+            0.809016994,
+            0.309016994
+          ],
+          "yAxis": [
+            0.809016994,
+            0.309016994,
+            0.5
+          ],
+          "normal": [
+            0.309016994,
+            0.5,
+            -0.809016994
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    },
+    {
+      "id": "DAVE-30",
+      "pose": {
+        "position": [
+          0,
+          0,
+          -137.638192047
+        ],
+        "orientation": {
+          "xAxis": [
+            -1,
+            0,
+            0
+          ],
+          "yAxis": [
+            0,
+            1,
+            0
+          ],
+          "normal": [
+            0,
+            0,
+            -1
+          ]
+        }
+      },
+      "installedAddressTransform": {
+        "status": "assumed",
+        "referenceView": "back",
+        "quarterTurnsClockwise": 0,
+        "mirrored": false,
+        "selectionMethod": "route-optimized",
+        "optimizationFingerprint": "fc8b887d07be29e1"
+      }
+    }
+  ],
+  "mapping": {
+    "projection": "equirectangular",
+    "logicalOrder": "north-to-south-then-longitude"
+  },
+  "wiring": {
+    "status": "authored",
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
+    "routeStrategy": "balanced-oriented-cable-optimizer",
+    "panelRotationConstraint": "half-turns-only",
+    "chainLengths": [
+      10,
+      10,
+      10
+    ],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
+    "outputs": [
+      {
+        "outputIndex": 0,
+        "label": "Output 1",
+        "gpio": 16,
+        "color": "#36e0d0",
+        "panelIds": [
+          "DAVE-17",
+          "DAVE-13",
+          "DAVE-05",
+          "DAVE-01",
+          "DAVE-03",
+          "DAVE-09",
+          "DAVE-16",
+          "DAVE-07",
+          "DAVE-11",
+          "DAVE-14"
+        ]
+      },
+      {
+        "outputIndex": 1,
+        "label": "Output 2",
+        "gpio": 17,
+        "color": "#ff9d5c",
+        "panelIds": [
+          "DAVE-12",
+          "DAVE-20",
+          "DAVE-24",
+          "DAVE-15",
+          "DAVE-08",
+          "DAVE-04",
+          "DAVE-02",
+          "DAVE-10",
+          "DAVE-18",
+          "DAVE-06"
+        ]
+      },
+      {
+        "outputIndex": 2,
+        "label": "Output 3",
+        "gpio": 18,
+        "color": "#a78bfa",
+        "panelIds": [
+          "DAVE-21",
+          "DAVE-25",
+          "DAVE-23",
+          "DAVE-19",
+          "DAVE-27",
+          "DAVE-30",
+          "DAVE-29",
+          "DAVE-28",
+          "DAVE-22",
+          "DAVE-26"
+        ]
+      }
+    ],
+    "routeRevision": 3
+  },
+  "calibration": {
+    "panelTransforms": "generated-provisional",
+    "installedPanelOrientation": "provisional",
+    "panelPixelOrder": "provisional",
+    "physicalChains": "provisional"
+  },
+  "notes": [
+    "Thirty image-derived KiCad diamond panels occupy the exact face planes of one rhombic triacontahedron.",
+    "Each ideal golden-rhombus edge is 100 mm. Adjacent PCB edge segments coincide; the 4 mm acute-corner clips leave small openings at the star vertices.",
+    "The saved half-turn-only constraint preserves the asymmetric golden-rhombus carrier while automatic wiring chooses balanced routes and GPIOs.",
+    "All image-derived panel dimensions, apertures, emitters, connectors, address order, RGB order, and electrical values remain provisional. This project is not fabrication authority.",
+    "Automatic wiring revision 3 selected 3 balanced outputs; estimated provisional data cable 1134.9 mm."
+  ]
+}
