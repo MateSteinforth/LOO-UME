@@ -110,7 +110,9 @@ case ${1-} in
 esac
 
 if open_progress_terminal; then exit 0; fi
-progress "Starting the installer. This window shows its progress."
+if [ "${LOO_UME_RESUMED_AFTER_COPY:-0}" != 1 ]; then
+  progress "Starting the installer. This window shows its progress."
+fi
 
 lock_claim_owner_is_live() {
   claim_path=$1
@@ -232,6 +234,7 @@ install_application_bundle() {
   trap - EXIT HUP INT TERM
   if [ "${LOO_UME_TERMINAL_SESSION:-0}" = 1 ]; then
     LOO_UME_SKIP_APP_COPY=1 LOO_UME_TERMINAL_SESSION=1 \
+      LOO_UME_RESUMED_AFTER_COPY=1 \
       exec /bin/sh "$installed_app/Contents/MacOS/LOO-UME"
   fi
   LOO_UME_SKIP_APP_COPY=1 "$open_command" "$installed_app"
@@ -268,8 +271,18 @@ install_checkout() {
   fi
   notify "Installing the verified application. The first launch can take several minutes."
   : > "$install_log"
-  if ! "$git_command" clone --branch main --single-branch "$repository_url" \
-      "$staging_root" >> "$install_log" 2>&1; then
+  clone_checkout() {
+    "$git_command" clone --progress --branch main --single-branch \
+      "$repository_url" "$staging_root"
+  }
+  if [ "${LOO_UME_TERMINAL_SESSION:-0}" = 1 ]; then
+    clone_checkout_failed=false
+    clone_checkout || clone_checkout_failed=true
+  else
+    clone_checkout_failed=false
+    clone_checkout >> "$install_log" 2>&1 || clone_checkout_failed=true
+  fi
+  if [ "$clone_checkout_failed" = true ]; then
     show_error "The application download failed. See $install_log"
     exit 1
   fi

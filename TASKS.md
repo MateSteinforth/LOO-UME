@@ -146,10 +146,12 @@ No tasks.
 - Owner: `codex/install-017-automatic-mac-release` in
   `/tmp/loo-ume-install-017`. Likely conflicts: Mac release workflow, launcher
   documentation, and its focused workflow-contract test.
-- Verification: 12 focused launcher tests, TypeScript, shell syntax, GitHub
+- Verification: 13 focused launcher tests, TypeScript, shell syntax, GitHub
   Actions YAML lint, diff-check, and final integrated inspection passed. Native
   Finder progress, release publication, stable download, and uninstall remain
-  Human Review after integration.
+  Human Review after integration. The first native run exposed hidden Git
+  progress and an orphaned managed listener after removal; both corrections
+  need a new native artifact review.
 
 ## In Progress
 

@@ -15,6 +15,7 @@ port=${LOO_UME_PORT:-4173}
 url=http://127.0.0.1:$port/
 curl_command=${LOO_UME_CURL_COMMAND:-/usr/bin/curl}
 open_command=${LOO_UME_OPEN_COMMAND:-/usr/bin/open}
+lsof_command=${LOO_UME_LSOF_COMMAND:-/usr/sbin/lsof}
 lock_wait_seconds=${LOO_UME_LOCK_WAIT_SECONDS:-900}
 
 case $lock_wait_seconds in
@@ -48,6 +49,39 @@ read_owned_pid() {
       ;;
     *) return 1 ;;
   esac
+}
+
+discover_owned_pid() {
+  owned_pid=
+  [ -x "$lsof_command" ] || return 1
+  server_ready || return 1
+  candidate_pids=$(
+    "$lsof_command" -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true
+  )
+  candidate_pid=
+  for discovered_pid in $candidate_pids; do
+    case $discovered_pid in
+      ''|*[!0-9]*) continue ;;
+    esac
+    if [ -n "$candidate_pid" ]; then return 1; fi
+    candidate_pid=$discovered_pid
+  done
+  [ -n "$candidate_pid" ] || return 1
+  kill -0 "$candidate_pid" 2>/dev/null || return 1
+  candidate_command=$(/bin/ps -p "$candidate_pid" -o command= 2>/dev/null || true)
+  case $candidate_command in
+    *"$repository_root/bootstrap.sh launch"*|*"$repository_root/bootstrap.sh update"*|*"$repository_root/scripts/local-editor-server.ts"*)
+      printf '%s\n' "$candidate_pid" > "$pid_file"
+      owned_pid=$candidate_pid
+      echo "LOO/UME recovered the ownership record for the existing managed server."
+      return 0
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+read_or_discover_owned_pid() {
+  read_owned_pid || discover_owned_pid
 }
 
 port_responds() {
@@ -188,12 +222,12 @@ start_server() {
   start_mode=${1:-launch}
   open_after=${2:-true}
   clear_stale_state
-  if read_owned_pid && server_ready; then
+  if read_or_discover_owned_pid && server_ready; then
     if [ "$open_after" = true ]; then open_editor; fi
     echo "LOO/UME is already running at $url"
     return 0
   fi
-  if ! read_owned_pid && port_responds; then
+  if ! read_or_discover_owned_pid && port_responds; then
     echo "looume: port $port is in use by a process that is not the managed LOO/UME server." >&2
     return 1
   fi
@@ -202,7 +236,7 @@ start_server() {
     elapsed=0
     while lock_exists "$launch_lock" && [ "$elapsed" -lt "$lock_wait_seconds" ]; do
       remove_stale_lock_claims "$launch_lock" "$repository_root/scripts/looume.sh"
-      if read_owned_pid && server_ready; then
+      if read_or_discover_owned_pid && server_ready; then
         if [ "$open_after" = true ]; then open_editor; fi
         echo "LOO/UME is already running at $url"
         return 0
@@ -237,14 +271,14 @@ start_server() {
   trap release_launch_resources EXIT
   trap 'exit 130' HUP INT TERM
   clear_stale_state
-  if read_owned_pid && server_ready; then
+  if read_or_discover_owned_pid && server_ready; then
     release_launch_lock
     trap - EXIT HUP INT TERM
     if [ "$open_after" = true ]; then open_editor; fi
     echo "LOO/UME is already running at $url"
     return 0
   fi
-  if ! read_owned_pid && port_responds; then
+  if ! read_or_discover_owned_pid && port_responds; then
     release_launch_lock
     trap - EXIT HUP INT TERM
     echo "looume: port $port is in use by a process that is not the managed LOO/UME server." >&2
@@ -280,10 +314,15 @@ start_server() {
 
 stop_server() {
   clear_stale_state
-  if ! read_owned_pid; then
+  if ! read_or_discover_owned_pid; then
+    if port_responds; then
+      echo "looume: port $port is active, but its process ownership could not be verified. Nothing was stopped." >&2
+      return 1
+    fi
     echo "LOO/UME is not running."
     return 0
   fi
+  echo "Stopping the managed LOO/UME server (PID $owned_pid)."
   kill -TERM "$owned_pid"
   elapsed=0
   while kill -0 "$owned_pid" 2>/dev/null && [ "$elapsed" -lt 20 ]; do
@@ -292,6 +331,10 @@ stop_server() {
   done
   if kill -0 "$owned_pid" 2>/dev/null; then
     echo "looume: the server did not stop within 20 seconds." >&2
+    return 1
+  fi
+  if port_responds; then
+    echo "looume: port $port is still active after the managed server stopped." >&2
     return 1
   fi
   rm -f "$pid_file" "$url_file"

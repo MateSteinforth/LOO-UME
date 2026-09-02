@@ -282,6 +282,12 @@ describe("LOO/UME managed launcher", () => {
       })).rejects.toMatchObject({
         stderr: expect.stringContaining("is in use by a process that is not"),
       });
+      await expect(execFileAsync("sh", [fixture.launcher, "--stop"], {
+        env: { ...fixture.environment, LOO_UME_PORT: String(port) },
+        timeout: 5_000,
+      })).rejects.toMatchObject({
+        stderr: expect.stringContaining("ownership could not be verified"),
+      });
       await expect(stat(fixture.actions)).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
       await new Promise<void>((resolvePromise) => unrelated.close(() => resolvePromise()));
@@ -302,7 +308,7 @@ describe("LOO/UME managed launcher", () => {
     const uninstaller = await readFile("macos/Uninstall LOO UME.command", "utf8");
     expect(application).toContain("$HOME/Library/Application Support/LOO-UME");
     expect(application).toContain("$HOME/Applications");
-    expect(application).toContain('"$git_command" clone --branch main --single-branch');
+    expect(application).toContain('"$git_command" clone --progress --branch main --single-branch');
     expect(application).toContain(".application.stage");
     expect(application).toContain("scripts/looume.sh\" launch");
     expect(application).not.toContain(".zprofile");
@@ -310,6 +316,7 @@ describe("LOO/UME managed launcher", () => {
     expect(application).not.toContain('mkdir "$lock_path"');
     expect(application).toContain('tell application "Terminal"');
     expect(application).toContain("LOO_UME_FOLLOW_LOG=1");
+    expect(application).toContain("LOO_UME_RESUMED_AFTER_COPY=1");
     expect(application).toContain("--uninstall) uninstall_application");
     expect(plist).toContain("art.loo-ume.launcher");
     expect(plist).toContain("AppIcon");
@@ -338,6 +345,59 @@ describe("LOO/UME managed launcher", () => {
     expect(uninstaller.indexOf('if [ -x "$packaged_launcher" ]')).toBeLessThan(
       uninstaller.indexOf('if [ -x "$installed_launcher" ]'),
     );
+  });
+
+  it("recovers and stops an orphaned managed server after its PID record was lost", async () => {
+    const fixture = await launcherFixture();
+    const port = Number(fixture.environment.LOO_UME_PORT);
+    const serverScript = join(fixture.root, "scripts", "local-editor-server.ts");
+    const server = spawn(process.execPath, [serverScript], {
+      env: { ...process.env, ORBITAL_LAB_PORT: String(port) },
+      stdio: "ignore",
+    });
+    const fakeLsof = join(fixture.root, "lsof.sh");
+    await writeFile(fakeLsof, [
+      "#!/bin/sh",
+      `printf '%s\\n' '${server.pid}'`,
+      "",
+    ].join("\n"));
+    await chmod(fakeLsof, 0o755);
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try {
+        const response = await fetch(`http://127.0.0.1:${port}/api/generator-status`);
+        if (response.ok) break;
+      } catch {
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 20));
+      }
+    }
+    try {
+      const launched = await execFileAsync("sh", [fixture.launcher], {
+        env: {
+          ...fixture.environment,
+          LOO_UME_LSOF_COMMAND: fakeLsof,
+        },
+        timeout: 5_000,
+      });
+      expect(launched.stdout).toContain("recovered the ownership record");
+      expect(launched.stdout).toContain("already running");
+      expect(await readFile(join(fixture.state, "server.pid"), "utf8"))
+        .toBe(`${server.pid}\n`);
+      await expect(stat(fixture.actions)).rejects.toMatchObject({ code: "ENOENT" });
+      const stopped = await execFileAsync("sh", [fixture.launcher, "--stop"], {
+        env: {
+          ...fixture.environment,
+          LOO_UME_LSOF_COMMAND: fakeLsof,
+        },
+        timeout: 25_000,
+      });
+      expect(stopped.stdout).toContain("LOO/UME stopped.");
+    } finally {
+      if (server.exitCode === null) server.kill("SIGTERM");
+      await new Promise<void>((resolvePromise) => {
+        if (server.exitCode !== null) resolvePromise();
+        else server.once("close", () => resolvePromise());
+      });
+    }
   });
 
   it("opens a visible Terminal progress session for a normal Finder launch", async () => {
@@ -546,7 +606,7 @@ describe("LOO/UME managed launcher", () => {
     await writeFile(fakeGit, [
       "#!/bin/sh",
       'if [ "${1-}" = --version ]; then exit 0; fi',
-      'if [ "${1-}" = clone ]; then mkdir -p "${6-}"; exit 1; fi',
+      'if [ "${1-}" = clone ]; then echo "Counting download objects..." >&2; mkdir -p "${7-}"; exit 1; fi',
       "exit 1",
       "",
     ].join("\n"));
@@ -558,13 +618,16 @@ describe("LOO/UME managed launcher", () => {
         LOO_UME_SUPPORT_ROOT: support,
         LOO_UME_APPLICATIONS_ROOT: join(home, "Applications"),
         LOO_UME_SKIP_APP_COPY: "1",
+        LOO_UME_TERMINAL_SESSION: "1",
         LOO_UME_GIT_COMMAND: fakeGit,
         LOO_UME_OSASCRIPT_COMMAND: "/bin/false",
         LOO_UME_XCODE_SELECT_COMMAND: "/bin/false",
       },
       timeout: 5_000,
     })).rejects.toMatchObject({
-      stderr: expect.stringContaining("application download failed"),
+      stderr: expect.stringMatching(
+        /Counting download objects\.\.\.[\s\S]*application download failed/,
+      ),
     });
     expect(await readdir(support)).not.toContain("application");
     expect((await readdir(support)).some((name) => name.startsWith("install.lock.claim.")))

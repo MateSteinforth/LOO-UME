@@ -2295,3 +2295,27 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Prevention:** A long first-launch installer must have one persistent,
   operator-visible progress surface and one bounded removal path.
 - **Status:** Implemented by INSTALL-017; native Finder review remains pending.
+
+### F-124 — Removal left a server without its ownership record
+
+- **Date:** 2026-09-02
+- **Context:** Native removal and immediate reinstall of the Mac launcher.
+- **Symptom:** The removal Terminal ended with `zsh: killed`. Reinstall then
+  rejected port 4173 even though its LOO/UME readiness endpoint was active.
+  Git also printed only its first clone line to the file log.
+- **Cause:** The native removal ended before it verified that the listener was
+  gone. Its managed PID record did not survive, so the remaining server became
+  an orphan. The launcher correctly rejected an unowned port, but had no narrow
+  recovery path. Git clone progress was redirected away from the visible
+  installer Terminal.
+- **Correction:** Recover an orphan only when one listening PID has the exact
+  managed checkout command path and the endpoint returns the LOO/UME readiness
+  contract. Recreate the PID record before reuse or removal. Run Git clone with
+  forced progress directly in the visible Terminal.
+- **Prevention:** Ownership recovery must combine process identity and an
+  application-specific readiness response. Never adopt a port from HTTP
+  response alone. Removal must stop if an active port cannot be owned or stays
+  active. Never hide a long first-install operation from the operator's
+  progress surface.
+- **Status:** Implemented by INSTALL-017; native uninstall and reinstall review
+  remains pending.

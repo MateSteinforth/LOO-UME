@@ -121,7 +121,10 @@ editor runtime. On first launch it copies its application bundle to
 `~/Library/Application Support/LOO-UME/`, and delegates installation to the
 same bootstrap boundary. `scripts/looume.sh` owns one background server PID,
 readiness URL, and log. Reopening the icon opens the existing server; update,
-stop, and status use the same ownership record. A managed in-editor update
+stop, and status use the same ownership record. If an older removal loses that
+record, the launcher can recover only a listener whose PID command path and
+LOO/UME readiness response both match the managed checkout. It does not adopt
+an unrelated service on the same port. A managed in-editor update
 restarts through this launcher so the PID does not become stale. Developer
 checkouts continue to restart directly through `bootstrap.sh`. Launch, first
 install, and application-copy serialization use unique atomic PID claims;
@@ -135,8 +138,9 @@ Main builds use unique run-number versions and serialize per ref; manual runs
 remain artifact-only. Apple notarization is not claimed.
 
 A normal Finder launch hands control to one visible Terminal session before it
-copies or installs files. The terminal streams the managed server setup log and
-reports the ready URL. The release also contains a command-file uninstaller.
+copies or installs files. The terminal shows Git download progress, streams the
+managed server setup log, and reports the ready URL. The release also contains
+a command-file uninstaller.
 It stops the launcher-owned process, copies `projects/local` to a timestamped
 folder in Documents, and then removes the managed Application Support tree,
 application bundle, and matching command link. It does not delete unrelated
