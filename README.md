@@ -20,14 +20,17 @@ panel outlines and validated flat gap caps.
 
 [**Download LOO/UME for Mac**](https://github.com/MateSteinforth/LOO-UME/releases/latest/download/LOO-UME-Mac-Launcher.zip)
 
-Open `LOO UME.app` once from the downloaded ZIP. It copies itself to
-`~/Applications`, downloads the
+Open `LOO UME.app` once from the downloaded ZIP. macOS asks permission to copy
+itself to `/Applications`, then it downloads the
 approved `main` checkout into
 `~/Library/Application Support/LOO-UME/application`, runs the verified setup,
 and opens the browser editor. A Terminal window shows download, setup, server,
 and ready messages; detailed setup output is streamed there. The first launch
 needs an internet connection and can take several minutes. Later launches show
-the same status window and reuse the verified installation.
+the same status window and reuse the verified installation. Closing the
+browser does not stop the local service. Open `/Applications/LOO UME.app`
+again to reopen the editor. Use `looume --stop` only when you want to stop the
+local service completely; the next icon launch starts it again.
 
 The application also installs an optional command link at
 `~/.local/bin/looume`. If that directory is already in the user's shell path,

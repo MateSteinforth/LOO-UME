@@ -61,7 +61,7 @@ read_owned_pid() {
 discover_owned_pid() {
   owned_pid=
   [ -x "$lsof_command" ] || return 1
-  server_ready || return 1
+  server_api_ready || return 1
   candidate_pids=$(
     "$lsof_command" -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true
   )
@@ -97,13 +97,24 @@ port_responds() {
   "$curl_command" --silent --show-error --max-time 2 "$url" >/dev/null 2>&1
 }
 
-server_ready() {
+server_api_ready() {
   readiness=$(
     "$curl_command" --fail --silent --show-error --max-time 2 \
       "${url}api/generator-status" 2>/dev/null
   ) || return 1
   printf '%s' "$readiness" | /usr/bin/grep -Fq '"schemaVersion":"1.0.0"' &&
     printf '%s' "$readiness" | /usr/bin/grep -Fq '"generator":"manifold"'
+}
+
+server_ui_ready() {
+  editor_html=$(
+    "$curl_command" --fail --silent --show-error --max-time 2 "$url" 2>/dev/null
+  ) || return 1
+  printf '%s' "$editor_html" | /usr/bin/grep -Fq 'id="app"'
+}
+
+server_ready() {
+  server_api_ready && server_ui_ready
 }
 
 lock_claim_owner_is_live() {
@@ -231,6 +242,7 @@ start_server() {
   start_mode=${1:-launch}
   open_after=${2:-true}
   clear_stale_state
+  repair_owned_server_without_editor
   if read_or_discover_owned_pid && server_ready; then
     if [ "$open_after" = true ]; then open_editor; fi
     echo "LOO/UME is already running at $url"
@@ -280,6 +292,7 @@ start_server() {
   trap release_launch_resources EXIT
   trap 'exit 130' HUP INT TERM
   clear_stale_state
+  repair_owned_server_without_editor
   if read_or_discover_owned_pid && server_ready; then
     release_launch_lock
     trap - EXIT HUP INT TERM
@@ -350,6 +363,13 @@ stop_server() {
   echo "LOO/UME stopped."
 }
 
+repair_owned_server_without_editor() {
+  if read_or_discover_owned_pid && server_api_ready && ! server_ui_ready; then
+    echo "LOO/UME found an owned server without its editor files. Restarting it."
+    stop_server
+  fi
+}
+
 case ${1-} in
   ''|launch)
     [ "$#" -le 1 ] || { echo "usage: looume [--update|--stop|--status]" >&2; exit 2; }
@@ -369,6 +389,8 @@ case ${1-} in
     clear_stale_state
     if read_owned_pid && server_ready; then
       echo "LOO/UME is running at $url (PID $owned_pid)."
+    elif read_owned_pid && server_api_ready; then
+      echo "LOO/UME server is active, but its editor files are unavailable. Run LOO/UME to repair it."
     elif read_owned_pid; then
       echo "LOO/UME is starting (PID $owned_pid)."
     else
