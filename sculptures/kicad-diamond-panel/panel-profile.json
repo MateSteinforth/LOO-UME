@@ -1,0 +1,137 @@
+{
+  "$schema": "../../schemas/panel-profile.schema.json",
+  "schemaVersion": "1.0.0",
+  "id": "image-derived-wled-8x8-diamond-panel",
+  "kind": "led-panel",
+  "units": "mm",
+  "dimensions": {
+    "width": 170,
+    "height": 110,
+    "thickness": 1.6
+  },
+  "carrier": {
+    "kind": "planar-outline",
+    "outline": [[0, 55], [-85, 4.5], [-85, -4.5], [0, -55], [85, -4.5], [85, 4.5]],
+    "apertures": [
+      { "id": "mount-top", "center": [0, 42], "diameter": 4 },
+      { "id": "mount-upper-left", "center": [-34.5, 21], "diameter": 4 },
+      { "id": "mount-upper-right", "center": [34.5, 21], "diameter": 4 },
+      { "id": "mount-left", "center": [-69, 0], "diameter": 4 },
+      { "id": "mount-center", "center": [0, 0], "diameter": 4 },
+      { "id": "mount-right", "center": [69, 0], "diameter": 4 },
+      { "id": "mount-lower-left", "center": [-34.5, -21], "diameter": 4 },
+      { "id": "mount-lower-right", "center": [34.5, -21], "diameter": 4 },
+      { "id": "mount-bottom", "center": [0, -42], "diameter": 4 }
+    ]
+  },
+  "pixelGrid": {
+    "columns": 8,
+    "rows": 8,
+    "emitterOffset": 1.2,
+    "localEmitterPositions": [
+      [0, -48.125, 1.2], [11.5625, -41.25, 1.2], [23.125, -34.375, 1.2], [34.6875, -27.5, 1.2],
+      [46.25, -20.625, 1.2], [57.8125, -13.75, 1.2], [69.375, -6.875, 1.2], [80.9375, 0, 1.2],
+      [-11.5625, -41.25, 1.2], [0, -34.375, 1.2], [11.5625, -27.5, 1.2], [23.125, -20.625, 1.2],
+      [34.6875, -13.75, 1.2], [46.25, -6.875, 1.2], [57.8125, 0, 1.2], [69.375, 6.875, 1.2],
+      [-23.125, -34.375, 1.2], [-11.5625, -27.5, 1.2], [0, -20.625, 1.2], [11.5625, -13.75, 1.2],
+      [23.125, -6.875, 1.2], [34.6875, 0, 1.2], [46.25, 6.875, 1.2], [57.8125, 13.75, 1.2],
+      [-34.6875, -27.5, 1.2], [-23.125, -20.625, 1.2], [-11.5625, -13.75, 1.2], [0, -6.875, 1.2],
+      [11.5625, 0, 1.2], [23.125, 6.875, 1.2], [34.6875, 13.75, 1.2], [46.25, 20.625, 1.2],
+      [-46.25, -20.625, 1.2], [-34.6875, -13.75, 1.2], [-23.125, -6.875, 1.2], [-11.5625, 0, 1.2],
+      [0, 6.875, 1.2], [11.5625, 13.75, 1.2], [23.125, 20.625, 1.2], [34.6875, 27.5, 1.2],
+      [-57.8125, -13.75, 1.2], [-46.25, -6.875, 1.2], [-34.6875, 0, 1.2], [-23.125, 6.875, 1.2],
+      [-11.5625, 13.75, 1.2], [0, 20.625, 1.2], [11.5625, 27.5, 1.2], [23.125, 34.375, 1.2],
+      [-69.375, -6.875, 1.2], [-57.8125, 0, 1.2], [-46.25, 6.875, 1.2], [-34.6875, 13.75, 1.2],
+      [-23.125, 20.625, 1.2], [-11.5625, 27.5, 1.2], [0, 34.375, 1.2], [11.5625, 41.25, 1.2],
+      [-80.9375, 0, 1.2], [-69.375, 6.875, 1.2], [-57.8125, 13.75, 1.2], [-46.25, 20.625, 1.2],
+      [-34.6875, 27.5, 1.2], [-23.125, 34.375, 1.2], [-11.5625, 41.25, 1.2], [0, 48.125, 1.2]
+    ],
+    "colorOrder": {
+      "status": "provisional",
+      "channelSequence": "GRB",
+      "wledValue": 0,
+      "note": "Provisional WS2812-style assumption from the KiCad screenshot; verify RGB channels on one current-limited board."
+    },
+    "provisionalOrder": {
+      "status": "provisional",
+      "pixelZeroCorner": "bottom-left",
+      "traversalAxis": "rows",
+      "lineProgression": "bottom-to-top",
+      "serpentine": false,
+      "firstLineDirection": "left-to-right",
+      "description": "Visual placeholder over the image-derived 8 by 8 rhombic lattice. The screenshot does not prove LED 0, traversal direction, or serpentine behavior."
+    }
+  },
+  "mounting": {
+    "cornerHoleInset": 13,
+    "middleHoleOffsetFromOuter": 34.5,
+    "pcbHolePreviewDiameter": 4,
+    "printedPilotDiameter": 2,
+    "screwLeadIn": { "diameter": 4.4, "depth": 0.8 },
+    "holes": [
+      { "id": "top-left", "localPosition": [0, 42], "mechanicalUse": "blocked", "blockedBy": "DOUT" },
+      { "id": "middle-left", "localPosition": [-34.5, 21], "mechanicalUse": "eligible" },
+      { "id": "bottom-left", "localPosition": [0, -42], "mechanicalUse": "blocked", "blockedBy": "DIN" },
+      { "id": "top-right", "localPosition": [34.5, 21], "mechanicalUse": "eligible" },
+      { "id": "middle-right", "localPosition": [-34.5, -21], "mechanicalUse": "eligible" },
+      { "id": "bottom-right", "localPosition": [34.5, -21], "mechanicalUse": "eligible" }
+    ],
+    "capAllocation": {
+      "strategy": "minimum-total-edge-distance",
+      "useAllEligibleHolesWhenPossible": true,
+      "distinctClosurePerHole": true
+    },
+    "physicalCorrections": {
+      "holeEdge": 0,
+      "surfaceFlush": 0,
+      "status": "provisional",
+      "note": "Compatibility placeholders only. The nine carrier apertures are the image-derived hole authority; fabrication is disabled."
+    }
+  },
+  "dataConnectors": {
+    "referenceView": "back",
+    "orientationReference": "pose-local-explicit-connectors",
+    "cornerAssignmentStatus": "provisional",
+    "dinCorner": "bottom-left",
+    "doutCorner": "top-left",
+    "localPositions": {
+      "coordinateFrame": "pose-local",
+      "din": [0, -51, -2.4],
+      "dout": [0, 51, -2.4]
+    },
+    "padPositionStatus": "unknown",
+    "note": "DIN and DOUT are provisional opposite-tip anchors used only to make mapping and wiring available. The screenshot does not identify the actual data pads."
+  },
+  "power": {
+    "status": "provisional",
+    "basis": "panel-photo-and-conservative-worst-case",
+    "nominalVoltage": 5,
+    "worstCaseCurrentPerPixel": 0.06,
+    "worstCaseCurrentPerPanel": 3.84,
+    "pads": {
+      "status": "provisional",
+      "availableAt": ["din-end", "dout-end"],
+      "roles": ["V+", "V-"],
+      "supportsIndependentFeedAndInjection": true
+    },
+    "singlePanelLead": {
+      "scope": "short-5v-and-ground-leads",
+      "minimumCrossSectionMm2": 0.75,
+      "approximateAwg": 18,
+      "sharedFeedsRequireLargerConductors": true
+    },
+    "voltageDrop": { "maximumFraction": 0.05, "minimumPanelVoltage": 4.75 },
+    "fusing": {
+      "status": "provisional",
+      "grouping": "one-fuse-per-small-panel-group",
+      "panelsPerFuse": null,
+      "sizingRule": "protect-wire"
+    },
+    "note": "Conservative 5 V addressable-RGB placeholder only. Confirm the actual LED, voltage, current, and power pads from design files or hardware."
+  },
+  "electricalKeepouts": {
+    "status": "unknown",
+    "regions": [],
+    "note": "The screenshot does not provide measured component or solder-pad clearance regions."
+  }
+}

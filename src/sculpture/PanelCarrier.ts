@@ -3,6 +3,11 @@ export type PanelCarrierDefinition =
   | {
     kind: "planar-outline";
     outline: Array<[number, number]>;
+    apertures?: Array<{
+      id: string;
+      center: [number, number];
+      diameter: number;
+    }>;
   }
   | {
     kind: "flexible-path";
@@ -255,6 +260,80 @@ function validatePlanarOutline(
   }
 }
 
+function pointSegmentDistance(
+  point: readonly [number, number],
+  start: readonly [number, number],
+  end: readonly [number, number],
+): number {
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const lengthSquared = dx * dx + dy * dy;
+  const amount = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1,
+    ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / lengthSquared,
+  ));
+  return Math.hypot(
+    point[0] - (start[0] + amount * dx),
+    point[1] - (start[1] + amount * dy),
+  );
+}
+
+function pointInsidePolygon(
+  point: readonly [number, number],
+  outline: Array<[number, number]>,
+): boolean {
+  let inside = false;
+  for (let index = 0, prior = outline.length - 1; index < outline.length; prior = index++) {
+    const currentPoint = outline[index]!;
+    const priorPoint = outline[prior]!;
+    if (
+      (currentPoint[1] > point[1]) !== (priorPoint[1] > point[1]) &&
+      point[0] < (priorPoint[0] - currentPoint[0]) *
+          (point[1] - currentPoint[1]) /
+          (priorPoint[1] - currentPoint[1]) + currentPoint[0]
+    ) inside = !inside;
+  }
+  return inside;
+}
+
+function validatePlanarApertures(
+  apertures: unknown,
+  outline: Array<[number, number]>,
+): void {
+  if (apertures === undefined) return;
+  if (!Array.isArray(apertures) || apertures.length < 1) {
+    throw new Error("Planar carrier apertures require a nonempty array.");
+  }
+  const ids = new Set<string>();
+  const circles: Array<{ center: [number, number]; radius: number }> = [];
+  for (const aperture of apertures) {
+    if (
+      typeof aperture !== "object" || aperture === null || Array.isArray(aperture)
+    ) throw new Error("A planar carrier aperture must be an object.");
+    const record = aperture as Record<string, unknown>;
+    if (
+      Object.keys(record).some((key) => !["id", "center", "diameter"].includes(key)) ||
+      typeof record.id !== "string" || record.id.length === 0 ||
+      ids.has(record.id) || !finiteTuple(record.center, 2) ||
+      typeof record.diameter !== "number" || !Number.isFinite(record.diameter) ||
+      record.diameter <= 0
+    ) throw new Error("Planar carrier apertures require unique IDs, finite centres, and positive diameters.");
+    ids.add(record.id);
+    const center = record.center as [number, number];
+    const radius = record.diameter / 2;
+    if (
+      !pointInsidePolygon(center, outline) ||
+      outline.some((start, index) =>
+        pointSegmentDistance(center, start, outline[(index + 1) % outline.length]!) <= radius
+      )
+    ) throw new Error(`Planar carrier aperture ${record.id} must stay inside the outline.`);
+    if (circles.some((circle) =>
+      Math.hypot(center[0] - circle.center[0], center[1] - circle.center[1]) <=
+        radius + circle.radius
+    )) throw new Error(`Planar carrier aperture ${record.id} overlaps another aperture.`);
+    circles.push({ center, radius });
+  }
+}
+
 function validateFlexiblePath(
   carrier: Record<string, unknown>,
   dimensions: PanelCarrierProfile["dimensions"],
@@ -344,10 +423,14 @@ export function validatePanelCarrier(
     return;
   }
   if (record.kind === "planar-outline") {
-    if (!hasOnly(["kind", "outline"])) {
+    if (!hasOnly(["kind", "outline", "apertures"])) {
       throw new Error("A planar carrier has unsupported fields.");
     }
     validatePlanarOutline(record.outline, dimensions);
+    validatePlanarApertures(
+      record.apertures,
+      record.outline as Array<[number, number]>,
+    );
     return;
   }
   if (record.kind === "flexible-path") {

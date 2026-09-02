@@ -35,6 +35,8 @@ edit marks derived mechanics stale but does not stop those functions.
    poses into LED world positions, logical indices, and mapping metadata.
    The separate optional carrier contract affects display geometry and tool
    capability only; it does not become a second address authority.
+   Optional planar carrier apertures are display cutouts only and do not become
+   mounting or fabrication authority.
    A non-legacy carrier can use required pose-local DIN/DOUT anchors instead of
    claiming the historical three-hole orientation. Provisional photo-study
    evidence remains labelled provisional through load and portable export.

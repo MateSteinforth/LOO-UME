@@ -78,6 +78,24 @@ No tasks.
   passed. Physical 41-panel use remains operator review and does not block the
   task branch.
 
+### `P2 · FIXTURE-015` Add an image-derived KiCad diamond-panel fixture
+
+- Scope: model the operator-supplied KiCad screenshot as one provisional
+  Schema 2 panel profile and one Project Browser demo. Preserve the visible
+  clipped-diamond carrier, 8 by 8 rhombic emitter lattice, and nine board
+  apertures without turning image estimates into fabrication authority.
+- Acceptance: the source and bundled profile load and reload; mapping contains
+  64 unique emitters on one stable GPIO 16 route; all nine carrier apertures
+  cut the rendered board; rectangular-only placement and fabrication remain
+  disabled; every unproved connector, address, color, dimension, and electrical
+  fact stays provisional; the original reference image remains in the fixture.
+- Owner: `codex/fixture-015-kicad-diamond` in
+  `/tmp/loo-ume-fixture-015`. Likely conflicts: panel-carrier runtime/schema,
+  carrier rendering, Project Browser registry, and panel-system documentation.
+- Verification: focused carrier and fixture tests, TypeScript, schema/runtime
+  round trip, Project Library packaging, production build, diff-check, and a
+  separate QUALITY review passed.
+
 ## In Progress
 
 No tasks.

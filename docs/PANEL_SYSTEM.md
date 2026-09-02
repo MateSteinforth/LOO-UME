@@ -86,7 +86,8 @@ print generation.
 The optional `carrier` field now distinguishes three display contracts:
 
 - absent or `rectangular`: the historical rigid width × height carrier;
-- `planar-outline`: one validated simple pose-local XY polygon;
+- `planar-outline`: one validated simple pose-local XY polygon, with optional
+  validated circular display apertures;
 - `flexible-path`: a validated open or closed pose-local XYZ path with ribbon
   width and thickness.
 
@@ -95,6 +96,10 @@ ribbon segments. Carrier coordinates must stay inside `dimensions`, which
 remains the camera, selection, and portability envelope. Mapping, wiring,
 simulation, MadMapper export, ESP32 setup, project save, and project reload are
 carrier-independent.
+
+Planar carrier apertures describe visible PCB cutouts only. They do not add
+mounting or fabrication authority. The separate legacy `mounting` contract
+continues to control the existing rectangular fabrication pipelines.
 
 `sculptures/one-metre-led-ring/sculpture.json` is the tracked flexible-path
 example. It models one 1,000 mm diameter hoop with 188 explicit outward-radial
@@ -118,6 +123,15 @@ stores a current automatic route: three equal 10-panel chains on GPIO 16, 17,
 and 18. The arrangement reproduces the supplied rendering for simulation and
 Project Browser review. It does not claim measured panel poses, enclosure fit,
 or fabrication geometry.
+
+`sculptures/kicad-diamond-panel/sculpture.json` is an image-derived KiCad
+study. It preserves the visible six-sided board outline, one apparent 8 by 8
+rhombic LED lattice, and nine circular apertures. The approximate 170 by 110 mm
+envelope comes from the screenshot ruler. The exact outline, thickness,
+emitter and aperture centres, DIN/DOUT positions, address order, color order,
+and electrical values are provisional. The project supports simulation,
+mapping, wiring, WLED setup, MadMapper export, and portable save/reload, but it
+does not authorize fabrication.
 
 The optional `radial-outward` flexible frame keeps strip thickness aligned with
 the radius from its declared center and strip width perpendicular to the path

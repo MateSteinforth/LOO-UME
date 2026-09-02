@@ -44,6 +44,18 @@ export function panelCarrierMountingHoleCenters(
   ) ?? [];
 }
 
+export function panelCarrierApertures(
+  profile: PanelCarrierProfile,
+): Array<{ center: [number, number]; diameter: number }> {
+  const carrier = normalizePanelCarrier(profile);
+  return carrier.kind === "planar-outline"
+    ? carrier.apertures?.map(({ center, diameter }) => ({
+      center: [...center],
+      diameter,
+    })) ?? []
+    : [];
+}
+
 function circularHole(
   center: [number, number],
   radius: number,
@@ -124,7 +136,10 @@ export function createLocalPanelCarrierGeometry(
   profile: MountingHoleCarrierProfile,
 ): LocalPanelCarrierGeometry {
   const carrier = normalizePanelCarrier(profile);
-  const mountingHoles = profile.mounting
+  const apertures = panelCarrierApertures(profile);
+  const mountingHoles = apertures.length > 0
+    ? apertures.map(({ center, diameter }) => circularHole(center, diameter / 2))
+    : profile.mounting
     ? panelCarrierMountingHoleCenters(profile).map((center) =>
       circularHole(center, profile.mounting!.pcbHolePreviewDiameter / 2)
     )

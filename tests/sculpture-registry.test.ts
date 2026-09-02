@@ -19,7 +19,7 @@ describe("processed sculpture registry", () => {
     expect(registryJson.defaultSource).toBe(
       "./sculptures/rhombicosidodecahedron/sculpture.json",
     );
-    expect(registryJson.sculptures).toHaveLength(16);
+    expect(registryJson.sculptures).toHaveLength(17);
     expect(new Set(registryJson.sculptures.map((entry) => entry.id)).size).toBe(
       registryJson.sculptures.length,
     );

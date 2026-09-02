@@ -47,6 +47,7 @@ import {
 } from "../../src/sculpture/Definition.ts";
 import {
   createLocalPanelCarrierGeometry,
+  panelCarrierApertures,
   usesExplicitRadialCarrierEmitters,
 } from "./PanelCarrierGeometry.ts";
 
@@ -931,6 +932,8 @@ export class SphereRenderer {
     delete this.container.dataset.panelMountingHoleFaces;
     delete this.container.dataset.panelDinHoleColor;
     delete this.container.dataset.panelDoutHoleColor;
+    delete this.container.dataset.panelApertureCount;
+    delete this.container.dataset.panelApertureFaces;
     if (panels.length === 0) return;
 
     const positions: number[] = [];
@@ -1016,18 +1019,28 @@ export class SphereRenderer {
         panelSurfaceIds.push(panel.id);
       }
       if (this.panelProfile?.mounting) {
-        const innerRadius = this.panelProfile.mounting.pcbHolePreviewDiameter / 2;
-        const outerRadius = innerRadius + 0.9;
-        const faceOffset = this.panelThickness / 2 + 0.16;
-        for (const hole of this.panelProfile.mounting.holes) {
-          const center = panelBackViewPointToOutwardPoseLocal(hole.localPosition);
-          const ringColor = new THREE.Color(
-            hole.blockedBy === "DIN"
+        const carrierApertures = panelCarrierApertures(this.panelProfile);
+        const displayedHoles = carrierApertures.length > 0
+          ? carrierApertures.map(({ center, diameter }) => ({
+            center,
+            diameter,
+            color: 0xffc857,
+          }))
+          : this.panelProfile.mounting.holes.map((hole) => ({
+            center: panelBackViewPointToOutwardPoseLocal(hole.localPosition),
+            diameter: this.panelProfile!.mounting.pcbHolePreviewDiameter,
+            color: hole.blockedBy === "DIN"
               ? 0x4ade80
               : hole.blockedBy === "DOUT"
                 ? 0xff4d6d
                 : 0xffc857,
-          );
+          }));
+        const faceOffset = this.panelThickness / 2 + 0.16;
+        for (const hole of displayedHoles) {
+          const center = hole.center;
+          const innerRadius = hole.diameter / 2;
+          const outerRadius = innerRadius + 0.9;
+          const ringColor = new THREE.Color(hole.color);
           for (const side of [-1]) {
             for (let segment = 0; segment < 20; segment += 1) {
               const startAngle = 2 * Math.PI * segment / 20;
@@ -1197,12 +1210,20 @@ export class SphereRenderer {
         Float32Array.from(mountingHoleRingPositions);
       holeRings.renderOrder = 3;
       this.panelLayer.add(holeRings);
-      this.container.dataset.panelMountingHoleCount = String(
-        panels.length * this.panelProfile!.mounting.holes.length,
-      );
-      this.container.dataset.panelMountingHoleFaces = "back-only";
-      this.container.dataset.panelDinHoleColor = "4ade80";
-      this.container.dataset.panelDoutHoleColor = "ff4d6d";
+      const carrierApertureCount = panelCarrierApertures(this.panelProfile!).length;
+      if (carrierApertureCount > 0) {
+        this.container.dataset.panelApertureCount = String(
+          panels.length * carrierApertureCount,
+        );
+        this.container.dataset.panelApertureFaces = "back-only";
+      } else {
+        this.container.dataset.panelMountingHoleCount = String(
+          panels.length * this.panelProfile!.mounting.holes.length,
+        );
+        this.container.dataset.panelMountingHoleFaces = "back-only";
+        this.container.dataset.panelDinHoleColor = "4ade80";
+        this.container.dataset.panelDoutHoleColor = "ff4d6d";
+      }
     }
     this.buildPrintableClosures(printableClosures, surfaceFaces);
 

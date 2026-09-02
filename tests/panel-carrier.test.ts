@@ -17,6 +17,7 @@ import { preflightPanelBoundaryParts } from "../src/cad/CompilePanelBoundaryBund
 import { runStructuralPipeline } from "../src/structure/StructuralPipeline.ts";
 import {
   createLocalPanelCarrierGeometry,
+  panelCarrierApertures,
   panelCarrierMountingHoleCenters,
   usesExplicitRadialCarrierEmitters,
 } from "../web/src/PanelCarrierGeometry.ts";
@@ -164,6 +165,66 @@ describe("generalized panel carriers", () => {
     expect(geometry.triangles.length).toBeGreaterThan(12);
     expect(geometry.outlineSegments).toHaveLength(6);
     expect(supportsRectangularPanelTools(profile)).toBe(false);
+  });
+
+  it("cuts explicit planar carrier apertures without changing mounting authority", () => {
+    const input = structuredClone(BASE_PROFILE);
+    input.id = "test-planar-apertures";
+    input.carrier = {
+      kind: "planar-outline",
+      outline: [[-30, -25], [30, -25], [30, 25], [-30, 25]],
+      apertures: [
+        { id: "visual-a", center: [-12, 0], diameter: 4 },
+        { id: "visual-b", center: [12, 0], diameter: 6 },
+      ],
+    };
+    const profile = parsePanelHardwareProfile(input);
+    const geometry = createLocalPanelCarrierGeometry(profile);
+    const triangles = Array.from(
+      { length: geometry.triangles.length / 3 },
+      (_, index) => geometry.triangles.slice(index * 3, index * 3 + 3),
+    );
+
+    expect(panelCarrierApertures(profile)).toEqual(input.carrier.apertures.map(
+      ({ center, diameter }: { center: [number, number]; diameter: number }) => ({
+        center,
+        diameter,
+      }),
+    ));
+    for (const aperture of input.carrier.apertures) {
+      expect(triangles.some((triangle) =>
+        triangleContainsPoint(triangle, aperture.center as [number, number])
+      )).toBe(false);
+    }
+    expect(profile.mounting.holes).toHaveLength(6);
+  });
+
+  it("rejects invalid planar carrier apertures", () => {
+    const carrier = {
+      kind: "planar-outline",
+      outline: [[-30, -25], [30, -25], [30, 25], [-30, 25]],
+      apertures: [
+        { id: "a", center: [0, 0], diameter: 6 },
+        { id: "b", center: [2, 0], diameter: 6 },
+      ],
+    };
+    expect(() => validatePanelCarrier(carrier, {
+      width: 60,
+      height: 50,
+      thickness: 1.6,
+    })).toThrow("overlaps another aperture");
+    carrier.apertures[1] = { id: "b", center: [29, 0], diameter: 4 };
+    expect(() => validatePanelCarrier(carrier, {
+      width: 60,
+      height: 50,
+      thickness: 1.6,
+    })).toThrow("must stay inside the outline");
+    carrier.apertures[1] = { id: "a", center: [12, 0], diameter: 4 };
+    expect(() => validatePanelCarrier(carrier, {
+      width: 60,
+      height: 50,
+      thickness: 1.6,
+    })).toThrow("unique IDs");
   });
 
   it("renders a closed 1x12 flexible ring as bounded ribbon segments", () => {

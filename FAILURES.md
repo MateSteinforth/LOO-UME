@@ -2169,3 +2169,24 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   moving a panel pose, changing GPIOs, or weakening fabrication evidence.
 - **Evidence:** CAL-012 unit and focused Chromium review journeys.
 - **Status:** Implemented by CAL-012; physical 41-panel review remains.
+
+### F-119 — Visible PCB apertures are not automatic mounting authority
+
+- **Date:** 2026-09-02
+- **Context:** Creating a reusable panel profile from one KiCad screenshot of a
+  custom diamond-shaped LED PCB.
+- **Symptom:** The profile contract required six legacy rectangular mounting
+  records, but the image visibly contained nine circular board apertures.
+- **Cause:** The historical mounting contract combines display, connector
+  blocking, and rectangular fabrication facts. Forcing nine image-derived
+  circles into that contract would invent mechanical and manufacturing facts.
+- **Correction:** Add optional validated circular apertures to the planar
+  carrier display contract. Use them for board triangulation and visualization,
+  while the unchanged mounting contract remains compatibility-only and
+  provisional. Keep rectangular-only fabrication disabled.
+- **Prevention:** Separate visible carrier cutouts from measured mounting and
+  fabrication authority. A photograph or CAD screenshot can support a visual
+  fixture, but it cannot prove tolerances, connector functions, or printable
+  attachment geometry.
+- **Status:** Implemented by FIXTURE-015; source measurements and electrical
+  facts remain provisional.
