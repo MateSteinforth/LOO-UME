@@ -8,6 +8,7 @@ import {
   createDesktopUpdateHandler,
   type DesktopUpdater,
 } from "../electron/DesktopUpdateHandler.ts";
+import { quitAfterLastWindowCloses } from "../electron/DesktopLifecycle.ts";
 import { isApprovedCp2102 } from "../electron/SerialPolicy.ts";
 import { migrateLegacyProjectLibrary } from "../electron/ProjectLibraryMigration.ts";
 
@@ -38,6 +39,12 @@ async function serveUpdater(updater: DesktopUpdater): Promise<string> {
 }
 
 describe("Electron desktop boundaries", () => {
+  it("quits the desktop process when its last window closes", () => {
+    const quit = vi.fn();
+    quitAfterLastWindowCloses({ quit });
+    expect(quit).toHaveBeenCalledOnce();
+  });
+
   it("permits only the approved CP2102 USB identity", () => {
     expect(isApprovedCp2102({ vendorId: "10C4", productId: "EA60" })).toBe(true);
     expect(isApprovedCp2102({ vendorId: 0x10c4, productId: 0xea60 })).toBe(true);

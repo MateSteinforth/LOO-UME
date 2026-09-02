@@ -115,8 +115,8 @@ Ignored local project-library ZIPs never move. A restore conflict stops before
 launch and retains the recovery stash. The production UI uses the same boundary
 to report and apply available updates.
 
-The lightweight Mac launcher is a separate distribution wrapper, not a second
-editor runtime. On first launch it uses the macOS authorization boundary to
+The deprecated lightweight Mac launcher is a compatibility wrapper, not a
+second editor runtime. On first launch it uses the macOS authorization boundary to
 copy its application bundle to `/Applications`, then atomically clones the
 canonical `main` checkout below
 `~/Library/Application Support/LOO-UME/`, and delegates installation to the
@@ -137,24 +137,26 @@ fast-forward update and restarts one current server. The marker is cleared only
 after success. An identical translocated or installed bundle skips this path
 and reuses the running service.
 
-The Mac launcher ZIP is an independent GitHub release asset. Every canonical
-`main` push and every explicit `mac-launcher-v*` tag runs the macOS-only job,
+The legacy Mac launcher ZIP is an independent GitHub release asset. Only an
+explicit `mac-launcher-v*` tag or manual workflow run starts its macOS-only job,
 which converts the deterministic icon source to `.icns`, validates the bundle,
 applies an ad-hoc review signature, and archives resource forks with `ditto`.
-Main builds use unique run-number versions and serialize per ref. A manual run
-also publishes one unique prerelease with a direct, single-ZIP review download;
-it does not replace the latest public release. Apple notarization is not
-claimed.
+Tagged builds use their tag version; manual builds use a unique run-number
+version and serialize per ref. A manual run publishes one unique prerelease
+with a direct, single-ZIP review download; it does not replace the latest public
+release. Apple notarization is not claimed.
 
 The Electron desktop package reuses the compiled browser editor and the Node
 service modules in one application process. Its internal HTTP server listens
 on a random loopback port. The Electron main process owns Project Library
 storage below the application user-data directory, generated files, logs, the
 loopback Art-Net receiver, private-network WLED HTTP/DDP access, and shutdown.
-Closing the last window on macOS keeps the normal application process available
-in the Dock; reopening the application creates a new window, and Quit closes
-the local service. Browser/LAN and managed-checkout launch modes remain
-supported review and development paths.
+Closing the last Electron window quits the application and closes its local
+service on every platform. A later icon launch starts one new process and one
+new window. This explicit lifecycle makes Finder removal unambiguous and does
+not leave a hidden Mac process after the operator closes the window.
+Browser/LAN and managed-checkout launch modes remain supported review and
+development paths.
 
 Electron grants Web Serial only to its own loopback editor origin and only for
 the approved Silicon Labs CP2102 USB identity. MadMapper or TouchDesigner still
@@ -173,13 +175,17 @@ update feed; each manual run publishes one direct prerelease DMG for review.
 Project Library data remains outside the replaceable application
 bundle. A first desktop launch imports the earlier managed Mac Project Library
 only when the Electron library is empty.
-After the signed Electron cutover, Electron owns the repository's latest
-release because its updater reads that feed. The older managed-checkout
-launcher can still publish archived releases, but those releases are explicitly
-non-latest. The README download must change to the stable Electron DMG in the
-same cutover.
+Electron is the primary Mac installation. Every application-changing canonical
+`main` push packages the universal unsigned application and refreshes one fixed
+prerelease DMG URL. Documentation-only and test-only pushes skip that package.
+That release omits updater metadata and stays a prerelease, so it cannot become
+an automatic-update feed. A later signed Electron release can own the
+repository's latest release and verified updater feed. The older
+managed-checkout launcher can still publish archived tagged or manual releases,
+but it does not run for ordinary `main` pushes.
 
-A normal Finder launch first copies the small app wrapper to `/Applications`,
+For the legacy launcher, a normal Finder launch first copies the small app
+wrapper to `/Applications`,
 then hands control from that stable path to one visible Terminal session. It
 never asks Terminal to reopen an ephemeral App Translocation path. The terminal
 shows Git download progress, streams the managed server setup log, and reports

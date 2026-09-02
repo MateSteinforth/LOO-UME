@@ -324,22 +324,20 @@ The production loopback server can check `origin/main` and expose the same
 operation through an Update button. Update mutation requires a same-origin
 POST to the loopback server. LAN preview and static hosting cannot apply it.
 
-## D36 — Keep the Mac application as a thin managed-checkout launcher
+## D36 — Retain the managed-checkout Mac launcher as a legacy path
 
-The Mac application does not embed a second browser or fork the editor. Its
+The legacy Mac launcher does not embed a second browser or fork the editor. Its
 first launch installs a canonical `main` checkout below Application Support and
 then delegates setup, launch, and update to the existing verified boundaries.
-This keeps Web Serial and all other Chromium behavior in the operator's normal
-browser and preserves the repository updater.
+This path is retained for compatibility and recovery, not as the primary Mac
+installation.
 
 One launcher script owns the background server PID and readiness URL. The app
 can therefore reopen an existing editor, stop its server, and retain process
-ownership after an in-editor update. The release workflow publishes the small
-launcher automatically after every canonical `main` update and for explicit
-version tags. Each publication is bound to a commit contained in `origin/main`
-and uses a unique release tag; manual workflow runs remain temporary review
-artifacts. An ad-hoc signature is review evidence only; signed and notarized
-public distribution requires a separate Apple credential decision.
+ownership after an in-editor update. The release workflow runs only for an
+explicit legacy version tag or manual review. A tag must refer to a commit in
+canonical `main`. An ad-hoc signature is review evidence only; signed and
+notarized public distribution requires a separate Apple credential decision.
 
 Finder launch uses a visible Terminal progress session because browser and
 notification-only startup did not show whether a long first installation was
@@ -352,10 +350,19 @@ The Electron application is a packaging boundary, not a second editor. It
 serves the existing production browser build from an ephemeral loopback port
 and reuses the project-library, fabrication, Art-Net, WLED HTTP, and DDP service
 modules. The renderer has no Node integration. Web Serial permission stays in
-the Electron main process and accepts only the approved CP2102 identity.
+the Electron main process and accepts only the approved CP2102 identity. The
+Electron DMG is the default Mac operator path.
 
 Electron updates are release-artifact updates, not Git checkout updates. Only a
 Developer-ID-signed and notarized `electron-v*` tag contained in canonical
 `main` can publish the latest update feed. Manual workflow runs build an
 unsigned review package only. Mutable projects and generated files stay in the
 application user-data directory and are not part of the replaceable bundle.
+Canonical `main` refreshes one fixed unsigned prerelease DMG download without
+publishing updater metadata. This provides a stable free installation link but
+does not make an unsigned package an automatic-update authority.
+
+The Electron window owns the desktop session. Closing the last window quits
+the application and its loopback services on macOS as well as other platforms.
+This differs from the normal document-based Mac convention because LOO/UME has
+no useful hidden state after its only editor window closes.

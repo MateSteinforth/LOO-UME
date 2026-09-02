@@ -304,7 +304,7 @@ describe("LOO/UME managed launcher", () => {
     }
   });
 
-  it("defines the self-installing application and automatic release contract", async () => {
+  it("retains the legacy self-installing application and tagged release contract", async () => {
     const application = await readFile(
       "macos/launcher/Contents/MacOS/LOO-UME",
       "utf8",
@@ -335,7 +335,7 @@ describe("LOO/UME managed launcher", () => {
     expect(application).toContain("--uninstall) uninstall_application");
     expect(plist).toContain("art.loo-ume.launcher");
     expect(plist).toContain("AppIcon");
-    expect(workflow).toContain("branches:\n      - main");
+    expect(workflow).not.toContain("branches:\n      - main");
     expect(workflow).toContain('tags:\n      - "mac-launcher-v*"');
     expect(workflow).toContain("group: mac-launcher-${{ github.ref }}");
     expect(workflow).toContain("cancel-in-progress: true");
@@ -359,9 +359,7 @@ describe("LOO/UME managed launcher", () => {
     expect(workflow).toContain("git merge-base --is-ancestor HEAD refs/remotes/origin/main");
     expect(workflow).toContain("permissions:\n  contents: read");
     expect(workflow).toContain("permissions:\n      contents: write");
-    expect(readme).toContain(
-      "https://github.com/MateSteinforth/LOO-UME/releases/latest/download/LOO-UME-Mac-Launcher.zip",
-    );
+    expect(readme).toContain("Legacy browser launcher");
     expect(uninstaller.indexOf('if [ -x "$packaged_launcher" ]')).toBeLessThan(
       uninstaller.indexOf('if [ -x "$installed_launcher" ]'),
     );

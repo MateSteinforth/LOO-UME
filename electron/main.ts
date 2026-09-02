@@ -11,6 +11,7 @@ import { startLocalEditorServer, type LocalEditorServer } from "../scripts/local
 import { createEditorPipelineHandler } from "../scripts/editor-pipeline-handler.ts";
 import { createProjectLibraryHandler } from "../scripts/project-library-handler.ts";
 import { createDesktopUpdateHandler } from "./DesktopUpdateHandler.ts";
+import { quitAfterLastWindowCloses } from "./DesktopLifecycle.ts";
 import { migrateLegacyProjectLibrary } from "./ProjectLibraryMigration.ts";
 import { isApprovedCp2102 } from "./SerialPolicy.ts";
 const { autoUpdater } = updaterPackage;
@@ -234,10 +235,12 @@ if (!hasLock) {
     mainWindow.focus();
   });
   app.on("activate", () => {
-    if (!mainWindow) void createWindow().catch((error) => log(String(error)));
+    if (!mainWindow && !quitting) {
+      void createWindow().catch((error) => log(String(error)));
+    }
   });
   app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") app.quit();
+    quitAfterLastWindowCloses(app);
   });
   app.on("before-quit", (event) => {
     if (quitting || !localServer) return;
