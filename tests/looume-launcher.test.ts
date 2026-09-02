@@ -328,6 +328,7 @@ describe("LOO/UME managed launcher", () => {
     expect(application).toContain('tell application "Terminal"');
     expect(application).toContain("LOO_UME_FOLLOW_LOG=1");
     expect(application).toContain("LOO_UME_RESUMED_AFTER_COPY=1");
+    expect(application).toContain("You can delete the downloaded ZIP");
     expect(application).toContain("recover_orphaned_server_record");
     expect(application.indexOf("recover_orphaned_server_record\n  progress \"Stopping"))
       .toBeLessThan(application.indexOf('"$checkout_root/scripts/looume.sh" --stop'));

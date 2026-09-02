@@ -2381,7 +2381,9 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   identity is proven when its editor files are absent. Install transactionally
   in `/Applications` through the bounded macOS authorization prompt, migrate
   the old personal copy, recognize the matching installed bundle independent
-  of its launch path, and hand Terminal the exact installed executable.
+  of its launch path, and hand Terminal the exact installed executable. After
+  the first successful start, tell the operator to delete the downloaded ZIP
+  and extracted folder so there is only one launch icon.
 - **Prevention:** A local web application is ready only when both its control
   endpoint and its primary UI asset are valid. Never use an App Translocation
   or downloaded executable path for asynchronous relaunch, and state the exact

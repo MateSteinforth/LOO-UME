@@ -30,7 +30,9 @@ needs an internet connection and can take several minutes. Later launches show
 the same status window and reuse the verified installation. Closing the
 browser does not stop the local service. Open `/Applications/LOO UME.app`
 again to reopen the editor. Use `looume --stop` only when you want to stop the
-local service completely; the next icon launch starts it again.
+local service completely; the next icon launch starts it again. After the first
+successful installation, delete the downloaded ZIP and its extracted launcher
+folder so `/Applications/LOO UME.app` is the only copy you use.
 
 The application also installs an optional command link at
 `~/.local/bin/looume`. If that directory is already in the user's shell path,

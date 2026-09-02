@@ -11,6 +11,7 @@ repository_url=https://github.com/MateSteinforth/LOO-UME.git
 source_app=$(CDPATH= cd -- "${0%/*}/../.." && pwd -P)
 log_directory=$support_root/logs
 install_log=$log_directory/install.log
+first_install_notice=$support_root/.show-installed-app-notice
 ditto_command=${LOO_UME_DITTO_COMMAND:-/usr/bin/ditto}
 git_command=${LOO_UME_GIT_COMMAND:-/usr/bin/git}
 open_command=${LOO_UME_APP_OPEN_COMMAND:-/usr/bin/open}
@@ -352,6 +353,7 @@ install_application_bundle() {
   if [ "$legacy_app" != "$installed_app" ] && [ -e "$legacy_app" ]; then
     rm -rf "$legacy_app"
   fi
+  : > "$first_install_notice"
   release_lock "$copy_lock_claim"
   trap - EXIT HUP INT TERM
   if [ "${LOO_UME_TERMINAL_SESSION:-0}" = 1 ]; then
@@ -475,6 +477,10 @@ install_command_link
 progress "Starting LOO/UME. Detailed setup output follows."
 if [ "${LOO_UME_TERMINAL_SESSION:-0}" = 1 ]; then
   if LOO_UME_FOLLOW_LOG=1 /bin/sh "$checkout_root/scripts/looume.sh" launch; then
+    if [ -f "$first_install_notice" ]; then
+      progress "Installation complete. Use $installed_app from now on. You can delete the downloaded ZIP and its extracted launcher folder."
+      rm -f "$first_install_notice"
+    fi
     progress "Ready. The browser is open. The app is installed at $installed_app. This window closes in 8 seconds."
     sleep 8
     exit 0
