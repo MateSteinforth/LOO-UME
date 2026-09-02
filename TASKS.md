@@ -109,9 +109,9 @@ No tasks.
 - Owner: `codex/fixture-016-kicad-triacontahedron` in
   `/tmp/loo-ume-fixture-016`. Likely conflicts: KiCad demo sources, project
   registries/packages, fixture tests, and panel-system documentation.
-- Verification: exact polyhedron adjacency/edge tests, 17 focused fixture and
-  library tests, TypeScript, production build, diff-check, and a separate
-  geometry review passed.
+- Verification: exact polyhedron adjacency/edge tests, 23 focused fixture and
+  editor tests, TypeScript, production build, diff-check, a separate geometry
+  review, and a final rendered-image check without edit-hitbox quads passed.
 
 ## In Progress
 

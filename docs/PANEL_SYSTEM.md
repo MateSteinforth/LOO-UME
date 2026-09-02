@@ -97,6 +97,10 @@ remains the camera, selection, and portability envelope. Mapping, wiring,
 simulation, MadMapper export, ESP32 setup, project save, and project reload are
 carrier-independent.
 
+Editor hit targets are raycast-only. They never draw the rectangular width and
+height envelope behind the carrier. The exact planar outline or flexible path
+is the only visible PCB or strip geometry.
+
 Planar carrier apertures describe visible PCB cutouts only. They do not add
 mounting or fabrication authority. The separate legacy `mounting` contract
 continues to control the existing rectangular fabrication pipelines.

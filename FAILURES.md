@@ -2211,3 +2211,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   invalidates the mechanical face fit.
 - **Status:** Implemented by FIXTURE-016; physical PCB dimensions remain
   provisional.
+
+### F-121 — Panel edit hitboxes appeared as transparent quadrilaterals
+
+- **Date:** 2026-09-02
+- **Context:** Visual review of the 30-panel image-derived rhombic
+  triacontahedron.
+- **Symptom:** Faint rectangular quadrilaterals extended beyond the clipped
+  diamond PCBs.
+- **Cause:** Panel selection used a width-by-height box with 2.5 percent
+  opacity. The box was intended as an edit hit target, but its corners became
+  visible outside a non-rectangular carrier.
+- **Correction:** Keep panel edit targets visible to raycasting but disable
+  their color writes and set their opacity to zero. The exact carrier remains
+  the only visible panel geometry and the existing selection focus shows the
+  selected panel.
+- **Prevention:** Interaction geometry must not write to the framebuffer.
+  Rendered carrier geometry and edit hit geometry have separate authority.
+- **Status:** Resolved in FIXTURE-016.
