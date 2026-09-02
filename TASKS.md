@@ -147,6 +147,29 @@ No tasks.
 
 ## Ready to Merge
 
+### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
+
+- Scope: install the Finder launcher in the standard system-wide
+  `/Applications` folder, hand Terminal only that stable executable path, and
+  recover an owned server whose API is alive but whose editor files are gone.
+- Acceptance: first launch uses the normal macOS authorization boundary and
+  reports the exact installed path; an existing personal-app installation is
+  migrated without leaving a duplicate; closing the browser and opening the
+  app again opens a valid editor; an API-only stale managed server is stopped
+  and rebuilt, while an unrelated process is never adopted or stopped;
+  uninstall removes the managed system app through the same bounded macOS
+  authorization boundary. A newer installer stops the verified existing
+  service, updates the managed checkout in place without removing local
+  projects, and starts only the updated service; reopening an identical app
+  continues to reuse the running service.
+- Owner: `codex/install-018-reopen-lifecycle` in
+  `/tmp/loo-ume-install-018`. Likely conflicts: Mac launcher lifecycle,
+  managed-server readiness, launcher regressions, and install documentation.
+- Verification: 18 focused launcher lifecycle tests, shell syntax, diff-check,
+  and final integrated diff review passed. Native `/Applications`
+  authorization, migration, reopen, and removal remain operator review after
+  the next Mac release is published.
+
 ### `P1 · INSTALL-017` Publish the current Mac launcher automatically
 
 - Scope: build the Mac launcher after every push to canonical `main`, publish

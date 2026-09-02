@@ -4,12 +4,15 @@ set -eu
 application_name="LOO UME.app"
 support_root=${LOO_UME_SUPPORT_ROOT:-$HOME/Library/Application Support/LOO-UME}
 checkout_root=$support_root/application
-applications_root=${LOO_UME_APPLICATIONS_ROOT:-$HOME/Applications}
+applications_root=${LOO_UME_APPLICATIONS_ROOT:-/Applications}
 installed_app=$applications_root/$application_name
+legacy_app=$HOME/Applications/$application_name
 repository_url=https://github.com/MateSteinforth/LOO-UME.git
 source_app=$(CDPATH= cd -- "${0%/*}/../.." && pwd -P)
 log_directory=$support_root/logs
 install_log=$log_directory/install.log
+first_install_notice=$support_root/.show-installed-app-notice
+pending_installer_upgrade=$support_root/.pending-installer-upgrade
 ditto_command=${LOO_UME_DITTO_COMMAND:-/usr/bin/ditto}
 git_command=${LOO_UME_GIT_COMMAND:-/usr/bin/git}
 open_command=${LOO_UME_APP_OPEN_COMMAND:-/usr/bin/open}
@@ -18,6 +21,8 @@ xcode_select_command=${LOO_UME_XCODE_SELECT_COMMAND:-/usr/bin/xcode-select}
 documents_root=${LOO_UME_DOCUMENTS_ROOT:-$HOME/Documents}
 curl_command=${LOO_UME_CURL_COMMAND:-/usr/bin/curl}
 lsof_command=${LOO_UME_LSOF_COMMAND:-/usr/sbin/lsof}
+cmp_command=${LOO_UME_CMP_COMMAND:-/usr/bin/cmp}
+ready_delay=${LOO_UME_READY_DELAY:-8}
 managed_port_file=$checkout_root/.tools/looume/server.port
 if [ -n "${LOO_UME_PORT:-}" ]; then
   port=$LOO_UME_PORT
@@ -26,6 +31,9 @@ elif [ -f "$managed_port_file" ]; then
 else
   port=4173
 fi
+case $ready_delay in
+  ''|*[!0-9]*) echo "LOO/UME: LOO_UME_READY_DELAY must be an integer." >&2; exit 2 ;;
+esac
 
 progress() {
   printf '\nLOO/UME — %s\n' "$1"
@@ -54,6 +62,10 @@ open_progress_terminal() {
   [ "${LOO_UME_TERMINAL_SESSION:-0}" != 1 ] || return 1
   [ "${LOO_UME_SKIP_TERMINAL_HANDOFF:-0}" != 1 ] || return 1
   [ -x "$osascript_command" ] || return 1
+  terminal_launcher=$0
+  if [ -x "$installed_app/Contents/MacOS/LOO-UME" ]; then
+    terminal_launcher=$installed_app/Contents/MacOS/LOO-UME
+  fi
   "$osascript_command" \
     -e 'on run argv' \
     -e 'set launcherPath to item 1 of argv' \
@@ -61,7 +73,35 @@ open_progress_terminal() {
     -e 'activate' \
     -e 'do script "env LOO_UME_TERMINAL_SESSION=1 /bin/sh " & quoted form of launcherPath' \
     -e 'end tell' \
-    -e 'end run' -- "$0" >/dev/null 2>&1
+    -e 'end run' -- "$terminal_launcher" >/dev/null 2>&1
+}
+
+run_privileged_application_replace() {
+  replacement_script=$1
+  staging_app=$2
+  backup_app=$3
+  if [ -w "$applications_root" ]; then
+    /bin/sh "$replacement_script" "$staging_app" "$installed_app" "$backup_app"
+    return
+  fi
+  [ -x "$osascript_command" ] || return 1
+  "$osascript_command" \
+    -e 'on run argv' \
+    -e 'do shell script "/bin/sh " & quoted form of (item 1 of argv) & " " & quoted form of (item 2 of argv) & " " & quoted form of (item 3 of argv) & " " & quoted form of (item 4 of argv) with administrator privileges' \
+    -e 'end run' -- "$replacement_script" "$staging_app" "$installed_app" "$backup_app"
+}
+
+remove_installed_application() {
+  [ -e "$installed_app" ] || return 0
+  if [ -w "$applications_root" ]; then
+    rm -rf "$installed_app"
+    return
+  fi
+  [ -x "$osascript_command" ] || return 1
+  "$osascript_command" \
+    -e 'on run argv' \
+    -e 'do shell script "/bin/rm -rf -- " & quoted form of (item 1 of argv) with administrator privileges' \
+    -e 'end run' -- "$installed_app"
 }
 
 recover_orphaned_server_record() {
@@ -141,14 +181,18 @@ uninstall_application() {
     progress "Backing up local projects to $backup_root"
     "$ditto_command" "$local_projects" "$backup_root"
   fi
+  progress "Removing the managed application and checkout."
+  if ! remove_installed_application; then
+    show_error "macOS did not authorize removal of $installed_app. The managed checkout was kept."
+    exit 1
+  fi
   command_link=$HOME/.local/bin/looume
   managed_command=$support_root/bin/looume
   if [ -L "$command_link" ] && [ "$(readlink "$command_link")" = "$managed_command" ]; then
     rm -f "$command_link"
   fi
-  progress "Removing the managed checkout and application."
+  if [ "$legacy_app" != "$installed_app" ]; then rm -rf "$legacy_app"; fi
   rm -rf "$support_root"
-  rm -rf "$installed_app"
   progress "Uninstall complete. Any project backup is in $documents_root."
   return 0
 }
@@ -237,44 +281,89 @@ release_lock() {
   fi
 }
 
+application_bundle_matches_installed() {
+  [ -x "$cmp_command" ] || return 1
+  [ -f "$source_app/Contents/MacOS/LOO-UME" ] || return 1
+  [ -f "$installed_app/Contents/MacOS/LOO-UME" ] || return 1
+  [ -f "$source_app/Contents/Info.plist" ] || return 1
+  [ -f "$installed_app/Contents/Info.plist" ] || return 1
+  "$cmp_command" -s \
+    "$source_app/Contents/MacOS/LOO-UME" \
+    "$installed_app/Contents/MacOS/LOO-UME" &&
+    "$cmp_command" -s \
+      "$source_app/Contents/Info.plist" \
+      "$installed_app/Contents/Info.plist"
+}
+
 install_application_bundle() {
-  if [ "${LOO_UME_SKIP_APP_COPY:-0}" = 1 ] || [ "$source_app" = "$installed_app" ]; then
+  if [ "${LOO_UME_SKIP_APP_COPY:-0}" = 1 ] ||
+     [ "$source_app" = "$installed_app" ] ||
+     application_bundle_matches_installed; then
     return 0
   fi
+  replacement_updates_checkout=false
+  if [ -d "$checkout_root/.git" ]; then replacement_updates_checkout=true; fi
   progress "Copying LOO UME.app to $applications_root"
-  mkdir -p "$applications_root"
-  copy_lock=$applications_root/.LOO-UME.copy.lock
-  staging_app=$applications_root/.LOO-UME.app.stage
+  if [ ! -d "$applications_root" ]; then
+    mkdir -p "$applications_root" 2>/dev/null || {
+      show_error "The application folder does not exist: $applications_root"
+      exit 1
+    }
+  fi
+  mkdir -p "$support_root"
+  if [ -w "$applications_root" ]; then
+    copy_lock=$applications_root/.LOO-UME.copy.lock
+  else
+    copy_lock=$support_root/app-copy.lock
+  fi
+  staging_app=$support_root/.LOO-UME.app.stage
+  obsolete_staging_app=$applications_root/.LOO-UME.app.stage
   backup_app=$applications_root/.LOO-UME.app.backup
+  replacement_script=$support_root/.replace-application.$$.sh
   if ! acquire_lock "$copy_lock"; then
     show_error "Another LOO/UME application copy is already running."
     exit 1
   fi
   copy_lock_claim=$acquired_lock_claim
-  if [ ! -e "$installed_app" ] && [ -e "$backup_app" ]; then
-    mv "$backup_app" "$installed_app"
-  fi
   rm -rf "$staging_app"
-  if [ -e "$installed_app" ] && [ -e "$backup_app" ]; then rm -rf "$backup_app"; fi
+  if [ -w "$applications_root" ]; then rm -rf "$obsolete_staging_app"; fi
   copy_committed=false
   cleanup_copy() {
     rm -rf "$staging_app"
-    if [ "$copy_committed" != true ] && [ ! -e "$installed_app" ] && [ -e "$backup_app" ]; then
-      mv "$backup_app" "$installed_app" 2>/dev/null || true
-    fi
-    if [ "$copy_committed" = true ]; then rm -rf "$backup_app"; fi
+    rm -f "$replacement_script"
     release_lock "$copy_lock_claim"
   }
   trap cleanup_copy EXIT
   trap 'exit 130' HUP INT TERM
   "$ditto_command" "$source_app" "$staging_app"
-  if [ -e "$installed_app" ]; then mv "$installed_app" "$backup_app"; fi
-  if ! mv "$staging_app" "$installed_app"; then
-    show_error "The application could not be copied to $applications_root."
+  printf '%s\n' \
+    '#!/bin/sh' \
+    'set -eu' \
+    'staging_app=$1' \
+    'installed_app=$2' \
+    'backup_app=$3' \
+    'if [ ! -d "$staging_app/Contents" ]; then exit 1; fi' \
+    'if [ ! -e "$installed_app" ] && [ -e "$backup_app" ]; then mv "$backup_app" "$installed_app"; fi' \
+    'if [ -e "$installed_app" ] && [ -e "$backup_app" ]; then rm -rf "$backup_app"; fi' \
+    'if [ -e "$installed_app" ]; then mv "$installed_app" "$backup_app"; fi' \
+    'if mv "$staging_app" "$installed_app"; then rm -rf "$backup_app"; exit 0; fi' \
+    'if [ ! -e "$installed_app" ] && [ -e "$backup_app" ]; then mv "$backup_app" "$installed_app"; fi' \
+    'exit 1' > "$replacement_script"
+  chmod 700 "$replacement_script"
+  if ! run_privileged_application_replace \
+    "$replacement_script" "$staging_app" "$backup_app"; then
+    show_error "macOS did not authorize installation in $applications_root. The previous app was preserved."
     exit 1
   fi
   copy_committed=true
-  rm -rf "$backup_app"
+  rm -f "$replacement_script"
+  if [ "$legacy_app" != "$installed_app" ] && [ -e "$legacy_app" ]; then
+    rm -rf "$legacy_app"
+  fi
+  : > "$first_install_notice"
+  if [ "$replacement_updates_checkout" = true ]; then
+    : > "$pending_installer_upgrade"
+  fi
   release_lock "$copy_lock_claim"
   trap - EXIT HUP INT TERM
   if [ "${LOO_UME_TERMINAL_SESSION:-0}" = 1 ]; then
@@ -395,15 +484,33 @@ recover_orphaned_server_record
 select_managed_port
 progress "Preparing the local command and application service."
 install_command_link
-progress "Starting LOO/UME. Detailed setup output follows."
+managed_action=launch
+if [ -f "$pending_installer_upgrade" ]; then
+  managed_action=--update
+  progress "Updating the existing installation. Its managed server will stop before the new version starts."
+else
+  progress "Starting LOO/UME. Detailed setup output follows."
+fi
 if [ "${LOO_UME_TERMINAL_SESSION:-0}" = 1 ]; then
-  if LOO_UME_FOLLOW_LOG=1 /bin/sh "$checkout_root/scripts/looume.sh" launch; then
-    progress "Ready. The browser is open. This window closes in 8 seconds."
-    sleep 8
+  if LOO_UME_FOLLOW_LOG=1 /bin/sh "$checkout_root/scripts/looume.sh" "$managed_action"; then
+    rm -f "$pending_installer_upgrade"
+    if [ -f "$first_install_notice" ]; then
+      progress "Installation complete. Use $installed_app from now on. You can delete the downloaded ZIP and its extracted launcher folder."
+      rm -f "$first_install_notice"
+    fi
+    progress "Ready. The browser is open. The app is installed at $installed_app. This window closes in 8 seconds."
+    sleep "$ready_delay"
     exit 0
   fi
   progress "Startup failed. Review $log_directory and press Return to close."
   IFS= read -r _unused
+  exit 1
+fi
+if [ "$managed_action" = --update ]; then
+  if /bin/sh "$checkout_root/scripts/looume.sh" --update; then
+    rm -f "$pending_installer_upgrade"
+    exit 0
+  fi
   exit 1
 fi
 exec /bin/sh "$checkout_root/scripts/looume.sh" launch

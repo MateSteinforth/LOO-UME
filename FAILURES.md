@@ -2360,3 +2360,56 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   wrapper archive.
 - **Status:** Implemented by INSTALL-017; first direct review release remains
   CI evidence.
+
+### F-127 — API-only readiness reopened a missing editor
+
+- **Date:** 2026-09-02
+- **Context:** Native Finder reopen after an earlier removal and reinstall.
+- **Symptom:** The launcher reported that LOO/UME was already running, but the
+  browser opened a plain `Not found.` page. The app was also installed only in
+  the personal Applications folder, where the operator did not expect it.
+- **Cause:** Managed readiness checked only the in-memory generator API. The
+  old process could still answer that API after its checkout and `dist` files
+  were removed, so the launcher did not prove that the editor HTML existed.
+  Terminal handoff also trusted the current executable path instead of choosing
+  the stable installed executable explicitly. A translocated launch could then
+  compare as a different source path and repeat the copy/open handoff instead
+  of reaching Terminal. The original destination was
+  `~/Applications`, not the standard system-wide `/Applications` folder.
+- **Correction:** Require both the application-specific API and the LOO/UME
+  editor HTML before reuse. Stop and rebuild only a process whose managed PID
+  identity is proven when its editor files are absent. Install transactionally
+  in `/Applications` through the bounded macOS authorization prompt, migrate
+  the old personal copy, recognize the matching installed bundle independent
+  of its launch path, and hand Terminal the exact installed executable. After
+  the first successful start, tell the operator to delete the downloaded ZIP
+  and extracted folder so there is only one launch icon.
+- **Prevention:** A local web application is ready only when both its control
+  endpoint and its primary UI asset are valid. Never use an App Translocation
+  or downloaded executable path for asynchronous relaunch, and state the exact
+  final installation location in the visible progress log.
+- **Status:** Implemented by INSTALL-018; native system-folder install and
+  reopen remain Human Review after a new release is published.
+
+### F-128 — Replacing the app did not update the running installation
+
+- **Date:** 2026-09-02
+- **Context:** Native review of a newer downloaded Mac launcher over an
+  existing installation.
+- **Symptom:** A replacement wrapper could coexist with the old managed server
+  and checkout, so opening the new icon did not prove that the running editor
+  used the new application version.
+- **Cause:** App-bundle replacement and managed-checkout update were separate
+  workflows. `install_checkout()` correctly preserved an existing checkout,
+  but the launcher then used the ordinary `launch` action and reused its
+  already-running server.
+- **Correction:** A different app replacement now records a durable pending
+  upgrade when a managed checkout exists. The stable installed wrapper invokes
+  the existing `looume --update` boundary, which stops the verified server,
+  applies the guarded in-place update, and starts one new server. The marker is
+  removed only after success. An identical app performs an ordinary reopen.
+- **Prevention:** Treat app replacement and service version activation as one
+  recoverable transaction. Do not delete the Project Library to obtain a clean
+  upgrade, and do not restart or replace an unverified process.
+- **Status:** Implemented by INSTALL-018; native replacement over a running
+  prior release remains Human Review.

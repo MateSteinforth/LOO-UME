@@ -116,8 +116,9 @@ launch and retains the recovery stash. The production UI uses the same boundary
 to report and apply available updates.
 
 The lightweight Mac launcher is a separate distribution wrapper, not a second
-editor runtime. On first launch it copies its application bundle to
-`~/Applications`, atomically clones the canonical `main` checkout below
+editor runtime. On first launch it uses the macOS authorization boundary to
+copy its application bundle to `/Applications`, then atomically clones the
+canonical `main` checkout below
 `~/Library/Application Support/LOO-UME/`, and delegates installation to the
 same bootstrap boundary. `scripts/looume.sh` owns one background server PID,
 readiness URL, and log. Reopening the icon opens the existing server; update,
@@ -129,6 +130,12 @@ restarts through this launcher so the PID does not become stale. Developer
 checkouts continue to restart directly through `bootstrap.sh`. Launch, first
 install, and application-copy serialization use unique atomic PID claims;
 stale cleanup never deletes a reusable shared lock path.
+When a downloaded launcher differs from an existing installed bundle, the app
+replacement leaves a durable pending-upgrade marker. The stable installed app
+then uses `looume --update`, which stops the verified owned server before the
+fast-forward update and restarts one current server. The marker is cleared only
+after success. An identical translocated or installed bundle skips this path
+and reuses the running service.
 
 The Mac launcher ZIP is an independent GitHub release asset. Every canonical
 `main` push and every explicit `mac-launcher-v*` tag runs the macOS-only job,
@@ -139,7 +146,7 @@ also publishes one unique prerelease with a direct, single-ZIP review download;
 it does not replace the latest public release. Apple notarization is not
 claimed.
 
-A normal Finder launch first copies the small app wrapper to `~/Applications`,
+A normal Finder launch first copies the small app wrapper to `/Applications`,
 then hands control from that stable path to one visible Terminal session. It
 never asks Terminal to reopen an ephemeral App Translocation path. The terminal
 shows Git download progress, streams the managed server setup log, and reports

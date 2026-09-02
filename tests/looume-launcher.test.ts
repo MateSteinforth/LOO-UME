@@ -64,9 +64,19 @@ async function launcherFixture(): Promise<{
   const server = join(scripts, "local-editor-server.ts");
   await writeFile(server, [
     'import { createServer } from "node:http";',
-    'const server = createServer((_request, response) => {',
-    '  response.setHeader("Content-Type", "application/json");',
-    '  response.end(JSON.stringify({ schemaVersion: "1.0.0", generator: "manifold" }));',
+    'const server = createServer((request, response) => {',
+    '  if (request.url === "/api/generator-status") {',
+    '    response.setHeader("Content-Type", "application/json");',
+    '    response.end(JSON.stringify({ schemaVersion: "1.0.0", generator: "manifold" }));',
+    '    return;',
+    '  }',
+    '  if (request.url === "/" && process.env.LOO_UME_TEST_STALE_UI !== "1") {',
+    '    response.setHeader("Content-Type", "text/html");',
+    '    response.end("<title>LOO/UME test</title><div id=\\"app\\"></div>");',
+    '    return;',
+    '  }',
+    '  response.statusCode = 404;',
+    '  response.end("Not found.");',
     '});',
     'server.listen(Number(process.env.ORBITAL_LAB_PORT), "127.0.0.1");',
     'process.once("SIGTERM", () => server.close(() => process.exit(0)));',
@@ -307,7 +317,8 @@ describe("LOO/UME managed launcher", () => {
     const readme = await readFile("README.md", "utf8");
     const uninstaller = await readFile("macos/Uninstall LOO UME.command", "utf8");
     expect(application).toContain("$HOME/Library/Application Support/LOO-UME");
-    expect(application).toContain("$HOME/Applications");
+    expect(application).toContain("LOO_UME_APPLICATIONS_ROOT:-/Applications");
+    expect(application).toContain("with administrator privileges");
     expect(application).toContain('"$git_command" clone --progress --branch main --single-branch');
     expect(application).toContain(".application.stage");
     expect(application).toContain("scripts/looume.sh\" launch");
@@ -317,6 +328,7 @@ describe("LOO/UME managed launcher", () => {
     expect(application).toContain('tell application "Terminal"');
     expect(application).toContain("LOO_UME_FOLLOW_LOG=1");
     expect(application).toContain("LOO_UME_RESUMED_AFTER_COPY=1");
+    expect(application).toContain("You can delete the downloaded ZIP");
     expect(application).toContain("recover_orphaned_server_record");
     expect(application.indexOf("recover_orphaned_server_record\n  progress \"Stopping"))
       .toBeLessThan(application.indexOf('"$checkout_root/scripts/looume.sh" --stop'));
@@ -407,6 +419,51 @@ describe("LOO/UME managed launcher", () => {
       await new Promise<void>((resolvePromise) => {
         if (server.exitCode !== null) resolvePromise();
         else server.once("close", () => resolvePromise());
+      });
+    }
+  });
+
+  it("restarts an owned API-only server whose editor files are gone", async () => {
+    const fixture = await launcherFixture();
+    const port = Number(fixture.environment.LOO_UME_PORT);
+    const serverScript = join(fixture.root, "scripts", "local-editor-server.ts");
+    const staleServer = spawn(process.execPath, [serverScript], {
+      env: {
+        ...process.env,
+        ORBITAL_LAB_PORT: String(port),
+        LOO_UME_TEST_STALE_UI: "1",
+      },
+      stdio: "ignore",
+    });
+    await mkdir(fixture.state, { recursive: true });
+    await writeFile(join(fixture.state, "server.pid"), `${staleServer.pid}\n`);
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      try {
+        const response = await fetch(`http://127.0.0.1:${port}/api/generator-status`);
+        if (response.ok) break;
+      } catch {
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 20));
+      }
+    }
+    try {
+      const launched = await execFileAsync("sh", [fixture.launcher], {
+        env: fixture.environment,
+        timeout: 25_000,
+      });
+      expect(launched.stdout).toContain("owned server without its editor files");
+      expect((await readFile(fixture.actions, "utf8")).trim()).toBe("launch");
+      const editor = await fetch(`http://127.0.0.1:${port}/`);
+      expect(await editor.text()).toContain('id="app"');
+      expect(staleServer.exitCode).not.toBeNull();
+      await execFileAsync("sh", [fixture.launcher, "--stop"], {
+        env: fixture.environment,
+        timeout: 25_000,
+      });
+    } finally {
+      if (staleServer.exitCode === null) staleServer.kill("SIGTERM");
+      await new Promise<void>((resolvePromise) => {
+        if (staleServer.exitCode !== null) resolvePromise();
+        else staleServer.once("close", () => resolvePromise());
       });
     }
   });
@@ -564,6 +621,61 @@ describe("LOO/UME managed launcher", () => {
     );
   });
 
+  it("hands Terminal the stable installed application path", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-stable-terminal-"));
+    temporaryDirectories.push(home);
+    const applications = join(home, "Applications");
+    const installedLauncher = join(
+      applications,
+      "LOO UME.app",
+      "Contents",
+      "MacOS",
+      "LOO-UME",
+    );
+    await mkdir(join(applications, "LOO UME.app", "Contents", "MacOS"), {
+      recursive: true,
+    });
+    await copyFile("macos/launcher/Contents/MacOS/LOO-UME", installedLauncher);
+    await chmod(installedLauncher, 0o755);
+    await copyFile(
+      "macos/launcher/Contents/Info.plist",
+      join(applications, "LOO UME.app", "Contents", "Info.plist"),
+    );
+    const osascriptLog = join(home, "osascript.log");
+    const dittoLog = join(home, "ditto.log");
+    const fakeDitto = join(home, "ditto.sh");
+    await writeFile(fakeDitto, [
+      "#!/bin/sh",
+      'touch "$FAKE_DITTO_LOG"',
+      "exit 1",
+      "",
+    ].join("\n"));
+    await chmod(fakeDitto, 0o755);
+    const fakeOsascript = join(home, "osascript.sh");
+    await writeFile(fakeOsascript, [
+      "#!/bin/sh",
+      'printf \'%s\\n\' "$@" > "$FAKE_OSASCRIPT_LOG"',
+      "",
+    ].join("\n"));
+    await chmod(fakeOsascript, 0o755);
+    await execFileAsync("sh", ["macos/launcher/Contents/MacOS/LOO-UME"], {
+      env: {
+        ...process.env,
+        HOME: home,
+        FAKE_OSASCRIPT_LOG: osascriptLog,
+        FAKE_DITTO_LOG: dittoLog,
+        LOO_UME_APPLICATIONS_ROOT: applications,
+        LOO_UME_DITTO_COMMAND: fakeDitto,
+        LOO_UME_OSASCRIPT_COMMAND: fakeOsascript,
+      },
+      timeout: 5_000,
+    });
+    const invocation = await readFile(osascriptLog, "utf8");
+    expect(invocation).toContain(installedLauncher);
+    expect(invocation).not.toContain(resolve("macos/launcher/Contents/MacOS/LOO-UME"));
+    await expect(stat(dittoLog)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("backs up local projects and removes only the managed Mac installation", async () => {
     const home = await mkdtemp(join(tmpdir(), "looume-mac-uninstall-"));
     temporaryDirectories.push(home);
@@ -681,6 +793,60 @@ describe("LOO/UME managed launcher", () => {
       .toBe(false);
     expect((await readdir(support)).some((name) => name.startsWith(".application.stage")))
       .toBe(false);
+  });
+
+  it("updates an existing managed installation after replacing its app", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-upgrade-"));
+    temporaryDirectories.push(home);
+    const support = join(home, "support");
+    const checkout = join(support, "application");
+    const applications = join(home, "Applications");
+    const installedApp = join(applications, "LOO UME.app");
+    const actionLog = join(home, "managed-action.log");
+    const fakeDitto = join(home, "ditto.sh");
+    await mkdir(join(checkout, ".git"), { recursive: true });
+    await mkdir(join(checkout, "scripts"), { recursive: true });
+    await mkdir(installedApp, { recursive: true });
+    await writeFile(join(installedApp, "old-launcher"), "old\n");
+    await writeFile(join(checkout, "scripts", "looume.sh"), [
+      "#!/bin/sh",
+      'printf \'%s\\n\' "$1" >> "$FAKE_ACTION_LOG"',
+      "",
+    ].join("\n"));
+    await chmod(join(checkout, "scripts", "looume.sh"), 0o755);
+    await writeFile(fakeDitto, [
+      "#!/bin/sh",
+      "set -eu",
+      'cp -R "$1" "$2"',
+      "",
+    ].join("\n"));
+    await chmod(fakeDitto, 0o755);
+    const result = await execFileAsync(
+      "sh",
+      ["macos/launcher/Contents/MacOS/LOO-UME"],
+      {
+        env: {
+          ...process.env,
+          HOME: home,
+          FAKE_ACTION_LOG: actionLog,
+          LOO_UME_APPLICATIONS_ROOT: applications,
+          LOO_UME_SUPPORT_ROOT: support,
+          LOO_UME_DITTO_COMMAND: fakeDitto,
+          LOO_UME_OSASCRIPT_COMMAND: "/bin/false",
+          LOO_UME_TERMINAL_SESSION: "1",
+          LOO_UME_READY_DELAY: "0",
+        },
+        timeout: 10_000,
+      },
+    );
+    expect(result.stdout).toContain("Updating the existing installation");
+    expect(await readFile(actionLog, "utf8")).toBe("--update\n");
+    await expect(stat(join(support, ".pending-installer-upgrade")))
+      .rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(
+      join(installedApp, "Contents", "Info.plist"),
+      "utf8",
+    )).toContain("art.loo-ume.launcher");
   });
 
   it("recovers an interrupted application copy before replacing the launcher", async () => {
