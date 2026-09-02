@@ -31,6 +31,23 @@ then prove direct Art-Net behavior and static address/RGB parity on hardware.
 
 ## Backlog
 
+### `P1 · INSTALL-019` Package LOO/UME as an Electron desktop application
+
+- Scope: wrap the existing Vite/TypeScript editor and Node-side local services
+  in Electron without rewriting the browser application. Keep the browser/LAN
+  workflow available for development and remote-device review.
+- Acceptance: one desktop process owns the application window, local APIs,
+  project-library storage, hardware transports, logs, shutdown, and restart;
+  closing and reopening has normal application behavior; the Mac build installs
+  through a standard DMG/Application workflow; updates use verified GitHub
+  Release artifacts; Web Serial, DDP, Art-Net, project import/export, and local
+  project preservation retain their existing security and data boundaries.
+- Migration boundary: reuse the current editor and service modules first. Do
+  not replace working browser behavior, remove the LAN mode, or expand into UI
+  redesign. Treat signing, notarization, updater behavior, hardware permission
+  prompts, and migration from the shell-managed installation as explicit
+  delivery requirements.
+
 ### `P1 · MAP-021` Make logical LED ordering cross-platform deterministic
 
 - Scope: replace exact raw-float ordering of symmetric LED positions with one
