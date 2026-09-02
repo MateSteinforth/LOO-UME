@@ -2190,3 +2190,24 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   attachment geometry.
 - **Status:** Implemented by FIXTURE-015; source measurements and electrical
   facts remain provisional.
+
+### F-120 — Address optimization can break a non-square face fit
+
+- **Date:** 2026-09-02
+- **Context:** Placing the clipped golden-rhombus PCB on all 30 faces of a
+  rhombic triacontahedron.
+- **Symptom:** An unrestricted quarter-turn wiring search can exchange the
+  panel's long and short diagonals. DIN/DOUT may improve, but the physical PCB
+  edges no longer match the polyhedron face edges.
+- **Cause:** The address optimizer treats 0, 90, 180, and 270-degree rotations
+  as equivalent before fabrication. That assumption is valid for square
+  carriers, not for a non-square carrier constrained to one face shape.
+- **Correction:** Save the half-turn-only rotation constraint in the sculpture
+  before optimization. Generate exact face frames first, then let the optimizer
+  use only 0 or 180 degrees. Prove that every shared edge still coincides and
+  that another optimization pass changes no pose or route.
+- **Prevention:** Derive allowed physical rotations from the placement and
+  carrier symmetry. Never optimize connector distance with a rotation that
+  invalidates the mechanical face fit.
+- **Status:** Implemented by FIXTURE-016; physical PCB dimensions remain
+  provisional.

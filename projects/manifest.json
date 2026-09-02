@@ -38,6 +38,11 @@
       "source": "./projects/demos/image-derived-kicad-diamond-panel-demo.loo.zip"
     },
     {
+      "id": "image-derived-kicad-rhombic-triacontahedron",
+      "name": "KiCad Diamond Rhombic Triacontahedron",
+      "source": "./projects/demos/image-derived-kicad-rhombic-triacontahedron.loo.zip"
+    },
+    {
       "id": "photo-derived-30-panel-wedge-sculpture",
       "name": "Photo-derived 30-panel Wedge Sculpture",
       "source": "./projects/demos/photo-derived-30-panel-wedge-sculpture.loo.zip"

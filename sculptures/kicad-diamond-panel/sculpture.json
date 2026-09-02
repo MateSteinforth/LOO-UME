@@ -13,11 +13,27 @@
     {
       "id": "DAVE-01",
       "pose": {
-        "position": [0, 0, 0],
+        "position": [
+          0,
+          0,
+          0
+        ],
         "orientation": {
-          "xAxis": [-1, 0, 0],
-          "yAxis": [0, -1, 0],
-          "normal": [0, 0, 1]
+          "xAxis": [
+            -1,
+            0,
+            0
+          ],
+          "yAxis": [
+            0,
+            -1,
+            0
+          ],
+          "normal": [
+            0,
+            0,
+            1
+          ]
         }
       },
       "installedAddressTransform": {
@@ -26,7 +42,7 @@
         "quarterTurnsClockwise": 0,
         "mirrored": false,
         "selectionMethod": "route-optimized",
-        "optimizationFingerprint": "df705a38987d3f4c"
+        "optimizationFingerprint": "dee53ef40e1129d0"
       }
     }
   ],
@@ -36,20 +52,31 @@
   },
   "wiring": {
     "status": "authored",
-    "controller": { "placement": "near-top", "status": "provisional" },
+    "controller": {
+      "placement": "near-top",
+      "status": "provisional"
+    },
     "routeStrategy": "balanced-oriented-cable-optimizer",
-    "routeRevision": 1,
-    "chainLengths": [1],
-    "connector": { "edgeInset": 4, "surfaceOffset": 2.4 },
+    "panelRotationConstraint": "half-turns-only",
+    "chainLengths": [
+      1
+    ],
+    "connector": {
+      "edgeInset": 4,
+      "surfaceOffset": 2.4
+    },
     "outputs": [
       {
         "outputIndex": 0,
         "label": "Output 1",
         "gpio": 16,
         "color": "#36e0d0",
-        "panelIds": ["DAVE-01"]
+        "panelIds": [
+          "DAVE-01"
+        ]
       }
-    ]
+    ],
+    "routeRevision": 1
   },
   "calibration": {
     "panelTransforms": "generated-provisional",
@@ -59,9 +86,9 @@
   },
   "notes": [
     "Visual-study fixture derived from the operator-supplied KiCad screenshot reference/davePCB.jpg.",
-    "The screenshot supports a clipped-diamond outline, an apparent 8 by 8 rhombic LED lattice, and nine circular board apertures.",
-    "The approximate 170 by 110 mm outline is calibrated from the visible 0 to 90 mm KiCad ruler. Thickness, emitter centres, hole centres, DIN, DOUT, address order, RGB order, and electrical values remain provisional.",
+    "The screenshot supports a clipped golden-rhombus outline, an apparent 8 by 8 rhombic LED lattice, and nine circular board apertures.",
+    "The 100 mm ideal edge is calibrated from the visible KiCad ruler. Thickness, emitter centres, aperture centres, DIN, DOUT, address order, RGB order, and electrical values remain provisional.",
     "Mapping, wiring, simulation, WLED setup, MadMapper export, and project save remain available. Automatic placement and rectangular-only fabrication are disabled.",
-    "Automatic wiring revision 1 selected GPIO 16 and a stable one-panel pose; the estimated provisional data lead is 27.1 mm."
+    "Automatic wiring revision 1 selected GPIO 16 and a stable one-panel pose; the estimated provisional data lead is 24.7 mm."
   ]
 }

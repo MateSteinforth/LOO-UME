@@ -96,6 +96,23 @@ No tasks.
   round trip, Project Library packaging, production build, diff-check, and a
   separate QUALITY review passed.
 
+### `P2 · FIXTURE-016` Build the 30-panel KiCad rhombic triacontahedron
+
+- Scope: place 30 copies of the image-derived diamond PCB on one exact rhombic
+  triacontahedron. Align the shared ideal golden-rhombus edges and retain the
+  PCB's clipped-corner openings at each five-way star vertex.
+- Acceptance: all poses are finite right-handed face frames; every ideal shared
+  edge coincides within tolerance; the 30 PCB carriers do not overlap; vertex
+  openings remain visible; the saved automatic wiring route is stable; mapping
+  contains 1,920 unique emitters; the Project Library package loads and reloads
+  with its exact panel profile.
+- Owner: `codex/fixture-016-kicad-triacontahedron` in
+  `/tmp/loo-ume-fixture-016`. Likely conflicts: KiCad demo sources, project
+  registries/packages, fixture tests, and panel-system documentation.
+- Verification: exact polyhedron adjacency/edge tests, 17 focused fixture and
+  library tests, TypeScript, production build, diff-check, and a separate
+  geometry review passed.
+
 ## In Progress
 
 No tasks.

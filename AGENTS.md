@@ -124,6 +124,10 @@ Historical Schema 1 inputs are available only through Git history.
   world positions; a measured back-view quarter-turn/mirror transform may change
   local wire indexing only. Do not reuse an ambiguous mechanical rotation or
   WLED bus reversal as a second addressing authority.
+- Automatic wiring may use only physical rotations that preserve the carrier
+  geometry on its placement face. A non-square face-fitting carrier must use a
+  compatible saved rotation constraint; a 90-degree address improvement must
+  not break mechanical edge alignment.
 - Electrical design, protection, and power approval are outside this
   repository. Treat operator-authorized power as an external assumption. WLED
   current values are configuration inputs, not electrical approval evidence.

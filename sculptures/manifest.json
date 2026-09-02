@@ -45,6 +45,12 @@
       "artifactStatus": "authoring-only"
     },
     {
+      "id": "image-derived-kicad-rhombic-triacontahedron",
+      "name": "KiCad Diamond Rhombic Triacontahedron",
+      "source": "./sculptures/kicad-diamond-panel/sculpture-rhombic-triacontahedron.json",
+      "artifactStatus": "authoring-only"
+    },
+    {
       "id": "photo-derived-30-panel-wedge-sculpture",
       "name": "Photo-derived 30-panel Wedge Sculpture",
       "source": "./sculptures/photo-wedge-panel/sculpture-30-panel.json",

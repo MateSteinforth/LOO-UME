@@ -126,12 +126,22 @@ or fabrication geometry.
 
 `sculptures/kicad-diamond-panel/sculpture.json` is an image-derived KiCad
 study. It preserves the visible six-sided board outline, one apparent 8 by 8
-rhombic LED lattice, and nine circular apertures. The approximate 170 by 110 mm
-envelope comes from the screenshot ruler. The exact outline, thickness,
-emitter and aperture centres, DIN/DOUT positions, address order, color order,
-and electrical values are provisional. The project supports simulation,
-mapping, wiring, WLED setup, MadMapper export, and portable save/reload, but it
-does not authorize fabrication.
+rhombic LED lattice, and nine circular apertures. The screenshot ruler supports
+a provisional 100 mm ideal golden-rhombus edge. This gives 170.130 mm and
+105.146 mm ideal diagonals; each acute corner is clipped 4 mm along its two
+edges. The exact outline, thickness, emitter and aperture centres, DIN/DOUT
+positions, address order, color order, and electrical values remain
+provisional. The project supports simulation, mapping, wiring, WLED setup,
+MadMapper export, and portable save/reload, but it does not authorize
+fabrication.
+
+`sculptures/kicad-diamond-panel/sculpture-rhombic-triacontahedron.json`
+places 30 copies on the exact face planes of a rhombic triacontahedron. Every
+shared ideal edge and retained PCB edge segment coincides. The 4 mm clips leave
+12 small five-way star openings. The saved automatic route is stable and uses
+three equal 10-panel chains on GPIO 16, 17, and 18. The half-turn-only wiring
+constraint is part of the geometry contract: a 90-degree local rotation would
+exchange the long and short diagonals and break edge alignment.
 
 The optional `radial-outward` flexible frame keeps strip thickness aligned with
 the radius from its declared center and strip width perpendicular to the path
