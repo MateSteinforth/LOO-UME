@@ -335,6 +335,13 @@ browser and preserves the repository updater.
 One launcher script owns the background server PID and readiness URL. The app
 can therefore reopen an existing editor, stop its server, and retain process
 ownership after an in-editor update. The release workflow publishes the small
-launcher independently of application source updates. An ad-hoc signature is
-review evidence only; signed and notarized public distribution requires a
-separate Apple credential decision.
+launcher automatically after every canonical `main` update and for explicit
+version tags. Each publication is bound to a commit contained in `origin/main`
+and uses a unique release tag; manual workflow runs remain temporary review
+artifacts. An ad-hoc signature is review evidence only; signed and notarized
+public distribution requires a separate Apple credential decision.
+
+Finder launch uses a visible Terminal progress session because browser and
+notification-only startup did not show whether a long first installation was
+working. Uninstall is a separate command file in the release. It preserves the
+local Project Library in Documents before it removes managed files.

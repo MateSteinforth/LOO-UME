@@ -2261,3 +2261,37 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Prevention:** Interaction geometry must not write to the framebuffer.
   Rendered carrier geometry and edit hit geometry have separate authority.
 - **Status:** Resolved in FIXTURE-016.
+
+### F-122 — A successful manual launcher build was not a downloadable release
+
+- **Date:** 2026-09-02
+- **Context:** First operator test of the self-installing Mac launcher.
+- **Symptom:** The workflow passed and produced a ZIP under Actions artifacts,
+  but no Mac download appeared on the repository Releases page.
+- **Cause:** `workflow_dispatch` intentionally uploaded a temporary artifact;
+  only an explicit version-tag push ran the release job.
+- **Correction:** Package and publish a unique permanent launcher release after
+  every push to canonical `main`. Keep manual runs artifact-only and retain
+  explicit version-tag releases. Put the stable latest-release asset URL near
+  the start of the README.
+- **Prevention:** Distinguish workflow artifacts from release assets in the
+  operator path. A promised download must be created by an automatic publishing
+  event and linked from the primary documentation.
+- **Status:** Implemented by INSTALL-017; first automatic macOS run remains CI
+  evidence after integration.
+
+### F-123 — Finder launch hid installer progress and server state
+
+- **Date:** 2026-09-02
+- **Context:** Operator test of the first Mac launcher artifact.
+- **Symptom:** Opening the icon appeared to do nothing. Opening it again later
+  gave no visible indication that installation, startup, or failure was active.
+- **Cause:** Finder ran the shell executable without a terminal. Notifications
+  covered only selected stages, while detailed setup went to a background log.
+- **Correction:** Hand normal icon launch to one visible Terminal session,
+  stream the managed setup log, and show a final ready or failure message. Add
+  a packaged uninstaller that preserves local projects before removing managed
+  paths.
+- **Prevention:** A long first-launch installer must have one persistent,
+  operator-visible progress surface and one bounded removal path.
+- **Status:** Implemented by INSTALL-017; native Finder review remains pending.

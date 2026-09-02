@@ -149,7 +149,11 @@ try_acquire_launch_lock() {
 
 open_editor() {
   if [ -x "$open_command" ]; then
-    "$open_command" "$url" >/dev/null 2>&1 || true
+    echo "Opening the browser at $url"
+    if ! "$open_command" "$url"; then
+      echo "looume: the browser did not open. Open $url manually." >&2
+      return 1
+    fi
   else
     echo "LOO/UME is available at $url"
   fi
@@ -219,7 +223,18 @@ start_server() {
       rm -f "$launch_lock_claim"
     fi
   }
-  trap release_launch_lock EXIT
+  stop_log_follow() {
+    if [ -n "${log_tail_pid:-}" ] && kill -0 "$log_tail_pid" 2>/dev/null; then
+      kill "$log_tail_pid" 2>/dev/null || true
+      wait "$log_tail_pid" 2>/dev/null || true
+    fi
+    log_tail_pid=
+  }
+  release_launch_resources() {
+    stop_log_follow
+    release_launch_lock
+  }
+  trap release_launch_resources EXIT
   trap 'exit 130' HUP INT TERM
   clear_stale_state
   if read_owned_pid && server_ready; then
@@ -250,7 +265,13 @@ start_server() {
     fi
     printf '%s\n' "$!" > "$pid_file"
   fi
+  log_tail_pid=
+  if [ "${LOO_UME_FOLLOW_LOG:-0}" = 1 ]; then
+    /usr/bin/tail -n +1 -f "$log_file" &
+    log_tail_pid=$!
+  fi
   wait_for_server 900
+  stop_log_follow
   release_launch_lock
   trap - EXIT HUP INT TERM
   if [ "$open_after" = true ]; then open_editor; fi

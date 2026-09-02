@@ -18,12 +18,16 @@ panel outlines and validated flat gap caps.
 
 ### Mac application
 
-The separate Mac launcher release contains `LOO UME.app`. Open it once from
-the downloaded ZIP. It copies itself to `~/Applications`, downloads the
+[**Download LOO/UME for Mac**](https://github.com/MateSteinforth/LOO-UME/releases/latest/download/LOO-UME-Mac-Launcher.zip)
+
+Open `LOO UME.app` once from the downloaded ZIP. It copies itself to
+`~/Applications`, downloads the
 approved `main` checkout into
 `~/Library/Application Support/LOO-UME/application`, runs the verified setup,
-and opens the browser editor. The first launch needs an internet connection and
-can take several minutes. Later launches reuse the verified installation.
+and opens the browser editor. A Terminal window shows download, setup, server,
+and ready messages; detailed setup output is streamed there. The first launch
+needs an internet connection and can take several minutes. Later launches show
+the same status window and reuse the verified installation.
 
 The application also installs an optional command link at
 `~/.local/bin/looume`. If that directory is already in the user's shell path,
@@ -43,12 +47,16 @@ checkout and survives updates. The unsigned review launcher can require
 right-click **Open** on first use; a notarized public release remains separate
 work.
 
-Maintainers publish a separate launcher release by pushing a version tag such
-as `mac-launcher-v1.0.0`. GitHub Actions builds the `.icns`, validates and
-ad-hoc signs the application bundle, and attaches
-`LOO-UME-Mac-Launcher.zip` plus its SHA-256 file to that release. A manual run
-produces the same review files as workflow artifacts without creating a
-release.
+To remove the managed installation, open `Uninstall LOO UME.command` from the
+downloaded launcher folder. It stops the owned server, copies the local Project
+Library to a timestamped folder in `~/Documents`, and removes the managed app,
+checkout, logs, and command link. It does not remove other exported files.
+
+Every push to canonical `main` builds the `.icns`, validates and ad-hoc signs
+the application bundle, and publishes a uniquely versioned GitHub Release with
+`LOO-UME-Mac-Launcher.zip` and its SHA-256 file. An explicit version tag such
+as `mac-launcher-v1.0.0` publishes the same permanent release format. A manual
+run produces review artifacts without creating a release.
 
 ### Developer checkout
 

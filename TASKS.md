@@ -4,8 +4,8 @@ Last reconciled: 2026-08-31
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: prove direct Art-Net behavior and static address/RGB parity
-on physical hardware.
+Current milestone: publish one current Mac launcher download automatically,
+then prove direct Art-Net behavior and static address/RGB parity on hardware.
 
 ## Control rules
 
@@ -127,6 +127,29 @@ No tasks.
 - Verification: 18 focused launcher/bootstrap/restart tests, shell syntax,
   TypeScript, GitHub Actions YAML lint, diff checks, and independent review
   passed. Native review remains required after the first tagged asset is built.
+
+## Ready to Merge
+
+### `P1 · INSTALL-017` Publish the current Mac launcher automatically
+
+- Scope: build the Mac launcher after every push to canonical `main`, publish
+  the verified ZIP and checksum as a permanent GitHub Release, and place one
+  stable download link near the start of the README. Keep explicit version-tag
+  releases and manual review artifacts available.
+- Acceptance: main and version-tag pushes package on macOS; only a commit on
+  canonical `main` can publish; concurrent main runs cannot publish out of
+  order; every automatic release uses a unique numeric bundle version and tag;
+  the README link resolves through GitHub's latest-release asset URL. Normal
+  icon launch opens a visible progress terminal and reports the ready URL;
+  the release includes a confirmed uninstaller that backs up local library
+  projects before removing only managed installation paths.
+- Owner: `codex/install-017-automatic-mac-release` in
+  `/tmp/loo-ume-install-017`. Likely conflicts: Mac release workflow, launcher
+  documentation, and its focused workflow-contract test.
+- Verification: 12 focused launcher tests, TypeScript, shell syntax, GitHub
+  Actions YAML lint, diff-check, and final integrated inspection passed. Native
+  Finder progress, release publication, stable download, and uninstall remain
+  Human Review after integration.
 
 ## In Progress
 

@@ -2,9 +2,15 @@ name: Publish Mac launcher
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "mac-launcher-v*"
   workflow_dispatch:
+
+concurrency:
+  group: mac-launcher-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -20,9 +26,11 @@ jobs:
       - name: Validate launcher sources
         run: |
           /bin/sh -n macos/launcher/Contents/MacOS/LOO-UME
+          /bin/sh -n "macos/Uninstall LOO UME.command"
           /bin/sh -n scripts/looume.sh
           /usr/bin/plutil -lint macos/launcher/Contents/Info.plist
           test -x macos/launcher/Contents/MacOS/LOO-UME
+          test -x "macos/Uninstall LOO UME.command"
           test -x scripts/looume.sh
 
       - name: Build the native icon and application bundle
@@ -55,10 +63,10 @@ jobs:
           mkdir -p "$bundle/Contents/Resources"
           cp "$RUNNER_TEMP/AppIcon.icns" "$bundle/Contents/Resources/AppIcon.icns"
           chmod 755 "$bundle/Contents/MacOS/LOO-UME"
-          if [ "$GITHUB_EVENT_NAME" = push ]; then
+          if [ "${GITHUB_REF#refs/tags/mac-launcher-v}" != "$GITHUB_REF" ]; then
             launcher_version=${GITHUB_REF_NAME#mac-launcher-v}
           else
-            launcher_version=0.0.$GITHUB_RUN_NUMBER
+            launcher_version=0.1.$GITHUB_RUN_NUMBER
           fi
           if ! printf '%s\n' "$launcher_version" | /usr/bin/grep -Eq \
               '^[0-9]+(\.[0-9]+){1,3}$'; then
@@ -73,9 +81,15 @@ jobs:
             "$bundle/Contents/Info.plist"
           /usr/bin/codesign --force --deep --sign - "$bundle"
           /usr/bin/codesign --verify --deep --strict "$bundle"
+          package_directory="$RUNNER_TEMP/LOO-UME-Mac-Launcher"
+          mkdir -p "$package_directory"
+          /usr/bin/ditto "$bundle" "$package_directory/LOO UME.app"
+          /usr/bin/ditto "macos/Uninstall LOO UME.command" \
+            "$package_directory/Uninstall LOO UME.command"
+          chmod 755 "$package_directory/Uninstall LOO UME.command"
           mkdir -p build
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
-            "$bundle" build/LOO-UME-Mac-Launcher.zip
+            "$package_directory" build/LOO-UME-Mac-Launcher.zip
           /usr/bin/shasum -a 256 build/LOO-UME-Mac-Launcher.zip \
             > build/LOO-UME-Mac-Launcher.zip.sha256
 
@@ -89,8 +103,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  publish-tagged-release:
-    name: Publish verified tag
+  publish-release:
+    name: Publish verified launcher release
     if: github.event_name == 'push'
     needs: package-macos-launcher
     runs-on: ubuntu-24.04
@@ -102,10 +116,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Require the tagged commit on canonical main
+      - name: Require the packaged commit on canonical main
         run: |
           git fetch --no-tags origin main
-          git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            test "$(git rev-parse HEAD)" = \
+              "$(git rev-parse refs/remotes/origin/main)"
+          else
+            git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          fi
 
       - name: Download the verified launcher artifact
         uses: actions/download-artifact@v7
@@ -113,13 +132,34 @@ jobs:
           name: loo-ume-mac-launcher
           path: build
 
-      - name: Verify and publish the tagged launcher release
+      - name: Verify and publish the launcher release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -eu
           /usr/bin/sha256sum --check build/LOO-UME-Mac-Launcher.zip.sha256
-          gh release create "$GITHUB_REF_NAME" \
-            build/LOO-UME-Mac-Launcher.zip \
-            build/LOO-UME-Mac-Launcher.zip.sha256 \
-            --title "LOO/UME Mac Launcher $GITHUB_REF_NAME" \
-            --generate-notes
+          if [ "${GITHUB_REF#refs/tags/mac-launcher-v}" != "$GITHUB_REF" ]; then
+            release_tag=$GITHUB_REF_NAME
+          else
+            release_tag=mac-launcher-v0.1.$GITHUB_RUN_NUMBER
+          fi
+          if gh release view "$release_tag" >/dev/null 2>&1; then
+            existing_target=$(gh release view "$release_tag" \
+              --json targetCommitish --jq .targetCommitish)
+            if [ "$existing_target" != "$GITHUB_SHA" ]; then
+              echo "Release $release_tag belongs to $existing_target, not $GITHUB_SHA." >&2
+              exit 1
+            fi
+            gh release upload "$release_tag" \
+              build/LOO-UME-Mac-Launcher.zip \
+              build/LOO-UME-Mac-Launcher.zip.sha256 \
+              --clobber
+          else
+            gh release create "$release_tag" \
+              build/LOO-UME-Mac-Launcher.zip \
+              build/LOO-UME-Mac-Launcher.zip.sha256 \
+              --target "$GITHUB_SHA" \
+              --title "LOO/UME Mac Launcher $release_tag" \
+              --generate-notes \
+              --latest
+          fi

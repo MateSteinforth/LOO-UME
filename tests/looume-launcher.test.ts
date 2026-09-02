@@ -288,7 +288,7 @@ describe("LOO/UME managed launcher", () => {
     }
   });
 
-  it("defines the self-installing application and tagged release contract", async () => {
+  it("defines the self-installing application and automatic release contract", async () => {
     const application = await readFile(
       "macos/launcher/Contents/MacOS/LOO-UME",
       "utf8",
@@ -298,6 +298,7 @@ describe("LOO/UME managed launcher", () => {
       ".github/workflows/macos-launcher-release.yml",
       "utf8",
     );
+    const readme = await readFile("README.md", "utf8");
     expect(application).toContain("$HOME/Library/Application Support/LOO-UME");
     expect(application).toContain("$HOME/Applications");
     expect(application).toContain('"$git_command" clone --branch main --single-branch');
@@ -306,14 +307,122 @@ describe("LOO/UME managed launcher", () => {
     expect(application).not.toContain(".zprofile");
     expect(application).toContain('ln -s "$$" "$acquired_lock_claim"');
     expect(application).not.toContain('mkdir "$lock_path"');
+    expect(application).toContain('tell application "Terminal"');
+    expect(application).toContain("LOO_UME_FOLLOW_LOG=1");
+    expect(application).toContain("--uninstall) uninstall_application");
     expect(plist).toContain("art.loo-ume.launcher");
     expect(plist).toContain("AppIcon");
+    expect(workflow).toContain("branches:\n      - main");
     expect(workflow).toContain('tags:\n      - "mac-launcher-v*"');
+    expect(workflow).toContain("group: mac-launcher-${{ github.ref }}");
+    expect(workflow).toContain("cancel-in-progress: true");
+    expect(workflow).toContain("launcher_version=0.1.$GITHUB_RUN_NUMBER");
     expect(workflow).toContain("LOO-UME-Mac-Launcher.zip");
+    expect(workflow).toContain("Uninstall LOO UME.command");
     expect(workflow).toContain("gh release create");
+    expect(workflow).toContain("release_tag=mac-launcher-v0.1.$GITHUB_RUN_NUMBER");
+    expect(workflow).toContain('--target "$GITHUB_SHA"');
+    expect(workflow).toContain('existing_target" != "$GITHUB_SHA"');
+    expect(workflow).toContain("--clobber");
+    expect(workflow).toContain("--latest");
+    expect(workflow).toContain('[ "$GITHUB_REF" = refs/heads/main ]');
+    expect(workflow).toContain('test "$(git rev-parse HEAD)" = \\');
+    expect(workflow).toContain('"$(git rev-parse refs/remotes/origin/main)"');
     expect(workflow).toContain("git merge-base --is-ancestor HEAD refs/remotes/origin/main");
     expect(workflow).toContain("permissions:\n  contents: read");
     expect(workflow).toContain("permissions:\n      contents: write");
+    expect(readme).toContain(
+      "https://github.com/MateSteinforth/LOO-UME/releases/latest/download/LOO-UME-Mac-Launcher.zip",
+    );
+  });
+
+  it("opens a visible Terminal progress session for a normal Finder launch", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-terminal-"));
+    temporaryDirectories.push(home);
+    const osascriptLog = join(home, "osascript.log");
+    const fakeOsascript = join(home, "osascript.sh");
+    await writeFile(fakeOsascript, [
+      "#!/bin/sh",
+      'printf \'%s\\n\' "$@" > "$FAKE_OSASCRIPT_LOG"',
+      "",
+    ].join("\n"));
+    await chmod(fakeOsascript, 0o755);
+    await execFileAsync("sh", ["macos/launcher/Contents/MacOS/LOO-UME"], {
+      env: {
+        ...process.env,
+        HOME: home,
+        FAKE_OSASCRIPT_LOG: osascriptLog,
+        LOO_UME_OSASCRIPT_COMMAND: fakeOsascript,
+      },
+      timeout: 5_000,
+    });
+    const invocation = await readFile(osascriptLog, "utf8");
+    expect(invocation).toContain('tell application "Terminal"');
+    expect(invocation).toContain("LOO_UME_TERMINAL_SESSION=1");
+    expect(invocation).toContain("macos/launcher/Contents/MacOS/LOO-UME");
+  });
+
+  it("backs up local projects and removes only the managed Mac installation", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-uninstall-"));
+    temporaryDirectories.push(home);
+    const support = join(home, "Library", "Application Support", "LOO-UME");
+    const applications = join(home, "Applications");
+    const installedApp = join(applications, "LOO UME.app");
+    const localProjects = join(support, "application", "projects", "local");
+    const managedScript = join(support, "application", "scripts", "looume.sh");
+    const managedCommand = join(support, "bin", "looume");
+    const commandLink = join(home, ".local", "bin", "looume");
+    const stopLog = join(home, "stop.log");
+    const fakeDitto = join(home, "ditto.sh");
+    await mkdir(localProjects, { recursive: true });
+    await mkdir(join(support, "application", "scripts"), { recursive: true });
+    await mkdir(join(support, "bin"), { recursive: true });
+    await mkdir(join(home, ".local", "bin"), { recursive: true });
+    await mkdir(installedApp, { recursive: true });
+    await writeFile(join(localProjects, "saved.loo.zip"), "project bytes");
+    await writeFile(managedScript, [
+      "#!/bin/sh",
+      'printf \'%s\\n\' "$1" > "$FAKE_STOP_LOG"',
+      "",
+    ].join("\n"));
+    await chmod(managedScript, 0o755);
+    await writeFile(managedCommand, "managed command\n");
+    await symlink(managedCommand, commandLink);
+    await writeFile(fakeDitto, [
+      "#!/bin/sh",
+      'cp -R "$1" "$2"',
+      "",
+    ].join("\n"));
+    await chmod(fakeDitto, 0o755);
+    await execFileAsync("sh", [
+      "macos/launcher/Contents/MacOS/LOO-UME",
+      "--uninstall",
+    ], {
+      env: {
+        ...process.env,
+        HOME: home,
+        FAKE_STOP_LOG: stopLog,
+        LOO_UME_SUPPORT_ROOT: support,
+        LOO_UME_APPLICATIONS_ROOT: applications,
+        LOO_UME_DOCUMENTS_ROOT: join(home, "Documents"),
+        LOO_UME_CONFIRM_UNINSTALL: "1",
+        LOO_UME_DITTO_COMMAND: fakeDitto,
+        LOO_UME_OSASCRIPT_COMMAND: "/bin/false",
+      },
+      timeout: 5_000,
+    });
+    expect(await readFile(stopLog, "utf8")).toBe("--stop\n");
+    await expect(stat(support)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(installedApp)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(commandLink)).rejects.toMatchObject({ code: "ENOENT" });
+    const backups = await readdir(join(home, "Documents"));
+    expect(backups).toHaveLength(1);
+    expect(await readFile(join(
+      home,
+      "Documents",
+      backups[0]!,
+      "saved.loo.zip",
+    ), "utf8")).toBe("project bytes");
   });
 
   it("installs a verified checkout atomically and creates the Mac command", async () => {

@@ -127,10 +127,20 @@ checkouts continue to restart directly through `bootstrap.sh`. Launch, first
 install, and application-copy serialization use unique atomic PID claims;
 stale cleanup never deletes a reusable shared lock path.
 
-The Mac launcher ZIP is an independent tagged GitHub release asset. The
-macOS-only release job converts the deterministic icon source to `.icns`,
-validates the bundle, applies an ad-hoc review signature, and archives resource
-forks with `ditto`. Apple notarization is not claimed.
+The Mac launcher ZIP is an independent GitHub release asset. Every canonical
+`main` push and every explicit `mac-launcher-v*` tag runs the macOS-only job,
+which converts the deterministic icon source to `.icns`, validates the bundle,
+applies an ad-hoc review signature, and archives resource forks with `ditto`.
+Main builds use unique run-number versions and serialize per ref; manual runs
+remain artifact-only. Apple notarization is not claimed.
+
+A normal Finder launch hands control to one visible Terminal session before it
+copies or installs files. The terminal streams the managed server setup log and
+reports the ready URL. The release also contains a command-file uninstaller.
+It stops the launcher-owned process, copies `projects/local` to a timestamped
+folder in Documents, and then removes the managed Application Support tree,
+application bundle, and matching command link. It does not delete unrelated
+exports.
 
 ## Geometry and fabrication boundary
 
