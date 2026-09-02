@@ -2447,8 +2447,8 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   verify the packaged generator-status endpoint before release.
 - **Prevention:** Package the minimum runtime dependency surface. Do not use a
   broad universal-merge exception for unused architecture-specific binaries.
-- **Status:** Implemented by INSTALL-019; the corrected universal workflow must
-  pass before native review.
+- **Status:** Resolved in INSTALL-019; corrected universal packaging and native
+  review passed.
 
 ### F-131 — Closing the Electron window left a hidden Mac process
 
@@ -2487,5 +2487,5 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Prevention:** One operator platform has one primary installation path.
   Compatibility installers must be labelled legacy and must not publish on each
   normal integration.
-- **Status:** Implemented by INSTALL-019; first canonical-main refresh remains
-  release evidence after integration.
+- **Status:** Resolved in INSTALL-019; canonical-main run 33660397431 published
+  the stable unsigned DMG and the legacy launcher did not run.

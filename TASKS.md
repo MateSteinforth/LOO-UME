@@ -47,6 +47,24 @@ No tasks.
 
 ## Done (latest integrations)
 
+### `P1 · INSTALL-019` Make Electron the default Mac application
+
+- Scope: package the existing editor and local services as one universal
+  Electron DMG, with one application-owned window, Project Library, serial and
+  network boundaries, local-service lifecycle, and future signed-update seam.
+- Result: closing the last window quits the application and local services; a
+  later icon launch starts a fresh session. The README points to one stable free
+  unsigned DMG. Application-changing canonical `main` pushes refresh that
+  prerelease asset, while documentation/test-only pushes skip packaging. The
+  earlier Terminal/browser launcher remains available only through an explicit
+  legacy tag or manual workflow.
+- Verification: focused lifecycle/release/legacy-routing tests, TypeScript,
+  Electron main build, GitHub Actions YAML validation, two native universal-DMG
+  reviews, canonical-main package inventory and publication, and the normal
+  fast verification passed. The stable free download is
+  `electron-macos-unsigned`; Apple-signed automatic updates remain optional
+  future work, not part of the free installation.
+
 ### `P1 · CAL-012` Review and correct the installed physical route
 
 - Scope: add a transactional hardware-review mode that lights one physical
@@ -129,49 +147,6 @@ No tasks.
   passed. Native review remains required after the first tagged asset is built.
 
 ## Ready to Merge
-
-### `P1 · INSTALL-019` Package LOO/UME as an Electron desktop application
-
-- Scope: wrap the existing Vite/TypeScript editor and Node-side local services
-  in Electron without rewriting the browser application. Keep the browser/LAN
-  workflow available for development and remote-device review.
-- Acceptance: one desktop process owns the application window, local APIs,
-  project-library storage, hardware transports, logs, shutdown, and restart;
-  closing the last window quits that process and its local services, and a
-  later icon launch starts one new window; the Mac build installs through a
-  standard DMG/Application workflow; updates use verified GitHub Release
-  artifacts; Web Serial, DDP, Art-Net, project import/export, and local project
-  preservation retain their existing security and data boundaries.
-- Migration boundary: reuse the current editor and service modules first. Do
-  not replace working browser behavior, remove the LAN mode, or expand into UI
-  redesign. Electron serial selection must preserve the explicit CP2102 device
-  choice; the Art-Net/DDP services remain loopback/private-network bounded;
-  release updates remain unavailable until the Mac application has a stable
-  Developer ID signature and notarization because Squirrel.Mac requires it.
-- Owner: `codex/install-019-electron-desktop` in
-  `/tmp/loo-ume-install-019`. Likely conflicts: desktop server lifecycle,
-  application-update transport, package scripts and lockfile, Mac release
-  workflow, serial permissions, and installation documentation.
-- Evidence: TypeScript, the focused Electron boundary tests, the Electron main
-  build, the production web build, shell syntax, workflow YAML, a Linux package
-  inventory, and a bounded packaged-process launch pass. Native universal Mac
-  DMG installation, CP2102 selection, the existing Art-Net preview and DDP
-  hardware mirror, signing, notarization, and update installation remain Human
-  Review. Direct Art-Net-to-DDP forwarding remains the separate `LIVE-020`
-  task. The signed release tag cannot be published until the five Apple signing
-  secrets are configured.
-  A manual workflow run publishes a direct unsigned universal-DMG prerelease
-  for the native review without changing the update feed.
-  Native review of `electron-review-2` found that the normal Mac last-window
-  behavior left a hidden process and made Finder removal unclear. The corrected
-  `electron-review-3` package passed close-to-quit and clean later launch in
-  native operator review.
-- Release cutover: the fixed unsigned Electron prerelease DMG is now the
-  primary README download and refreshes after application-changing canonical
-  `main` pushes. Documentation-only and test-only pushes skip packaging. The
-  legacy launcher runs only for explicit tags or manual review. A later signed
-  `electron-v*` release can become the verified automatic-update feed without
-  changing Project Library ownership.
 
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 
