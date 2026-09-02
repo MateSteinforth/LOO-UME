@@ -163,3 +163,38 @@ jobs:
               --generate-notes \
               --latest
           fi
+
+  publish-review-download:
+    name: Publish direct review download
+    if: github.event_name == 'workflow_dispatch'
+    needs: package-macos-launcher
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Download the verified launcher artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: loo-ume-mac-launcher
+          path: build
+
+      - name: Publish the direct prerelease asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          release_tag=mac-launcher-review-$GITHUB_RUN_NUMBER
+          /usr/bin/sha256sum --check build/LOO-UME-Mac-Launcher.zip.sha256
+          gh release create "$release_tag" \
+            "build/LOO-UME-Mac-Launcher.zip#LOO-UME-Mac-Launcher.zip" \
+            "build/LOO-UME-Mac-Launcher.zip.sha256#LOO-UME-Mac-Launcher.zip.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Mac launcher review $GITHUB_RUN_NUMBER" \
+            --notes "Review build from $GITHUB_REF_NAME at $GITHUB_SHA. This is not the current public release." \
+            --prerelease
+          download_url="https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag/LOO-UME-Mac-Launcher.zip"
+          printf '### Direct Mac launcher review download\n\n[%s](%s)\n' \
+            'Download LOO-UME-Mac-Launcher.zip' "$download_url" \
+            >> "$GITHUB_STEP_SUMMARY"

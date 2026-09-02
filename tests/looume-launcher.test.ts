@@ -336,6 +336,11 @@ describe("LOO/UME managed launcher", () => {
     expect(workflow).toContain('existing_target" != "$GITHUB_SHA"');
     expect(workflow).toContain("--clobber");
     expect(workflow).toContain("--latest");
+    expect(workflow).toContain("publish-review-download:");
+    expect(workflow).toContain("if: github.event_name == 'workflow_dispatch'");
+    expect(workflow).toContain("release_tag=mac-launcher-review-$GITHUB_RUN_NUMBER");
+    expect(workflow).toContain("--prerelease");
+    expect(workflow).toContain("Direct Mac launcher review download");
     expect(workflow).toContain('[ "$GITHUB_REF" = refs/heads/main ]');
     expect(workflow).toContain('test "$(git rev-parse HEAD)" = \\');
     expect(workflow).toContain('"$(git rev-parse refs/remotes/origin/main)"');
@@ -474,6 +479,60 @@ describe("LOO/UME managed launcher", () => {
     }
   });
 
+  it("persists the next free port when another checkout owns the default", async () => {
+    const home = await mkdtemp(join(tmpdir(), "looume-mac-port-"));
+    temporaryDirectories.push(home);
+    const support = join(home, "support");
+    const checkout = join(support, "application");
+    const scripts = join(checkout, "scripts");
+    const delegatedLog = join(home, "delegated.log");
+    await mkdir(join(checkout, ".git"), { recursive: true });
+    await mkdir(scripts, { recursive: true });
+    await writeFile(join(scripts, "looume.sh"), [
+      "#!/bin/sh",
+      `printf '%s\\n' "$LOO_UME_PORT" > '${delegatedLog}'`,
+      "",
+    ].join("\n"));
+    await chmod(join(scripts, "looume.sh"), 0o755);
+    const port = await freePort();
+    const foreignServer = createHttpServer((_request, response) => {
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ schemaVersion: "1.0.0", generator: "manifold" }));
+    });
+    await new Promise<void>((resolvePromise, reject) => {
+      foreignServer.once("error", reject);
+      foreignServer.listen(port, "127.0.0.1", resolvePromise);
+    });
+    const fakeLsof = join(home, "lsof.sh");
+    await writeFile(fakeLsof, [
+      "#!/bin/sh",
+      `case "$*" in *"iTCP:${port}"*) printf '%s\\n' '$PPID' ;; esac`,
+      "",
+    ].join("\n"));
+    await chmod(fakeLsof, 0o755);
+    try {
+      const result = await execFileAsync("sh", ["macos/launcher/Contents/MacOS/LOO-UME"], {
+        env: {
+          ...process.env,
+          HOME: home,
+          LOO_UME_SUPPORT_ROOT: support,
+          LOO_UME_APPLICATIONS_ROOT: join(home, "Applications"),
+          LOO_UME_SKIP_APP_COPY: "1",
+          LOO_UME_OSASCRIPT_COMMAND: "/bin/false",
+          LOO_UME_LSOF_COMMAND: fakeLsof,
+          LOO_UME_PORT: String(port),
+        },
+        timeout: 5_000,
+      });
+      expect(result.stdout).toContain(`will use port ${port + 1}`);
+      expect(await readFile(delegatedLog, "utf8")).toBe(`${port + 1}\n`);
+      expect(await readFile(join(checkout, ".tools", "looume", "server.port"), "utf8"))
+        .toBe(`${port + 1}\n`);
+    } finally {
+      await new Promise<void>((resolvePromise) => foreignServer.close(() => resolvePromise()));
+    }
+  });
+
   it("opens a visible Terminal progress session for a normal Finder launch", async () => {
     const home = await mkdtemp(join(tmpdir(), "looume-mac-terminal-"));
     temporaryDirectories.push(home);
@@ -491,6 +550,7 @@ describe("LOO/UME managed launcher", () => {
         HOME: home,
         FAKE_OSASCRIPT_LOG: osascriptLog,
         LOO_UME_OSASCRIPT_COMMAND: fakeOsascript,
+        LOO_UME_SKIP_APP_COPY: "1",
       },
       timeout: 5_000,
     });
@@ -498,6 +558,10 @@ describe("LOO/UME managed launcher", () => {
     expect(invocation).toContain('tell application "Terminal"');
     expect(invocation).toContain("LOO_UME_TERMINAL_SESSION=1");
     expect(invocation).toContain("macos/launcher/Contents/MacOS/LOO-UME");
+    const application = await readFile("macos/launcher/Contents/MacOS/LOO-UME", "utf8");
+    expect(application.lastIndexOf("\ninstall_application_bundle\n")).toBeLessThan(
+      application.lastIndexOf("\nif open_progress_terminal; then exit 0; fi\n"),
+    );
   });
 
   it("backs up local projects and removes only the managed Mac installation", async () => {

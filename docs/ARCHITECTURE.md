@@ -134,12 +134,18 @@ The Mac launcher ZIP is an independent GitHub release asset. Every canonical
 `main` push and every explicit `mac-launcher-v*` tag runs the macOS-only job,
 which converts the deterministic icon source to `.icns`, validates the bundle,
 applies an ad-hoc review signature, and archives resource forks with `ditto`.
-Main builds use unique run-number versions and serialize per ref; manual runs
-remain artifact-only. Apple notarization is not claimed.
+Main builds use unique run-number versions and serialize per ref. A manual run
+also publishes one unique prerelease with a direct, single-ZIP review download;
+it does not replace the latest public release. Apple notarization is not
+claimed.
 
-A normal Finder launch hands control to one visible Terminal session before it
-copies or installs files. The terminal shows Git download progress, streams the
-managed server setup log, and reports the ready URL. The release also contains
+A normal Finder launch first copies the small app wrapper to `~/Applications`,
+then hands control from that stable path to one visible Terminal session. It
+never asks Terminal to reopen an ephemeral App Translocation path. The terminal
+shows Git download progress, streams the managed server setup log, and reports
+the ready URL. If another checkout owns port 4173, the managed installation
+preserves that process and records the next free port for later icon and command
+launches. The release also contains
 a command-file uninstaller.
 It stops the launcher-owned process, copies `projects/local` to a timestamped
 folder in Documents, and then removes the managed Application Support tree,

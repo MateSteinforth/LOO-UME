@@ -135,7 +135,7 @@ No tasks.
 - Scope: build the Mac launcher after every push to canonical `main`, publish
   the verified ZIP and checksum as a permanent GitHub Release, and place one
   stable download link near the start of the README. Keep explicit version-tag
-  releases and manual review artifacts available.
+  releases and direct manual prerelease downloads available.
 - Acceptance: main and version-tag pushes package on macOS; only a commit on
   canonical `main` can publish; concurrent main runs cannot publish out of
   order; every automatic release uses a unique numeric bundle version and tag;
@@ -146,7 +146,7 @@ No tasks.
 - Owner: `codex/install-017-automatic-mac-release` in
   `/tmp/loo-ume-install-017`. Likely conflicts: Mac release workflow, launcher
   documentation, and its focused workflow-contract test.
-- Verification: 14 focused launcher tests, TypeScript, shell syntax, GitHub
+- Verification: 15 focused launcher tests, TypeScript, shell syntax, GitHub
   Actions YAML lint, diff-check, and final integrated inspection passed. Native
   Finder progress, release publication, stable download, and uninstall remain
   Human Review after integration. The first native run exposed hidden Git
@@ -154,8 +154,11 @@ No tasks.
   ownership-record migration before delegating, so a branch review artifact
   also works against the older `main` checkout. The command-file uninstaller
   invokes the quarantined launcher through `/bin/sh`, and duplicate `lsof`
-  records for one PID remain one owner. These corrections need a new native
-  artifact review.
+  records for one PID remain one owner. Terminal handoff uses the installed app
+  path, never an App Translocation path. A different checkout on port 4173 is
+  preserved while the Mac installation records the next free port. These
+  corrections need a new native artifact review. Manual workflow runs publish
+  a direct prerelease ZIP so the operator does not unwrap an artifact ZIP first.
 
 ## In Progress
 

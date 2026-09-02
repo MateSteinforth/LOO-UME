@@ -11,7 +11,14 @@ pid_file=$state_directory/server.pid
 url_file=$state_directory/server.url
 log_file=$state_directory/server.log
 launch_lock=$state_directory/launch.lock
-port=${LOO_UME_PORT:-4173}
+port_file=$state_directory/server.port
+if [ -n "${LOO_UME_PORT:-}" ]; then
+  port=$LOO_UME_PORT
+elif [ -f "$port_file" ]; then
+  IFS= read -r port < "$port_file" || port=4173
+else
+  port=4173
+fi
 url=http://127.0.0.1:$port/
 curl_command=${LOO_UME_CURL_COMMAND:-/usr/bin/curl}
 open_command=${LOO_UME_OPEN_COMMAND:-/usr/bin/open}

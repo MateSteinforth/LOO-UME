@@ -2323,3 +2323,40 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   progress surface.
 - **Status:** Implemented by INSTALL-017; native uninstall and reinstall review
   remains pending.
+
+### F-125 — Terminal handoff used an expired App Translocation path
+
+- **Date:** 2026-09-02
+- **Context:** Native launch immediately after a successful command-file
+  removal.
+- **Symptom:** Terminal tried to execute the launcher below `/private/var/.../
+  AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
+- **Cause:** Finder handed the downloaded quarantined app to a temporary mount.
+  The launcher opened Terminal before copying itself, and macOS removed the
+  mount before the Terminal command started. A separate developer checkout also
+  owned port 4173, which the managed application correctly refused to kill.
+- **Correction:** Copy the wrapper to `~/Applications` before Terminal handoff
+  and run the stable installed path. When a different process owns the default
+  port, preserve it and store the next free port for every later managed launch.
+- **Prevention:** Never pass an App Translocation path to an asynchronous
+  process. Persist a selected local port instead of killing or adopting a
+  different checkout.
+- **Status:** Implemented by INSTALL-017; native review remains pending.
+
+### F-126 — GitHub review artifact required two ZIP extractions
+
+- **Date:** 2026-09-02
+- **Context:** Repeated native review of a branch-built Mac launcher.
+- **Symptom:** The Actions download was a ZIP containing the signed launcher
+  ZIP, so the operator had to extract twice.
+- **Cause:** GitHub always packages workflow artifacts as ZIP files. The inner
+  archive was still required because it preserves the executable modes and app
+  bundle metadata that a raw artifact directory does not preserve.
+- **Correction:** Keep the Actions artifact as verification evidence, and make
+  each manually dispatched run publish a unique prerelease with the verified
+  launcher ZIP as a direct asset. Do not mark that prerelease as latest.
+- **Prevention:** Use workflow artifacts for job transfer and evidence. Use a
+  release asset when the operator needs the packaged file without an additional
+  wrapper archive.
+- **Status:** Implemented by INSTALL-017; first direct review release remains
+  CI evidence.

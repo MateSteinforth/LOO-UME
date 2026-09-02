@@ -18,7 +18,14 @@ xcode_select_command=${LOO_UME_XCODE_SELECT_COMMAND:-/usr/bin/xcode-select}
 documents_root=${LOO_UME_DOCUMENTS_ROOT:-$HOME/Documents}
 curl_command=${LOO_UME_CURL_COMMAND:-/usr/bin/curl}
 lsof_command=${LOO_UME_LSOF_COMMAND:-/usr/sbin/lsof}
-port=${LOO_UME_PORT:-4173}
+managed_port_file=$checkout_root/.tools/looume/server.port
+if [ -n "${LOO_UME_PORT:-}" ]; then
+  port=$LOO_UME_PORT
+elif [ -f "$managed_port_file" ]; then
+  IFS= read -r port < "$managed_port_file" || port=4173
+else
+  port=4173
+fi
 
 progress() {
   printf '\nLOO/UME — %s\n' "$1"
@@ -151,11 +158,6 @@ case ${1-} in
   --uninstall) uninstall_application; exit 0 ;;
   *) show_error "Unsupported launcher argument: $1"; exit 2 ;;
 esac
-
-if open_progress_terminal; then exit 0; fi
-if [ "${LOO_UME_RESUMED_AFTER_COPY:-0}" != 1 ]; then
-  progress "Starting the installer. This window shows its progress."
-fi
 
 lock_claim_owner_is_live() {
   claim_path=$1
@@ -352,9 +354,45 @@ install_command_link() {
   ln -sfn "$command_path" "$user_bin/looume"
 }
 
+select_managed_port() {
+  server_pid_file=$checkout_root/.tools/looume/server.pid
+  [ ! -f "$server_pid_file" ] || return 0
+  original_port=$port
+  last_port=$((original_port + 26))
+  while [ "$port" -le "$last_port" ]; do
+    port_busy=false
+    if [ -x "$lsof_command" ] &&
+       [ -n "$("$lsof_command" -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null || true)" ]; then
+      port_busy=true
+    elif [ -x "$curl_command" ] &&
+         "$curl_command" --silent --max-time 1 "http://127.0.0.1:$port/" >/dev/null 2>&1; then
+      port_busy=true
+    fi
+    [ "$port_busy" = true ] || break
+    port=$((port + 1))
+  done
+  if [ "$port" -gt "$last_port" ]; then
+    show_error "No free local application port was found from $original_port through $last_port."
+    exit 1
+  fi
+  mkdir -p "${managed_port_file%/*}"
+  chmod 700 "${managed_port_file%/*}"
+  printf '%s\n' "$port" > "$managed_port_file"
+  if [ "$port" != "$original_port" ]; then
+    progress "Port $original_port belongs to another application. This installation will use port $port."
+  fi
+  LOO_UME_PORT=$port
+  export LOO_UME_PORT
+}
+
 install_application_bundle
+if open_progress_terminal; then exit 0; fi
+if [ "${LOO_UME_RESUMED_AFTER_COPY:-0}" != 1 ]; then
+  progress "Starting the installer. This window shows its progress."
+fi
 install_checkout
 recover_orphaned_server_record
+select_managed_port
 progress "Preparing the local command and application service."
 install_command_link
 progress "Starting LOO/UME. Detailed setup output follows."
