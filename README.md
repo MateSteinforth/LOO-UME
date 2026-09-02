@@ -16,6 +16,42 @@ panel outlines and validated flat gap caps.
 
 ## Start
 
+### Mac application
+
+The separate Mac launcher release contains `LOO UME.app`. Open it once from
+the downloaded ZIP. It copies itself to `~/Applications`, downloads the
+approved `main` checkout into
+`~/Library/Application Support/LOO-UME/application`, runs the verified setup,
+and opens the browser editor. The first launch needs an internet connection and
+can take several minutes. Later launches reuse the verified installation.
+
+The application also installs an optional command link at
+`~/.local/bin/looume`. If that directory is already in the user's shell path,
+the diagnostic commands are:
+
+```bash
+looume
+looume --update
+looume --status
+looume --stop
+```
+
+The icon is the normal operator path; these commands are diagnostic
+alternatives. **Update** in the editor uses the same canonical-main,
+fast-forward-only update gate. Project Library data stays in the managed
+checkout and survives updates. The unsigned review launcher can require
+right-click **Open** on first use; a notarized public release remains separate
+work.
+
+Maintainers publish a separate launcher release by pushing a version tag such
+as `mac-launcher-v1.0.0`. GitHub Actions builds the `.icns`, validates and
+ad-hoc signs the application bundle, and attaches
+`LOO-UME-Mac-Launcher.zip` plus its SHA-256 file to that release. A manual run
+produces the same review files as workflow artifacts without creating a
+release.
+
+### Developer checkout
+
 After cloning the repository on Linux x86-64 or macOS, start LOO/UME with:
 
 ```bash
@@ -119,7 +155,8 @@ checked-in WLED simulator, then runs the normal tests and builds. It does not
 need Python, Emscripten, or a WLED source checkout. `npm run verify:clean`
 proves the same path after a clean `npm ci`.
 
-`./bootstrap.sh launch` is the normal clean-checkout operator path. Its first
+`LOO UME.app` is the normal Mac operator path. `./bootstrap.sh launch` remains
+the normal clean-checkout developer path. Its first
 run includes the production desktop-start and two-STL Manifold proof before the
 browser opens. `./bootstrap.sh setup` remains available for installation
 automation that must prepare without starting the server.

@@ -323,3 +323,18 @@ launch and retains the recovery stash.
 The production loopback server can check `origin/main` and expose the same
 operation through an Update button. Update mutation requires a same-origin
 POST to the loopback server. LAN preview and static hosting cannot apply it.
+
+## D36 — Keep the Mac application as a thin managed-checkout launcher
+
+The Mac application does not embed a second browser or fork the editor. Its
+first launch installs a canonical `main` checkout below Application Support and
+then delegates setup, launch, and update to the existing verified boundaries.
+This keeps Web Serial and all other Chromium behavior in the operator's normal
+browser and preserves the repository updater.
+
+One launcher script owns the background server PID and readiness URL. The app
+can therefore reopen an existing editor, stop its server, and retain process
+ownership after an in-editor update. The release workflow publishes the small
+launcher independently of application source updates. An ad-hoc signature is
+review evidence only; signed and notarized public distribution requires a
+separate Apple credential decision.

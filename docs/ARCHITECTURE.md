@@ -115,6 +115,23 @@ Ignored local project-library ZIPs never move. A restore conflict stops before
 launch and retains the recovery stash. The production UI uses the same boundary
 to report and apply available updates.
 
+The lightweight Mac launcher is a separate distribution wrapper, not a second
+editor runtime. On first launch it copies its application bundle to
+`~/Applications`, atomically clones the canonical `main` checkout below
+`~/Library/Application Support/LOO-UME/`, and delegates installation to the
+same bootstrap boundary. `scripts/looume.sh` owns one background server PID,
+readiness URL, and log. Reopening the icon opens the existing server; update,
+stop, and status use the same ownership record. A managed in-editor update
+restarts through this launcher so the PID does not become stale. Developer
+checkouts continue to restart directly through `bootstrap.sh`. Launch, first
+install, and application-copy serialization use unique atomic PID claims;
+stale cleanup never deletes a reusable shared lock path.
+
+The Mac launcher ZIP is an independent tagged GitHub release asset. The
+macOS-only release job converts the deterministic icon source to `.icns`,
+validates the bundle, applies an ad-hoc review signature, and archives resource
+forks with `ditto`. Apple notarization is not claimed.
+
 ## Geometry and fabrication boundary
 
 Panel poses remain authoritative. A GLB can constrain placement but is not

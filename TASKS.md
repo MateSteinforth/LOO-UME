@@ -45,7 +45,7 @@ on physical hardware.
 
 No tasks.
 
-## Ready to Merge
+## Done (latest integrations)
 
 ### `P1 · CAL-012` Review and correct the installed physical route
 
@@ -113,6 +113,21 @@ No tasks.
   editor tests, TypeScript, production build, diff-check, a separate geometry
   review, and a final rendered-image check without edit-hitbox quads passed.
 
+### `P1 · INSTALL-016` Add a self-installing Mac launcher release
+
+- Scope: publish a lightweight `LOO UME.app` that copies itself to
+  `~/Applications` on first launch, installs a canonical `main` checkout below
+  `~/Library/Application Support/LOO-UME/`, runs verified setup internally,
+  and opens the browser editor. The `looume` launcher also provides launch,
+  update, stop, and status commands for advanced use.
+- Acceptance: the normal Mac path requires no Terminal command; installation
+  is bounded and retryable; launches reuse one owned server; updates retain
+  local projects and use the canonical-main fast-forward gate; a tagged GitHub
+  workflow publishes the launcher ZIP as a separate release asset.
+- Verification: 18 focused launcher/bootstrap/restart tests, shell syntax,
+  TypeScript, GitHub Actions YAML lint, diff checks, and independent review
+  passed. Native review remains required after the first tagged asset is built.
+
 ## In Progress
 
 No tasks.
@@ -171,7 +186,7 @@ No tasks.
 - Needed: observe and record all 2,624 addresses, row transitions, corners,
   four outputs, and RGB channels against the exact deployment identity.
 
-## Done
+## Earlier completed work
 
 - `UI-032`: integrated panel-by-panel physical assembly focus on 2026-08-30.
   Previous/Next panel crosses nonempty data chains, activates the selected

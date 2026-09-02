@@ -2132,6 +2132,38 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   two panel orientations separated by 180 degrees.
 - **Status:** Resolved by WIRE-017.
 
+### F-115 — A browser tab cannot own the local server lifecycle
+
+- **Date:** 2026-08-30
+- **Context:** Making the local editor feel like an installed Mac application.
+- **Symptom:** Closing the browser left the production server running, while a
+  launcher that started another server could collide with the old port.
+- **Cause:** The default browser does not provide a reliable signal when one
+  LOO/UME tab closes. It cannot be the process owner.
+- **Correction:** Keep one launcher-owned PID, readiness URL, and log. Reopen
+  the current URL when that server is healthy, and provide explicit stop,
+  status, and update actions. Route managed update restarts through the same
+  launcher boundary.
+- **Prevention:** Never infer server lifetime from browser-tab lifetime. A
+  browser-based local application needs a separate process owner and exact
+  stale-PID checks.
+- **Status:** Implemented by INSTALL-016; native Mac review remains pending.
+
+### F-116 — A reusable stale-lock path can delete a new owner's lock
+
+- **Date:** 2026-08-30
+- **Context:** Serializing Mac application copy, first install, and managed
+  server launch.
+- **Symptom:** Two launchers recovering one stale lock could both continue.
+- **Cause:** One process checked that a shared lock path was stale, but another
+  process replaced that path before the first process removed it.
+- **Correction:** Give every contender a unique, atomically published PID
+  claim. Remove stale claims only by their unique paths and elect the earliest
+  live claim before changing shared application state.
+- **Prevention:** Do not implement stale recovery as check-then-delete on a
+  reusable lock path. A recovery-safe lock must identify one immutable claim.
+- **Status:** Resolved by INSTALL-016; forced concurrent recovery is covered.
+
 ### F-117 — Cable-first assembly made PCB contacts difficult to reach
 
 - **Date:** 2026-08-30
