@@ -26,23 +26,25 @@ direction and major remaining seams.
 
 ## Current product milestone
 
-Complete the LIVE-020 three-panel physical review on the selected ESP32/WLED
-target:
+The planned external-output milestone is complete:
 
 ```text
-MadMapper Art-Net on loopback
-  -> complete logical frames in LOO/UME
-  -> WLAN DDP with finite WLED fallback
+MadMapper Art-Net or TouchDesigner DDP
+  -> one matching LOO/UME simulator image
+  -> WLAN DDP to the configured sculpture
 ```
+
+`TASKS.md` has no current feature backlog. Start the next milestone only after
+an operator supplies a product requirement and acceptance check.
 
 Electrical design and approval are external operator responsibilities. The
 repository records WLED operating values but does not gate software work on an
 electrical plan.
 
-## Known technical seams
+## Future evidence boundaries
 
-- Complete the LIVE-020 three-panel physical review for image, address, color,
-  fallback, and frame rate. Direct WLED Art-Net over Ethernet is not planned.
+- Add another external sender only after an operator identifies the product and
+  required output behavior. Direct WLED Art-Net over Ethernet is not planned.
 - Add geometry or fabrication work only after a concrete failed project or
   printed result supplies acceptance evidence.
 - Keep Schema 2 as the only authored sculpture and mapping input. Historical

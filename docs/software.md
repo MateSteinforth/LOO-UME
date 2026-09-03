@@ -2,8 +2,8 @@
 
 This document records the selected prototype controller and software contract.
 `main` contains the exact build receipt, guarded deployment contract, browser
-flash/setup path, and one-panel smoke configuration. WLED build tooling stays
-on `generate/wled-firmware`; the binary is an ignored build/release artifact.
+flash/setup path, and one-panel smoke configuration. The firmware generation
+branch is no longer active. The binary is an ignored build artifact.
 The ESP32 flash, one-panel address/color test, and three-panel native/DDP
 playback path have physical evidence. Complete 41-panel parity, audio, and
 custom effects remain later or external work. Direct WLED Art-Net over Ethernet
@@ -96,12 +96,11 @@ Python, or Emscripten. Source synchronization and reproducible simulator builds
 live on `generate/wled-simulator`; only reviewed runtime bytes and their receipt
 return to `main`.
 
-The `generate/wled-firmware` branch pins the upstream WLED commit, PlatformIO
-environment, local Python tools, and disabled optional features. It produces a
-binary outside Git and a tracked receipt with exact input and artifact hashes.
-`main` binds that receipt into each mapping-ready installation manifest. A
-future CI job can publish the verified binary as an artifact; it must not flash
-hardware. Firmware binaries and device credentials must not be committed.
+The tracked receipt records the reviewed upstream WLED commit, target, inputs,
+and artifact hashes. `main` binds that receipt into each mapping-ready
+installation manifest. Firmware binaries and device credentials must not be
+committed. A new firmware build path needs an explicit task and reviewed
+toolchain inputs.
 
 The current minimum target uses standard local WLED behavior and no sculpture
 usermod. See `firmware/AGENTS.md` before changing deployment metadata or adding

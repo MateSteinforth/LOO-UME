@@ -134,8 +134,8 @@ Historical Schema 1 inputs are available only through Git history.
   repository. Treat operator-authorized power as an external assumption. WLED
   current values are configuration inputs, not electrical approval evidence.
 - `firmware/` contains the selected minimum ESP32 target, its exact build
-  receipt, and a one-panel smoke configuration. WLED build tooling stays on
-  `generate/wled-firmware`; its binary is an ignored build/release artifact.
+  receipt, and a one-panel smoke configuration. The firmware generation branch
+  is no longer active. Its binary is an ignored build artifact.
   Browser flashing, Improv setup, native-preset persistence, bounded DDP, and
   three-panel reconnect/power-cycle behavior have physical evidence. Do not
   extend that evidence to complete 41-panel address parity, Art-Net, Ethernet,
@@ -150,6 +150,8 @@ Historical Schema 1 inputs are available only through Git history.
 - Do not refactor production code during documentation-only work.
 - Update the knowledge pages when architecture, invariants, or project status
   changes; avoid chat-history handovers as the only record.
+- Keep the root `README.md` for application users. Put checkout, build, test,
+  release, architecture, and repository guidance in `docs/DEVELOPMENT.md`.
 - Use ASD-STE100 simplified technical English for all operator-facing updates,
   questions, and handoffs.
 - Record each reusable failure and its verified solution in `FAILURES.md`.

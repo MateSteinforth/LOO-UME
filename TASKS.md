@@ -202,9 +202,25 @@ No tasks.
   TypeScript, GitHub Actions YAML lint, diff checks, and independent review
   passed. Native review remains required after the first tagged asset is built.
 
-## Ready to Merge
+## In Progress
 
 No tasks.
+
+## Ready to Merge
+
+### `P1 · DOC-010` Separate user and development documentation
+
+- Result: the root README contains installation, use, update, external-input,
+  hardware-setup, and safety guidance for application users.
+- Development result: `docs/DEVELOPMENT.md` contains checkout, server, test,
+  packaging, artifact, maintenance, source-authority, and document guidance.
+- Audit result: internal README files identify their technical audience. The
+  browser guide uses the current four toolboxes. Firmware and roadmap documents
+  no longer reference deleted or completed work.
+- Owner: `codex/doc-010-user-readme` in `/tmp/loo-ume-doc-010`.
+- Verification: local links in all 26 Markdown files passed. The root README
+  developer-content guard, stale-term guard, documented npm command check, and
+  diff check passed.
 
 ## Human Review
 

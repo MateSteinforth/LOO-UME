@@ -1,5 +1,8 @@
 # Project library
 
+This directory note is for developers. Start with
+[`docs/DEVELOPMENT.md`](../docs/DEVELOPMENT.md).
+
 LOO/UME uses one `.loo.zip` package for library projects, backup, and transfer.
 
 - `demos/` contains deterministic tracked packages generated from the authored

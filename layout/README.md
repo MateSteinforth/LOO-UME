@@ -1,5 +1,8 @@
 # Panel mapping contract
 
+This directory note is for developers. Start with
+[`docs/DEVELOPMENT.md`](../docs/DEVELOPMENT.md).
+
 The authored source now lives in `sculptures/rhombicosidodecahedron/sculpture.json`
 and references the reusable panel hardware profile under `catalog/panels/`.
 See `docs/sculpture-format.md` for the source-versus-generated contract.

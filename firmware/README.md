@@ -1,9 +1,9 @@
-# ESP32 deployment
+# ESP32 setup and maintenance
 
 FIRM-011 selects an ESP32-DevKitC V4 with an ESP32-WROOM-32E-N4 module. The
-firmware is WLED commit `d9b9a846561227351ad929e3109781daadb7bed2`, built as
-`orbital_esp32dev` from upstream `esp32dev`. The binary is generated only on
-the `generate/wled-firmware` branch. It is not committed to `main`.
+firmware uses WLED commit `d9b9a846561227351ad929e3109781daadb7bed2`. The
+reviewed target is `orbital_esp32dev`, based on upstream `esp32dev`. The binary
+is not committed to `main`.
 
 `build-receipt.json` records the exact tool versions, build-input hashes, and
 the size and SHA-256 of the application and complete USB-installer images. The
@@ -13,8 +13,8 @@ WLED application at their reviewed ESP32 offsets. Compiled images stay off
 
 ## Set up from the local editor
 
-Open **Build Hardware**, then select **Set up ESP32** in Chrome or Edge on the
-loopback desktop page. The staged complete image must match
+Open **Fabrication**, then select **Set up ESP32**. The staged complete image
+must match
 `build-receipt.json`; otherwise select the matching full-flash `.bin` file.
 The workflow:
 
@@ -41,27 +41,11 @@ tab-close fallback, and power-cycle restoration on the three-panel sculpture.
 
 The local production server serves a complete image only from the ignored
 `build/firmware/` directory and only when its bytes match the tracked receipt.
-The generation branch creates that file as
+The expected file is
 `build/firmware/wled-orbital-esp32dev-full-flash.bin`.
 
 The setup has no configuration dropdown. It copies the loaded sculpture up to
 the complete 41-panel, four-output authority.
-
-## Command-line fallback
-
-Use the generation branch and an explicit serial port. The build does not
-store a Wi-Fi name, password, hostname, or device secret.
-
-In a worktree that has `generate/wled-firmware` checked out, run:
-
-```bash
-git submodule update --init wled/upstream
-sh scripts/build-wled-firmware.sh
-sh scripts/flash-wled-firmware.sh /dev/ttyUSB0
-```
-
-Replace the port only after you identify the attached ESP32. Do not connect an
-LED power rail during the initial flash.
 
 ## Smoke-test one fused panel
 
