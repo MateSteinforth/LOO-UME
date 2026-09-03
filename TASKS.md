@@ -47,6 +47,17 @@ No tasks.
 
 ## Done (latest integrations)
 
+### `P1 · INSTALL-020` Offer free Electron DMG updates
+
+- Result: each canonical-main unsigned DMG now publishes bounded version,
+  commit, size, checksum, and fixed download metadata. A packaged free build
+  validates that metadata and shows **Download update** only for a newer numeric
+  version. The button opens the approved GitHub DMG; replacement stays manual.
+- Verification: nine focused Electron updater/release tests, full TypeScript,
+  Electron main build, production web build, workflow YAML validation, and
+  diff-check passed. A second later main build is required for the first native
+  old-version-to-new-version review.
+
 ### `P1 · MAD-012` Keep the MadMapper UV atlas in one 2:1 frame
 
 - Result: the SVG uses one fixed 4096 x 2048 atlas, one global longitude seam,
@@ -158,24 +169,6 @@ No tasks.
   passed. Native review remains required after the first tagged asset is built.
 
 ## Ready to Merge
-
-### `P1 · INSTALL-020` Offer free Electron DMG updates
-
-- Scope: publish versioned metadata beside the unsigned canonical-main DMG and
-  let the packaged Electron application offer the fixed GitHub download when a
-  newer unsigned build exists. Installation remains a manual app replacement.
-- Acceptance: development launches stay update-disabled; an unsigned packaged
-  build validates fixed-origin metadata, compares numeric versions, shows
-  **Download update** only for a newer build, and opens only the approved DMG
-  URL. The workflow publishes metadata and the DMG together. Signed updater
-  behavior remains available for a future paid release channel.
-- Owner: `codex/install-020-free-electron-update` in
-  `/tmp/loo-ume-install-020`.
-- Likely conflicts: Electron updater handler/main process, update banner,
-  release workflow/tests, `TASKS.md`, and desktop documentation.
-- Verification: nine focused Electron updater/release tests, full TypeScript,
-  Electron main build, production web build, workflow YAML validation, and
-  diff-check passed.
 
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 
