@@ -58,7 +58,7 @@ export interface MadMapperPatchManifest {
   };
   plannedLiveOutput: {
     transport: "LOO/UME-WLAN-DDP";
-    status: "requires-LIVE-020-implementation-and-hardware-validation";
+    status: "requires-LIVE-020-hardware-validation";
   };
   panels: MadMapperPanelPatch[];
 }
@@ -395,7 +395,7 @@ export function createMadMapperFixtureBundle(
     requiredMadMapperSettings: { avoidCrossUniversePixels: true },
     plannedLiveOutput: {
       transport: "LOO/UME-WLAN-DDP",
-      status: "requires-LIVE-020-implementation-and-hardware-validation",
+      status: "requires-LIVE-020-hardware-validation",
     },
     panels: fixtures.map((fixture) => fixture.patch),
   };

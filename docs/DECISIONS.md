@@ -307,6 +307,13 @@ indices with the same mapping contract used by the SVG export. Preview is
 temporary display state: project changes stop it, signal timeout restores the
 native simulation, and no received frame changes authored project data.
 
+Receive and sculpture-output controls are independent. Sculpture output sends
+the logical frame to the existing WLED DDP broker, so WLED applies its installed
+ledmap one time. The output queue replaces an older waiting frame with the
+latest complete frame. It never forwards an incomplete Art-Net frame. Project,
+mapping, device, setup, and physical-review changes stop output. If Art-Net
+stops, no new DDP frame resets the finite WLED realtime fallback timeout.
+
 ## D34 — Use manual viewport orbit and a selectable controller pose
 
 The viewport does not rotate automatically. The operator has direct orbit and

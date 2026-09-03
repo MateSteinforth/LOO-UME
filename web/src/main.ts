@@ -105,6 +105,10 @@ import {
   ArtNetPreviewClient,
   physicalRgbToLogicalPixels,
 } from "./ArtNetPreview.ts";
+import {
+  logicalPixelsToRgbFramebuffer,
+  MadMapperOutputQueue,
+} from "./MadMapperOutput.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
 import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
 import {
@@ -337,8 +341,10 @@ app.innerHTML = `
           <button id="open-physical-route-review" class="editor-button" type="button" disabled>Review physical wiring</button>
           <p id="physical-route-review-availability" class="mapping-note">Connect the configured ESP32 to review its installed panel order.</p>
           <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
-          <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper preview</button>
-          <output id="madmapper-preview-status" class="mapping-note" aria-live="polite">Stopped</output>
+          <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper receive</button>
+          <output id="madmapper-preview-status" class="mapping-note" aria-live="polite">Receive stopped</output>
+          <button id="madmapper-output" class="editor-button" type="button">Start sculpture output</button>
+          <output id="madmapper-output-status" class="mapping-note" aria-live="polite">Output stopped</output>
           <div id="controller-position-section" class="controller-position-controls">
             <p id="controller-position-status" class="mapping-note"></p>
             <button id="reset-controller-position" class="editor-button" type="button">Use suggested position</button>
@@ -699,6 +705,8 @@ const downloadPanelLabelsButton =
   query<HTMLButtonElement>("#download-panel-labels");
 const madMapperPreviewButton = query<HTMLButtonElement>("#madmapper-preview");
 const madMapperPreviewStatus = query<HTMLOutputElement>("#madmapper-preview-status");
+const madMapperOutputButton = query<HTMLButtonElement>("#madmapper-output");
+const madMapperOutputStatus = query<HTMLOutputElement>("#madmapper-output-status");
 const controlPanel = query<HTMLElement>(".control-panel");
 const openPhysicalRouteReviewButton =
   query<HTMLButtonElement>("#open-physical-route-review");
@@ -965,6 +973,8 @@ async function start(): Promise<void> {
       reviewedSculpture: LoadedSculpture;
     } | undefined;
     const artNetPreviewClient = new ArtNetPreviewClient();
+    const madMapperOutputQueue = new MadMapperOutputQueue();
+    let madMapperOutputAbortController: AbortController | undefined;
     let artNetPreviewPixels: Uint32Array | undefined;
     let artNetPreviewLastFrameAt = 0;
     let artNetPreviewTimedOut = false;
@@ -978,9 +988,75 @@ async function start(): Promise<void> {
       artNetPreviewLastFrameAt = 0;
       artNetPreviewFrameTimes = [];
       artNetPreviewTimedOut = false;
-      madMapperPreviewButton.textContent = "Start MadMapper preview";
-      madMapperPreviewStatus.textContent = "Stopped";
+      madMapperPreviewButton.textContent = "Start MadMapper receive";
+      madMapperPreviewStatus.textContent = "Receive stopped";
       if (message) setLogMessage(message);
+    };
+
+    const updateMadMapperOutputAvailability = (): void => {
+      madMapperOutputButton.disabled =
+        !hardwareContract.readiness.mappingReady ||
+        simulatorDeviceUrl === undefined ||
+        simulatorSetupActive ||
+        physicalRouteReviewSession !== undefined;
+      madMapperOutputButton.title = !hardwareContract.readiness.mappingReady
+        ? "Confirm the authored route and panel addressing before sculpture output."
+        : simulatorDeviceUrl === undefined
+        ? "Connect the configured ESP32 before sculpture output."
+        : "Send complete received MadMapper frames to WLED through WLAN DDP.";
+    };
+
+    const stopMadMapperOutput = (message?: string): void => {
+      madMapperOutputAbortController?.abort();
+      madMapperOutputAbortController = undefined;
+      madMapperOutputQueue.stop();
+      madMapperOutputButton.textContent = "Start sculpture output";
+      madMapperOutputStatus.textContent = "Output stopped";
+      updateMadMapperOutputAvailability();
+      if (message) setLogMessage(message);
+    };
+
+    const startMadMapperOutput = (): void => {
+      if (madMapperOutputQueue.active) {
+        stopMadMapperOutput("MadMapper sculpture output stopped. The native WLED preview resumed.");
+        return;
+      }
+      if (!hardwareContract.readiness.mappingReady) {
+        throw new Error("Confirm the authored route and panel addressing before sculpture output.");
+      }
+      const deviceUrl = simulatorDeviceUrl;
+      if (!deviceUrl) throw new Error("Connect the configured ESP32 before sculpture output.");
+      const expectedFingerprint = hardwareContract.fingerprint;
+      const expectedProjectRevision = simulatorProjectRevision;
+      const abortController = new AbortController();
+      madMapperOutputAbortController = abortController;
+      madMapperOutputQueue.start({
+        send: async (pixels) => {
+          await simulatorFrameRequest?.catch(() => undefined);
+          if (
+            abortController.signal.aborted ||
+            simulatorDeviceUrl?.href !== deviceUrl.href ||
+            hardwareContract.fingerprint !== expectedFingerprint ||
+            simulatorProjectRevision !== expectedProjectRevision
+          ) throw new DOMException("MadMapper sculpture output stopped.", "AbortError");
+          await sendSimulatorFramebuffer(deviceUrl, pixels, abortController.signal);
+        },
+        onStatistics: ({ sentFrames, replacedFrames }) => {
+          madMapperOutputStatus.textContent =
+            `${sentFrames} frame${sentFrames === 1 ? "" : "s"} sent · ` +
+            `${replacedFrames} frame${replacedFrames === 1 ? "" : "s"} replaced`;
+        },
+        onError: (error) => {
+          stopMadMapperOutput();
+          setLogMessage(
+            `MadMapper sculpture output stopped: ${error instanceof Error ? error.message : String(error)}`,
+            true,
+          );
+        },
+      });
+      madMapperOutputButton.textContent = "Stop sculpture output";
+      madMapperOutputStatus.textContent = "Waiting for a complete Art-Net frame";
+      setLogMessage(`MadMapper sculpture output started at ${deviceUrl.host} through WLAN DDP.`);
     };
 
     const startMadMapperPreview = (): void => {
@@ -996,7 +1072,7 @@ async function start(): Promise<void> {
       artNetPreviewPixels = undefined;
       artNetPreviewFrameTimes = [];
       artNetPreviewTimedOut = false;
-      madMapperPreviewButton.textContent = "Stop MadMapper preview";
+      madMapperPreviewButton.textContent = "Stop MadMapper receive";
       madMapperPreviewStatus.textContent = "Waiting for Art-Net on 127.0.0.1:6454";
       const endUniverse = Math.ceil(hardwareContract.mapping.entries.length / 170);
       setLogMessage(
@@ -1015,6 +1091,11 @@ async function start(): Promise<void> {
             frame.physicalRgb,
             hardwareContract.mapping.entries,
           );
+          if (madMapperOutputQueue.active) {
+            madMapperOutputQueue.push(
+              logicalPixelsToRgbFramebuffer(artNetPreviewPixels),
+            );
+          }
           artNetPreviewLastFrameAt = performance.now();
           artNetPreviewTimedOut = false;
           artNetPreviewFrameTimes.push(artNetPreviewLastFrameAt);
@@ -1148,6 +1229,7 @@ async function start(): Promise<void> {
       simulatorLedmapUpdateAuthorized = false;
       nextSimulatorFrameAt = 0;
       simulatorLinkFailed = false;
+      updateMadMapperOutputAvailability();
       setLogMessage(
         `${reconnected ? "Reconnected" : "Standalone animation saved and live preview started"} at ${deviceUrl.host} for ${panelCount} panel${panelCount === 1 ? "" : "s"} (${ledCount} LEDs) on GPIO ${outputs.map((output) => output.gpio).join(", ")}.`,
       );
@@ -1169,6 +1251,7 @@ async function start(): Promise<void> {
         : simulatorDeviceUrl
         ? `Ready to review ${hardwareContract.outputs.reduce((sum, output) => sum + output.panelIds.length, 0)} physical panels at ${simulatorDeviceUrl!.host}.`
         : "No ESP32 is connected. Review will run on the virtual sculpture only.";
+      updateMadMapperOutputAvailability();
     };
     updatePhysicalRouteReviewAvailability();
 
@@ -1342,6 +1425,9 @@ async function start(): Promise<void> {
       if (artNetPreviewClient.active) {
         stopMadMapperPreview("MadMapper preview stopped for physical wiring review.");
       }
+      if (madMapperOutputQueue.active) {
+        stopMadMapperOutput("MadMapper sculpture output stopped for physical wiring review.");
+      }
       if (standaloneSaveTimer) {
         clearTimeout(standaloneSaveTimer);
         standaloneSaveTimer = undefined;
@@ -1483,6 +1569,9 @@ async function start(): Promise<void> {
         simulatorSetupActive = active;
         updatePhysicalRouteReviewAvailability();
         if (!active) return;
+        if (madMapperOutputQueue.active) {
+          stopMadMapperOutput("MadMapper sculpture output stopped because the ESP32 connection changed.");
+        }
         simulatorDeviceUrl = undefined;
         simulatorLinkFailed = false;
         updatePhysicalRouteReviewAvailability();
@@ -1588,6 +1677,7 @@ async function start(): Promise<void> {
       madMapperPreviewButton.title = hardwareContract.readiness.mappingReady
         ? "Receive the generated physical Art-Net patch on loopback and show it on the 3D sculpture."
         : "Confirm the authored route and panel addressing before MadMapper preview.";
+      updateMadMapperOutputAvailability();
       generateStructureButton.disabled =
         !capabilities.canGenerateStructuralMechanics;
       generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
@@ -2132,6 +2222,9 @@ async function start(): Promise<void> {
     ): Promise<void> => {
       if (artNetPreviewClient.active) {
         stopMadMapperPreview("MadMapper preview stopped because the project changed.");
+      }
+      if (madMapperOutputQueue.active) {
+        stopMadMapperOutput("MadMapper sculpture output stopped because the project changed.");
       }
       exitAssemblyTutorial(false);
       simulatorProjectRevision += 1;
@@ -3088,6 +3181,12 @@ async function start(): Promise<void> {
         return;
       }
       ledCountInput.setCustomValidity("");
+      if (artNetPreviewClient.active) {
+        stopMadMapperPreview("MadMapper preview stopped because the mapping changed.");
+      }
+      if (madMapperOutputQueue.active) {
+        stopMadMapperOutput("MadMapper sculpture output stopped because the mapping changed.");
+      }
       exitAssemblyTutorial(false);
       engine.resize(requested);
       if (requested === selectedHardwareContract.mapping.entries.length) {
@@ -4014,6 +4113,13 @@ async function start(): Promise<void> {
         setLogMessage(error instanceof Error ? error.message : String(error), true);
       }
     });
+    madMapperOutputButton.addEventListener("click", () => {
+      try {
+        startMadMapperOutput();
+      } catch (error) {
+        setLogMessage(error instanceof Error ? error.message : String(error), true);
+      }
+    });
     ledCountInput.value = String(mapping.entries.length);
     renderEditorFaces();
     renderConnectorControls();
@@ -4067,6 +4173,7 @@ async function start(): Promise<void> {
         !physicalRouteReviewSession &&
         !standaloneSaveRequest &&
         simulatorDeviceUrl &&
+        !madMapperOutputQueue.active &&
         !simulatorFrameRequest &&
         now >= nextSimulatorFrameAt
       ) {

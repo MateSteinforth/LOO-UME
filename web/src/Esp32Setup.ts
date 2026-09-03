@@ -602,6 +602,7 @@ export function mappedPanelFramebuffer(
 export async function sendSimulatorFramebuffer(
   baseUrl: URL,
   pixels: readonly [number, number, number][],
+  signal?: AbortSignal,
 ): Promise<void> {
   const proxy = new URL(
     "/api/esp32-frame",
@@ -615,7 +616,9 @@ export async function sendSimulatorFramebuffer(
       "X-LOO-UME-ESP32": "1",
     },
     body: rgbFramebufferBytes(pixels).slice().buffer as ArrayBuffer,
-    signal: AbortSignal.timeout(2_000),
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(2_000)])
+      : AbortSignal.timeout(2_000),
   });
   if (!response.ok) {
     throw new Error(`WLED realtime preview failed with HTTP ${response.status}.`);

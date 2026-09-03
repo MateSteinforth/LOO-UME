@@ -57,6 +57,6 @@ test("previews a complete loopback MadMapper Art-Net frame", async ({ page }) =>
   await expect(status).toContainText("Signal timeout", { timeout: 2_500 });
 
   await button.click();
-  await expect(status).toHaveText("Stopped");
-  await expect(button).toHaveText("Start MadMapper preview");
+  await expect(status).toHaveText("Receive stopped");
+  await expect(button).toHaveText("Start MadMapper receive");
 });

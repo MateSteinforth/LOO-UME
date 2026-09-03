@@ -43,15 +43,11 @@ DDP path.
 
 ## Ready
 
-### `P1 · LIVE-020` Send MadMapper output to the sculpture through WLAN DDP
+No tasks.
 
-- Scope: receive complete MadMapper Art-Net frames on loopback, show them in
-  LOO/UME, and send the same mapped pixels to WLED through WLAN DDP.
-- Acceptance: receive and send controls work independently; incomplete frames
-  never reach WLED; project, device, or mapping changes stop the stream; the
-  three-panel setup confirms image, address, color, fallback, and frame rate.
-- Boundary: keep the current physical-address contract. Do not apply the WLED
-  ledmap a second time.
+## In Progress
+
+No tasks.
 
 ## Done (latest integrations)
 
@@ -75,6 +71,15 @@ DDP path.
 - Verification: 12 focused export/package tests, application TypeScript,
   production web build, diff-check, and native MadMapper review passed. GitHub
   workflow run 33728004432 published Electron review 8 from the task commit.
+
+### `P1 · CTRL-010` Reconcile live-output tasks and stale resources
+
+- Result: direct WLED Art-Net over Ethernet is retired. LIVE-020 now owns the
+  selected MadMapper loopback-to-WLAN-DDP path. Speculative blocked tasks are
+  removed, and completed launcher tasks are recorded as Done.
+- Verification: focused MadMapper export/package tests, application TypeScript,
+  production web build, diff-check, and final resource audit passed. Integrated
+  in `main` at `6427f57` on 2026-09-03.
 
 ### `P1 · MAD-013` Fill the MadMapper atlas with LED Voronoi cells
 
@@ -211,22 +216,22 @@ DDP path.
 
 ## Ready to Merge
 
-### `P1 · CTRL-010` Reconcile live-output tasks and stale resources
-
-- Result: direct WLED Art-Net over Ethernet is retired. LIVE-020 now owns the
-  selected MadMapper loopback-to-WLAN-DDP path. Speculative blocked tasks are
-  removed, and completed launcher tasks are recorded as Done.
-- Owner: `codex/ctrl-010-wlan-ddp-cleanup` in the repository worktree.
-- Verification: focused MadMapper export/package tests, application TypeScript,
-  production web build, diff-check, and final resource audit.
-
-## In Progress
-
 No tasks.
 
 ## Human Review
 
-No tasks.
+### `P1 · LIVE-020` Send MadMapper output to the sculpture through WLAN DDP
+
+- Result: separate Receive and Sculpture output controls send only complete
+  Art-Net frames. The browser converts physical Art-Net order to logical DDP
+  order, so WLED applies its installed ledmap one time. A latest-frame queue
+  bounds backpressure. Project, mapping, device, setup, and physical-review
+  changes stop output.
+- Review: use the 192-LED three-panel setup. Confirm image, address, RGB color,
+  Art-Net-loss fallback, and the displayed frame rate.
+- Owner: `codex/live-020-wlan-ddp` in `/tmp/loo-ume-live-020`.
+- Verification: 61 focused unit tests, four Chromium journeys, application
+  TypeScript, production web build, and diff-check passed.
 
 ## Blocked
 
