@@ -146,6 +146,15 @@ case "${1-}" in
     cd "$repository_root"
     exec "$node_executable" "$npm_cli" run desktop
     ;;
+  review-electron)
+    if [ "$#" -ne 1 ]; then
+      echo "usage: ./bootstrap.sh review-electron" >&2
+      exit 2
+    fi
+    install_and_build_if_required
+    cd "$repository_root"
+    exec "$node_executable" "$npm_cli" run review:electron:mac
+    ;;
   npm)
     shift
     use_managed_node

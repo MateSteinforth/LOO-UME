@@ -2729,3 +2729,34 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Operator review on Electron DMG 19 and
   `tests/esp32-setup.test.ts`.
 - **Status:** Resolved by FIRM-015.
+
+### F-148 — The first serial open can fail after selection
+
+- **Date:** 2026-09-03
+- **Context:** FIRM-015 Electron review after successful CP2102 selection.
+- **Symptom:** The first `SerialPort.open()` call failed on macOS.
+- **Cause:** The setup made one immediate open attempt after the application
+  selection dialog closed.
+- **Correction:** Retry the same verified port every 500 ms with a fixed
+  20-attempt limit. Report a possible competing serial application.
+- **Prevention:** Keep initial-open retry separate from post-reset reconnect.
+  Never select a different device during either retry.
+- **Evidence:** Operator review on Electron DMG 20 and
+  `tests/esp32-setup.test.ts`.
+- **Status:** Human review.
+
+### F-149 — DMG-only hardware review made correction cycles slow
+
+- **Date:** 2026-09-03
+- **Context:** FIRM-015 repeated macOS Web Serial review.
+- **Symptom:** Each serial correction required a GitHub DMG build and manual
+  application replacement.
+- **Cause:** The repository had no command for a local packaged Electron
+  application with the verified firmware resource.
+- **Correction:** Add `./bootstrap.sh review-electron`. Build and open a local
+  packaged application without creating a DMG.
+- **Prevention:** Use the local packaged application for macOS hardware review.
+  Use a DMG only for final delivery review.
+- **Evidence:** `bootstrap.sh`, `scripts/launch-local-packaged-electron.sh`, and
+  `tests/bootstrap-install.test.ts`.
+- **Status:** Resolved by FIRM-015.

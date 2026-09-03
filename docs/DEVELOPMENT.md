@@ -62,6 +62,18 @@ Start the Electron application from the checkout:
 npm run electron
 ```
 
+For ESP32 review on macOS, build and open a local packaged Electron
+application:
+
+```bash
+./bootstrap.sh review-electron
+```
+
+This command downloads the receipt-bound firmware when necessary. It creates
+an application below `build/local-electron-review/`. It does not create a DMG.
+
+After a task-branch update, pull that branch. Run the same command again.
+
 Start a trusted local-network review server:
 
 ```bash

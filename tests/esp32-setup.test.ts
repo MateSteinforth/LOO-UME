@@ -28,6 +28,7 @@ import {
   provisionVisibleWifi,
   remapStateToLiveTables,
   resolveVerifiedWledAddress,
+  retryInitialSerialConnect,
   retryExistingSimulatorDiscovery,
   reopenApprovedSerialPort,
   rememberAutomaticEsp32Reconnect,
@@ -72,6 +73,30 @@ describe("guarded ESP32 setup contracts", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  it("retries the first macOS serial open with a fixed bound", async () => {
+    const connect = vi.fn()
+      .mockRejectedValueOnce(new DOMException("busy"))
+      .mockRejectedValueOnce(new DOMException("busy"))
+      .mockResolvedValueOnce(undefined);
+    const updates: string[] = [];
+    await expect(retryInitialSerialConnect(
+      connect,
+      3,
+      async () => undefined,
+      (message) => updates.push(message),
+    )).resolves.toBeUndefined();
+    expect(connect).toHaveBeenCalledTimes(3);
+    expect(updates).toEqual([
+      "Waiting for macOS to release the CP2102. Close other serial applications if this continues.",
+    ]);
+
+    await expect(retryInitialSerialConnect(
+      vi.fn().mockRejectedValue(new DOMException("busy")),
+      2,
+      async () => undefined,
+    )).rejects.toThrow(/stayed unavailable/);
   });
 
   it("enables automatic reconnect only after setup or prior CP2102 permission", async () => {

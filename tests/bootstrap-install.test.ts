@@ -75,6 +75,19 @@ describe("clean-checkout bootstrap", () => {
     expect(bootstrap).toContain("LOO_UME_OPEN_BROWSER-1");
     expect(bootstrap).toContain("update)");
     expect(bootstrap).toContain("bootstrap-update-apply.sh");
+    expect(bootstrap).toContain("review-electron)");
+    expect(bootstrap).toContain("run review:electron:mac");
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+      scripts: Record<string, string>;
+    };
+    expect(packageJson.scripts["review:electron:mac"]).toContain(
+      "scripts/launch-local-packaged-electron.sh",
+    );
+    const localElectron = readFileSync(
+      "scripts/launch-local-packaged-electron.sh",
+      "utf8",
+    );
+    expect(localElectron).toContain("electron-builder --mac dir");
     const update = readFileSync("scripts/bootstrap-update-apply.sh", "utf8");
     expect(update).toContain("verify_update_checkout");
     expect(update).toContain("verify_update_fast_forward");

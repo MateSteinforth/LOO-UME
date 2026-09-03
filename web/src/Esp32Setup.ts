@@ -23,9 +23,36 @@ export function isApprovedEsp32OutputGpio(gpio: number): boolean {
 
 type SerialSignalDevice = Pick<SerialPort, "setSignals">;
 type Wait = (milliseconds: number) => Promise<void>;
+type SerialConnect = () => Promise<void>;
 
 const wait: Wait = (milliseconds) =>
   new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds));
+
+export async function retryInitialSerialConnect(
+  connect: SerialConnect,
+  attempts = 20,
+  delay: Wait = wait,
+  update?: (message: string) => void,
+): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await connect();
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) {
+        update?.(
+          "Waiting for macOS to release the CP2102. Close other serial applications if this continues.",
+        );
+      }
+      if (attempt < attempts) await delay(500);
+    }
+  }
+  throw new Error(
+    `The CP2102 serial port stayed unavailable: ${errorMessage(lastError)}`,
+  );
+}
 
 export async function runCombinedClassicReset(
   device: SerialSignalDevice,
@@ -1325,6 +1352,13 @@ async function runSetup(
 
   const { ClassicReset, ESPLoader, HardReset, Transport } = await import("esptool-js");
   const transport = new Transport(port, false);
+  const connectTransport = transport.connect.bind(transport);
+  transport.connect = (...arguments_) => retryInitialSerialConnect(
+    () => connectTransport(...arguments_),
+    20,
+    wait,
+    options.setLogMessage,
+  );
   const loader = new ESPLoader({
     transport,
     baudrate: ESP32_FLASH_BAUD_RATE,
