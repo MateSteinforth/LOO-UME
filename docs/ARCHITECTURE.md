@@ -177,10 +177,12 @@ bundle. A first desktop launch imports the earlier managed Mac Project Library
 only when the Electron library is empty.
 Electron is the primary Mac installation. Every application-changing canonical
 `main` push packages the universal unsigned application and refreshes one fixed
-prerelease DMG URL. Documentation-only and test-only pushes skip that package.
-That release omits updater metadata and stays a prerelease, so it cannot become
-an automatic-update feed. A later signed Electron release can own the
-repository's latest release and verified updater feed. The older
+prerelease DMG URL plus bounded version metadata. Documentation-only and
+test-only pushes skip that package. A packaged free build validates that fixed
+metadata and offers the approved DMG URL when its numeric version is newer.
+Replacement remains manual; the prerelease does not become an automatic-update
+feed. A later signed Electron release can own the repository's latest release
+and verified updater feed. The older
 managed-checkout launcher can still publish archived tagged or manual releases,
 but it does not run for ordinary `main` pushes.
 

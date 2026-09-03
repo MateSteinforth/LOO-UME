@@ -30,9 +30,10 @@ session. Project Library files stay outside the replaceable application bundle.
 
 Each application-changing push to canonical `main` refreshes this fixed unsigned
 DMG link. Documentation-only and test-only changes do not rebuild the package.
-Install a new download over the old application to update it. Reliable
-in-application updates require Apple Developer ID signing and notarization, so
-the free build does not claim that feature.
+An installed free build checks the version metadata published beside that DMG.
+When a newer build exists, **Download update** opens the fixed GitHub download.
+Quit LOO/UME, open the new DMG, and replace the application in Applications.
+The free build does not install or relaunch itself.
 
 #### Legacy browser launcher
 

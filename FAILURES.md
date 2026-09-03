@@ -2508,3 +2508,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/madmapper-export.test.ts` and the operator's MadMapper
   screenshot from 2026-09-03.
 - **Status:** Resolved by MAD-012.
+
+### F-134 — An unsigned DMG cannot promise automatic replacement
+
+- **Date:** 2026-09-03
+- **Context:** Free Electron application updates on macOS.
+- **Symptom:** A canonical-main push refreshed the unsigned DMG, but the
+  installed application could not discover or install that build through the
+  signed Electron updater.
+- **Cause:** The mutable unsigned prerelease deliberately omits the signed
+  updater feed, while the application checks that separate release channel.
+- **Correction:** Publish bounded numeric-version and checksum metadata beside
+  the unsigned DMG. A packaged free build can offer the exact approved download
+  URL, but the operator replaces the application manually.
+- **Prevention:** Label free unsigned updates as download-and-replace. Never
+  present an unsigned package as a verified automatic installation.
+- **Evidence:** `electron/DesktopUpdateHandler.ts`,
+  `scripts/create-electron-unsigned-update.ts`, and the Electron release tests.
+- **Status:** Resolved by INSTALL-020.

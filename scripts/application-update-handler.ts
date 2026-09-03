@@ -14,6 +14,7 @@ export interface ApplicationUpdateStatus {
   updateAvailable: boolean;
   canApply: boolean;
   localChanges: boolean;
+  downloadUrl?: string | null;
   message: string;
 }
 

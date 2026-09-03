@@ -776,8 +776,11 @@ interface ApplicationUpdateStatus {
   updateAvailable: boolean;
   canApply: boolean;
   localChanges: boolean;
+  downloadUrl?: string | null;
   message: string;
 }
+
+let availableApplicationUpdate: ApplicationUpdateStatus | null = null;
 
 async function loadApplicationUpdateStatus(): Promise<ApplicationUpdateStatus | null> {
   try {
@@ -792,10 +795,14 @@ async function loadApplicationUpdateStatus(): Promise<ApplicationUpdateStatus | 
 async function showAvailableApplicationUpdate(): Promise<void> {
   const status = await loadApplicationUpdateStatus();
   if (!status?.updateAvailable) return;
+  availableApplicationUpdate = status;
   applicationUpdateNotice.hidden = false;
   applicationUpdateMessage.textContent = status.message;
-  applyApplicationUpdateButton.disabled = !status.canApply;
-  if (!status.canApply) {
+  applyApplicationUpdateButton.textContent = status.downloadUrl
+    ? "Download update"
+    : "Update";
+  applyApplicationUpdateButton.disabled = !status.canApply && !status.downloadUrl;
+  if (!status.canApply && !status.downloadUrl) {
     applyApplicationUpdateButton.title = "Use the update method for this LOO/UME installation.";
   }
 }
@@ -823,6 +830,12 @@ async function waitForUpdatedApplication(): Promise<void> {
 
 applyApplicationUpdateButton.addEventListener("click", () => {
   void (async () => {
+    if (availableApplicationUpdate?.downloadUrl) {
+      window.open(availableApplicationUpdate.downloadUrl, "_blank", "noopener,noreferrer");
+      applicationUpdateMessage.textContent =
+        "Download the DMG, quit LOO/UME, then replace LOO UME in Applications.";
+      return;
+    }
     applyApplicationUpdateButton.disabled = true;
     applicationUpdateMessage.textContent =
       "Preserving local projects and updating LOO/UME…";
@@ -841,6 +854,9 @@ applyApplicationUpdateButton.addEventListener("click", () => {
 });
 
 void showAvailableApplicationUpdate();
+window.addEventListener("focus", () => {
+  void showAvailableApplicationUpdate();
+});
 
 async function start(): Promise<void> {
   try {

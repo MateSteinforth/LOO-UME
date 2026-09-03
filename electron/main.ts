@@ -10,7 +10,10 @@ import updaterPackage from "electron-updater";
 import { startLocalEditorServer, type LocalEditorServer } from "../scripts/local-editor-server.ts";
 import { createEditorPipelineHandler } from "../scripts/editor-pipeline-handler.ts";
 import { createProjectLibraryHandler } from "../scripts/project-library-handler.ts";
-import { createDesktopUpdateHandler } from "./DesktopUpdateHandler.ts";
+import {
+  checkUnsignedDesktopUpdate,
+  createDesktopUpdateHandler,
+} from "./DesktopUpdateHandler.ts";
 import { quitAfterLastWindowCloses } from "./DesktopLifecycle.ts";
 import { migrateLegacyProjectLibrary } from "./ProjectLibraryMigration.ts";
 import { isApprovedCp2102 } from "./SerialPolicy.ts";
@@ -187,6 +190,9 @@ async function startDesktop(): Promise<void> {
     currentVersion: app.getVersion(),
     enabled: app.isPackaged,
     async check() {
+      if (app.getVersion().startsWith("0.1.")) {
+        return checkUnsignedDesktopUpdate(app.getVersion());
+      }
       const result = await autoUpdater.checkForUpdates();
       return {
         available: result?.isUpdateAvailable ?? false,

@@ -159,6 +159,24 @@ No tasks.
 
 ## Ready to Merge
 
+### `P1 · INSTALL-020` Offer free Electron DMG updates
+
+- Scope: publish versioned metadata beside the unsigned canonical-main DMG and
+  let the packaged Electron application offer the fixed GitHub download when a
+  newer unsigned build exists. Installation remains a manual app replacement.
+- Acceptance: development launches stay update-disabled; an unsigned packaged
+  build validates fixed-origin metadata, compares numeric versions, shows
+  **Download update** only for a newer build, and opens only the approved DMG
+  URL. The workflow publishes metadata and the DMG together. Signed updater
+  behavior remains available for a future paid release channel.
+- Owner: `codex/install-020-free-electron-update` in
+  `/tmp/loo-ume-install-020`.
+- Likely conflicts: Electron updater handler/main process, update banner,
+  release workflow/tests, `TASKS.md`, and desktop documentation.
+- Verification: nine focused Electron updater/release tests, full TypeScript,
+  Electron main build, production web build, workflow YAML validation, and
+  diff-check passed.
+
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 
 - Scope: install the Finder launcher in the standard system-wide

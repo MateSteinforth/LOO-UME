@@ -88,12 +88,27 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.MACOS_APPLE_TEAM_ID }}
         run: npx electron-builder --mac dmg zip --universal --publish never
 
+      - name: Create the free update notice
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          application_version=$(node -p "require('./package.json').version")
+          npx tsx scripts/create-electron-unsigned-update.ts \
+            release "$application_version" "$GITHUB_SHA"
+
       - name: Verify package inventory
         run: |
           test -n "$(find release -maxdepth 1 -name '*.dmg' -print -quit)"
           test -n "$(find release -maxdepth 1 -name '*.zip' -print -quit)"
           test -s release/latest-mac.yml
-          shasum -a 256 release/*.dmg release/*.zip > release/SHA256SUMS
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            test -s release/unsigned-update.json
+          fi
+          if [ -f release/unsigned-update.json ]; then
+            shasum -a 256 release/*.dmg release/*.zip \
+              release/unsigned-update.json > release/SHA256SUMS
+          else
+            shasum -a 256 release/*.dmg release/*.zip > release/SHA256SUMS
+          fi
 
       - name: Upload review artifacts
         uses: actions/upload-artifact@v7
@@ -104,6 +119,7 @@ jobs:
             release/*.zip
             release/*.blockmap
             release/latest-mac.yml
+            release/unsigned-update.json
             release/SHA256SUMS
           if-no-files-found: error
           retention-days: 30
@@ -129,11 +145,12 @@ jobs:
           set -eu
           sha256sum --check release/SHA256SUMS
           release_tag=electron-macos-unsigned
-          release_notes="Unsigned universal Mac build from canonical main at $GITHUB_SHA. Right-click Open is required once. This prerelease is not an automatic-update feed."
+          release_notes="Unsigned universal Mac build from canonical main at $GITHUB_SHA. Right-click Open is required once. Installed free builds can notify the operator and open this DMG; replacement remains manual."
           if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$release_tag" \
               release/LOO-UME-Electron-universal.dmg \
               release/LOO-UME-Electron-universal.zip \
+              release/unsigned-update.json \
               release/SHA256SUMS \
               --repo "$GITHUB_REPOSITORY" \
               --clobber
@@ -146,6 +163,7 @@ jobs:
             gh release create "$release_tag" \
               release/LOO-UME-Electron-universal.dmg \
               release/LOO-UME-Electron-universal.zip \
+              release/unsigned-update.json \
               release/SHA256SUMS \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \

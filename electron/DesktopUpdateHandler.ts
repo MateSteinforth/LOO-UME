@@ -8,6 +8,7 @@ import type {
 export interface DesktopUpdateCheck {
   available: boolean;
   version: string;
+  downloadUrl?: string;
 }
 
 export interface DesktopUpdater {
@@ -16,6 +17,72 @@ export interface DesktopUpdater {
   check(): Promise<DesktopUpdateCheck>;
   download(): Promise<void>;
   install(): Promise<void>;
+}
+
+export const UNSIGNED_UPDATE_METADATA_URL =
+  "https://github.com/MateSteinforth/LOO-UME/releases/download/" +
+  "electron-macos-unsigned/unsigned-update.json";
+export const UNSIGNED_DMG_URL =
+  "https://github.com/MateSteinforth/LOO-UME/releases/download/" +
+  "electron-macos-unsigned/LOO-UME-Electron-universal.dmg";
+
+interface UnsignedUpdateMetadata {
+  schemaVersion: "1.0.0";
+  version: string;
+  commit: string;
+  downloadUrl: string;
+  fileName: "LOO-UME-Electron-universal.dmg";
+  byteLength: number;
+  sha256: string;
+}
+
+function numericVersion(value: string): [number, number, number] {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(value);
+  if (!match) throw new Error("Electron update version must use three numeric parts.");
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function versionIsNewer(candidate: string, current: string): boolean {
+  const candidateParts = numericVersion(candidate);
+  const currentParts = numericVersion(current);
+  for (let index = 0; index < candidateParts.length; index += 1) {
+    if (candidateParts[index]! !== currentParts[index]!) {
+      return candidateParts[index]! > currentParts[index]!;
+    }
+  }
+  return false;
+}
+
+export async function checkUnsignedDesktopUpdate(
+  currentVersion: string,
+  request: typeof fetch = fetch,
+): Promise<DesktopUpdateCheck> {
+  const response = await request(UNSIGNED_UPDATE_METADATA_URL, {
+    headers: { "Cache-Control": "no-cache", "User-Agent": "LOO-UME-Electron" },
+    redirect: "follow",
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) {
+    throw new Error(`Unsigned Electron update check returned HTTP ${response.status}.`);
+  }
+  const value = await response.json() as Partial<UnsignedUpdateMetadata>;
+  if (
+    value.schemaVersion !== "1.0.0" ||
+    typeof value.version !== "string" ||
+    !/^[0-9a-f]{40}$/.test(value.commit ?? "") ||
+    value.downloadUrl !== UNSIGNED_DMG_URL ||
+    value.fileName !== "LOO-UME-Electron-universal.dmg" ||
+    !Number.isSafeInteger(value.byteLength) ||
+    (value.byteLength ?? 0) <= 0 ||
+    !/^[0-9a-f]{64}$/.test(value.sha256 ?? "")
+  ) {
+    throw new Error("Unsigned Electron update metadata is invalid.");
+  }
+  return {
+    available: versionIsNewer(value.version, currentVersion),
+    version: value.version,
+    downloadUrl: value.downloadUrl,
+  };
 }
 
 function sendJson(response: ServerResponse, status: number, value: unknown): void {
@@ -52,7 +119,7 @@ export function createDesktopUpdateHandler(
         updateAvailable: false,
         canApply: false,
         localChanges: false,
-        message: "Desktop release updates require a signed packaged application.",
+        message: "Desktop update checks require a packaged application.",
       });
     }
     if (!statusRequest) {
@@ -61,10 +128,13 @@ export function createDesktopUpdateHandler(
         currentCommit: updater.currentVersion,
         availableCommit: result.version,
         updateAvailable: result.available,
-        canApply: result.available,
+        canApply: result.available && result.downloadUrl === undefined,
         localChanges: false,
+        downloadUrl: result.available ? result.downloadUrl ?? null : null,
         message: result.available
-          ? `LOO/UME ${result.version} is available from the verified desktop release channel.`
+          ? result.downloadUrl
+            ? `LOO/UME ${result.version} is ready to download. Quit LOO/UME, then replace it in Applications.`
+            : `LOO/UME ${result.version} is available from the verified desktop release channel.`
           : "LOO/UME is current.",
       })).catch((error) => ({
         schemaVersion: "1.0.0" as const,
@@ -73,6 +143,7 @@ export function createDesktopUpdateHandler(
         updateAvailable: false,
         canApply: false,
         localChanges: false,
+        downloadUrl: null,
         message: conciseError(error),
       })).finally(() => {
         statusRequest = undefined;

@@ -363,8 +363,11 @@ Developer-ID-signed and notarized `electron-v*` tag contained in canonical
 unsigned review package only. Mutable projects and generated files stay in the
 application user-data directory and are not part of the replaceable bundle.
 Canonical `main` refreshes one fixed unsigned prerelease DMG download without
-publishing updater metadata. This provides a stable free installation link but
-does not make an unsigned package an automatic-update authority.
+publishing automatic-updater metadata. It also publishes bounded version and
+checksum metadata for the same DMG. A packaged free build can show **Download
+update** and open only that approved URL when the published numeric version is
+newer. The operator quits LOO/UME and replaces the application manually; an
+unsigned package never becomes an automatic-install authority.
 
 The Electron window owns the desktop session. Closing the last window quits
 the application and its loopback services on macOS as well as other platforms.

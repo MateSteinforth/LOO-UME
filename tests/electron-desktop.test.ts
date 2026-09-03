@@ -5,7 +5,10 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  checkUnsignedDesktopUpdate,
   createDesktopUpdateHandler,
+  UNSIGNED_DMG_URL,
+  UNSIGNED_UPDATE_METADATA_URL,
   type DesktopUpdater,
 } from "../electron/DesktopUpdateHandler.ts";
 import { quitAfterLastWindowCloses } from "../electron/DesktopLifecycle.ts";
@@ -100,6 +103,73 @@ describe("Electron desktop boundaries", () => {
       localChanges: false,
     });
     expect(check).not.toHaveBeenCalled();
+  });
+
+  it("validates and compares the free unsigned update notice", async () => {
+    const request = vi.fn(async () => new Response(JSON.stringify({
+      schemaVersion: "1.0.0",
+      version: "0.1.124",
+      commit: "a".repeat(40),
+      downloadUrl: UNSIGNED_DMG_URL,
+      fileName: "LOO-UME-Electron-universal.dmg",
+      byteLength: 1234,
+      sha256: "b".repeat(64),
+    })));
+    await expect(checkUnsignedDesktopUpdate("0.1.123", request)).resolves.toEqual({
+      available: true,
+      version: "0.1.124",
+      downloadUrl: UNSIGNED_DMG_URL,
+    });
+    expect(request).toHaveBeenCalledWith(
+      UNSIGNED_UPDATE_METADATA_URL,
+      expect.objectContaining({ redirect: "follow" }),
+    );
+    await expect(checkUnsignedDesktopUpdate("0.1.124", request)).resolves.toMatchObject({
+      available: false,
+    });
+
+    const unapproved = vi.fn(async () => new Response(JSON.stringify({
+      schemaVersion: "1.0.0",
+      version: "0.1.125",
+      commit: "a".repeat(40),
+      downloadUrl: "https://example.invalid/LOO-UME.dmg",
+      fileName: "LOO-UME-Electron-universal.dmg",
+      byteLength: 1234,
+      sha256: "b".repeat(64),
+    })));
+    await expect(checkUnsignedDesktopUpdate("0.1.124", unapproved)).rejects.toThrow(
+      "metadata is invalid",
+    );
+  });
+
+  it("offers a free DMG download without claiming automatic installation", async () => {
+    const download = vi.fn(async () => undefined);
+    const install = vi.fn(async () => undefined);
+    const url = await serveUpdater({
+      currentVersion: "0.1.123",
+      enabled: true,
+      check: async () => ({
+        available: true,
+        version: "0.1.124",
+        downloadUrl: UNSIGNED_DMG_URL,
+      }),
+      download,
+      install,
+    });
+    const status = await fetch(`${url}/api/application-update`);
+    expect(await status.json()).toMatchObject({
+      updateAvailable: true,
+      canApply: false,
+      downloadUrl: UNSIGNED_DMG_URL,
+      message: expect.stringContaining("replace it in Applications"),
+    });
+    const apply = await fetch(`${url}/api/application-update`, {
+      method: "POST",
+      headers: { Origin: url },
+    });
+    expect(apply.status).toBe(409);
+    expect(download).not.toHaveBeenCalled();
+    expect(install).not.toHaveBeenCalled();
   });
 
   it("imports an earlier Mac Project Library once without overwriting desktop data", async () => {
