@@ -9,12 +9,6 @@ const CHANNELS_PER_RGB_PIXEL = 3;
 const RGB_PIXELS_PER_UNIVERSE = 170;
 const ATLAS_WIDTH = 4096;
 const ATLAS_HEIGHT = 2048;
-const FIXTURE_SIZE = 28;
-const PROJECTION_WIDTH = Math.min(
-  ATLAS_WIDTH - FIXTURE_SIZE,
-  2 * (ATLAS_HEIGHT - FIXTURE_SIZE),
-);
-const PROJECTION_HEIGHT = PROJECTION_WIDTH / 2;
 // Use one stable seam for the complete atlas. A one-fifth turn puts the
 // flagship seam in its natural longitude gap without per-panel wrapping.
 const ATLAS_LONGITUDE_SEAM = 0.2;
@@ -142,6 +136,94 @@ interface MadMapperPixelFixture {
   points: Array<{ x: number; y: number }>;
 }
 
+interface AtlasPoint {
+  x: number;
+  y: number;
+}
+
+interface AtlasSite extends AtlasPoint {
+  physicalIndex: number;
+}
+
+function removeCoincidentVertices(polygon: AtlasPoint[]): AtlasPoint[] {
+  const points = polygon.filter((point, index) => {
+    const previous = polygon[(index + polygon.length - 1) % polygon.length]!;
+    return Math.hypot(point.x - previous.x, point.y - previous.y) >= 1e-3;
+  });
+  return points;
+}
+
+function clipToCloserHalfPlane(
+  polygon: AtlasPoint[],
+  site: AtlasSite,
+  other: AtlasSite,
+): AtlasPoint[] {
+  if (polygon.length === 0) return polygon;
+  const normalX = other.x - site.x;
+  const normalY = other.y - site.y;
+  const limit = (
+    other.x * other.x + other.y * other.y - site.x * site.x - site.y * site.y
+  ) / 2;
+  const signedDistance = (point: AtlasPoint) =>
+    point.x * normalX + point.y * normalY - limit;
+  const clipped: AtlasPoint[] = [];
+  let start = polygon.at(-1)!;
+  let startDistance = signedDistance(start);
+  for (const end of polygon) {
+    const endDistance = signedDistance(end);
+    const startInside = startDistance <= 1e-7;
+    const endInside = endDistance <= 1e-7;
+    if (startInside !== endInside) {
+      const ratio = startDistance / (startDistance - endDistance);
+      clipped.push({
+        x: start.x + (end.x - start.x) * ratio,
+        y: start.y + (end.y - start.y) * ratio,
+      });
+    }
+    if (endInside) clipped.push(end);
+    start = end;
+    startDistance = endDistance;
+  }
+  return clipped;
+}
+
+function createVoronoiCells(
+  contract: HardwareMappingContract,
+): Map<number, AtlasPoint[]> {
+  const sites: AtlasSite[] = contract.mapping.entries.map((entry) => ({
+    physicalIndex: entry.physicalIndex,
+    x: ((entry.u - ATLAS_LONGITUDE_SEAM + 1) % 1) * ATLAS_WIDTH,
+    y: entry.v * ATLAS_HEIGHT,
+  }));
+  for (let first = 0; first < sites.length; first += 1) {
+    for (let second = first + 1; second < sites.length; second += 1) {
+      const deltaX = sites[first]!.x - sites[second]!.x;
+      const deltaY = sites[first]!.y - sites[second]!.y;
+      if (Math.hypot(deltaX, deltaY) < 1e-9) {
+        throw new Error("MadMapper export requires distinct LED UV centers.");
+      }
+    }
+  }
+  return new Map(sites.map((site) => {
+    let polygon: AtlasPoint[] = [
+      { x: 0, y: 0 },
+      { x: ATLAS_WIDTH, y: 0 },
+      { x: ATLAS_WIDTH, y: ATLAS_HEIGHT },
+      { x: 0, y: ATLAS_HEIGHT },
+    ];
+    for (const other of sites) {
+      if (other.physicalIndex !== site.physicalIndex) {
+        polygon = clipToCloserHalfPlane(polygon, site, other);
+      }
+    }
+    polygon = removeCoincidentVertices(polygon);
+    if (polygon.length < 3) {
+      throw new Error(`MadMapper LED ${site.physicalIndex} has no atlas area.`);
+    }
+    return [site.physicalIndex, polygon] as const;
+  }));
+}
+
 function panelFixtures(
   contract: HardwareMappingContract,
   startUniverse: number,
@@ -153,6 +235,7 @@ function panelFixtures(
   const rows = contract.mapping.panelPixelGrid!.rows;
   const pixelsPerPanel = columns * rows;
   const outputByPanel = new Map<string, { outputIndex: number; chainPosition: number }>();
+  const voronoiCells = createVoronoiCells(contract);
   for (const output of contract.outputs) {
     output.panelIds.forEach((panelId, chainPosition) => {
       outputByPanel.set(panelId, { outputIndex: output.outputIndex, chainPosition });
@@ -173,20 +256,11 @@ function panelFixtures(
     if (!route) {
       throw new Error(`MadMapper panel ${panel.id} has no output route.`);
     }
-    const halfFixture = FIXTURE_SIZE / 2;
     const pixels = entries.map((entry) => {
-      const atlasU = (entry.u - ATLAS_LONGITUDE_SEAM + 1) % 1;
-      const centerX = (ATLAS_WIDTH - PROJECTION_WIDTH) / 2 + atlasU * PROJECTION_WIDTH;
-      const centerY = (ATLAS_HEIGHT - PROJECTION_HEIGHT) / 2 + entry.v * PROJECTION_HEIGHT;
       return {
         id: `${panel.id}-pixel-${entry.panelPixelX}-${entry.panelPixelY}`,
         address: madMapperAddressForPixel(entry.physicalIndex, startUniverse),
-        points: [
-          { x: centerX - halfFixture, y: centerY - halfFixture },
-          { x: centerX + halfFixture, y: centerY - halfFixture },
-          { x: centerX + halfFixture, y: centerY + halfFixture },
-          { x: centerX - halfFixture, y: centerY + halfFixture },
-        ],
+        points: voronoiCells.get(entry.physicalIndex)!,
       };
     });
     const physicalStart = entries[0]!.physicalIndex;

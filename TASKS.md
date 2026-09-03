@@ -170,6 +170,17 @@ No tasks.
 
 ## Ready to Merge
 
+### `P1 · MAD-013` Fill the MadMapper atlas with LED Voronoi cells
+
+- Result: 2,624 seam-adjusted LED centers now produce clipped planar Voronoi
+  polygons that touch and cover the complete fixed 4096 x 2048 SVG. Several
+  cells divide each horizontal edge. Physical Art-Net addresses, mapping
+  fingerprint, authored mapping, and panel poses are unchanged.
+- Owner: `codex/mad-013-voronoi-atlas` in `/tmp/loo-ume-mad-013`. Likely
+  conflicts: MadMapper fixture export, its focused test, D32, and F-135.
+- Verification: 12 focused export/package tests, application TypeScript,
+  production web build, diff-check, and rendered full-atlas inspection passed.
+
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 
 - Scope: install the Finder launcher in the standard system-wide

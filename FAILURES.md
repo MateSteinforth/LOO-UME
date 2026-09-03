@@ -2526,3 +2526,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `electron/DesktopUpdateHandler.ts`,
   `scripts/create-electron-unsigned-update.ts`, and the Electron release tests.
 - **Status:** Resolved by INSTALL-020.
+
+### F-135 — Fixed-size LED fixtures left most of the atlas unassigned
+
+- **Date:** 2026-09-03
+- **Context:** Operator review of the corrected 4096 x 2048 MadMapper atlas.
+- **Symptom:** LED positions and latitude bands aligned, but equal 28 x 28
+  fixture squares left large black holes between panels and near both poles.
+- **Cause:** The export treated each UV point as the center of a fixed display
+  footprint. A spherical nearest-LED atlas needs a complete partition instead.
+- **Correction:** Clip one planar Voronoi cell for each seam-adjusted LED center
+  against the atlas and every other LED's perpendicular bisector.
+- **Prevention:** Test total cell area, common neighbor edges, atlas bounds, and
+  division of both horizontal image edges. Fixed fixture size is not sufficient
+  evidence for a complete atlas.
+- **Evidence:** `tests/madmapper-export.test.ts` and the rendered MAD-013 atlas.
+- **Status:** Resolved by MAD-013.

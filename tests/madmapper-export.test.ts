@@ -8,7 +8,9 @@ import {
 import { createHardwareMappingContract } from "../web/src/HardwareMapping.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
-async function flagshipContract() {
+let contractPromise: ReturnType<typeof loadFlagshipContract> | undefined;
+
+async function loadFlagshipContract() {
   const project = await loadPanelAssemblyProjectFromFile(
     "sculptures/rhombicosidodecahedron/sculpture.json",
     process.cwd(),
@@ -22,16 +24,9 @@ async function flagshipContract() {
   return createHardwareMappingContract(mapping, wiring, project.panelProfile);
 }
 
-function fixtureCenter(svg: string, fixtureId: string): [number, number] {
-  const match = svg.match(new RegExp(`id="${fixtureId}" points="([^"]+)"`));
-  if (!match) throw new Error(`Missing fixture ${fixtureId}.`);
-  const points = match[1]!.split(" ").map((point) =>
-    point.split(",").map(Number) as [number, number]
-  );
-  return [
-    points.reduce((total, point) => total + point[0], 0) / points.length,
-    points.reduce((total, point) => total + point[1], 0) / points.length,
-  ];
+function flagshipContract() {
+  contractPromise ??= loadFlagshipContract();
+  return contractPromise;
 }
 
 function fixturePoints(svg: string): Array<Array<[number, number]>> {
@@ -42,10 +37,39 @@ function fixturePoints(svg: string): Array<Array<[number, number]>> {
   );
 }
 
-function fixtureRowAngle(svg: string, panelId: string): number {
-  const start = fixtureCenter(svg, `${panelId}-pixel-0-0`);
-  const end = fixtureCenter(svg, `${panelId}-pixel-7-0`);
-  return Math.atan2(end[1] - start[1], end[0] - start[0]) * 180 / Math.PI;
+function polygonArea(points: Array<[number, number]>): number {
+  return Math.abs(points.reduce((area, point, index) => {
+    const next = points[(index + 1) % points.length]!;
+    return area + point[0] * next[1] - next[0] * point[1];
+  }, 0) / 2);
+}
+
+function segmentKey(first: [number, number], second: [number, number]): string {
+  const endpoints = [first.join(","), second.join(",")].sort();
+  return endpoints.join("|");
+}
+
+function boundaryIntervals(
+  fixtures: Array<Array<[number, number]>>,
+  boundaryY: number,
+): Array<[number, number]> {
+  return fixtures.flatMap((points) => points.flatMap((point, index) => {
+    const next = points[(index + 1) % points.length]!;
+    if (point[1] !== boundaryY || next[1] !== boundaryY) return [];
+    return [[Math.min(point[0], next[0]), Math.max(point[0], next[0])] as [number, number]];
+  })).sort((first, second) => first[0] - second[0]);
+}
+
+function expectDividedBoundary(intervals: Array<[number, number]>): void {
+  expect(intervals.length).toBeGreaterThan(2);
+  expect(intervals[0]![0]).toBe(0);
+  let coveredUntil = 0;
+  for (const [start, end] of intervals) {
+    expect(start - coveredUntil).toBeLessThanOrEqual(0.002);
+    coveredUntil = Math.max(coveredUntil, end);
+  }
+  expect(coveredUntil).toBe(4096);
+  expect(Math.max(...intervals.map(([start, end]) => end - start))).toBeLessThan(4096);
 }
 
 describe("MadMapper fixture export", () => {
@@ -98,29 +122,57 @@ describe("MadMapper fixture export", () => {
     expect(bundle.patchCsv.trim().split("\n")).toHaveLength(42);
   });
 
-  it("places equal LED squares inside one fixed 2:1 UV atlas", async () => {
+  it("covers the fixed 2:1 atlas with bounded Voronoi fixtures", async () => {
     const bundle = createMadMapperFixtureBundle(await flagshipContract());
     const fixtures = fixturePoints(bundle.svg);
 
     expect(fixtures).toHaveLength(2_624);
     for (const points of fixtures) {
+      expect(points.length).toBeGreaterThanOrEqual(3);
       const xs = points.map(([x]) => x);
       const ys = points.map(([, y]) => y);
-      expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo(28, 3);
-      expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(28, 3);
       expect(Math.min(...xs)).toBeGreaterThanOrEqual(0);
       expect(Math.max(...xs)).toBeLessThanOrEqual(4096);
       expect(Math.min(...ys)).toBeGreaterThanOrEqual(0);
       expect(Math.max(...ys)).toBeLessThanOrEqual(2048);
     }
+    const coveredArea = fixtures.reduce((area, points) => area + polygonArea(points), 0);
+    expect(Math.abs(coveredArea - 4096 * 2048)).toBeLessThan(20);
   });
 
-  it("preserves different panel pose rotations in individual fixture positions", async () => {
+  it("gives neighboring cells shared polygon boundaries", async () => {
     const bundle = createMadMapperFixtureBundle(await flagshipContract());
+    const fixtures = fixturePoints(bundle.svg);
+    const segmentUses = new Map<string, number>();
+    for (const points of fixtures) {
+      points.forEach((point, index) => {
+        const key = segmentKey(point, points[(index + 1) % points.length]!);
+        segmentUses.set(key, (segmentUses.get(key) ?? 0) + 1);
+      });
+    }
+    const sharedSegments = [...segmentUses.values()].filter((uses) => uses === 2);
+    expect(sharedSegments.length).toBeGreaterThan(2_500);
+    expect([...segmentUses.values()].every((uses) => uses <= 2)).toBe(true);
+  });
 
-    expect(fixtureRowAngle(bundle.svg, "SQ-03")).toBeCloseTo(0, 1);
-    expect(fixtureRowAngle(bundle.svg, "SQ-11")).toBeCloseTo(31.65, 2);
-    expect(fixtureRowAngle(bundle.svg, "SQ-20")).toBeCloseTo(148.35, 2);
+  it("divides the complete top and bottom atlas edges between several LEDs", async () => {
+    const bundle = createMadMapperFixtureBundle(await flagshipContract());
+    const fixtures = fixturePoints(bundle.svg);
+    expectDividedBoundary(boundaryIntervals(fixtures, 0));
+    expectDividedBoundary(boundaryIntervals(fixtures, 2048));
+  });
+
+  it("keeps every physical Art-Net assignment unchanged", async () => {
+    const bundle = createMadMapperFixtureBundle(await flagshipContract());
+    const assignments = [...bundle.svg.matchAll(
+      /<polygon [^>]*universe="(\d+)" channel="(\d+)"/g,
+    )].map((match) => ({ universe: Number(match[1]), channel: Number(match[2]) }));
+    expect(assignments).toHaveLength(2_624);
+    expect(assignments).toEqual(Array.from(
+      { length: 2_624 },
+      (_, physicalIndex) => madMapperAddressForPixel(physicalIndex),
+    ));
+    expect(bundle.manifest.mappingFingerprint).toBe("e9fe0e65");
   });
 
   it("never splits one RGB pixel across universes", () => {
