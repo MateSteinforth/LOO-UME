@@ -99,17 +99,6 @@ export function retainAutomaticReconnectEligibility(
   return current || discovered;
 }
 
-export async function assertSingleAuthorizedCp2102(
-  serial: AuthorizedSerialPorts,
-): Promise<void> {
-  const approvedPorts = (await serial.getPorts()).filter(isApprovedCp2102);
-  if (approvedPorts.length !== 1) {
-    throw new Error(
-      "Keep exactly one authorized CP2102 ESP32 connected until setup completes.",
-    );
-  }
-}
-
 export async function reopenApprovedSerialPort(
   serial: AuthorizedSerialPorts,
   selectedPort: SerialPort,
@@ -1333,7 +1322,6 @@ async function runSetup(
   const port = await serial.requestPort({ filters: [CP2102_FILTER] });
   let activePort = port;
   assertApprovedSerialDevice(port.getInfo());
-  await assertSingleAuthorizedCp2102(serial);
 
   const { ClassicReset, ESPLoader, HardReset, Transport } = await import("esptool-js");
   const transport = new Transport(port, false);

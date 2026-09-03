@@ -5,7 +5,6 @@ import {
   assertApprovedEsp32Chip,
   assertApprovedImprovIdentity,
   assertApprovedSerialDevice,
-  assertSingleAuthorizedCp2102,
   applyAndVerifyDevice,
   assertConfigReadback,
   assertLedmapReadback,
@@ -394,17 +393,7 @@ describe("guarded ESP32 setup contracts", () => {
     )).rejects.toThrow(/did not reopen after reset/);
   });
 
-  it("requires one CP2102 and reports the exact Wi-Fi provisioning stage", async () => {
-    const cp2102 = {
-      getInfo: () => ({ usbVendorId: 0x10c4, usbProductId: 0xea60 }),
-    } as unknown as SerialPort;
-    await expect(assertSingleAuthorizedCp2102({
-      getPorts: vi.fn().mockResolvedValue([cp2102]),
-    })).resolves.toBeUndefined();
-    await expect(assertSingleAuthorizedCp2102({
-      getPorts: vi.fn().mockResolvedValue([cp2102, cp2102]),
-    })).rejects.toThrow(/exactly one/);
-
+  it("reports the exact Wi-Fi provisioning stage", async () => {
     const updates: string[] = [];
     const provision = vi.fn().mockResolvedValue(undefined);
     await provisionVisibleWifi({

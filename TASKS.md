@@ -225,7 +225,8 @@ No tasks.
 - Acceptance: the packaged application reports firmware available. The image
   size and SHA-256 match `firmware/build-receipt.json`. Packaging fails when
   the exact image is missing or different. The connected CP2102 appears in the
-  application selection dialog.
+  application selection dialog. Setup accepts the selected verified port
+  without an immediate `getPorts()` result.
 - Owner: `codex/firm-015-package-image` in `/tmp/loo-ume-firm-015`.
 - Verification: the public release image matches the receipt at 1,177,456
   bytes and SHA-256 `98bee84b5dc0de4dd118677b2e3c340fe00c44249b7e2965b580b6ea90bf4b2b`.

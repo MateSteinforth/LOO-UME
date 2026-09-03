@@ -2713,3 +2713,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `electron/SerialPolicy.ts`, `tests/electron-desktop.test.ts`, and
   the Electron SerialPort contract.
 - **Status:** Resolved by FIRM-015.
+
+### F-147 — Electron hid the selected port from `getPorts()`
+
+- **Date:** 2026-09-03
+- **Context:** FIRM-015 review DMG after successful CP2102 selection.
+- **Symptom:** Setup rejected the selected CP2102 because `getPorts()` returned
+  no authorized ports immediately after selection.
+- **Cause:** The workflow required the selected port to appear again in
+  Electron's authorized-port list.
+- **Correction:** Trust the filtered `requestPort()` result after its USB
+  identity check. Use `getPorts()` only for later reconnect attempts.
+- **Prevention:** Do not require immediate discovery of a port that
+  `requestPort()` already returned and verified.
+- **Evidence:** Operator review on Electron DMG 19 and
+  `tests/esp32-setup.test.ts`.
+- **Status:** Resolved by FIRM-015.
