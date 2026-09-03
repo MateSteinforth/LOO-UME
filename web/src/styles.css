@@ -296,10 +296,6 @@ input[type="checkbox"] {
   margin: 0;
 }
 
-.project-toolbar__library-actions .project-download {
-  grid-column: 1 / -1;
-}
-
 .current-project-name {
   display: block;
   margin-top: 8px;

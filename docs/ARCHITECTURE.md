@@ -422,9 +422,9 @@ The operator physically confirmed on the 192-LED three-panel project that WLED
 leaves DDP realtime mode and runs the saved native animation. A USB power cycle
 also restored the same animation without the simulator.
 
-The simulator accepts external frames through two bounded input paths. While the
-operator enables it, the desktop service shares UDP `127.0.0.1:6454` with
-MadMapper through address reuse, accepts only bounded ArtDMX packets from
+The simulator accepts external frames through two bounded input paths. The
+desktop service automatically shares UDP `127.0.0.1:6454` with MadMapper after
+the physical mapping becomes ready. It accepts only bounded ArtDMX packets from
 loopback, and assembles the exact consecutive physical universes exported in
 the MadMapper fixture atlas. The downloaded MadMapper package includes one
 importable unicast routing-table row for each of those universes. The service
@@ -434,7 +434,7 @@ indices and shows them on the pose-derived 3D LEDs. The DDP service listens on
 UDP port 4048 for local and LAN senders. It accepts only complete bounded RGB
 frames in logical order. The newest complete Art-Net or DDP frame controls the
 simulator. When WLED connects, the browser forwards that visible logical frame
-through bounded WLAN DDP. Project and mapping changes restart the DDP input.
+through bounded WLAN DDP. Project and mapping changes restart both inputs.
 A one-second signal timeout shows and forwards the native simulation again.
 
 `src/wled/DiagnosticFrames.ts` derives deterministic low-brightness, one-pixel

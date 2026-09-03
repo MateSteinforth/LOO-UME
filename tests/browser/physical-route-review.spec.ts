@@ -285,10 +285,8 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
     "Reconnected at 192.168.68.53",
     { timeout: 20_000 },
   );
-  const receiveButton = page.locator("#madmapper-preview");
-  await receiveButton.click();
+  await expect(page.locator("#madmapper-preview")).toHaveCount(0);
   await expect(page.locator("#madmapper-preview-status")).toContainText("Waiting for Art-Net");
-  await expect(receiveButton).toHaveText("Stop MadMapper receive");
 
   await sendArtNetPackets([
     artDmx(1, new Uint8Array(510).fill(63), 21),
@@ -316,9 +314,6 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
   }
   await expect.poll(() => frames.some((frame) => frame.equals(logicalRgb))).toBe(true);
   await expect(page.locator("#sculpture-mirror-status")).toContainText("1 visible frame mirrored");
-  await expect(receiveButton).toHaveText("Stop MadMapper receive");
-  await receiveButton.click();
-  await expect(page.locator("#madmapper-preview-status")).toHaveText("Receive stopped");
 
   await expect(page.locator("#ddp-preview-status")).toContainText("Waiting for DDP");
   const ddpRgb = new Uint8Array(contract.mapping.entries.length * 3).fill(96);
@@ -336,6 +331,8 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
 
   const dialog = page.locator("#physical-route-review-dialog");
   await expect(dialog).toBeVisible();
+  await expect(page.locator("#madmapper-preview-status"))
+    .toHaveText("Art-Net input paused for physical wiring review");
   await expect(page.locator("#app")).toHaveClass(/app--physical-route-review/);
   await expect(page.locator(".control-panel")).toHaveCSS("pointer-events", "none");
   expect(await page.locator(".control-panel").evaluate((element) =>
@@ -381,6 +378,7 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
   await expect(page.locator("#pipeline-status")).toContainText(
     "Physical wiring review cancelled. No project data changed.",
   );
+  await expect(page.locator("#madmapper-preview-status")).toContainText("Waiting for Art-Net");
 
   await reviewButton.click();
   await expect(dialog).toBeVisible();
@@ -409,6 +407,7 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
   await expect(page.locator("#pipeline-status")).toContainText(
     "Physical panel order and address orientation were saved",
   );
+  await expect(page.locator("#madmapper-preview-status")).toContainText("Waiting for Art-Net");
   expect(applyEvents.slice(0, 5)).toEqual([
     "ledmap-read",
     "ledmap-upload",

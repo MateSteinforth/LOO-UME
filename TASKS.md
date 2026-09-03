@@ -217,8 +217,8 @@ No tasks.
 
 ### `P1 · LIVE-020` Send MadMapper output to the sculpture through WLAN DDP
 
-- Result: separate Receive and Sculpture output controls send only complete
-  Art-Net frames. The browser converts physical Art-Net order to logical DDP
+- Result: automatic Art-Net input and sculpture output use only complete
+  frames. The browser converts physical Art-Net order to logical DDP
   order, so WLED applies its installed ledmap one time. A latest-frame queue
   limits backpressure. Project, mapping, device, setup, and physical-review
   changes stop output.
@@ -228,25 +228,24 @@ No tasks.
 - Verification: 61 focused unit tests, four Chromium journeys, application
   TypeScript, production web build, and diff-check passed.
 
-## In Progress
-
 ### `P1 · TD-010` Export one complete project package with TouchDesigner output
 
 - Result: each project with 1 through 2,624 mapped LEDs includes the
   TouchDesigner simulator template. Physical WLED readiness cannot remove it.
-- Current correction: add an internal centered 1280 x 640 Fit TOP. The operator
-  must not add a separate Resolution TOP before the component.
+- TouchDesigner result: the verified component includes a centered 1280 x 640
+  Fit TOP. The operator connects one source TOP directly.
 - Simulator result: bounded Art-Net and DDP inputs control one virtual
-  sculpture. The newest complete frame wins. A one-second timeout restores
-  native simulation.
+  sculpture automatically. The newest complete frame wins. A one-second
+  timeout restores native simulation.
 - Sculpture result: a connected WLED sculpture receives every visible external
   frame automatically when the physical deployment is ready.
-- Acceptance: connect one source TOP directly. Confirm the simulator shows the
-  centered 2:1 image and reports DDP input.
+- Package result: Download complete ZIP is in the matching Fabrication step.
+- Acceptance: the operator confirmed direct TouchDesigner input and internal
+  2:1 normalization on 2026-09-03.
 - Owner: `codex/td-010-touchdesigner-package` in `/tmp/loo-ume-td-010`.
-- Verification: the native checksum, seven focused unit tests, Python syntax,
-  TypeScript, the production build, and one Chromium ZIP journey passed. The
-  prior two Chromium external-frame journeys also passed.
+- Verification: the native checksum, 12 focused unit tests, Python syntax,
+  TypeScript, the production build, and four Chromium journeys passed. The
+  operator confirmed the normalized TouchDesigner component.
 
 ## Human Review
 

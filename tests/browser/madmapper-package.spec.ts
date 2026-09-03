@@ -8,6 +8,9 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
     "No authoring surface is referenced",
   );
   const completeButton = page.locator("#download-complete-package");
+  await expect(page.locator(".project-toolbar #download-complete-package")).toHaveCount(0);
+  await expect(page.locator("[data-toolbox='fabrication'] #download-complete-package"))
+    .toHaveCount(1);
   await expect(completeButton).toBeVisible();
   await expect(completeButton).toBeEnabled();
   const completeDownloadPromise = page.waitForEvent("download");

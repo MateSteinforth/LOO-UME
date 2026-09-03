@@ -2647,6 +2647,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Correction:** Put a centered 1280 x 640 Fit TOP inside the component.
 - **Prevention:** A reusable output component must own its required input
   normalization when one deterministic conversion exists.
-- **Evidence:** The simulator received DDP after the operator added an external
-  1280 x 640 Resolution TOP.
-- **Status:** Builder corrected; native artifact regeneration remains.
+- **Evidence:** The operator connected the source directly and confirmed DDP.
+  The verified native artifact is 2,966 bytes and has receipt checksum
+  `7779c60e5229f731060e7f4e94e6122fb111ba0337dd917b5a6bf945c997b040`.
+- **Status:** Resolved by the regenerated TouchDesigner component.
+
+### F-143 — Art-Net required an unnecessary receive action
+
+- **Date:** 2026-09-03
+- **Context:** TD-010 external simulator input review.
+- **Symptom:** DDP started automatically, but Art-Net required a button action.
+- **Cause:** The first Art-Net workflow kept a manual session control after the
+  receiver became a permanent simulator input.
+- **Correction:** Start Art-Net automatically when the physical mapping becomes
+  ready. Restart it after project, mapping, and physical-review changes.
+- **Prevention:** Equivalent permanent input services must use one automatic
+  lifecycle unless a protocol constraint requires operator control.
+- **Evidence:** The browser test verifies automatic Art-Net reception without a
+  receive button.
+- **Status:** Resolved by TD-010.

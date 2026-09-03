@@ -39,10 +39,8 @@ test("previews a complete loopback MadMapper Art-Net frame", async ({ page }) =>
   await expect(page.locator("#pipeline-status")).toContainText(
     "No authoring surface is referenced",
   );
-  const button = page.locator("#madmapper-preview");
   const status = page.locator("#madmapper-preview-status");
-  await expect(button).toBeEnabled();
-  await button.click();
+  await expect(page.locator("#madmapper-preview")).toHaveCount(0);
   await expect(status).toContainText("Waiting for Art-Net");
   await expect.poll(() => page.evaluate(async () =>
     (await fetch("./api/artnet-preview/status").then((response) => response.json()) as {
@@ -55,8 +53,4 @@ test("previews a complete loopback MadMapper Art-Net frame", async ({ page }) =>
   await expect(status).toContainText("0 incomplete");
   await expect(status).toContainText("0 rejected");
   await expect(status).toContainText("Signal timeout", { timeout: 2_500 });
-
-  await button.click();
-  await expect(status).toHaveText("Receive stopped");
-  await expect(button).toHaveText("Start MadMapper receive");
 });
