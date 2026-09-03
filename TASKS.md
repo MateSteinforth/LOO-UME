@@ -47,6 +47,16 @@ No tasks.
 
 ## Done (latest integrations)
 
+### `P1 · MAD-013` Fill the MadMapper atlas with LED Voronoi cells
+
+- Result: 2,624 seam-adjusted LED centers now produce clipped planar Voronoi
+  polygons that touch and cover the complete fixed 4096 x 2048 SVG. Several
+  cells divide each horizontal edge. Physical Art-Net addresses, mapping
+  fingerprint, authored mapping, and panel poses are unchanged.
+- Verification: 12 focused export/package tests, application TypeScript,
+  production web build, diff-check, rendered full-atlas inspection, and the
+  published unsigned DMG workflow passed.
+
 ### `P1 · INSTALL-020` Offer free Electron DMG updates
 
 - Result: each canonical-main unsigned DMG now publishes bounded version,
@@ -169,17 +179,6 @@ No tasks.
   passed. Native review remains required after the first tagged asset is built.
 
 ## Ready to Merge
-
-### `P1 · MAD-013` Fill the MadMapper atlas with LED Voronoi cells
-
-- Result: 2,624 seam-adjusted LED centers now produce clipped planar Voronoi
-  polygons that touch and cover the complete fixed 4096 x 2048 SVG. Several
-  cells divide each horizontal edge. Physical Art-Net addresses, mapping
-  fingerprint, authored mapping, and panel poses are unchanged.
-- Owner: `codex/mad-013-voronoi-atlas` in `/tmp/loo-ume-mad-013`. Likely
-  conflicts: MadMapper fixture export, its focused test, D32, and F-135.
-- Verification: 12 focused export/package tests, application TypeScript,
-  production web build, diff-check, and rendered full-atlas inspection passed.
 
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 
