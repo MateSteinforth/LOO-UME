@@ -5,7 +5,7 @@ Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
 Current milestone: send live MadMapper frames to WLED through the proved WLAN
-DDP path, then confirm the installed 41-panel route and address parity.
+DDP path.
 
 ## Control rules
 
@@ -230,16 +230,7 @@ No tasks.
 
 ## Blocked
 
-### `HW-012` Record the installed 41-panel route
-
-- Blocked by: physical assembly.
-
-### `PROOF-010` Prove simulator-to-device address and RGB parity
-
-- Blocked by: `HW-012` and an approved powered test setup. DIAG-010 supplies
-  the exact offline frame plan.
-- Needed: observe and record all 2,624 addresses, row transitions, corners,
-  four outputs, and RGB channels against the exact deployment identity.
+No tasks.
 
 ## Retired
 
@@ -249,6 +240,9 @@ No tasks.
   Add a new task only when an operator supplies a concrete requirement.
 - `FAB-023`: deferred. The known automatic connector limit remains in F-034.
   Add a new task only when the 30-panel automatic connector path is required.
+- `HW-012` and `PROOF-010`: retired by operator decision on 2026-09-03.
+  CAL-012 keeps the optional panel-by-panel physical wiring review. A complete
+  2,624-pixel proof is not planned.
 
 ## Earlier completed work
 
@@ -463,8 +457,7 @@ No tasks.
 - `UI-011`: operator approved the opaque glossy black PCB appearance.
 - `CAL-010`: operator approved the existing panel profile for the current
   41-panel build. Existing measured values stay measured; provisional or
-  unknown electrical, pad, and address facts are not relabelled as measurements
-  and remain subject to `PROOF-010`.
+  unknown electrical, pad, and address facts are not relabelled as measurements.
 - `HR-013`: normal `main` will use the checked-in WLED simulator and will not
   require Python or Emscripten; reproducible generation moves to a dedicated
   branch under `BUILD-010`.

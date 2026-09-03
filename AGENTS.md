@@ -137,7 +137,8 @@ Historical Schema 1 inputs are available only through Git history.
   Browser flashing, Improv setup, native-preset persistence, bounded DDP, and
   three-panel reconnect/power-cycle behavior have physical evidence. Do not
   extend that evidence to complete 41-panel address parity, Art-Net, Ethernet,
-  audio, or another controller target. The browser effect engine remains a
+  audio, or another controller target. No complete 41-panel proof is planned.
+  The browser effect engine remains a
   separate deterministic subset.
 
 ## Working safely

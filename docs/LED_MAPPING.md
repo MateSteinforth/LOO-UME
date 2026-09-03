@@ -89,11 +89,9 @@ continue. Pose edits also set `requires-review` without changing `panelIds`.
 
 The legacy `measured` and `hardware-verified` lifecycle states remain available
 for optional evidence. They do not gate `mappingReady`. `hardware-verified`
-defines a passed `PROOF-010` receipt with the deployment identity plus SHA-256 values for
-device read-back, the as-built record, and the parity proof. Runtime activation
-of that state is rejected until `PROOF-010` supplies its acceptance validator.
-A later relevant edit retains a receipt only as stale evidence under
-`requires-review`.
+accepts the legacy `PROOF-010` receipt format with deployment identity and exact
+evidence hashes. No complete 2,624-pixel proof is planned. A later relevant edit
+retains a receipt only as stale evidence under `requires-review`.
 
 ## Automatic route optimization
 
@@ -288,10 +286,10 @@ The production mapping must join these facts without an implicit transform:
 6. exact source and generated-artifact identities.
 
 The installed address transform compiles before `panelWireIndex()`. The WLED
-deployment contract fixes measured GRB order 0. The Schema and types define measured and
-hardware-verified wiring lifecycle states. The parser accepts measured wiring, but rejects
-hardware-verified activation until `PROOF-010` supplies an acceptance validator.
-No authored sculpture contains measured route, controller, or proof facts yet.
+deployment contract fixes measured GRB order 0. The Schema and types define
+measured and legacy hardware-verified wiring states. The parser accepts measured
+wiring. It accepts hardware-verified activation only with the legacy
+`PROOF-010` receipt format. No complete physical proof is planned.
 
 `installedAddressTransform` does not reuse the geometry/mechanical rotation as
 a hidden address transform. The pose remains the world-space authority. The
@@ -365,9 +363,7 @@ HR-014 controller choice + operator-owned external power plan
     -> MAP-030 WLED bus/deployment contract (assumed review files exist)
     -> WIRE-012 guarded production bundle
     -> FIRM-011 device deployment
-    -> DIAG-010 deterministic frame delivery
-    -> HW-012 as-built record
-    -> PROOF-010 all-address bench proof
+    -> optional DIAG-010 deterministic frame delivery
 ```
 
 A saved screenshot or wiring overlay is not authoritative. The overlay must be

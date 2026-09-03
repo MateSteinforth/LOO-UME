@@ -32,8 +32,7 @@ selected ESP32/WLED target:
 ```text
 printed connectors + assembly tutorial
   -> as-built route evidence
-  -> deterministic diagnostic frames
-  -> all-address parity proof
+  -> optional deterministic diagnostic frames
 ```
 
 Electrical design and approval are external operator responsibilities. The

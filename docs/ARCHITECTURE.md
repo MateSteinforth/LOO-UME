@@ -345,8 +345,8 @@ strict conflict rejection.
 
 Mapping readiness is separate from electrical approval. A production bundle
 must bind the current project, route, ledmap, WLED bus fragment, target identity,
-and exact file hashes. Complete hardware-verified state remains blocked until
-accepted `PROOF-010` evidence exists for all 2,624 addresses.
+and exact file hashes. The optional legacy hardware-verified state still
+accepts a `PROOF-010` receipt. No complete 2,624-address proof is planned.
 
 `PhysicalRouteReview.ts` is a temporary address-audit model over the current
 mapping-ready contract. It flattens each output into unique physical fixture

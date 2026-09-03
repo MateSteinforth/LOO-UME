@@ -110,6 +110,6 @@ standalone boot state and a segmented 1-to-2,624-pixel DDP preview. The
 three-panel physical timeout and autonomous restart review passed.
 `DIAG-010` supplies deterministic low-brightness, one-pixel JSON test frames
 bound to the exact deployment identity. Each frame labels the expected address,
-panel coordinate, output, and RGB channel. `PROOF-010` remains the physical
-observation and evidence gate. Art-Net, Ethernet, microphone, audio, and custom
-effects remain under later `FIRM-010` work.
+panel coordinate, output, and RGB channel. The operator retired the complete
+2,624-pixel observation plan. Art-Net, Ethernet, microphone, audio, and custom
+effects are not planned tasks.

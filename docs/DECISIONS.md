@@ -71,10 +71,10 @@ turns only to local wire indexing. WLED bus reversal remains false.
 
 ## D9 — Hardware parity is evidence-gated
 
-Mapping-ready assumptions do not become measured facts. A hardware-verified
-state requires accepted `PROOF-010` evidence bound to the exact deployment,
-device read-back, as-built route, and parity record. Electrical approval remains
-separate.
+Mapping-ready assumptions do not become measured facts. The optional legacy
+hardware-verified state accepts only a `PROOF-010` receipt bound to the exact
+deployment, device read-back, route, and parity record. The operator retired
+the complete physical-proof task. Electrical approval remains separate.
 
 ## D10 — Use one conservative prototype contract
 

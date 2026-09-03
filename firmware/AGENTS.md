@@ -38,5 +38,5 @@ These rules apply under `firmware/`.
   the approved physical chain once assigned; do not reuse the obsolete
   42-panel split.
 - Compile the exact reviewed target and report the produced firmware artifact.
-  One-panel smoke and three-panel native/DDP behavior are physically confirmed;
-  do not extend that evidence to all 2,624 addresses without `PROOF-010`.
+  One-panel smoke and three-panel native/DDP behavior are physically confirmed.
+  Do not extend that evidence to all 2,624 addresses. No complete proof is planned.

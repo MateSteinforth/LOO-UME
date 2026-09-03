@@ -942,8 +942,8 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   not ask the operator to select a second configuration authority.
 - **Evidence:** `createSimulatorSetupConfig()`, dynamic framebuffer tests, and
   the FIRM-014 browser setup journey.
-- **Status:** Resolved for the three-panel physical project. Complete
-  41-panel observation remains under HW-012 and PROOF-010.
+- **Status:** Resolved for the three-panel physical project. The operator
+  retired the complete 41-panel observation plan on 2026-09-03.
 
 ### F-051 — WLED preset storage is eventually consistent
 

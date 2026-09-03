@@ -86,8 +86,8 @@ LED power rail during the initial flash.
    Record the board label, panel ID, fuse, supply limit, observed colors, and
    result before the full deployment files are installed.
 
-This smoke test does not prove all 2,624 addresses. That observation belongs to
-`PROOF-010`; electrical approval is outside repository scope.
+This smoke test does not prove all 2,624 addresses. No complete observation is
+planned. Electrical approval is outside repository scope.
 
 After this smoke test passes, generate the deterministic one-pixel diagnostic
 plan without contacting the device:
@@ -104,7 +104,7 @@ npm run diagnostics:hardware -- --host http://wled.local --start 0 --count 3 --c
 ```
 
 Each frame uses brightness 32 and lights one pixel in one RGB channel. The
-command does not record the observation and does not complete `PROOF-010`.
+command does not record physical observation evidence.
 
 ## Install the exact mapping with all LED rails disconnected
 
