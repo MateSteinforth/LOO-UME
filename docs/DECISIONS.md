@@ -399,11 +399,12 @@ compare unrounded display coordinates from platform math libraries.
 
 ## D39 — Use the simulator as the external frame endpoint
 
-The TouchDesigner template samples the 2:1 TOP at pose-derived UV coordinates.
-It stores these coordinates in logical LED order. The template sends RGB DDP
-in that order to the simulator. LOO/UME forwards the visible logical frame to
-a connected WLED sculpture. WLED applies the installed ledmap one time. It changes the
-top-origin mapping `v` value to TouchDesigner's bottom-origin TOP coordinate.
+The TouchDesigner `.tox` component accepts one 2:1 TOP. It samples the TOP at
+pose-derived UV coordinates. It stores these coordinates in logical LED order.
+The component sends RGB DDP in that order to the simulator. LOO/UME forwards
+the visible logical frame to a connected WLED sculpture. WLED applies the
+installed ledmap one time. The component changes the top-origin mapping `v`
+value to TouchDesigner's bottom-origin TOP coordinate.
 
 The template uses one-frame-delayed TOP download and limits output to 30 FPS.
 It divides each frame into DDP payloads of at most 1,440 channels. Only the

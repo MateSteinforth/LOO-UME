@@ -1,5 +1,9 @@
 import { createWledDeploymentBundle } from "../../src/wled/DeploymentContract.ts";
 import type { HardwareMappingContract } from "./HardwareMapping.ts";
+import {
+  TOUCHDESIGNER_TOX_BYTES,
+  TOUCHDESIGNER_TOX_RECEIPT,
+} from "./TouchDesignerToxArtifact.ts";
 
 const encoder = new TextEncoder();
 const DDP_PORT = 4048;
@@ -449,6 +453,8 @@ export function createTouchDesignerPackageFiles(
   return new Map([
     ["config.json", jsonBytes(config)],
     ["loo_ume_ddp.py", encoder.encode(touchDesignerDdpScript())],
+    ["loo_ume_ddp.tox", Uint8Array.from(TOUCHDESIGNER_TOX_BYTES)],
+    ["loo_ume_ddp.tox.json", jsonBytes(TOUCHDESIGNER_TOX_RECEIPT)],
     ["build_loo_ume_tox.py", encoder.encode(touchDesignerToxBuilderScript())],
     ["README.txt", encoder.encode(touchDesignerReadme(config))],
   ]);

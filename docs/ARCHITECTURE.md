@@ -55,9 +55,9 @@ edit marks derived mechanics stale but does not stop those functions.
    patch manifest from a mapping-ready hardware contract.
    `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
    final network values remain evidence-gated.
-   `createTouchDesignerPackageFiles()` adds a 2:1 TOP sampler and bounded DDP
-   sender. The sender targets the simulator in logical LED order. It does not
-   require a physical WLED deployment identity.
+   `createTouchDesignerPackageFiles()` adds a reusable 2:1 TOP component and
+   bounded DDP sender. The component targets the simulator in logical LED
+   order. It does not require a physical WLED deployment identity.
 6. `createHerma4385PanelLabelsPdf()` places current Schema 2 panel IDs on the
    measured 15 x 21 A4 stock grid. Printer registration remains
    outside the document geometry. The simulator anchors the same
@@ -168,8 +168,9 @@ Electron grants Web Serial only to its own loopback editor origin and only for
 the approved Silicon Labs CP2102 USB identity. MadMapper sends Art-Net to
 `127.0.0.1:6454`; the existing preview path consumes that frame. The
 private-device DDP broker sends the visible simulator frame to WLED.
-The TouchDesigner template samples its TOP in logical order. It sends bounded
-DDP to the simulator. The operator accepts LIVE-020 as a working assumption.
+The TouchDesigner `.tox` component samples its TOP in logical order. It sends
+bounded DDP to the simulator. The operator accepts LIVE-020 as a working
+assumption.
 
 Packaged Electron updates reuse the update-notice HTTP contract through
 `electron-updater`. A release tag must be contained in canonical `main`, and a

@@ -448,15 +448,15 @@ through WLAN DDP. WLED applies the installed ledmap one time. The queue keeps
 the latest frame during backpressure. The operator accepts this behavior as a
 working assumption.
 
-The complete project package also contains a TouchDesigner template. Its
-configuration lists pose-derived UV samples in logical LED order. The included
-Execute DAT script reads one 2:1 TOP and sends bounded RGB DDP packets to the
-simulator. LOO/UME mirrors the visible frame to a connected sculpture. It uses
-TouchDesigner NumPy and Python sockets, so it needs no external plugin. Its
-status table reports the target, fingerprint, frame rate, and replaced frames.
-The simulator template needs 1 through 2,624 mapped LEDs. It does not require a
-physical WLED deployment identity. The configuration reports simulator-only
-status when physical output is not ready.
+The complete project package contains `loo_ume_ddp.tox`. This component accepts
+one 2:1 TOP. Its configuration lists pose-derived UV samples in logical LED
+order. The component sends bounded RGB DDP packets to the simulator. LOO/UME
+mirrors the visible frame to a connected sculpture. The component uses
+TouchDesigner NumPy and Python sockets. It needs no external plugin. Its status
+table reports the target, fingerprint, frame rate, and replaced frames. The
+component needs 1 through 2,624 mapped LEDs. It does not require a physical WLED
+deployment identity. The configuration reports simulator-only status when
+physical output is not ready.
 
 The mapping claim is static address and RGB parity for the selected pinned WLED
 target. Matching effect names or WASM frames does not prove

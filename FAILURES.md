@@ -2635,4 +2635,4 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   native component with its target TouchDesigner build before packaging.
 - **Evidence:** Derivative `.tox`, Component, App Class, and release
   documentation.
-- **Status:** Builder implemented; native artifact generation remains.
+- **Status:** Resolved by the verified TouchDesigner 2025.31550 artifact.

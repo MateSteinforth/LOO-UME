@@ -26,6 +26,7 @@
     "web/src/MadMapperExport.ts",
     "web/src/MadMapperPackage.ts",
     "web/src/TouchDesignerPackage.ts",
+    "web/src/TouchDesignerToxArtifact.ts",
     "web/src/CompleteProjectPackage.ts",
     "web/src/ArtNetPreview.ts",
     "web/src/DdpPreview.ts",

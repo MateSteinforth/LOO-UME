@@ -38,8 +38,9 @@ effects remain deferred. LOO/UME receives complete Art-Net frames on loopback.
 It also receives complete logical DDP frames from local or LAN senders. The
 newest external frame controls the simulator and a connected WLED sculpture.
 The operator accepts this path without more software work. The complete project
-ZIP includes a TouchDesigner 2:1 TOP sampler for the DDP simulator input. A future custom effect
-belongs in a WLED usermod, not in patched WLED core files.
+ZIP includes a TouchDesigner `.tox` component. The component accepts one 2:1
+TOP for the DDP simulator input. A future custom effect belongs in a WLED
+usermod, not in patched WLED core files.
 
 ## Mapping
 

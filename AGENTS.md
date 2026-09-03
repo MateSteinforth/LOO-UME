@@ -40,6 +40,8 @@ To establish this workflow in another repository, follow
   after checkout. The bootstrap files supply the approved Linux/macOS trust
   root. Rebuild and recommit an artifact whenever its pinned source or compiler
   changes, and keep its checksum and build receipt synchronized.
+- `touchdesigner/loo_ume_ddp.tox` is a deliberate tracked-build exception.
+  TouchDesigner 2025.31550 created it. Keep its JSON receipt synchronized.
 - `./bootstrap.sh setup` is the supported clean-checkout path on Linux x86-64
   and macOS. It uses `toolchains/bootstrap/install-manifest.json` to install
   pinned Node/npm below `.tools/`, then builds and verifies the desktop and

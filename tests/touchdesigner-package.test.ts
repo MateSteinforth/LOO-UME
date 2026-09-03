@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createPanelAssemblyMapping } from "../src/sculpture/PanelAssembly.ts";
 import { loadPanelAssemblyProjectFromFile } from "../src/sculpture/LoadPanelAssemblyProject.ts";
@@ -10,6 +12,10 @@ import {
   touchDesignerToxBuilderScript,
 } from "../web/src/TouchDesignerPackage.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
+import {
+  TOUCHDESIGNER_TOX_BYTES,
+  TOUCHDESIGNER_TOX_RECEIPT,
+} from "../web/src/TouchDesignerToxArtifact.ts";
 
 async function fixture(source: string) {
   const project = await loadPanelAssemblyProjectFromFile(source);
@@ -86,6 +92,8 @@ describe("TouchDesigner package", () => {
     expect([...first.keys()]).toEqual([
       "config.json",
       "loo_ume_ddp.py",
+      "loo_ume_ddp.tox",
+      "loo_ume_ddp.tox.json",
       "build_loo_ume_tox.py",
       "README.txt",
     ]);
@@ -105,6 +113,21 @@ describe("TouchDesigner package", () => {
     expect(builder).toContain('owner.create(baseCOMP, "loo_ume_ddp")');
     expect(builder).toContain('component.create(inTOP, "input")');
     expect(builder).toContain('component.save(output_path, createFolders=True)');
+  });
+
+  it("embeds the verified TouchDesigner 2025.31550 component", () => {
+    const tracked = Uint8Array.from(readFileSync(new URL(
+      "../touchdesigner/loo_ume_ddp.tox",
+      import.meta.url,
+    )));
+    expect(TOUCHDESIGNER_TOX_BYTES).toEqual(tracked);
+    expect(tracked.byteLength).toBe(TOUCHDESIGNER_TOX_RECEIPT.byteLength);
+    expect(createHash("sha256").update(tracked).digest("hex"))
+      .toBe(TOUCHDESIGNER_TOX_RECEIPT.sha256);
+    expect(JSON.parse(readFileSync(new URL(
+      "../touchdesigner/loo_ume_ddp.tox.json",
+      import.meta.url,
+    ), "utf8"))).toEqual(TOUCHDESIGNER_TOX_RECEIPT);
   });
 
   it("keeps simulator output available before physical mapping is ready", async () => {
