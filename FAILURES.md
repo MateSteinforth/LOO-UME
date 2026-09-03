@@ -2636,3 +2636,17 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Derivative `.tox`, Component, App Class, and release
   documentation.
 - **Status:** Resolved by the verified TouchDesigner 2025.31550 artifact.
+
+### F-142 — The TouchDesigner component required an external Resolution TOP
+
+- **Date:** 2026-09-03
+- **Context:** TD-010 native component review.
+- **Symptom:** A connected 16:9 TOP produced no DDP frame.
+- **Cause:** The sender rejected input that was not exactly 2:1. The component
+  did not normalize its own image.
+- **Correction:** Put a centered 1280 x 640 Fit TOP inside the component.
+- **Prevention:** A reusable output component must own its required input
+  normalization when one deterministic conversion exists.
+- **Evidence:** The simulator received DDP after the operator added an external
+  1280 x 640 Resolution TOP.
+- **Status:** Builder corrected; native artifact regeneration remains.

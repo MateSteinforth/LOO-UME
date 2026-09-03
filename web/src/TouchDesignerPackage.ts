@@ -207,7 +207,7 @@ def _ddp_packets(frame, state):
 def _sample_frame(image, pixels):
     height, width = image.shape[:2]
     if width != height * 2:
-        raise ValueError("The LOO/UME component input must have a 2:1 resolution.")
+        raise ValueError("The internal LOO/UME image must have a 2:1 resolution.")
     x = np.asarray([round(pixel["u"] * (width - 1)) for pixel in pixels], dtype=np.intp)
     y = np.asarray([round((1.0 - pixel["v"]) * (height - 1)) for pixel in pixels], dtype=np.intp)
     rgb = np.clip(image[y, x, :3], 0.0, 1.0)
@@ -335,7 +335,7 @@ if not os.path.isfile(source_path):
 component = owner.create(baseCOMP, "loo_ume_ddp")
 component.nodeX = 0
 component.nodeY = 0
-component.comment = "LOO/UME 2:1 TOP to logical DDP"
+component.comment = "LOO/UME TOP to logical DDP"
 
 page = component.appendCustomPage("LOO UME DDP")
 active = page.appendToggle("Active", label="Active")[0]
@@ -362,18 +362,29 @@ config_file = page.appendStr("Configfile", label="Mapping Configuration")[0]
 config_file.default = "config.json"
 config_file.val = "config.json"
 status_par = page.appendStr("Status", label="Status")[0]
-status_par.default = "Waiting for a 2:1 TOP"
-status_par.val = "Waiting for a 2:1 TOP"
+status_par.default = "Waiting for a TOP"
+status_par.val = "Waiting for a TOP"
 
-input_top = component.create(inTOP, "input")
-input_top.nodeX = -300
+source_top = component.create(inTOP, "source")
+source_top.nodeX = -400
+source_top.nodeY = 100
+source_top.par.label = "Image TOP"
+input_top = component.create(fitTOP, "input")
+input_top.nodeX = -150
 input_top.nodeY = 100
-input_top.par.label = "2:1 equirectangular TOP"
+input_top.par.fit = "fitoutside"
+input_top.par.outputresolution = "custom"
+input_top.par.resolutionw = 1280
+input_top.par.resolutionh = 640
+input_top.par.outputaspect = "resolution"
+input_top.par.resmult = False
+source_top.outputConnectors[0].connect(input_top)
 output_top = component.create(outTOP, "output")
-output_top.nodeX = 300
+output_top.nodeX = 150
 output_top.nodeY = 100
-output_top.par.label = "Input pass-through"
+output_top.par.label = "Centered 2:1 image"
 input_top.outputConnectors[0].connect(output_top)
+component.par.opviewer = "./output"
 
 status = component.create(tableDAT, "status")
 status.nodeX = 300
@@ -426,11 +437,12 @@ function touchDesignerReadme(config: TouchDesignerConfig): string {
     "1. Extract the complete LOO/UME package.",
     "2. Save your TouchDesigner project in the extracted project folder.",
     "3. Drag loo_ume_ddp.tox into the TouchDesigner network.",
-    "4. Connect one 2:1 TOP to the component input.",
+    "4. Connect one TOP to the component input.",
     "5. Keep Active enabled.",
     "6. Start with a black image.",
     "7. Test one low-brightness pixel before full output.",
     "",
+    "The component center-crops its input to 2:1 at 1280 x 640.",
     "The script samples normalized pose-derived UV positions in logical LED order.",
     "The script sends each RGB DDP frame to the simulator.",
     "Keep LOO/UME open on the TouchDesigner computer for the local simulator target.",

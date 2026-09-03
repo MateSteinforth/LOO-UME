@@ -230,27 +230,27 @@ No tasks.
 
 ## In Progress
 
-No tasks.
-
-## Human Review
-
 ### `P1 · TD-010` Export one complete project package with TouchDesigner output
 
 - Result: each project with 1 through 2,624 mapped LEDs includes the
   TouchDesigner simulator template. Physical WLED readiness cannot remove it.
-- Component result: each complete ZIP includes `loo_ume_ddp.tox`. TouchDesigner
-  Non-Commercial 2025.31550 created the verified macOS artifact.
+- Current correction: add an internal centered 1280 x 640 Fit TOP. The operator
+  must not add a separate Resolution TOP before the component.
 - Simulator result: bounded Art-Net and DDP inputs control one virtual
   sculpture. The newest complete frame wins. A one-second timeout restores
   native simulation.
 - Sculpture result: a connected WLED sculpture receives every visible external
   frame automatically when the physical deployment is ready.
-- Review: connect one 2:1 TOP to the component. Confirm the simulator shows the
-  same image and reports DDP input.
+- Acceptance: connect one source TOP directly. Confirm the simulator shows the
+  centered 2:1 image and reports DDP input.
 - Owner: `codex/td-010-touchdesigner-package` in `/tmp/loo-ume-td-010`.
 - Verification: the native checksum, seven focused unit tests, Python syntax,
   TypeScript, the production build, and one Chromium ZIP journey passed. The
   prior two Chromium external-frame journeys also passed.
+
+## Human Review
+
+No tasks.
 
 ## Blocked
 

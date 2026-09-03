@@ -449,8 +449,9 @@ the latest frame during backpressure. The operator accepts this behavior as a
 working assumption.
 
 The complete project package contains `loo_ume_ddp.tox`. This component accepts
-one 2:1 TOP. Its configuration lists pose-derived UV samples in logical LED
-order. The component sends bounded RGB DDP packets to the simulator. LOO/UME
+one TOP. An internal Fit TOP center-crops the image to 2:1 at 1280 x 640. Its
+configuration lists pose-derived UV samples in logical LED order. The component
+sends bounded RGB DDP packets to the simulator. LOO/UME
 mirrors the visible frame to a connected sculpture. The component uses
 TouchDesigner NumPy and Python sockets. It needs no external plugin. Its status
 table reports the target, fingerprint, frame rate, and replaced frames. The

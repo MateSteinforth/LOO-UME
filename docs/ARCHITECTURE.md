@@ -55,9 +55,9 @@ edit marks derived mechanics stale but does not stop those functions.
    patch manifest from a mapping-ready hardware contract.
    `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
    final network values remain evidence-gated.
-   `createTouchDesignerPackageFiles()` adds a reusable 2:1 TOP component and
-   bounded DDP sender. The component targets the simulator in logical LED
-   order. It does not require a physical WLED deployment identity.
+   `createTouchDesignerPackageFiles()` adds a reusable TOP component and bounded
+   DDP sender. The component makes a centered 2:1 image internally. It targets
+   the simulator in logical LED order. It does not require a WLED identity.
 6. `createHerma4385PanelLabelsPdf()` places current Schema 2 panel IDs on the
    measured 15 x 21 A4 stock grid. Printer registration remains
    outside the document geometry. The simulator anchors the same

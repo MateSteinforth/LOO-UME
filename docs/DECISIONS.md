@@ -399,8 +399,9 @@ compare unrounded display coordinates from platform math libraries.
 
 ## D39 — Use the simulator as the external frame endpoint
 
-The TouchDesigner `.tox` component accepts one 2:1 TOP. It samples the TOP at
-pose-derived UV coordinates. It stores these coordinates in logical LED order.
+The TouchDesigner `.tox` component accepts one TOP. An internal Fit TOP makes a
+centered 2:1 image at 1280 x 640. The component samples this image at pose-derived
+UV coordinates. It stores these coordinates in logical LED order.
 The component sends RGB DDP in that order to the simulator. LOO/UME forwards
 the visible logical frame to a connected WLED sculpture. WLED applies the
 installed ledmap one time. The component changes the top-origin mapping `v`

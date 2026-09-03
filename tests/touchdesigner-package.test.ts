@@ -111,7 +111,12 @@ describe("TouchDesigner package", () => {
     expect(script).toContain('_component().op("input")');
     const builder = touchDesignerToxBuilderScript();
     expect(builder).toContain('owner.create(baseCOMP, "loo_ume_ddp")');
-    expect(builder).toContain('component.create(inTOP, "input")');
+    expect(builder).toContain('component.create(inTOP, "source")');
+    expect(builder).toContain('component.create(fitTOP, "input")');
+    expect(builder).toContain('input_top.par.fit = "fitoutside"');
+    expect(builder).toContain("input_top.par.resolutionw = 1280");
+    expect(builder).toContain("input_top.par.resolutionh = 640");
+    expect(builder).toContain('component.par.opviewer = "./output"');
     expect(builder).toContain('component.save(output_path, createFolders=True)');
   });
 

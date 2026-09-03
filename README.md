@@ -138,8 +138,8 @@ not ordered gates; use only the tools supported by the loaded fixture:
   MadMapper, and TouchDesigner files.
 
 Every project with 1 through 2,624 mapped LEDs includes the TouchDesigner
-simulator component. Connect one 2:1 TOP to `loo_ume_ddp.tox`. Physical WLED
-output can remain unavailable independently.
+simulator component. Connect one TOP to `loo_ume_ddp.tox`. The component makes
+a centered 2:1 image internally. Physical WLED output can remain unavailable.
 
 The browser runs a deterministic subset of WLED effects. Through the local
 host it can flash the receipt-bound ESP32 image, configure WLED, persist the
