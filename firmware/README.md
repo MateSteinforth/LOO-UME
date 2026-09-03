@@ -9,7 +9,8 @@ is not committed to `main`.
 the size and SHA-256 of the application and complete USB-installer images. The
 complete image contains the bootloader, partition table, boot application, and
 WLED application at their reviewed ESP32 offsets. Compiled images stay off
-`main`.
+`main`. The Electron release stages the receipt-bound complete image from the
+`esp32-firmware-improv-v1` release before packaging.
 
 ## Set up from the local editor
 
@@ -40,8 +41,9 @@ The operator physically confirmed timeout/resume, reconnect, effect updates,
 tab-close fallback, and power-cycle restoration on the three-panel sculpture.
 
 The local production server serves a complete image only from the ignored
-`build/firmware/` directory and only when its bytes match the tracked receipt.
-The expected file is
+`build/firmware/` directory. The bytes must match the tracked receipt. The
+Electron package includes the verified release image at this location. The
+expected file is
 `build/firmware/wled-orbital-esp32dev-full-flash.bin`.
 
 The setup has no configuration dropdown. It copies the loaded sculpture up to

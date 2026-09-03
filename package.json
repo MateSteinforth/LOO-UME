@@ -112,6 +112,10 @@
       {
         "from": "firmware",
         "to": "app/firmware"
+      },
+      {
+        "from": "build/firmware/wled-orbital-esp32dev-full-flash.bin",
+        "to": "app/build/firmware/wled-orbital-esp32dev-full-flash.bin"
       }
     ],
     "asarUnpack": [

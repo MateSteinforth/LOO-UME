@@ -2666,3 +2666,34 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The browser test verifies automatic Art-Net reception without a
   receive button.
 - **Status:** Resolved by TD-010.
+
+### F-144 — The Mac application omitted the ESP32 image
+
+- **Date:** 2026-09-03
+- **Context:** FIRM-015 ESP32 setup from the Electron application.
+- **Symptom:** Firmware status returned `ENOENT` for the complete flash image.
+- **Cause:** Electron packaged the firmware receipt but omitted the ignored
+  `build/firmware/` image.
+- **Correction:** Stage the release image before packaging. Verify its receipt
+  before and after Electron packaging.
+- **Prevention:** Make Electron packaging fail when the receipt-bound image is
+  missing or different.
+- **Evidence:** `tests/electron-release-workflow.test.ts` and the Electron
+  package inventory check.
+- **Status:** Resolved by FIRM-015.
+
+### F-145 — A firmware rebuild changed the receipt hash
+
+- **Date:** 2026-09-03
+- **Context:** FIRM-015 recovery of a deleted firmware build output.
+- **Symptom:** The pinned source and tools produced the correct image size but
+  a different SHA-256 value.
+- **Cause:** The pinned WLED UI generator adds `WEB_BUILD_TIME` to the compiled
+  image. A later build therefore has different bytes.
+- **Correction:** Bind the new complete image to a new receipt hash. Publish
+  those exact bytes as a permanent release asset.
+- **Prevention:** Publish each receipt-bound image before removal of its build
+  worktree. Do not use a later rebuild for an earlier receipt.
+- **Evidence:** `wled/upstream/tools/cdata.js`, `firmware/build-receipt.json`,
+  and the `esp32-firmware-improv-v1` release asset.
+- **Status:** Resolved by FIRM-015.

@@ -28,12 +28,12 @@
   "artifact": {
     "name": "wled-orbital-esp32dev.bin",
     "byteLength": 1111920,
-    "sha256": "6bf3cec1ab1865dc6b03e0ddd5dd03198c39851343e7e1ed99660b1dc5bf5975"
+    "sha256": "fdf7aa7361b3131071bee277b729e12f7a267dd6fc22b103141b8636d582396c"
   },
   "fullFlashArtifact": {
     "name": "wled-orbital-esp32dev-full-flash.bin",
     "byteLength": 1177456,
-    "sha256": "d245f7b0502c5734a3aa17027e60a2f3d5936a3397210cf867385f7cf74e81af",
+    "sha256": "98bee84b5dc0de4dd118677b2e3c340fe00c44249b7e2965b580b6ea90bf4b2b",
     "flashAddress": 0,
     "eraseAll": true,
     "flashMode": "dio",
