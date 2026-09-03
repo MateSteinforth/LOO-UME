@@ -39,6 +39,15 @@ No tasks.
 
 ## Done (latest integrations)
 
+### `P1 · DOC-010` Separate user and development documentation
+
+- Result: the root README now serves application users. Development guidance
+  has one entry point at `docs/DEVELOPMENT.md`. Internal README, firmware,
+  browser, and roadmap text matches the current repository and interface.
+- Verification: local links in all 26 Markdown files, documented npm commands,
+  user-content and stale-term guards, and diff checks passed. Integrated in
+  `main` at `cc030e9` on 2026-09-03.
+
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 
 - Result: the legacy launcher installs in `/Applications`, reuses only its
@@ -208,19 +217,7 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · DOC-010` Separate user and development documentation
-
-- Result: the root README contains installation, use, update, external-input,
-  hardware-setup, and safety guidance for application users.
-- Development result: `docs/DEVELOPMENT.md` contains checkout, server, test,
-  packaging, artifact, maintenance, source-authority, and document guidance.
-- Audit result: internal README files identify their technical audience. The
-  browser guide uses the current four toolboxes. Firmware and roadmap documents
-  no longer reference deleted or completed work.
-- Owner: `codex/doc-010-user-readme` in `/tmp/loo-ume-doc-010`.
-- Verification: local links in all 26 Markdown files passed. The root README
-  developer-content guard, stale-term guard, documented npm command check, and
-  diff check passed.
+No tasks.
 
 ## Human Review
 
