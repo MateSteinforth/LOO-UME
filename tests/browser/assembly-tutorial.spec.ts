@@ -37,12 +37,14 @@ test("loads the populated 41-panel sculpture by default", async ({ page }) => {
     .toBeVisible();
   await page.locator("#open-project-library").click();
   await expect(page.locator("#project-library-dialog #save-project"))
-    .toHaveText("Download complete project ZIP");
+    .toHaveText("Download complete ZIP");
   await page.locator("#project-library-dialog").getByRole("button", { name: "Close" }).click();
   await expect(page.locator("[data-toolbox='shape'] #load-design-surface"))
     .toHaveText("GLB");
   await expect(page.locator("[data-toolbox='mapping'] #download-madmapper-package"))
-    .toBeVisible();
+    .toHaveCount(0);
+  await expect(page.locator("#developer-utilities #download-madmapper-package"))
+    .toHaveCount(1);
   const overflowingSteps = await page.locator(".toolbox-section").evaluateAll((steps) =>
     steps
       .filter((step) => step.scrollWidth > step.clientWidth)

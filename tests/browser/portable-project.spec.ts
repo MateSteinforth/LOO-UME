@@ -396,13 +396,22 @@ test("round-trips portable folder and ZIP controls with exact browser assets", a
   const currentZipBytes = await downloadBytes(currentDownload);
   const currentFiles = relativeZipFiles(currentZipBytes);
   expect([...currentFiles.keys()].sort()).toEqual([
+    "assembly-manual.html",
     "design/tetrahedron.glb",
+    "fabrication/manufacturing-manual.pdf",
+    "fabrication/panel-labels-herma-4385.pdf",
     "manifest.json",
+    "mapping/hardware-contract.json",
+    "mapping/wiring-review.json",
     "mechanics/boundary.stl",
     "mechanics/parts/part-001.stl",
     "mechanics/parts/part-002.stl",
+    "package-manifest.json",
     "sculpture.json",
     "thumbnail.png",
+    "wled/diagnostic/deployment-manifest.diagnostic.json",
+    "wled/diagnostic/ledmap.diagnostic.json",
+    "wled/diagnostic/route-mapping.diagnostic.json",
   ]);
   for (const [path, expected] of fixture.assets) {
     expect(Buffer.from(currentFiles.get(path)!)).toEqual(expected);

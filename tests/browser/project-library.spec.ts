@@ -11,7 +11,7 @@ test("opens the 41-fixture demo from the ZIP project library", async ({ page }) 
   await expect(page.locator("#open-project-library")).toHaveText("Project Library");
   await expect(dialog.locator("#open-project-file")).toBeVisible();
   await expect(dialog.locator("#open-project-folder")).toBeVisible();
-  await expect(dialog.locator("#save-project")).toHaveText("Download complete project ZIP");
+  await expect(dialog.locator("#save-project")).toHaveText("Download complete ZIP");
   await expect(dialog.locator("#save-sculpture-file")).toBeVisible();
   await expect(dialog.locator("#export-project-folder")).toBeVisible();
   await expect(page.locator("[data-toolbox='export']")).toHaveCount(0);

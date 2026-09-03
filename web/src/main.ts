@@ -80,9 +80,9 @@ import {
   type PortableProjectFile,
 } from "./PortableProject.ts";
 import {
-  createProjectPackageZip,
   readProjectPackageSummary,
 } from "./ProjectPackage.ts";
+import { createCompleteProjectPackageZip } from "./CompleteProjectPackage.ts";
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
 import {
@@ -213,6 +213,7 @@ app.innerHTML = `
           <div class="project-toolbar__library-actions">
             <button id="open-project-library" class="pipeline-button project-library-open" type="button">Project Library</button>
             <button id="save-library-project" class="editor-button" type="button">Save</button>
+            <button id="download-complete-package" class="pipeline-button project-download" type="button">Download complete ZIP</button>
           </div>
           <output id="current-project-name" class="current-project-name">Loading project…</output>
           <select id="sculpture-select" hidden aria-hidden="true">
@@ -340,7 +341,6 @@ app.innerHTML = `
           <button id="optimize-wiring" class="editor-button" type="button">Optimize wiring</button>
           <button id="open-physical-route-review" class="editor-button" type="button" disabled>Review physical wiring</button>
           <p id="physical-route-review-availability" class="mapping-note">Connect the configured ESP32 to review its installed panel order.</p>
-          <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP</button>
           <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper receive</button>
           <output id="madmapper-preview-status" class="mapping-note" aria-live="polite">Receive stopped</output>
           <button id="madmapper-output" class="editor-button" type="button">Start sculpture output</button>
@@ -411,10 +411,10 @@ app.innerHTML = `
           </div>
           <div class="fabrication-stage">
             <div class="fabrication-stage__heading">
-              <strong>2. Download fabrication ZIP</strong>
-              <small>Download the panel labels, manufacturing manual, and every current verified 3D-print file.</small>
+              <strong>2. Download complete ZIP</strong>
+              <small>Download one editable package with every current output.</small>
             </div>
-            <button id="download-panel-labels" class="pipeline-button" type="button">Download fabrication ZIP</button>
+            <p class="toolbox-hint">Use Download complete ZIP for current project, fabrication, mapping, and output files.</p>
           </div>
           <div class="fabrication-stage">
             <div class="fabrication-stage__heading">
@@ -467,6 +467,8 @@ app.innerHTML = `
                 </div>
               </label>
               <button id="toggle-wiring-rotation-gate" class="editor-button" type="button" aria-pressed="false">Use current poses + 0/180° gate</button>
+              <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP only</button>
+              <button id="download-panel-labels" class="editor-button" type="button">Download fabrication ZIP only</button>
             </div>
           </details>
           <div id="pipeline-status" class="pipeline-status pipeline-status--history" role="log" aria-live="polite" aria-label="Activity log">
@@ -507,7 +509,7 @@ app.innerHTML = `
             <strong>Download or inspect</strong>
             <small>Downloads files through this browser. It does not add them to the library.</small>
             <div class="project-library-actions">
-              <button id="save-project" class="pipeline-button" type="button">Download complete project ZIP</button>
+              <button id="save-project" class="pipeline-button" type="button">Download complete ZIP</button>
               <button id="export-project-folder" class="editor-button" type="button">Download editable folder</button>
               <button id="save-sculpture-file" class="editor-button" type="button">Download sculpture JSON only</button>
             </div>
@@ -601,6 +603,8 @@ const projectLibraryDialog = query<HTMLDialogElement>("#project-library-dialog")
 const projectLibraryGrid = query<HTMLElement>("#project-library-grid");
 const projectLibraryStatus = query<HTMLElement>("#project-library-status");
 const saveLibraryProjectButton = query<HTMLButtonElement>("#save-library-project");
+const downloadCompletePackageButton =
+  query<HTMLButtonElement>("#download-complete-package");
 const saveProjectAsButton = query<HTMLButtonElement>("#save-project-as");
 const projectLibraryFilenameInput = query<HTMLInputElement>("#project-library-filename");
 const currentProjectName = query<HTMLOutputElement>("#current-project-name");
@@ -3230,6 +3234,20 @@ async function start(): Promise<void> {
       setLogMessage(message, true);
     };
 
+    const createCurrentAssemblyManualModel = () =>
+      createWiringAssemblyManualModel(
+        editorDefinition,
+        hardwareContract,
+        editorProject.panelProfile,
+        editorProject.source,
+      );
+    const createCurrentAssemblyManualDocument = (): string => {
+      return renderStandaloneWiringAssemblyManualDocument(
+        createCurrentAssemblyManualModel(),
+        wiringManualStyles,
+      );
+    };
+
     const projectPackageBytes = new Map<string, Uint8Array>();
     const projectThumbnailUrls: string[] = [];
     let projectLibraryRendered = false;
@@ -3258,11 +3276,25 @@ async function start(): Promise<void> {
           true,
         );
       }
-      return createProjectPackageZip(
+      const manualModel = createCurrentAssemblyManualModel();
+      return createCompleteProjectPackageZip(
         editorDefinition,
         availableProjectAssets,
+        {
+          assemblyManualHtml: createCurrentAssemblyManualDocument(),
+          manufacturingManualPdf: createManufacturingManualPdf(manualModel),
+          hardwareContract,
+          wiringReview: createWiringReview(
+            editorDefinition,
+            hardwareContract,
+            wiringPreview,
+          ),
+          mechanics: verifiedGeneratedMechanics,
+          structure: verifiedGeneratedStructure,
+          thumbnail,
+          deviceAddress: simulatorDeviceUrl?.hostname,
+        },
         portableProjectFolderName(editorDefinition),
-        thumbnail,
       );
     };
     Object.assign(window, {
@@ -3603,10 +3635,9 @@ async function start(): Promise<void> {
       })();
     });
 
-    saveProjectButton.addEventListener("click", () => {
-      projectLibraryDialog.close();
+    const downloadCompletePackage = (button: HTMLButtonElement): void => {
       void (async () => {
-        saveProjectButton.disabled = true;
+        button.disabled = true;
         try {
           const folderName = portableProjectFolderName(editorDefinition);
           const bytes = await currentProjectPackage();
@@ -3620,14 +3651,21 @@ async function start(): Promise<void> {
           link.click();
           URL.revokeObjectURL(objectUrl);
           setLogMessage(
-            `Exported ${link.download} from verified in-memory project assets.`,
+            `Exported ${link.download} with the editable project and all current output files.`,
           );
         } catch (error) {
           reportPortableError(error);
         } finally {
-          saveProjectButton.disabled = false;
+          button.disabled = false;
         }
       })();
+    };
+    downloadCompletePackageButton.addEventListener("click", () => {
+      downloadCompletePackage(downloadCompletePackageButton);
+    });
+    saveProjectButton.addEventListener("click", () => {
+      projectLibraryDialog.close();
+      downloadCompletePackage(saveProjectButton);
     });
 
     exportProjectFolderButton.addEventListener("click", () => {
@@ -3790,20 +3828,6 @@ async function start(): Promise<void> {
       addPanelButton.hidden = !hasEligibleSelection;
       addPanelButton.disabled = !hasEligibleSelection;
     });
-    const createCurrentAssemblyManualModel = () =>
-      createWiringAssemblyManualModel(
-        editorDefinition,
-        hardwareContract,
-        editorProject.panelProfile,
-        editorProject.source,
-      );
-    const createCurrentAssemblyManualDocument = (): string => {
-      return renderStandaloneWiringAssemblyManualDocument(
-        createCurrentAssemblyManualModel(),
-        wiringManualStyles,
-      );
-    };
-
     const downloadAssemblyPackage = (): void => {
       if (!verifiedGeneratedMechanics) {
         throw new Error("Build the assembly package before downloading it.");

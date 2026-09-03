@@ -35,9 +35,11 @@ segmented 1-to-2,624-pixel DDP preview with a finite fallback to the saved boot
 preset. The operator physically confirmed fallback and power-cycle playback on
 the 192-LED three-panel project. Microphones, audio-reactive presets, and custom
 effects remain deferred. LOO/UME now receives complete Art-Net frames on
-loopback and sends logical frame order through WLAN DDP. This path still needs
-the LIVE-020 three-panel review. A future custom effect belongs in a WLED
-usermod, not in patched WLED core files.
+loopback and sends logical frame order through WLAN DDP. The operator accepts
+this path without more software work. The
+complete project ZIP includes a TouchDesigner 2:1 TOP sampler that sends the
+same logical DDP order without an external plugin. A future custom effect
+belongs in a WLED usermod, not in patched WLED core files.
 
 ## Mapping
 

@@ -86,6 +86,7 @@ test("generates, previews, transports, reopens, and invalidates a structural set
   await expect(page.locator("#download-panel-labels")).toBeEnabled();
   await expect(page.locator("#printable-layer")).toBeEnabled();
 
+  await page.locator("#developer-utilities > summary").click();
   const connectorZipPromise = page.waitForEvent("download");
   await page.locator("#download-panel-labels").click();
   const connectorZipDownload = await connectorZipPromise;
@@ -290,6 +291,7 @@ test("generates the alternative full-edge LED-surface bridge", async ({ page }) 
   await expect(page.locator("#download-panel-labels")).toBeEnabled();
   await expect(page.locator("#printable-layer")).toBeEnabled();
 
+  await page.locator("#developer-utilities > summary").click();
   const bridgeZipPromise = page.waitForEvent("download");
   await page.locator("#download-panel-labels").click();
   const bridgeZip = await bridgeZipPromise;

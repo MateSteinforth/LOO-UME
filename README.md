@@ -129,22 +129,21 @@ not ordered gates; use only the tools supported by the loaded fixture:
 - **Fixtures:** place and edit pose-authoritative panels, strips, or rings.
 - **Mapping:** optimize balanced outputs, GPIOs, fixture order, and physical
    DIN/DOUT orientation. Manual route editing remains under **Advanced route
-   editor**; the MadMapper package is available here.
+   editor**. Separate mapping downloads are in **Developer utilities**.
 - **Fabrication:** generate supported planar closures, connector ribbons, or
-  LED-surface bridges; download one handoff with all current verified print
-  files, a manufacturing manual, and the HERMA 4385 panel-label PDF; isolate
-  each data connection; and flash/configure the approved ESP32 from the loaded
-  simulator contract.
-- **Export:** download the editable project ZIP and referenced verified assets.
+  LED-surface bridges; isolate each data connection; and configure the approved
+  ESP32 from the loaded simulator contract.
+- **Export:** download one editable ZIP with current print, mapping, WLED,
+  MadMapper, and TouchDesigner files.
 
 The browser runs a deterministic subset of WLED effects. Through the local
 host it can flash the receipt-bound ESP32 image, configure WLED, persist the
 selected native animation, and mirror the mapped framebuffer through bounded
 WLAN DDP. The three-panel native path is physically confirmed. LOO/UME can now
-send complete MadMapper frames through the same WLAN DDP path. This MadMapper
-path still needs a three-panel physical review. Complete 41-panel address
-parity and audio-reactive behavior remain unproved. Direct WLED Art-Net over
-Ethernet is not planned.
+send complete MadMapper frames through the same WLAN DDP path. The operator
+accepts this path as a working assumption. The complete ZIP includes a direct
+TouchDesigner DDP template. Complete 41-panel address parity and audio-reactive
+behavior remain unproved. Direct WLED Art-Net over Ethernet is not planned.
 
 ## Verification
 

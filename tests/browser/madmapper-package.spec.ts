@@ -7,20 +7,50 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
   await expect(page.locator("#pipeline-status")).toContainText(
     "No authoring surface is referenced",
   );
+  const completeButton = page.locator("#download-complete-package");
+  await expect(completeButton).toBeVisible();
+  await expect(completeButton).toBeEnabled();
+  const completeDownloadPromise = page.waitForEvent("download");
+  await completeButton.click();
+  const completeDownload = await completeDownloadPromise;
+  const projectRoot = "generated-rhombicosidodecahedron-41-panel-preview";
+  expect(completeDownload.suggestedFilename()).toBe(`${projectRoot}.zip`);
+  const completeDownloadPath = await completeDownload.path();
+  if (!completeDownloadPath) throw new Error("The browser did not expose the complete ZIP.");
+  const completeEntries = unzipSync(await readFile(completeDownloadPath));
+  const completeManifest = JSON.parse(new TextDecoder().decode(
+    completeEntries[`${projectRoot}/package-manifest.json`],
+  ));
+  expect(completeManifest).toMatchObject({
+    mappingFingerprint: "524500f5",
+    pixelCount: 2_624,
+    artifacts: {
+      editableProject: { status: "included" },
+      mapping: { status: "included" },
+      wled: { status: "included", mode: "installation" },
+      madMapper: { status: "included" },
+      touchDesigner: { status: "included" },
+    },
+  });
+  expect(completeEntries[`${projectRoot}/touchdesigner/config.json`]).toBeDefined();
+  expect(completeEntries[`${projectRoot}/madmapper/fixtures.svg`]).toBeDefined();
+
+  const developerUtilities = page.locator("#developer-utilities");
+  await developerUtilities.locator("summary").click();
   const button = page.locator("#download-madmapper-package");
   await expect(button).toBeVisible();
   await expect(button).toBeEnabled();
-  await expect(button.locator("xpath=ancestor::section[1]")).toHaveAttribute(
-    "data-toolbox",
-    "mapping",
+  await expect(button.locator("xpath=ancestor::details[1]")).toHaveAttribute(
+    "id",
+    "developer-utilities",
   );
 
   const labelButton = page.locator("#download-panel-labels");
   await expect(labelButton).toBeVisible();
   await expect(labelButton).toBeEnabled();
-  await expect(labelButton.locator("xpath=ancestor::section[1]")).toHaveAttribute(
-    "data-toolbox",
-    "fabrication",
+  await expect(labelButton.locator("xpath=ancestor::details[1]")).toHaveAttribute(
+    "id",
+    "developer-utilities",
   );
   const labelDownloadPromise = page.waitForEvent("download");
   await labelButton.click();

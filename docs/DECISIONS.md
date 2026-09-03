@@ -396,3 +396,19 @@ remains unchanged. The new logical order requires synchronized ledmap,
 diagnostic, deployment, MadMapper, and golden-fingerprint updates.
 Cross-platform parity compares address artifacts and fingerprints. It does not
 compare unrounded display coordinates from platform math libraries.
+
+## D39 — Use logical DDP order for direct TouchDesigner output
+
+The TouchDesigner template samples the 2:1 TOP at pose-derived UV coordinates.
+It stores these coordinates in logical LED order. The template sends RGB DDP
+in that order, and WLED applies the installed ledmap one time. It changes the
+top-origin mapping `v` value to TouchDesigner's bottom-origin TOP coordinate.
+
+The template uses one-frame-delayed TOP download and limits output to 30 FPS.
+It divides each frame into DDP payloads of at most 1,440 channels. Only the
+last packet has the DDP push flag. A status DAT reports the target, mapping
+fingerprint, deployment identity, frame rate, sent frames, and replaced frames.
+
+The normal project ZIP contains every current output. Optional output failures
+appear in `package-manifest.json` and do not remove independent package files.
+Separate MadMapper and fabrication ZIP downloads remain in Developer utilities.

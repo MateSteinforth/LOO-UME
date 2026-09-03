@@ -443,7 +443,13 @@ power-cycle playback on the 192-LED three-panel project. Direct WLED Art-Net
 and Ethernet remain absent. LOO/UME now receives complete MadMapper Art-Net
 frames locally. A separate control sends logical frame order through WLAN DDP,
 so WLED applies the installed ledmap one time. The queue keeps the latest frame
-during backpressure. This path still needs the LIVE-020 three-panel review.
+during backpressure. The operator accepts this behavior as a working assumption.
+
+The complete project package also contains a TouchDesigner template. Its
+configuration lists pose-derived UV samples in logical LED order. The included
+Execute DAT script reads one 2:1 TOP and sends bounded RGB DDP packets. It uses
+TouchDesigner NumPy and Python sockets, so it needs no external plugin. Its
+status table reports the target, fingerprint, frame rate, and replaced frames.
 
 The mapping claim is static address and RGB parity for the selected pinned WLED
 target. Matching effect names or WASM frames does not prove

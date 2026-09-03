@@ -59,6 +59,7 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
     { timeout: 120_000 },
   );
 
+  await page.locator("#developer-utilities > summary").click();
   const fabricationPromise = page.waitForEvent("download");
   await page.locator("#download-panel-labels").click();
   const fabricationDownload = await fabricationPromise;

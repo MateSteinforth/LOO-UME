@@ -55,6 +55,8 @@ edit marks derived mechanics stale but does not stop those functions.
    patch manifest from a mapping-ready hardware contract.
    `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
    final network values remain evidence-gated.
+   `createTouchDesignerPackageFiles()` adds a 2:1 TOP sampler and bounded DDP
+   sender. The sender uses logical LED order, so WLED applies its ledmap once.
 6. `createHerma4385PanelLabelsPdf()` places current Schema 2 panel IDs on the
    measured 15 x 21 A4 stock grid. Printer registration remains
    outside the document geometry. The simulator anchors the same
@@ -70,9 +72,10 @@ edit marks derived mechanics stale but does not stop those functions.
    `.loo.zip` format used by demo, local-library, backup, and transfer projects.
    It embeds a manifest and thumbnail. New browser saves use one 480 x 300
    WebGL render with the current viewport direction and mapping-fit camera;
-   older pose-derived SVG thumbnails remain loadable. The assembly package
-   separately joins project JSON, verified GLB/STL bytes, printable manual,
-   ledmap, and wiring review.
+   older pose-derived SVG thumbnails remain loadable.
+   `createCompleteProjectPackageZip()` adds all current fabrication, mapping,
+   WLED, MadMapper, and TouchDesigner files to this editable project package.
+   Its package manifest records each unavailable optional output.
 
 There is no project database or browser-local project authority. Persistence
 uses a folder of validated project ZIPs. Repository demo ZIPs are deterministic
@@ -161,12 +164,11 @@ Browser/LAN and managed-checkout launch modes remain supported review and
 development paths.
 
 Electron grants Web Serial only to its own loopback editor origin and only for
-the approved Silicon Labs CP2102 USB identity. MadMapper or TouchDesigner still
-sends Art-Net to `127.0.0.1:6454`; the existing mapping and preview path consumes
-that frame. The private-device DDP broker sends simulator or complete MadMapper
-frames to WLED. Electron does not add a second mapping or transport
-implementation. The loopback Art-Net-to-WLAN DDP path now needs its LIVE-020
-three-panel physical review.
+the approved Silicon Labs CP2102 USB identity. MadMapper sends Art-Net to
+`127.0.0.1:6454`; the existing preview path consumes that frame. The
+private-device DDP broker sends simulator or complete MadMapper frames to WLED.
+The TouchDesigner template samples its TOP in logical order and sends bounded
+DDP directly to WLED. The operator accepts LIVE-020 as a working assumption.
 
 Packaged Electron updates reuse the update-notice HTTP contract through
 `electron-updater`. A release tag must be contained in canonical `main`, and a
@@ -276,15 +278,13 @@ The sidebar has no wizard state or numbered progression. Project and View remain
 available, followed by always-editable Shape, Fixtures, Mapping, and Fabrication
 toolboxes. Project keeps one quick Save beside the Project Library entry point;
 the dialog owns the longer file actions. Animation controls stay in View
-because they remain useful throughout the work. Mapping owns route optimization, its
-advanced editor, and the mapping-ready MadMapper ZIP. Fabrication has four
-always-editable groups: part generation, a single ZIP containing the HERMA 4385
-panel-label PDF, a current wiring-derived manufacturing manual PDF, every
-current verified planar STL, and the complete displayed verified structural
-connector package; the
-connection-by-connection assembly tutorial, and ESP32 setup. Each loaded fixture
-profile controls which part-generation actions are enabled; mapping, simulation,
-hardware setup, and project export do not wait for an irrelevant fabrication step.
+because they remain useful throughout the work. Mapping owns route optimization
+and its advanced editor. One normal project action downloads the editable
+project with all current fabrication, mapping, WLED, MadMapper, and
+TouchDesigner files. Separate MadMapper and fabrication ZIP controls are in
+Developer utilities. Fabrication keeps part generation, the assembly tutorial,
+and ESP32 setup. Each loaded fixture profile controls part-generation actions.
+Mapping, simulation, hardware setup, and export remain independent.
 The renderer offsets rigid-panel LED sprites 2.4 mm along each panel's outward
 normal. Explicit radial-frame flexible-path emitters define their physical
 outside surface positions and receive no additional panel-normal offset. Both rules are
@@ -428,10 +428,10 @@ the MadMapper fixture atlas. The downloaded MadMapper package includes one
 importable unicast routing-table row for each of those universes. The service
 publishes only complete RGB frames through a same-origin binary HTTP stream.
 The browser maps those physical indices back to the current logical renderer
-indices and shows them on the pose-derived 3D LEDs. A project/fingerprint change
-stops the stream; a one-second signal timeout shows the native simulation again.
-This path does
-not change authored data, send DDP, or require an ESP32.
+indices and shows them on the pose-derived 3D LEDs. A separate control sends
+the complete logical frame through bounded WLAN DDP. Project, mapping, device,
+setup, and physical-review changes stop output. A one-second signal timeout
+shows the native simulation again.
 
 `src/wled/DiagnosticFrames.ts` derives deterministic low-brightness, one-pixel
 frames from the same deployment identity and mapping contract. Its bounded HTTP

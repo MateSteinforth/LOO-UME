@@ -25,6 +25,8 @@
     "web/src/HardwareMapping.ts",
     "web/src/MadMapperExport.ts",
     "web/src/MadMapperPackage.ts",
+    "web/src/TouchDesignerPackage.ts",
+    "web/src/CompleteProjectPackage.ts",
     "web/src/ArtNetPreview.ts",
     "web/src/MadMapperOutput.ts",
     "web/src/PanelLabelSheet.ts",

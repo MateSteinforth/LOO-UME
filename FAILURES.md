@@ -2590,3 +2590,18 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** GitHub workflow run 33735439353 produced the same tests and
   fingerprint on Ubuntu and macOS. Only raw `v` JSON values differed.
 - **Status:** Resolved by MAP-021.
+
+### F-139 — A temporary worktree did not contain the Playwright browser
+
+- **Date:** 2026-09-03
+- **Context:** TD-010 focused Chromium package review.
+- **Symptom:** Playwright could not find its browser below the temporary
+  worktree's `.tools/playwright/` path.
+- **Cause:** The shared browser installation exists only in the main checkout.
+  The temporary worktree did not include that ignored directory.
+- **Correction:** Link the main checkout's verified `.tools` directory into the
+  temporary worktree. Then run the test with `CI=1`.
+- **Prevention:** Before a worktree browser test, check both `node_modules` and
+  `.tools/playwright`. Link the verified shared directories when necessary.
+- **Evidence:** The focused Chromium test passed after the `.tools` link.
+- **Status:** Resolved.

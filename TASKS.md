@@ -4,8 +4,8 @@ Last reconciled: 2026-09-03
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: send live MadMapper frames to WLED through the proved WLAN
-DDP path.
+Current milestone: deliver one complete package with direct TouchDesigner DDP
+output.
 
 ## Control rules
 
@@ -230,23 +230,26 @@ No tasks.
 
 ## In Progress
 
-### `P1 · TD-010` Export one complete project package with TouchDesigner output
-
-- Scope: make the normal download contain the editable project, current print
-  files, mapping, WLED, MadMapper, and TouchDesigner deliverables.
-- TouchDesigner path: accept one 2:1 TOP, sample the current pose-derived UV
-  positions in logical LED order, and send bounded DDP frames through WLAN.
-- Acceptance: include one template without an external plugin. Report its
-  target, mapping fingerprint, frame rate, and replaced frames.
-- Dependency decision: the operator accepted LIVE-020 behavior as an
-  assumption on 2026-09-03. Correct TD-010 if later hardware evidence differs.
-- Owner: `codex/td-010-touchdesigner-package` in `/tmp/loo-ume-td-010`.
-- Likely conflicts: package generation, MadMapper package output, mapping
-  documentation, browser controls, and LIVE-020 output interfaces.
+No tasks.
 
 ## Human Review
 
-No tasks.
+### `P1 · TD-010` Export one complete project package with TouchDesigner output
+
+- Result: one normal ZIP contains the editable project, current print files,
+  mapping, WLED, MadMapper, and TouchDesigner output. Optional output status
+  and file hashes are in `package-manifest.json`.
+- TouchDesigner result: the included Execute DAT script samples one 2:1 TOP in
+  logical LED order. It sends bounded RGB DDP and reports target, mapping
+  fingerprint, deployment identity, frame rate, and replaced frames.
+- Review: open the template in TouchDesigner. Confirm one 2:1 image on the
+  virtual sculpture, then confirm low-brightness WLAN output on the panels.
+- Dependency decision: the operator accepted LIVE-020 behavior as an
+  assumption on 2026-09-03. Correct TD-010 if later hardware evidence differs.
+- Owner: `codex/td-010-touchdesigner-package` in `/tmp/loo-ume-td-010`.
+- Verification: 75 focused unit tests, eight focused Chromium journeys, Python
+  syntax, application and Node TypeScript, and the desktop build passed.
+  One library-count assertion found two existing local packages.
 
 ## Blocked
 
