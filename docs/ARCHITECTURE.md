@@ -56,7 +56,7 @@ edit marks derived mechanics stale but does not stop those functions.
    `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
    final network values remain evidence-gated.
    `createTouchDesignerPackageFiles()` adds a 2:1 TOP sampler and bounded DDP
-   sender. The sender uses logical LED order, so WLED applies its ledmap once.
+   sender. The sender targets the simulator in logical LED order.
 6. `createHerma4385PanelLabelsPdf()` places current Schema 2 panel IDs on the
    measured 15 x 21 A4 stock grid. Printer registration remains
    outside the document geometry. The simulator anchors the same
@@ -154,8 +154,8 @@ release. Apple notarization is not claimed.
 The Electron desktop package reuses the compiled browser editor and the Node
 service modules in one application process. Its internal HTTP server listens
 on a random loopback port. The Electron main process owns Project Library
-storage below the application user-data directory, generated files, logs, the
-loopback Art-Net receiver, private-network WLED HTTP/DDP access, and shutdown.
+storage, generated files, logs, Art-Net and DDP receivers, private WLED access,
+and shutdown.
 Closing the last Electron window quits the application and closes its local
 service on every platform. A later icon launch starts one new process and one
 new window. This explicit lifecycle makes Finder removal unambiguous and does
@@ -166,9 +166,9 @@ development paths.
 Electron grants Web Serial only to its own loopback editor origin and only for
 the approved Silicon Labs CP2102 USB identity. MadMapper sends Art-Net to
 `127.0.0.1:6454`; the existing preview path consumes that frame. The
-private-device DDP broker sends simulator or complete MadMapper frames to WLED.
-The TouchDesigner template samples its TOP in logical order and sends bounded
-DDP directly to WLED. The operator accepts LIVE-020 as a working assumption.
+private-device DDP broker sends the visible simulator frame to WLED.
+The TouchDesigner template samples its TOP in logical order. It sends bounded
+DDP to the simulator. The operator accepts LIVE-020 as a working assumption.
 
 Packaged Electron updates reuse the update-notice HTTP contract through
 `electron-updater`. A release tag must be contained in canonical `main`, and a
@@ -420,7 +420,7 @@ The operator physically confirmed on the 192-LED three-panel project that WLED
 leaves DDP realtime mode and runs the saved native animation. A USB power cycle
 also restored the same animation without the simulator.
 
-The MadMapper virtual preview is a separate loopback-only input path. While the
+The simulator accepts external frames through two bounded input paths. While the
 operator enables it, the desktop service shares UDP `127.0.0.1:6454` with
 MadMapper through address reuse, accepts only bounded ArtDMX packets from
 loopback, and assembles the exact consecutive physical universes exported in
@@ -428,10 +428,12 @@ the MadMapper fixture atlas. The downloaded MadMapper package includes one
 importable unicast routing-table row for each of those universes. The service
 publishes only complete RGB frames through a same-origin binary HTTP stream.
 The browser maps those physical indices back to the current logical renderer
-indices and shows them on the pose-derived 3D LEDs. A separate control sends
-the complete logical frame through bounded WLAN DDP. Project, mapping, device,
-setup, and physical-review changes stop output. A one-second signal timeout
-shows the native simulation again.
+indices and shows them on the pose-derived 3D LEDs. The DDP service listens on
+UDP port 4048 for local and LAN senders. It accepts only complete bounded RGB
+frames in logical order. The newest complete Art-Net or DDP frame controls the
+simulator. When WLED connects, the browser forwards that visible logical frame
+through bounded WLAN DDP. Project and mapping changes restart the DDP input.
+A one-second signal timeout shows and forwards the native simulation again.
 
 `src/wled/DiagnosticFrames.ts` derives deterministic low-brightness, one-pixel
 frames from the same deployment identity and mapping contract. Its bounded HTTP
@@ -467,6 +469,8 @@ current values are copied operating assumptions, not electrical approval.
 | `scripts/esp32-device-handler.ts` | Loopback-only, bounded private WLED HTTP and 1-to-2,624-pixel segmented DDP broker |
 | `scripts/artnet-frame-assembler.ts` | Transport-independent bounded ArtDMX validation and complete physical-frame assembly |
 | `scripts/artnet-preview-handler.ts` | Dedicated loopback-address UDP 6454 receiver and same-origin binary browser stream |
+| `scripts/ddp-frame-assembler.ts` | Bounded complete logical DDP frame validation for local and LAN senders |
+| `scripts/ddp-preview-handler.ts` | UDP 4048 receiver and same-origin binary simulator stream |
 | `tests/browser/` | Real Chromium operator journeys |
 | `wasm/` | Deterministic subset of WLED 1D effects, not firmware |
 | `firmware/` | ESP32 receipt, setup procedure, and smoke configuration; WLED build tooling and binaries stay off-main |

@@ -38,7 +38,6 @@ describe("complete project package", () => {
       manufacturingManualPdf: new TextEncoder().encode("%PDF manufacturing"),
       hardwareContract: contract,
       wiringReview: { status: wiring.status, fingerprint: contract.fingerprint },
-      deviceAddress: "192.168.1.44",
     };
     const first = createCompleteProjectPackageZip(
       project.sculpture,

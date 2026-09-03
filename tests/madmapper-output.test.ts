@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   logicalPixelsToRgbFramebuffer,
-  MadMapperOutputQueue,
-} from "../web/src/MadMapperOutput.ts";
+  ExternalFrameMirrorQueue,
+} from "../web/src/ExternalFrameMirror.ts";
 
-describe("MadMapper sculpture output", () => {
+describe("external frame sculpture mirror", () => {
   it("converts logical packed colors without changing their order", () => {
     expect(logicalPixelsToRgbFramebuffer(
       Uint32Array.from([0xff0000, 0x00ff00, 0x0000ff]),
@@ -18,7 +18,7 @@ describe("MadMapper sculpture output", () => {
   it("keeps only the latest frame while one send is active", async () => {
     const resolvers: Array<() => void> = [];
     const sent: number[] = [];
-    const queue = new MadMapperOutputQueue();
+    const queue = new ExternalFrameMirrorQueue();
     queue.start({
       send: (pixels) => new Promise<void>((resolve) => {
         sent.push(pixels[0]![0]);
@@ -41,7 +41,7 @@ describe("MadMapper sculpture output", () => {
     const send = vi.fn(() => new Promise<void>((resolve) => {
       resolveFirst = resolve;
     }));
-    const queue = new MadMapperOutputQueue();
+    const queue = new ExternalFrameMirrorQueue();
     queue.start({ send });
     queue.push([[1, 0, 0]]);
     queue.push([[2, 0, 0]]);

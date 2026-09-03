@@ -7,7 +7,7 @@ const DDP_CHANNELS_PER_PACKET = 1_440;
 const DEFAULT_FRAME_RATE = 30;
 
 export interface TouchDesignerPackageOptions {
-  targetAddress?: string;
+  simulatorAddress?: string;
 }
 
 export interface TouchDesignerPixelSample {
@@ -27,7 +27,7 @@ export interface TouchDesignerConfig {
   target: {
     address: string;
     port: typeof DDP_PORT;
-    status: "verified-runtime" | "saved-mdns-default";
+    status: "local-default" | "configured-private-host";
   };
   mappingFingerprint: string;
   mappingFingerprintVersion: HardwareMappingContract["fingerprintVersion"];
@@ -46,11 +46,12 @@ function jsonBytes(value: unknown): Uint8Array {
 }
 
 function validTargetAddress(value: string): boolean {
-  if (value === "loo-ume.local") return true;
+  if (value === "loo-ume.local" || value === "localhost") return true;
   const parts = value.split(".").map(Number);
   return parts.length === 4 && parts.every((part) =>
     Number.isInteger(part) && part >= 0 && part <= 255
   ) && (
+    parts[0] === 127 ||
     parts[0] === 10 ||
     (parts[0] === 172 && parts[1]! >= 16 && parts[1]! <= 31) ||
     (parts[0] === 192 && parts[1] === 168)
@@ -65,9 +66,9 @@ export function createTouchDesignerConfig(
   if (!contract.readiness.mappingReady) {
     throw new Error("TouchDesigner output requires a current mapping-ready address contract.");
   }
-  const targetAddress = options.targetAddress ?? "loo-ume.local";
-  if (!validTargetAddress(targetAddress)) {
-    throw new Error("TouchDesigner output requires the saved mDNS name or a private IPv4 address.");
+  const simulatorAddress = options.simulatorAddress ?? "127.0.0.1";
+  if (!validTargetAddress(simulatorAddress)) {
+    throw new Error("TouchDesigner output requires a local name or a private IPv4 address.");
   }
   const entries = [...contract.mapping.entries]
     .sort((first, second) => first.logicalIndex - second.logicalIndex);
@@ -84,9 +85,9 @@ export function createTouchDesignerConfig(
     addressOrder: "logical-effect-order",
     wledLedmapApplications: 1,
     target: {
-      address: targetAddress,
+      address: simulatorAddress,
       port: DDP_PORT,
-      status: options.targetAddress ? "verified-runtime" : "saved-mdns-default",
+      status: options.simulatorAddress ? "configured-private-host" : "local-default",
     },
     mappingFingerprint: contract.fingerprint,
     mappingFingerprintVersion: contract.fingerprintVersion,
@@ -132,11 +133,12 @@ def _load_config():
 def _write_status(state, error=""):
     config = state["config"]
     status = {
-        "target": "{}:{}".format(config["target"]["address"], config["target"]["port"]),
+        "simulatorTarget": "{}:{}".format(config["target"]["address"], config["target"]["port"]),
         "mappingFingerprint": config["mappingFingerprint"],
         "deploymentIdentity": config["deploymentIdentity"],
         "frameRate": config["frameRate"],
         "sentFrames": state["sentFrames"],
+        "sentPackets": state["sentPackets"],
         "replacedFrames": state["replacedFrames"],
         "error": error,
     }
@@ -190,6 +192,7 @@ def onStart():
         "nextFrameAt": 0.0,
         "sentFrames": 0,
         "replacedFrames": 0,
+        "sentPackets": 0,
         "lastReportAt": 0.0,
     }
     _write_status(_state)
@@ -212,6 +215,7 @@ def onFrameStart(frame):
         target = (config["target"]["address"], config["target"]["port"])
         for packet in _ddp_packets(payload, _state):
             _state["socket"].sendto(packet, target)
+            _state["sentPackets"] += 1
         _state["sentFrames"] += 1
         _state["nextFrameAt"] = now + 1.0 / config["frameRate"]
         if now - _state["lastReportAt"] >= 1.0:
@@ -236,8 +240,8 @@ function touchDesignerReadme(config: TouchDesignerConfig): string {
   return [
     "LOO/UME TOUCHDESIGNER DDP TEMPLATE",
     "",
-    `Target: ${config.target.address}:${config.target.port}`,
-    `Target status: ${config.target.status}`,
+    `Simulator target: ${config.target.address}:${config.target.port}`,
+    `Simulator target status: ${config.target.status}`,
     `Mapping fingerprint: ${config.mappingFingerprint}`,
     `Deployment identity: ${config.deploymentIdentity}`,
     `LED count: ${config.pixelCount}`,
@@ -256,7 +260,11 @@ function touchDesignerReadme(config: TouchDesignerConfig): string {
     "9. Test one low-brightness pixel before full output.",
     "",
     "The script samples normalized pose-derived UV positions in logical LED order.",
-    "The script sends RGB DDP. WLED applies the installed ledmap one time.",
+    "The script sends each RGB DDP frame to the simulator.",
+    "Keep LOO/UME open on the TouchDesigner computer for the local simulator target.",
+    "Set the simulator address to its LAN address when LOO/UME runs on another computer.",
+    "LOO/UME forwards the visible simulator frame when the configured WLED sculpture is connected.",
+    "WLED applies the installed ledmap one time. The simulator uses the same logical input.",
     "NumPy and Python sockets are included with TouchDesigner. No external plugin is required.",
     "",
   ].join("\n");

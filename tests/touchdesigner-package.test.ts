@@ -36,7 +36,7 @@ describe("TouchDesigner package", () => {
     const config = createTouchDesignerConfig(
       contract,
       sculptureJson(project.sculpture),
-      { targetAddress: "192.168.1.44" },
+      { simulatorAddress: "192.168.1.44" },
     );
 
     expect(config).toMatchObject({
@@ -46,7 +46,7 @@ describe("TouchDesigner package", () => {
       target: {
         address: "192.168.1.44",
         port: 4048,
-        status: "verified-runtime",
+        status: "configured-private-host",
       },
       mappingFingerprint: "524500f5",
       pixelCount: 2_624,
@@ -87,6 +87,7 @@ describe("TouchDesigner package", () => {
     const readme = new TextDecoder().decode(first.get("README.txt"));
     expect(readme).toContain("No external plugin is required");
     expect(readme).toContain("Replaced frames");
+    expect(readme).toContain("forwards the visible simulator frame");
     const script = touchDesignerDdpScript();
     expect(script).toContain("numpyArray(delayed=True)");
     expect(script).toContain('(1.0 - pixel["v"]) * (height - 1)');
@@ -110,7 +111,7 @@ describe("TouchDesigner package", () => {
     expect(() => createTouchDesignerConfig(
       flagship.contract,
       sculptureJson(flagship.project.sculpture),
-      { targetAddress: "8.8.8.8" },
+      { simulatorAddress: "8.8.8.8" },
     )).toThrow(/private IPv4/);
   });
 });

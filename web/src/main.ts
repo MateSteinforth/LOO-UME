@@ -106,9 +106,13 @@ import {
   physicalRgbToLogicalPixels,
 } from "./ArtNetPreview.ts";
 import {
+  DdpPreviewClient,
+  logicalRgbToPixels,
+} from "./DdpPreview.ts";
+import {
+  ExternalFrameMirrorQueue,
   logicalPixelsToRgbFramebuffer,
-  MadMapperOutputQueue,
-} from "./MadMapperOutput.ts";
+} from "./ExternalFrameMirror.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
 import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
 import {
@@ -343,8 +347,8 @@ app.innerHTML = `
           <p id="physical-route-review-availability" class="mapping-note">Connect the configured ESP32 to review its installed panel order.</p>
           <button id="madmapper-preview" class="editor-button" type="button">Start MadMapper receive</button>
           <output id="madmapper-preview-status" class="mapping-note" aria-live="polite">Receive stopped</output>
-          <button id="madmapper-output" class="editor-button" type="button">Start sculpture output</button>
-          <output id="madmapper-output-status" class="mapping-note" aria-live="polite">Output stopped</output>
+          <output id="ddp-preview-status" class="mapping-note" aria-live="polite">DDP simulator input is starting</output>
+          <output id="sculpture-mirror-status" class="mapping-note" aria-live="polite">Sculpture mirror waits for ESP32</output>
           <div id="controller-position-section" class="controller-position-controls">
             <p id="controller-position-status" class="mapping-note"></p>
             <button id="reset-controller-position" class="editor-button" type="button">Use suggested position</button>
@@ -709,8 +713,8 @@ const downloadPanelLabelsButton =
   query<HTMLButtonElement>("#download-panel-labels");
 const madMapperPreviewButton = query<HTMLButtonElement>("#madmapper-preview");
 const madMapperPreviewStatus = query<HTMLOutputElement>("#madmapper-preview-status");
-const madMapperOutputButton = query<HTMLButtonElement>("#madmapper-output");
-const madMapperOutputStatus = query<HTMLOutputElement>("#madmapper-output-status");
+const ddpPreviewStatus = query<HTMLOutputElement>("#ddp-preview-status");
+const sculptureMirrorStatus = query<HTMLOutputElement>("#sculpture-mirror-status");
 const controlPanel = query<HTMLElement>(".control-panel");
 const openPhysicalRouteReviewButton =
   query<HTMLButtonElement>("#open-physical-route-review");
@@ -977,13 +981,19 @@ async function start(): Promise<void> {
       reviewedSculpture: LoadedSculpture;
     } | undefined;
     const artNetPreviewClient = new ArtNetPreviewClient();
-    const madMapperOutputQueue = new MadMapperOutputQueue();
-    let madMapperOutputAbortController: AbortController | undefined;
+    const ddpPreviewClient = new DdpPreviewClient();
+    const externalFrameMirrorQueue = new ExternalFrameMirrorQueue();
+    let externalFrameMirrorAbortController: AbortController | undefined;
     let artNetPreviewPixels: Uint32Array | undefined;
     let artNetPreviewLastFrameAt = 0;
     let artNetPreviewTimedOut = false;
     let artNetPreviewRevision = 0;
     let artNetPreviewFrameTimes: number[] = [];
+    let ddpPreviewPixels: Uint32Array | undefined;
+    let ddpPreviewLastFrameAt = 0;
+    let ddpPreviewTimedOut = false;
+    let ddpPreviewRevision = 0;
+    let ddpPreviewFrameTimes: number[] = [];
 
     const stopMadMapperPreview = (message?: string): void => {
       artNetPreviewRevision += 1;
@@ -997,44 +1007,33 @@ async function start(): Promise<void> {
       if (message) setLogMessage(message);
     };
 
-    const updateMadMapperOutputAvailability = (): void => {
-      madMapperOutputButton.disabled =
-        !hardwareContract.readiness.mappingReady ||
-        simulatorDeviceUrl === undefined ||
-        simulatorSetupActive ||
-        physicalRouteReviewSession !== undefined;
-      madMapperOutputButton.title = !hardwareContract.readiness.mappingReady
-        ? "Confirm the authored route and panel addressing before sculpture output."
-        : simulatorDeviceUrl === undefined
-        ? "Connect the configured ESP32 before sculpture output."
-        : "Send complete received MadMapper frames to WLED through WLAN DDP.";
+    const updateExternalFrameMirrorAvailability = (): void => {
+      if (externalFrameMirrorQueue.active) return;
+      sculptureMirrorStatus.textContent = simulatorDeviceUrl
+        ? "Sculpture mirror is ready"
+        : "Sculpture mirror waits for ESP32";
     };
 
-    const stopMadMapperOutput = (message?: string): void => {
-      madMapperOutputAbortController?.abort();
-      madMapperOutputAbortController = undefined;
-      madMapperOutputQueue.stop();
-      madMapperOutputButton.textContent = "Start sculpture output";
-      madMapperOutputStatus.textContent = "Output stopped";
-      updateMadMapperOutputAvailability();
+    const stopExternalFrameMirror = (message?: string): void => {
+      externalFrameMirrorAbortController?.abort();
+      externalFrameMirrorAbortController = undefined;
+      externalFrameMirrorQueue.stop();
+      updateExternalFrameMirrorAvailability();
       if (message) setLogMessage(message);
     };
 
-    const startMadMapperOutput = (): void => {
-      if (madMapperOutputQueue.active) {
-        stopMadMapperOutput("MadMapper sculpture output stopped. The native WLED preview resumed.");
+    const startExternalFrameMirror = (): void => {
+      if (externalFrameMirrorQueue.active) return;
+      if (!hardwareContract.readiness.mappingReady) {
         return;
       }
-      if (!hardwareContract.readiness.mappingReady) {
-        throw new Error("Confirm the authored route and panel addressing before sculpture output.");
-      }
       const deviceUrl = simulatorDeviceUrl;
-      if (!deviceUrl) throw new Error("Connect the configured ESP32 before sculpture output.");
+      if (!deviceUrl || simulatorSetupActive || physicalRouteReviewSession) return;
       const expectedFingerprint = hardwareContract.fingerprint;
       const expectedProjectRevision = simulatorProjectRevision;
       const abortController = new AbortController();
-      madMapperOutputAbortController = abortController;
-      madMapperOutputQueue.start({
+      externalFrameMirrorAbortController = abortController;
+      externalFrameMirrorQueue.start({
         send: async (pixels) => {
           await simulatorFrameRequest?.catch(() => undefined);
           if (
@@ -1042,25 +1041,28 @@ async function start(): Promise<void> {
             simulatorDeviceUrl?.href !== deviceUrl.href ||
             hardwareContract.fingerprint !== expectedFingerprint ||
             simulatorProjectRevision !== expectedProjectRevision
-          ) throw new DOMException("MadMapper sculpture output stopped.", "AbortError");
+          ) throw new DOMException("Sculpture mirror stopped.", "AbortError");
           await sendSimulatorFramebuffer(deviceUrl, pixels, abortController.signal);
         },
         onStatistics: ({ sentFrames, replacedFrames }) => {
-          madMapperOutputStatus.textContent =
-            `${sentFrames} frame${sentFrames === 1 ? "" : "s"} sent · ` +
+          sculptureMirrorStatus.textContent =
+            `${sentFrames} visible frame${sentFrames === 1 ? "" : "s"} mirrored · ` +
             `${replacedFrames} frame${replacedFrames === 1 ? "" : "s"} replaced`;
         },
         onError: (error) => {
-          stopMadMapperOutput();
+          stopExternalFrameMirror();
           setLogMessage(
-            `MadMapper sculpture output stopped: ${error instanceof Error ? error.message : String(error)}`,
+            `Sculpture mirror stopped: ${error instanceof Error ? error.message : String(error)}`,
             true,
           );
         },
       });
-      madMapperOutputButton.textContent = "Stop sculpture output";
-      madMapperOutputStatus.textContent = "Waiting for a complete Art-Net frame";
-      setLogMessage(`MadMapper sculpture output started at ${deviceUrl.host} through WLAN DDP.`);
+      sculptureMirrorStatus.textContent = "Sculpture mirror is active";
+    };
+
+    const mirrorExternalFrame = (pixels: Uint32Array): void => {
+      startExternalFrameMirror();
+      externalFrameMirrorQueue.push(logicalPixelsToRgbFramebuffer(pixels));
     };
 
     const startMadMapperPreview = (): void => {
@@ -1095,11 +1097,7 @@ async function start(): Promise<void> {
             frame.physicalRgb,
             hardwareContract.mapping.entries,
           );
-          if (madMapperOutputQueue.active) {
-            madMapperOutputQueue.push(
-              logicalPixelsToRgbFramebuffer(artNetPreviewPixels),
-            );
-          }
+          mirrorExternalFrame(artNetPreviewPixels);
           artNetPreviewLastFrameAt = performance.now();
           artNetPreviewTimedOut = false;
           artNetPreviewFrameTimes.push(artNetPreviewLastFrameAt);
@@ -1118,6 +1116,48 @@ async function start(): Promise<void> {
           true,
         );
       });
+    };
+
+    const startDdpPreview = (): void => {
+      const revision = ++ddpPreviewRevision;
+      ddpPreviewClient.stop();
+      ddpPreviewPixels = undefined;
+      ddpPreviewLastFrameAt = 0;
+      ddpPreviewTimedOut = false;
+      ddpPreviewFrameTimes = [];
+      if (mapping.entries.length < 1 || mapping.entries.length > 2_624) {
+        ddpPreviewStatus.textContent = "DDP input needs from 1 through 2,624 LEDs";
+        return;
+      }
+      ddpPreviewStatus.textContent = "Waiting for DDP on UDP 4048";
+      setTimeout(() => {
+        if (revision !== ddpPreviewRevision) return;
+        void ddpPreviewClient.start({
+          pixelCount: mapping.entries.length,
+          mappingFingerprint: hardwareContract.fingerprint,
+          onFrame: (frame) => {
+            if (revision !== ddpPreviewRevision) return;
+            ddpPreviewPixels = logicalRgbToPixels(frame.logicalRgb, mapping.entries.length);
+            ddpPreviewLastFrameAt = performance.now();
+            ddpPreviewTimedOut = false;
+            ddpPreviewFrameTimes.push(ddpPreviewLastFrameAt);
+            ddpPreviewFrameTimes = ddpPreviewFrameTimes.filter(
+              (time) => ddpPreviewLastFrameAt - time < 1_000,
+            );
+            ddpPreviewStatus.textContent =
+              `${ddpPreviewFrameTimes.length} FPS DDP · ` +
+              `${frame.incompleteFrames} incomplete · ${frame.rejectedPackets} rejected`;
+            mirrorExternalFrame(ddpPreviewPixels);
+          },
+        }).catch((error) => {
+          if (revision !== ddpPreviewRevision) return;
+          ddpPreviewStatus.textContent = "DDP simulator input unavailable";
+          setLogMessage(
+            `DDP simulator input failed: ${error instanceof Error ? error.message : String(error)}`,
+            true,
+          );
+        });
+      }, 50);
     };
 
     const reconnectStorage = (): Storage | undefined => {
@@ -1233,7 +1273,7 @@ async function start(): Promise<void> {
       simulatorLedmapUpdateAuthorized = false;
       nextSimulatorFrameAt = 0;
       simulatorLinkFailed = false;
-      updateMadMapperOutputAvailability();
+      updateExternalFrameMirrorAvailability();
       setLogMessage(
         `${reconnected ? "Reconnected" : "Standalone animation saved and live preview started"} at ${deviceUrl.host} for ${panelCount} panel${panelCount === 1 ? "" : "s"} (${ledCount} LEDs) on GPIO ${outputs.map((output) => output.gpio).join(", ")}.`,
       );
@@ -1255,7 +1295,7 @@ async function start(): Promise<void> {
         : simulatorDeviceUrl
         ? `Ready to review ${hardwareContract.outputs.reduce((sum, output) => sum + output.panelIds.length, 0)} physical panels at ${simulatorDeviceUrl!.host}.`
         : "No ESP32 is connected. Review will run on the virtual sculpture only.";
-      updateMadMapperOutputAvailability();
+      updateExternalFrameMirrorAvailability();
     };
     updatePhysicalRouteReviewAvailability();
 
@@ -1429,8 +1469,8 @@ async function start(): Promise<void> {
       if (artNetPreviewClient.active) {
         stopMadMapperPreview("MadMapper preview stopped for physical wiring review.");
       }
-      if (madMapperOutputQueue.active) {
-        stopMadMapperOutput("MadMapper sculpture output stopped for physical wiring review.");
+      if (externalFrameMirrorQueue.active) {
+        stopExternalFrameMirror("Sculpture mirror stopped for physical wiring review.");
       }
       if (standaloneSaveTimer) {
         clearTimeout(standaloneSaveTimer);
@@ -1573,8 +1613,8 @@ async function start(): Promise<void> {
         simulatorSetupActive = active;
         updatePhysicalRouteReviewAvailability();
         if (!active) return;
-        if (madMapperOutputQueue.active) {
-          stopMadMapperOutput("MadMapper sculpture output stopped because the ESP32 connection changed.");
+        if (externalFrameMirrorQueue.active) {
+          stopExternalFrameMirror("Sculpture mirror stopped because the ESP32 connection changed.");
         }
         simulatorDeviceUrl = undefined;
         simulatorLinkFailed = false;
@@ -1681,7 +1721,7 @@ async function start(): Promise<void> {
       madMapperPreviewButton.title = hardwareContract.readiness.mappingReady
         ? "Receive the generated physical Art-Net patch on loopback and show it on the 3D sculpture."
         : "Confirm the authored route and panel addressing before MadMapper preview.";
-      updateMadMapperOutputAvailability();
+      updateExternalFrameMirrorAvailability();
       generateStructureButton.disabled =
         !capabilities.canGenerateStructuralMechanics;
       generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
@@ -2227,8 +2267,8 @@ async function start(): Promise<void> {
       if (artNetPreviewClient.active) {
         stopMadMapperPreview("MadMapper preview stopped because the project changed.");
       }
-      if (madMapperOutputQueue.active) {
-        stopMadMapperOutput("MadMapper sculpture output stopped because the project changed.");
+      if (externalFrameMirrorQueue.active) {
+        stopExternalFrameMirror("Sculpture mirror stopped because the project changed.");
       }
       exitAssemblyTutorial(false);
       simulatorProjectRevision += 1;
@@ -2272,6 +2312,7 @@ async function start(): Promise<void> {
       resetTimeline();
       updateMappingStatus();
       renderConnectorControls();
+      startDdpPreview();
       return restoreGeneratedMechanics(selected);
     };
 
@@ -3188,8 +3229,8 @@ async function start(): Promise<void> {
       if (artNetPreviewClient.active) {
         stopMadMapperPreview("MadMapper preview stopped because the mapping changed.");
       }
-      if (madMapperOutputQueue.active) {
-        stopMadMapperOutput("MadMapper sculpture output stopped because the mapping changed.");
+      if (externalFrameMirrorQueue.active) {
+        stopExternalFrameMirror("Sculpture mirror stopped because the mapping changed.");
       }
       exitAssemblyTutorial(false);
       engine.resize(requested);
@@ -3212,6 +3253,7 @@ async function start(): Promise<void> {
       resetTimeline();
       updateMappingStatus();
       tryReconnectSimulatorLink();
+      startDdpPreview();
     });
     const applyPortableBundle = async (
       bundle: PortableProjectBundle,
@@ -3292,7 +3334,6 @@ async function start(): Promise<void> {
           mechanics: verifiedGeneratedMechanics,
           structure: verifiedGeneratedStructure,
           thumbnail,
-          deviceAddress: simulatorDeviceUrl?.hostname,
         },
         portableProjectFolderName(editorDefinition),
       );
@@ -3561,6 +3602,8 @@ async function start(): Promise<void> {
       })();
     });
     window.addEventListener("beforeunload", () => {
+      ddpPreviewRevision += 1;
+      ddpPreviewClient.stop();
       for (const url of projectThumbnailUrls) URL.revokeObjectURL(url);
     });
 
@@ -4137,13 +4180,6 @@ async function start(): Promise<void> {
         setLogMessage(error instanceof Error ? error.message : String(error), true);
       }
     });
-    madMapperOutputButton.addEventListener("click", () => {
-      try {
-        startMadMapperOutput();
-      } catch (error) {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
-      }
-    });
     ledCountInput.value = String(mapping.entries.length);
     renderEditorFaces();
     renderConnectorControls();
@@ -4163,6 +4199,7 @@ async function start(): Promise<void> {
 
     await restoreGeneratedMechanics(loadedSculpture);
     await loadReferencedDesignSurface();
+    startDdpPreview();
 
     const animate = (now: number): void => {
       const delta = Math.min(now - previousTime, 100);
@@ -4174,6 +4211,10 @@ async function start(): Promise<void> {
         artNetPreviewClient.active &&
         artNetPreviewPixels !== undefined &&
         now - artNetPreviewLastFrameAt <= 1_000;
+      const ddpFrameIsCurrent =
+        ddpPreviewClient.active &&
+        ddpPreviewPixels !== undefined &&
+        now - ddpPreviewLastFrameAt <= 1_000;
       if (
         artNetPreviewClient.active &&
         artNetPreviewPixels !== undefined &&
@@ -4183,10 +4224,40 @@ async function start(): Promise<void> {
         artNetPreviewTimedOut = true;
         madMapperPreviewStatus.textContent = "Signal timeout · native simulation shown";
       }
+      if (
+        ddpPreviewClient.active &&
+        ddpPreviewPixels !== undefined &&
+        !ddpFrameIsCurrent &&
+        !ddpPreviewTimedOut
+      ) {
+        ddpPreviewTimedOut = true;
+        ddpPreviewStatus.textContent = "DDP timeout · native simulation shown";
+      }
+      const externalPreviewPixels = ddpFrameIsCurrent && (
+        !artNetFrameIsCurrent || ddpPreviewLastFrameAt >= artNetPreviewLastFrameAt
+      )
+        ? ddpPreviewPixels
+        : artNetFrameIsCurrent
+        ? artNetPreviewPixels
+        : undefined;
+      const externalPreviewSource = externalPreviewPixels !== undefined &&
+        externalPreviewPixels === ddpPreviewPixels
+        ? "ddp"
+        : externalPreviewPixels !== undefined && externalPreviewPixels === artNetPreviewPixels
+        ? "artnet"
+        : undefined;
+      if (externalPreviewSource) {
+        viewerElement.dataset.externalFrameSource = externalPreviewSource;
+      } else {
+        delete viewerElement.dataset.externalFrameSource;
+      }
+      if (!externalPreviewPixels && externalFrameMirrorQueue.active) {
+        stopExternalFrameMirror();
+      }
       renderer?.updateColors(
         physicalRouteReviewDemoPixels ??
-          (artNetFrameIsCurrent ? artNetPreviewPixels! : engine.pixels),
-        physicalRouteReviewDemoPixels !== undefined || artNetFrameIsCurrent
+          externalPreviewPixels ?? engine.pixels,
+        physicalRouteReviewDemoPixels !== undefined || externalPreviewPixels
           ? "wled"
           : currentDisplayMode,
       );
@@ -4197,7 +4268,7 @@ async function start(): Promise<void> {
         !physicalRouteReviewSession &&
         !standaloneSaveRequest &&
         simulatorDeviceUrl &&
-        !madMapperOutputQueue.active &&
+        !externalFrameMirrorQueue.active &&
         !simulatorFrameRequest &&
         now >= nextSimulatorFrameAt
       ) {

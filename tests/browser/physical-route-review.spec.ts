@@ -97,6 +97,28 @@ async function sendArtNetPackets(packets: Uint8Array[]): Promise<void> {
   }
 }
 
+function ddpFrame(data: Uint8Array): Uint8Array {
+  const packet = new Uint8Array(10 + data.byteLength);
+  packet.set([0x41, 1, 0x0b, 0x01]);
+  new DataView(packet.buffer).setUint16(8, data.byteLength, false);
+  packet.set(data, 10);
+  return packet;
+}
+
+async function sendDdpFrame(data: Uint8Array): Promise<void> {
+  const socket = createSocket("udp4");
+  try {
+    await new Promise<void>((resolve, reject) => {
+      socket.send(ddpFrame(data), 4048, "127.0.0.1", (error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+  } finally {
+    socket.close();
+  }
+}
+
 test("runs the physical review workflow without hardware in demo mode", async ({ page }) => {
   let hardwareFrames = 0;
   await routeThreePanelProject(page);
@@ -137,7 +159,7 @@ test("runs the physical review workflow without hardware in demo mode", async ({
   );
 });
 
-test("sends MadMapper output and reviews a physical panel", async ({ page }) => {
+test("mirrors external frames and reviews a physical panel", async ({ page }) => {
   const frames: Buffer[] = [];
   const applyEvents: string[] = [];
   let savedPreset: Record<string, unknown> | undefined;
@@ -264,20 +286,17 @@ test("sends MadMapper output and reviews a physical panel", async ({ page }) => 
     { timeout: 20_000 },
   );
   const receiveButton = page.locator("#madmapper-preview");
-  const outputButton = page.locator("#madmapper-output");
   await receiveButton.click();
   await expect(page.locator("#madmapper-preview-status")).toContainText("Waiting for Art-Net");
-  await expect(outputButton).toBeEnabled();
-  await outputButton.click();
-  await expect(outputButton).toHaveText("Stop sculpture output");
   await expect(receiveButton).toHaveText("Stop MadMapper receive");
 
-  const frameCountBeforePartial = frames.length;
   await sendArtNetPackets([
     artDmx(1, new Uint8Array(510).fill(63), 21),
   ]);
   await page.waitForTimeout(250);
-  expect(frames).toHaveLength(frameCountBeforePartial);
+  await expect(page.locator("#sculpture-mirror-status")).toHaveText(
+    "Sculpture mirror is ready",
+  );
 
   const physicalRgb = Uint8Array.from(
     { length: contract.mapping.entries.length * 3 },
@@ -296,12 +315,20 @@ test("sends MadMapper output and reviews a physical panel", async ({ page }) => 
     }
   }
   await expect.poll(() => frames.some((frame) => frame.equals(logicalRgb))).toBe(true);
-  await expect(page.locator("#madmapper-output-status")).toContainText("1 frame sent");
-  await outputButton.click();
-  await expect(outputButton).toHaveText("Start sculpture output");
+  await expect(page.locator("#sculpture-mirror-status")).toContainText("1 visible frame mirrored");
   await expect(receiveButton).toHaveText("Stop MadMapper receive");
   await receiveButton.click();
   await expect(page.locator("#madmapper-preview-status")).toHaveText("Receive stopped");
+
+  await expect(page.locator("#ddp-preview-status")).toContainText("Waiting for DDP");
+  const ddpRgb = new Uint8Array(contract.mapping.entries.length * 3).fill(96);
+  await sendDdpFrame(ddpRgb);
+  const gammaDdpRgb = Buffer.from(ddpRgb.map((value) =>
+    Math.floor((value / 255) ** 2.2 * 255 + 0.5)
+  ));
+  await expect(page.locator("#ddp-preview-status")).toContainText("FPS DDP");
+  await expect(page.locator("#viewer")).toHaveAttribute("data-external-frame-source", "ddp");
+  await expect.poll(() => frames.some((frame) => frame.equals(gammaDdpRgb))).toBe(true);
 
   const reviewButton = page.locator("#open-physical-route-review");
   await expect(reviewButton).toBeEnabled();

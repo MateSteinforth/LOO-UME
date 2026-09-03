@@ -92,9 +92,10 @@ To build and open the Electron desktop application from a checkout, use:
 npm run electron
 ```
 
-Electron embeds the same editor and local services. Art-Net still listens on
-loopback for MadMapper or TouchDesigner, DDP still targets the private WLED
-address, and Web Serial still requires selection of the approved CP2102 device.
+Electron embeds the same editor and local services. Art-Net receives MadMapper
+frames on loopback. DDP receives local or LAN sender frames on UDP port 4048.
+The simulator forwards its visible frame when the approved WLED device connects.
+Web Serial still requires selection of the approved CP2102 device.
 Projects are stored outside the replaceable application bundle. Closing the
 Electron window quits the application and its local services; open the icon to
 start a new session. On macOS,
@@ -141,8 +142,8 @@ host it can flash the receipt-bound ESP32 image, configure WLED, persist the
 selected native animation, and mirror the mapped framebuffer through bounded
 WLAN DDP. The three-panel native path is physically confirmed. LOO/UME can now
 send complete MadMapper frames through the same WLAN DDP path. The operator
-accepts this path as a working assumption. The complete ZIP includes a direct
-TouchDesigner DDP template. Complete 41-panel address parity and audio-reactive
+accepts this path as a working assumption. The complete ZIP includes a
+TouchDesigner DDP template for the simulator input. Complete 41-panel address parity and audio-reactive
 behavior remain unproved. Direct WLED Art-Net over Ethernet is not planned.
 
 ## Verification

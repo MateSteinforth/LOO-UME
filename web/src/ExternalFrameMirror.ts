@@ -1,13 +1,13 @@
 export type RgbPixel = [number, number, number];
 
-export interface MadMapperOutputStatistics {
+export interface ExternalFrameMirrorStatistics {
   sentFrames: number;
   replacedFrames: number;
 }
 
-export interface MadMapperOutputStartOptions {
+export interface ExternalFrameMirrorStartOptions {
   send(pixels: readonly RgbPixel[]): Promise<void>;
-  onStatistics?(statistics: MadMapperOutputStatistics): void;
+  onStatistics?(statistics: ExternalFrameMirrorStatistics): void;
   onError?(error: unknown): void;
 }
 
@@ -15,7 +15,7 @@ export function logicalPixelsToRgbFramebuffer(
   pixels: Uint32Array,
 ): RgbPixel[] {
   if (pixels.length < 1 || pixels.length > 2_624) {
-    throw new Error("MadMapper output requires from 1 through 2,624 RGB pixels.");
+    throw new Error("External frame output requires from 1 through 2,624 RGB pixels.");
   }
   return Array.from(pixels, (packed) => [
     (packed >> 16) & 0xff,
@@ -24,12 +24,12 @@ export function logicalPixelsToRgbFramebuffer(
   ]);
 }
 
-export class MadMapperOutputQueue {
+export class ExternalFrameMirrorQueue {
   private revision = 0;
-  private options: MadMapperOutputStartOptions | undefined;
+  private options: ExternalFrameMirrorStartOptions | undefined;
   private request: Promise<void> | undefined;
   private pending: readonly RgbPixel[] | undefined;
-  private statisticsValue: MadMapperOutputStatistics = {
+  private statisticsValue: ExternalFrameMirrorStatistics = {
     sentFrames: 0,
     replacedFrames: 0,
   };
@@ -38,12 +38,12 @@ export class MadMapperOutputQueue {
     return this.options !== undefined;
   }
 
-  get statistics(): MadMapperOutputStatistics {
+  get statistics(): ExternalFrameMirrorStatistics {
     return { ...this.statisticsValue };
   }
 
-  start(options: MadMapperOutputStartOptions): void {
-    if (this.options) throw new Error("MadMapper sculpture output is already active.");
+  start(options: ExternalFrameMirrorStartOptions): void {
+    if (this.options) throw new Error("The sculpture mirror is already active.");
     this.revision += 1;
     this.options = options;
     this.pending = undefined;

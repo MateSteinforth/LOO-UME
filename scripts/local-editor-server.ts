@@ -32,6 +32,10 @@ import {
   type ArtNetPreviewHandler,
 } from "./artnet-preview-handler.ts";
 import {
+  createDdpPreviewHandler,
+  type DdpPreviewHandler,
+} from "./ddp-preview-handler.ts";
+import {
   createApplicationUpdateHandler,
   type ApplicationUpdateHandler,
 } from "./application-update-handler.ts";
@@ -64,6 +68,7 @@ export interface LocalEditorServerOptions {
   deviceHandler?: Esp32DeviceHandler;
   projectLibraryHandler?: ProjectLibraryHandler;
   artNetPreviewHandler?: ArtNetPreviewHandler;
+  ddpPreviewHandler?: DdpPreviewHandler;
   applicationUpdateHandler?: ApplicationUpdateHandler;
   onApplicationUpdateApplied?: () => void;
 }
@@ -206,6 +211,7 @@ export async function startLocalEditorServer(
     createProjectLibraryHandler({ rootDirectory });
   const artNetPreviewHandler = options.artNetPreviewHandler ??
     createArtNetPreviewHandler();
+  const ddpPreviewHandler = options.ddpPreviewHandler ?? createDdpPreviewHandler();
   const applicationUpdateHandler = options.applicationUpdateHandler ??
     createApplicationUpdateHandler({
       rootDirectory,
@@ -222,6 +228,7 @@ export async function startLocalEditorServer(
       if (await firmwareHandler.handle(request, response)) return;
       if (await deviceHandler.handle(request, response)) return;
       if (await artNetPreviewHandler.handle(request, response)) return;
+      if (await ddpPreviewHandler.handle(request, response)) return;
       if (await applicationUpdateHandler.handle(request, response)) return;
       if (await pipelineHandler.handle(request, response)) return;
       await serveStatic(request, response, distDirectory, generatedPublicDirectory);
@@ -263,6 +270,7 @@ export async function startLocalEditorServer(
         });
         await pipelineHandler.close(gracePeriodMs);
         await artNetPreviewHandler.close();
+        await ddpPreviewHandler.close();
         let timer: ReturnType<typeof setTimeout> | undefined;
         await Promise.race([
           closed,

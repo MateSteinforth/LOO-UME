@@ -441,13 +441,17 @@ sculpture and exact HTTP read-back. FIRM-014 adds a segmented
 The operator physically confirmed the DDP-to-native fallback and autonomous
 power-cycle playback on the 192-LED three-panel project. Direct WLED Art-Net
 and Ethernet remain absent. LOO/UME now receives complete MadMapper Art-Net
-frames locally. A separate control sends logical frame order through WLAN DDP,
-so WLED applies the installed ledmap one time. The queue keeps the latest frame
-during backpressure. The operator accepts this behavior as a working assumption.
+frames locally. LOO/UME also receives complete logical DDP frames on UDP port
+4048 from local or LAN senders. The newest external frame controls the virtual
+sculpture. When WLED connects, LOO/UME forwards the visible logical frame
+through WLAN DDP. WLED applies the installed ledmap one time. The queue keeps
+the latest frame during backpressure. The operator accepts this behavior as a
+working assumption.
 
 The complete project package also contains a TouchDesigner template. Its
 configuration lists pose-derived UV samples in logical LED order. The included
-Execute DAT script reads one 2:1 TOP and sends bounded RGB DDP packets. It uses
+Execute DAT script reads one 2:1 TOP and sends bounded RGB DDP packets to the
+simulator. LOO/UME mirrors the visible frame to a connected sculpture. It uses
 TouchDesigner NumPy and Python sockets, so it needs no external plugin. Its
 status table reports the target, fingerprint, frame rate, and replaced frames.
 

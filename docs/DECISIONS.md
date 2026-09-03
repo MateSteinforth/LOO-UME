@@ -397,17 +397,23 @@ diagnostic, deployment, MadMapper, and golden-fingerprint updates.
 Cross-platform parity compares address artifacts and fingerprints. It does not
 compare unrounded display coordinates from platform math libraries.
 
-## D39 — Use logical DDP order for direct TouchDesigner output
+## D39 — Use the simulator as the external frame endpoint
 
 The TouchDesigner template samples the 2:1 TOP at pose-derived UV coordinates.
 It stores these coordinates in logical LED order. The template sends RGB DDP
-in that order, and WLED applies the installed ledmap one time. It changes the
+in that order to the simulator. LOO/UME forwards the visible logical frame to
+a connected WLED sculpture. WLED applies the installed ledmap one time. It changes the
 top-origin mapping `v` value to TouchDesigner's bottom-origin TOP coordinate.
 
 The template uses one-frame-delayed TOP download and limits output to 30 FPS.
 It divides each frame into DDP payloads of at most 1,440 channels. Only the
 last packet has the DDP push flag. A status DAT reports the target, mapping
 fingerprint, deployment identity, frame rate, sent frames, and replaced frames.
+
+The simulator also accepts bounded MadMapper Art-Net input. The newest complete
+external frame controls the virtual sculpture. A connected WLED sculpture
+receives that same logical frame through the existing bounded DDP broker.
+A one-second timeout restores native simulator and WLED output.
 
 The normal project ZIP contains every current output. Optional output failures
 appear in `package-manifest.json` and do not remove independent package files.

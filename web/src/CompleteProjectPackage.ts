@@ -33,7 +33,6 @@ export interface CompleteProjectPackageArtifacts {
   mechanics?: Pick<VerifiedGeneratedMechanics, "boundary" | "parts">;
   structure?: Pick<VerifiedGeneratedStructure, "artifacts">;
   thumbnail?: ProjectPackageThumbnail;
-  deviceAddress?: string;
 }
 
 export interface CompletePackageArtifactRecord {
@@ -190,7 +189,6 @@ export function createCompleteProjectPackageFiles(
       createTouchDesignerPackageFiles(
         artifacts.hardwareContract,
         sculptureText,
-        { targetAddress: artifacts.deviceAddress },
       ),
     );
     touchDesignerRecord.status = "included";
