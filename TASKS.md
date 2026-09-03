@@ -31,26 +31,7 @@ DDP path.
 
 ## Backlog
 
-### `P1 · TD-010` Export one complete project package with TouchDesigner output
-
-- Scope: make the normal download contain the editable project, current print
-  files, mapping, WLED, MadMapper, and TouchDesigner deliverables.
-- TouchDesigner path: accept one 2:1 TOP, sample the current pose-derived UV
-  positions in logical LED order, and send bounded DDP frames through WLAN.
-- Device data: generate the template configuration from the current verified
-  WLED address, deployment identity, LED count, and mapping fingerprint.
-- User interface: keep one complete-package download in the normal workflow.
-  Move separate artifact download controls into Developer utilities.
-- Acceptance: the downloaded ZIP contains every current verified artifact and
-  one reviewed TouchDesigner template with no external plugin requirement.
-- Acceptance: WLED applies the installed ledmap exactly once. The template
-  reports its target, fingerprint, frame rate, and replaced frames.
-- Acceptance: missing or stale optional artifacts have clear package records.
-  They do not make current independent artifacts unavailable.
-- Verification: compare package mapping authorities, test deterministic package
-  contents, run a TouchDesigner 2:1 image test, and run a physical WLAN test.
-- Dependency: complete LIVE-020 first. Reuse its DDP packet limits, lifecycle,
-  color rule, device identity, fallback, and physical evidence.
+No tasks.
 
 ## Ready
 
@@ -236,7 +217,19 @@ No tasks.
 
 ## In Progress
 
-No tasks.
+### `P1 · TD-010` Export one complete project package with TouchDesigner output
+
+- Scope: make the normal download contain the editable project, current print
+  files, mapping, WLED, MadMapper, and TouchDesigner deliverables.
+- TouchDesigner path: accept one 2:1 TOP, sample the current pose-derived UV
+  positions in logical LED order, and send bounded DDP frames through WLAN.
+- Acceptance: include one template without an external plugin. Report its
+  target, mapping fingerprint, frame rate, and replaced frames.
+- Dependency decision: the operator accepted LIVE-020 behavior as an
+  assumption on 2026-09-03. Correct TD-010 if later hardware evidence differs.
+- Owner: `codex/td-010-touchdesigner-package` in `/tmp/loo-ume-td-010`.
+- Likely conflicts: package generation, MadMapper package output, mapping
+  documentation, browser controls, and LIVE-020 output interfaces.
 
 ## Human Review
 
