@@ -33,6 +33,7 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
     },
   });
   expect(completeEntries[`${projectRoot}/touchdesigner/config.json`]).toBeDefined();
+  expect(completeEntries[`${projectRoot}/touchdesigner/build_loo_ume_tox.py`]).toBeDefined();
   expect(completeEntries[`${projectRoot}/madmapper/fixtures.svg`]).toBeDefined();
 
   const developerUtilities = page.locator("#developer-utilities");

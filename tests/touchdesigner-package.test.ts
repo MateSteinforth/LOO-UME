@@ -7,6 +7,7 @@ import {
   createTouchDesignerConfig,
   createTouchDesignerPackageFiles,
   touchDesignerDdpScript,
+  touchDesignerToxBuilderScript,
 } from "../web/src/TouchDesignerPackage.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
@@ -85,6 +86,7 @@ describe("TouchDesigner package", () => {
     expect([...first.keys()]).toEqual([
       "config.json",
       "loo_ume_ddp.py",
+      "build_loo_ume_tox.py",
       "README.txt",
     ]);
     const readme = new TextDecoder().decode(first.get("README.txt"));
@@ -97,6 +99,12 @@ describe("TouchDesigner package", () => {
     expect(script).toContain("0x41 if final else 0x40");
     expect(script).toContain('state["replacedFrames"] += 1');
     expect(script).toContain('me.store("looUmeDdpStatus", status)');
+    expect(script).toContain('width != height * 2');
+    expect(script).toContain('_component().op("input")');
+    const builder = touchDesignerToxBuilderScript();
+    expect(builder).toContain('owner.create(baseCOMP, "loo_ume_ddp")');
+    expect(builder).toContain('component.create(inTOP, "input")');
+    expect(builder).toContain('component.save(output_path, createFolders=True)');
   });
 
   it("keeps simulator output available before physical mapping is ready", async () => {

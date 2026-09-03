@@ -2620,3 +2620,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `tests/touchdesigner-package.test.ts` and
   `tests/complete-project-package.test.ts` cover simulator-only packages.
 - **Status:** Resolved by TD-010.
+
+### F-141 — A Linux host cannot create a verified TouchDesigner component
+
+- **Date:** 2026-09-03
+- **Context:** TD-010 native `.tox` package creation.
+- **Symptom:** The repository could generate component source but not a native
+  `.tox` artifact.
+- **Cause:** TouchDesigner 2025.31550 supports Windows and macOS. Derivative
+  supplies native component creation only with the TouchDesigner application.
+- **Correction:** Generate the component with the repository builder in
+  TouchDesigner 2025.31550. Record its build, size, and SHA-256 checksum.
+- **Prevention:** Do not synthesize or rename a file as `.tox`. Validate each
+  native component with its target TouchDesigner build before packaging.
+- **Evidence:** Derivative `.tox`, Component, App Class, and release
+  documentation.
+- **Status:** Builder implemented; native artifact generation remains.

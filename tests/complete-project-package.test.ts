@@ -65,6 +65,7 @@ describe("complete project package", () => {
       "madmapper/manifest.json",
       "touchdesigner/config.json",
       "touchdesigner/loo_ume_ddp.py",
+      "touchdesigner/build_loo_ume_tox.py",
       "touchdesigner/README.txt",
       "fabrication/panel-labels-herma-4385.pdf",
       "fabrication/manufacturing-manual.pdf",

@@ -121,20 +121,34 @@ export function createTouchDesignerConfig(
 }
 
 export function touchDesignerDdpScript(): string {
-  return `# LOO/UME TouchDesigner DDP sender.
-# Load this file in an Execute DAT. Enable Start, Frame Start, and Exit.
+  return `# LOO/UME TouchDesigner DDP component callback.
 import json
+import os
 import socket
 import time
 
 import numpy as np
 
-CONFIG_PATH = project.folder + "/touchdesigner/config.json"
 _state = None
 
 
+def _component():
+    return me.parent()
+
+
+def _config_path():
+    configured = _component().par.Configfile.eval().strip() or "config.json"
+    if os.path.isabs(configured):
+        return configured
+    external = _component().par.externaltox.eval().strip()
+    if external:
+        expanded = tdu.expandPath(external)
+        return os.path.join(os.path.dirname(expanded), configured)
+    return os.path.join(project.folder, "touchdesigner", configured)
+
+
 def _load_config():
-    with open(CONFIG_PATH, "r", encoding="utf-8") as source:
+    with open(_config_path(), "r", encoding="utf-8") as source:
         config = json.load(source)
     if config.get("schemaVersion") != "1.0.0":
         raise ValueError("Unsupported LOO/UME TouchDesigner configuration.")
@@ -157,12 +171,14 @@ def _write_status(state, error=""):
         "error": error,
     }
     me.store("looUmeDdpStatus", status)
-    table = op(config["statusDat"])
-    if table is not None:
-        table.clear()
-        table.appendRow(["name", "value"])
-        for name, value in status.items():
-            table.appendRow([name, value])
+    table = _component().op("status")
+    table.clear()
+    table.appendRow(["name", "value"])
+    for name, value in status.items():
+        table.appendRow([name, value])
+    _component().par.Status = error or "{} FPS · {} frames sent".format(
+        config["frameRate"], state["sentFrames"]
+    )
     return status
 
 
@@ -186,18 +202,43 @@ def _ddp_packets(frame, state):
 
 def _sample_frame(image, pixels):
     height, width = image.shape[:2]
+    if width != height * 2:
+        raise ValueError("The LOO/UME component input must have a 2:1 resolution.")
     x = np.asarray([round(pixel["u"] * (width - 1)) for pixel in pixels], dtype=np.intp)
     y = np.asarray([round((1.0 - pixel["v"]) * (height - 1)) for pixel in pixels], dtype=np.intp)
     rgb = np.clip(image[y, x, :3], 0.0, 1.0)
     return (rgb * 255.0 + 0.5).astype(np.uint8).reshape(-1).tobytes()
 
 
-def onStart():
+def _close():
+    global _state
+    if _state is not None:
+        _state["socket"].close()
+        _state = None
+
+
+def _settings():
+    component = _component()
+    return (
+        component.par.Target.eval().strip(),
+        int(component.par.Port.eval()),
+        int(component.par.Framerate.eval()),
+        component.par.Configfile.eval().strip(),
+    )
+
+
+def _start():
     global _state
     config = _load_config()
-    source = op(config["sourceTop"])
-    if source is None:
-        raise ValueError("The configured TouchDesigner source TOP does not exist.")
+    settings = _settings()
+    config["target"] = {
+        "address": settings[0],
+        "port": settings[1],
+    }
+    config["frameRate"] = settings[2]
+    if not config["target"]["address"]:
+        raise ValueError("The DDP target address is empty.")
+    source = _component().op("input")
     source.numpyArray(delayed=True)
     _state = {
         "config": config,
@@ -208,20 +249,42 @@ def onStart():
         "replacedFrames": 0,
         "sentPackets": 0,
         "lastReportAt": 0.0,
+        "settings": settings,
     }
     _write_status(_state)
+
+
+def onStart():
+    _close()
+    return
+
+
+def create():
+    _close()
     return
 
 
 def onFrameStart(frame):
-    if _state is None:
+    global _state
+    if not _component().par.Active.eval():
+        if _state is not None:
+            _close()
+        _component().par.Status = "Disabled"
         return
+    if _state is not None and _state["settings"] != _settings():
+        _close()
+    if _state is None:
+        try:
+            _start()
+        except Exception as error:
+            _component().par.Status = str(error)
+            return
     now = time.monotonic()
     if now < _state["nextFrameAt"]:
         _state["replacedFrames"] += 1
         return
     config = _state["config"]
-    image = op(config["sourceTop"]).numpyArray(delayed=True)
+    image = _component().op("input").numpyArray(delayed=True)
     if image is None:
         return
     try:
@@ -237,16 +300,108 @@ def onFrameStart(frame):
             _state["lastReportAt"] = now
     except Exception as error:
         _write_status(_state, str(error))
-        raise
+        _state["nextFrameAt"] = now + 1.0
     return
 
 
 def onExit():
-    global _state
-    if _state is not None:
-        _state["socket"].close()
-        _state = None
+    _close()
     return
+`;
+}
+
+export function touchDesignerToxBuilderScript(): string {
+  return `# Run this script in TouchDesigner 2025.31550.
+import hashlib
+import json
+import os
+
+folder = os.path.join(project.folder, "touchdesigner")
+source_path = os.path.join(folder, "loo_ume_ddp.py")
+output_path = os.path.join(folder, "loo_ume_ddp.tox")
+receipt_path = os.path.join(folder, "loo_ume_ddp.tox.json")
+owner = op("/project1")
+if owner is None:
+    raise RuntimeError("The TouchDesigner project does not contain /project1.")
+if owner.op("loo_ume_ddp") is not None:
+    raise RuntimeError("Delete /project1/loo_ume_ddp before you run this builder again.")
+if not os.path.isfile(source_path):
+    raise RuntimeError("The TouchDesigner package does not contain loo_ume_ddp.py.")
+
+component = owner.create(baseCOMP, "loo_ume_ddp")
+component.nodeX = 0
+component.nodeY = 0
+component.comment = "LOO/UME 2:1 TOP to logical DDP"
+
+page = component.appendCustomPage("LOO UME DDP")
+active = page.appendToggle("Active", label="Active")[0]
+active.default = True
+active.val = True
+target = page.appendStr("Target", label="Simulator Address")[0]
+target.default = "127.0.0.1"
+target.val = "127.0.0.1"
+port = page.appendInt("Port", label="DDP Port")[0]
+port.default = 4048
+port.val = 4048
+port.min = 1
+port.max = 65535
+port.clampMin = True
+port.clampMax = True
+frame_rate = page.appendInt("Framerate", label="Frame Rate")[0]
+frame_rate.default = 30
+frame_rate.val = 30
+frame_rate.min = 1
+frame_rate.max = 60
+frame_rate.clampMin = True
+frame_rate.clampMax = True
+config_file = page.appendStr("Configfile", label="Mapping Configuration")[0]
+config_file.default = "config.json"
+config_file.val = "config.json"
+status_par = page.appendStr("Status", label="Status")[0]
+status_par.default = "Waiting for a 2:1 TOP"
+status_par.val = "Waiting for a 2:1 TOP"
+
+input_top = component.create(inTOP, "input")
+input_top.nodeX = -300
+input_top.nodeY = 100
+input_top.par.label = "2:1 equirectangular TOP"
+output_top = component.create(outTOP, "output")
+output_top.nodeX = 300
+output_top.nodeY = 100
+output_top.par.label = "Input pass-through"
+input_top.outputConnectors[0].connect(output_top)
+
+status = component.create(tableDAT, "status")
+status.nodeX = 300
+status.nodeY = -100
+status.appendRow(["name", "value"])
+
+callback = component.create(executeDAT, "sender")
+callback.nodeX = 0
+callback.nodeY = -100
+with open(source_path, "r", encoding="utf-8") as source:
+    callback.text = source.read()
+callback.par.start = True
+callback.par.create = True
+callback.par.framestart = True
+callback.par.exit = True
+
+component.save(output_path, createFolders=True)
+with open(output_path, "rb") as source:
+    tox_bytes = source.read()
+with open(receipt_path, "w", encoding="utf-8") as target_file:
+    json.dump({
+        "schemaVersion": "1.0.0",
+        "artifact": "loo_ume_ddp.tox",
+        "touchDesignerVersion": app.version,
+        "touchDesignerBuild": app.build,
+        "operatingSystem": app.osName,
+        "byteLength": len(tox_bytes),
+        "sha256": hashlib.sha256(tox_bytes).hexdigest(),
+    }, target_file, indent=2)
+    target_file.write("\\n")
+print("Created " + output_path)
+print("Created " + receipt_path)
 `;
 }
 
@@ -266,13 +421,11 @@ function touchDesignerReadme(config: TouchDesignerConfig): string {
     "SETUP",
     "1. Extract the complete LOO/UME package.",
     "2. Save your TouchDesigner project in the extracted project folder.",
-    "3. Create a 2:1 TOP at /project1/loo_ume_source.",
-    "4. Create an Execute DAT at /project1/loo_ume_ddp.",
-    "5. Set its file to touchdesigner/loo_ume_ddp.py.",
-    "6. Enable Start, Frame Start, and Exit callbacks.",
-    "7. Create a Table DAT at /project1/loo_ume_status.",
-    "8. Start with a black image.",
-    "9. Test one low-brightness pixel before full output.",
+    "3. Drag loo_ume_ddp.tox into the TouchDesigner network.",
+    "4. Connect one 2:1 TOP to the component input.",
+    "5. Keep Active enabled.",
+    "6. Start with a black image.",
+    "7. Test one low-brightness pixel before full output.",
     "",
     "The script samples normalized pose-derived UV positions in logical LED order.",
     "The script sends each RGB DDP frame to the simulator.",
@@ -296,6 +449,7 @@ export function createTouchDesignerPackageFiles(
   return new Map([
     ["config.json", jsonBytes(config)],
     ["loo_ume_ddp.py", encoder.encode(touchDesignerDdpScript())],
+    ["build_loo_ume_tox.py", encoder.encode(touchDesignerToxBuilderScript())],
     ["README.txt", encoder.encode(touchDesignerReadme(config))],
   ]);
 }
