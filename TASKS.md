@@ -220,14 +220,17 @@ No tasks.
 ### `P0 · FIRM-015` Include the verified ESP32 image in the Mac application
 
 - Scope: stage the receipt-bound complete flash image before Electron
-  packaging. Include it at the path used by the local firmware service.
+  packaging. Include it at the local firmware path. Accept Electron's CP2102
+  identifier representation during serial selection.
 - Acceptance: the packaged application reports firmware available. The image
   size and SHA-256 match `firmware/build-receipt.json`. Packaging fails when
-  the exact image is missing or different.
+  the exact image is missing or different. The connected CP2102 appears in the
+  application selection dialog.
 - Owner: `codex/firm-015-package-image` in `/tmp/loo-ume-firm-015`.
 - Verification: the public release image matches the receipt at 1,177,456
   bytes and SHA-256 `98bee84b5dc0de4dd118677b2e3c340fe00c44249b7e2965b580b6ea90bf4b2b`.
-  Eight focused tests, YAML lint, and diff checks pass.
+  Package tests, ESP32 tests, the serial-policy test, Electron compilation,
+  YAML lint, and diff checks pass.
 - Likely conflicts: Electron resources, release workflow, firmware artifact
   verification, package tests, and firmware documentation.
 

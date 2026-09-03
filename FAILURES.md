@@ -2697,3 +2697,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `wled/upstream/tools/cdata.js`, `firmware/build-receipt.json`,
   and the `esp32-firmware-improv-v1` release asset.
 - **Status:** Resolved by FIRM-015.
+
+### F-146 — Electron rejected the connected CP2102
+
+- **Date:** 2026-09-03
+- **Context:** FIRM-015 review DMG serial-device selection.
+- **Symptom:** Web Serial reported that the operator selected no port. Electron
+  did not show the application device dialog.
+- **Cause:** Electron supplied decimal USB identifiers as strings. The desktop
+  policy read all unmarked strings as hexadecimal values.
+- **Correction:** Read decimal strings as decimal values. Continue to accept
+  numeric and explicit hexadecimal values.
+- **Prevention:** Test Electron's decimal-string representation for the CP2102
+  vendor and product identifiers.
+- **Evidence:** `electron/SerialPolicy.ts`, `tests/electron-desktop.test.ts`, and
+  the Electron SerialPort contract.
+- **Status:** Resolved by FIRM-015.

@@ -51,7 +51,9 @@ describe("Electron desktop boundaries", () => {
   it("permits only the approved CP2102 USB identity", () => {
     expect(isApprovedCp2102({ vendorId: "10C4", productId: "EA60" })).toBe(true);
     expect(isApprovedCp2102({ vendorId: 0x10c4, productId: 0xea60 })).toBe(true);
+    expect(isApprovedCp2102({ vendorId: "4292", productId: "60000" })).toBe(true);
     expect(isApprovedCp2102({ vendorId: "1a86", productId: "7523" })).toBe(false);
+    expect(isApprovedCp2102({ vendorId: "70000", productId: "60000" })).toBe(false);
     expect(isApprovedCp2102({})).toBe(false);
   });
 
