@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createSocket } from "node:dgram";
 import { expect, test } from "@playwright/test";
 import { optimizeAutomaticWiring } from "../../src/sculpture/AutomaticWiringOptimizer.ts";
 import {
@@ -68,6 +69,34 @@ async function routeThreePanelProject(page: import("@playwright/test").Page): Pr
   });
 }
 
+function artDmx(universe: number, data: Uint8Array, sequence: number): Uint8Array {
+  const packet = new Uint8Array(18 + data.byteLength);
+  packet.set([0x41, 0x72, 0x74, 0x2d, 0x4e, 0x65, 0x74, 0x00]);
+  packet.set([0x00, 0x50, 0x00, 0x0e, sequence, 0x00], 8);
+  packet[14] = universe & 0xff;
+  packet[15] = universe >> 8;
+  packet[16] = data.byteLength >> 8;
+  packet[17] = data.byteLength & 0xff;
+  packet.set(data, 18);
+  return packet;
+}
+
+async function sendArtNetPackets(packets: Uint8Array[]): Promise<void> {
+  const socket = createSocket("udp4");
+  try {
+    for (const packet of packets) {
+      await new Promise<void>((resolve, reject) => {
+        socket.send(packet, 6454, "127.0.0.1", (error) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
+    }
+  } finally {
+    socket.close();
+  }
+}
+
 test("runs the physical review workflow without hardware in demo mode", async ({ page }) => {
   let hardwareFrames = 0;
   await routeThreePanelProject(page);
@@ -108,7 +137,7 @@ test("runs the physical review workflow without hardware in demo mode", async ({
   );
 });
 
-test("reviews a physical panel while keeping the viewport selectable", async ({ page }) => {
+test("sends MadMapper output and reviews a physical panel", async ({ page }) => {
   const frames: Buffer[] = [];
   const applyEvents: string[] = [];
   let savedPreset: Record<string, unknown> | undefined;
@@ -234,6 +263,46 @@ test("reviews a physical panel while keeping the viewport selectable", async ({ 
     "Reconnected at 192.168.68.53",
     { timeout: 20_000 },
   );
+  const receiveButton = page.locator("#madmapper-preview");
+  const outputButton = page.locator("#madmapper-output");
+  await receiveButton.click();
+  await expect(page.locator("#madmapper-preview-status")).toContainText("Waiting for Art-Net");
+  await expect(outputButton).toBeEnabled();
+  await outputButton.click();
+  await expect(outputButton).toHaveText("Stop sculpture output");
+  await expect(receiveButton).toHaveText("Stop MadMapper receive");
+
+  const frameCountBeforePartial = frames.length;
+  await sendArtNetPackets([
+    artDmx(1, new Uint8Array(510).fill(63), 21),
+  ]);
+  await page.waitForTimeout(250);
+  expect(frames).toHaveLength(frameCountBeforePartial);
+
+  const physicalRgb = Uint8Array.from(
+    { length: contract.mapping.entries.length * 3 },
+    (_, index) => (index * 29 + 17) % 256,
+  );
+  await sendArtNetPackets([
+    artDmx(1, physicalRgb.slice(0, 510), 22),
+    artDmx(2, physicalRgb.slice(510), 22),
+  ]);
+  const logicalRgb = new Uint8Array(physicalRgb.length);
+  for (const entry of contract.mapping.entries) {
+    for (let channel = 0; channel < 3; channel += 1) {
+      const value = physicalRgb[entry.physicalIndex * 3 + channel]!;
+      logicalRgb[entry.logicalIndex * 3 + channel] =
+        Math.floor((value / 255) ** 2.2 * 255 + 0.5);
+    }
+  }
+  await expect.poll(() => frames.some((frame) => frame.equals(logicalRgb))).toBe(true);
+  await expect(page.locator("#madmapper-output-status")).toContainText("1 frame sent");
+  await outputButton.click();
+  await expect(outputButton).toHaveText("Start sculpture output");
+  await expect(receiveButton).toHaveText("Stop MadMapper receive");
+  await receiveButton.click();
+  await expect(page.locator("#madmapper-preview-status")).toHaveText("Receive stopped");
+
   const reviewButton = page.locator("#open-physical-route-review");
   await expect(reviewButton).toBeEnabled();
   await reviewButton.click();

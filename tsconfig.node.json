@@ -26,6 +26,7 @@
     "web/src/MadMapperExport.ts",
     "web/src/MadMapperPackage.ts",
     "web/src/ArtNetPreview.ts",
+    "web/src/MadMapperOutput.ts",
     "web/src/PanelLabelSheet.ts",
     "web/src/ManufacturingManualPdf.ts",
     "web/src/PanelCarrierGeometry.ts",

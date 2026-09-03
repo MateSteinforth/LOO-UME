@@ -26,13 +26,13 @@ direction and major remaining seams.
 
 ## Current product milestone
 
-Finish the physical 41-panel assembly and record exact address/RGB parity on the
-selected ESP32/WLED target:
+Complete the LIVE-020 three-panel physical review on the selected ESP32/WLED
+target:
 
 ```text
-printed connectors + assembly tutorial
-  -> as-built route evidence
-  -> optional deterministic diagnostic frames
+MadMapper Art-Net on loopback
+  -> complete logical frames in LOO/UME
+  -> WLAN DDP with finite WLED fallback
 ```
 
 Electrical design and approval are external operator responsibilities. The
@@ -41,8 +41,8 @@ electrical plan.
 
 ## Known technical seams
 
-- `LIVE-020` receives MadMapper Art-Net on loopback and sends mapped frames to
-  WLED through WLAN DDP. Direct WLED Art-Net over Ethernet is not planned.
+- Complete the LIVE-020 three-panel physical review for image, address, color,
+  fallback, and frame rate. Direct WLED Art-Net over Ethernet is not planned.
 - Add geometry or fabrication work only after a concrete failed project or
   printed result supplies acceptance evidence.
 - Keep Schema 2 as the only authored sculpture and mapping input. Historical

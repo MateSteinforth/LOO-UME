@@ -34,8 +34,9 @@ The WLED path uses native effects for autonomous playback. FIRM-014 adds a
 segmented 1-to-2,624-pixel DDP preview with a finite fallback to the saved boot
 preset. The operator physically confirmed fallback and power-cycle playback on
 the 192-LED three-panel project. Microphones, audio-reactive presets, and custom
-effects remain deferred. LIVE-020 will receive Art-Net on loopback and send
-mapped frames through WLAN DDP. A future custom effect belongs in a WLED
+effects remain deferred. LOO/UME now receives complete Art-Net frames on
+loopback and sends logical frame order through WLAN DDP. This path still needs
+the LIVE-020 three-panel review. A future custom effect belongs in a WLED
 usermod, not in patched WLED core files.
 
 ## Mapping

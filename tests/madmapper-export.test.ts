@@ -96,7 +96,7 @@ describe("MadMapper fixture export", () => {
       requiredMadMapperSettings: { avoidCrossUniversePixels: true },
       plannedLiveOutput: {
         transport: "LOO/UME-WLAN-DDP",
-        status: "requires-LIVE-020-implementation-and-hardware-validation",
+        status: "requires-LIVE-020-hardware-validation",
       },
     });
     expect(bundle.manifest.panels[0]).toMatchObject({

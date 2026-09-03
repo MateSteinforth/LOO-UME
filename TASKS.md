@@ -215,6 +215,19 @@ No tasks.
   33735838342 produced identical address artifacts and fingerprint `524500f5`
   on Ubuntu and macOS.
 
+### `P1 · LIVE-020` Send MadMapper output to the sculpture through WLAN DDP
+
+- Result: separate Receive and Sculpture output controls send only complete
+  Art-Net frames. The browser converts physical Art-Net order to logical DDP
+  order, so WLED applies its installed ledmap one time. A latest-frame queue
+  limits backpressure. Project, mapping, device, setup, and physical-review
+  changes stop output.
+- Decision: the operator accepted the current behavior without the planned
+  three-panel review on 2026-09-03. Correct it if later evidence differs.
+- Owner: `codex/live-020-wlan-ddp` in `/tmp/loo-ume-live-020`.
+- Verification: 61 focused unit tests, four Chromium journeys, application
+  TypeScript, production web build, and diff-check passed.
+
 ## In Progress
 
 ### `P1 · TD-010` Export one complete project package with TouchDesigner output
@@ -233,14 +246,7 @@ No tasks.
 
 ## Human Review
 
-### `P1 · LIVE-020` Send MadMapper output to the sculpture through WLAN DDP
-
-- Result: separate Receive and Sculpture output controls send only complete
-  Art-Net frames. The browser converts physical Art-Net order to logical DDP
-  order, so WLED applies its installed ledmap one time.
-- Review: use the 192-LED three-panel setup. Confirm image, address, RGB color,
-  Art-Net-loss fallback, and the displayed frame rate.
-- Owner: `codex/live-020-wlan-ddp` in `/tmp/loo-ume-live-020`.
+No tasks.
 
 ## Blocked
 

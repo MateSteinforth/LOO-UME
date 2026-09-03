@@ -36,7 +36,8 @@ describe("MadMapper package", () => {
     ]);
     const pdf = new TextDecoder().decode(files.get("SETUP.pdf"));
     expect(pdf.startsWith("%PDF-1.4")).toBe(true);
-    expect(pdf).toContain("DRAFT - SCULPTURE OUTPUT REQUIRES LIVE-020 VALIDATION");
+    expect(pdf).toContain("SCULPTURE OUTPUT REQUIRES LIVE-020 HARDWARE VALIDATION");
+    expect(pdf).toContain("start Receive and then start Sculpture output");
     expect(pdf).toContain("File > Import Fixtures");
     expect(pdf).toContain("Avoid Cross Universe Pixels");
     expect(pdf).toContain("Import artnet-unicast-loopback.csv");
