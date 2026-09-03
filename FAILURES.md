@@ -2605,3 +2605,18 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   `.tools/playwright`. Link the verified shared directories when necessary.
 - **Evidence:** The focused Chromium test passed after the `.tools` link.
 - **Status:** Resolved.
+
+### F-140 — WLED readiness removed valid simulator output
+
+- **Date:** 2026-09-03
+- **Context:** TD-010 complete package review with a 30-panel project.
+- **Symptom:** The complete ZIP did not contain the `touchdesigner/` folder.
+- **Cause:** TouchDesigner package generation required a physical WLED
+  deployment identity, although simulator DDP input did not require it.
+- **Correction:** Generate TouchDesigner files for every complete logical map
+  with 1 through 2,624 LEDs. Report simulator-only status independently.
+- **Prevention:** Do not use physical output readiness to block an independent
+  simulator input or package artifact.
+- **Evidence:** `tests/touchdesigner-package.test.ts` and
+  `tests/complete-project-package.test.ts` cover simulator-only packages.
+- **Status:** Resolved by TD-010.

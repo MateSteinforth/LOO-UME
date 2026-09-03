@@ -454,6 +454,9 @@ Execute DAT script reads one 2:1 TOP and sends bounded RGB DDP packets to the
 simulator. LOO/UME mirrors the visible frame to a connected sculpture. It uses
 TouchDesigner NumPy and Python sockets, so it needs no external plugin. Its
 status table reports the target, fingerprint, frame rate, and replaced frames.
+The simulator template needs 1 through 2,624 mapped LEDs. It does not require a
+physical WLED deployment identity. The configuration reports simulator-only
+status when physical output is not ready.
 
 The mapping claim is static address and RGB parity for the selected pinned WLED
 target. Matching effect names or WASM frames does not prove

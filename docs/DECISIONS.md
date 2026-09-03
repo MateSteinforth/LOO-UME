@@ -418,3 +418,5 @@ A one-second timeout restores native simulator and WLED output.
 The normal project ZIP contains every current output. Optional output failures
 appear in `package-manifest.json` and do not remove independent package files.
 Separate MadMapper and fabrication ZIP downloads remain in Developer utilities.
+TouchDesigner simulator output is independent from WLED deployment readiness.
+A valid logical map can therefore include the template without physical output.

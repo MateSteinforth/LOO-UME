@@ -93,7 +93,7 @@ describe("complete project package", () => {
     expect(touchDesignerConfig.mappingFingerprint).toBe(
       manifest.mappingFingerprint,
     );
-    expect(touchDesignerConfig.wledLedmapApplications).toBe(1);
+    expect(touchDesignerConfig.sculptureMirror.wledLedmapApplications).toBe(1);
     for (const file of manifest.files) {
       const bytes = entries[`${root}${file.path}`]!;
       expect(bytes.byteLength).toBe(file.byteLength);
@@ -128,7 +128,14 @@ describe("complete project package", () => {
     });
     expect(manifest.artifacts.madMapper.status).toBe("unavailable");
     expect(manifest.artifacts.madMapper.reason).toMatch(/mapping-ready/);
-    expect(manifest.artifacts.touchDesigner.status).toBe("unavailable");
-    expect(manifest.artifacts.touchDesigner.reason).toMatch(/mapping-ready/);
+    expect(manifest.artifacts.touchDesigner.status).toBe("included");
+    expect(files.has("touchdesigner/config.json")).toBe(true);
+    const touchDesignerConfig = JSON.parse(new TextDecoder().decode(
+      files.get("touchdesigner/config.json"),
+    ));
+    expect(touchDesignerConfig).toMatchObject({
+      deploymentIdentity: null,
+      sculptureMirror: { status: "simulator-only" },
+    });
   });
 });

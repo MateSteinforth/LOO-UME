@@ -23,7 +23,10 @@ export interface TouchDesignerConfig {
   statusDat: "/project1/loo_ume_status";
   inputProjection: "equirectangular-2:1";
   addressOrder: "logical-effect-order";
-  wledLedmapApplications: 1;
+  sculptureMirror: {
+    status: "ready" | "simulator-only";
+    wledLedmapApplications: 1;
+  };
   target: {
     address: string;
     port: typeof DDP_PORT;
@@ -31,7 +34,7 @@ export interface TouchDesignerConfig {
   };
   mappingFingerprint: string;
   mappingFingerprintVersion: HardwareMappingContract["fingerprintVersion"];
-  deploymentIdentity: string;
+  deploymentIdentity: string | null;
   pixelCount: number;
   frameRate: typeof DEFAULT_FRAME_RATE;
   channelsPerPacket: typeof DDP_CHANNELS_PER_PACKET;
@@ -63,19 +66,27 @@ export function createTouchDesignerConfig(
   sculptureBytes: string,
   options: TouchDesignerPackageOptions = {},
 ): TouchDesignerConfig {
-  if (!contract.readiness.mappingReady) {
-    throw new Error("TouchDesigner output requires a current mapping-ready address contract.");
-  }
   const simulatorAddress = options.simulatorAddress ?? "127.0.0.1";
   if (!validTargetAddress(simulatorAddress)) {
     throw new Error("TouchDesigner output requires a local name or a private IPv4 address.");
   }
   const entries = [...contract.mapping.entries]
     .sort((first, second) => first.logicalIndex - second.logicalIndex);
-  if (entries.some((entry, index) => entry.logicalIndex !== index)) {
-    throw new Error("TouchDesigner output requires complete logical LED indices from zero.");
+  if (
+    entries.length < 1 ||
+    entries.length > 2_624 ||
+    entries.some((entry, index) => entry.logicalIndex !== index)
+  ) {
+    throw new Error("TouchDesigner output requires from 1 through 2,624 complete logical LED indices.");
   }
-  const deployment = createWledDeploymentBundle(contract, sculptureBytes);
+  let deployment: ReturnType<typeof createWledDeploymentBundle> | undefined;
+  if (contract.readiness.mappingReady) {
+    try {
+      deployment = createWledDeploymentBundle(contract, sculptureBytes);
+    } catch {
+      deployment = undefined;
+    }
+  }
   return {
     schemaVersion: "1.0.0",
     generator: "loo-ume-touchdesigner-ddp",
@@ -83,7 +94,10 @@ export function createTouchDesignerConfig(
     statusDat: "/project1/loo_ume_status",
     inputProjection: "equirectangular-2:1",
     addressOrder: "logical-effect-order",
-    wledLedmapApplications: 1,
+    sculptureMirror: {
+      status: deployment ? "ready" : "simulator-only",
+      wledLedmapApplications: 1,
+    },
     target: {
       address: simulatorAddress,
       port: DDP_PORT,
@@ -91,7 +105,7 @@ export function createTouchDesignerConfig(
     },
     mappingFingerprint: contract.fingerprint,
     mappingFingerprintVersion: contract.fingerprintVersion,
-    deploymentIdentity: deployment.deploymentIdentity,
+    deploymentIdentity: deployment?.deploymentIdentity ?? null,
     pixelCount: entries.length,
     frameRate: DEFAULT_FRAME_RATE,
     channelsPerPacket: DDP_CHANNELS_PER_PACKET,
@@ -244,6 +258,7 @@ function touchDesignerReadme(config: TouchDesignerConfig): string {
     `Simulator target status: ${config.target.status}`,
     `Mapping fingerprint: ${config.mappingFingerprint}`,
     `Deployment identity: ${config.deploymentIdentity}`,
+    `Sculpture mirror: ${config.sculptureMirror.status}`,
     `LED count: ${config.pixelCount}`,
     `Frame rate: ${config.frameRate} FPS`,
     "Replaced frames: shown in /project1/loo_ume_status",
@@ -263,7 +278,9 @@ function touchDesignerReadme(config: TouchDesignerConfig): string {
     "The script sends each RGB DDP frame to the simulator.",
     "Keep LOO/UME open on the TouchDesigner computer for the local simulator target.",
     "Set the simulator address to its LAN address when LOO/UME runs on another computer.",
-    "LOO/UME forwards the visible simulator frame when the configured WLED sculpture is connected.",
+    config.sculptureMirror.status === "ready"
+      ? "LOO/UME forwards the visible simulator frame when the configured WLED sculpture is connected."
+      : "Complete mapping and WLED setup before sculpture mirroring. Simulator DDP input is available now.",
     "WLED applies the installed ledmap one time. The simulator uses the same logical input.",
     "NumPy and Python sockets are included with TouchDesigner. No external plugin is required.",
     "",

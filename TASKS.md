@@ -236,21 +236,19 @@ No tasks.
 
 ### `P1 · TD-010` Export one complete project package with TouchDesigner output
 
-- Result: one normal ZIP contains the editable project and all current output.
-  The TouchDesigner template sends logical DDP to the simulator on UDP 4048.
+- Result: each project with 1 through 2,624 mapped LEDs includes the
+  TouchDesigner simulator template. Physical WLED readiness cannot remove it.
 - Simulator result: bounded Art-Net and DDP inputs control one virtual
   sculpture. The newest complete frame wins. A one-second timeout restores
   native simulation.
 - Sculpture result: a connected WLED sculpture receives every visible external
-  frame automatically through the bounded DDP mirror.
-- Review: open the template in TouchDesigner. Confirm that the virtual and
-  physical sculptures show the same low-brightness image.
-- Dependency decision: the operator accepted LIVE-020 behavior as an
-  assumption on 2026-09-03. Correct TD-010 if later hardware evidence differs.
+  frame automatically when the physical deployment is ready.
+- Review: download a new complete ZIP for the 30-panel KiCad project. Confirm
+  that `touchdesigner/config.json`, `loo_ume_ddp.py`, and `README.txt` exist.
 - Owner: `codex/td-010-touchdesigner-package` in `/tmp/loo-ume-td-010`.
-- Verification: 26 focused unit tests, two Chromium journeys, Python syntax,
-  application and Node TypeScript, desktop build, and diff checks passed.
-  One unrelated local-library assertion still expects read-only demo packages.
+- Verification: 27 focused unit tests, Python syntax, application and Node
+  TypeScript, desktop build, and diff checks passed. The prior two Chromium
+  external-frame journeys also passed.
 
 ## Blocked
 

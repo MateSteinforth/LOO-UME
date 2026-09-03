@@ -42,7 +42,10 @@ describe("TouchDesigner package", () => {
     expect(config).toMatchObject({
       inputProjection: "equirectangular-2:1",
       addressOrder: "logical-effect-order",
-      wledLedmapApplications: 1,
+      sculptureMirror: {
+        status: "ready",
+        wledLedmapApplications: 1,
+      },
       target: {
         address: "192.168.1.44",
         port: 4048,
@@ -96,15 +99,24 @@ describe("TouchDesigner package", () => {
     expect(script).toContain('me.store("looUmeDdpStatus", status)');
   });
 
-  it("blocks stale mappings and public target addresses", async () => {
+  it("keeps simulator output available before physical mapping is ready", async () => {
     const { project, contract } = await fixture(
-      "sculptures/pose-only-two-panel/sculpture.json",
+      "sculptures/kicad-diamond-panel/sculpture-rhombic-triacontahedron.json",
     );
-    expect(() => createTouchDesignerConfig(
+    expect(createTouchDesignerConfig(
       contract,
       sculptureJson(project.sculpture),
-    )).toThrow(/mapping-ready/);
+    )).toMatchObject({
+      deploymentIdentity: null,
+      sculptureMirror: {
+        status: "simulator-only",
+        wledLedmapApplications: 1,
+      },
+      pixelCount: 1_920,
+    });
+  });
 
+  it("blocks public simulator addresses", async () => {
     const flagship = await fixture(
       "sculptures/rhombicosidodecahedron/sculpture.json",
     );

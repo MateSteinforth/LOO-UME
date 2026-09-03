@@ -56,7 +56,8 @@ edit marks derived mechanics stale but does not stop those functions.
    `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
    final network values remain evidence-gated.
    `createTouchDesignerPackageFiles()` adds a 2:1 TOP sampler and bounded DDP
-   sender. The sender targets the simulator in logical LED order.
+   sender. The sender targets the simulator in logical LED order. It does not
+   require a physical WLED deployment identity.
 6. `createHerma4385PanelLabelsPdf()` places current Schema 2 panel IDs on the
    measured 15 x 21 A4 stock grid. Printer registration remains
    outside the document geometry. The simulator anchors the same

@@ -137,6 +137,9 @@ not ordered gates; use only the tools supported by the loaded fixture:
 - **Export:** download one editable ZIP with current print, mapping, WLED,
   MadMapper, and TouchDesigner files.
 
+Every project with 1 through 2,624 mapped LEDs includes the TouchDesigner
+simulator template. Physical WLED output can remain unavailable independently.
+
 The browser runs a deterministic subset of WLED effects. Through the local
 host it can flash the receipt-bound ESP32 image, configure WLED, persist the
 selected native animation, and mirror the mapped framebuffer through bounded
