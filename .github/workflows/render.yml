@@ -45,11 +45,11 @@ jobs:
           cache: npm
       - name: Install npm dependencies
         run: npm ci
-      - name: Verify logical order and mapping artifacts
+      - name: Verify logical order and address artifacts
         run: |
           npm run test:unit -- tests/logical-led-order.test.ts tests/hardware-mapping.test.ts tests/pose-first-equivalence.test.ts
           npm run generate:mapping
-          git diff --exit-code -- layout/panel-map.json wled/diagnostic
+          git diff --exit-code -- wled/diagnostic
 
   stage-zero-bootstrap-linux:
     name: Stage-zero bootstrap (Linux x86-64)

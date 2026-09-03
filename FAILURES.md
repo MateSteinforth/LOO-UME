@@ -2574,3 +2574,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `scripts/generate-mapping.ts` regenerated fingerprint
   `524500f5` with the direct loader.
 - **Status:** Mitigated.
+
+### F-138 — Raw display coordinates caused a false mapping parity failure
+
+- **Date:** 2026-09-03
+- **Context:** MAP-021 Linux and macOS mapping-artifact verification.
+- **Symptom:** Both systems produced fingerprint `524500f5`, but macOS changed
+  the last digit of 13 `v` values in `layout/panel-map.json`.
+- **Cause:** Platform math libraries can give different final bits for
+  transcendental results. These raw values do not control the new order key.
+- **Correction:** Compare generated address artifacts and golden fingerprints.
+  Do not compare unrounded display coordinates for address parity.
+- **Prevention:** Keep raw geometry unchanged. Use the stable order key for
+  address decisions and use address artifacts for cross-platform checks.
+- **Evidence:** GitHub workflow run 33735439353 produced the same tests and
+  fingerprint on Ubuntu and macOS. Only raw `v` JSON values differed.
+- **Status:** Resolved by MAP-021.

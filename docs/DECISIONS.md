@@ -387,3 +387,5 @@ much smaller than the minimum meaningful latitude gap in the current projects.
 Raw world and UV coordinates remain unchanged. Physical route order also
 remains unchanged. The new logical order requires synchronized ledmap,
 diagnostic, deployment, MadMapper, and golden-fingerprint updates.
+Cross-platform parity compares address artifacts and fingerprints. It does not
+compare unrounded display coordinates from platform math libraries.
