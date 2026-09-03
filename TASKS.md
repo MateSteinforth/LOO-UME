@@ -223,19 +223,20 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `P1 · MAP-021` Make logical LED ordering cross-platform deterministic
+
+- Result: logical order uses one-billionth normalized UV bins, then panel ID
+  and panel-local coordinates. Raw geometry and physical route order stay
+  unchanged.
+- Owner: `codex/map-021-deterministic-order` in `/tmp/loo-ume-map-021`.
+- Verification: 68 focused tests, application TypeScript, production web
+  build, YAML validation, and diff-check passed. GitHub workflow run
+  33735838342 produced identical address artifacts and fingerprint `524500f5`
+  on Ubuntu and macOS.
 
 ## In Progress
 
-### `P1 · MAP-021` Make logical LED ordering cross-platform deterministic
-
-- Scope: replace exact raw-float ordering of symmetric LED positions with one
-  documented deterministic key. Regenerate and review all mapping authorities.
-- Acceptance: Linux and macOS clean checks produce byte-identical ledmaps and
-  the same golden mapping fingerprint.
-- Owner: `codex/map-021-deterministic-order` in `/tmp/loo-ume-map-021`.
-- Likely conflicts: panel mapping, generated mapping artifacts, mapping tests,
-  MadMapper fingerprints, and LIVE-020 mapping documentation.
+No tasks.
 
 ## Human Review
 
