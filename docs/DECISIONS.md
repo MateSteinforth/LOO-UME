@@ -278,13 +278,17 @@ undocumented native project format. Schema 2, the mapping contract, and mapping
 fingerprint remain the authorities.
 
 The SVG uses one fixture group for each panel and one independently addressed
-`Generic - Pixel RGB` fixture for each physical LED. Every fixture footprint
-comes from its pose-derived LED position and panel axes. Art-Net addresses
-follow physical wire order over 16 universes. This makes MadMapper perform the
-complete realtime spatial-to-wire mapping because its documented SVG contract
-has no per-instance matrix-assignation field. WLED realtime ledmap processing
-stays disabled for direct Art-Net, while native WLED effects can continue to use
-the installed ledmap. `LIVE-010` must prove the path on Ethernet hardware.
+`Generic - Pixel RGB` fixture for each physical LED. Every fixture is an equal
+square centered on that LED's equirectangular UV coordinate in one fixed 2:1
+atlas. One deterministic global longitude seam keeps all latitude bands in the
+same frame. Do not project fixture corners independently or crop the atlas to
+their bounds; both operations distort the shared spherical map near its seam
+and poles. Art-Net addresses follow physical wire order over 16 universes. This
+makes MadMapper perform the complete realtime spatial-to-wire mapping because
+its documented SVG contract has no per-instance matrix-assignation field. WLED
+realtime ledmap processing stays disabled for direct Art-Net, while native WLED
+effects can continue to use the installed ledmap. `LIVE-010` must prove the path
+on Ethernet hardware.
 
 ## D33 — Preview MadMapper through a bounded loopback Art-Net receiver
 

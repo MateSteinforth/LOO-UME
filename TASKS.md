@@ -148,6 +148,22 @@ No tasks.
 
 ## Ready to Merge
 
+### `P1 · MAD-012` Keep the MadMapper UV atlas in one 2:1 frame
+
+- Scope: replace independently projected LED fixture corners and tight SVG
+  cropping with equal squares centered on individual LED UV coordinates in one
+  fixed 4096 x 2048 atlas.
+- Acceptance: all 2,624 fixtures stay inside the 2:1 atlas, use one global
+  longitude seam, remain equal squares, preserve physical addresses and panel
+  row orientation, and pass the focused MadMapper export/package tests.
+- Owner: `codex/mad-012-fixed-uv-atlas` in `/tmp/loo-ume-mad-012`.
+- Likely conflicts: MadMapper export tests, mapping documentation, and
+  `TASKS.md` changes on `LABEL-012` and `LIVE-020`.
+- Verification: 10 focused MadMapper export/package tests, application
+  TypeScript, diff-check, and a rendered full-atlas inspection passed. The full
+  composite TypeScript check could not resolve Electron types because the
+  shared dependency installation predates Electron packaging.
+
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 
 - Scope: install the Finder launcher in the standard system-wide

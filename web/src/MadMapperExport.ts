@@ -9,7 +9,15 @@ const CHANNELS_PER_RGB_PIXEL = 3;
 const RGB_PIXELS_PER_UNIVERSE = 170;
 const ATLAS_WIDTH = 4096;
 const ATLAS_HEIGHT = 2048;
-const ATLAS_MARGIN = 32;
+const FIXTURE_SIZE = 28;
+const PROJECTION_WIDTH = Math.min(
+  ATLAS_WIDTH - FIXTURE_SIZE,
+  2 * (ATLAS_HEIGHT - FIXTURE_SIZE),
+);
+const PROJECTION_HEIGHT = PROJECTION_WIDTH / 2;
+// Use one stable seam for the complete atlas. A one-fifth turn puts the
+// flagship seam in its natural longitude gap without per-panel wrapping.
+const ATLAS_LONGITUDE_SEAM = 0.2;
 const FIXTURE_DEFINITION = "Generic - Pixel RGB";
 
 export interface MadMapperExportOptions {
@@ -128,18 +136,6 @@ function assertExportable(contract: HardwareMappingContract): void {
   }
 }
 
-function equirectangularUv(position: { x: number; y: number; z: number }): {
-  u: number;
-  v: number;
-} {
-  const length = Math.hypot(position.x, position.y, position.z);
-  if (length === 0) throw new Error("MadMapper pixel position cannot be at the origin.");
-  return {
-    u: (Math.atan2(position.z / length, position.x / length) / (2 * Math.PI) + 1) % 1,
-    v: Math.acos(Math.max(-1, Math.min(1, position.y / length))) / Math.PI,
-  };
-}
-
 interface MadMapperPixelFixture {
   id: string;
   address: MadMapperAddress;
@@ -177,42 +173,20 @@ function panelFixtures(
     if (!route) {
       throw new Error(`MadMapper panel ${panel.id} has no output route.`);
     }
-    const panelDefinition = contract.mapping.panels.find(
-      (candidate) => candidate.id === panel.id,
-    );
-    if (!panelDefinition) {
-      throw new Error(`MadMapper panel ${panel.id} has no pose definition.`);
-    }
-    const panelAnchorU = equirectangularUv(panelDefinition.position).u;
-    const pitchX = panelDefinition.previewWidth / (columns + 1);
-    const pitchY = panelDefinition.previewHeight / (rows + 1);
+    const halfFixture = FIXTURE_SIZE / 2;
     const pixels = entries.map((entry) => {
-      const corners = [
-        [-0.5, 0.5],
-        [0.5, 0.5],
-        [0.5, -0.5],
-        [-0.5, -0.5],
-      ].map(([xOffset, yOffset]) => equirectangularUv({
-        x: entry.x + panelDefinition.xAxis.x * xOffset! * pitchX +
-          panelDefinition.yAxis.x * yOffset! * pitchY,
-        y: entry.y + panelDefinition.xAxis.y * xOffset! * pitchX +
-          panelDefinition.yAxis.y * yOffset! * pitchY,
-        z: entry.z + panelDefinition.xAxis.z * xOffset! * pitchX +
-          panelDefinition.yAxis.z * yOffset! * pitchY,
-      }));
-      const unwrappedU = corners.map(({ u }) => {
-        let adjusted = u;
-        while (adjusted - panelAnchorU > 0.5) adjusted -= 1;
-        while (adjusted - panelAnchorU < -0.5) adjusted += 1;
-        return adjusted;
-      });
+      const atlasU = (entry.u - ATLAS_LONGITUDE_SEAM + 1) % 1;
+      const centerX = (ATLAS_WIDTH - PROJECTION_WIDTH) / 2 + atlasU * PROJECTION_WIDTH;
+      const centerY = (ATLAS_HEIGHT - PROJECTION_HEIGHT) / 2 + entry.v * PROJECTION_HEIGHT;
       return {
         id: `${panel.id}-pixel-${entry.panelPixelX}-${entry.panelPixelY}`,
         address: madMapperAddressForPixel(entry.physicalIndex, startUniverse),
-        points: corners.map((corner, index) => ({
-          x: unwrappedU[index]! * ATLAS_WIDTH,
-          y: corner.v * ATLAS_HEIGHT,
-        })),
+        points: [
+          { x: centerX - halfFixture, y: centerY - halfFixture },
+          { x: centerX + halfFixture, y: centerY - halfFixture },
+          { x: centerX + halfFixture, y: centerY + halfFixture },
+          { x: centerX - halfFixture, y: centerY + halfFixture },
+        ],
       };
     });
     const physicalStart = entries[0]!.physicalIndex;
@@ -240,13 +214,6 @@ function renderSvg(
   fixtures: ReturnType<typeof panelFixtures>,
   fingerprint: string,
 ): string {
-  const coordinates = fixtures.flatMap((fixture) =>
-    fixture.pixels.flatMap((pixel) => pixel.points)
-  );
-  const minX = Math.min(...coordinates.map((point) => point.x)) - ATLAS_MARGIN;
-  const minY = Math.min(...coordinates.map((point) => point.y)) - ATLAS_MARGIN;
-  const maxX = Math.max(...coordinates.map((point) => point.x)) + ATLAS_MARGIN;
-  const maxY = Math.max(...coordinates.map((point) => point.y)) + ATLAS_MARGIN;
   const groups = fixtures.map(({ patch, pixels }) => {
     const pixelElements = pixels.map((pixel) => {
       const pointText = pixel.points
@@ -262,7 +229,7 @@ function renderSvg(
   }).join("\n");
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(maxX - minX)}" height="${Math.ceil(maxY - minY)}" viewBox="${minX.toFixed(3)} ${minY.toFixed(3)} ${(maxX - minX).toFixed(3)} ${(maxY - minY).toFixed(3)}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${ATLAS_WIDTH}" height="${ATLAS_HEIGHT}" viewBox="0 0 ${ATLAS_WIDTH} ${ATLAS_HEIGHT}">`,
     "  <title>LOO/UME MadMapper SVG fixtures</title>",
     `  <desc>Individual physical-pixel fixture atlas; mapping fingerprint ${xmlEscape(fingerprint)}</desc>`,
     "  <style>svg { background: black; } * { stroke: white; fill: none; }</style>",

@@ -2489,3 +2489,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   normal integration.
 - **Status:** Resolved in INSTALL-019; canonical-main run 33660397431 published
   the stable unsigned DMG and the legacy launcher did not run.
+
+### F-133 — Per-panel seam correction broke the shared UV atlas
+
+- **Date:** 2026-09-03
+- **Context:** MadMapper fixture import for the 41-panel sculpture.
+- **Symptom:** Upper and lower fixture bands shifted left of the middle band,
+  large black areas appeared, and the imported map was not 2:1.
+- **Cause:** The exporter projected every LED fixture corner independently,
+  moved seam-crossing corners around each panel anchor, and then cropped the SVG
+  to those out-of-range bounds. The intended 4096 x 2048 atlas became a shifted
+  5327 x 1871 document.
+- **Correction:** Center one equal square on every existing LED UV coordinate,
+  choose one deterministic longitude seam for all LEDs, and retain the fixed
+  4096 x 2048 viewBox.
+- **Prevention:** A spherical fixture atlas must keep one global projection
+  frame. Test its exact aspect ratio, fixture bounds, and equal fixture size.
+- **Evidence:** `tests/madmapper-export.test.ts` and the operator's MadMapper
+  screenshot from 2026-09-03.
+- **Status:** Resolved by MAD-012.
