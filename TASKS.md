@@ -47,6 +47,15 @@ No tasks.
 
 ## Done (latest integrations)
 
+### `P1 · MAD-014` Prevent MadMapper fixture overlap
+
+- Result: 2,624 rectangular fixtures cover the fixed 4096 x 2048 atlas without
+  interior overlap. Each rectangle contains its LED center. Physical Art-Net
+  addresses, mapping fingerprint, authored mapping, and panel poses did not change.
+- Verification: 12 focused export/package tests, application TypeScript,
+  production web build, diff-check, and native MadMapper review passed. GitHub
+  workflow run 33728004432 published Electron review 8 from the task commit.
+
 ### `P1 · MAD-013` Fill the MadMapper atlas with LED Voronoi cells
 
 - Result: 2,624 seam-adjusted LED centers now produce clipped planar Voronoi
@@ -181,16 +190,6 @@ No tasks.
   passed. Native review remains required after the first tagged asset is built.
 
 ## Ready to Merge
-
-### `P1 · MAD-014` Prevent MadMapper fixture overlap
-
-- Result: 2,624 rectangular fixtures cover the fixed 4096 x 2048 atlas without
-  interior overlap. Each rectangle contains its LED center. Physical Art-Net
-  addresses, mapping fingerprint, authored mapping, and panel poses did not change.
-- Owner: `codex/mad-014-nonoverlap-fixtures` in the repository worktree.
-- Likely conflicts: MadMapper export, its focused tests, D32, and failure records.
-- Verification: 12 focused export/package tests, application TypeScript,
-  production web build, and diff-check passed. Native MadMapper review remains.
 
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 

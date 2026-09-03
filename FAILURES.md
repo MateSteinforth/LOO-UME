@@ -2557,4 +2557,4 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   quad fixture, test rectangular bounds and interior overlap after SVG rounding.
 - **Evidence:** `web/src/MadMapperExport.ts`,
   `tests/madmapper-export.test.ts`, and the operator's MadMapper screenshot.
-- **Status:** Corrected by MAD-014; native MadMapper review remains necessary.
+- **Status:** Resolved by MAD-014; native MadMapper review passed.
