@@ -85,7 +85,7 @@ comparison data. The current automatic route also includes each controller pin
 to the first DIN and writes every selected physical turn into the panel pose.
 The current saved 41-panel automatic route is approximately 2,302.4 mm,
 including each controller pin to the first DIN. It uses GPIO 16 through 19,
-identity installed-address transforms, and mapping fingerprint `e9fe0e65`.
+identity installed-address transforms, and mapping fingerprint `524500f5`.
 All estimates use named connector corners because exact pad centres are not in
 the profile.
 

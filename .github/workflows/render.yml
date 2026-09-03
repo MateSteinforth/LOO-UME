@@ -28,6 +28,29 @@ jobs:
       - name: Verify the checked-in runtime and production build
         run: npm run build:desktop
 
+  mapping-artifact-parity:
+    name: Mapping artifacts (${{ matrix.runner }})
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, macos-15]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install npm dependencies
+        run: npm ci
+      - name: Verify logical order and mapping artifacts
+        run: |
+          npm run test:unit -- tests/logical-led-order.test.ts tests/hardware-mapping.test.ts tests/pose-first-equivalence.test.ts
+          npm run generate:mapping
+          git diff --exit-code -- layout/panel-map.json wled/diagnostic
+
   stage-zero-bootstrap-linux:
     name: Stage-zero bootstrap (Linux x86-64)
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'

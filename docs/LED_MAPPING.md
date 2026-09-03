@@ -22,8 +22,10 @@ The current mapping pipeline separates three concepts:
    runtime derives the historical rectangular grid. The current physical panel
    profile is 8 × 8.
 2. **Logical index** is effect/simulator order. LED world positions are projected
-   equirectangularly, then sorted by `v`, `u`, and a deterministic tie-breaker:
-   north to south, then longitude.
+   equirectangularly. The order key rounds `v` and `u` into one-billionth
+   normalized bins. It then uses panel ID, panel-local Y, and panel-local X.
+   This key gives north-to-south and then longitude order without raw-float
+   comparisons.
 3. **Physical index** is wire order. It is assigned from output number, panel
    chain position, and within-panel pixel order.
 

@@ -59,7 +59,7 @@ describe("printable wiring assembly manual", () => {
       wiringStatus: "authored",
       routeSource: "authored-route",
       mappingReady: true,
-      mappingFingerprint: "e9fe0e65",
+      mappingFingerprint: "524500f5",
       optimizationFingerprint: "1cedb204fd0e5012",
       totalPixels: 2_624,
       colorOrder: "GRB",

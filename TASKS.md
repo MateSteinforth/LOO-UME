@@ -31,27 +31,30 @@ DDP path.
 
 ## Backlog
 
-### `P1 · MAP-021` Make logical LED ordering cross-platform deterministic
+### `P1 · TD-010` Export one complete project package with TouchDesigner output
 
-- Scope: replace exact raw-float ordering of symmetric LED positions with one
-  documented deterministic key, then regenerate and review all mapping,
-  diagnostic, deployment, and MadMapper fingerprint authorities together.
-- Acceptance: Linux and macOS clean checks produce byte-identical ledmaps and
-  the same golden mapping fingerprint.
-- Dependency: explicit mapping-artifact review; do not change the installed
-  address authority as incidental LIVE-020 work.
+- Scope: make the normal download contain the editable project, current print
+  files, mapping, WLED, MadMapper, and TouchDesigner deliverables.
+- TouchDesigner path: accept one 2:1 TOP, sample the current pose-derived UV
+  positions in logical LED order, and send bounded DDP frames through WLAN.
+- Device data: generate the template configuration from the current verified
+  WLED address, deployment identity, LED count, and mapping fingerprint.
+- User interface: keep one complete-package download in the normal workflow.
+  Move separate artifact download controls into Developer utilities.
+- Acceptance: the downloaded ZIP contains every current verified artifact and
+  one reviewed TouchDesigner template with no external plugin requirement.
+- Acceptance: WLED applies the installed ledmap exactly once. The template
+  reports its target, fingerprint, frame rate, and replaced frames.
+- Acceptance: missing or stale optional artifacts have clear package records.
+  They do not make current independent artifacts unavailable.
+- Verification: compare package mapping authorities, test deterministic package
+  contents, run a TouchDesigner 2:1 image test, and run a physical WLAN test.
+- Dependency: complete LIVE-020 first. Reuse its DDP packet limits, lifecycle,
+  color rule, device identity, fallback, and physical evidence.
 
 ## Ready
 
-### `P1 · LIVE-020` Send MadMapper output to the sculpture through WLAN DDP
-
-- Scope: receive complete MadMapper Art-Net frames on loopback, show them in
-  LOO/UME, and send the same mapped pixels to WLED through WLAN DDP.
-- Acceptance: receive and send controls work independently; incomplete frames
-  never reach WLED; project, device, or mapping changes stop the stream; the
-  three-panel setup confirms image, address, color, fallback, and frame rate.
-- Boundary: keep the current physical-address contract. Do not apply the WLED
-  ledmap a second time.
+No tasks.
 
 ## Done (latest integrations)
 
@@ -75,6 +78,15 @@ DDP path.
 - Verification: 12 focused export/package tests, application TypeScript,
   production web build, diff-check, and native MadMapper review passed. GitHub
   workflow run 33728004432 published Electron review 8 from the task commit.
+
+### `P1 · CTRL-010` Reconcile live-output tasks and stale resources
+
+- Result: direct WLED Art-Net over Ethernet is retired. LIVE-020 now owns the
+  selected MadMapper loopback-to-WLAN-DDP path. Speculative blocked tasks are
+  removed, and completed launcher tasks are recorded as Done.
+- Verification: focused MadMapper export/package tests, application TypeScript,
+  production web build, diff-check, and final resource audit passed. Integrated
+  in `main` at `6427f57` on 2026-09-03.
 
 ### `P1 · MAD-013` Fill the MadMapper atlas with LED Voronoi cells
 
@@ -211,22 +223,30 @@ DDP path.
 
 ## Ready to Merge
 
-### `P1 · CTRL-010` Reconcile live-output tasks and stale resources
-
-- Result: direct WLED Art-Net over Ethernet is retired. LIVE-020 now owns the
-  selected MadMapper loopback-to-WLAN-DDP path. Speculative blocked tasks are
-  removed, and completed launcher tasks are recorded as Done.
-- Owner: `codex/ctrl-010-wlan-ddp-cleanup` in the repository worktree.
-- Verification: focused MadMapper export/package tests, application TypeScript,
-  production web build, diff-check, and final resource audit.
+No tasks.
 
 ## In Progress
 
-No tasks.
+### `P1 · MAP-021` Make logical LED ordering cross-platform deterministic
+
+- Scope: replace exact raw-float ordering of symmetric LED positions with one
+  documented deterministic key. Regenerate and review all mapping authorities.
+- Acceptance: Linux and macOS clean checks produce byte-identical ledmaps and
+  the same golden mapping fingerprint.
+- Owner: `codex/map-021-deterministic-order` in `/tmp/loo-ume-map-021`.
+- Likely conflicts: panel mapping, generated mapping artifacts, mapping tests,
+  MadMapper fingerprints, and LIVE-020 mapping documentation.
 
 ## Human Review
 
-No tasks.
+### `P1 · LIVE-020` Send MadMapper output to the sculpture through WLAN DDP
+
+- Result: separate Receive and Sculpture output controls send only complete
+  Art-Net frames. The browser converts physical Art-Net order to logical DDP
+  order, so WLED applies its installed ledmap one time.
+- Review: use the 192-LED three-panel setup. Confirm image, address, RGB color,
+  Art-Net-loss fallback, and the displayed frame rate.
+- Owner: `codex/live-020-wlan-ddp` in `/tmp/loo-ume-live-020`.
 
 ## Blocked
 

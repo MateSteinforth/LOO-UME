@@ -32,7 +32,9 @@ edit marks derived mechanics stale but does not stop those functions.
 2. `panelEmitterLocalPositions()` normalizes an optional row-major pose-local
    grid-coordinate emitter list or derives the legacy rectangular grid.
    `createPanelAssemblyMapping()` expands those positions through authoritative
-   poses into LED world positions, logical indices, and mapping metadata.
+   poses into LED world positions, logical indices, and mapping metadata. The
+   logical order uses one-billionth normalized UV bins, then panel address.
+   This key prevents platform float noise from ordering symmetric emitters.
    The separate optional carrier contract affects display geometry and tool
    capability only; it does not become a second address authority.
    Optional planar carrier apertures are display cutouts only and do not become

@@ -84,7 +84,7 @@ describe("MadMapper fixture export", () => {
     expect(bundle.manifest).toMatchObject({
       schemaVersion: "1.2.0",
       minimumMadMapperVersion: "6.1",
-      mappingFingerprint: "e9fe0e65",
+      mappingFingerprint: "524500f5",
       addressOrder: "physical-wire-order",
       fixtureLayout: "individual-physical-pixels",
       panelFixtureCount: 41,
@@ -192,7 +192,7 @@ describe("MadMapper fixture export", () => {
       { length: 2_624 },
       (_, physicalIndex) => madMapperAddressForPixel(physicalIndex),
     ));
-    expect(bundle.manifest.mappingFingerprint).toBe("e9fe0e65");
+    expect(bundle.manifest.mappingFingerprint).toBe("524500f5");
   });
 
   it("never splits one RGB pixel across universes", () => {

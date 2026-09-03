@@ -79,7 +79,7 @@ describe("guarded WLED deployment contract", () => {
     expect(bundle.deploymentIdentity).toBe(sha256ExactBytes(bundle.manifestBytes));
     expect(JSON.parse(bundle.manifestBytes)).toMatchObject({
       status: "mapping-ready-installation",
-      mappingFingerprint: "e9fe0e65",
+      mappingFingerprint: "524500f5",
       mappingFingerprintVersion: "fnv1a32-u32le-v2",
       target: {
         platformioEnvironment: "orbital_esp32dev",

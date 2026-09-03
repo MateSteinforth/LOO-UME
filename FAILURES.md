@@ -2560,3 +2560,17 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `web/src/MadMapperExport.ts`,
   `tests/madmapper-export.test.ts`, and the operator's MadMapper screenshot.
 - **Status:** Resolved by MAD-014; native MadMapper review passed.
+
+### F-137 — The managed sandbox blocked the tsx command pipe
+
+- **Date:** 2026-09-03
+- **Context:** MAP-021 mapping-artifact regeneration in a temporary worktree.
+- **Symptom:** `npm run generate:mapping:hardware` failed before generation.
+  The tsx command could not open its pipe below `/tmp/tsx-1000/`.
+- **Cause:** The managed sandbox did not permit the tsx command IPC listener.
+- **Correction:** Run the same script with `node --import tsx`.
+- **Prevention:** If the tsx pipe fails with `EPERM`, use the direct Node loader.
+  Do not treat this host restriction as a mapping failure.
+- **Evidence:** `scripts/generate-mapping.ts` regenerated fingerprint
+  `524500f5` with the direct loader.
+- **Status:** Mitigated.

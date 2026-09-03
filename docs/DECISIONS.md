@@ -375,3 +375,15 @@ The Electron window owns the desktop session. Closing the last window quits
 the application and its loopback services on macOS as well as other platforms.
 This differs from the normal document-based Mac convention because LOO/UME has
 no useful hidden state after its only editor window closes.
+
+## D38 — Quantize spherical coordinates before logical LED ordering
+
+Logical LED order uses one stable five-part key. The key contains rounded
+one-billionth `v` and `u` bins, panel ID, panel-local Y, and panel-local X.
+Code-unit text comparison replaces locale-sensitive comparison for panel IDs.
+
+This bin size groups platform float noise in symmetric positions. It remains
+much smaller than the minimum meaningful latitude gap in the current projects.
+Raw world and UV coordinates remain unchanged. Physical route order also
+remains unchanged. The new logical order requires synchronized ledmap,
+diagnostic, deployment, MadMapper, and golden-fingerprint updates.

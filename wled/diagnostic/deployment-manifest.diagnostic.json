@@ -12,7 +12,7 @@
     "byteLength": 46288,
     "sha256": "2db4099fee3e762a57e1ad656efb6c4f713b703bc757bf7e13e6e4b4965f3163"
   },
-  "mappingFingerprint": "e9fe0e65",
+  "mappingFingerprint": "524500f5",
   "mappingFingerprintVersion": "fnv1a32-u32le-v2",
   "wledColorOrder": {
     "status": "measured",
@@ -24,12 +24,12 @@
     {
       "path": "wled/diagnostic/ledmap.diagnostic.json",
       "byteLength": 12020,
-      "sha256": "f24b88c6ca478e8d7faf4a1cd8cd6d270feb24621d980d857e38108cd3c3ccfb"
+      "sha256": "71614d1a9b4a106e16e53f9d3edf75e1c9689fcb9882c457abdc3ee6c46b7a28"
     },
     {
       "path": "wled/diagnostic/route-mapping.diagnostic.json",
       "byteLength": 1933,
-      "sha256": "0eab8b002d6195b3be090c693f154d1ce83b9a9ab32980a9dfa1440239b2eddb"
+      "sha256": "b4fd89cb4813ca3d129644dec9b843c51ed8e0ac2c6806f1f1a6fdcf46dd09df"
     }
   ]
 }

@@ -45,7 +45,7 @@ describe("MadMapper package", () => {
     const manifest = JSON.parse(new TextDecoder().decode(files.get("manifest.json")));
     expect(manifest).toMatchObject({
       schemaVersion: "1.2.0",
-      mappingFingerprint: "e9fe0e65",
+      mappingFingerprint: "524500f5",
       panelFixtureCount: 41,
       pixelFixtureCount: 2_624,
       pixelCount: 2_624,

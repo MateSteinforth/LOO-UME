@@ -221,6 +221,53 @@ const FNV64_PRIME = 0x100000001b3n;
 const FNV64_MASK = 0xffffffffffffffffn;
 export const INSTALLED_ADDRESS_COORDINATE_CONTRACT =
   "pose-front-to-pcb-back-x-reflection-v2";
+export const LOGICAL_LED_UV_BIN_SCALE = 1_000_000_000;
+
+type LogicalLedOrderSource = Pick<
+  LedMappingEntry,
+  "u" | "v" | "panelId" | "panelPixelX" | "panelPixelY"
+>;
+
+export interface LogicalLedOrderKey {
+  latitudeBin: number;
+  longitudeBin: number;
+  panelId: string;
+  panelPixelY: number;
+  panelPixelX: number;
+}
+
+/**
+ * Make one platform-stable key for north-to-south logical LED order.
+ * One UV bin is one billionth of the normalized projection range.
+ */
+export function logicalLedOrderKey(
+  entry: LogicalLedOrderSource,
+): LogicalLedOrderKey {
+  return {
+    latitudeBin: Math.round(entry.v * LOGICAL_LED_UV_BIN_SCALE),
+    longitudeBin: Math.round(entry.u * LOGICAL_LED_UV_BIN_SCALE),
+    panelId: entry.panelId ?? "",
+    panelPixelY: entry.panelPixelY ?? -1,
+    panelPixelX: entry.panelPixelX ?? -1,
+  };
+}
+
+function compareStableText(first: string, second: string): number {
+  return first < second ? -1 : first > second ? 1 : 0;
+}
+
+export function compareLogicalLedOrder(
+  first: LogicalLedOrderSource,
+  second: LogicalLedOrderSource,
+): number {
+  const left = logicalLedOrderKey(first);
+  const right = logicalLedOrderKey(second);
+  return left.latitudeBin - right.latitudeBin ||
+    left.longitudeBin - right.longitudeBin ||
+    compareStableText(left.panelId, right.panelId) ||
+    left.panelPixelY - right.panelPixelY ||
+    left.panelPixelX - right.panelPixelX;
+}
 
 /**
  * Fingerprint the exact route inputs used by the installed-address optimizer.
@@ -1986,10 +2033,7 @@ export function createPanelAssemblyMapping(
     }
   }
   [...entries]
-    .sort(
-      (a, b) =>
-        a.v - b.v || a.u - b.u || a.physicalIndex - b.physicalIndex,
-    )
+    .sort(compareLogicalLedOrder)
     .forEach((entry, logicalIndex) => {
       entry.logicalIndex = logicalIndex;
     });
