@@ -5,8 +5,9 @@ This document records the selected prototype controller and software contract.
 flash/setup path, and one-panel smoke configuration. WLED build tooling stays
 on `generate/wled-firmware`; the binary is an ignored build/release artifact.
 The ESP32 flash, one-panel address/color test, and three-panel native/DDP
-playback path have physical evidence. Complete 41-panel parity, Art-Net, audio,
-Ethernet, and custom effects remain later or external work.
+playback path have physical evidence. Complete 41-panel parity, audio, and
+custom effects remain later or external work. Direct WLED Art-Net over Ethernet
+is not planned.
 
 ## Hardware baseline
 
@@ -32,9 +33,9 @@ electrical plan or software gate.
 The WLED path uses native effects for autonomous playback. FIRM-014 adds a
 segmented 1-to-2,624-pixel DDP preview with a finite fallback to the saved boot
 preset. The operator physically confirmed fallback and power-cycle playback on
-the 192-LED three-panel project. Art-Net,
-Ethernet, microphones, audio-reactive presets, and custom effects remain
-deferred. A future custom effect belongs in a WLED
+the 192-LED three-panel project. Microphones, audio-reactive presets, and custom
+effects remain deferred. LIVE-020 will receive Art-Net on loopback and send
+mapped frames through WLAN DDP. A future custom effect belongs in a WLED
 usermod, not in patched WLED core files.
 
 ## Mapping

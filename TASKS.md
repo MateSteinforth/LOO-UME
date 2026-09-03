@@ -1,11 +1,11 @@
 # Project task board
 
-Last reconciled: 2026-08-31
+Last reconciled: 2026-09-03
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
-Current milestone: publish Electron as the default free Mac application, then
-prove direct Art-Net behavior and static address/RGB parity on hardware.
+Current milestone: send live MadMapper frames to WLED through the proved WLAN
+DDP path, then confirm the installed 41-panel route and address parity.
 
 ## Control rules
 
@@ -39,13 +39,33 @@ prove direct Art-Net behavior and static address/RGB parity on hardware.
 - Acceptance: Linux and macOS clean checks produce byte-identical ledmaps and
   the same golden mapping fingerprint.
 - Dependency: explicit mapping-artifact review; do not change the installed
-  address authority as incidental LIVE-013 cleanup.
+  address authority as incidental LIVE-020 work.
 
 ## Ready
 
-No tasks.
+### `P1 · LIVE-020` Send MadMapper output to the sculpture through WLAN DDP
+
+- Scope: receive complete MadMapper Art-Net frames on loopback, show them in
+  LOO/UME, and send the same mapped pixels to WLED through WLAN DDP.
+- Acceptance: receive and send controls work independently; incomplete frames
+  never reach WLED; project, device, or mapping changes stop the stream; the
+  three-panel setup confirms image, address, color, fallback, and frame rate.
+- Boundary: keep the current physical-address contract. Do not apply the WLED
+  ledmap a second time.
 
 ## Done (latest integrations)
+
+### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
+
+- Result: the legacy launcher installs in `/Applications`, reuses only its
+  verified service, preserves local projects during updates, and removes only
+  managed files. Integrated in `main` at `d59f803` on 2026-09-02.
+
+### `P1 · INSTALL-017` Publish the current Mac launcher automatically
+
+- Result: the legacy launcher workflow publishes reviewed automatic, tagged,
+  and manual packages. Electron later replaced this launcher as the primary Mac
+  application. Integrated in `main` at `be85989` on 2026-09-02.
 
 ### `P1 · MAD-014` Prevent MadMapper fixture overlap
 
@@ -191,58 +211,14 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
+### `P1 · CTRL-010` Reconcile live-output tasks and stale resources
 
-- Scope: install the Finder launcher in the standard system-wide
-  `/Applications` folder, hand Terminal only that stable executable path, and
-  recover an owned server whose API is alive but whose editor files are gone.
-- Acceptance: first launch uses the normal macOS authorization boundary and
-  reports the exact installed path; an existing personal-app installation is
-  migrated without leaving a duplicate; closing the browser and opening the
-  app again opens a valid editor; an API-only stale managed server is stopped
-  and rebuilt, while an unrelated process is never adopted or stopped;
-  uninstall removes the managed system app through the same bounded macOS
-  authorization boundary. A newer installer stops the verified existing
-  service, updates the managed checkout in place without removing local
-  projects, and starts only the updated service; reopening an identical app
-  continues to reuse the running service.
-- Owner: `codex/install-018-reopen-lifecycle` in
-  `/tmp/loo-ume-install-018`. Likely conflicts: Mac launcher lifecycle,
-  managed-server readiness, launcher regressions, and install documentation.
-- Verification: 18 focused launcher lifecycle tests, shell syntax, diff-check,
-  and final integrated diff review passed. Native `/Applications`
-  authorization, migration, reopen, and removal remain operator review after
-  the next Mac release is published.
-
-### `P1 · INSTALL-017` Publish the current Mac launcher automatically
-
-- Scope: build the Mac launcher after every push to canonical `main`, publish
-  the verified ZIP and checksum as a permanent GitHub Release, and place one
-  stable download link near the start of the README. Keep explicit version-tag
-  releases and direct manual prerelease downloads available.
-- Acceptance: main and version-tag pushes package on macOS; only a commit on
-  canonical `main` can publish; concurrent main runs cannot publish out of
-  order; every automatic release uses a unique numeric bundle version and tag;
-  the README link resolves through GitHub's latest-release asset URL. Normal
-  icon launch opens a visible progress terminal and reports the ready URL;
-  the release includes a confirmed uninstaller that backs up local library
-  projects before removing only managed installation paths.
-- Owner: `codex/install-017-automatic-mac-release` in
-  `/tmp/loo-ume-install-017`. Likely conflicts: Mac release workflow, launcher
-  documentation, and its focused workflow-contract test.
-- Verification: 15 focused launcher tests, TypeScript, shell syntax, GitHub
-  Actions YAML lint, diff-check, and final integrated inspection passed. Native
-  Finder progress, release publication, stable download, and uninstall remain
-  Human Review after integration. The first native run exposed hidden Git
-  progress and an orphaned managed listener after removal. The app performs the
-  ownership-record migration before delegating, so a branch review artifact
-  also works against the older `main` checkout. The command-file uninstaller
-  invokes the quarantined launcher through `/bin/sh`, and duplicate `lsof`
-  records for one PID remain one owner. Terminal handoff uses the installed app
-  path, never an App Translocation path. A different checkout on port 4173 is
-  preserved while the Mac installation records the next free port. These
-  corrections need a new native artifact review. Manual workflow runs publish
-  a direct prerelease ZIP so the operator does not unwrap an artifact ZIP first.
+- Result: direct WLED Art-Net over Ethernet is retired. LIVE-020 now owns the
+  selected MadMapper loopback-to-WLAN-DDP path. Speculative blocked tasks are
+  removed, and completed launcher tasks are recorded as Done.
+- Owner: `codex/ctrl-010-wlan-ddp-cleanup` in the repository worktree.
+- Verification: focused MadMapper export/package tests, application TypeScript,
+  production web build, diff-check, and final resource audit.
 
 ## In Progress
 
@@ -254,46 +230,9 @@ No tasks.
 
 ## Blocked
 
-### `P1 · LIVE-010` Prove direct MadMapper Art-Net physical addressing
-
-- Blocked by: an approved Ethernet-capable WLED controller, powered three-panel
-  setup, and a computer running MadMapper on the same wired network.
-- Needed: run the generated two-universe three-panel package first, then the
-  16-universe 2,624-LED package; record address/RGB parity, universe boundaries,
-  timeout fallback, restart behavior, sustained FPS, and incomplete frames.
-- Boundary: do not add an Art-Net-to-DDP bridge unless measurements show that
-  direct MadMapper-to-WLED Art-Net cannot meet the target.
-
-### `MECH-020` Add correction tools for a proven ambiguous gap case
-
-- Blocked by: a concrete project whose boundary gap cannot be represented or
-  corrected by the current editor.
-- Needed: the smallest failing Schema 2 project and the intended corrected
-  corner cycle.
-
-### `FAB-020` Add one evidence-backed fabrication enhancement
-
-- Blocked by: a real printed-model need that is not covered by current ribbons,
-  LED-surface bridges, or planar closures.
-- Needed: the affected project, failed physical result, and required fit or
-  fabrication outcome.
-
-### `FAB-023` Route automatic structural connectors around DIN/DOUT
-
-- Blocked by: the 30-panel bridge path contains exact-zero Manifold triangles;
-  naive post-CAD pair exclusion disconnects the degree-2 graph or causes an
-  unbounded search.
-- Needed: a bounded pre-CAD path optimizer that treats keep-out and printable-
-  mesh feasibility as edge costs while preserving the strict final mesh gate.
-
 ### `HW-012` Record the installed 41-panel route
 
 - Blocked by: physical assembly.
-
-### `FIRM-010` Add later transport or audio behavior
-
-- Blocked by: `PROOF-010` plus explicit board, network, microphone, and
-  transport decisions.
 
 ### `PROOF-010` Prove simulator-to-device address and RGB parity
 
@@ -301,6 +240,15 @@ No tasks.
   the exact offline frame plan.
 - Needed: observe and record all 2,624 addresses, row transitions, corners,
   four outputs, and RGB channels against the exact deployment identity.
+
+## Retired
+
+- `LIVE-010`: retired on 2026-09-03. Direct MadMapper-to-WLED Art-Net over
+  Ethernet is no longer the selected path. `LIVE-020` uses WLAN DDP instead.
+- `MECH-020`, `FAB-020`, and `FIRM-010`: removed as speculative placeholders.
+  Add a new task only when an operator supplies a concrete requirement.
+- `FAB-023`: deferred. The known automatic connector limit remains in F-034.
+  Add a new task only when the 30-panel automatic connector path is required.
 
 ## Earlier completed work
 
@@ -407,8 +355,8 @@ No tasks.
 - `MAD-010` / `MAD-011`: integrated the mapping-ready MadMapper ZIP download
   on 2026-08-28. It exports 2,624 pose-positioned physical RGB fixtures in 41
   panel groups, direct addresses over 16 universes, CSV/JSON information, and
-  a setup PDF. Eight focused tests, TypeScript, and the production build passed;
-  full-load MadMapper and Ethernet evidence remains in `LIVE-010`.
+  a setup PDF. Eight focused tests, TypeScript, and the production build passed.
+  MAD-014 later corrected the fixture geometry. LIVE-020 owns live WLAN output.
 - `WIRE-016`: integrated automatic balanced data routing, GPIO 16–19
   assignment, pose-owned DIN/DOUT orientation, the durable pre/post-fabrication
   rotation gate, and the Advanced manual route editor on 2026-08-28. Focused

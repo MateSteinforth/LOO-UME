@@ -42,9 +42,8 @@ electrical plan.
 
 ## Known technical seams
 
-- `LIVE-010` proves the direct MadMapper-to-WLED Art-Net path on wired hardware.
-  MadMapper exports physical addresses; WLED does not apply its ledmap to
-  realtime Art-Net. Add a DDP bridge only if measurements reject the direct path.
+- `LIVE-020` receives MadMapper Art-Net on loopback and sends mapped frames to
+  WLED through WLAN DDP. Direct WLED Art-Net over Ethernet is not planned.
 - Add geometry or fabrication work only after a concrete failed project or
   printed result supplies acceptance evidence.
 - Keep Schema 2 as the only authored sculpture and mapping input. Historical

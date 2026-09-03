@@ -163,7 +163,7 @@ the approved Silicon Labs CP2102 USB identity. MadMapper or TouchDesigner still
 sends Art-Net to `127.0.0.1:6454`; the existing mapping and preview path consumes
 that frame. The existing private-device DDP broker separately sends simulator
 frames to WLED. Electron does not add a second mapping or transport
-implementation. The direct Art-Net-to-DDP forwarding path remains `LIVE-020`;
+implementation. The loopback Art-Net-to-WLAN DDP path remains `LIVE-020`;
 when that shared service is implemented, Electron consumes it without a second
 desktop-specific bridge.
 

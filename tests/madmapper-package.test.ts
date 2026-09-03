@@ -36,18 +36,23 @@ describe("MadMapper package", () => {
     ]);
     const pdf = new TextDecoder().decode(files.get("SETUP.pdf"));
     expect(pdf.startsWith("%PDF-1.4")).toBe(true);
-    expect(pdf).toContain("DRAFT - ART-NET HARDWARE SETTINGS REQUIRE LIVE-010 VALIDATION");
+    expect(pdf).toContain("DRAFT - SCULPTURE OUTPUT REQUIRES LIVE-020 VALIDATION");
     expect(pdf).toContain("File > Import Fixtures");
     expect(pdf).toContain("Avoid Cross Universe Pixels");
     expect(pdf).toContain("Import artnet-unicast-loopback.csv");
+    expect(pdf).toContain("Do not send MadMapper Art-Net directly to WLED");
     expect(pdf).toMatch(/startxref\n\d+\n%%EOF\n$/);
     const manifest = JSON.parse(new TextDecoder().decode(files.get("manifest.json")));
     expect(manifest).toMatchObject({
+      schemaVersion: "1.2.0",
       mappingFingerprint: "e9fe0e65",
       panelFixtureCount: 41,
       pixelFixtureCount: 2_624,
       pixelCount: 2_624,
       universeCount: 16,
+      plannedLiveOutput: {
+        transport: "LOO/UME-WLAN-DDP",
+      },
     });
   });
 

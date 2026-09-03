@@ -36,7 +36,7 @@ export interface MadMapperPanelPatch {
 }
 
 export interface MadMapperPatchManifest {
-  schemaVersion: "1.1.0";
+  schemaVersion: "1.2.0";
   generator: "loo-ume-madmapper-svg";
   minimumMadMapperVersion: "6.1";
   mappingFingerprint: string;
@@ -56,10 +56,9 @@ export interface MadMapperPatchManifest {
   requiredMadMapperSettings: {
     avoidCrossUniversePixels: true;
   };
-  requiredWledRealtimeAddressing: {
-    useMainSegmentOnly: false;
-    realtimeRespectLedMaps: false;
-    status: "requires-LIVE-010-hardware-validation";
+  plannedLiveOutput: {
+    transport: "LOO/UME-WLAN-DDP";
+    status: "requires-LIVE-020-implementation-and-hardware-validation";
   };
   panels: MadMapperPanelPatch[];
 }
@@ -376,7 +375,7 @@ export function createMadMapperFixtureBundle(
   const pixelCount = contract.mapping.entries.length;
   const endUniverse = madMapperAddressForPixel(pixelCount - 1, startUniverse).universe;
   const manifest: MadMapperPatchManifest = {
-    schemaVersion: "1.1.0",
+    schemaVersion: "1.2.0",
     generator: "loo-ume-madmapper-svg",
     minimumMadMapperVersion: "6.1",
     mappingFingerprint: contract.fingerprint,
@@ -394,10 +393,9 @@ export function createMadMapperFixtureBundle(
     endUniverse,
     universeCount: endUniverse - startUniverse + 1,
     requiredMadMapperSettings: { avoidCrossUniversePixels: true },
-    requiredWledRealtimeAddressing: {
-      useMainSegmentOnly: false,
-      realtimeRespectLedMaps: false,
-      status: "requires-LIVE-010-hardware-validation",
+    plannedLiveOutput: {
+      transport: "LOO/UME-WLAN-DDP",
+      status: "requires-LIVE-020-implementation-and-hardware-validation",
     },
     panels: fixtures.map((fixture) => fixture.patch),
   };

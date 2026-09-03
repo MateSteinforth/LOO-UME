@@ -87,7 +87,7 @@ test("downloads the mapping-ready MadMapper review package", async ({ page }) =>
   expect(fixturesSvg).not.toContain("Generic – Pixel RGB");
   expect(new TextDecoder().decode(
     entries[`${root}/SETUP.pdf`],
-  )).toContain("DRAFT - ART-NET HARDWARE SETTINGS REQUIRE LIVE-010 VALIDATION");
+  )).toContain("DRAFT - SCULPTURE OUTPUT REQUIRES LIVE-020 VALIDATION");
   await expect(page.locator("#pipeline-status")).toContainText(
     `Downloaded ${root}.zip`,
   );

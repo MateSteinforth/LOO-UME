@@ -441,8 +441,9 @@ The local editor now has receipt-bound setup for a loaded one-to-41-panel
 sculpture and exact HTTP read-back. FIRM-014 adds a segmented
 1-to-2,624-pixel DDP preview and saves a native WLED boot preset as its fallback.
 The operator physically confirmed the DDP-to-native fallback and autonomous
-power-cycle playback on the 192-LED three-panel project. Art-Net, Ethernet,
-audio-reactive effects, and custom firmware behavior remain absent.
+power-cycle playback on the 192-LED three-panel project. Direct WLED Art-Net
+and Ethernet remain absent. LIVE-020 will receive MadMapper Art-Net locally and
+send mapped frames through WLAN DDP.
 
 The mapping claim is static address and RGB parity for the selected pinned WLED
 target. Matching effect names or WASM frames does not prove

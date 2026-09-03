@@ -140,9 +140,9 @@ not ordered gates; use only the tools supported by the loaded fixture:
 The browser runs a deterministic subset of WLED effects. Through the local
 host it can flash the receipt-bound ESP32 image, configure WLED, persist the
 selected native animation, and mirror the mapped framebuffer through bounded
-DDP. The three-panel path is physically confirmed. Complete 41-panel address
-parity, Art-Net, Ethernet, and audio-reactive behavior remain unproved or
-unimplemented.
+WLAN DDP. The three-panel path is physically confirmed. MadMapper-to-sculpture
+WLAN DDP, complete 41-panel address parity, and audio-reactive behavior remain
+unproved or unimplemented. Direct WLED Art-Net over Ethernet is not planned.
 
 ## Verification
 

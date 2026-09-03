@@ -647,8 +647,10 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Prevention:** Put conservative hardware and printable-mesh feasibility into
   bounded pre-CAD candidate scoring. Do not use an open-ended generate, reject,
   and rebuild loop.
-- **Evidence:** `FAB-023` records the exact missing optimizer boundary.
-- **Status:** Open.
+- **Evidence:** The removed retry implementation and strict final-solid tests
+  define the known limitation.
+- **Status:** Deferred. It is not an active task unless the 30-panel automatic
+  connector path is required.
 
 ### F-035 — Fabrication convention changed without invalidating old parts
 

@@ -82,6 +82,7 @@ describe("MadMapper fixture export", () => {
     const bundle = createMadMapperFixtureBundle(contract);
 
     expect(bundle.manifest).toMatchObject({
+      schemaVersion: "1.2.0",
       minimumMadMapperVersion: "6.1",
       mappingFingerprint: "e9fe0e65",
       addressOrder: "physical-wire-order",
@@ -93,10 +94,9 @@ describe("MadMapper fixture export", () => {
       endUniverse: 16,
       universeCount: 16,
       requiredMadMapperSettings: { avoidCrossUniversePixels: true },
-      requiredWledRealtimeAddressing: {
-        useMainSegmentOnly: false,
-        realtimeRespectLedMaps: false,
-        status: "requires-LIVE-010-hardware-validation",
+      plannedLiveOutput: {
+        transport: "LOO/UME-WLAN-DDP",
+        status: "requires-LIVE-020-implementation-and-hardware-validation",
       },
     });
     expect(bundle.manifest.panels[0]).toMatchObject({

@@ -287,10 +287,10 @@ polygons, project fixture corners independently, use fixed-size fixture
 squares, or crop the atlas. These operations cause overlaps, distortion, or
 holes. Art-Net addresses follow physical wire order over 16 universes. This
 makes MadMapper perform the complete realtime spatial-to-wire mapping because
-its documented SVG contract has no per-instance matrix-assignation field. WLED
-realtime ledmap processing stays disabled for direct Art-Net. Native WLED
-effects can continue to use the installed ledmap. `LIVE-010` must prove the
-path on Ethernet hardware.
+its documented SVG contract has no per-instance matrix-assignation field.
+MadMapper sends Art-Net only to the LOO/UME loopback receiver. `LIVE-020` sends
+the mapped frame to WLED through WLAN DDP. Native WLED effects continue to use
+the installed ledmap after the finite realtime timeout.
 
 ## D33 — Preview MadMapper through a bounded loopback Art-Net receiver
 
