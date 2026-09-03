@@ -204,48 +204,7 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · MAP-021` Make logical LED ordering cross-platform deterministic
-
-- Result: logical order uses one-billionth normalized UV bins, then panel ID
-  and panel-local coordinates. Raw geometry and physical route order stay
-  unchanged.
-- Owner: `codex/map-021-deterministic-order` in `/tmp/loo-ume-map-021`.
-- Verification: 68 focused tests, application TypeScript, production web
-  build, YAML validation, and diff-check passed. GitHub workflow run
-  33735838342 produced identical address artifacts and fingerprint `524500f5`
-  on Ubuntu and macOS.
-
-### `P1 · LIVE-020` Send MadMapper output to the sculpture through WLAN DDP
-
-- Result: automatic Art-Net input and sculpture output use only complete
-  frames. The browser converts physical Art-Net order to logical DDP
-  order, so WLED applies its installed ledmap one time. A latest-frame queue
-  limits backpressure. Project, mapping, device, setup, and physical-review
-  changes stop output.
-- Decision: the operator accepted the current behavior without the planned
-  three-panel review on 2026-09-03. Correct it if later evidence differs.
-- Owner: `codex/live-020-wlan-ddp` in `/tmp/loo-ume-live-020`.
-- Verification: 61 focused unit tests, four Chromium journeys, application
-  TypeScript, production web build, and diff-check passed.
-
-### `P1 · TD-010` Export one complete project package with TouchDesigner output
-
-- Result: each project with 1 through 2,624 mapped LEDs includes the
-  TouchDesigner simulator template. Physical WLED readiness cannot remove it.
-- TouchDesigner result: the verified component includes a centered 1280 x 640
-  Fit TOP. The operator connects one source TOP directly.
-- Simulator result: bounded Art-Net and DDP inputs control one virtual
-  sculpture automatically. The newest complete frame wins. A one-second
-  timeout restores native simulation.
-- Sculpture result: a connected WLED sculpture receives every visible external
-  frame automatically when the physical deployment is ready.
-- Package result: Download complete ZIP is in the matching Fabrication step.
-- Acceptance: the operator confirmed direct TouchDesigner input and internal
-  2:1 normalization on 2026-09-03.
-- Owner: `codex/td-010-touchdesigner-package` in `/tmp/loo-ume-td-010`.
-- Verification: the native checksum, 12 focused unit tests, Python syntax,
-  TypeScript, the production build, and four Chromium journeys passed. The
-  operator confirmed the normalized TouchDesigner component.
+No tasks.
 
 ## Human Review
 
@@ -269,6 +228,9 @@ No tasks.
 
 ## Earlier completed work
 
+- `MAP-021`, `LIVE-020`, and `TD-010`: integrated on 2026-09-03 at `df3aa89`.
+  Logical ordering is deterministic. Art-Net and DDP start automatically.
+  Complete ZIP files include the verified TouchDesigner component.
 - `UI-032`: integrated panel-by-panel physical assembly focus on 2026-08-30.
   Previous/Next panel crosses nonempty data chains, activates the selected
   panel and its incident solder cables, and mutes the remaining chain context.
