@@ -51,8 +51,10 @@ No tasks.
 
 - Result: 2,624 seam-adjusted LED centers now produce clipped planar Voronoi
   polygons that touch and cover the complete fixed 4096 x 2048 SVG. Several
-  cells divide each horizontal edge. Physical Art-Net addresses, mapping
-  fingerprint, authored mapping, and panel poses are unchanged.
+  cells divide each horizontal edge. Native review then found that MadMapper
+  converts these polygons to overlapping rectangles. MAD-014 supersedes this
+  fixture geometry. Physical Art-Net addresses, mapping fingerprint, authored
+  mapping, and panel poses are unchanged.
 - Verification: 12 focused export/package tests, application TypeScript,
   production web build, diff-check, rendered full-atlas inspection, and the
   published unsigned DMG workflow passed.
@@ -179,6 +181,16 @@ No tasks.
   passed. Native review remains required after the first tagged asset is built.
 
 ## Ready to Merge
+
+### `P1 · MAD-014` Prevent MadMapper fixture overlap
+
+- Result: 2,624 rectangular fixtures cover the fixed 4096 x 2048 atlas without
+  interior overlap. Each rectangle contains its LED center. Physical Art-Net
+  addresses, mapping fingerprint, authored mapping, and panel poses did not change.
+- Owner: `codex/mad-014-nonoverlap-fixtures` in the repository worktree.
+- Likely conflicts: MadMapper export, its focused tests, D32, and failure records.
+- Verification: 12 focused export/package tests, application TypeScript,
+  production web build, and diff-check passed. Native MadMapper review remains.
 
 ### `P1 · INSTALL-018` Repair Mac application placement and reopen lifecycle
 

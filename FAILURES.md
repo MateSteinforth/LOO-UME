@@ -2541,4 +2541,20 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   division of both horizontal image edges. Fixed fixture size is not sufficient
   evidence for a complete atlas.
 - **Evidence:** `tests/madmapper-export.test.ts` and the rendered MAD-013 atlas.
-- **Status:** Resolved by MAD-013.
+- **Status:** Superseded by MAD-014 after native review found F-136.
+
+### F-136 — MadMapper converted Voronoi polygons to overlapping rectangles
+
+- **Date:** 2026-09-03
+- **Context:** Operator review of the MAD-013 fixture SVG in MadMapper.
+- **Symptom:** The SVG polygons did not overlap, but MadMapper showed many
+  overlapping rectangular fixtures.
+- **Cause:** The exporter declared each arbitrary polygon as `fixture_quad`.
+  MadMapper used the polygon bounds for the rectangular fixture.
+- **Correction:** Partition the complete atlas into axis-aligned rectangles.
+  Keep each LED center in its assigned rectangle.
+- **Prevention:** Test the geometry that the target application creates. For a
+  quad fixture, test rectangular bounds and interior overlap after SVG rounding.
+- **Evidence:** `web/src/MadMapperExport.ts`,
+  `tests/madmapper-export.test.ts`, and the operator's MadMapper screenshot.
+- **Status:** Corrected by MAD-014; native MadMapper review remains necessary.

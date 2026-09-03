@@ -44,9 +44,13 @@ function polygonArea(points: Array<[number, number]>): number {
   }, 0) / 2);
 }
 
-function segmentKey(first: [number, number], second: [number, number]): string {
-  const endpoints = [first.join(","), second.join(",")].sort();
-  return endpoints.join("|");
+function rectangleBounds(points: Array<[number, number]>) {
+  return {
+    minX: Math.min(...points.map(([x]) => x)),
+    maxX: Math.max(...points.map(([x]) => x)),
+    minY: Math.min(...points.map(([, y]) => y)),
+    maxY: Math.max(...points.map(([, y]) => y)),
+  };
 }
 
 function boundaryIntervals(
@@ -122,37 +126,53 @@ describe("MadMapper fixture export", () => {
     expect(bundle.patchCsv.trim().split("\n")).toHaveLength(42);
   });
 
-  it("covers the fixed 2:1 atlas with bounded Voronoi fixtures", async () => {
-    const bundle = createMadMapperFixtureBundle(await flagshipContract());
+  it("covers the fixed 2:1 atlas with rectangular fixtures", async () => {
+    const contract = await flagshipContract();
+    const bundle = createMadMapperFixtureBundle(contract);
     const fixtures = fixturePoints(bundle.svg);
+    const physicalEntries = [...contract.mapping.entries]
+      .sort((first, second) => first.physicalIndex - second.physicalIndex);
 
     expect(fixtures).toHaveLength(2_624);
-    for (const points of fixtures) {
-      expect(points.length).toBeGreaterThanOrEqual(3);
-      const xs = points.map(([x]) => x);
-      const ys = points.map(([, y]) => y);
-      expect(Math.min(...xs)).toBeGreaterThanOrEqual(0);
-      expect(Math.max(...xs)).toBeLessThanOrEqual(4096);
-      expect(Math.min(...ys)).toBeGreaterThanOrEqual(0);
-      expect(Math.max(...ys)).toBeLessThanOrEqual(2048);
+    for (const [index, points] of fixtures.entries()) {
+      expect(points).toHaveLength(4);
+      const bounds = rectangleBounds(points);
+      expect(new Set(points.map(([x]) => x)).size).toBe(2);
+      expect(new Set(points.map(([, y]) => y)).size).toBe(2);
+      expect(bounds.minX).toBeGreaterThanOrEqual(0);
+      expect(bounds.maxX).toBeLessThanOrEqual(4096);
+      expect(bounds.minY).toBeGreaterThanOrEqual(0);
+      expect(bounds.maxY).toBeLessThanOrEqual(2048);
+      const entry = physicalEntries[index]!;
+      const siteX = ((entry.u - 0.2 + 1) % 1) * 4096;
+      const siteY = entry.v * 2048;
+      expect(siteX).toBeGreaterThanOrEqual(bounds.minX - 0.001);
+      expect(siteX).toBeLessThanOrEqual(bounds.maxX + 0.001);
+      expect(siteY).toBeGreaterThanOrEqual(bounds.minY - 0.001);
+      expect(siteY).toBeLessThanOrEqual(bounds.maxY + 0.001);
     }
     const coveredArea = fixtures.reduce((area, points) => area + polygonArea(points), 0);
     expect(Math.abs(coveredArea - 4096 * 2048)).toBeLessThan(20);
   });
 
-  it("gives neighboring cells shared polygon boundaries", async () => {
+  it("does not give two fixtures overlapping interiors", async () => {
     const bundle = createMadMapperFixtureBundle(await flagshipContract());
-    const fixtures = fixturePoints(bundle.svg);
-    const segmentUses = new Map<string, number>();
-    for (const points of fixtures) {
-      points.forEach((point, index) => {
-        const key = segmentKey(point, points[(index + 1) % points.length]!);
-        segmentUses.set(key, (segmentUses.get(key) ?? 0) + 1);
-      });
+    const bounds = fixturePoints(bundle.svg).map(rectangleBounds);
+    let overlap: [number, number] | undefined;
+    for (let first = 0; first < bounds.length; first += 1) {
+      for (let second = first + 1; second < bounds.length; second += 1) {
+        const overlapWidth = Math.min(bounds[first]!.maxX, bounds[second]!.maxX) -
+          Math.max(bounds[first]!.minX, bounds[second]!.minX);
+        const overlapHeight = Math.min(bounds[first]!.maxY, bounds[second]!.maxY) -
+          Math.max(bounds[first]!.minY, bounds[second]!.minY);
+        if (overlapWidth > 0.001 && overlapHeight > 0.001) {
+          overlap = [first, second];
+          break;
+        }
+      }
+      if (overlap) break;
     }
-    const sharedSegments = [...segmentUses.values()].filter((uses) => uses === 2);
-    expect(sharedSegments.length).toBeGreaterThan(2_500);
-    expect([...segmentUses.values()].every((uses) => uses <= 2)).toBe(true);
+    expect(overlap).toBeUndefined();
   });
 
   it("divides the complete top and bottom atlas edges between several LEDs", async () => {

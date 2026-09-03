@@ -278,18 +278,19 @@ undocumented native project format. Schema 2, the mapping contract, and mapping
 fingerprint remain the authorities.
 
 The SVG uses one fixture group for each panel and one independently addressed
-`Generic - Pixel RGB` fixture for each physical LED. Its polygon is the clipped
-planar Voronoi cell of that LED's equirectangular UV center in one fixed 2:1
-atlas. The cells touch and assign the complete image to the nearest LED. One
-deterministic global longitude seam keeps all latitude bands in the same frame.
-Do not project fixture corners independently, use fixed-size fixture squares,
-or crop the atlas to fixture bounds. Those operations distort or leave holes in
-the shared spherical map. Art-Net addresses follow physical wire order over 16
-universes. This makes MadMapper perform the complete realtime spatial-to-wire
-mapping because its documented SVG contract has no per-instance matrix-
-assignation field. WLED realtime ledmap processing stays disabled for direct
-Art-Net, while native WLED effects can continue to use the installed ledmap.
-`LIVE-010` must prove the path on Ethernet hardware.
+`Generic - Pixel RGB` fixture for each physical LED. MadMapper represents each
+fixture as one rectangle. A balanced spatial partition makes 2,624 rectangles
+that cover the complete fixed 2:1 atlas without overlaps. Each rectangle
+contains its equirectangular LED center. One deterministic global longitude
+seam keeps all latitude bands in the same frame. Do not export arbitrary
+polygons, project fixture corners independently, use fixed-size fixture
+squares, or crop the atlas. These operations cause overlaps, distortion, or
+holes. Art-Net addresses follow physical wire order over 16 universes. This
+makes MadMapper perform the complete realtime spatial-to-wire mapping because
+its documented SVG contract has no per-instance matrix-assignation field. WLED
+realtime ledmap processing stays disabled for direct Art-Net. Native WLED
+effects can continue to use the installed ledmap. `LIVE-010` must prove the
+path on Ethernet hardware.
 
 ## D33 — Preview MadMapper through a bounded loopback Art-Net receiver
 
