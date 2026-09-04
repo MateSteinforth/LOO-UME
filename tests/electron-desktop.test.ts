@@ -64,6 +64,14 @@ describe("Electron desktop boundaries", () => {
     expect(source).not.toContain("setDevicePermissionHandler");
   });
 
+  it("creates local review data before Electron uses it", async () => {
+    const source = await readFile("electron/main.ts", "utf8");
+    const createIndex = source.indexOf("mkdirSync(localReviewUserData");
+    const setIndex = source.indexOf('app.setPath("userData", localReviewUserData)');
+    expect(createIndex).toBeGreaterThan(0);
+    expect(setIndex).toBeGreaterThan(createIndex);
+  });
+
   it("checks, downloads, and installs only through the loopback origin", async () => {
     const download = vi.fn(async () => undefined);
     const install = vi.fn(async () => undefined);

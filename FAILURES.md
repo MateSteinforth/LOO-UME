@@ -2827,3 +2827,18 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Chrome remained responsive with the network broker in a separate
   Node process. Electron slowed after setup and reported a DDP timeout.
 - **Status:** Human review.
+
+### F-154 — Fast Electron review rejected a missing data directory
+
+- **Date:** 2026-09-04
+- **Context:** FIRM-015 unpackaged Electron review.
+- **Symptom:** Electron stopped before startup with an `app.setPath()` argument
+  conversion failure.
+- **Cause:** The fast command supplied a new absolute user-data path before its
+  directory existed.
+- **Correction:** Create the directory before `app.setPath()`.
+- **Prevention:** Create and validate each custom Electron data directory before
+  setting the application path.
+- **Evidence:** The main-process exception identified the exact user-data path
+  and `electron/main.ts` call.
+- **Status:** Resolved by FIRM-015.

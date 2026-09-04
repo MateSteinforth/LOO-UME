@@ -28,6 +28,7 @@ const localReview = process.env.LOO_UME_LOCAL_ELECTRON_REVIEW === "1";
 const localReviewUserData = process.env.LOO_UME_LOCAL_ELECTRON_REVIEW_DATA;
 
 if (localReview && localReviewUserData && isAbsolute(localReviewUserData)) {
+  mkdirSync(localReviewUserData, { recursive: true });
   app.setPath("userData", localReviewUserData);
 }
 
