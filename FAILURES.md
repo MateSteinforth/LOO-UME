@@ -2857,3 +2857,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The operator confirmed application responsiveness and stated
   that physical sculpture connection is the next test.
 - **Status:** Human review.
+
+### F-156 — A random Electron port lost automatic ESP32 reconnect
+
+- **Date:** 2026-09-04
+- **Context:** LIVE-021 physical sculpture review after an Electron restart.
+- **Symptom:** WLED remained available, but LOO/UME showed
+  `Sculpture mirror waits for ESP32` and sent no physical frames.
+- **Cause:** Electron selected a new loopback port after each start. Browser
+  storage and Web Serial permission used the complete origin, including that
+  port, so the new page had no reconnect authorization.
+- **Correction:** Store successful setup authorization in Electron application
+  data. Read that state through a loopback-only same-origin endpoint.
+- **Prevention:** Do not keep application-lifetime state in storage that a
+  random server origin controls.
+- **Evidence:** The restarted application used the current bundle but reported
+  no ESP32 connection. The random-port persistence regression covers two
+  server ports and one application-data file.
+- **Status:** Resolved by LIVE-022; physical reconnect review remains.

@@ -39,6 +39,7 @@ import {
   createApplicationUpdateHandler,
   type ApplicationUpdateHandler,
 } from "./application-update-handler.ts";
+import type { Esp32ReconnectAuthorizationHandler } from "./esp32-reconnect-authorization-handler.ts";
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = Object.freeze({
   ".css": "text/css; charset=utf-8",
@@ -69,6 +70,7 @@ export interface LocalEditorServerOptions {
   projectLibraryHandler?: ProjectLibraryHandler;
   artNetPreviewHandler?: ArtNetPreviewHandler;
   ddpPreviewHandler?: DdpPreviewHandler;
+  esp32ReconnectAuthorizationHandler?: Esp32ReconnectAuthorizationHandler;
   applicationUpdateHandler?: ApplicationUpdateHandler;
   onApplicationUpdateApplied?: () => void;
 }
@@ -229,6 +231,7 @@ export async function startLocalEditorServer(
       if (await deviceHandler.handle(request, response)) return;
       if (await artNetPreviewHandler.handle(request, response)) return;
       if (await ddpPreviewHandler.handle(request, response)) return;
+      if (await options.esp32ReconnectAuthorizationHandler?.handle(request, response)) return;
       if (await applicationUpdateHandler.handle(request, response)) return;
       if (await pipelineHandler.handle(request, response)) return;
       await serveStatic(request, response, distDirectory, generatedPublicDirectory);

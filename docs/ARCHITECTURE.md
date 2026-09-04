@@ -157,6 +157,11 @@ service modules in one application process. Its internal HTTP server listens
 on a random loopback port. The Electron main process owns Project Library
 storage, generated files, logs, Art-Net and DDP receivers, private WLED access,
 and shutdown.
+After successful ESP32 setup, Electron stores reconnect authorization in its
+application-data directory. This authorization is independent of the random
+loopback port. A later Electron process can verify and reconnect the same WLED
+device without another flash. Browser and LAN modes continue to use
+origin-local storage or an approved serial permission.
 Closing the last Electron window quits the application and closes its local
 service on every platform. A later icon launch starts one new process and one
 new window. This explicit lifecycle makes Finder removal unambiguous and does

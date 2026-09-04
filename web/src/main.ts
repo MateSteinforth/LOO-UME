@@ -137,12 +137,14 @@ import {
   canEnableReconnectedSimulator,
   connectExistingSimulatorDevice,
   createSimulatorSetupConfig,
+  desktopEsp32ReconnectAvailable,
   isApprovedEsp32OutputGpio,
   isCurrentSimulatorSetup,
   createEsp32SetupController,
   mappedPanelFramebuffer,
   persistStandaloneAnimation,
   rememberAutomaticEsp32Reconnect,
+  rememberDesktopEsp32Reconnect,
   retainAutomaticReconnectEligibility,
   sendSimulatorFramebuffer,
   settleSimulatorDeviceWork,
@@ -1263,11 +1265,22 @@ async function start(): Promise<void> {
       };
     };
 
-    const enableSimulatorLink = (deviceUrl: URL, reconnected = false): void => {
+    const enableSimulatorLink = async (
+      deviceUrl: URL,
+      reconnected = false,
+    ): Promise<void> => {
       const { outputs, ledCount, panelCount } = loadedSimulatorDeployment();
       simulatorDeviceUrl = deviceUrl;
       simulatorReconnectEnabled = true;
       rememberAutomaticEsp32Reconnect(reconnectStorage());
+      try {
+        await rememberDesktopEsp32Reconnect();
+      } catch (error) {
+        setLogMessage(
+          `Automatic ESP32 reconnect was not saved: ${error instanceof Error ? error.message : String(error)}`,
+          true,
+        );
+      }
       simulatorLedmapUpdateAuthorized = false;
       nextSimulatorFrameAt = 0;
       updateExternalFrameMirrorAvailability();
@@ -1564,14 +1577,14 @@ async function start(): Promise<void> {
           ),
           update: setLogMessage,
         }))
-        .then((deviceUrl) => {
+        .then(async (deviceUrl) => {
           if (canEnableReconnectedSimulator(
             reconnectPayload,
             simulatorProjectRevision,
             hardwareContract.fingerprint,
             simulatorSetupActive,
           )) {
-            enableSimulatorLink(deviceUrl, true);
+            await enableSimulatorLink(deviceUrl, true);
           }
         })
         .catch((error) => {
@@ -1629,7 +1642,7 @@ async function start(): Promise<void> {
           simulatorFrameRequest,
         ]);
       },
-      onSetupComplete: (deviceUrl, payload) => {
+      onSetupComplete: async (deviceUrl, payload) => {
         if (!isCurrentSimulatorSetup(
           payload,
           simulatorProjectRevision,
@@ -1641,12 +1654,13 @@ async function start(): Promise<void> {
           );
           return;
         }
-        enableSimulatorLink(deviceUrl);
+        await enableSimulatorLink(deviceUrl);
       },
     });
     void automaticEsp32ReconnectAvailable(
       reconnectStorage(),
       navigator.serial,
+      desktopEsp32ReconnectAvailable,
     ).then((available) => {
       simulatorReconnectEnabled = retainAutomaticReconnectEligibility(
         simulatorReconnectEnabled,
@@ -2934,7 +2948,7 @@ async function start(): Promise<void> {
         physicalRouteReviewApplyButton.disabled = false;
         physicalRouteReviewCancelButton.disabled = false;
         physicalRouteReviewApplyButton.textContent = "Apply and regenerate mapping";
-        enableSimulatorLink(pending.deviceUrl, true);
+        await enableSimulatorLink(pending.deviceUrl, true);
         startMadMapperPreview();
         setLogMessage(
           "Physical panel order and address orientation were saved. The exact ESP32 ledmap was regenerated, activated, and read back.",

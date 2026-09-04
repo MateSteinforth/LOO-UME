@@ -4,6 +4,7 @@ import { WLED_FIRMWARE_BUILD_RECEIPT as firmwareReceipt } from "../../src/wled/D
 
 const CP2102_FILTER = { usbVendorId: 0x10c4, usbProductId: 0xea60 };
 export const AUTOMATIC_RECONNECT_STORAGE_KEY = "loo-ume:esp32-reconnect-enabled";
+const DESKTOP_RECONNECT_AUTHORIZATION_PATH = "/api/esp32-reconnect-authorization";
 const SETUP_HOSTNAME = "loo-ume";
 const REQUEST_TIMEOUT_MS = 10_000;
 const WLED_COLOR_GAMMA = 2.2;
@@ -113,6 +114,7 @@ function isApprovedCp2102(port: SerialPort): boolean {
 export async function automaticEsp32ReconnectAvailable(
   storage?: ReconnectStorage,
   serial?: AuthorizedSerialPorts,
+  desktopAuthorization?: () => Promise<boolean>,
 ): Promise<boolean> {
   if (storage) {
     try {
@@ -121,12 +123,63 @@ export async function automaticEsp32ReconnectAvailable(
       // Storage can be unavailable in a private or restricted browser context.
     }
   }
+  if (desktopAuthorization) {
+    try {
+      if (await desktopAuthorization()) return true;
+    } catch {
+      // Browser and LAN modes do not provide desktop authorization.
+    }
+  }
   if (!serial) return false;
   try {
     return (await serial.getPorts()).some(isApprovedCp2102);
   } catch {
     return false;
   }
+}
+
+export async function desktopEsp32ReconnectAvailable(
+  request: typeof fetch = fetch,
+): Promise<boolean> {
+  try {
+    const response = await request(DESKTOP_RECONNECT_AUTHORIZATION_PATH, {
+      headers: { "X-LOO-UME-ESP32": "1" },
+    });
+    if (!response.ok) return false;
+    const value = await response.json() as {
+      schemaVersion?: unknown;
+      enabled?: unknown;
+    };
+    return value.schemaVersion === "1.0.0" && value.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function rememberDesktopEsp32Reconnect(
+  request: typeof fetch = fetch,
+): Promise<boolean> {
+  const response = await request(DESKTOP_RECONNECT_AUTHORIZATION_PATH, {
+    method: "POST",
+    headers: { "X-LOO-UME-ESP32": "1" },
+  });
+  if (response.status === 404 || response.status === 405) return false;
+  if (!response.ok) {
+    throw new Error(
+      `Desktop ESP32 reconnect authorization failed with HTTP ${response.status}.`,
+    );
+  }
+  if (!response.headers.get("content-type")?.startsWith("application/json")) {
+    return false;
+  }
+  const value = await response.json() as {
+    schemaVersion?: unknown;
+    enabled?: unknown;
+  };
+  if (value.schemaVersion !== "1.0.0" || value.enabled !== true) {
+    throw new Error("Desktop ESP32 reconnect authorization returned invalid data.");
+  }
+  return true;
 }
 
 export function rememberAutomaticEsp32Reconnect(
@@ -303,7 +356,7 @@ export interface Esp32SetupControllerOptions {
   setLogMessage(message: string, error?: boolean): void;
   getPayload(): Esp32SetupPayload;
   onSetupActiveChange?(active: boolean): void | Promise<void>;
-  onSetupComplete?(deviceUrl: URL, payload: Esp32SetupPayload): void;
+  onSetupComplete?(deviceUrl: URL, payload: Esp32SetupPayload): void | Promise<void>;
 }
 
 interface FirmwareStatus {
@@ -1495,8 +1548,8 @@ export function createEsp32SetupController(options: Esp32SetupControllerOptions)
     options.bootInstruction.dataset.state = "hold";
     void Promise.resolve(options.onSetupActiveChange?.(true))
       .then(() => runSetup(options))
-      .then(({ deviceUrl, payload }) => {
-        options.onSetupComplete?.(deviceUrl, payload);
+      .then(async ({ deviceUrl, payload }) => {
+        await options.onSetupComplete?.(deviceUrl, payload);
         options.dialog.close();
       })
       .catch((error) => {

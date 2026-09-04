@@ -14,6 +14,7 @@ import {
   canEnableReconnectedSimulator,
   connectExistingSimulatorDevice,
   createSimulatorSetupConfig,
+  desktopEsp32ReconnectAvailable,
   createEsp32FlashOptions,
   ESP32_FLASH_BAUD_RATE,
   PRESET_PERSISTENCE_DEADLINE_MS,
@@ -32,6 +33,7 @@ import {
   retryExistingSimulatorDiscovery,
   reopenApprovedSerialPort,
   rememberAutomaticEsp32Reconnect,
+  rememberDesktopEsp32Reconnect,
   retainAutomaticReconnectEligibility,
   runCombinedClassicReset,
   runCombinedHardReset,
@@ -132,6 +134,11 @@ describe("guarded ESP32 setup contracts", () => {
     await expect(automaticEsp32ReconnectAvailable(storage, {
       getPorts: async () => [approvedPort],
     })).resolves.toBe(true);
+    await expect(automaticEsp32ReconnectAvailable(
+      undefined,
+      noPorts,
+      async () => true,
+    )).resolves.toBe(true);
 
     rememberAutomaticEsp32Reconnect(storage);
     await expect(automaticEsp32ReconnectAvailable(storage)).resolves.toBe(true);
@@ -162,6 +169,41 @@ describe("guarded ESP32 setup contracts", () => {
       await delayedEligibility,
     );
     expect(enabledByCompletedSetup).toBe(true);
+  });
+
+  it("reads and records desktop reconnect authorization", async () => {
+    const statusRequest = vi.fn(async () => new Response(JSON.stringify({
+      schemaVersion: "1.0.0",
+      enabled: true,
+    })));
+    await expect(desktopEsp32ReconnectAvailable(statusRequest)).resolves.toBe(true);
+    expect(statusRequest).toHaveBeenCalledWith(
+      "/api/esp32-reconnect-authorization",
+      { headers: { "X-LOO-UME-ESP32": "1" } },
+    );
+
+    const enableRequest = vi.fn(async () => new Response(JSON.stringify({
+      schemaVersion: "1.0.0",
+      enabled: true,
+    }), { headers: { "Content-Type": "application/json" } }));
+    await expect(rememberDesktopEsp32Reconnect(enableRequest)).resolves.toBe(true);
+    expect(enableRequest).toHaveBeenCalledWith(
+      "/api/esp32-reconnect-authorization",
+      {
+        method: "POST",
+        headers: { "X-LOO-UME-ESP32": "1" },
+      },
+    );
+
+    await expect(desktopEsp32ReconnectAvailable(
+      vi.fn(async () => new Response("Not found", { status: 404 })),
+    )).resolves.toBe(false);
+    await expect(rememberDesktopEsp32Reconnect(
+      vi.fn(async () => new Response("Not found", { status: 404 })),
+    )).resolves.toBe(false);
+    await expect(rememberDesktopEsp32Reconnect(
+      vi.fn(async () => new Response("Use GET or HEAD.", { status: 405 })),
+    )).resolves.toBe(false);
   });
 
   it("accepts only the measured CP2102 and classic ESP32/WLED identity", () => {

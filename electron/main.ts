@@ -10,6 +10,7 @@ import updaterPackage from "electron-updater";
 import { startLocalEditorServer, type LocalEditorServer } from "../scripts/local-editor-server.ts";
 import { createEditorPipelineHandler } from "../scripts/editor-pipeline-handler.ts";
 import { createProjectLibraryHandler } from "../scripts/project-library-handler.ts";
+import { createEsp32ReconnectAuthorizationHandler } from "../scripts/esp32-reconnect-authorization-handler.ts";
 import {
   checkUnsignedDesktopUpdate,
   createDesktopUpdateHandler,
@@ -208,6 +209,9 @@ async function startDesktop(): Promise<void> {
     localDirectory: localProjects,
     manifestPath: packagedPath("projects/manifest.json"),
   });
+  const esp32ReconnectAuthorizationHandler = createEsp32ReconnectAuthorizationHandler({
+    authorizationPath: join(userData, "esp32-reconnect-authorization.json"),
+  });
   autoUpdater.autoDownload = false;
   autoUpdater.allowPrerelease = false;
   const applicationUpdateHandler = createDesktopUpdateHandler({
@@ -239,6 +243,7 @@ async function startDesktop(): Promise<void> {
     port: 0,
     pipelineHandler,
     projectLibraryHandler,
+    esp32ReconnectAuthorizationHandler,
     applicationUpdateHandler,
   });
   log(`Desktop service ready at ${localServer.url}`);

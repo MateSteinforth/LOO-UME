@@ -249,7 +249,17 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `P0 · LIVE-022` Persist Electron ESP32 reconnect authorization
+
+- Result: successful setup records reconnect authorization in Electron
+  application data. A later process reads it across random loopback ports.
+- Verification: the random-port restart regression, ESP32 setup tests,
+  Electron tests, application TypeScript, focused Node TypeScript, Electron
+  bundling, the production web build, and diff checks passed.
+- Owner: Codex on `codex/live-021-persistent-reconnect` in
+  `/tmp/loo-ume-live-021-reconnect`.
+- Remaining review: restart local Electron after one successful setup. Confirm
+  that LOO/UME finds `loo-ume.local` and enables the sculpture mirror.
 
 ## Human Review
 

@@ -72,6 +72,12 @@ describe("Electron desktop boundaries", () => {
     expect(setIndex).toBeGreaterThan(createIndex);
   });
 
+  it("stores ESP32 reconnect authorization in Electron application data", async () => {
+    const source = await readFile("electron/main.ts", "utf8");
+    expect(source).toContain('join(userData, "esp32-reconnect-authorization.json")');
+    expect(source).toContain("esp32ReconnectAuthorizationHandler,");
+  });
+
   it("checks, downloads, and installs only through the loopback origin", async () => {
     const download = vi.fn(async () => undefined);
     const install = vi.fn(async () => undefined);
