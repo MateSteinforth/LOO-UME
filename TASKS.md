@@ -31,13 +31,45 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
-No tasks.
+### `P1 · FIRM-016` Set up official WLED firmware for supported ESP32 targets
+
+- Scope: replace the packaged single-target image with official stable WLED
+  images. Detect the connected ESP32 target, download its pinned image during
+  setup, verify it, and keep a local cache. Run the complete setup from the
+  Electron DMG.
+- Operator expectation: connect any ESP32 target that official WLED supports.
+  Start one setup action. LOO/UME selects and flashes the correct WLED image,
+  provisions Wi-Fi, and configures the loaded Simulator sculpture.
+- Acceptance: serial selection does not depend on one USB bridge; bootloader
+  detection occurs before erase; an application-controlled manifest binds each
+  supported target to official WLED URLs, flash parts, offsets, version, size,
+  and SHA-256 values; a verified cache supports later offline setup; the setup
+  checks target capacity and safe GPIOs before erase; unsupported capacity
+  produces one exact explanation; successful setup installs buses, GPIOs,
+  ledmap, boot preset, and DDP behavior from the loaded Simulator sculpture;
+  post-flash readback verifies the installed target and configuration.
+- Dependency: integrate FIRM-015 serial selection and package correction first.
+- Review: use QUALITY mode. Test manifest rejection, download failure, cache
+  corruption, wrong-target rejection, erase boundaries, recovery, and physical
+  setup on each supported processor family.
+- Likely conflicts: Electron serial selection, ESP32 setup, firmware receipts,
+  hardware profiles, release downloads, cache storage, and setup tests.
 
 ## Ready
 
 No tasks.
 
 ## Done (latest integrations)
+
+### `P0 · FIRM-015` Include the verified ESP32 image in the Mac application
+
+- Result: the Electron release includes the receipt-bound ESP32 image. CP2102
+  selection, flashing, Wi-Fi provisioning, configuration, and responsive DDP
+  sending passed physical Electron review.
+- Verification: focused firmware, serial, DDP, package, TypeScript, Electron,
+  workflow, and diff checks passed. Integrated in `main` at `144b83c` on
+  2026-09-04.
+- Remaining evidence: LIVE-021 owns physical LED reception and address review.
 
 ### `P1 · DOC-010` Separate user and development documentation
 
@@ -221,28 +253,14 @@ No tasks.
 
 ## Human Review
 
-### `P0 · FIRM-015` Include the verified ESP32 image in the Mac application
+### `P0 · LIVE-021` Confirm physical sculpture DDP output
 
-- Scope: stage the receipt-bound complete flash image before Electron
-  packaging. Include it at the local firmware path. Accept Electron's CP2102
-  identifier representation during serial selection.
-- Acceptance: the packaged application reports firmware available. The image
-  size and SHA-256 match `firmware/build-receipt.json`. Packaging fails when
-  the exact image is missing or different. The connected CP2102 appears in the
-  application selection dialog. Setup accepts the selected verified port
-  without an immediate `getPorts()` result. A local packaged-Electron command
-  supports fast macOS hardware review without a DMG build. The local review
-  runs independently from an installed copy and reports bounded serial details.
-  Post-setup live output remains responsive and stops after a send failure.
-- Owner: `codex/firm-015-package-image` in `/tmp/loo-ume-firm-015`.
-- Verification: the public release image matches the receipt at 1,177,456
-  bytes and SHA-256 `98bee84b5dc0de4dd118677b2e3c340fe00c44249b7e2965b580b6ea90bf4b2b`.
-  Package tests, ESP32 tests, the serial-policy test, Electron compilation,
-  YAML lint, and diff checks pass. Physical Electron review passed firmware
-  flashing, Wi-Fi provisioning, 2,624-LED setup, and responsiveness. The DDP
-  sender started. Physical LED reception remains untested.
-- Likely conflicts: Electron resources, release workflow, firmware artifact
-  verification, package tests, and firmware documentation.
+- Scope: connect the complete sculpture and compare its LEDs with the simulator.
+- Acceptance: the physical sculpture receives live DDP frames. Color, panel
+  order, and LED address order match the simulator.
+- Dependency: use the FIRM-015 ESP32 configuration now integrated in `main`.
+- Remaining risk: physical LED reception and complete address parity are not
+  yet verified.
 
 ## Blocked
 
