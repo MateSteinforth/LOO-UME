@@ -740,7 +740,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   target contract. Increase it only after a separate physical result.
 - **Evidence:** Operator browser trace on 2026-08-26 and
   `tests/esp32-setup.test.ts`.
-- **Status:** Human review.
+- **Status:** Resolved by FIRM-015.
 
 ### F-040 — Separate DTR and RTS calls did not reliably enter download mode
 
@@ -2778,7 +2778,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   with the installed application. Keep its main-process logs visible.
 - **Evidence:** `electron/main.ts`, `web/src/Esp32Setup.ts`, and
   `scripts/launch-local-packaged-electron.sh`.
-- **Status:** Human review.
+- **Status:** Resolved by FIRM-015.
 
 ### F-151 — Electron denied the selected port during open
 
@@ -2794,7 +2794,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   selection gives the required device boundary.
 - **Evidence:** Operator logs showed one approved selection followed by twenty
   permission denials with no repeated USB identity.
-- **Status:** Correction replaced after repeated physical review.
+- **Status:** Resolved by FIRM-015.
 
 ### F-152 — A retained `portId` did not correct serial permission
 
@@ -2810,7 +2810,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   sequence. Do not infer later handler data from the selection object.
 - **Evidence:** Operator logs from commit `3651577` show the selected `portId`
   followed by twenty empty permission objects and denials.
-- **Status:** Human review.
+- **Status:** Resolved by FIRM-015.
 
 ### F-153 — Post-setup DDP output made Electron unresponsive
 
@@ -2826,7 +2826,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   continue background send attempts.
 - **Evidence:** Chrome remained responsive with the network broker in a separate
   Node process. Electron slowed after setup and reported a DDP timeout.
-- **Status:** Human review.
+- **Status:** Resolved by FIRM-015.
 
 ### F-154 — Fast Electron review rejected a missing data directory
 
@@ -2842,3 +2842,18 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The main-process exception identified the exact user-data path
   and `electron/main.ts` call.
 - **Status:** Resolved by FIRM-015.
+
+### F-155 — A started DDP sender did not prove physical output
+
+- **Date:** 2026-09-04
+- **Context:** FIRM-015 post-setup review.
+- **Symptom:** The task record claimed that DDP output passed before the
+  physical sculpture was connected.
+- **Cause:** The review treated a successful sender start as physical reception
+  evidence.
+- **Correction:** Record sender operation and physical LED reception separately.
+  Keep FIRM-015 in Human Review until the connected sculpture shows the frame.
+- **Prevention:** Do not infer physical output from a successful network send.
+- **Evidence:** The operator confirmed application responsiveness and stated
+  that physical sculpture connection is the next test.
+- **Status:** Human review.

@@ -213,6 +213,14 @@ No tasks.
 
 ## In Progress
 
+No tasks.
+
+## Ready to Merge
+
+No tasks.
+
+## Human Review
+
 ### `P0 · FIRM-015` Include the verified ESP32 image in the Mac application
 
 - Scope: stage the receipt-bound complete flash image before Electron
@@ -230,17 +238,11 @@ No tasks.
 - Verification: the public release image matches the receipt at 1,177,456
   bytes and SHA-256 `98bee84b5dc0de4dd118677b2e3c340fe00c44249b7e2965b580b6ea90bf4b2b`.
   Package tests, ESP32 tests, the serial-policy test, Electron compilation,
-  YAML lint, and diff checks pass.
+  YAML lint, and diff checks pass. Physical Electron review passed firmware
+  flashing, Wi-Fi provisioning, 2,624-LED setup, and responsiveness. The DDP
+  sender started. Physical LED reception remains untested.
 - Likely conflicts: Electron resources, release workflow, firmware artifact
   verification, package tests, and firmware documentation.
-
-## Ready to Merge
-
-No tasks.
-
-## Human Review
-
-No tasks.
 
 ## Blocked
 
