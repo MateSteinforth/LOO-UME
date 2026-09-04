@@ -382,6 +382,19 @@ artifact.
 
 ## Readiness and exports
 
+### Replacement output GPIOs
+
+**Developer utilities** shows one GPIO field for each current output. It accepts
+only unique pins from this ESP32-WROOM output list: 4, 13, 14, 16, 17, 18, 19,
+21, 22, 23, 25, 26, 27, 32, and 33. It rejects flash pins, input-only pins,
+unsafe boot pins, duplicate pins, and missing values.
+
+Applying the change preserves panel order, address order, output lengths, panel
+poses, and fabrication data. It saves the new GPIOs in the project. Manuals,
+exports, WLED bus configuration, and reconnect checks use the saved values.
+Run ESP32 setup once after each GPIO change. Later Electron starts can reconnect
+without another flash or setup.
+
 `assessHardwareReadiness()` exposes `currentChecksPass` for the existing
 transforms/UVs, chains, GPIOs, pixel order, and installed-address checks. It is
 not electrical approval. `mappingReady` depends only on a complete authored

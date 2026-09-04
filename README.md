@@ -99,6 +99,10 @@ image, configure Wi-Fi, install the mapping, and check the saved WLED state.
 
 LOO/UME does not save or log the Wi-Fi password.
 
+If an output pin is unavailable, open **Developer utilities**. Set one approved
+GPIO for each output. Use a different GPIO for each output. Run ESP32 setup once
+after the change.
+
 ## Safety and current limits
 
 Disconnect LED power before you change wiring. Use current-limited supplies and

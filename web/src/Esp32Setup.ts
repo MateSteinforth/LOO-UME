@@ -14,12 +14,15 @@ export const RESTART_VERIFICATION_REQUEST_TIMEOUT_MS = 10_000;
 export const RESTART_VERIFICATION_DEADLINE_MS = 45_000;
 export const RESTART_VERIFICATION_MINIMUM_WINDOW_MS = 8_500;
 export const PRESET_PERSISTENCE_DEADLINE_MS = 20_000;
-const APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS = new Set([
+export const APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS = [
   4, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33,
-]);
+] as const;
+const APPROVED_CLASSIC_ESP32_OUTPUT_GPIO_SET = new Set<number>(
+  APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS,
+);
 
 export function isApprovedEsp32OutputGpio(gpio: number): boolean {
-  return Number.isInteger(gpio) && APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS.has(gpio);
+  return Number.isInteger(gpio) && APPROVED_CLASSIC_ESP32_OUTPUT_GPIO_SET.has(gpio);
 }
 
 type SerialSignalDevice = Pick<SerialPort, "setSignals">;

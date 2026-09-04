@@ -638,6 +638,32 @@ input[type="checkbox"] {
   background: rgba(0, 0, 0, 0.08);
 }
 
+.developer-gpio-fieldset {
+  display: grid;
+  gap: 7px;
+  margin: 7px 0 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.developer-gpio-fieldset legend,
+.developer-gpio-fieldset small {
+  color: #8190a6;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.output-gpio-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.output-gpio-field {
+  margin-top: 0;
+}
+
 .assembly-tutorial {
   min-width: 0;
   padding-left: 12px;

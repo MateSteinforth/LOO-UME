@@ -173,6 +173,9 @@ Electron grants Web Serial only to its own loopback editor origin and only for
 the approved Silicon Labs CP2102 USB identity. MadMapper sends Art-Net to
 `127.0.0.1:6454`; the existing preview path consumes that frame. The
 private-device DDP broker sends the visible simulator frame to WLED.
+Developer utilities can replace output GPIO assignments with unique approved
+ESP32-WROOM output pins. The change preserves routes and physical addresses.
+The device link stops until ESP32 setup applies the changed bus configuration.
 The TouchDesigner `.tox` component samples its TOP in logical order. It sends
 bounded DDP to the simulator. The operator accepts LIVE-020 as a working
 assumption.

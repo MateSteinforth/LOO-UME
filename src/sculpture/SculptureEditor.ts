@@ -80,6 +80,35 @@ export function markPanelEditConsequences(
   definition.calibration.physicalChains = "provisional";
 }
 
+export function setWiringOutputGpios(
+  source: PanelAssemblyDefinition,
+  gpios: readonly number[],
+): PanelAssemblyDefinition {
+  if (gpios.length !== source.wiring.outputs.length) {
+    throw new Error("Provide one GPIO for each wiring output.");
+  }
+  if (gpios.some((gpio) => !Number.isInteger(gpio) || gpio < 0)) {
+    throw new Error("Each output GPIO must be a non-negative integer.");
+  }
+  if (new Set(gpios).size !== gpios.length) {
+    throw new Error("Each wiring output requires a different GPIO.");
+  }
+  const definition = structuredClone(source);
+  const { hardwareProof: _staleProof, ...wiring } = definition.wiring;
+  definition.wiring = {
+    ...wiring,
+    status:
+      wiring.status === "measured" || wiring.status === "hardware-verified"
+        ? "authored"
+        : wiring.status,
+    outputs: wiring.outputs.map((output, index) => ({
+      ...output,
+      gpio: gpios[index]!,
+    })),
+  };
+  return parsePanelAssemblyDefinition(definition);
+}
+
 export function projectPanelOrientationOntoSurface(
   sourceXAxis: Vector3Tuple,
   surfaceNormal: Vector3Tuple,

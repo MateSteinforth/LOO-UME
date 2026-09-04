@@ -249,6 +249,19 @@ No tasks.
 
 ## Ready to Merge
 
+### `P0 · LIVE-023` Configure replacement ESP32 output GPIOs
+
+- Result: Developer utilities shows one field for each current output. It saves
+  unique approved ESP32-WROOM pins without changing routes or address order.
+- Verification: 53 focused unit tests, the GPIO browser journey, application
+  TypeScript, production web build, and diff checks passed.
+- Dependency: this branch includes LIVE-022 so physical review keeps automatic
+  reconnect. Integrate LIVE-022 before or with this task.
+- Owner: Codex on `codex/live-023-custom-gpios` in
+  `/tmp/loo-ume-live-023-custom-gpios`.
+- Remaining review: set GPIO 16, 17, 21, and 22. Run ESP32 setup once. Confirm
+  that all four physical chains receive their correct frames.
+
 ### `P0 · LIVE-022` Persist Electron ESP32 reconnect authorization
 
 - Result: successful setup records reconnect authorization in Electron

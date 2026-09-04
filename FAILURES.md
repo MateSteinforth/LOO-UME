@@ -2875,3 +2875,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   no ESP32 connection. The random-port persistence regression covers two
   server ports and one application-data file.
 - **Status:** Resolved by LIVE-022; physical reconnect review remains.
+
+### F-157 — Fixed output GPIOs blocked recovery from damaged pins
+
+- **Date:** 2026-09-04
+- **Context:** LIVE-021 physical mapping review after level-shifter soldering.
+- **Symptom:** Two data outputs did not operate after a possible short on GPIO
+  18 and GPIO 19. The editor could only restore GPIOs 16 through 19.
+- **Cause:** Automatic wiring selected a fixed default GPIO set. The interface
+  had no guarded method to replace one damaged output pin.
+- **Correction:** Add one output field for each current chain. Accept only
+  unique approved ESP32-WROOM output pins. Save the values in the project.
+- **Prevention:** Keep default hardware values editable through a bounded safe
+  list when equivalent controller pins exist.
+- **Evidence:** Unit tests preserve routes and addresses. The browser test saves
+  GPIOs 21, 22, 25, and 26 and rejects a duplicate.
+- **Status:** Resolved by LIVE-023; physical replacement-pin review remains.

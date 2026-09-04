@@ -12,6 +12,7 @@ import {
   movePanelInLocalPlane,
   rotatePanelAroundLocalZ,
   setControllerWorldPose,
+  setWiringOutputGpios,
   useSuggestedControllerPose,
 } from "../src/sculpture/SculptureEditor.ts";
 import { deriveEditorCapabilities } from "../web/src/EditorCapabilities.ts";
@@ -57,6 +58,31 @@ function mappingFor(definition: Awaited<ReturnType<typeof loadManual>>) {
 }
 
 describe("mechanics-independent panel JSON editing", () => {
+  it("changes only the wiring output GPIO assignments", async () => {
+    const source = await loadManual();
+    const edited = setWiringOutputGpios(source, [21, 22, 25, 26]);
+
+    expect(edited.wiring.outputs.map((output) => output.gpio)).toEqual([
+      21, 22, 25, 26,
+    ]);
+    expect(edited.wiring.outputs.map((output) => output.panelIds)).toEqual(
+      source.wiring.outputs.map((output) => output.panelIds),
+    );
+    expect(edited.wiring.chainLengths).toEqual(source.wiring.chainLengths);
+    expect(edited.wiring.routeRevision).toBe(source.wiring.routeRevision);
+    expect(edited.panels).toEqual(source.panels);
+    expect(source.wiring.outputs.map((output) => output.gpio)).toEqual([
+      16, 17, 18, 19,
+    ]);
+
+    expect(() => setWiringOutputGpios(source, [21, 22, 25]))
+      .toThrow(/one GPIO for each wiring output/);
+    expect(() => setWiringOutputGpios(source, [21, 22, 25, 25]))
+      .toThrow(/different GPIO/);
+    expect(() => setWiringOutputGpios(source, [21, 22, 25, -1]))
+      .toThrow(/non-negative integer/);
+  });
+
   it("rejects the retired manual mechanics contract", async () => {
     const definition = await loadManual();
     const retired = {
