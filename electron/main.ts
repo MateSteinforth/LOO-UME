@@ -16,7 +16,7 @@ import {
 } from "./DesktopUpdateHandler.ts";
 import { quitAfterLastWindowCloses } from "./DesktopLifecycle.ts";
 import { migrateLegacyProjectLibrary } from "./ProjectLibraryMigration.ts";
-import { isApprovedCp2102, isAuthorizedCp2102 } from "./SerialPolicy.ts";
+import { isApprovedCp2102 } from "./SerialPolicy.ts";
 const { autoUpdater } = updaterPackage;
 
 let mainWindow: BrowserWindow | undefined;
@@ -73,7 +73,6 @@ function configureSerialSelection(window: BrowserWindow): void {
   const editorSession = window.webContents.session;
   if (serialConfiguredSessions.has(editorSession)) return;
   serialConfiguredSessions.add(editorSession);
-  const selectedPortIds = new Set<string>();
   editorSession.setPermissionCheckHandler(
     (_webContents, permission, requestingOrigin) =>
       permission === "serial" && isEditorUrl(requestingOrigin),
@@ -83,16 +82,6 @@ function configureSerialSelection(window: BrowserWindow): void {
       callback(permission === "serial" && isEditorUrl(webContents.getURL()));
     },
   );
-  editorSession.setDevicePermissionHandler((details) => {
-    const allowed = details.deviceType === "serial" && isEditorUrl(details.origin) &&
-      isAuthorizedCp2102(details.device, selectedPortIds);
-    if (details.deviceType === "serial") {
-      log(`Serial permission ${allowed ? "allowed" : "denied"}: ${
-        serialPortSummary(details.device as Electron.SerialPort)
-      }.`);
-    }
-    return allowed;
-  });
   editorSession.on(
     "select-serial-port",
     (event, ports, webContents, callback) => {
@@ -130,7 +119,6 @@ function configureSerialSelection(window: BrowserWindow): void {
       }).then(({ response }) => {
         if (response < approved.length) {
           const selected = approved[response]!;
-          selectedPortIds.add(selected.portId);
           log(`Serial selection accepted: ${serialPortSummary(selected)}.`);
         } else {
           log("Serial selection cancelled.");

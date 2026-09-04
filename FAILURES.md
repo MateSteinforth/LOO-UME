@@ -2786,12 +2786,28 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Context:** FIRM-015 local packaged Electron hardware review.
 - **Symptom:** Electron selected the approved CP2102. Each serial-open attempt
   then failed with `NetworkError`.
-- **Cause:** Later device-permission checks supplied the selected `portId`
-  without USB identifiers. The policy required USB identifiers each time.
-- **Correction:** Retain each approved `portId` after explicit selection.
-  Permit that identifier only for the current editor session and local origin.
-- **Prevention:** Test permission checks that contain only a selected `portId`.
-  Keep detailed permission logs during physical serial review.
+- **Cause:** The custom device-permission handler received an empty device
+  object during `open()`. The handler denied each request before macOS access.
+- **Correction:** Remove the custom device-permission handler. Use Electron's
+  window-lifetime grant after the filtered selection callback.
+- **Prevention:** Do not add a device-permission handler when filtered explicit
+  selection gives the required device boundary.
 - **Evidence:** Operator logs showed one approved selection followed by twenty
   permission denials with no repeated USB identity.
+- **Status:** Correction replaced after repeated physical review.
+
+### F-152 — A retained `portId` did not correct serial permission
+
+- **Date:** 2026-09-04
+- **Context:** FIRM-015 repeated local packaged Electron hardware review.
+- **Symptom:** The approved selection contained a `portId`. All later
+  permission checks still contained an empty device object and failed.
+- **Cause:** Electron did not supply the selected identity to the custom
+  device-permission handler during `SerialPort.open()`.
+- **Correction:** Let Electron retain its default window-lifetime permission.
+  Keep CP2102 filtering in the explicit `select-serial-port` callback.
+- **Prevention:** Verify the complete request, selection, permission, and open
+  sequence. Do not infer later handler data from the selection object.
+- **Evidence:** Operator logs from commit `3651577` show the selected `portId`
+  followed by twenty empty permission objects and denials.
 - **Status:** Human review.
