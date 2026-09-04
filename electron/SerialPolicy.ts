@@ -25,3 +25,15 @@ export function isApprovedCp2102(
   return normalizedUsbId(port.vendorId) === CP2102_VENDOR_ID &&
     normalizedUsbId(port.productId) === CP2102_PRODUCT_ID;
 }
+
+export function isAuthorizedCp2102(
+  port: {
+    portId?: string;
+    vendorId?: string | number;
+    productId?: string | number;
+  },
+  selectedPortIds: ReadonlySet<string>,
+): boolean {
+  return isApprovedCp2102(port) ||
+    (typeof port.portId === "string" && selectedPortIds.has(port.portId));
+}

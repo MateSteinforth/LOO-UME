@@ -2779,3 +2779,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `electron/main.ts`, `web/src/Esp32Setup.ts`, and
   `scripts/launch-local-packaged-electron.sh`.
 - **Status:** Human review.
+
+### F-151 — Electron denied the selected port during open
+
+- **Date:** 2026-09-04
+- **Context:** FIRM-015 local packaged Electron hardware review.
+- **Symptom:** Electron selected the approved CP2102. Each serial-open attempt
+  then failed with `NetworkError`.
+- **Cause:** Later device-permission checks supplied the selected `portId`
+  without USB identifiers. The policy required USB identifiers each time.
+- **Correction:** Retain each approved `portId` after explicit selection.
+  Permit that identifier only for the current editor session and local origin.
+- **Prevention:** Test permission checks that contain only a selected `portId`.
+  Keep detailed permission logs during physical serial review.
+- **Evidence:** Operator logs showed one approved selection followed by twenty
+  permission denials with no repeated USB identity.
+- **Status:** Human review.

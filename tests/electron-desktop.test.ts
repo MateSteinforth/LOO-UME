@@ -12,7 +12,7 @@ import {
   type DesktopUpdater,
 } from "../electron/DesktopUpdateHandler.ts";
 import { quitAfterLastWindowCloses } from "../electron/DesktopLifecycle.ts";
-import { isApprovedCp2102 } from "../electron/SerialPolicy.ts";
+import { isApprovedCp2102, isAuthorizedCp2102 } from "../electron/SerialPolicy.ts";
 import { migrateLegacyProjectLibrary } from "../electron/ProjectLibraryMigration.ts";
 
 const servers: ReturnType<typeof createServer>[] = [];
@@ -55,6 +55,17 @@ describe("Electron desktop boundaries", () => {
     expect(isApprovedCp2102({ vendorId: "1a86", productId: "7523" })).toBe(false);
     expect(isApprovedCp2102({ vendorId: "70000", productId: "60000" })).toBe(false);
     expect(isApprovedCp2102({})).toBe(false);
+  });
+
+  it("retains the approved selection for Electron permission checks", () => {
+    const selectedPortIds = new Set(["approved-port"]);
+    expect(isAuthorizedCp2102({ portId: "approved-port" }, selectedPortIds)).toBe(true);
+    expect(isAuthorizedCp2102({ portId: "other-port" }, selectedPortIds)).toBe(false);
+    expect(isAuthorizedCp2102({
+      portId: "new-port",
+      vendorId: "4292",
+      productId: "60000",
+    }, selectedPortIds)).toBe(true);
   });
 
   it("checks, downloads, and installs only through the loopback origin", async () => {
