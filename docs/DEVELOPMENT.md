@@ -71,6 +71,8 @@ application:
 
 This command downloads the receipt-bound firmware when necessary. It creates
 an application below `build/local-electron-review/`. It does not create a DMG.
+The review application uses separate local data. It does not show public update notices.
+Keep the command terminal open to see Electron device logs.
 
 After a task-branch update, pull that branch. Run the same command again.
 

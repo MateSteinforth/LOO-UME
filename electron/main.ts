@@ -1,5 +1,5 @@
 import { mkdirSync, appendFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import {
   app,
   BrowserWindow,
@@ -24,6 +24,12 @@ let localServer: LocalEditorServer | undefined;
 let quitting = false;
 let logPath = "";
 const serialConfiguredSessions = new WeakSet<Electron.Session>();
+const localReview = process.env.LOO_UME_LOCAL_ELECTRON_REVIEW === "1";
+const localReviewUserData = process.env.LOO_UME_LOCAL_ELECTRON_REVIEW_DATA;
+
+if (localReview && localReviewUserData && isAbsolute(localReviewUserData)) {
+  app.setPath("userData", localReviewUserData);
+}
 
 function log(message: string): void {
   const line = `${new Date().toISOString()} ${message}\n`;
@@ -52,6 +58,16 @@ function isEditorUrl(value: string): boolean {
   }
 }
 
+function serialPortSummary(port: Electron.SerialPort): string {
+  return JSON.stringify({
+    portName: port.portName,
+    displayName: port.displayName,
+    vendorId: port.vendorId,
+    productId: port.productId,
+    usbDriverName: port.usbDriverName,
+  });
+}
+
 function configureSerialSelection(window: BrowserWindow): void {
   const editorSession = window.webContents.session;
   if (serialConfiguredSessions.has(editorSession)) return;
@@ -65,16 +81,24 @@ function configureSerialSelection(window: BrowserWindow): void {
       callback(permission === "serial" && isEditorUrl(webContents.getURL()));
     },
   );
-  editorSession.setDevicePermissionHandler((details) =>
-    details.deviceType === "serial" && isEditorUrl(details.origin) &&
-    isApprovedCp2102(details.device)
-  );
+  editorSession.setDevicePermissionHandler((details) => {
+    const allowed = details.deviceType === "serial" && isEditorUrl(details.origin) &&
+      isApprovedCp2102(details.device);
+    if (details.deviceType === "serial") {
+      log(`Serial permission ${allowed ? "allowed" : "denied"}: ${
+        serialPortSummary(details.device as Electron.SerialPort)
+      }.`);
+    }
+    return allowed;
+  });
   editorSession.on(
     "select-serial-port",
     (event, ports, webContents, callback) => {
       event.preventDefault();
       const owner = BrowserWindow.fromWebContents(webContents) ?? mainWindow;
       const approved = ports.filter(isApprovedCp2102);
+      log(`Serial selection found ${ports.length} port(s) and ${approved.length} approved port(s).`);
+      for (const port of ports) log(`Serial candidate: ${serialPortSummary(port)}.`);
       if (approved.length === 0) {
         callback("");
         if (!owner) return;
@@ -102,6 +126,11 @@ function configureSerialSelection(window: BrowserWindow): void {
         defaultId: 0,
         noLink: true,
       }).then(({ response }) => {
+        if (response < approved.length) {
+          log(`Serial selection accepted: ${serialPortSummary(approved[response]!)}.`);
+        } else {
+          log("Serial selection cancelled.");
+        }
         callback(response < approved.length ? approved[response]!.portId : "");
       });
     },
@@ -151,7 +180,9 @@ async function startDesktop(): Promise<void> {
   mkdirSync(localProjects, { recursive: true });
   mkdirSync(logs, { recursive: true });
   logPath = join(logs, "desktop.log");
-  if (process.platform === "darwin") {
+  log(`Desktop log: ${logPath}`);
+  if (localReview) log("Local Electron review mode is active.");
+  if (process.platform === "darwin" && !localReview) {
     const legacyProjects = join(
       app.getPath("home"),
       "Library",
@@ -188,7 +219,7 @@ async function startDesktop(): Promise<void> {
   autoUpdater.allowPrerelease = false;
   const applicationUpdateHandler = createDesktopUpdateHandler({
     currentVersion: app.getVersion(),
-    enabled: app.isPackaged,
+    enabled: app.isPackaged && !localReview,
     async check() {
       if (app.getVersion().startsWith("0.1.")) {
         return checkUnsignedDesktopUpdate(app.getVersion());

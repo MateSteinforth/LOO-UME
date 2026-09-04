@@ -33,25 +33,46 @@ export async function retryInitialSerialConnect(
   attempts = 20,
   delay: Wait = wait,
   update?: (message: string) => void,
+  diagnostics?: () => string,
 ): Promise<void> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       await connect();
+      if (attempt > 1) update?.(`Serial port opened on attempt ${attempt}/${attempts}.`);
       return;
     } catch (error) {
       lastError = error;
-      if (attempt === 1) {
+      if (attempt === 1 || attempt === 5 || attempt === 10 || attempt === attempts) {
+        const state = diagnostics?.();
         update?.(
-          "Waiting for macOS to release the CP2102. Close other serial applications if this continues.",
+          `Serial open attempt ${attempt}/${attempts} failed: ${serialErrorDetail(error)}` +
+            `${state ? `; ${state}` : ""}.`,
         );
       }
       if (attempt < attempts) await delay(500);
     }
   }
   throw new Error(
-    `The CP2102 serial port stayed unavailable: ${errorMessage(lastError)}`,
+    `The CP2102 serial port stayed unavailable: ${serialErrorDetail(lastError)}`,
   );
+}
+
+function serialErrorDetail(error: unknown): string {
+  if (error instanceof DOMException) return `${error.name}: ${error.message}`;
+  return errorMessage(error);
+}
+
+function serialPortDiagnostics(port: SerialPort): string {
+  const info = port.getInfo();
+  const vendor = info.usbVendorId?.toString(16).padStart(4, "0") ?? "unknown";
+  const product = info.usbProductId?.toString(16).padStart(4, "0") ?? "unknown";
+  return [
+    `USB ${vendor}:${product}`,
+    `connected=${port.connected ? "yes" : "no"}`,
+    `readable=${port.readable ? "yes" : "no"}`,
+    `writable=${port.writable ? "yes" : "no"}`,
+  ].join("; ");
 }
 
 export async function runCombinedClassicReset(
@@ -1349,6 +1370,7 @@ async function runSetup(
   const port = await serial.requestPort({ filters: [CP2102_FILTER] });
   let activePort = port;
   assertApprovedSerialDevice(port.getInfo());
+  options.setLogMessage(`Selected ${serialPortDiagnostics(port)}.`);
 
   const { ClassicReset, ESPLoader, HardReset, Transport } = await import("esptool-js");
   const transport = new Transport(port, false);
@@ -1358,6 +1380,7 @@ async function runSetup(
     20,
     wait,
     options.setLogMessage,
+    () => serialPortDiagnostics(port),
   );
   const loader = new ESPLoader({
     transport,

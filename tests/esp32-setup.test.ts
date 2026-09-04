@@ -89,7 +89,8 @@ describe("guarded ESP32 setup contracts", () => {
     )).resolves.toBeUndefined();
     expect(connect).toHaveBeenCalledTimes(3);
     expect(updates).toEqual([
-      "Waiting for macOS to release the CP2102. Close other serial applications if this continues.",
+      "Serial open attempt 1/3 failed: Error: busy.",
+      "Serial port opened on attempt 3/3.",
     ]);
 
     await expect(retryInitialSerialConnect(
@@ -97,6 +98,22 @@ describe("guarded ESP32 setup contracts", () => {
       2,
       async () => undefined,
     )).rejects.toThrow(/stayed unavailable/);
+  });
+
+  it("reports bounded serial-open diagnostics", async () => {
+    const updates: string[] = [];
+    await expect(retryInitialSerialConnect(
+      vi.fn().mockRejectedValue(new DOMException("Failed to open serial port", "NetworkError")),
+      10,
+      async () => undefined,
+      (message) => updates.push(message),
+      () => "USB 10c4:ea60; connected=yes; readable=no; writable=no",
+    )).rejects.toThrow(/stayed unavailable/);
+    expect(updates).toEqual([
+      "Serial open attempt 1/10 failed: NetworkError: Failed to open serial port; USB 10c4:ea60; connected=yes; readable=no; writable=no.",
+      "Serial open attempt 5/10 failed: NetworkError: Failed to open serial port; USB 10c4:ea60; connected=yes; readable=no; writable=no.",
+      "Serial open attempt 10/10 failed: NetworkError: Failed to open serial port; USB 10c4:ea60; connected=yes; readable=no; writable=no.",
+    ]);
   });
 
   it("enables automatic reconnect only after setup or prior CP2102 permission", async () => {

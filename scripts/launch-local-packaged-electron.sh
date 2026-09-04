@@ -29,4 +29,12 @@ if [ ! -d "$application" ]; then
   echo "local Electron review did not create $application." >&2
   exit 1
 fi
-exec /usr/bin/open "$application"
+executable="$application/Contents/MacOS/LOO UME"
+user_data="$output_directory/user-data"
+mkdir -p "$user_data"
+echo "Local Electron logs will remain in this terminal."
+echo "Desktop log: $user_data/logs/desktop.log"
+exec /usr/bin/env \
+  LOO_UME_LOCAL_ELECTRON_REVIEW=1 \
+  LOO_UME_LOCAL_ELECTRON_REVIEW_DATA="$user_data" \
+  "$executable"

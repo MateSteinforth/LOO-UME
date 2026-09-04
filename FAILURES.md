@@ -2760,3 +2760,22 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** `bootstrap.sh`, `scripts/launch-local-packaged-electron.sh`, and
   `tests/bootstrap-install.test.ts`.
 - **Status:** Resolved by FIRM-015.
+
+### F-150 — Local packaged review was not isolated
+
+- **Date:** 2026-09-04
+- **Context:** FIRM-015 local packaged Electron hardware review.
+- **Symptom:** The review showed a public update notice and only a generic
+  serial-open error.
+- **Cause:** Local review used the production version, update checks,
+  single-instance lock, and application data. The launch command hid main-process
+  device logs.
+- **Correction:** Give local review separate application data. Start its exact
+  packaged executable in the terminal. Disable public update checks in this mode.
+  Report the selected port path, USB driver, permission result, and bounded
+  renderer port state.
+- **Prevention:** A local packaged review must not share a single-instance lock
+  with the installed application. Keep its main-process logs visible.
+- **Evidence:** `electron/main.ts`, `web/src/Esp32Setup.ts`, and
+  `scripts/launch-local-packaged-electron.sh`.
+- **Status:** Human review.

@@ -88,6 +88,9 @@ describe("clean-checkout bootstrap", () => {
       "utf8",
     );
     expect(localElectron).toContain("electron-builder --mac dir");
+    expect(localElectron).toContain("LOO_UME_LOCAL_ELECTRON_REVIEW=1");
+    expect(localElectron).toContain("LOO_UME_LOCAL_ELECTRON_REVIEW_DATA=");
+    expect(localElectron).not.toContain("exec /usr/bin/open");
     const update = readFileSync("scripts/bootstrap-update-apply.sh", "utf8");
     expect(update).toContain("verify_update_checkout");
     expect(update).toContain("verify_update_fast_forward");

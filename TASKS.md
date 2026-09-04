@@ -213,10 +213,6 @@ No tasks.
 
 ## In Progress
 
-No tasks.
-
-## Ready to Merge
-
 ### `P0 · FIRM-015` Include the verified ESP32 image in the Mac application
 
 - Scope: stage the receipt-bound complete flash image before Electron
@@ -227,7 +223,8 @@ No tasks.
   the exact image is missing or different. The connected CP2102 appears in the
   application selection dialog. Setup accepts the selected verified port
   without an immediate `getPorts()` result. A local packaged-Electron command
-  supports fast macOS hardware review without a DMG build.
+  supports fast macOS hardware review without a DMG build. The local review
+  runs independently from an installed copy and reports bounded serial details.
 - Owner: `codex/firm-015-package-image` in `/tmp/loo-ume-firm-015`.
 - Verification: the public release image matches the receipt at 1,177,456
   bytes and SHA-256 `98bee84b5dc0de4dd118677b2e3c340fe00c44249b7e2965b580b6ea90bf4b2b`.
@@ -235,6 +232,10 @@ No tasks.
   YAML lint, and diff checks pass.
 - Likely conflicts: Electron resources, release workflow, firmware artifact
   verification, package tests, and firmware documentation.
+
+## Ready to Merge
+
+No tasks.
 
 ## Human Review
 
