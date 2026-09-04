@@ -2811,3 +2811,19 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Operator logs from commit `3651577` show the selected `portId`
   followed by twenty empty permission objects and denials.
 - **Status:** Human review.
+
+### F-153 — Post-setup DDP output made Electron unresponsive
+
+- **Date:** 2026-09-04
+- **Context:** FIRM-015 physical setup of 2,624 LEDs.
+- **Symptom:** Setup completed and live output started. Electron then showed a
+  persistent wait cursor and remained slow after ESP32 disconnection.
+- **Cause:** Each complete frame created six UDP sockets in Electron's main
+  process. A failed destination also caused repeated send attempts.
+- **Correction:** Reuse one UDP socket for complete frames. Stop the stale live
+  link after its first failed frame.
+- **Prevention:** Bound network resources per frame. A stopped link must not
+  continue background send attempts.
+- **Evidence:** Chrome remained responsive with the network broker in a separate
+  Node process. Electron slowed after setup and reported a DDP timeout.
+- **Status:** Human review.

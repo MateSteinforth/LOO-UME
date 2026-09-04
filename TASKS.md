@@ -225,6 +225,7 @@ No tasks.
   without an immediate `getPorts()` result. A local packaged-Electron command
   supports fast macOS hardware review without a DMG build. The local review
   runs independently from an installed copy and reports bounded serial details.
+  Post-setup live output remains responsive and stops after a send failure.
 - Owner: `codex/firm-015-package-image` in `/tmp/loo-ume-firm-015`.
 - Verification: the public release image matches the receipt at 1,177,456
   bytes and SHA-256 `98bee84b5dc0de4dd118677b2e3c340fe00c44249b7e2965b580b6ea90bf4b2b`.

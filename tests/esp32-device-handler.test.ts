@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { describe, expect, it, vi } from "vitest";
 import {
   createEsp32DeviceHandler,
+  createDdpFrameSender,
   createDdpPacket,
   createDdpPackets,
   esp32TargetUrl,
@@ -37,6 +38,33 @@ describe("ESP32 loopback device proxy policy", () => {
     ]);
     expect(() => createDdpPackets(new Uint8Array(2_625 * 3), 1))
       .toThrow(/2,624/);
+  });
+
+  it("reuses one UDP socket for complete DDP frames", async () => {
+    const close = vi.fn();
+    const send = vi.fn((
+      _bytes: Uint8Array,
+      _port: number,
+      _address: string,
+      callback: (error: Error | null) => void,
+    ) => callback(null));
+    const socket = {
+      close,
+      off: vi.fn(),
+      once: vi.fn(),
+      send,
+      unref: vi.fn(),
+    } as unknown as import("node:dgram").Socket;
+    const create = vi.fn(() => socket);
+    const sender = createDdpFrameSender(create);
+    const packets = createDdpPackets(new Uint8Array(2_624 * 3), 1);
+    await sender.send("192.168.68.53", packets);
+    await sender.send("192.168.68.53", packets);
+    expect(create).toHaveBeenCalledOnce();
+    expect(send).toHaveBeenCalledTimes(12);
+    expect(close).not.toHaveBeenCalled();
+    sender.close();
+    expect(close).toHaveBeenCalledOnce();
   });
 
   it("allows only fixed WLED operations on private addresses", () => {

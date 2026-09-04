@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { lookup } from "node:dns/promises";
-import { createSocket } from "node:dgram";
+import { createSocket, type Socket } from "node:dgram";
 import { isLoopbackHost } from "./editor-pipeline-handler.ts";
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
@@ -25,9 +25,15 @@ const ALLOWED_REQUESTS = new Set([
 
 export interface Esp32DeviceHandler {
   handle(request: IncomingMessage, response: ServerResponse): Promise<boolean>;
+  close(): void;
 }
 
 type SendDdp = (address: string, bytes: Uint8Array) => Promise<void>;
+
+export interface DdpFrameSender {
+  send(address: string, packets: readonly Uint8Array[]): Promise<void>;
+  close(): void;
+}
 
 export function createDdpPacket(
   pixels: Uint8Array,
@@ -86,25 +92,72 @@ export function createDdpPackets(
   return packets;
 }
 
-const sendDdp: SendDdp = (address, bytes) =>
-  new Promise((resolvePromise, reject) => {
-    const socket = createSocket("udp4");
-    let settled = false;
-    const finish = (error?: Error | null): void => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      socket.close();
-      if (error) reject(error);
-      else resolvePromise();
-    };
-    const timer = setTimeout(
-      () => finish(new Error("The WLED DDP send timed out.")),
-      1_000,
-    );
-    socket.once("error", finish);
-    socket.send(bytes, DDP_PORT, address, finish);
-  });
+export function createDdpFrameSender(
+  create: () => Socket = () => createSocket("udp4"),
+): DdpFrameSender {
+  let socket: Socket | undefined;
+  let sending = false;
+  let closed = false;
+  const closeSocket = (): void => {
+    const active = socket;
+    socket = undefined;
+    if (!active) return;
+    try {
+      active.close();
+    } catch {
+      // An unused UDP socket does not need cleanup.
+    }
+  };
+  return {
+    send(address, packets) {
+      if (closed) return Promise.reject(new Error("The WLED DDP sender is closed."));
+      if (sending) return Promise.reject(new Error("A WLED DDP frame is already sending."));
+      if (packets.length === 0) {
+        return Promise.reject(new Error("A DDP frame requires at least one packet."));
+      }
+      const active = socket ?? create();
+      socket = active;
+      active.unref();
+      sending = true;
+      return new Promise<void>((resolvePromise, reject) => {
+        let settled = false;
+        let remaining = packets.length;
+        const finish = (error?: Error | null): void => {
+          if (settled) return;
+          settled = true;
+          sending = false;
+          clearTimeout(timer);
+          active.off("error", finish);
+          if (error) {
+            closeSocket();
+            reject(error);
+          } else {
+            resolvePromise();
+          }
+        };
+        const timer = setTimeout(
+          () => finish(new Error("The WLED DDP send timed out.")),
+          1_000,
+        );
+        active.once("error", finish);
+        for (const packet of packets) {
+          active.send(packet, DDP_PORT, address, (error) => {
+            if (error) {
+              finish(error);
+              return;
+            }
+            remaining -= 1;
+            if (remaining === 0) finish();
+          });
+        }
+      });
+    },
+    close() {
+      closed = true;
+      closeSocket();
+    },
+  };
+}
 
 function privateIpv4(value: string): boolean {
   const octets = value.split(".").map(Number);
@@ -210,9 +263,10 @@ export function createEsp32DeviceHandler(
   fetchImpl: typeof fetch = fetch,
   resolve: ResolveIpv4 = resolveIpv4,
   resolveTimeoutMs = RESOLVE_TIMEOUT_MS,
-  sendRealtime: SendDdp = sendDdp,
+  sendRealtime?: SendDdp,
 ): Esp32DeviceHandler {
   let ddpSequence = 1;
+  const frameSender = sendRealtime ? undefined : createDdpFrameSender();
   return {
     async handle(request, response) {
       const requestUrl = new URL(request.url ?? "/", "http://localhost");
@@ -245,7 +299,11 @@ export function createEsp32DeviceHandler(
             ddpSequence,
           );
           ddpSequence = (ddpSequence - 1 + packets.length) % 15 + 1;
-          for (const packet of packets) await sendRealtime(address, packet);
+          if (sendRealtime) {
+            for (const packet of packets) await sendRealtime(address, packet);
+          } else {
+            await frameSender!.send(address, packets);
+          }
           response.statusCode = 204;
           response.setHeader("Cache-Control", "no-store");
           response.end();
@@ -301,6 +359,9 @@ export function createEsp32DeviceHandler(
         });
       }
       return true;
+    },
+    close() {
+      frameSender?.close();
     },
   };
 }

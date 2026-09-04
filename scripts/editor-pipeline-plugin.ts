@@ -40,6 +40,7 @@ export function editorPipelinePlugin(): Plugin {
       });
       server.httpServer?.once("close", () => {
         void handler?.then((activeHandler) => activeHandler.close());
+        deviceHandler.close();
         void artNetPreviewHandler.close();
         void ddpPreviewHandler.close();
       });

@@ -269,6 +269,7 @@ export async function startLocalEditorServer(
           server.closeIdleConnections?.();
         });
         await pipelineHandler.close(gracePeriodMs);
+        deviceHandler.close();
         await artNetPreviewHandler.close();
         await ddpPreviewHandler.close();
         let timer: ReturnType<typeof setTimeout> | undefined;

@@ -958,7 +958,6 @@ async function start(): Promise<void> {
     let simulatorFrameRequest: Promise<void> | undefined;
     let simulatorReconnectRequest: Promise<void> | undefined;
     let nextSimulatorFrameAt = 0;
-    let simulatorLinkFailed = false;
     let standaloneSaveTimer: ReturnType<typeof setTimeout> | undefined;
     let standaloneSaveRequest: Promise<void> | undefined;
     let simulatorProjectRevision = 0;
@@ -1271,7 +1270,6 @@ async function start(): Promise<void> {
       rememberAutomaticEsp32Reconnect(reconnectStorage());
       simulatorLedmapUpdateAuthorized = false;
       nextSimulatorFrameAt = 0;
-      simulatorLinkFailed = false;
       updateExternalFrameMirrorAvailability();
       setLogMessage(
         `${reconnected ? "Reconnected" : "Standalone animation saved and live preview started"} at ${deviceUrl.host} for ${panelCount} panel${panelCount === 1 ? "" : "s"} (${ledCount} LEDs) on GPIO ${outputs.map((output) => output.gpio).join(", ")}.`,
@@ -1619,7 +1617,6 @@ async function start(): Promise<void> {
           stopExternalFrameMirror("Sculpture mirror stopped because the ESP32 connection changed.");
         }
         simulatorDeviceUrl = undefined;
-        simulatorLinkFailed = false;
         updatePhysicalRouteReviewAvailability();
         if (standaloneSaveTimer) {
           clearTimeout(standaloneSaveTimer);
@@ -2278,7 +2275,6 @@ async function start(): Promise<void> {
         physicalAddressContractKey(selectedHardwareContract) ===
           physicalAddressContractKey(selected.contract);
       simulatorDeviceUrl = undefined;
-      simulatorLinkFailed = false;
       updatePhysicalRouteReviewAvailability();
       if (standaloneSaveTimer) {
         clearTimeout(standaloneSaveTimer);
@@ -4272,25 +4268,22 @@ async function start(): Promise<void> {
         now >= nextSimulatorFrameAt
       ) {
         nextSimulatorFrameAt = now + 100;
+        const deviceUrl = simulatorDeviceUrl;
         simulatorFrameRequest = Promise.resolve().then(() =>
           sendSimulatorFramebuffer(
-            simulatorDeviceUrl!,
+            deviceUrl,
             physicalSimulatorFramebuffer(),
           )
-        ).then(() => {
-          if (simulatorLinkFailed) {
-            simulatorLinkFailed = false;
-            setLogMessage("Live simulator hardware link reconnected.");
+        ).catch((error) => {
+          if (simulatorDeviceUrl?.href === deviceUrl.href) {
+            simulatorDeviceUrl = undefined;
+            nextSimulatorFrameAt = 0;
+            updatePhysicalRouteReviewAvailability();
           }
-        }).catch((error) => {
-          if (!simulatorLinkFailed) {
-            simulatorLinkFailed = true;
-            setLogMessage(
-              `Live simulator hardware link paused: ${error instanceof Error ? error.message : String(error)}`,
-              true,
-            );
-          }
-          nextSimulatorFrameAt = performance.now() + 5_000;
+          setLogMessage(
+            `Live simulator hardware link stopped: ${error instanceof Error ? error.message : String(error)} Run ESP32 setup to reconnect.`,
+            true,
+          );
         }).finally(() => {
           simulatorFrameRequest = undefined;
         });
