@@ -474,8 +474,9 @@ No tasks.
 - Checks: physical review browser test, formatting, lint, and TypeScript.
 - Verification: both browser journeys passed with custom GPIOs. Checks cover sustained frames, both simulator modes, cancellation, and the mapping-write boundary.
 - Validation: formatting, full lint, and TypeScript passed. Physical ESP32 review remains required.
-- Delivery blocker: automatic approval review rejected the push of `1e2bb43` to `codex/wiring-review-refresh` at `https://github.com/MateSteinforth/LOO-UME.git`.
-  Explicit approval is required for this branch upload.
+- Delivery: the operator approved the branch push and review DMG. Keep this branch separate from `main` pending physical review.
+- Mac verification: [build 35](https://github.com/MateSteinforth/LOO-UME/actions/runs/33982160555) passed packaging and application checks.
+- Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-35/LOO-UME-Electron-arm64.dmg), built from `40f2b548f031457b658b3d54b182125afe4699df`.
 
 ## Human Review
 
