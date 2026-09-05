@@ -118,6 +118,21 @@ No tasks.
 
 ## Done (latest integrations)
 
+### `P1 · LIVE-029` Recover Art-Net input without restarting
+
+- Result: silent Art-Net input reopens automatically after three seconds. Explicit stop cancels pending retries.
+- Verification: 15 Art-Net tests, full lint, and TypeScript passed. The real UDP startup-order test fails with the previous client.
+- Delivery: the operator confirmed review DMG 32 works and authorized integration and task cleanup on 2026-09-05.
+- Mac verification: [build 32](https://github.com/MateSteinforth/LOO-UME/actions/runs/33980162768) passed packaging, signature, launch, GPIO, and reconnect checks.
+- Implementation: `60426e8`. Includes MAD-015. The Wi-Fi review work remains separate.
+
+### `P1 · MAD-015` Correct fixture sampling positions
+
+- Result: small fixtures sample the LED coordinates. The 2:1 frame and physical addresses remain unchanged.
+- Verification: 14 exporter, package, and preview tests passed. The center tests fail against the previous exporter.
+- Delivery: included in the accepted review DMG 32 and the LIVE-029 integration.
+- Implementation: `6a78c8c`. Existing MadMapper fixtures need replacement with a fresh export to use the correction.
+
 ### `P1 · CI-027` Correct repeated clean-checkout alerts
 
 - Owner: GPT-6 Astra; branch `codex/fix-clean-checkout`; worktree `/tmp/loo-ume-clean-checkout`.
@@ -415,31 +430,7 @@ No tasks.
 
 ## Ready to Merge
 
-### `P1 · LIVE-029` Recover Art-Net input without restarting
-
-- Owner: GPT-6 Astra; branch `codex/artnet-recovery`; worktree `/tmp/loo-ume-artnet-recovery`.
-- Scope: recover stalled or closed Art-Net streams automatically. Preserve explicit stop and project replacement behavior.
-- Acceptance: receive frames after startup silence or a connection failure without restarting the application. Stop all retries when input stops.
-- Checks: receiver lifecycle tests and existing Art-Net transport tests.
-- Dependency: includes the MAD-015 exporter correction. Keep the Wi-Fi branch separate.
-- Verification: 15 Art-Net tests, formatting, full lint, and TypeScript passed. The real UDP startup-order test fails with the previous client.
-- Remaining review: repeat both startup orders in native MadMapper on macOS.
-- Delivery: the operator approved the branch push and updated review DMG. Keep this branch separate from `main`.
-- Mac verification: [build 32](https://github.com/MateSteinforth/LOO-UME/actions/runs/33980162768) passed packaging, signature, launch, GPIO, and reconnect checks.
-- Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-32/LOO-UME-Electron-arm64.dmg), built from `ec0363d77dcfdeca8b16c302d98b77ec22bed5d5`.
-
-### `P1 · MAD-015` Correct fixture sampling positions
-
-- Owner: GPT-6 Astra; branch `codex/madmapper-centered-fixtures`; worktree `/tmp/loo-ume-madmapper-centers`.
-- Scope: replace stretched fixture regions with small samples at the LED coordinates.
-- Acceptance: preserve the 2:1 frame and physical addresses. Verify sample centers and diagonal patterns for all 2,624 LEDs.
-- Checks: exporter, package, and preview tests; formatting, lint, and TypeScript.
-- Conflict areas: `MadMapperExport.ts`, exporter tests, setup instructions, and task records. Keep the Wi-Fi review branch separate.
-- Verification: all 14 focused tests passed. The center regression tests fail against the previous exporter. Formatting, lint, and TypeScript passed.
-- Remaining review: import a fresh ZIP into MadMapper and repeat the diagonal test. This host cannot verify native MadMapper sampling.
-- Delivery: the operator approved the branch push and review build. Keep this branch and worktree separate from `main` and the Wi-Fi review branch.
-- Mac verification: [build 31](https://github.com/MateSteinforth/LOO-UME/actions/runs/33979248894) passed packaging, signature, launch, GPIO, and reconnect checks.
-- Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-31/LOO-UME-Electron-arm64.dmg), built from `6a78c8c536a0e1f9368056c2200eb444f223a127`.
+No tasks.
 
 ## Human Review
 

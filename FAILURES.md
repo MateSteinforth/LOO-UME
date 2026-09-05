@@ -3000,4 +3000,4 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Correction:** Reopen the receiver after three seconds without a complete frame. Retry temporary stream failures and cancel retries on explicit stop.
 - **Prevention:** Test both startup orders with real shared UDP sockets. Do not treat silence as proof of incorrect sender settings.
 - **Evidence:** The later-sender test fails with the previous client. The corrected client receives the test frame after about 3.5 seconds.
-- **Status:** Corrected by LIVE-029. Native MadMapper review remains required.
+- **Status:** Corrected by LIVE-029. The operator confirmed recovery works in review DMG 32 on 2026-09-05.
