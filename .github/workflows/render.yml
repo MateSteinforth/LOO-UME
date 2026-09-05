@@ -34,7 +34,7 @@ jobs:
         run: npm ci
       - name: Check changed formatting and source rules
         env:
-          CHECK_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'main' }}
+          CHECK_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
         run: |
           npm run format:check
           npm run lint:fast -- --all

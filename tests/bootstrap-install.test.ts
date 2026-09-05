@@ -52,12 +52,11 @@ describe("clean-checkout bootstrap", () => {
   });
 
   it("passes the strict manifest through the reviewed native validator", () => {
-    expect(execFileSync("sh", [
-      "bootstrap.sh",
-      "validate",
-      "--manifest",
-      MANIFEST,
-    ], { encoding: "utf8" })).toBe("");
+    expect(
+      execFileSync("sh", ["bootstrap.sh", "validate", "--manifest", MANIFEST], {
+        encoding: "utf8",
+      }),
+    ).toBe("");
   });
 
   it("rejects extra setup arguments before it changes the checkout", () => {
@@ -71,7 +70,9 @@ describe("clean-checkout bootstrap", () => {
   it("defines one-command launch and guarded update contracts", () => {
     const bootstrap = readFileSync("bootstrap.sh", "utf8");
     expect(bootstrap).toContain("launch)");
-    expect(bootstrap).toContain("scripts/local-editor-server.ts\" --open-browser");
+    expect(bootstrap).toContain(
+      'scripts/local-editor-server.ts" --open-browser',
+    );
     expect(bootstrap).toContain("LOO_UME_OPEN_BROWSER-1");
     expect(bootstrap).toContain("update)");
     expect(bootstrap).toContain("bootstrap-update-apply.sh");
@@ -99,15 +100,16 @@ describe("clean-checkout bootstrap", () => {
 
   it("runs the same restricted-PATH setup on Linux and native macOS CI", () => {
     const workflow = readFileSync(WORKFLOW, "utf8");
-    const macJob = workflow.split("  stage-zero-bootstrap-macos:")[1]
+    const macJob = workflow
+      .split("  stage-zero-bootstrap-macos:")[1]
       ?.split("\n  clean-checkout:")[0];
-    const linuxJob = workflow.split("  clean-checkout:")[1]
+    const linuxJob = workflow
+      .split("  clean-checkout:")[1]
       ?.split("\n  manifold-panel-parts:")[0];
 
     expect(macJob).toContain("runner: macos-15");
-    expect(macJob).toContain("runner: macos-15-intel");
     expect(macJob).toContain("architecture: arm64");
-    expect(macJob).toContain("architecture: x86_64");
+    expect(macJob).not.toContain("architecture: x86_64");
     expect(macJob).toContain(
       "run: env PATH=/usr/bin:/bin ./bootstrap.sh setup",
     );

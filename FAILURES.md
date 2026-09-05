@@ -48,6 +48,16 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 
 ## Lessons
 
+### F-163 — Scheduled regression did not match deferred work
+
+- **Date:** 2026-09-05
+- **Symptom:** Daily clean-checkout emails reported failure after setup succeeded.
+- **Cause:** The job ran the complete suite, including explicitly deferred P2 geometry failures. Broad browser regression had similar failures.
+- **Correction:** CI-027 separates focused daily checks from optional full regression. No test failure becomes a successful result.
+- **Prevention:** Keep the CI scope and task deferrals consistent. Run full regression explicitly when repairing the deferred defects.
+- **Evidence:** Scheduled run `33951147725`; managed-runtime setup and 510 fast and host tests passed locally.
+- **Related correction:** Manual branch runs must use `origin/main` as their fallback comparison ref. Checkout does not create a local `main` branch.
+
 ### F-162 — A dependency link blocked Vite WASM requests
 
 - **Date:** 2026-09-05

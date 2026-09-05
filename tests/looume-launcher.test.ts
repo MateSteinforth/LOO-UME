@@ -134,7 +134,7 @@ describe("LOO/UME managed launcher", () => {
       join(fixture.state, "launch.lock", "owner.pid"),
       "999999\n",
     );
-    const [first, concurrent] = await Promise.all([
+    const starts = await Promise.allSettled([
       execFileAsync("sh", [fixture.launcher], {
         env: fixture.environment,
         timeout: 15_000,
@@ -144,6 +144,21 @@ describe("LOO/UME managed launcher", () => {
         timeout: 15_000,
       }),
     ]);
+    const rejected = starts.filter((result) => result.status === "rejected");
+    if (rejected.length > 0) {
+      const serverLog = await readFile(
+        join(fixture.state, "server.log"),
+        "utf8",
+      ).catch(() => "No server log was created.");
+      throw new AggregateError(
+        rejected.map((result) => result.reason),
+        `Concurrent launcher startup failed. Server log:\n${serverLog}`,
+      );
+    }
+    const [first, concurrent] = starts.map((result) => {
+      if (result.status === "rejected") throw result.reason;
+      return result.value;
+    });
     expect(`${first.stdout}${concurrent.stdout}`).toContain(
       "LOO/UME is running at http://127.0.0.1:",
     );
