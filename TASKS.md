@@ -504,6 +504,7 @@ No tasks.
 - Delivery: software changes are saved for review; the complete physical-output task remains in Human Review.
 - Hardware test order: operator requires standalone parity first, then LOO/UME DDP, then MadMapper. Start with a direct WLED JSON four-corner test on SQ-04, without changing the map. Logical 31/32/311/312 map to physical 0/7/56/63. See `docs/LED_MAPPING.md`.
 - Review build: Mac build 37 (`33985685786`) packaged and verified the application from `cd5b6d7`; its direct DMG is published under `electron-review-37`. This does not establish hardware parity.
+- Hardware observation: direct standalone JSON test on SQ-04 produced red at upper right/DIN, green at lower right, white at lower left/DOUT, and blue at upper left. Relative to the saved pose reference, red/white match and green/blue exchange places. This establishes a diagonal reflection in the tested mapping-to-panel relationship, not a corrective rotation or a verified global PCB-profile change. Next inspect within-panel addresses 1, 8, and 9 beside DIN to determine traversal and line progression.
 
 ### `P0 · LIVE-021` Confirm physical sculpture DDP output
 

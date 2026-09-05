@@ -3088,5 +3088,6 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Correction:** Use unequal axis slopes, keeping red 255 at DIN and black at the opposite corner. Compare both intermediate corners as well as DIN.
 - **Prevention:** Require eight distinct square orientation patterns and verify every panel through the exported map. Include output gamma in browser pixel assertions; low red values can round to zero.
 - **Operator correction:** An unchanged map and matching generated fingerprint do not prove correct physical addressing. Do not call the current map valid while standalone output disagrees with the simulator. Keep software consistency separate from hardware evidence.
+- **Physical evidence:** The SQ-04 direct JSON corner test retained red at upper right/DIN and white at lower left/DOUT but exchanged green and blue against the saved pose reference. The old symmetric diagonal cannot detect this reflection. Verify interior wire addresses and the profile reference view before changing the global measured pixel-order contract.
 - **Evidence:** LIVE-032 tests all eight orientations and all 41 panel blocks against straight row addressing.
 - **Status:** Software checks passed. Physical pixel-order evidence remains required before changing measured profile facts or saved rotations.
