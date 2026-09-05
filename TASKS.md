@@ -475,6 +475,9 @@ No tasks.
 - Dependency: includes the separate LIVE-030 review correction.
 - Verification: 20 mapping and review tests passed. Both browser journeys passed without retries, including physical rotation and fixed simulator reference checks.
 - Validation: formatting, full lint, and TypeScript passed. Native sculpture review remains required.
+- Delivery: the operator approved the branch push and review DMG. Keep this branch separate from `main` pending physical review.
+- Mac verification: [build 36](https://github.com/MateSteinforth/LOO-UME/actions/runs/33983195845) passed packaging and application checks.
+- Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-36/LOO-UME-Electron-arm64.dmg), built from `a6725e2e45cbf93b0c64327d360dcf7e59bd0cbb`.
 
 ### `P1 · LIVE-030` Keep physical review patterns active
 
