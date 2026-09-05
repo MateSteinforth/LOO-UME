@@ -425,6 +425,9 @@ No tasks.
 - Device: authorized Wi-Fi update passed on MAC `24:62:AB:C9:F3:A8`; read-back confirms build `2609051` and unchanged four-output settings.
 - Physical review: a low-brightness red test was sent. Operator observation and the cause of an uptime reset remain pending.
 - Delivery: the operator requested an Apple Silicon review application with this image, LIVE-024 reconnect fixes, and the current setup dialog.
+
+## Ready to Merge
+
 ### `P1 · WIFI-028` Simplify repeated ESP32 setup
 
 - Owner: GPT-6 Astra; branch `codex/esp32-setup-wifi`; worktree `/tmp/loo-ume-esp32-wifi`.
@@ -434,8 +437,10 @@ No tasks.
 - Checks: scan lifecycle, credential persistence and deletion, setup regressions, browser controls, and desktop restart persistence.
 - Ownership: the storage agent owns only the new credential handler and its tests. The primary agent owns all other files.
 - Local verification: 57 regression tests, two browser journeys, formatting, lint, type-aware lint, TypeScript, and web/Electron builds passed.
-- Pending verification: the Mac package must pass encrypted credential storage, restart restore, and deletion checks. Physical ESP32 scanning remains untested on this host.
-- Delivery blocker: automatic approval review rejected the GitHub branch push and Mac workflow trigger. It requires explicit approval for this source payload and destination.
+- Mac verification: [review build 30](https://github.com/MateSteinforth/LOO-UME/actions/runs/33977651280) passed launch, GPIO, reconnect, encrypted credential storage, restart restore, and deletion checks.
+- Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-30/LOO-UME-Electron-arm64.dmg), built from `00dfdfd1c215fdda6321f3ce02b902bd7973a29a`.
+- Pending review: test Wi-Fi scanning with a physical ESP32 that runs WLED with Improv support.
+- Delivery: the operator authorized the review build. Keep this branch and worktree separate from `main` until the operator requests integration.
 
 ## Human Review
 
