@@ -352,7 +352,11 @@ All other panels stay black. The selected panel has four solid quadrants:
 red at pose-local front bottom-left, green at bottom-right, blue at top-left,
 and white at top-right. Compare the entire pattern. An equal-slope diagonal
 cannot detect a row/column swap. The simulator reference stays fixed while
-the candidate address transform changes physical output.
+the candidate address transform changes physical output. On the tested SQ-04
+hardware, this exposed a row/column reflection: red and white stayed anchored
+at DIN/DOUT while green and blue exchanged places. **Swap rows/columns**
+corrected that result and matched the simulator without changing the panel pose
+or global panel profile.
 
 The test path starts at **Standalone WLED**. It sends logical pixels through
 the individual-pixel JSON interface, exits realtime mode, and freezes a static
