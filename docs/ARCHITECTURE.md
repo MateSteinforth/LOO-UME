@@ -166,7 +166,15 @@ the existing Improv session protocol and release the port before flashing.
 
 Reconnect authorization remains in the Electron
 application-data directory. This authorization is independent of the random
-loopback port. A later Electron process can verify and reconnect the same WLED
+loopback port. After a verified connection, Electron also saves the current
+project as a separate `.loo.zip` startup copy. A later process restores this
+copy before device discovery, unless an explicit sculpture URL selects another
+project. The copy preserves poses, routes, GPIOs, and available referenced assets.
+Portable profiles remain embedded; catalog profiles keep their original references
+and use the packaged catalog. A damaged startup copy stops automatic reconnect
+but keeps the default editor usable. This copy does not replace Project Library
+saves or preserve later unconnected edits.
+A later Electron process can verify and reconnect the same WLED
 device without another flash. Browser and LAN modes continue to use
 origin-local storage or an approved serial permission.
 Closing the last Electron window quits the application and closes its local

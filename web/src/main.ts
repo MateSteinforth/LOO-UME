@@ -76,6 +76,11 @@ import {
   type PortableProjectFile,
 } from "./PortableProject.ts";
 import { readProjectPackageSummary } from "./ProjectPackage.ts";
+import {
+  createEsp32ReconnectProject,
+  loadEsp32ReconnectProject,
+  rememberEsp32ReconnectProject,
+} from "./Esp32ReconnectProject.ts";
 import { createCompleteProjectPackageZip } from "./CompleteProjectPackage.ts";
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
@@ -132,7 +137,6 @@ import {
   mappedPanelFramebuffer,
   persistStandaloneAnimation,
   rememberAutomaticEsp32Reconnect,
-  rememberDesktopEsp32Reconnect,
   retainAutomaticReconnectEligibility,
   sendSimulatorFramebuffer,
   settleSimulatorDeviceWork,
@@ -994,7 +998,29 @@ async function start(): Promise<void> {
       ? initialSculptureSource
       : "";
 
-    let loadedSculpture = await loadSculptureContract(initialSculptureSource);
+    let startupBundle: PortableProjectBundle | undefined;
+    let startupReconnectBlocked = false;
+    if (!new URLSearchParams(window.location.search).has("sculptureJson")) {
+      try {
+        startupBundle = await loadEsp32ReconnectProject(loadStagedPanelProfile);
+      } catch (error) {
+        startupReconnectBlocked = true;
+        setLogMessage(
+          `The ESP32 startup project could not be restored. Automatic reconnect is stopped. ${error instanceof Error ? error.message : String(error)}`,
+          true,
+        );
+      }
+    }
+    let loadedSculpture = startupBundle
+      ? createLoadedSculpture(startupBundle.project)
+      : await loadSculptureContract(initialSculptureSource);
+    if (startupBundle) {
+      sculptureSelect.value = "";
+      sculptureJsonInput.value = "esp32-startup.loo.zip";
+      setLogMessage(
+        "Restored the project from the last verified ESP32 connection.",
+      );
+    }
     currentProjectName.textContent = loadedSculpture.definition.name;
     let editorDefinition = loadedSculpture.definition;
     let editorProject = loadedSculpture.project;
@@ -1053,8 +1079,15 @@ async function start(): Promise<void> {
     let verifiedGeneratedMechanics: VerifiedGeneratedMechanics | undefined;
     let verifiedGeneratedStructure: VerifiedGeneratedStructure | undefined;
     let generatedAssetLoadRevision = 0;
-    let activePortableBundle: PortableProjectBundle | undefined;
-    let availableProjectAssets = new Map<string, Uint8Array>();
+    let activePortableBundle: PortableProjectBundle | undefined = startupBundle;
+    let availableProjectAssets = new Map<string, Uint8Array>(
+      startupBundle
+        ? [...startupBundle.assets].map(([source, asset]) => [
+            source,
+            Uint8Array.from(asset.bytes),
+          ])
+        : [],
+    );
     let generatedMemoryUrls = new Map<string, string>();
     const generationClient = new GenerationClient();
     let generationProjectRevision = 0;
@@ -1411,9 +1444,16 @@ async function start(): Promise<void> {
       const { outputs, ledCount, panelCount } = loadedSimulatorDeployment();
       simulatorDeviceUrl = deviceUrl;
       simulatorReconnectEnabled = true;
-      rememberAutomaticEsp32Reconnect(reconnectStorage());
       try {
-        await rememberDesktopEsp32Reconnect();
+        const project = {
+          ...editorProject,
+          sculpture: structuredClone(editorDefinition),
+        };
+        const assets = new Map(availableProjectAssets);
+        await rememberEsp32ReconnectProject(
+          createEsp32ReconnectProject(project, assets),
+        );
+        rememberAutomaticEsp32Reconnect(reconnectStorage());
       } catch (error) {
         setLogMessage(
           `Automatic ESP32 reconnect was not saved: ${error instanceof Error ? error.message : String(error)}`,
@@ -1725,6 +1765,7 @@ async function start(): Promise<void> {
     const tryReconnectSimulatorLink = (): void => {
       if (
         !simulatorReconnectEnabled ||
+        startupReconnectBlocked ||
         simulatorSetupActive ||
         physicalRouteReviewSession ||
         simulatorDeviceUrl ||
@@ -1850,6 +1891,7 @@ async function start(): Promise<void> {
           );
           return;
         }
+        startupReconnectBlocked = false;
         await enableSimulatorLink(deviceUrl);
       },
     });
@@ -2535,6 +2577,7 @@ async function start(): Promise<void> {
       selected: LoadedSculpture,
       preserveEditorDefinition = false,
     ): Promise<void> => {
+      startupReconnectBlocked = false;
       if (artNetPreviewClient.active) {
         stopMadMapperPreview(
           "MadMapper preview stopped because the project changed.",

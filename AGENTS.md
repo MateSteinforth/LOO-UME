@@ -254,8 +254,8 @@ permissions to create a new namespace` even though approved shell commands
 - Assume that Codex, Grok, and other agents can work concurrently. Never
   discard unfamiliar changes or assume exclusive ownership of a branch,
   worktree, file, or remote ref.
-- Use `main` only as the integration baseline. Give each substantial
-  implementation slice its own branch and worktree. Record that ownership and
+- Use `main` only as the integration baseline. Start every repository change
+  in a new task branch and worktree. Record that ownership and
   likely file conflicts in `TASKS.md` before code changes start. Run npm, Git
   writes, and tests with that worktree as the explicit working directory.
 - Never force-push, reset shared history, delete another agent's branch or

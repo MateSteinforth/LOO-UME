@@ -1228,38 +1228,49 @@ export function assertConfigReadback(
   const expectedLive = (
     payload.config.if as { live?: Record<string, unknown> } | undefined
   )?.live;
-  const busesMatch =
-    Array.isArray(actual) &&
-    actual.length === expected.length &&
-    expected.every((expectedBus, index) => {
-      const actualBus = actual[index];
-      return (
-        typeof actualBus === "object" &&
-        actualBus !== null &&
-        Object.entries(expectedBus).every(
-          ([key, value]) =>
-            JSON.stringify((actualBus as Record<string, unknown>)[key]) ===
-            JSON.stringify(value),
-        )
+  const differences: string[] = [];
+  const compare = (path: string, wanted: unknown, found: unknown): void => {
+    const expectedText = JSON.stringify(wanted);
+    const actualText = JSON.stringify(found);
+    if (expectedText !== actualText) {
+      differences.push(
+        `${path}: project ${expectedText?.slice(0, 80) ?? "missing"}, device ${actualText?.slice(0, 80) ?? "missing"}`,
       );
-    });
-  if (
-    config.id?.mdns !== SETUP_HOSTNAME ||
-    (expectedDefault &&
-      Object.entries(expectedDefault).some(
-        ([key, value]) => config.def?.[key] !== value,
-      )) ||
-    (expectedLive &&
-      Object.entries(expectedLive).some(
-        ([key, value]) => config.if?.live?.[key] !== value,
-      )) ||
-    config.hw?.led?.total !== payload.expectedLedCount ||
-    (expectedLed?.maxpwr !== undefined &&
-      config.hw?.led?.maxpwr !== expectedLed.maxpwr) ||
-    !busesMatch
-  ) {
+    }
+  };
+  compare("id.mdns", SETUP_HOSTNAME, config.id?.mdns);
+  for (const [key, value] of Object.entries(expectedDefault ?? {})) {
+    compare(`def.${key}`, value, config.def?.[key]);
+  }
+  for (const [key, value] of Object.entries(expectedLive ?? {})) {
+    compare(`if.live.${key}`, value, config.if?.live?.[key]);
+  }
+  compare("hw.led.total", payload.expectedLedCount, config.hw?.led?.total);
+  if (expectedLed?.maxpwr !== undefined) {
+    compare("hw.led.maxpwr", expectedLed.maxpwr, config.hw?.led?.maxpwr);
+  }
+  compare(
+    "Output count",
+    expected.length,
+    Array.isArray(actual) ? actual.length : undefined,
+  );
+  expected.forEach((expectedBus, index) => {
+    const actualBus = Array.isArray(actual) ? actual[index] : undefined;
+    const fields =
+      typeof actualBus === "object" && actualBus !== null
+        ? (actualBus as Record<string, unknown>)
+        : undefined;
+    for (const [key, value] of Object.entries(expectedBus)) {
+      compare(
+        `Output ${index + 1} ${key === "pin" ? "GPIO" : key}`,
+        value,
+        fields?.[key],
+      );
+    }
+  });
+  if (differences.length > 0) {
     throw new Error(
-      "WLED configuration read-back does not match the selected setup.",
+      `WLED configuration read-back does not match the selected setup. ${differences.slice(0, 12).join("; ")}. Open the project used for ESP32 setup, or apply the current project through ESP32 setup.`,
     );
   }
 }

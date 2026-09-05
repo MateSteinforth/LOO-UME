@@ -3002,3 +3002,13 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Prevention:** Use a build identifier for a same-target correction. Preserve the firmware target validation check.
 - **Evidence:** The first upload returned HTTP 500. The corrected upload succeeded; `/json/info` reported `release: ESP32` and `vid: 2609051`.
 - **Status:** Resolved without disabling firmware validation.
+### F-167 — Desktop startup restored default GPIOs after custom setup
+
+- **Date:** 2026-09-05
+- **Context:** LIVE-024 reconnect after application restart.
+- **Symptom:** WLED reported a configuration mismatch. The error omitted the differing fields.
+- **Cause:** Reconnect authorization survived restart, but the edited project did not. Startup loaded GPIOs 16/17/18/19; WLED retained 16/17/21/22.
+- **Correction:** Save the project ZIP after a verified desktop connection. Restore it before device discovery. Report exact configuration differences.
+- **Prevention:** Restore the project authority with connection authorization. Preserve profile references because address fingerprints include them.
+- **Evidence:** Filtered live WLED read-back and startup tests with replacement GPIOs. Host tests use different server ports and the same saved ZIP.
+- **Status:** Software checks passed. Installed-application restart review remains.

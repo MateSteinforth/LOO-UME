@@ -702,6 +702,21 @@ describe("guarded ESP32 setup contracts", () => {
     ).toThrow(/does not match/);
   });
 
+  it("reports replacement GPIO differences without accepting the wrong project", () => {
+    const value = payload();
+    const config = structuredClone(value.config) as {
+      id?: { mdns: string };
+      hw: { led: { ins: Array<{ pin: number[] }> } };
+    };
+    config.id = { mdns: "loo-ume" };
+    config.hw.led.ins[0]!.pin = [21];
+    expect(() => assertConfigReadback(config, value)).toThrow(
+      "Output 1 GPIO: project [16], device [21]",
+    );
+    config.hw.led.ins[0]!.pin = [16];
+    expect(() => assertConfigReadback(config, value)).not.toThrow();
+  });
+
   it("requires exact live config and state read-back", () => {
     const value = payload();
     const config = {

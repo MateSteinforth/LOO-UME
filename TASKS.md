@@ -116,6 +116,18 @@ simulator and TouchDesigner DDP input.
 
 No tasks.
 
+## Ready to Merge
+
+### `P0 · LIVE-024` Restore the ESP32 project before desktop reconnect
+
+- Owner: GPT-6 Astra; branch `codex/esp32-reconnect-readback`; worktree `/tmp/loo-ume-reconnect-readback`.
+- Result: save a project ZIP after a verified connection. Restore it before discovery and report exact configuration differences.
+- Checks: 44 focused unit and host tests, two browser tests, formatting, full lint, full typed lint, TypeScript, browser and Electron builds, and WASM integrity passed.
+- Review: save the project before new reconnect permission. Failed replacement preserves the last saved ZIP; exact device checks remain active.
+- Conflicts: the flash-dialog task also changes `web/src/Esp32Setup.ts`, `web/src/main.ts`, and documentation. Review those changes during integration.
+- Limit: installed-application restart review remains. LIVE-021 retains the unresolved missing-output test.
+- Host contribution: `c05b250` on `codex/esp32-startup-snapshot-host`, worktree `/tmp/loo-ume-startup-snapshot-host`, integrated here as `8abed54`.
+
 ## Done (latest integrations)
 
 ### `P1 · CI-027` Correct repeated clean-checkout alerts
@@ -450,6 +462,9 @@ No tasks.
 - Acceptance: the physical sculpture receives live DDP frames. Color, panel
   order, and LED address order match the simulator.
 - Dependency: use the FIRM-015 ESP32 configuration now integrated in `main`.
+- LIVE-024 read-back confirms four configured outputs on GPIOs 16/17/21/22 and a complete 2,624-LED segment. Physical output remains unconfirmed on outputs 3 and 4.
+- Next test: exchange GPIOs 16 and 21 between output positions 1 and 3. Use the same panel and cable. Restore the original assignments afterward.
+- This device-write test needs operator approval and observation. It separates GPIO damage from an output-driver failure; no firmware correction is established.
 - Remaining risk: physical LED reception and complete address parity are not
   yet verified.
 

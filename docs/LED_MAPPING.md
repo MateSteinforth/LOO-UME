@@ -395,6 +395,20 @@ exports, WLED bus configuration, and reconnect checks use the saved values.
 Run ESP32 setup once after each GPIO change. Later Electron starts can reconnect
 without another flash or setup.
 
+After a verified desktop connection, LOO/UME saves a startup project ZIP in
+application data. The next start restores this project before it checks WLED.
+Older installations have no startup copy. Open the saved project with the
+installed GPIOs once to reconnect and create that copy.
+Configuration errors identify differing fields, including each output GPIO.
+The application does not change WLED buses to match an unrelated startup project.
+
+On 2026-09-05, device read-back confirmed GPIOs 16, 17, 21, and 22, with
+704/640/640/640 LEDs. The active segment covered indices 0 through 2623.
+The operator reported output only from GPIOs 16 and 17, including direct-pin tests.
+These settings do not prove an electrical signal. The pinned Core-3 shared RMT
+driver can ignore initialization errors. A pin test must separate GPIO selection
+from output position before the project records damaged pins or a firmware cause.
+
 `assessHardwareReadiness()` exposes `currentChecksPass` for the existing
 transforms/UVs, chains, GPIOs, pixel order, and installed-address checks. It is
 not electrical approval. `mappingReady` depends only on a complete authored
