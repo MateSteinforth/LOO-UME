@@ -86,7 +86,11 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --mac dmg zip --arm64 --publish never --config.mac.notarize=false
+        run: >-
+          npx electron-builder --mac dmg zip --arm64 --publish never
+          --config.mac.notarize=false --config.mac.identity=-
+          --config.mac.entitlements=electron/entitlements.review.mac.plist
+          --config.mac.entitlementsInherit=electron/entitlements.review.mac.plist
 
       - name: Package the signed and notarized release
         if: startsWith(github.ref, 'refs/tags/electron-v')
@@ -123,6 +127,18 @@ jobs:
           else
             shasum -a 256 release/*.dmg release/*.zip > release/SHA256SUMS
           fi
+
+      - name: Verify the application from the DMG
+        run: |
+          set -eu
+          review_mount=$(mktemp -d)
+          review_copy=$(mktemp -d)
+          trap 'hdiutil detach "$review_mount" || true; rm -rf "$review_mount" "$review_copy"' EXIT
+          hdiutil attach release/LOO-UME-Electron-arm64.dmg -readonly -nobrowse -mountpoint "$review_mount"
+          ditto "$review_mount/LOO UME.app" "$review_copy/LOO UME.app"
+          codesign --verify --deep --strict --verbose=2 "$review_copy/LOO UME.app"
+          test "$(lipo -archs "$review_copy/LOO UME.app/Contents/MacOS/LOO UME")" = arm64
+          node scripts/verify-mac-package.mjs "$review_copy/LOO UME.app"
 
       - name: Upload review artifacts
         uses: actions/upload-artifact@v7

@@ -111,6 +111,16 @@ simulator and TouchDesigner DDP input.
 - Likely conflicts: Electron serial selection, ESP32 setup, firmware receipts,
   hardware profiles, release downloads, cache storage, and setup tests.
 
+## In Progress
+
+### `P1 · DEV-025` Correct Mac review signing
+
+- Owner: GPT-6 Astra; branch `codex/mac-review-signing`; worktree `/tmp/loo-ume-mac-signing`.
+- Scope: apply an ad-hoc signature and verify the packaged Mac application before publication.
+- Acceptance: signature verification and a packaged editor launch pass on Apple Silicon.
+- Dependency: includes DEV-020 and DEV-024. Apple notarization credentials are not configured.
+- Conflicts: Mac workflow, review entitlements, and package checks.
+
 ## Ready to Merge
 
 ### `P1 · DEV-024` Build Apple Silicon Mac packages

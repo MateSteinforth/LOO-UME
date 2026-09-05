@@ -7,6 +7,16 @@ reveals a durable lesson.
 
 ## How to use this log
 
+### F-159 — A package build did not prove Mac launch readiness
+
+- **Date:** 2026-09-05
+- **Symptom:** macOS rejected review 25 as damaged.
+- **Cause:** The workflow disabled signing and checked only package inventory and firmware integrity.
+- **Correction:** Apply an explicit ad-hoc signature with review entitlements. Verify the signature and launch the application extracted from the DMG.
+- **Prevention:** Require both checks before publication. Distinguish launch checks from Apple notarization and download approval.
+- **Evidence:** Run `33952253932` reported that signing was skipped. DEV-025 adds the missing checks.
+- **Status:** Verification in progress.
+
 - Add an entry when the cause and prevention are understood well enough to help
   the next agent. If the investigation is incomplete, mark that explicitly.
 - Describe the system or workflow failure without assigning blame. Never record

@@ -203,8 +203,10 @@ Build the Apple Silicon macOS DMG and update ZIP:
 npm run package:electron:mac
 ```
 
-Unsigned workflow packages support review only. A public automatic update needs
-a Developer ID signature and Apple notarization.
+Review packages use an ad-hoc signature. This signature does not identify an Apple-approved developer.
+The workflow verifies the signature and launches the application extracted from the DMG on Apple Silicon.
+macOS can still require approval in System Settings under Privacy & Security.
+A public automatic update needs a Developer ID signature and Apple notarization.
 
 The earlier managed-checkout launcher remains a recovery path. Ordinary `main`
 pushes do not publish it.
