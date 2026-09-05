@@ -424,7 +424,9 @@ No tasks.
 - Conflict areas: `MadMapperExport.ts`, exporter tests, setup instructions, and task records. Keep the Wi-Fi review branch separate.
 - Verification: all 14 focused tests passed. The center regression tests fail against the previous exporter. Formatting, lint, and TypeScript passed.
 - Remaining review: import a fresh ZIP into MadMapper and repeat the diagonal test. This host cannot verify native MadMapper sampling.
-- Delivery blocker: automatic approval review requires explicit permission to push this correction to `https://github.com/MateSteinforth/LOO-UME.git`.
+- Delivery: the operator approved the branch push and review build. Keep this branch and worktree separate from `main` and the Wi-Fi review branch.
+- Mac verification: [build 31](https://github.com/MateSteinforth/LOO-UME/actions/runs/33979248894) passed packaging, signature, launch, GPIO, and reconnect checks.
+- Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-31/LOO-UME-Electron-arm64.dmg), built from `6a78c8c536a0e1f9368056c2200eb444f223a127`.
 
 ## Human Review
 
