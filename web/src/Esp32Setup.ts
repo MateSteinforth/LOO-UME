@@ -780,9 +780,9 @@ async function postDeviceJson(
   );
 }
 
-function rgbFramebufferBytes(
+function assertRgbFramebuffer(
   pixels: readonly [number, number, number][],
-): Uint8Array {
+): void {
   if (
     pixels.length < 1 ||
     pixels.length > 2_624 ||
@@ -799,6 +799,12 @@ function rgbFramebufferBytes(
       "The simulator hardware preview must contain from 1 through 2,624 RGB pixels.",
     );
   }
+}
+
+function rgbFramebufferBytes(
+  pixels: readonly [number, number, number][],
+): Uint8Array {
+  assertRgbFramebuffer(pixels);
   return Uint8Array.from(
     pixels.flatMap((pixel) =>
       pixel.map((channel) =>
@@ -859,6 +865,36 @@ export function logicalFramebufferForPhysicalFrame(
   return ledmap.map(
     (physicalIndex) => [...pixels[physicalIndex]!] as [number, number, number],
   );
+}
+
+/** Freeze a logical test frame in WLED's native segment buffer, without DDP. */
+export async function sendStandaloneReviewFramebuffer(
+  baseUrl: URL,
+  pixels: readonly [number, number, number][],
+): Promise<void> {
+  assertRgbFramebuffer(pixels);
+  const individual: Array<number | string> = [0, pixels.length, "000000"];
+  pixels.forEach((rgb, index) => {
+    if (rgb.some((channel) => channel !== 0)) {
+      individual.push(
+        index,
+        rgb.map((channel) => channel.toString(16).padStart(2, "0")).join(""),
+      );
+    }
+  });
+  await postDeviceJson(baseUrl, "/json/state", {
+    live: false,
+    on: true,
+    tt: 0,
+    seg: { id: 0, i: individual },
+  });
+}
+
+export async function endStandaloneReview(baseUrl: URL): Promise<void> {
+  await postDeviceJson(baseUrl, "/json/state", {
+    live: false,
+    seg: { id: 0, frz: false },
+  });
 }
 
 export async function sendSimulatorFramebuffer(

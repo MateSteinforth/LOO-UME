@@ -164,7 +164,7 @@ test("runs the physical review workflow without hardware in demo mode", async ({
   await expect(dialog).toHaveAttribute("data-mode", "demo");
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-physical-route-review-pixels",
-    "63",
+    "64",
   );
   await page.locator("#physical-route-review-confirm").click();
   await expect(page.locator("#physical-route-review-step")).toContainText(
@@ -191,12 +191,14 @@ test("mirrors external frames and reviews a physical panel", async ({
 }) => {
   const frames: Buffer[] = [];
   const physicalFrames: Buffer[] = [];
+  const standaloneFrames: Buffer[] = [];
   const applyEvents: string[] = [];
   let savedPreset: Record<string, unknown> | undefined;
   let servedLedmap: unknown;
   let recordApplyEvents = false;
   let failReviewedLedmapReadback = true;
   let reviewedLedmapUploaded = false;
+  let failNextReviewRelease = false;
   let resolveLedmap!: () => void;
   const ledmapReady = new Promise<void>((resolve) => {
     resolveLedmap = resolve;
@@ -299,6 +301,38 @@ test("mirrors external frames and reviews a physical panel", async ({
     }
     if (path === "/json/state" && request.method() === "POST") {
       const body = request.postDataJSON() as Record<string, unknown>;
+      const segment = body.seg as
+        { i?: Array<number | string>; frz?: boolean } | undefined;
+      if (
+        body.live === false &&
+        segment?.frz === false &&
+        failNextReviewRelease
+      ) {
+        failNextReviewRelease = false;
+        await route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: "{}",
+        });
+        return;
+      }
+      if (segment?.i) {
+        expect(body.live).toBe(false);
+        expect(segment.i.slice(0, 3)).toEqual([
+          0,
+          contract.mapping.entries.length,
+          "000000",
+        ]);
+        const native = Buffer.alloc(contract.mapping.entries.length * 3);
+        const map = (servedLedmap as { map: number[] }).map;
+        for (let index = 3; index < segment.i.length; index += 2) {
+          const logical = segment.i[index] as number;
+          const rgb = Buffer.from(segment.i[index + 1] as string, "hex");
+          rgb.copy(native, map[logical]! * 3);
+        }
+        standaloneFrames.push(native);
+        if (recordApplyEvents) applyEvents.push("standalone-frame");
+      }
       if (body.psave === 1) savedPreset = body;
       if (recordApplyEvents && body.ledmap === 0)
         applyEvents.push("activate-map-0");
@@ -450,7 +484,7 @@ test("mirrors external frames and reviews a physical panel", async ({
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-physical-route-review-pixels",
-    "63",
+    "64",
   );
   await expect(page.locator("#app")).toHaveClass(/app--physical-route-review/);
   await expect(page.locator(".control-panel")).toHaveCSS(
@@ -466,18 +500,42 @@ test("mirrors external frames and reviews a physical panel", async ({
     "data-physical-route-review-panel",
     session.slots[0]!.panelId,
   );
+  await expect(dialog).toHaveAttribute("data-output-path", "standalone");
   await expect
-    .poll(() => frames.at(-1)?.byteLength)
+    .poll(() => standaloneFrames.at(-1)?.byteLength)
     .toBe(contract.mapping.entries.length * 3);
-  const firstDiagnostic = physicalFrames.at(-1)!;
+  const firstDiagnostic = standaloneFrames.at(-1)!;
   expect([...firstDiagnostic.subarray(0, 3)]).toEqual([255, 0, 0]);
-  expect([...firstDiagnostic.subarray(63 * 3, 64 * 3)]).toEqual([0, 0, 0]);
+  expect([...firstDiagnostic.subarray(63 * 3, 64 * 3)]).toEqual([
+    255, 255, 255,
+  ]);
   const expectedDiagnostic = Buffer.from(
     createPhysicalPanelReviewFrame(session, 0)
       .flat()
       .map((value) => Math.floor((value / 255) ** 2.2 * 255 + 0.5)),
   );
   expect(firstDiagnostic).toEqual(expectedDiagnostic);
+
+  const beforeStandaloneHold = frames.length;
+  await page.waitForTimeout(750);
+  expect(frames.length).toBe(beforeStandaloneHold);
+  await page.locator("#physical-route-review-swap").click();
+  await expect(page.locator("#physical-route-review-current")).toContainText(
+    "mirrored",
+  );
+  await expect
+    .poll(() => standaloneFrames.at(-1)?.equals(firstDiagnostic))
+    .toBe(false);
+  await page.locator("#physical-route-review-swap").click();
+  await expect
+    .poll(() => standaloneFrames.at(-1)?.equals(firstDiagnostic))
+    .toBe(true);
+
+  await page.locator("#physical-route-review-path").selectOption("ddp");
+  await expect(dialog).toHaveAttribute("data-output-path", "ddp");
+  await expect
+    .poll(() => physicalFrames.at(-1)?.equals(firstDiagnostic))
+    .toBe(true);
 
   // Keep the same diagnostic frame active while the operator inspects the panel.
   const heldFrameCount = frames.length;
@@ -527,6 +585,12 @@ test("mirrors external frames and reviews a physical panel", async ({
     session.slots[0]!.panelId,
   );
 
+  failNextReviewRelease = true;
+  await page.locator("#physical-route-review-cancel").click();
+  await expect(dialog).toBeVisible();
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "could not be released",
+  );
   await page.locator("#physical-route-review-cancel").click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator("#app")).not.toHaveClass(
@@ -553,6 +617,8 @@ test("mirrors external frames and reviews a physical panel", async ({
   ).toContainText("Ready to review", { timeout: 20_000 });
   await reviewButton.click();
   await expect(dialog).toHaveAttribute("data-mode", "device");
+  await expect(dialog).toHaveAttribute("data-output-path", "standalone");
+  await page.locator("#physical-route-review-swap").click();
   await page
     .locator(`.panel-label[data-panel-id="${replacementPanelId}"]`)
     .click();
@@ -580,6 +646,7 @@ test("mirrors external frames and reviews a physical panel", async ({
   const firstMapRead = applyEvents.indexOf("ledmap-read");
   expect(firstMapRead).toBeGreaterThanOrEqual(0);
   expect(applyEvents.slice(firstMapRead)).not.toContain("live-frame");
+  expect(applyEvents.slice(firstMapRead)).not.toContain("standalone-frame");
   expect(
     frames
       .slice(framesBeforeApply)

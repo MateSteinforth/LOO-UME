@@ -25,10 +25,17 @@ export interface PhysicalRouteReviewSession {
   slots: PhysicalRouteReviewSlot[];
   currentSlotIndex: number;
   ledCount: number;
+  columns: number;
+  rows: number;
   rotationStepQuarterTurns: 1 | 2;
+  canSwapRowsColumns: boolean;
   panelSamples: Record<
     string,
-    Array<{ logicalIndex: number; red: number; physicalOffsets: number[] }>
+    Array<{
+      logicalIndex: number;
+      color: [number, number, number];
+      physicalOffsets: [number[], number[]];
+    }>
   >;
 }
 
@@ -89,69 +96,72 @@ export function createPhysicalRouteReviewSession(
       "Physical route review requires complete contiguous panel blocks.",
     );
   }
-  if (slots.some((slot) => slot.mirrored)) {
-    throw new Error(
-      "Physical route review does not silently validate a mirrored address transform.",
-    );
-  }
   const panelSamples: PhysicalRouteReviewSession["panelSamples"] = {};
   for (const slot of slots) {
     const entries = contract.mapping.entries.filter(
       (entry) => entry.panelId === slot.panelId,
     );
     const wireOffsets = new Map<number, number>();
-    // Recover PCB wire indices from the saved contract before testing candidate turns.
-    let dinX = 0;
-    let dinY = 0;
+    // Recover PCB wire indices from the saved contract before testing candidate transforms.
     for (const entry of entries) {
       const wire = transformInstalledPanelCoordinate(
         entry.panelPixelX!,
         entry.panelPixelY!,
-        { quarterTurnsClockwise: slot.quarterTurnsClockwise, mirrored: false },
+        {
+          quarterTurnsClockwise: slot.quarterTurnsClockwise,
+          mirrored: slot.mirrored,
+        },
         columns,
         rows,
       );
       const offset = entry.physicalIndex - slot.physicalStartIndex;
       wireOffsets.set(wire.y * columns + wire.x, offset);
-      if (offset === 0) {
-        dinX = columns - 1 - wire.x;
-        dinY = wire.y;
-      }
     }
-    // Unequal axis slopes distinguish a row/column swap from a matching pattern.
-    // Keep the reference fixed in pose-local coordinates. Only the output offsets rotate.
+    // Keep this pose-local RGBW reference fixed. Candidate transforms move only
+    // the physical output offsets; the logical simulator reference stays stable.
     panelSamples[slot.panelId] = entries.map((entry) => ({
       logicalIndex: entry.logicalIndex,
-      red: Math.round(
-        255 *
-          (1 -
-            (2 * Math.abs(entry.panelPixelX! - dinX) +
-              Math.abs(entry.panelPixelY! - dinY)) /
-              Math.max(1, 2 * (columns - 1) + rows - 1)),
-      ),
-      physicalOffsets: ([0, 1, 2, 3] as const).map((quarterTurnsClockwise) => {
-        if (columns !== rows && quarterTurnsClockwise % 2 === 1) return -1;
-        const wire = transformInstalledPanelCoordinate(
-          entry.panelPixelX!,
-          entry.panelPixelY!,
-          { quarterTurnsClockwise, mirrored: false },
-          columns,
-          rows,
-        );
-        const offset = wireOffsets.get(wire.y * columns + wire.x);
-        if (offset === undefined)
-          throw new Error("Physical review requires a complete panel grid.");
-        return offset;
-      }),
+      color: reviewColor(entry.panelPixelX!, entry.panelPixelY!, columns, rows),
+      physicalOffsets: ([false, true] as const).map((mirrored) =>
+        ([0, 1, 2, 3] as const).map((quarterTurnsClockwise) => {
+          if (columns !== rows && quarterTurnsClockwise % 2 === 1) return -1;
+          const wire = transformInstalledPanelCoordinate(
+            entry.panelPixelX!,
+            entry.panelPixelY!,
+            { quarterTurnsClockwise, mirrored },
+            columns,
+            rows,
+          );
+          const offset = wireOffsets.get(wire.y * columns + wire.x);
+          if (offset === undefined)
+            throw new Error("Physical review requires a complete panel grid.");
+          return offset;
+        }),
+      ) as [number[], number[]],
     }));
   }
   return {
     slots,
     currentSlotIndex: 0,
     ledCount: contract.mapping.entries.length,
+    columns,
+    rows,
     rotationStepQuarterTurns: columns === rows ? 1 : 2,
+    canSwapRowsColumns: columns === rows,
     panelSamples,
   };
+}
+
+function reviewColor(
+  x: number,
+  y: number,
+  columns: number,
+  rows: number,
+): [number, number, number] {
+  const right = x >= columns / 2;
+  const bottom = y >= rows / 2;
+  if (bottom) return right ? [0, 255, 0] : [255, 0, 0];
+  return right ? [255, 255, 255] : [0, 0, 255];
 }
 
 function assertSlotIndex(
@@ -210,6 +220,68 @@ export function rotatePhysicalRouteReviewPanel(
   return session;
 }
 
+/**
+ * Swap the panel traversal axes while retaining the DIN and DOUT corners.
+ * In LED-side pose-local coordinates this is the anti-diagonal transpose:
+ * (x, y) -> (columns - 1 - y, rows - 1 - x). It is square-grid only.
+ */
+export function swapPhysicalRouteReviewRowsColumns(
+  source: PhysicalRouteReviewSession,
+  slotIndex: number,
+): PhysicalRouteReviewSession {
+  const session = structuredClone(source);
+  if (!session.canSwapRowsColumns) {
+    throw new Error(
+      "Physical route review can swap rows and columns only on square grids.",
+    );
+  }
+  const slot = assertSlotIndex(session, slotIndex);
+  const transpose = (x: number, y: number): { x: number; y: number } => ({
+    x: session.columns - 1 - y,
+    y: session.rows - 1 - x,
+  });
+  const candidates = ([false, true] as const).flatMap((mirrored) =>
+    ([0, 1, 2, 3] as const).map((quarterTurnsClockwise) => ({
+      mirrored,
+      quarterTurnsClockwise,
+    })),
+  );
+  const corners = [
+    [0, 0],
+    [session.columns - 1, 0],
+    [0, session.rows - 1],
+    [session.columns - 1, session.rows - 1],
+  ] as const;
+  const next = candidates.find((candidate) =>
+    corners.every(([x, y]) => {
+      const transposed = transpose(x, y);
+      const expected = transformInstalledPanelCoordinate(
+        transposed.x,
+        transposed.y,
+        slot,
+        session.columns,
+        session.rows,
+      );
+      const actual = transformInstalledPanelCoordinate(
+        x,
+        y,
+        candidate,
+        session.columns,
+        session.rows,
+      );
+      return actual.x === expected.x && actual.y === expected.y;
+    }),
+  );
+  if (!next)
+    throw new Error(
+      "Physical route review could not compose the row/column swap.",
+    );
+  slot.mirrored = next.mirrored;
+  slot.quarterTurnsClockwise = next.quarterTurnsClockwise;
+  slot.confirmed = false;
+  return session;
+}
+
 export function confirmPhysicalRouteReviewSlot(
   source: PhysicalRouteReviewSession,
   slotIndex: number,
@@ -236,10 +308,14 @@ export function physicalRouteReviewChanges(
   session: PhysicalRouteReviewSession,
   definition: PanelAssemblyDefinition,
 ): string[] {
-  const originalTurns = new Map(
+  const originalTransforms = new Map(
     definition.panels.map((panel) => [
       panel.id,
-      panel.installedAddressTransform?.quarterTurnsClockwise ?? 0,
+      {
+        quarterTurnsClockwise:
+          panel.installedAddressTransform?.quarterTurnsClockwise ?? 0,
+        mirrored: panel.installedAddressTransform?.mirrored ?? false,
+      },
     ]),
   );
   return session.slots.flatMap((slot) => {
@@ -250,15 +326,32 @@ export function physicalRouteReviewChanges(
         `${location}: ${slot.expectedPanelId} becomes ${slot.panelId}.`,
       );
     }
-    const previousTurns = originalTurns.get(slot.panelId) ?? 0;
-    if (slot.quarterTurnsClockwise !== previousTurns) {
+    const previous = originalTransforms.get(slot.panelId) ?? {
+      quarterTurnsClockwise: 0,
+      mirrored: false,
+    };
+    if (
+      slot.quarterTurnsClockwise !== previous.quarterTurnsClockwise ||
+      slot.mirrored !== previous.mirrored
+    ) {
       changes.push(
-        `${slot.panelId}: address orientation ${previousTurns * 90}° becomes ` +
-          `${slot.quarterTurnsClockwise * 90}° clockwise in PCB back view.`,
+        `${slot.panelId}: address orientation ${describeAddressTransform(previous)} becomes ` +
+          `${describeAddressTransform(slot)} in PCB back view.`,
       );
     }
     return changes;
   });
+}
+
+function describeAddressTransform(
+  transform: Pick<
+    PhysicalRouteReviewSlot,
+    "quarterTurnsClockwise" | "mirrored"
+  >,
+): string {
+  return `${transform.quarterTurnsClockwise * 90}° clockwise${
+    transform.mirrored ? ", mirrored" : ""
+  }`;
 }
 
 export function applyPhysicalRouteReview(
@@ -331,8 +424,11 @@ export function createPhysicalPanelReviewFrame(
     (): [number, number, number] => [0, 0, 0],
   );
   for (const sample of session.panelSamples[slot.panelId]!) {
-    const offset = sample.physicalOffsets[slot.quarterTurnsClockwise]!;
-    frame[slot.physicalStartIndex + offset] = [sample.red, 0, 0];
+    const offset =
+      sample.physicalOffsets[slot.mirrored ? 1 : 0][
+        slot.quarterTurnsClockwise
+      ]!;
+    frame[slot.physicalStartIndex + offset] = [...sample.color];
   }
   return frame;
 }
@@ -344,7 +440,8 @@ export function createPhysicalPanelReviewReference(
   const slot = assertSlotIndex(session, slotIndex);
   const pixels = new Uint32Array(session.ledCount);
   for (const sample of session.panelSamples[slot.panelId]!) {
-    pixels[sample.logicalIndex] = sample.red << 16;
+    const [red, green, blue] = sample.color;
+    pixels[sample.logicalIndex] = (red << 16) | (green << 8) | blue;
   }
   return pixels;
 }

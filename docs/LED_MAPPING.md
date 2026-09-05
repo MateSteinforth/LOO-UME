@@ -348,17 +348,20 @@ The Mapping toolbox can review an already assembled route through a current
 WLED link. The tool suspends normal DDP output and lights one complete physical
 panel block at a time. It encodes this diagnostic into logical order through
 the current installed map. WLED applies that map once, as for normal playback.
-All other panels stay black. A red gradient runs from black to red 255 at the
-simulator DIN corner. Its horizontal slope is twice its vertical slope.
-The other two corners have red values 85 and 170 before output gamma correction.
-Compare the complete pattern, including both side corners. An equal-slope
-diagonal cannot detect a row/column swap. If no rotation matches, stop the review
-and check the panel pixel order; do not confirm a partial match.
-The simulator reference stays fixed while the physical pattern rotates.
-The tool refreshes the diagnostic frame every 250 ms after the previous send
-completes. This keeps WLED in realtime mode while the operator inspects a panel.
-The tool stops refreshes and waits for the pending send before applying mapping
-changes or resuming normal output. The diagnostic frame does not change GPIOs.
+All other panels stay black. The selected panel has four solid quadrants:
+red at pose-local front bottom-left, green at bottom-right, blue at top-left,
+and white at top-right. Compare the entire pattern. An equal-slope diagonal
+cannot detect a row/column swap. The simulator reference stays fixed while
+the candidate address transform changes physical output.
+
+The test path starts at **Standalone WLED**. It sends logical pixels through
+the individual-pixel JSON interface, exits realtime mode, and freezes a static
+segment buffer. It sends no DDP frames and saves no preset. Once that pattern
+matches, select **LOO/UME DDP** to send the same logical pattern through DDP.
+Only the DDP path refreshes every 250 ms to keep realtime output active.
+The tool stops refreshes and waits for the pending request before applying
+mapping changes or resuming output. Closing or applying releases the frozen
+native segment. The diagnostic does not change GPIOs.
 
 When no controller is connected, the same **Review physical wiring** action
 automatically uses virtual-only mode. It shows the diagnostic pixels only on
@@ -368,11 +371,16 @@ or change project data. It is a rehearsal tool, not physical address evidence.
 The operator can confirm the expected panel or click the panel that is actually
 lit. A different choice swaps complete panel assignments so every physical
 slot stays unique, then waits for orientation confirmation. The rotation
-buttons immediately rotate the physical gradient as viewed from the LED side.
+buttons immediately rotate the physical pattern as viewed from the LED side.
 The candidate address transform drives that frame and the mapping saved on confirmation.
 Panel poses remain unchanged. Square fixtures use 90-degree steps. Non-square
 fixtures use 180-degree steps because a quarter turn cannot preserve their
-address grid. Mirrored input is rejected; the review does not infer a mirror.
+address grid. **Swap rows/columns** exchanges the two traversal axes around
+the red-to-white diagonal. It preserves those two reference corners and swaps
+the green and blue quadrants. This control is available only for square grids.
+The existing quarter-turn and mirror fields encode the result; no panel pose
+or measured profile fact changes. Applying and reopening support all eight
+square address transforms, including previously saved mirrored transforms.
 
 The review is transactional. Cancel sends the current simulator frame again
 and does not change project data. Apply requires every slot to be confirmed,

@@ -15,6 +15,7 @@ import {
   nextPhysicalRouteReviewSlot,
   physicalRouteReviewChanges,
   rotatePhysicalRouteReviewPanel,
+  swapPhysicalRouteReviewRowsColumns,
 } from "../web/src/PhysicalRouteReview.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 import { logicalFramebufferForPhysicalFrame } from "../web/src/Esp32Setup.ts";
@@ -48,7 +49,7 @@ function loaded() {
 }
 
 describe("physical route review", () => {
-  it("rotates physical samples while the reference stays fixed and matches the saved mapping", () => {
+  it("rotates RGBW physical samples while the reference stays fixed and matches the saved mapping", () => {
     const { project, contract } = loaded();
     let session = createPhysicalRouteReviewSession(project.sculpture, contract);
     session = assignPhysicalRouteReviewPanel(
@@ -58,10 +59,10 @@ describe("physical route review", () => {
     );
     const reference = createPhysicalPanelReviewReference(session, 0);
     const startFrame = createPhysicalPanelReviewFrame(session, 0);
-    const brightestOffsets = [];
+    const patterns = new Set<string>();
     for (let turn = 0; turn < 4; turn += 1) {
       const frame = createPhysicalPanelReviewFrame(session, 0);
-      brightestOffsets.push(frame.findIndex(([red]) => red === 255));
+      patterns.add(JSON.stringify(frame));
       expect(createPhysicalPanelReviewReference(session, 0)).toEqual(reference);
       let confirmed = session;
       for (let slot = 0; slot < session.slots.length; slot += 1) {
@@ -87,17 +88,17 @@ describe("physical route review", () => {
       for (const entry of saved.mapping.entries) {
         expect(frame[entry.physicalIndex]).toEqual([
           reference[entry.logicalIndex]! >>> 16,
-          0,
-          0,
+          (reference[entry.logicalIndex]! >>> 8) & 0xff,
+          reference[entry.logicalIndex]! & 0xff,
         ]);
       }
       session = rotatePhysicalRouteReviewPanel(session, 0, 1);
     }
-    expect(brightestOffsets).toEqual([0, 7, 63, 56]);
+    expect(patterns).toHaveLength(4);
     expect(createPhysicalPanelReviewFrame(session, 0)).toEqual(startFrame);
   });
 
-  it("creates a red diagonal from DIN to the opposite black corner", () => {
+  it("uses four solid RGBW quadrants at the fixed pose-local corners", () => {
     const { project, contract } = loaded();
     const session = createPhysicalRouteReviewSession(
       project.sculpture,
@@ -121,14 +122,35 @@ describe("physical route review", () => {
     expect(frame).toHaveLength(2_624);
     expect(
       frame.filter((pixel) => pixel.some((channel) => channel !== 0)),
-    ).toHaveLength(63);
+    ).toHaveLength(64);
     expect(frame[703]).toEqual([0, 0, 0]);
     expect(frame[704]).toEqual([255, 0, 0]);
-    expect(frame[705]).not.toEqual(frame[712]);
-    expect(frame[711]).toEqual([85, 0, 0]);
-    expect(frame[760]).toEqual([170, 0, 0]);
-    expect(frame[767]).toEqual([0, 0, 0]);
+    expect(frame[711]).toEqual([0, 255, 0]);
+    expect(frame[760]).toEqual([0, 0, 255]);
+    expect(frame[767]).toEqual([255, 255, 255]);
     expect(frame[768]).toEqual([0, 0, 0]);
+
+    const reference = createPhysicalPanelReviewReference(session, 11);
+    const corners = [
+      [0, 7, 0xff0000],
+      [7, 7, 0x00ff00],
+      [0, 0, 0x0000ff],
+      [7, 0, 0xffffff],
+    ] as const;
+    for (const [x, y, color] of corners) {
+      const entry = contract.mapping.entries.find(
+        (candidate) =>
+          candidate.panelId === session.slots[11]!.panelId &&
+          candidate.panelPixelX === x &&
+          candidate.panelPixelY === y,
+      )!;
+      expect(reference[entry.logicalIndex]).toBe(color);
+      expect(frame[entry.physicalIndex]).toEqual([
+        color >>> 16,
+        (color >>> 8) & 0xff,
+        color & 0xff,
+      ]);
+    }
   });
 
   it("distinguishes all eight square orientations, including a row/column swap", () => {
@@ -137,22 +159,54 @@ describe("physical route review", () => {
       project.sculpture,
       contract,
     );
-    const frame = createPhysicalPanelReviewFrame(session, 0).slice(0, 64);
     const patterns = new Set<string>();
-    for (const mirror of [false, true]) {
-      for (let turns = 0; turns < 4; turns += 1) {
-        const transformed = frame.map(() => 0);
-        frame.forEach(([red], index) => {
-          let x = index % 8;
-          let y = Math.floor(index / 8);
-          if (mirror) x = 7 - x;
-          for (let turn = 0; turn < turns; turn += 1) [x, y] = [7 - y, x];
-          transformed[y * 8 + x] = red;
-        });
-        patterns.add(JSON.stringify(transformed));
+    for (let turns = 0; turns < 4; turns += 1) {
+      let rotated = session;
+      for (let turn = 0; turn < turns; turn += 1) {
+        rotated = rotatePhysicalRouteReviewPanel(rotated, 0, 1);
       }
+      patterns.add(JSON.stringify(createPhysicalPanelReviewFrame(rotated, 0)));
+      patterns.add(
+        JSON.stringify(
+          createPhysicalPanelReviewFrame(
+            swapPhysicalRouteReviewRowsColumns(rotated, 0),
+            0,
+          ),
+        ),
+      );
     }
     expect(patterns.size).toBe(8);
+  });
+
+  it("swaps traversal axes twice without changing the candidate transform", () => {
+    const { project, contract } = loaded();
+    const session = createPhysicalRouteReviewSession(
+      project.sculpture,
+      contract,
+    );
+    expect(session.canSwapRowsColumns).toBe(true);
+    const swapped = swapPhysicalRouteReviewRowsColumns(session, 0);
+    expect(swapped.slots[0]).toMatchObject({
+      quarterTurnsClockwise: 3,
+      mirrored: true,
+      confirmed: false,
+    });
+    const restored = swapPhysicalRouteReviewRowsColumns(swapped, 0);
+    expect(restored.slots[0]).toMatchObject({
+      quarterTurnsClockwise: session.slots[0]!.quarterTurnsClockwise,
+      mirrored: session.slots[0]!.mirrored,
+    });
+    expect(createPhysicalPanelReviewFrame(restored, 0)).toEqual(
+      createPhysicalPanelReviewFrame(session, 0),
+    );
+    const mirrorOnly = rotatePhysicalRouteReviewPanel(swapped, 0, 1);
+    expect(mirrorOnly.slots[0]).toMatchObject({
+      quarterTurnsClockwise: session.slots[0]!.quarterTurnsClockwise,
+      mirrored: true,
+    });
+    expect(
+      physicalRouteReviewChanges(mirrorOnly, project.sculpture).join(" "),
+    ).toContain("mirrored");
   });
 
   it("matches logical playback, physical review and the exported map on all 41 panels", () => {
@@ -178,14 +232,113 @@ describe("physical route review", () => {
         output[contract.ledmap.map[logical]!] = rgb;
       });
       expect(output).toEqual(physical);
-      // Independently check the measured straight rows, starting at DIN.
-      for (let offset = 0; offset < 64; offset += 1) {
-        const red = Math.round(
-          255 * (1 - (2 * (offset % 8) + Math.floor(offset / 8)) / 21),
-        );
+      const panelPixels = output.slice(
+        session.slots[slot]!.physicalStartIndex,
+        session.slots[slot]!.physicalStartIndex + 64,
+      );
+      expect(panelPixels).toHaveLength(64);
+      for (const color of [
+        [255, 0, 0],
+        [0, 255, 0],
+        [0, 0, 255],
+        [255, 255, 255],
+      ]) {
         expect(
-          output[session.slots[slot]!.physicalStartIndex + offset],
-        ).toEqual([red, 0, 0]);
+          panelPixels.filter((pixel) =>
+            pixel.every((value, index) => value === color[index]),
+          ),
+        ).toHaveLength(16);
+      }
+    }
+  });
+
+  it("supports every saved mirror and quarter-turn state through row/column swap apply and reload", () => {
+    const { project } = loaded();
+    for (const mirrored of [false, true]) {
+      for (const quarterTurnsClockwise of [0, 1, 2, 3] as const) {
+        const source = structuredClone(project.sculpture);
+        source.panels = source.panels.map((panel) => ({
+          ...panel,
+          installedAddressTransform: {
+            status: "measured",
+            referenceView: "back",
+            quarterTurnsClockwise,
+            mirrored,
+            selectionMethod: "manual",
+          },
+        }));
+        source.calibration = {
+          ...source.calibration,
+          installedPanelOrientation: "measured",
+        };
+        const savedProject = createPanelAssemblyProject(
+          source,
+          SOURCE,
+          project.panelProfile,
+        );
+        const savedMapping = createPanelAssemblyMapping(savedProject);
+        const savedWiring = createProvisionalWiringPreview(
+          savedMapping,
+          savedProject.sculpture,
+          savedProject.panelProfile,
+        );
+        const savedContract = createHardwareMappingContract(
+          savedMapping,
+          savedWiring,
+          savedProject.panelProfile,
+        );
+        const session = createPhysicalRouteReviewSession(
+          savedProject.sculpture,
+          savedContract,
+        );
+        expect(session.slots[0]).toMatchObject({
+          quarterTurnsClockwise,
+          mirrored,
+        });
+        const swapped = swapPhysicalRouteReviewRowsColumns(session, 0);
+        const restored = swapPhysicalRouteReviewRowsColumns(swapped, 0);
+        expect(restored.slots[0]).toMatchObject({
+          quarterTurnsClockwise,
+          mirrored,
+        });
+        expect(createPhysicalPanelReviewFrame(restored, 0)).toEqual(
+          createPhysicalPanelReviewFrame(session, 0),
+        );
+        const physical = createPhysicalPanelReviewFrame(swapped, 0);
+        const reference = createPhysicalPanelReviewReference(session, 0);
+        let confirmed = swapped;
+        for (let slot = 0; slot < confirmed.slots.length; slot += 1) {
+          confirmed = confirmPhysicalRouteReviewSlot(confirmed, slot);
+        }
+        const reviewed = applyPhysicalRouteReview(
+          savedProject.sculpture,
+          confirmed,
+        );
+        const reloaded = createPanelAssemblyProject(
+          reviewed,
+          SOURCE,
+          savedProject.panelProfile,
+        );
+        const reloadedMapping = createPanelAssemblyMapping(reloaded);
+        const reloadedWiring = createProvisionalWiringPreview(
+          reloadedMapping,
+          reloaded.sculpture,
+          reloaded.panelProfile,
+        );
+        const reloadedContract = createHardwareMappingContract(
+          reloadedMapping,
+          reloadedWiring,
+          reloaded.panelProfile,
+        );
+        for (const entry of reloadedContract.mapping.entries.filter(
+          (entry) => entry.panelId === session.slots[0]!.panelId,
+        )) {
+          expect(physical[entry.physicalIndex]).toEqual([
+            reference[entry.logicalIndex]! >>> 16,
+            (reference[entry.logicalIndex]! >>> 8) & 0xff,
+            reference[entry.logicalIndex]! & 0xff,
+          ]);
+        }
       }
     }
   });
@@ -340,6 +493,7 @@ describe("physical route review", () => {
       ringContract,
     );
     expect(session.rotationStepQuarterTurns).toBe(2);
+    expect(session.canSwapRowsColumns).toBe(false);
     expect(session.slots).toHaveLength(1);
     expect(session.slots[0]!.pixelCount).toBe(188);
     session = rotatePhysicalRouteReviewPanel(session, 0, 1);
@@ -348,6 +502,6 @@ describe("physical route review", () => {
       createPhysicalPanelReviewFrame(session, 0).filter((pixel) =>
         pixel.some((channel) => channel !== 0),
       ),
-    ).toHaveLength(187);
+    ).toHaveLength(188);
   });
 });

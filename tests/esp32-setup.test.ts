@@ -39,6 +39,8 @@ import {
   runCombinedClassicReset,
   runCombinedHardReset,
   sendSimulatorFramebuffer,
+  sendStandaloneReviewFramebuffer,
+  endStandaloneReview,
   settleSimulatorDeviceWork,
   synchronizeDeviceLedmap,
   verifyRestartedDevice,
@@ -839,6 +841,34 @@ describe("guarded ESP32 setup contracts", () => {
     await expect(
       sendSimulatorFramebuffer(new URL("http://192.168.68.53/"), []),
     ).rejects.toThrow(/1 through 2,624/);
+  });
+
+  it("sends a standalone JSON test without DDP or preset writes and restores the effect", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(() => Promise.resolve(new Response("{}")));
+    vi.stubGlobal("fetch", fetchMock);
+    const url = new URL("http://192.168.68.53/");
+    await sendStandaloneReviewFramebuffer(url, [
+      [255, 0, 0],
+      [0, 0, 0],
+      [0, 128, 0],
+    ]);
+    const [requestUrl, init] = fetchMock.mock.calls[0]!;
+    expect(new URL(requestUrl).searchParams.get("path")).toBe("/json/state");
+    expect(JSON.parse(init.body)).toEqual({
+      live: false,
+      on: true,
+      tt: 0,
+      seg: { id: 0, i: [0, 3, "000000", 0, "ff0000", 2, "008000"] },
+    });
+    await endStandaloneReview(url);
+    expect(JSON.parse(fetchMock.mock.calls[1]![1].body)).toEqual({
+      live: false,
+      seg: { id: 0, frz: false },
+    });
+    await expect(sendStandaloneReviewFramebuffer(url, [])).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("gamma-corrects dim DDP colors like native WLED rendering", async () => {
