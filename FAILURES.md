@@ -58,6 +58,14 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Scheduled run `33951147725`; managed-runtime setup and 510 fast and host tests passed locally.
 - **Related correction:** Manual branch runs must use `origin/main` as their fallback comparison ref. Checkout does not create a local `main` branch.
 
+### F-164 — A new launcher child can precede its command identity
+
+- **Date:** 2026-09-05
+- **Symptom:** CI reported that the server stopped before readiness, with an empty server log.
+- **Cause:** Startup checked process identity immediately after fork. A live child could still have its earlier command identity before exec.
+- **Correction:** Allow the newly spawned live PID five seconds to reach its expected command identity. Retain normal ownership and readiness checks.
+- **Evidence:** The delayed-identity regression fails without the startup allowance and passes with it. All 19 launcher tests pass.
+
 ### F-162 — A dependency link blocked Vite WASM requests
 
 - **Date:** 2026-09-05

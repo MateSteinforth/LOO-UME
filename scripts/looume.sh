@@ -221,6 +221,7 @@ clear_stale_state() {
 
 wait_for_server() {
   wait_seconds=${1:-900}
+  starting_pid=${2:-}
   elapsed=0
   while [ "$elapsed" -lt "$wait_seconds" ]; do
     if read_owned_pid && server_ready; then
@@ -228,6 +229,12 @@ wait_for_server() {
       return 0
     fi
     if ! read_owned_pid; then
+      # Allow the child to reach exec before checking its command identity.
+      if [ "$elapsed" -lt 5 ] && [ -n "$starting_pid" ] && kill -0 "$starting_pid" 2>/dev/null; then
+        sleep 1
+        elapsed=$((elapsed + 1))
+        continue
+      fi
       echo "looume: LOO/UME stopped before it became ready. See $log_file" >&2
       return 1
     fi
@@ -306,6 +313,7 @@ start_server() {
     echo "looume: port $port is in use by a process that is not the managed LOO/UME server." >&2
     return 1
   fi
+  launched_pid=
   if read_owned_pid; then
     echo "LOO/UME is starting. Waiting for $url"
   else
@@ -319,14 +327,15 @@ start_server() {
         ORBITAL_LAB_PORT="$port" "$repository_root/bootstrap.sh" launch \
         >> "$log_file" 2>&1 &
     fi
-    printf '%s\n' "$!" > "$pid_file"
+    launched_pid=$!
+    printf '%s\n' "$launched_pid" > "$pid_file"
   fi
   log_tail_pid=
   if [ "${LOO_UME_FOLLOW_LOG:-0}" = 1 ]; then
     /usr/bin/tail -n +1 -f "$log_file" &
     log_tail_pid=$!
   fi
-  wait_for_server 900
+  wait_for_server 900 "$launched_pid"
   stop_log_follow
   release_launch_lock
   trap - EXIT HUP INT TERM

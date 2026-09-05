@@ -45,7 +45,7 @@ async function freePort(): Promise<number> {
   });
 }
 
-async function launcherFixture(): Promise<{
+async function launcherFixture(startupDelayMs = 0): Promise<{
   root: string;
   launcher: string;
   environment: NodeJS.ProcessEnv;
@@ -88,13 +88,26 @@ async function launcherFixture(): Promise<{
     ].join("\n"),
   );
   const bootstrap = join(root, "bootstrap.sh");
+  const delayedServer = join(scripts, "starting.mjs");
+  if (startupDelayMs > 0) {
+    await writeFile(
+      delayedServer,
+      [
+        'process.title = "pending launcher fixture";',
+        `await new Promise((done) => setTimeout(done, ${startupDelayMs}));`,
+        `process.title = ${JSON.stringify(`node ${server}`)};`,
+        `await import(${JSON.stringify(server)});`,
+        "",
+      ].join("\n"),
+    );
+  }
   await writeFile(
     bootstrap,
     [
       "#!/bin/sh",
       "set -eu",
       `printf '%s\\n' \"\${1-}\" >> '${actions}'`,
-      `exec '${process.execPath}' '${server}'`,
+      `exec '${process.execPath}' '${startupDelayMs > 0 ? delayedServer : server}'`,
       "",
     ].join("\n"),
   );
@@ -125,6 +138,14 @@ async function launcherFixture(): Promise<{
 }
 
 describe("LOO/UME managed launcher", () => {
+  it("waits for a new child to reach its server command identity", async () => {
+    const fixture = await launcherFixture(1_200);
+    const result = await execFileAsync("sh", [fixture.launcher], {
+      env: fixture.environment,
+      timeout: 10_000,
+    });
+    expect(result.stdout).toContain("LOO/UME is running at http://127.0.0.1:");
+  });
   it("serializes concurrent starts, reopens one server, reports status, and stops it", async () => {
     const fixture = await launcherFixture();
     await mkdir(fixture.state, { recursive: true });

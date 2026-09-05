@@ -406,6 +406,8 @@ No tasks.
 - Browser scope: planar generation and ZIP reopen, structural worker generation, mechanics-free authoring, wiring rotation, and manual GPIO settings.
 - Mac scope: remove the Intel setup job to match the Apple Silicon-only rule.
 - Limit: this change does not repair deferred geometry or broad browser regression failures.
+- Corrections: use `origin/main` for manual source comparison; update the Apple Silicon bootstrap test; allow a newly spawned launcher child to reach exec.
+- Local checks: clean setup, 510 fast and host tests, source checks, and all 19 launcher tests passed. The new regression detects the original startup race.
 
 ## Human Review
 
