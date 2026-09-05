@@ -24,14 +24,18 @@ export class ArtNetPreviewRecordParser {
   private buffered = new Uint8Array();
 
   push(chunk: Uint8Array): ArtNetPreviewFrame[] {
-    const combined = new Uint8Array(this.buffered.byteLength + chunk.byteLength);
+    const combined = new Uint8Array(
+      this.buffered.byteLength + chunk.byteLength,
+    );
     combined.set(this.buffered);
     combined.set(chunk, this.buffered.byteLength);
     this.buffered = combined;
     const frames: ArtNetPreviewFrame[] = [];
     while (this.buffered.byteLength >= STREAM_HEADER_BYTES) {
       if (STREAM_MAGIC.some((byte, index) => this.buffered[index] !== byte)) {
-        throw new Error("The Art-Net preview stream has an invalid frame marker.");
+        throw new Error(
+          "The Art-Net preview stream has an invalid frame marker.",
+        );
       }
       const view = new DataView(
         this.buffered.buffer,
@@ -42,8 +46,14 @@ export class ArtNetPreviewRecordParser {
         throw new Error("The Art-Net preview stream version is not supported.");
       }
       const payloadBytes = view.getUint32(24, false);
-      if (payloadBytes < 3 || payloadBytes > 2_624 * 3 || payloadBytes % 3 !== 0) {
-        throw new Error("The Art-Net preview stream has an invalid RGB payload size.");
+      if (
+        payloadBytes < 3 ||
+        payloadBytes > 2_624 * 3 ||
+        payloadBytes % 3 !== 0
+      ) {
+        throw new Error(
+          "The Art-Net preview stream has an invalid RGB payload size.",
+        );
       }
       const recordBytes = STREAM_HEADER_BYTES + payloadBytes;
       if (this.buffered.byteLength < recordBytes) break;
@@ -67,7 +77,9 @@ export function physicalRgbToLogicalPixels(
   entries: readonly LedMappingEntry[],
 ): Uint32Array {
   if (physicalRgb.byteLength !== entries.length * 3) {
-    throw new Error("The Art-Net preview frame does not match the loaded LED count.");
+    throw new Error(
+      "The Art-Net preview frame does not match the loaded LED count.",
+    );
   }
   const logical = new Uint32Array(entries.length);
   for (const entry of entries) {
@@ -104,36 +116,88 @@ export class ArtNetPreviewClient {
     if (this.abortController) {
       throw new Error("The MadMapper preview is already active.");
     }
-    const abortController = new AbortController();
-    this.abortController = abortController;
+    const session = new AbortController();
+    this.abortController = session;
     const query = new URLSearchParams({
       pixels: String(options.pixelCount),
       startUniverse: String(options.startUniverse),
       fingerprint: options.mappingFingerprint,
     });
     try {
-      const response = await fetch(`./api/artnet-preview/stream?${query}`, {
-        headers: { "X-LOO-UME-ArtNet-Preview": "1" },
-        signal: abortController.signal,
-      });
-      if (!response.ok || !response.body) {
-        const result = await response.json().catch(() => ({})) as { error?: string };
-        throw new Error(result.error ?? `Art-Net preview failed with HTTP ${response.status}.`);
+      while (!session.signal.aborted) {
+        const attempt = new AbortController();
+        const stopAttempt = (): void => attempt.abort();
+        session.signal.addEventListener("abort", stopAttempt, { once: true });
+        let idleTimer = setTimeout(stopAttempt, 3_000);
+        let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+        let permanentError: Error | undefined;
+        try {
+          const response = await fetch(`./api/artnet-preview/stream?${query}`, {
+            headers: { "X-LOO-UME-ArtNet-Preview": "1" },
+            signal: attempt.signal,
+          });
+          if (!response.ok || !response.body) {
+            if (
+              response.status >= 400 &&
+              response.status < 500 &&
+              response.status !== 409
+            ) {
+              permanentError = new Error(
+                `Art-Net preview failed with HTTP ${response.status}.`,
+              );
+            }
+            await response.body?.cancel();
+          } else {
+            const parser = new ArtNetPreviewRecordParser();
+            reader = response.body.getReader();
+            while (!attempt.signal.aborted) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              const frames = parser.push(value);
+              if (frames.length > 0) {
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(stopAttempt, 3_000);
+              }
+              for (const frame of frames) {
+                if (session.signal.aborted) break;
+                try {
+                  options.onFrame(frame);
+                } catch (error) {
+                  permanentError =
+                    error instanceof Error ? error : new Error(String(error));
+                  throw permanentError;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          // Retry transport failures. Invalid records and callback errors remain visible.
+          if (!attempt.signal.aborted && !(error instanceof TypeError)) {
+            permanentError =
+              error instanceof Error ? error : new Error(String(error));
+          }
+        } finally {
+          clearTimeout(idleTimer);
+          session.signal.removeEventListener("abort", stopAttempt);
+          attempt.abort();
+          await reader?.cancel().catch(() => {});
+          reader?.releaseLock();
+        }
+        if (session.signal.aborted) break;
+        if (permanentError) throw permanentError;
+        // Give the server time to release the previous UDP listener.
+        await new Promise<void>((resolve) => {
+          const finish = (): void => {
+            clearTimeout(timer);
+            session.signal.removeEventListener("abort", finish);
+            resolve();
+          };
+          const timer = setTimeout(finish, 500);
+          session.signal.addEventListener("abort", finish, { once: true });
+        });
       }
-      const parser = new ArtNetPreviewRecordParser();
-      const reader = response.body.getReader();
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        for (const frame of parser.push(value)) options.onFrame(frame);
-      }
-      if (!abortController.signal.aborted) {
-        throw new Error("The Art-Net preview stream closed unexpectedly.");
-      }
-    } catch (error) {
-      if (!abortController.signal.aborted) throw error;
     } finally {
-      if (this.abortController === abortController) this.abortController = undefined;
+      if (this.abortController === session) this.abortController = undefined;
     }
   }
 }

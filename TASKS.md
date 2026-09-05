@@ -415,6 +415,16 @@ No tasks.
 
 ## Ready to Merge
 
+### `P1 · LIVE-029` Recover Art-Net input without restarting
+
+- Owner: GPT-6 Astra; branch `codex/artnet-recovery`; worktree `/tmp/loo-ume-artnet-recovery`.
+- Scope: recover stalled or closed Art-Net streams automatically. Preserve explicit stop and project replacement behavior.
+- Acceptance: receive frames after startup silence or a connection failure without restarting the application. Stop all retries when input stops.
+- Checks: receiver lifecycle tests and existing Art-Net transport tests.
+- Dependency: includes the MAD-015 exporter correction. Keep the Wi-Fi branch separate.
+- Verification: 15 Art-Net tests, formatting, full lint, and TypeScript passed. The real UDP startup-order test fails with the previous client.
+- Remaining review: repeat both startup orders in native MadMapper on macOS.
+
 ### `P1 · MAD-015` Correct fixture sampling positions
 
 - Owner: GPT-6 Astra; branch `codex/madmapper-centered-fixtures`; worktree `/tmp/loo-ume-madmapper-centers`.

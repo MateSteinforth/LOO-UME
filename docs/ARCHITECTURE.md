@@ -452,6 +452,10 @@ loopback, and assembles the exact consecutive physical universes exported in
 the MadMapper fixture atlas. The downloaded MadMapper package includes one
 importable unicast routing-table row for each of those universes. The service
 publishes only complete RGB frames through a same-origin binary HTTP stream.
+The Art-Net client reopens the stream after three seconds without a complete
+frame. Each retry waits 500 ms for the previous UDP listener to close.
+This restores reception when MadMapper binds the shared port after LOO/UME.
+An explicit stop cancels the active request and all retries.
 The browser maps those physical indices back to the current logical renderer
 indices and shows them on the pose-derived 3D LEDs. The DDP service listens on
 UDP port 4048 for local and LAN senders. It accepts only complete bounded RGB

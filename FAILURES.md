@@ -2991,3 +2991,13 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Prevention:** Check fixture centers and diagonal classifications after SVG serialization. Complete area coverage does not prove sampling accuracy.
 - **Evidence:** The new center tests fail against MAD-014. The corrected exporter passes the focused exporter, package, and preview tests.
 - **Status:** Corrected by MAD-015. Native MadMapper import and physical output still need review.
+
+### F-163 — A later Art-Net sender left the receiver silent
+
+- **Date:** 2026-09-05
+- **Context:** The operator had to restart LOO/UME to receive an already configured MadMapper stream.
+- **Cause:** A sender that binds the shared UDP port after LOO/UME can receive the packets itself. The client kept its silent stream open indefinitely.
+- **Correction:** Reopen the receiver after three seconds without a complete frame. Retry temporary stream failures and cancel retries on explicit stop.
+- **Prevention:** Test both startup orders with real shared UDP sockets. Do not treat silence as proof of incorrect sender settings.
+- **Evidence:** The later-sender test fails with the previous client. The corrected client receives the test frame after about 3.5 seconds.
+- **Status:** Corrected by LIVE-029. Native MadMapper review remains required.

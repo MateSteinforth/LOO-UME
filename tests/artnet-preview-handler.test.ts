@@ -1,7 +1,8 @@
 import { createSocket } from "node:dgram";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ArtNetPreviewClient } from "../web/src/ArtNetPreview.ts";
 import {
   createArtNetPreviewHandler,
   type ArtNetPreviewHandler,
@@ -13,7 +14,11 @@ afterEach(async () => {
   await Promise.all(cleanups.splice(0).map((cleanup) => cleanup()));
 });
 
-function artDmx(universe: number, data: Uint8Array, sequence: number): Uint8Array {
+function artDmx(
+  universe: number,
+  data: Uint8Array,
+  sequence: number,
+): Uint8Array {
   const packet = new Uint8Array(18 + data.byteLength);
   packet.set([0x41, 0x72, 0x74, 0x2d, 0x4e, 0x65, 0x74, 0x00]);
   packet.set([0x00, 0x50, 0x00, 0x0e, sequence, 0x00], 8);
@@ -50,7 +55,11 @@ async function fixtureServer(udpPort = 0): Promise<{
   return { url: `http://127.0.0.1:${port}/`, handler };
 }
 
-async function sendUdp(address: string, port: number, packets: Uint8Array[]): Promise<void> {
+async function sendUdp(
+  address: string,
+  port: number,
+  packets: Uint8Array[],
+): Promise<void> {
   const socket = createSocket("udp4");
   try {
     for (const packet of packets) {
@@ -67,6 +76,60 @@ async function sendUdp(address: string, port: number, packets: Uint8Array[]): Pr
 }
 
 describe("Art-Net preview handler", () => {
+  it("recovers when the sender binds the shared port after the receiver", async () => {
+    const sender = createSocket({ type: "udp4", reuseAddr: true });
+    const reservation = createSocket("udp4");
+    await new Promise<void>((resolve) =>
+      reservation.bind(0, "127.0.0.1", resolve),
+    );
+    const port = (reservation.address() as AddressInfo).port;
+    await new Promise<void>((resolve) => reservation.close(() => resolve()));
+    const fixture = await fixtureServer(port);
+    const request = globalThis.fetch;
+    vi.stubGlobal("fetch", (input: string, options: RequestInit) =>
+      request(new URL(input, fixture.url), options),
+    );
+    const client = new ArtNetPreviewClient();
+    const onFrame = vi.fn();
+    const running = client.start({
+      pixelCount: 2,
+      startUniverse: 1,
+      mappingFingerprint: "73b36d49",
+      onFrame,
+    });
+    let sending: ReturnType<typeof setInterval> | undefined;
+    try {
+      await vi.waitFor(() =>
+        expect(fixture.handler.status().active).toBe(true),
+      );
+      await new Promise<void>((resolve, reject) => {
+        sender.once("error", reject);
+        sender.bind(port, "127.0.0.1", resolve);
+      });
+      sending = setInterval(
+        () =>
+          sender.send(
+            artDmx(1, Uint8Array.from([1, 2, 3, 4, 5, 6]), 1),
+            port,
+            "127.0.0.1",
+          ),
+        20,
+      );
+      await vi.waitFor(() => expect(onFrame).toHaveBeenCalled(), {
+        timeout: 7_000,
+      });
+      expect(onFrame.mock.calls[0]![0].physicalRgb).toEqual(
+        Uint8Array.from([1, 2, 3, 4, 5, 6]),
+      );
+    } finally {
+      clearInterval(sending);
+      client.stop();
+      await running;
+      sender.close();
+      vi.unstubAllGlobals();
+    }
+  }, 10_000);
+
   it("streams one complete physical RGB frame from loopback UDP", async () => {
     const fixture = await fixtureServer();
     const stream = await fetch(
@@ -74,9 +137,9 @@ describe("Art-Net preview handler", () => {
       { headers: { "X-LOO-UME-ArtNet-Preview": "1" } },
     );
     expect(stream.status).toBe(200);
-    const status = await fetch(`${fixture.url}api/artnet-preview/status`).then(
+    const status = (await fetch(`${fixture.url}api/artnet-preview/status`).then(
       (response) => response.json(),
-    ) as { active: boolean; bindAddress: string; port: number };
+    )) as { active: boolean; bindAddress: string; port: number };
     expect(status.active).toBe(true);
     expect(status.bindAddress).toBe("127.0.0.1");
     await sendUdp(status.bindAddress, status.port, [
@@ -86,8 +149,14 @@ describe("Art-Net preview handler", () => {
     const reader = stream.body!.getReader();
     const { value, done } = await reader.read();
     expect(done).toBe(false);
-    expect(value?.slice(0, 4)).toEqual(Uint8Array.from([0x4c, 0x55, 0x4d, 0x46]));
-    const view = new DataView(value!.buffer, value!.byteOffset, value!.byteLength);
+    expect(value?.slice(0, 4)).toEqual(
+      Uint8Array.from([0x4c, 0x55, 0x4d, 0x46]),
+    );
+    const view = new DataView(
+      value!.buffer,
+      value!.byteOffset,
+      value!.byteLength,
+    );
     expect(view.getUint8(4)).toBe(1);
     expect(view.getUint8(5)).toBe(7);
     expect(view.getUint16(6, false)).toBe(2);
@@ -104,7 +173,9 @@ describe("Art-Net preview handler", () => {
       madMapperSocket.bind(0, "127.0.0.1", resolve);
     });
     cleanups.push(async () => {
-      await new Promise<void>((resolve) => madMapperSocket.close(() => resolve()));
+      await new Promise<void>((resolve) =>
+        madMapperSocket.close(() => resolve()),
+      );
     });
     const udpPort = (madMapperSocket.address() as AddressInfo).port;
     const fixture = await fixtureServer(udpPort);
