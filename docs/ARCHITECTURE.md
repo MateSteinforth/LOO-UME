@@ -157,6 +157,11 @@ service modules in one application process. Its internal HTTP server listens
 on a random loopback port. The Electron main process owns Project Library
 storage, generated files, logs, Art-Net and DDP receivers, private WLED access,
 and shutdown.
+After successful ESP32 setup, Electron stores reconnect authorization in its
+application-data directory. This authorization is independent of the random
+loopback port. A later Electron process can verify and reconnect the same WLED
+device without another flash. Browser and LAN modes continue to use
+origin-local storage or an approved serial permission.
 Closing the last Electron window quits the application and closes its local
 service on every platform. A later icon launch starts one new process and one
 new window. This explicit lifecycle makes Finder removal unambiguous and does
@@ -168,6 +173,9 @@ Electron grants Web Serial only to its own loopback editor origin and only for
 the approved Silicon Labs CP2102 USB identity. MadMapper sends Art-Net to
 `127.0.0.1:6454`; the existing preview path consumes that frame. The
 private-device DDP broker sends the visible simulator frame to WLED.
+Developer utilities can replace output GPIO assignments with unique approved
+ESP32-WROOM output pins. The change preserves routes and physical addresses.
+The device link stops until ESP32 setup applies the changed bus configuration.
 The TouchDesigner `.tox` component samples its TOP in logical order. It sends
 bounded DDP to the simulator. The operator accepts LIVE-020 as a working
 assumption.

@@ -22,6 +22,7 @@ import {
   rotatePanelAroundLocalZ,
   setControllerWorldPose,
   setPanelWorldPose,
+  setWiringOutputGpios,
   setWiringPanelRotationConstraint,
   sculptureJson,
   useSuggestedControllerPose,
@@ -119,16 +120,19 @@ import {
   type VerifiedGeneratedStructure,
 } from "./GeneratedStructuralAssets.ts";
 import {
+  APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS,
   automaticEsp32ReconnectAvailable,
   canEnableReconnectedSimulator,
   connectExistingSimulatorDevice,
   createSimulatorSetupConfig,
+  desktopEsp32ReconnectAvailable,
   isApprovedEsp32OutputGpio,
   isCurrentSimulatorSetup,
   createEsp32SetupController,
   mappedPanelFramebuffer,
   persistStandaloneAnimation,
   rememberAutomaticEsp32Reconnect,
+  rememberDesktopEsp32Reconnect,
   retainAutomaticReconnectEligibility,
   sendSimulatorFramebuffer,
   settleSimulatorDeviceWork,
@@ -455,6 +459,13 @@ app.innerHTML = `
                   <button id="apply-count" type="button">Apply</button>
                 </div>
               </label>
+              <fieldset class="developer-gpio-fieldset">
+                <legend>ESP32 output GPIOs</legend>
+                <small>Set one unique safe ESP32-WROOM pin for each output.</small>
+                <div id="output-gpio-inputs" class="output-gpio-inputs"></div>
+                <button id="apply-output-gpios" class="editor-button" type="button">Apply output GPIOs</button>
+                <small>Approved pins: ${APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS.join(", ")}.</small>
+              </fieldset>
               <button id="toggle-wiring-rotation-gate" class="editor-button" type="button" aria-pressed="false">Use current poses + 0/180° gate</button>
               <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP only</button>
               <button id="download-panel-labels" class="editor-button" type="button">Download fabrication ZIP only</button>
@@ -616,6 +627,8 @@ const loadSculptureButton = query<HTMLButtonElement>("#load-sculpture");
 const developerUtilities = query<HTMLDetailsElement>("#developer-utilities");
 const ledCountInput = query<HTMLInputElement>("#led-count");
 const applyCountButton = query<HTMLButtonElement>("#apply-count");
+const outputGpioInputs = query<HTMLElement>("#output-gpio-inputs");
+const applyOutputGpiosButton = query<HTMLButtonElement>("#apply-output-gpios");
 const toggleWiringRotationGateButton = query<HTMLButtonElement>(
   "#toggle-wiring-rotation-gate",
 );
@@ -1383,11 +1396,22 @@ async function start(): Promise<void> {
       };
     };
 
-    const enableSimulatorLink = (deviceUrl: URL, reconnected = false): void => {
+    const enableSimulatorLink = async (
+      deviceUrl: URL,
+      reconnected = false,
+    ): Promise<void> => {
       const { outputs, ledCount, panelCount } = loadedSimulatorDeployment();
       simulatorDeviceUrl = deviceUrl;
       simulatorReconnectEnabled = true;
       rememberAutomaticEsp32Reconnect(reconnectStorage());
+      try {
+        await rememberDesktopEsp32Reconnect();
+      } catch (error) {
+        setLogMessage(
+          `Automatic ESP32 reconnect was not saved: ${error instanceof Error ? error.message : String(error)}`,
+          true,
+        );
+      }
       simulatorLedmapUpdateAuthorized = false;
       nextSimulatorFrameAt = 0;
       updateExternalFrameMirrorAvailability();
@@ -1727,7 +1751,7 @@ async function start(): Promise<void> {
             update: setLogMessage,
           }),
         )
-        .then((deviceUrl) => {
+        .then(async (deviceUrl) => {
           if (
             canEnableReconnectedSimulator(
               reconnectPayload,
@@ -1736,7 +1760,7 @@ async function start(): Promise<void> {
               simulatorSetupActive,
             )
           ) {
-            enableSimulatorLink(deviceUrl, true);
+            await enableSimulatorLink(deviceUrl, true);
           }
         })
         .catch((error) => {
@@ -1800,7 +1824,7 @@ async function start(): Promise<void> {
           simulatorFrameRequest,
         ]);
       },
-      onSetupComplete: (deviceUrl, payload) => {
+      onSetupComplete: async (deviceUrl, payload) => {
         if (
           !isCurrentSimulatorSetup(
             payload,
@@ -1814,12 +1838,13 @@ async function start(): Promise<void> {
           );
           return;
         }
-        enableSimulatorLink(deviceUrl);
+        await enableSimulatorLink(deviceUrl);
       },
     });
     void automaticEsp32ReconnectAvailable(
       reconnectStorage(),
       navigator.serial,
+      desktopEsp32ReconnectAvailable,
     ).then((available) => {
       simulatorReconnectEnabled = retainAutomaticReconnectEligibility(
         simulatorReconnectEnabled,
@@ -2051,6 +2076,27 @@ async function start(): Promise<void> {
 
     const renderRouteEditor = (): void => {
       const isPanelized = mapping.topology === "panelized-sculpture";
+      outputGpioInputs.replaceChildren(
+        ...editorDefinition.wiring.outputs.map((output) => {
+          const label = document.createElement("label");
+          label.className = "field output-gpio-field";
+          const name = document.createElement("span");
+          name.textContent = output.label;
+          const input = document.createElement("input");
+          input.type = "number";
+          input.min = "0";
+          input.max = "33";
+          input.step = "1";
+          input.inputMode = "numeric";
+          input.value = output.gpio === null ? "" : String(output.gpio);
+          input.dataset.outputIndex = String(output.outputIndex);
+          input.setAttribute("aria-label", `${output.label} GPIO`);
+          label.append(name, input);
+          return label;
+        }),
+      );
+      applyOutputGpiosButton.disabled =
+        editorDefinition.wiring.outputs.length === 0;
       routeEditorSection.hidden = !isPanelized;
       optimizeWiringButton.hidden = !isPanelized;
       optimizeWiringButton.disabled =
@@ -3342,7 +3388,7 @@ async function start(): Promise<void> {
         physicalRouteReviewCancelButton.disabled = false;
         physicalRouteReviewApplyButton.textContent =
           "Apply and regenerate mapping";
-        enableSimulatorLink(pending.deviceUrl, true);
+        await enableSimulatorLink(pending.deviceUrl, true);
         startMadMapperPreview();
         setLogMessage(
           "Physical panel order and address orientation were saved. The exact ESP32 ledmap was regenerated, activated, and read back.",
@@ -3581,6 +3627,45 @@ async function start(): Promise<void> {
             true,
           );
         });
+    });
+    applyOutputGpiosButton.addEventListener("click", () => {
+      void (async () => {
+        try {
+          const inputs = [
+            ...outputGpioInputs.querySelectorAll<HTMLInputElement>(
+              "input[data-output-index]",
+            ),
+          ];
+          const gpios = inputs.map((input) => Number(input.value));
+          if (inputs.some((input) => input.value.trim() === "")) {
+            throw new Error("Provide one GPIO for each wiring output.");
+          }
+          const unsupported = gpios.find(
+            (gpio) => !isApprovedEsp32OutputGpio(gpio),
+          );
+          if (unsupported !== undefined) {
+            throw new Error(
+              `GPIO ${unsupported} is not an approved ESP32-WROOM output pin. ` +
+                `Use ${APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS.join(", ")}.`,
+            );
+          }
+          const nextDefinition = setWiringOutputGpios(editorDefinition, gpios);
+          const project = createPanelAssemblyProject(
+            nextDefinition,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          await applyLoadedSculpture(createLoadedSculpture(project));
+          setLogMessage(
+            `Saved output GPIO ${gpios.join(", ")}. Run ESP32 setup once to apply the new pins.`,
+          );
+        } catch (error) {
+          setLogMessage(
+            error instanceof Error ? error.message : String(error),
+            true,
+          );
+        }
+      })();
     });
     routeActionButton.addEventListener("click", () => {
       void (async () => {

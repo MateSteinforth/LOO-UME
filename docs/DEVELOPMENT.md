@@ -78,6 +78,9 @@ Set `LOO_UME_ELECTRON_DEV_PORT` to change the default port, 5173.
 If another process owns the port, the command stops without using that process.
 Firmware setup still requires the separate packaged review path or a selected
 verified image. Development does not stage firmware automatically.
+Vite uses browser storage for reconnect authorization. It does not expose the
+packaged desktop authorization endpoint. Keep the development port unchanged to
+retain the browser storage origin. Use packaged review to test desktop reconnect persistence.
 
 For ESP32 review on macOS, build and open a local packaged Electron
 application:

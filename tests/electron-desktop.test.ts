@@ -19,12 +19,19 @@ const servers: ReturnType<typeof createServer>[] = [];
 const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) =>
-    new Promise<void>((resolve) => server.close(() => resolve()))
-  ));
-  await Promise.all(temporaryDirectories.splice(0).map((directory) =>
-    rm(directory, { recursive: true, force: true })
-  ));
+  await Promise.all(
+    servers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((resolve) => server.close(() => resolve())),
+      ),
+  );
+  await Promise.all(
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
+  );
 });
 
 async function serveUpdater(updater: DesktopUpdater): Promise<string> {
@@ -49,11 +56,21 @@ describe("Electron desktop boundaries", () => {
   });
 
   it("permits only the approved CP2102 USB identity", () => {
-    expect(isApprovedCp2102({ vendorId: "10C4", productId: "EA60" })).toBe(true);
-    expect(isApprovedCp2102({ vendorId: 0x10c4, productId: 0xea60 })).toBe(true);
-    expect(isApprovedCp2102({ vendorId: "4292", productId: "60000" })).toBe(true);
-    expect(isApprovedCp2102({ vendorId: "1a86", productId: "7523" })).toBe(false);
-    expect(isApprovedCp2102({ vendorId: "70000", productId: "60000" })).toBe(false);
+    expect(isApprovedCp2102({ vendorId: "10C4", productId: "EA60" })).toBe(
+      true,
+    );
+    expect(isApprovedCp2102({ vendorId: 0x10c4, productId: 0xea60 })).toBe(
+      true,
+    );
+    expect(isApprovedCp2102({ vendorId: "4292", productId: "60000" })).toBe(
+      true,
+    );
+    expect(isApprovedCp2102({ vendorId: "1a86", productId: "7523" })).toBe(
+      false,
+    );
+    expect(isApprovedCp2102({ vendorId: "70000", productId: "60000" })).toBe(
+      false,
+    );
     expect(isApprovedCp2102({})).toBe(false);
   });
 
@@ -67,9 +84,19 @@ describe("Electron desktop boundaries", () => {
   it("creates local review data before Electron uses it", async () => {
     const source = await readFile("electron/main.ts", "utf8");
     const createIndex = source.indexOf("mkdirSync(localReviewUserData");
-    const setIndex = source.indexOf('app.setPath("userData", localReviewUserData)');
+    const setIndex = source.indexOf(
+      'app.setPath("userData", localReviewUserData)',
+    );
     expect(createIndex).toBeGreaterThan(0);
     expect(setIndex).toBeGreaterThan(createIndex);
+  });
+
+  it("stores ESP32 reconnect authorization in Electron application data", async () => {
+    const source = await readFile("electron/main.ts", "utf8");
+    expect(source).toContain(
+      'join(userData, "esp32-reconnect-authorization.json")',
+    );
+    expect(source).toContain("esp32ReconnectAuthorizationHandler,");
   });
 
   it("checks, downloads, and installs only through the loopback origin", async () => {
@@ -123,16 +150,23 @@ describe("Electron desktop boundaries", () => {
   });
 
   it("validates and compares the free unsigned update notice", async () => {
-    const request = vi.fn(async () => new Response(JSON.stringify({
-      schemaVersion: "1.0.0",
-      version: "0.1.124",
-      commit: "a".repeat(40),
-      downloadUrl: UNSIGNED_DMG_URL,
-      fileName: "LOO-UME-Electron-arm64.dmg",
-      byteLength: 1234,
-      sha256: "b".repeat(64),
-    })));
-    await expect(checkUnsignedDesktopUpdate("0.1.123", request)).resolves.toEqual({
+    const request = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            schemaVersion: "1.0.0",
+            version: "0.1.124",
+            commit: "a".repeat(40),
+            downloadUrl: UNSIGNED_DMG_URL,
+            fileName: "LOO-UME-Electron-arm64.dmg",
+            byteLength: 1234,
+            sha256: "b".repeat(64),
+          }),
+        ),
+    );
+    await expect(
+      checkUnsignedDesktopUpdate("0.1.123", request),
+    ).resolves.toEqual({
       available: true,
       version: "0.1.124",
       downloadUrl: UNSIGNED_DMG_URL,
@@ -141,22 +175,29 @@ describe("Electron desktop boundaries", () => {
       UNSIGNED_UPDATE_METADATA_URL,
       expect.objectContaining({ redirect: "follow" }),
     );
-    await expect(checkUnsignedDesktopUpdate("0.1.124", request)).resolves.toMatchObject({
+    await expect(
+      checkUnsignedDesktopUpdate("0.1.124", request),
+    ).resolves.toMatchObject({
       available: false,
     });
 
-    const unapproved = vi.fn(async () => new Response(JSON.stringify({
-      schemaVersion: "1.0.0",
-      version: "0.1.125",
-      commit: "a".repeat(40),
-      downloadUrl: "https://example.invalid/LOO-UME.dmg",
-      fileName: "LOO-UME-Electron-arm64.dmg",
-      byteLength: 1234,
-      sha256: "b".repeat(64),
-    })));
-    await expect(checkUnsignedDesktopUpdate("0.1.124", unapproved)).rejects.toThrow(
-      "metadata is invalid",
+    const unapproved = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            schemaVersion: "1.0.0",
+            version: "0.1.125",
+            commit: "a".repeat(40),
+            downloadUrl: "https://example.invalid/LOO-UME.dmg",
+            fileName: "LOO-UME-Electron-arm64.dmg",
+            byteLength: 1234,
+            sha256: "b".repeat(64),
+          }),
+        ),
     );
+    await expect(
+      checkUnsignedDesktopUpdate("0.1.124", unapproved),
+    ).rejects.toThrow("metadata is invalid");
   });
 
   it("offers a free DMG download without claiming automatic installation", async () => {
@@ -196,17 +237,19 @@ describe("Electron desktop boundaries", () => {
     const destination = join(root, "desktop");
     await Promise.all([mkdir(source), mkdir(destination)]);
     await writeFile(join(source, "sculpture.loo.zip"), "legacy-project");
-    await writeFile(join(source, ".library-state.json"), "{\"hiddenDemos\":[]}");
+    await writeFile(join(source, ".library-state.json"), '{"hiddenDemos":[]}');
     await writeFile(join(source, "not-a-project.txt"), "ignored");
     expect(await migrateLegacyProjectLibrary(source, destination)).toEqual([
       ".library-state.json",
       "sculpture.loo.zip",
     ]);
-    expect(await readFile(join(destination, "sculpture.loo.zip"), "utf8"))
-      .toBe("legacy-project");
+    expect(await readFile(join(destination, "sculpture.loo.zip"), "utf8")).toBe(
+      "legacy-project",
+    );
     await writeFile(join(source, "sculpture.loo.zip"), "changed-legacy");
     expect(await migrateLegacyProjectLibrary(source, destination)).toEqual([]);
-    expect(await readFile(join(destination, "sculpture.loo.zip"), "utf8"))
-      .toBe("legacy-project");
+    expect(await readFile(join(destination, "sculpture.loo.zip"), "utf8")).toBe(
+      "legacy-project",
+    );
   });
 });

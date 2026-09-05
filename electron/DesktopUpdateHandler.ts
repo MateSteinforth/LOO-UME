@@ -38,7 +38,8 @@ interface UnsignedUpdateMetadata {
 
 function numericVersion(value: string): [number, number, number] {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(value);
-  if (!match) throw new Error("Electron update version must use three numeric parts.");
+  if (!match)
+    throw new Error("Electron update version must use three numeric parts.");
   return [Number(match[1]), Number(match[2]), Number(match[3])];
 }
 
@@ -63,9 +64,11 @@ export async function checkUnsignedDesktopUpdate(
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) {
-    throw new Error(`Unsigned Electron update check returned HTTP ${response.status}.`);
+    throw new Error(
+      `Unsigned Electron update check returned HTTP ${response.status}.`,
+    );
   }
-  const value = await response.json() as Partial<UnsignedUpdateMetadata>;
+  const value = (await response.json()) as Partial<UnsignedUpdateMetadata>;
   if (
     value.schemaVersion !== "1.0.0" ||
     typeof value.version !== "string" ||
@@ -85,7 +88,11 @@ export async function checkUnsignedDesktopUpdate(
   };
 }
 
-function sendJson(response: ServerResponse, status: number, value: unknown): void {
+function sendJson(
+  response: ServerResponse,
+  status: number,
+  value: unknown,
+): void {
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
@@ -95,7 +102,11 @@ function sendJson(response: ServerResponse, status: number, value: unknown): voi
 function requestOriginIsLocal(request: IncomingMessage): boolean {
   const host = request.headers.host;
   const origin = request.headers.origin;
-  return typeof host === "string" && isLoopbackHost(host) && origin === `http://${host}`;
+  return (
+    typeof host === "string" &&
+    isLoopbackHost(host) &&
+    origin === `http://${host}`
+  );
 }
 
 function conciseError(error: unknown): string {
@@ -123,31 +134,35 @@ export function createDesktopUpdateHandler(
       });
     }
     if (!statusRequest) {
-      statusRequest = updater.check().then((result) => ({
-        schemaVersion: "1.0.0" as const,
-        currentCommit: updater.currentVersion,
-        availableCommit: result.version,
-        updateAvailable: result.available,
-        canApply: result.available && result.downloadUrl === undefined,
-        localChanges: false,
-        downloadUrl: result.available ? result.downloadUrl ?? null : null,
-        message: result.available
-          ? result.downloadUrl
-            ? `LOO/UME ${result.version} is ready to download. Quit LOO/UME, then replace it in Applications.`
-            : `LOO/UME ${result.version} is available from the verified desktop release channel.`
-          : "LOO/UME is current.",
-      })).catch((error) => ({
-        schemaVersion: "1.0.0" as const,
-        currentCommit: updater.currentVersion,
-        availableCommit: null,
-        updateAvailable: false,
-        canApply: false,
-        localChanges: false,
-        downloadUrl: null,
-        message: conciseError(error),
-      })).finally(() => {
-        statusRequest = undefined;
-      });
+      statusRequest = updater
+        .check()
+        .then((result) => ({
+          schemaVersion: "1.0.0" as const,
+          currentCommit: updater.currentVersion,
+          availableCommit: result.version,
+          updateAvailable: result.available,
+          canApply: result.available && result.downloadUrl === undefined,
+          localChanges: false,
+          downloadUrl: result.available ? (result.downloadUrl ?? null) : null,
+          message: result.available
+            ? result.downloadUrl
+              ? `LOO/UME ${result.version} is ready to download. Quit LOO/UME, then replace it in Applications.`
+              : `LOO/UME ${result.version} is available from the verified desktop release channel.`
+            : "LOO/UME is current.",
+        }))
+        .catch((error) => ({
+          schemaVersion: "1.0.0" as const,
+          currentCommit: updater.currentVersion,
+          availableCommit: null,
+          updateAvailable: false,
+          canApply: false,
+          localChanges: false,
+          downloadUrl: null,
+          message: conciseError(error),
+        }))
+        .finally(() => {
+          statusRequest = undefined;
+        });
     }
     return statusRequest;
   };
@@ -158,7 +173,9 @@ export function createDesktopUpdateHandler(
       const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
       if (pathname !== "/api/application-update") return false;
       if (!isLoopbackHost(request.headers.host)) {
-        sendJson(response, 403, { error: "Application updates are loopback-only." });
+        sendJson(response, 403, {
+          error: "Application updates are loopback-only.",
+        });
         return true;
       }
       if (request.method === "GET" || request.method === "HEAD") {
@@ -176,11 +193,15 @@ export function createDesktopUpdateHandler(
         return true;
       }
       if (!requestOriginIsLocal(request)) {
-        sendJson(response, 403, { error: "Application update origin is not allowed." });
+        sendJson(response, 403, {
+          error: "Application update origin is not allowed.",
+        });
         return true;
       }
       if (applying) {
-        sendJson(response, 409, { error: "A LOO/UME update is already running." });
+        sendJson(response, 409, {
+          error: "A LOO/UME update is already running.",
+        });
         return true;
       }
       const current = await status();

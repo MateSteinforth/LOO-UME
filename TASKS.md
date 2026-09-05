@@ -358,11 +358,41 @@ No tasks.
 
 ## In Progress
 
-No tasks.
+### `P1 · INT-026` Integrate the latest completed application changes
+
+- Owner: GPT-6 Astra; branch `codex/integrate-latest`; worktree `/tmp/loo-ume-integrate-latest`.
+- Scope: combine DEV-020, DEV-024, DEV-025, LIVE-022, and LIVE-023 into `main`.
+- Acceptance: preserve manual GPIO fields, reconnect persistence, development checks, workers, and Apple Silicon package signing.
+- Checks: source checks, relevant unit and browser tests, production builds, and the Mac package launch check.
+- Conflicts: browser orchestration, Electron startup, and task and failure records.
+- Authorization: the operator requested integration into `main`. Retain deferred P2 defects and physical hardware review.
 
 ## Ready to Merge
 
-No tasks.
+### `P0 · LIVE-023` Configure replacement ESP32 output GPIOs
+
+- Result: Developer utilities shows one field for each current output. It saves
+  unique approved ESP32-WROOM pins without changing routes or address order.
+- Verification: 53 focused unit tests, the GPIO browser journey, application
+  TypeScript, production web build, and diff checks passed.
+- Dependency: this branch includes LIVE-022 so physical review keeps automatic
+  reconnect. Integrate LIVE-022 before or with this task.
+- Owner: Codex on `codex/live-023-custom-gpios` in
+  `/tmp/loo-ume-live-023-custom-gpios`.
+- Remaining review: set GPIO 16, 17, 21, and 22. Run ESP32 setup once. Confirm
+  that all four physical chains receive their correct frames.
+
+### `P0 · LIVE-022` Persist Electron ESP32 reconnect authorization
+
+- Result: successful setup records reconnect authorization in Electron
+  application data. A later process reads it across random loopback ports.
+- Verification: the random-port restart regression, ESP32 setup tests,
+  Electron tests, application TypeScript, focused Node TypeScript, Electron
+  bundling, the production web build, and diff checks passed.
+- Owner: Codex on `codex/live-021-persistent-reconnect` in
+  `/tmp/loo-ume-live-021-reconnect`.
+- Remaining review: restart local Electron after one successful setup. Confirm
+  that LOO/UME finds `loo-ume.local` and enables the sculpture mirror.
 
 ## Human Review
 

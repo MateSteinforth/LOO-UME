@@ -1,14 +1,10 @@
-import {
-  hasAuthoredWiringRoutes,
-} from "./Definition.ts";
+import { hasAuthoredWiringRoutes } from "./Definition.ts";
 import {
   parsePanelAssemblyDefinition,
   type PanelAssemblyDefinition,
 } from "./PanelAssembly.ts";
 import { preserveAuthoringBoundary } from "./MechanicalShellRegenerator.ts";
-import {
-  createMechanicalSurfaceOrientation,
-} from "./DesignSurface.ts";
+import { createMechanicalSurfaceOrientation } from "./DesignSurface.ts";
 
 type Vector3Tuple = [number, number, number];
 type Vector2Tuple = [number, number];
@@ -71,7 +67,9 @@ export function markPanelEditConsequences(
   for (const panel of definition.panels) {
     if (panel.installedAddressTransform) {
       panel.installedAddressTransform.status = "assumed";
-      if (panel.installedAddressTransform.selectionMethod === "route-optimized") {
+      if (
+        panel.installedAddressTransform.selectionMethod === "route-optimized"
+      ) {
         panel.installedAddressTransform.selectionMethod = "manual";
         delete panel.installedAddressTransform.optimizationFingerprint;
       }
@@ -80,15 +78,41 @@ export function markPanelEditConsequences(
   definition.calibration.physicalChains = "provisional";
 }
 
+export function setWiringOutputGpios(
+  source: PanelAssemblyDefinition,
+  gpios: readonly number[],
+): PanelAssemblyDefinition {
+  if (gpios.length !== source.wiring.outputs.length) {
+    throw new Error("Provide one GPIO for each wiring output.");
+  }
+  if (gpios.some((gpio) => !Number.isInteger(gpio) || gpio < 0)) {
+    throw new Error("Each output GPIO must be a non-negative integer.");
+  }
+  if (new Set(gpios).size !== gpios.length) {
+    throw new Error("Each wiring output requires a different GPIO.");
+  }
+  const definition = structuredClone(source);
+  const { hardwareProof: _staleProof, ...wiring } = definition.wiring;
+  definition.wiring = {
+    ...wiring,
+    status:
+      wiring.status === "measured" || wiring.status === "hardware-verified"
+        ? "authored"
+        : wiring.status,
+    outputs: wiring.outputs.map((output, index) => ({
+      ...output,
+      gpio: gpios[index]!,
+    })),
+  };
+  return parsePanelAssemblyDefinition(definition);
+}
+
 export function projectPanelOrientationOntoSurface(
   sourceXAxis: Vector3Tuple,
   surfaceNormal: Vector3Tuple,
 ): { xAxis: Vector3Tuple; yAxis: Vector3Tuple } {
   const normal = normalize(surfaceNormal);
-  let xAxis = subtract(
-    sourceXAxis,
-    scale(normal, dot(sourceXAxis, normal)),
-  );
+  let xAxis = subtract(sourceXAxis, scale(normal, dot(sourceXAxis, normal)));
   if (Math.hypot(...xAxis) < 1e-8) {
     xAxis = cross([0, 1, 0], normal);
     if (Math.hypot(...xAxis) < 1e-8) {
@@ -134,7 +158,7 @@ function containsConvexPolygon(
           (end[1] - start[1]) * (point[0] - start[0]) >=
         -1e-6
       );
-    })
+    }),
   );
 }
 
@@ -172,18 +196,25 @@ function partitionRing(
   normal: Vector3Tuple,
 ): number[][] {
   if (anchorEdgeIndices.length < 2) {
-    throw new Error("An inset panel needs at least two populated neighboring faces.");
+    throw new Error(
+      "An inset panel needs at least two populated neighboring faces.",
+    );
   }
   const anchors = [...anchorEdgeIndices].sort((a, b) => a - b);
   return anchors.map((outerStart, sectorIndex) => {
     const outerEnd = anchors[(sectorIndex + 1) % anchors.length]!;
-    const outerEdgeCount = (outerEnd - outerStart + outer.length) % outer.length || outer.length;
+    const outerEdgeCount =
+      (outerEnd - outerStart + outer.length) % outer.length || outer.length;
     const sector = Array.from(
       { length: outerEdgeCount + 1 },
       (_, offset) => outer[(outerStart + offset) % outer.length]!,
     );
-    const innerStart = Math.round((sectorIndex * inner.length) / anchors.length);
-    const innerEnd = Math.round(((sectorIndex + 1) * inner.length) / anchors.length);
+    const innerStart = Math.round(
+      (sectorIndex * inner.length) / anchors.length,
+    );
+    const innerEnd = Math.round(
+      ((sectorIndex + 1) * inner.length) / anchors.length,
+    );
     for (let index = innerEnd; index >= innerStart; index -= 1) {
       sector.push(inner[index % inner.length]!);
     }
@@ -212,7 +243,9 @@ export function addPanelToClosureFace(
   const mechanicalShell = definition.mechanicalShell;
   const closures = definition.closures;
   if (!mechanicalShell || !closures) {
-    throw new Error("Adding to a closure face requires existing generated mechanics.");
+    throw new Error(
+      "Adding to a closure face requires existing generated mechanics.",
+    );
   }
   const closureIndex = closures.faceIds.indexOf(faceId);
   preserveAuthoringBoundary(definition);
@@ -242,23 +275,36 @@ export function addPanelToClosureFace(
   );
   const panelAnchorEdges = () =>
     face.vertexIndices.flatMap((start, edgeIndex) => {
-      const end = face.vertexIndices[(edgeIndex + 1) % face.vertexIndices.length]!;
-      const neighbor = mechanicalShell.faces.find((candidate) =>
-        candidate.id !== faceId && panelFaceIds.has(candidate.id) &&
-        candidate.vertexIndices.some((value, candidateIndex) => {
-          const next = candidate.vertexIndices[
-            (candidateIndex + 1) % candidate.vertexIndices.length
-          ]!;
-          return (value === start && next === end) ||
-            (value === end && next === start);
-        })
+      const end =
+        face.vertexIndices[(edgeIndex + 1) % face.vertexIndices.length]!;
+      const neighbor = mechanicalShell.faces.find(
+        (candidate) =>
+          candidate.id !== faceId &&
+          panelFaceIds.has(candidate.id) &&
+          candidate.vertexIndices.some((value, candidateIndex) => {
+            const next =
+              candidate.vertexIndices[
+                (candidateIndex + 1) % candidate.vertexIndices.length
+              ]!;
+            return (
+              (value === start && next === end) ||
+              (value === end && next === start)
+            );
+          }),
       );
       if (!neighbor) return [];
-      const neighborEdgeIndex = neighbor.vertexIndices.findIndex((value, index) => {
-        const next = neighbor.vertexIndices[(index + 1) % neighbor.vertexIndices.length]!;
-        return (value === start && next === end) ||
-          (value === end && next === start);
-      });
+      const neighborEdgeIndex = neighbor.vertexIndices.findIndex(
+        (value, index) => {
+          const next =
+            neighbor.vertexIndices[
+              (index + 1) % neighbor.vertexIndices.length
+            ]!;
+          return (
+            (value === start && next === end) ||
+            (value === end && next === start)
+          );
+        },
+      );
       return [{ edgeIndex, neighbor, neighborEdgeIndex }];
     });
   const anchors = panelAnchorEdges();
@@ -302,7 +348,8 @@ export function addPanelToClosureFace(
     vertexIndices,
     connectorPolicy: {
       minimumPanelHoleConnectors: 2 as const,
-      reason: "Inset ring sectors are strip-like parts anchored to both the new panel and an existing neighboring panel.",
+      reason:
+        "Inset ring sectors are strip-like parts anchored to both the new panel and an existing neighboring panel.",
     },
   }));
   mechanicalShell.faces.splice(
@@ -319,12 +366,14 @@ export function addPanelToClosureFace(
   definition.panels.push({
     id: nextPanelId(definition),
     mountFaceId: faceId,
-    connectorPolicy: anchors.length < 4
-      ? {
-          allowSharedClosureAcrossAdjacentEdges: true as const,
-          reason: "Only three populated neighboring faces are available to anchor four eligible panel holes.",
-        }
-      : undefined,
+    connectorPolicy:
+      anchors.length < 4
+        ? {
+            allowSharedClosureAcrossAdjacentEdges: true as const,
+            reason:
+              "Only three populated neighboring faces are available to anchor four eligible panel holes.",
+          }
+        : undefined,
     pose: {
       position,
       orientation: {
@@ -351,7 +400,9 @@ export function addPanelToClosureFace(
   for (const panel of definition.panels) {
     if (panel.installedAddressTransform) {
       panel.installedAddressTransform.status = "assumed";
-      if (panel.installedAddressTransform.selectionMethod === "route-optimized") {
+      if (
+        panel.installedAddressTransform.selectionMethod === "route-optimized"
+      ) {
         panel.installedAddressTransform.selectionMethod = "manual";
         delete panel.installedAddressTransform.optimizationFingerprint;
       }
@@ -387,8 +438,13 @@ export function movePanelOnDesignSurface(
       "Load a GLB or use the sculpture JSON face graph before moving panels.",
     );
   }
-  if (placement.attachment.surface === "mechanical-shell" && !source.mechanicalShell) {
-    throw new Error("This project has no JSON mechanical-shell placement surface.");
+  if (
+    placement.attachment.surface === "mechanical-shell" &&
+    !source.mechanicalShell
+  ) {
+    throw new Error(
+      "This project has no JSON mechanical-shell placement surface.",
+    );
   }
   const definition = structuredClone(source);
   preserveAuthoringBoundary(definition);
@@ -564,7 +620,9 @@ export function rotatePanelAroundLocalZ(
   degrees: number,
 ): PanelAssemblyDefinition {
   if (!Number.isFinite(degrees)) {
-    throw new Error(`Panel ${panelId} rotation must be a finite angle in degrees.`);
+    throw new Error(
+      `Panel ${panelId} rotation must be a finite angle in degrees.`,
+    );
   }
   const definition = structuredClone(source);
   preserveAuthoringBoundary(definition);
@@ -617,8 +675,13 @@ export function addPanelOnDesignSurface(
       "Load a GLB or use the sculpture JSON face graph before adding panels.",
     );
   }
-  if (placement.attachment.surface === "mechanical-shell" && !source.mechanicalShell) {
-    throw new Error("This project has no JSON mechanical-shell placement surface.");
+  if (
+    placement.attachment.surface === "mechanical-shell" &&
+    !source.mechanicalShell
+  ) {
+    throw new Error(
+      "This project has no JSON mechanical-shell placement surface.",
+    );
   }
   const definition = structuredClone(source);
   invalidateAuthoredRoutesForPanelSetEdit(definition);
@@ -697,18 +760,24 @@ function panelFootprintsOverlap(
   const axes = [
     ...first.axes,
     ...second.axes,
-    ...first.axes.flatMap((left) => second.axes.map((right) => cross(left, right))),
+    ...first.axes.flatMap((left) =>
+      second.axes.map((right) => cross(left, right)),
+    ),
   ];
   const centerDelta = subtract(second.center, first.center);
   for (const rawAxis of axes) {
     const length = Math.hypot(...rawAxis);
     if (length < 1e-9) continue;
     const axis = scale(rawAxis, 1 / length);
-    const firstRadius = first.axes.reduce((sum, value, index) =>
-      sum + Math.abs(dot(axis, value)) * first.halfExtents[index]!, 0
+    const firstRadius = first.axes.reduce(
+      (sum, value, index) =>
+        sum + Math.abs(dot(axis, value)) * first.halfExtents[index]!,
+      0,
     );
-    const secondRadius = second.axes.reduce((sum, value, index) =>
-      sum + Math.abs(dot(axis, value)) * second.halfExtents[index]!, 0
+    const secondRadius = second.axes.reduce(
+      (sum, value, index) =>
+        sum + Math.abs(dot(axis, value)) * second.halfExtents[index]!,
+      0,
     );
     if (Math.abs(dot(centerDelta, axis)) > firstRadius + secondRadius + 0.1) {
       return false;
@@ -732,27 +801,23 @@ function meshPoint(values: readonly number[], index: number): Vector3Tuple {
   return [values[index * 3]!, values[index * 3 + 1]!, values[index * 3 + 2]!];
 }
 function distanceSquared(a: Vector3Tuple, b: Vector3Tuple): number {
-  return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 +
-    (a[2] - b[2]) ** 2;
+  return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
 }
 function trianglePoint(
   vertices: [Vector3Tuple, Vector3Tuple, Vector3Tuple],
   barycentric: Vector3Tuple,
 ): Vector3Tuple {
-  return add(add(
-    scale(vertices[0], barycentric[0]),
-    scale(vertices[1], barycentric[1]),
-  ), scale(vertices[2], barycentric[2]));
+  return add(
+    add(scale(vertices[0], barycentric[0]), scale(vertices[1], barycentric[1])),
+    scale(vertices[2], barycentric[2]),
+  );
 }
 
 function quantizedVertexKey(point: Vector3Tuple): string {
   return `${Math.round(point[0] * 1000)}:${Math.round(point[1] * 1000)}:${Math.round(point[2] * 1000)}`;
 }
 
-function triangleEdgeKey(
-  first: Vector3Tuple,
-  second: Vector3Tuple,
-): string {
+function triangleEdgeKey(first: Vector3Tuple, second: Vector3Tuple): string {
   const left = quantizedVertexKey(first);
   const right = quantizedVertexKey(second);
   return left < right ? `${left}|${right}` : `${right}|${left}`;
@@ -788,8 +853,8 @@ function closestPointOnTriangle(
     return { point: add(a, scale(ac, w)), barycentric: [1 - w, 0, w] };
   }
   const va = d3 * d6 - d5 * d4;
-  if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) {
-    const w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+  if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) {
+    const w = (d4 - d3) / (d4 - d3 + (d5 - d6));
     return {
       point: add(b, scale(subtract(c, b), w)),
       barycentric: [0, 1 - w, w],
@@ -832,7 +897,9 @@ function findRoot(parent: number[], index: number): number {
 function uniquePatchVertexCount(patch: PlanarPatch): number {
   return new Set(
     patch.triangles.flatMap((triangle) =>
-      triangle.vertices.map((vertex) => vertex.map((value) => value.toFixed(6)).join(","))
+      triangle.vertices.map((vertex) =>
+        vertex.map((value) => value.toFixed(6)).join(","),
+      ),
     ),
   ).size;
 }
@@ -846,9 +913,7 @@ function patchesForRectangularPanels(
   return quads.length >= requestedCount ? quads : patches;
 }
 
-function connectedPlanarPatches(
-  triangles: PreparedTriangle[],
-): PlanarPatch[] {
+function connectedPlanarPatches(triangles: PreparedTriangle[]): PlanarPatch[] {
   const parent = triangles.map((_, index) => index);
   const edgeMap = new Map<string, number[]>();
   for (const [index, triangle] of triangles.entries()) {
@@ -869,8 +934,11 @@ function connectedPlanarPatches(
         const left = triangles[users[i]!]!;
         const right = triangles[users[j]!]!;
         if (dot(left.normal, right.normal) < 0.999999) continue;
-        if (Math.abs(dot(subtract(right.centroid, left.centroid), left.normal)) >
-          1e-3) continue;
+        if (
+          Math.abs(dot(subtract(right.centroid, left.centroid), left.normal)) >
+          1e-3
+        )
+          continue;
         const leftRoot = findRoot(parent, users[i]!);
         const rightRoot = findRoot(parent, users[j]!);
         if (leftRoot !== rightRoot) parent[rightRoot] = leftRoot;
@@ -884,47 +952,56 @@ function connectedPlanarPatches(
     group.push(triangle);
     groups.set(root, group);
   }
-  return [...groups.values()].map((group) => {
-    const area = group.reduce((sum, triangle) => sum + triangle.area, 0);
-    const normal = normalize(group.reduce(
-      (sum, triangle) => add(sum, scale(triangle.normal, triangle.area)),
-      [0, 0, 0] as Vector3Tuple,
-    ));
-    const rawCentroid = scale(group.reduce(
-      (sum, triangle) => add(sum, scale(triangle.centroid, triangle.area)),
-      [0, 0, 0] as Vector3Tuple,
-    ), 1 / area);
-    let home = group[0]!;
-    let snapped = closestPointOnTriangle(rawCentroid, home.vertices);
-    for (const triangle of group.slice(1)) {
-      const candidate = closestPointOnTriangle(rawCentroid, triangle.vertices);
-      if (
-        distanceSquared(candidate.point, rawCentroid) + 1e-12 <
-          distanceSquared(snapped.point, rawCentroid) ||
-        (
-          Math.abs(
+  return [...groups.values()]
+    .map((group) => {
+      const area = group.reduce((sum, triangle) => sum + triangle.area, 0);
+      const normal = normalize(
+        group.reduce(
+          (sum, triangle) => add(sum, scale(triangle.normal, triangle.area)),
+          [0, 0, 0] as Vector3Tuple,
+        ),
+      );
+      const rawCentroid = scale(
+        group.reduce(
+          (sum, triangle) => add(sum, scale(triangle.centroid, triangle.area)),
+          [0, 0, 0] as Vector3Tuple,
+        ),
+        1 / area,
+      );
+      let home = group[0]!;
+      let snapped = closestPointOnTriangle(rawCentroid, home.vertices);
+      for (const triangle of group.slice(1)) {
+        const candidate = closestPointOnTriangle(
+          rawCentroid,
+          triangle.vertices,
+        );
+        if (
+          distanceSquared(candidate.point, rawCentroid) + 1e-12 <
+            distanceSquared(snapped.point, rawCentroid) ||
+          (Math.abs(
             distanceSquared(candidate.point, rawCentroid) -
               distanceSquared(snapped.point, rawCentroid),
           ) <= 1e-12 &&
-          triangle.triangleIndex < home.triangleIndex
-        )
-      ) {
-        home = triangle;
-        snapped = candidate;
+            triangle.triangleIndex < home.triangleIndex)
+        ) {
+          home = triangle;
+          snapped = candidate;
+        }
       }
-    }
-    return {
-      triangles: group,
-      normal,
-      area,
-      centroid: snapped.point,
-      home,
-      barycentric: snapped.barycentric,
-    };
-  }).sort((left, right) =>
-    right.area - left.area ||
-    left.home.triangleIndex - right.home.triangleIndex
-  );
+      return {
+        triangles: group,
+        normal,
+        area,
+        centroid: snapped.point,
+        home,
+        barycentric: snapped.barycentric,
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.area - left.area ||
+        left.home.triangleIndex - right.home.triangleIndex,
+    );
 }
 
 function patchSample(
@@ -962,15 +1039,21 @@ function surfaceCandidates(
   requestedCount: number,
 ): SurfaceCandidate[] {
   if (
-    mesh.positions.length < 9 || mesh.positions.length % 3 !== 0 ||
+    mesh.positions.length < 9 ||
+    mesh.positions.length % 3 !== 0 ||
     mesh.positions.some((value) => !Number.isFinite(value)) ||
-    mesh.indices.length < 3 || mesh.indices.length % 3 !== 0 ||
-    mesh.indices.some((index) =>
-      !Number.isInteger(index) || index < 0 ||
-      index >= mesh.positions.length / 3
+    mesh.indices.length < 3 ||
+    mesh.indices.length % 3 !== 0 ||
+    mesh.indices.some(
+      (index) =>
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= mesh.positions.length / 3,
     )
   ) {
-    throw new Error("The active placement surface needs finite indexed triangles.");
+    throw new Error(
+      "The active placement surface needs finite indexed triangles.",
+    );
   }
   const triangles = Array.from(
     { length: mesh.indices.length / 3 },
@@ -979,7 +1062,7 @@ function surfaceCandidates(
         (corner) => mesh.indices[triangleIndex * 3 + corner]!,
       ) as [number, number, number];
       const vertices = indices.map((index) =>
-        meshPoint(mesh.positions, index)
+        meshPoint(mesh.positions, index),
       ) as [Vector3Tuple, Vector3Tuple, Vector3Tuple];
       const areaVector = cross(
         subtract(vertices[1], vertices[0]),
@@ -1007,22 +1090,23 @@ function surfaceCandidates(
   const totalArea = patches.reduce((sum, patch) => sum + patch.area, 0);
   const sampleCount = Math.min(8192, Math.max(requestedCount, patches.length));
   const allocations = patches.map((patch) => {
-    const exact = patch.area / totalArea * sampleCount;
+    const exact = (patch.area / totalArea) * sampleCount;
     return { patch, count: Math.floor(exact), remainder: exact % 1 };
   });
-  let remainder = sampleCount -
-    allocations.reduce((sum, item) => sum + item.count, 0);
-  for (
-    const item of [...allocations].sort((a, b) =>
+  let remainder =
+    sampleCount - allocations.reduce((sum, item) => sum + item.count, 0);
+  for (const item of [...allocations].sort(
+    (a, b) =>
       b.remainder - a.remainder ||
-      a.patch.home.triangleIndex - b.patch.home.triangleIndex
-    )
-  ) {
+      a.patch.home.triangleIndex - b.patch.home.triangleIndex,
+  )) {
     if (remainder-- <= 0) break;
     item.count += 1;
   }
   return allocations.flatMap(({ patch, count }) =>
-    Array.from({ length: count }, (_, index) => patchSample(patch, index, count))
+    Array.from({ length: count }, (_, index) =>
+      patchSample(patch, index, count),
+    ),
   );
 }
 /** Deterministically spreads new pose-authoritative panels over an authoring mesh. */
@@ -1044,10 +1128,13 @@ export function automaticallySeedPanelsOnSurface(
     throw new Error("Load a GLB design surface before seeding panels on it.");
   }
   if (options.surface === "mechanical-shell" && !source.mechanicalShell) {
-    throw new Error("This project has no JSON mechanical-shell placement surface.");
+    throw new Error(
+      "This project has no JSON mechanical-shell placement surface.",
+    );
   }
   if (
-    panelDimensions.width <= 0 || panelDimensions.height <= 0 ||
+    panelDimensions.width <= 0 ||
+    panelDimensions.height <= 0 ||
     !Number.isFinite(panelDimensions.width + panelDimensions.height)
   ) {
     throw new Error("Panel dimensions must be positive finite values.");
@@ -1068,7 +1155,11 @@ export function automaticallySeedPanelsOnSurface(
   const available = [...candidates];
   const occupied = definition.panels.map((panel) => panel.pose.position);
   const occupiedFootprints = definition.panels.map((panel) =>
-    panelFootprint(panel.pose.position, panel.pose.orientation, panelDimensions)
+    panelFootprint(
+      panel.pose.position,
+      panel.pose.orientation,
+      panelDimensions,
+    ),
   );
   const center = mean(candidates.map((candidate) => candidate.position));
   const selected: SurfaceCandidate[] = [];
@@ -1090,13 +1181,17 @@ export function automaticallySeedPanelsOnSurface(
         orientation,
         panelDimensions,
       );
-      if ([...occupiedFootprints, ...selectedFootprints].some((existing) =>
-        panelFootprintsOverlap(footprint, existing)
-      )) continue;
+      if (
+        [...occupiedFootprints, ...selectedFootprints].some((existing) =>
+          panelFootprintsOverlap(footprint, existing),
+        )
+      )
+        continue;
       const seeds = [...occupied, ...selected.map((item) => item.position)];
-      const distance = seeds.length === 0
-        ? -distanceSquared(point, center)
-        : Math.min(...seeds.map((seed) => distanceSquared(point, seed)));
+      const distance =
+        seeds.length === 0
+          ? -distanceSquared(point, center)
+          : Math.min(...seeds.map((seed) => distanceSquared(point, seed)));
       if (distance > bestDistance + 1e-9) {
         bestIndex = index;
         bestDistance = distance;
@@ -1121,7 +1216,10 @@ export function automaticallySeedPanelsOnSurface(
     definition.panels.push({
       id: panelId,
       pose: {
-        position: add(candidate.position, scale(candidate.normal, normalOffset)),
+        position: add(
+          candidate.position,
+          scale(candidate.normal, normalOffset),
+        ),
         orientation,
       },
       surfaceAttachment: {
@@ -1168,7 +1266,8 @@ export function deletePanel(
   if (panelIndex < 0) throw new Error(`Unknown panel ${panelId}.`);
   const [panel] = definition.panels.splice(panelIndex, 1);
   if (
-    panel?.mountFaceId && definition.closures &&
+    panel?.mountFaceId &&
+    definition.closures &&
     !definition.closures.faceIds.includes(panel.mountFaceId)
   ) {
     definition.closures.faceIds.push(panel.mountFaceId);

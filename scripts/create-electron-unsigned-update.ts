@@ -23,10 +23,14 @@ export async function createUnsignedUpdateMetadata(
   commit: string,
 ): Promise<UnsignedUpdateMetadata> {
   if (!/^\d+\.\d+\.\d+$/.test(version)) {
-    throw new Error("Unsigned Electron update version must use three numeric parts.");
+    throw new Error(
+      "Unsigned Electron update version must use three numeric parts.",
+    );
   }
   if (!/^[0-9a-f]{40}$/.test(commit)) {
-    throw new Error("Unsigned Electron update commit must be a full lowercase SHA-1.");
+    throw new Error(
+      "Unsigned Electron update commit must be a full lowercase SHA-1.",
+    );
   }
   const dmgPath = join(releaseDirectory, "LOO-UME-Electron-arm64.dmg");
   const bytes = await readFile(dmgPath);
