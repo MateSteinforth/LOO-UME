@@ -118,15 +118,16 @@ export function createPhysicalRouteReviewSession(
         dinY = wire.y;
       }
     }
+    // Unequal axis slopes distinguish a row/column swap from a matching pattern.
     // Keep the reference fixed in pose-local coordinates. Only the output offsets rotate.
     panelSamples[slot.panelId] = entries.map((entry) => ({
       logicalIndex: entry.logicalIndex,
       red: Math.round(
         255 *
           (1 -
-            (Math.abs(entry.panelPixelX! - dinX) +
+            (2 * Math.abs(entry.panelPixelX! - dinX) +
               Math.abs(entry.panelPixelY! - dinY)) /
-              Math.max(1, columns + rows - 2)),
+              Math.max(1, 2 * (columns - 1) + rows - 1)),
       ),
       physicalOffsets: ([0, 1, 2, 3] as const).map((quarterTurnsClockwise) => {
         if (columns !== rows && quarterTurnsClockwise % 2 === 1) return -1;

@@ -376,7 +376,7 @@ export function createSimulatorSetupConfig(
   }));
   config.def = { ps: STANDALONE_PRESET_ID, on: true, bri: 128 };
   config.if = {
-    live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true },
+    live: { en: true, mso: true, rlm: true, timeout: 25, "no-gc": true },
   };
   return config;
 }
@@ -841,6 +841,26 @@ export function mappedPanelFramebuffer(
   });
 }
 
+/** Encode a physical diagnostic through the currently installed logical map. */
+export function logicalFramebufferForPhysicalFrame(
+  pixels: readonly [number, number, number][],
+  ledmap: readonly number[],
+): Array<[number, number, number]> {
+  if (
+    ledmap.length !== pixels.length ||
+    new Set(ledmap).size !== pixels.length ||
+    ledmap.some(
+      (index) =>
+        !Number.isInteger(index) || index < 0 || index >= pixels.length,
+    )
+  ) {
+    throw new Error("The physical diagnostic requires a complete LED map.");
+  }
+  return ledmap.map(
+    (physicalIndex) => [...pixels[physicalIndex]!] as [number, number, number],
+  );
+}
+
 export async function sendSimulatorFramebuffer(
   baseUrl: URL,
   pixels: readonly [number, number, number][],
@@ -1006,7 +1026,19 @@ export async function connectExistingSimulatorDevice(
       "The existing WLED address does not match the verified device.",
     );
   }
-  assertConfigReadback(configuration, payload);
+  // Older LOO/UME builds sent physical frames with realtime mapping disabled.
+  // Validate every other field before allowing this one-field migration.
+  const migratedConfiguration = structuredClone(configuration) as {
+    if?: { live?: { rlm?: unknown } };
+  };
+  const expectedLive = (
+    payload.config.if as { live?: { rlm?: unknown } } | undefined
+  )?.live;
+  const migrateRealtimeMapping =
+    expectedLive?.rlm === true &&
+    migratedConfiguration?.if?.live?.rlm === false;
+  if (migrateRealtimeMapping) migratedConfiguration.if!.live!.rlm = true;
+  assertConfigReadback(migratedConfiguration, payload);
   if (payload.ledmapBytes !== undefined) {
     if (!shouldContinue())
       throw new Error("Automatic ESP32 reconnect was cancelled.");
@@ -1020,6 +1052,19 @@ export async function connectExistingSimulatorDevice(
   }
   if (!shouldContinue())
     throw new Error("Automatic ESP32 reconnect was cancelled.");
+  if (migrateRealtimeMapping) {
+    options.update?.("Enabling the LED map for DDP playback.");
+    await postDeviceJson(currentUrl, "/json/cfg", {
+      if: { live: { rlm: true } },
+    });
+    if (!shouldContinue())
+      throw new Error("Automatic ESP32 reconnect was cancelled.");
+    const updatedConfiguration = await readJsonResponse(
+      await deviceFetch(currentUrl, "/json/cfg", undefined, 12_000),
+      "WLED realtime mapping read-back",
+    );
+    assertConfigReadback(updatedConfiguration, payload);
+  }
   options.update?.(
     "ESP32 contract matched. Syncing the current animation preset.",
   );

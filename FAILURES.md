@@ -3069,3 +3069,23 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Evidence:** LIVE-031 tests all four rotations and saved mapping parity. The browser test verifies clockwise output, inverse rotation, and a fixed reference marker.
 - **Test lesson:** After closing device review, wait for current device readiness before reopening it. An old reconnect log does not prove readiness.
 - **Status:** Corrected locally by LIVE-031. Native sculpture review remains required.
+
+### F-172 — DDP paths used different address orders
+
+- **Date:** 2026-09-05
+- **Symptom:** External input looked correct in the simulator but reached incorrect sculpture LEDs.
+- **Cause:** External frames used logical order; simulator effects and review used physical order. Setup disabled realtime LED mapping with `if.live.rlm=false`.
+- **Correction:** Send logical DDP for every source and enable WLED mapping. Encode physical diagnostic frames through the current map before transmission. Migrate only the legacy realtime setting after validating the remaining device contract, then verify read-back.
+- **Prevention:** Test physical output after the controller mapping step, including distinct pixel values. A uniform frame or an outgoing-packet check cannot prove address parity.
+- **Evidence:** LIVE-032 browser checks emulate the pinned WLED `show()` mapping policy for Art-Net, DDP, and review output.
+- **Status:** Software checks passed. This does not explain identical errors in streamed WLED effects and standalone effects.
+
+### F-173 — A symmetric review gradient could miss a row/column swap
+
+- **Date:** 2026-09-05
+- **Symptom:** Physical review appeared correct while streamed and standalone effects appeared rotated.
+- **Cause:** The equal-slope diagonal pattern is unchanged by reflection across its DIN-to-opposite-corner diagonal. This proves a review blind spot, not the reported hardware cause.
+- **Correction:** Use unequal axis slopes, keeping red 255 at DIN and black at the opposite corner. Compare both intermediate corners as well as DIN.
+- **Prevention:** Require eight distinct square orientation patterns and verify every panel through the exported map. Include output gamma in browser pixel assertions; low red values can round to zero.
+- **Evidence:** LIVE-032 tests all eight orientations and all 41 panel blocks against straight row addressing.
+- **Status:** Software checks passed. Physical pixel-order evidence remains required before changing measured profile facts or saved rotations.

@@ -8,7 +8,10 @@ import {
 } from "../../src/sculpture/PanelAssembly.ts";
 import { createSimulatorSetupConfig } from "../../web/src/Esp32Setup.ts";
 import { createHardwareMappingContract } from "../../web/src/HardwareMapping.ts";
-import { createPhysicalRouteReviewSession } from "../../web/src/PhysicalRouteReview.ts";
+import {
+  createPhysicalPanelReviewFrame,
+  createPhysicalRouteReviewSession,
+} from "../../web/src/PhysicalRouteReview.ts";
 import { createProvisionalWiringPreview } from "../../web/src/WiringPreview.ts";
 
 const SOURCE = "./physical-route-review.json";
@@ -187,6 +190,7 @@ test("mirrors external frames and reviews a physical panel", async ({
   page,
 }) => {
   const frames: Buffer[] = [];
+  const physicalFrames: Buffer[] = [];
   const applyEvents: string[] = [];
   let savedPreset: Record<string, unknown> | undefined;
   let servedLedmap: unknown;
@@ -201,7 +205,17 @@ test("mirrors external frames and reviews a physical panel", async ({
     localStorage.setItem("loo-ume:esp32-reconnect-enabled", "1");
   });
   await page.route("**/api/esp32-frame?**", async (route) => {
-    frames.push(route.request().postDataBuffer() ?? Buffer.alloc(0));
+    const frame = route.request().postDataBuffer() ?? Buffer.alloc(0);
+    frames.push(frame);
+    // Match pinned WLED show(): realtimeRespectLedMaps selects the LED map.
+    const physical = Buffer.alloc(frame.length);
+    const live = (config.if as { live: { rlm: boolean } }).live;
+    const map = (servedLedmap as { map: number[] }).map;
+    for (let logical = 0; logical < map.length; logical += 1) {
+      const destination = live.rlm ? map[logical]! : logical;
+      frame.copy(physical, destination * 3, logical * 3, logical * 3 + 3);
+    }
+    physicalFrames.push(physical);
     if (recordApplyEvents) applyEvents.push("live-frame");
     await route.fulfill({
       status: 200,
@@ -385,6 +399,12 @@ test("mirrors external frames and reviews a physical panel", async ({
   await expect
     .poll(() => frames.some((frame) => frame.equals(logicalRgb)))
     .toBe(true);
+  const expectedPhysical = Buffer.from(
+    physicalRgb.map((value) => Math.floor((value / 255) ** 2.2 * 255 + 0.5)),
+  );
+  await expect
+    .poll(() => physicalFrames.some((frame) => frame.equals(expectedPhysical)))
+    .toBe(true);
   await expect(page.locator("#sculpture-mirror-status")).toContainText(
     "1 visible frame mirrored",
   );
@@ -392,7 +412,10 @@ test("mirrors external frames and reviews a physical panel", async ({
   await expect(page.locator("#ddp-preview-status")).toContainText(
     "Waiting for DDP",
   );
-  const ddpRgb = new Uint8Array(contract.mapping.entries.length * 3).fill(96);
+  const ddpRgb = Uint8Array.from(
+    { length: contract.mapping.entries.length * 3 },
+    (_, index) => (index * 13 + 41) % 256,
+  );
   await sendDdpFrame(ddpRgb);
   const gammaDdpRgb = Buffer.from(
     ddpRgb.map((value) => Math.floor((value / 255) ** 2.2 * 255 + 0.5)),
@@ -404,6 +427,13 @@ test("mirrors external frames and reviews a physical panel", async ({
   );
   await expect
     .poll(() => frames.some((frame) => frame.equals(gammaDdpRgb)))
+    .toBe(true);
+  const ddpPhysical = Buffer.alloc(gammaDdpRgb.length);
+  browserContract.ledmap.map.forEach((physical: number, logical: number) => {
+    gammaDdpRgb.copy(ddpPhysical, physical * 3, logical * 3, logical * 3 + 3);
+  });
+  await expect
+    .poll(() => physicalFrames.some((frame) => frame.equals(ddpPhysical)))
     .toBe(true);
 
   const reviewButton = page.locator("#open-physical-route-review");
@@ -439,16 +469,15 @@ test("mirrors external frames and reviews a physical panel", async ({
   await expect
     .poll(() => frames.at(-1)?.byteLength)
     .toBe(contract.mapping.entries.length * 3);
-  const firstDiagnostic = frames.at(-1)!;
+  const firstDiagnostic = physicalFrames.at(-1)!;
   expect([...firstDiagnostic.subarray(0, 3)]).toEqual([255, 0, 0]);
   expect([...firstDiagnostic.subarray(63 * 3, 64 * 3)]).toEqual([0, 0, 0]);
-  expect(
-    Array.from({ length: contract.mapping.entries.length }, (_, index) =>
-      firstDiagnostic
-        .subarray(index * 3, index * 3 + 3)
-        .some((channel) => channel !== 0),
-    ).filter(Boolean),
-  ).toHaveLength(63);
+  const expectedDiagnostic = Buffer.from(
+    createPhysicalPanelReviewFrame(session, 0)
+      .flat()
+      .map((value) => Math.floor((value / 255) ** 2.2 * 255 + 0.5)),
+  );
+  expect(firstDiagnostic).toEqual(expectedDiagnostic);
 
   // Keep the same diagnostic frame active while the operator inspects the panel.
   const heldFrameCount = frames.length;
@@ -456,7 +485,7 @@ test("mirrors external frames and reviews a physical panel", async ({
     .poll(() => frames.length)
     .toBeGreaterThanOrEqual(heldFrameCount + 12);
   expect(
-    frames
+    physicalFrames
       .slice(heldFrameCount)
       .every((frame) => frame.equals(firstDiagnostic)),
   ).toBe(true);
@@ -476,14 +505,18 @@ test("mirrors external frames and reviews a physical panel", async ({
     "Address orientation 270°",
   );
   await expect
-    .poll(() => Array.from(frames.at(-1)?.subarray(56 * 3, 57 * 3) ?? []))
+    .poll(() =>
+      Array.from(physicalFrames.at(-1)?.subarray(56 * 3, 57 * 3) ?? []),
+    )
     .toEqual([255, 0, 0]);
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-physical-route-review-turns",
     "0",
   );
   await page.locator("#physical-route-review-rotate-left").click();
-  await expect.poll(() => frames.at(-1)?.equals(firstDiagnostic)).toBe(true);
+  await expect
+    .poll(() => physicalFrames.at(-1)?.equals(firstDiagnostic))
+    .toBe(true);
   await page.locator("#physical-route-review-rotate-right").click();
   await page.locator("#physical-route-review-confirm").click();
   await expect(page.locator("#physical-route-review-step")).toContainText(

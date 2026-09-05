@@ -134,7 +134,7 @@ import {
   isApprovedEsp32OutputGpio,
   isCurrentSimulatorSetup,
   createEsp32SetupController,
-  mappedPanelFramebuffer,
+  logicalFramebufferForPhysicalFrame,
   persistStandaloneAnimation,
   rememberAutomaticEsp32Reconnect,
   retainAutomaticReconnectEligibility,
@@ -529,7 +529,7 @@ app.innerHTML = `
     <dialog id="physical-route-review-dialog" class="physical-route-review-dialog">
       <div class="physical-route-review-shell">
         <div class="section-heading"><span>Review physical wiring</span><small>Address-only calibration</small></div>
-        <p class="mapping-note">One panel shows a diagonal gradient from black to red. The brightest red pixel marks DIN in the simulator. Select the matching virtual panel. Rotate the physical gradient until it matches the fixed simulator pattern, then confirm.</p>
+        <p class="mapping-note">One panel shows a gradient from black to red. Red decreases faster across one axis. The brightest red pixel marks DIN in the simulator. Select the matching virtual panel. Compare the full pattern, including both side corners. Rotate the physical gradient until it matches, then confirm. If no rotation matches, stop the review and check the panel pixel order.</p>
         <output id="physical-route-review-step" class="physical-route-review-step"></output>
         <div id="physical-route-review-current" class="physical-route-review-current"></div>
         <div id="physical-route-review-controls" class="physical-route-review-controls">
@@ -1390,16 +1390,9 @@ async function start(): Promise<void> {
       }
       return { outputs, ledCount, panelCount };
     };
-    const physicalSimulatorFramebuffer = (): Array<
-      [number, number, number]
-    > => {
-      const { ledCount } = loadedSimulatorDeployment();
-      return mappedPanelFramebuffer(
-        engine.pixels,
-        hardwareContract.mapping.entries,
-        0,
-        ledCount,
-      );
+    const logicalSimulatorFramebuffer = (): Array<[number, number, number]> => {
+      loadedSimulatorDeployment();
+      return logicalPixelsToRgbFramebuffer(engine.pixels);
     };
     const setupPayload = (): Esp32SetupPayload => {
       const { outputs, ledCount } = loadedSimulatorDeployment();
@@ -1532,7 +1525,10 @@ async function start(): Promise<void> {
         throw new Error("The reviewed ESP32 connection is unavailable.");
       await physicalRouteReviewFrameRequest?.catch(() => undefined);
       if (revision !== physicalRouteReviewFrameRevision) return;
-      const request = sendSimulatorFramebuffer(deviceUrl, pixels);
+      const request = sendSimulatorFramebuffer(
+        deviceUrl,
+        logicalFramebufferForPhysicalFrame(pixels, hardwareContract.ledmap.map),
+      );
       physicalRouteReviewFrameRequest = request;
       try {
         await request;
@@ -1678,7 +1674,7 @@ async function start(): Promise<void> {
         try {
           await sendSimulatorFramebuffer(
             deviceUrl,
-            physicalSimulatorFramebuffer(),
+            logicalSimulatorFramebuffer(),
           );
         } catch (error) {
           setLogMessage(
@@ -4980,7 +4976,7 @@ async function start(): Promise<void> {
         const deviceUrl = simulatorDeviceUrl;
         simulatorFrameRequest = Promise.resolve()
           .then(() =>
-            sendSimulatorFramebuffer(deviceUrl, physicalSimulatorFramebuffer()),
+            sendSimulatorFramebuffer(deviceUrl, logicalSimulatorFramebuffer()),
           )
           .catch((error) => {
             if (simulatorDeviceUrl?.href === deviceUrl.href) {

@@ -17,6 +17,8 @@ import {
   rotatePhysicalRouteReviewPanel,
 } from "../web/src/PhysicalRouteReview.ts";
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
+import { logicalFramebufferForPhysicalFrame } from "../web/src/Esp32Setup.ts";
+import { logicalPixelsToRgbFramebuffer } from "../web/src/ExternalFrameMirror.ts";
 
 const SOURCE = "sculptures/rhombicosidodecahedron/sculpture.json";
 const PROFILE = JSON.parse(
@@ -122,11 +124,70 @@ describe("physical route review", () => {
     ).toHaveLength(63);
     expect(frame[703]).toEqual([0, 0, 0]);
     expect(frame[704]).toEqual([255, 0, 0]);
-    expect(frame[705]).toEqual(frame[712]);
-    expect(frame[711]).toEqual([128, 0, 0]);
-    expect(frame[760]).toEqual([128, 0, 0]);
+    expect(frame[705]).not.toEqual(frame[712]);
+    expect(frame[711]).toEqual([85, 0, 0]);
+    expect(frame[760]).toEqual([170, 0, 0]);
     expect(frame[767]).toEqual([0, 0, 0]);
     expect(frame[768]).toEqual([0, 0, 0]);
+  });
+
+  it("distinguishes all eight square orientations, including a row/column swap", () => {
+    const { project, contract } = loaded();
+    const session = createPhysicalRouteReviewSession(
+      project.sculpture,
+      contract,
+    );
+    const frame = createPhysicalPanelReviewFrame(session, 0).slice(0, 64);
+    const patterns = new Set<string>();
+    for (const mirror of [false, true]) {
+      for (let turns = 0; turns < 4; turns += 1) {
+        const transformed = frame.map(() => 0);
+        frame.forEach(([red], index) => {
+          let x = index % 8;
+          let y = Math.floor(index / 8);
+          if (mirror) x = 7 - x;
+          for (let turn = 0; turn < turns; turn += 1) [x, y] = [7 - y, x];
+          transformed[y * 8 + x] = red;
+        });
+        patterns.add(JSON.stringify(transformed));
+      }
+    }
+    expect(patterns.size).toBe(8);
+  });
+
+  it("matches logical playback, physical review and the exported map on all 41 panels", () => {
+    const { project, contract } = loaded();
+    expect(contract.fingerprint).toBe("524500f5");
+    const session = createPhysicalRouteReviewSession(
+      project.sculpture,
+      contract,
+    );
+    for (let slot = 0; slot < 41; slot += 1) {
+      const physical = createPhysicalPanelReviewFrame(session, slot);
+      const reference = logicalPixelsToRgbFramebuffer(
+        createPhysicalPanelReviewReference(session, slot),
+      );
+      const diagnostic = logicalFramebufferForPhysicalFrame(
+        physical,
+        contract.ledmap.map,
+      );
+      expect(diagnostic).toEqual(reference);
+      // Pinned WLED applies this same table in show() to standalone and mapped DDP.
+      const output = physical.map(() => [0, 0, 0]);
+      reference.forEach((rgb, logical) => {
+        output[contract.ledmap.map[logical]!] = rgb;
+      });
+      expect(output).toEqual(physical);
+      // Independently check the measured straight rows, starting at DIN.
+      for (let offset = 0; offset < 64; offset += 1) {
+        const red = Math.round(
+          255 * (1 - (2 * (offset % 8) + Math.floor(offset / 8)) / 21),
+        );
+        expect(
+          output[session.slots[slot]!.physicalStartIndex + offset],
+        ).toEqual([red, 0, 0]);
+      }
+    }
   });
 
   it("swaps unique panel assignments and invalidates an earlier affected confirmation", () => {

@@ -22,6 +22,7 @@ import {
   RESTART_VERIFICATION_MINIMUM_WINDOW_MS,
   RESTART_VERIFICATION_REQUEST_TIMEOUT_MS,
   isCurrentSimulatorSetup,
+  logicalFramebufferForPhysicalFrame,
   mappedPanelFramebuffer,
   parseWledPresetJson,
   persistStandaloneAnimation,
@@ -60,7 +61,7 @@ function payload(): Esp32SetupPayload {
         },
       },
       if: {
-        live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true },
+        live: { en: true, mso: true, rlm: true, timeout: 25, "no-gc": true },
       },
     },
     expectedEffectName: "Rainbow",
@@ -334,7 +335,7 @@ describe("guarded ESP32 setup contracts", () => {
         },
       },
       if: {
-        live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true },
+        live: { en: true, mso: true, rlm: true, timeout: 25, "no-gc": true },
       },
     });
     const fullConfig = createSimulatorSetupConfig(
@@ -732,7 +733,7 @@ describe("guarded ESP32 setup contracts", () => {
         },
       },
       if: {
-        live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true },
+        live: { en: true, mso: true, rlm: true, timeout: 25, "no-gc": true },
       },
     };
     const state = {
@@ -1145,6 +1146,67 @@ describe("guarded ESP32 setup contracts", () => {
     expect(framebuffer[191]).toEqual([0, 191, 0]);
   });
 
+  it.each([true, false])(
+    "migrates only legacy realtime mapping and verifies read-back (%s)",
+    async (acceptWrite) => {
+      const value = payload();
+      const info = {
+        arch: "esp32",
+        ip: "192.168.68.53",
+        mac: "aa:bb:cc:dd:ee:ff",
+        leds: { count: 64 },
+      };
+      const config: Record<string, unknown> = {
+        ...structuredClone(value.config),
+        id: { mdns: "loo-ume" },
+      };
+      const legacy = structuredClone(config);
+      (legacy.if as { live: { rlm: boolean } }).live.rlm = false;
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+        .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+        .mockResolvedValueOnce(new Response(JSON.stringify(legacy)))
+        .mockResolvedValueOnce(new Response("{}"))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(acceptWrite ? config : legacy)),
+        );
+      vi.stubGlobal("fetch", fetchMock);
+      const persist = vi.fn().mockResolvedValue(undefined);
+      const connection = connectExistingSimulatorDevice(value, { persist });
+      if (acceptWrite) {
+        await expect(connection).resolves.toEqual(
+          new URL("http://192.168.68.53/"),
+        );
+        expect(persist).toHaveBeenCalledOnce();
+      } else {
+        await expect(connection).rejects.toThrow("if.live.rlm");
+        expect(persist).not.toHaveBeenCalled();
+      }
+      expect(JSON.parse(fetchMock.mock.calls[3]![1].body)).toEqual({
+        if: { live: { rlm: true } },
+      });
+    },
+  );
+
+  it("encodes physical review frames so WLED restores the requested output", () => {
+    const physical: Array<[number, number, number]> = [
+      [11, 22, 33],
+      [44, 55, 66],
+      [77, 88, 99],
+    ];
+    const map = [2, 0, 1];
+    const logical = logicalFramebufferForPhysicalFrame(physical, map);
+    const output = logical.map(() => [0, 0, 0]);
+    logical.forEach((rgb, index) => {
+      output[map[index]!] = rgb;
+    });
+    expect(output).toEqual(physical);
+    expect(() =>
+      logicalFramebufferForPhysicalFrame(physical, [0, 0, 2]),
+    ).toThrow();
+  });
+
   it("reconnects only to the exact persisted loaded simulator device and ledmap", async () => {
     const value = payload();
     value.ledmapBytes = '{"map":[0,1,2]}\n';
@@ -1165,7 +1227,7 @@ describe("guarded ESP32 setup contracts", () => {
         },
       },
       if: {
-        live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true },
+        live: { en: true, mso: true, rlm: true, timeout: 25, "no-gc": true },
       },
     };
     const fetchMock = vi
@@ -1417,7 +1479,7 @@ describe("guarded ESP32 setup contracts", () => {
         },
       },
       if: {
-        live: { en: true, mso: true, rlm: false, timeout: 25, "no-gc": true },
+        live: { en: true, mso: true, rlm: true, timeout: 25, "no-gc": true },
       },
     };
     const state = {

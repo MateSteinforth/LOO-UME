@@ -462,8 +462,6 @@ No tasks.
 
 ## In Progress
 
-No tasks.
-
 ## Ready to Merge
 
 ### `P1 · LIVE-031` Rotate a physical red calibration gradient
@@ -492,6 +490,18 @@ No tasks.
 - Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-35/LOO-UME-Electron-arm64.dmg), built from `40f2b548f031457b658b3d54b182125afe4699df`.
 
 ## Human Review
+
+### `P1 · LIVE-032` Verify the complete logical-to-physical output path
+
+- Owner: GPT-6 Astra; branch `codex/output-parity`; worktree `/tmp/loo-ume-output-parity`.
+- Scope: send logical DDP from every source and apply the WLED map once. Preserve authored poses, rotations, GPIOs, and measured profile facts.
+- Correction: enable realtime mapping. Reconnect migrates only legacy `rlm=false` after validating the remaining device contract and verifies the write. Physical review encodes its requested physical pattern through the installed map.
+- Correction: unequal red slopes distinguish all eight square orientations. The previous equal diagonal missed row/column reflection. This is a confirmed review weakness, not proof of the reported hardware cause.
+- Evidence received: operator project, hardware contract, and ESP32 ledmap. The canonical project reproduces fingerprint `524500f5`, the saved route, and PC-03/PC-08/SQ-16 poses and transforms. Operator GPIOs are 16/17/21/22; old notes still list 18/19.
+- Physical report: streamed WLED effects and standalone effects look identically wrong relative to the simulator. SQ-01 through SQ-05 appear 90 degrees right from the LED side; PC-03 appears 90 left, PC-08 90 right, SQ-16 180. Earlier physical review showed no defect. No compensating rotations were added.
+- Verification: 58 focused tests passed, including all 41 panel blocks through the exported map and eight distinct review orientations. Both browser journeys passed without retries after assertions included gamma correction and controller mapping. TypeScript and scoped lint passed. Independent read-only review confirmed the common mapping path and symmetric-pattern weakness.
+- Remaining: compare the revised complete pattern on hardware. The cause of the shared physical mismatch remains unverified; global logical ordering alone cannot explain a difference from the simulator. Device state was requested to inspect segment transforms. No new DMG or main integration was requested.
+- Delivery: software changes are saved for review; the complete physical-output task remains in Human Review.
 
 ### `P0 · LIVE-021` Confirm physical sculpture DDP output
 

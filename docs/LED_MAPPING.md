@@ -314,9 +314,15 @@ measurement status from silently passing readiness.
 ### Physical route review
 
 The Mapping toolbox can review an already assembled route through a current
-WLED link. The tool suspends normal DDP output and sends one complete physical
-panel block at a time. All other panels stay black. A diagonal red gradient
-runs from black to red 255 at the simulator DIN corner.
+WLED link. The tool suspends normal DDP output and lights one complete physical
+panel block at a time. It encodes this diagnostic into logical order through
+the current installed map. WLED applies that map once, as for normal playback.
+All other panels stay black. A red gradient runs from black to red 255 at the
+simulator DIN corner. Its horizontal slope is twice its vertical slope.
+The other two corners have red values 85 and 170 before output gamma correction.
+Compare the complete pattern, including both side corners. An equal-slope
+diagonal cannot detect a row/column swap. If no rotation matches, stop the review
+and check the panel pixel order; do not confirm a partial match.
 The simulator reference stays fixed while the physical pattern rotates.
 The tool refreshes the diagnostic frame every 250 ms after the previous send
 completes. This keeps WLED in realtime mode while the operator inspects a panel.
@@ -479,6 +485,14 @@ sculpture. When WLED connects, LOO/UME forwards the visible logical frame
 through WLAN DDP. WLED applies the installed ledmap one time. The queue keeps
 the latest frame during backpressure. The operator accepts this behavior as a
 working assumption.
+
+Simulator effects also send logical DDP frames. Setup enables `if.live.rlm` so
+the controller applies the installed map to realtime frames. Reconnect can
+change the legacy `false` value to `true` only after the remaining device
+contract passes validation. It reads the configuration again before enabling
+output. Standalone effects already apply the map in the pinned WLED `show()`
+path. Therefore a matching error in streamed effects and standalone effects
+requires investigation of their shared mapping and physical panel contract.
 
 The complete project package contains `loo_ume_ddp.tox`. This component accepts
 one TOP. An internal Fit TOP center-crops the image to 2:1 at 1280 x 640. Its
