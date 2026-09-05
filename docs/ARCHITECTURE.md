@@ -415,6 +415,12 @@ The loopback handler rejects public targets, arbitrary paths, redirects, and
 oversized request or response bodies. This same-origin boundary avoids browser
 cross-origin/private-network restrictions without making a general LAN proxy.
 
+Firmware build `2609051` requests 128 RMT symbols for each LED output.
+Four outputs fit the classic ESP32's 512-symbol memory.
+The receipt records the exact NeoPixelBus patch and compiled image hashes.
+The operator confirmed output on GPIOs 16, 17, 21, and 22.
+This test does not establish complete sculpture address parity or extended stability.
+
 For a loaded sculpture of one to 41 complete 8x8 panels on up to four outputs,
 the editor derives LED count, GPIOs, ledmap, current values, and animation directly
 from the current simulator. There is no separate configuration choice. It saves

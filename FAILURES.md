@@ -2990,7 +2990,7 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Correction:** Reduce the request to 128 symbols. Keep the pinned driver timing and GPIO configuration. Record exact source and binary hashes.
 - **Prevention:** Check the memory cost of each peripheral channel, not only the number of channels. Configuration read-back does not prove driver initialization.
 - **Evidence:** Pinned SDK capacity definitions, exact driver source, and rebuilt ELF instructions show four 128-symbol allocations fit.
-- **Status:** Build and Wi-Fi update passed. Four-chain physical observation and runtime stability remain under review.
+- **Status:** Build and Wi-Fi update passed. The operator confirmed all four outputs on GPIOs 16, 17, 21, and 22. Extended stability remains untested.
 
 ### F-169 — A changed target label blocked the firmware update
 
@@ -3034,3 +3034,18 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Prevention:** Test both startup orders with real shared UDP sockets. Do not treat silence as proof of incorrect sender settings.
 - **Evidence:** The later-sender test fails with the previous client. The corrected client receives the test frame after about 3.5 seconds.
 - **Status:** Corrected by LIVE-029. The operator confirmed recovery works in review DMG 32 on 2026-09-05.
+
+### F-166 — USB Improv setup recovered only after LOO/UME restarted
+
+- **Date:** 2026-09-05
+- **Context:** The operator changed to a reportedly identical ESP32 after setup worked on the first board.
+- **Symptom:** USB provisioning started at 18:44:09. Detection failed at 18:44:26 with `Improv Wi-Fi Serial not detected`.
+  The browser also reported `Error fetching current state: TIMEOUT` as an unhandled promise rejection.
+- **Evidence:** The operator confirmed that BOOT was released and the same procedure had worked with the first board.
+  Restarting LOO/UME then allowed setup to complete on the replacement board.
+- **Cause:** Unknown. A serial-session cleanup or reset fault remains a hypothesis. These messages do not establish GPIO damage or incorrect Wi-Fi credentials.
+- **Workaround:** If setup has stopped with this failure, restart LOO/UME and retry setup. The operator confirmed this workaround once.
+- **Investigation:** Check serial locks, SDK timers, pending state requests, port selection after a board change, and firmware startup.
+  SDK 2.8.1 uses an asynchronous Promise executor during initialization; inspect rejection handling without assuming that it caused the missing device response.
+- **Prevention:** Do not attribute this failure to a held BOOT button without evidence. Test repeated setup attempts and board changes within one application session.
+- **Status:** Open; FIRM-018 records the deferred correction. No software fix is confirmed.

@@ -99,6 +99,9 @@ command does not record physical observation evidence.
 
 ## Install the exact mapping with all LED rails disconnected
 
+On 2026-09-05, the operator confirmed LED output on GPIOs 16, 17, 21, and 22 with build `2609051`.
+This result confirms four outputs on the tested ESP32. Complete sculpture address parity and extended stability remain untested.
+
 From `main`, generate the guarded installation files:
 
 ```bash

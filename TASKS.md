@@ -31,6 +31,14 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-018` Recover USB Improv setup without an application restart
+
+- Scope: investigate Improv detection failure after changing ESP32 boards during one application session.
+- Evidence: BOOT was released. Restarting LOO/UME allowed setup to complete on the replacement board.
+- Acceptance: recover from a timeout and board change without an application restart or an unhandled promise rejection.
+- Checks: test serial cleanup, pending requests, timers, and a successful next attempt with two boards.
+- Status: deferred by the operator. See F-166 in `FAILURES.md`; no software correction is confirmed.
+
 ### `P2 · REVIEW-020` Correct structural generation for saved examples
 
 - Deferred by the operator. Ribbon junctions and surface bridges can intersect
@@ -125,7 +133,7 @@ No tasks.
 - Checks: 44 focused unit and host tests, two browser tests, formatting, full lint, full typed lint, TypeScript, browser and Electron builds, and WASM integrity passed.
 - Review: save the project before new reconnect permission. Failed replacement preserves the last saved ZIP; exact device checks remain active.
 - Conflicts: the flash-dialog task also changes `web/src/Esp32Setup.ts`, `web/src/main.ts`, and documentation. Review those changes during integration.
-- Limit: installed-application restart review remains. LIVE-021 retains the unresolved missing-output test.
+- Limit: installed-application restart review remains. FIRM-019 resolves the missing-output test.
 - Host contribution: `c05b250` on `codex/esp32-startup-snapshot-host`, worktree `/tmp/loo-ume-startup-snapshot-host`, integrated here as `8abed54`.
 
 ## Done (latest integrations)
@@ -448,7 +456,7 @@ No tasks.
 - Access: USB is attached to the operator's laptop. The host completed the authorized update through Wi-Fi.
 - Conflicts: firmware receipts, packaging downloads, and task records. Preserve the other agents' worktrees and changes.
 - Build: the application and complete USB image compiled with the pinned toolchain. Independent ELF review confirms the WS2812 initializer requests 128 symbols.
-- Checks: 43 focused firmware, deployment, setup, and release tests passed after the image-size guard was synchronized.
+- Checks: 62 combined tests, four browser tests, lint, typed lint, TypeScript, and the Electron build passed. Workflow YAML and image integrity checks passed.
 - Device: authorized Wi-Fi update passed on MAC `24:62:AB:C9:F3:A8`; read-back confirms build `2609051` and unchanged four-output settings.
 - Physical review: the operator confirmed that GPIOs 16, 17, 21, and 22 work on 2026-09-05. Extended stability remains untested.
 - Delivery: the operator authorized main integration and an Apple Silicon application with this image, LIVE-024 reconnect fixes, and the current setup dialog.
@@ -469,10 +477,6 @@ No tasks.
 - Pending review: test Wi-Fi scanning with a physical ESP32 that runs WLED with Improv support.
 - Delivery: the operator authorized the review build. Keep this branch and worktree separate from `main` until the operator requests integration.
 
-## Ready to Merge
-
-No tasks.
-
 ## Human Review
 
 ### `P0 · LIVE-021` Confirm physical sculpture DDP output
@@ -481,9 +485,8 @@ No tasks.
 - Acceptance: the physical sculpture receives live DDP frames. Color, panel
   order, and LED address order match the simulator.
 - Dependency: use the FIRM-015 ESP32 configuration now integrated in `main`.
-- LIVE-024 read-back confirms four configured outputs on GPIOs 16/17/21/22 and a complete 2,624-LED segment. Physical output remains unconfirmed on outputs 3 and 4.
-- Next test: exchange GPIOs 16 and 21 between output positions 1 and 3. Use the same panel and cable. Restore the original assignments afterward.
-- This device-write test needs operator approval and observation. It separates GPIO damage from an output-driver failure; no firmware correction is established.
+- FIRM-019 corrected output memory allocation. The operator confirmed all four outputs on GPIOs 16, 17, 21, and 22 on 2026-09-05.
+- Read-back confirms the same four configured outputs and a complete 2,624-LED segment. Complete sculpture address parity remains unverified.
 - Remaining risk: physical LED reception and complete address parity are not
   yet verified.
 
