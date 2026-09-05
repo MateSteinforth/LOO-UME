@@ -6,7 +6,7 @@ download fabrication and control files.
 
 ## Install on Mac
 
-[Download LOO/UME for Mac](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-macos-unsigned/LOO-UME-Electron-universal.dmg).
+[Download LOO/UME for Mac](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-macos-unsigned/LOO-UME-Electron-arm64.dmg).
 
 1. Open the downloaded DMG.
 2. Drag **LOO UME** into **Applications**.

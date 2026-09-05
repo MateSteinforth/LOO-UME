@@ -19,7 +19,7 @@ describe("Electron Mac release routing", () => {
       'paths-ignore:\n      - "**/*.md"\n      - "tests/**"',
     );
     expect(electronWorkflow).toContain("release_tag=electron-macos-unsigned");
-    expect(electronWorkflow).toContain("LOO-UME-Electron-universal.dmg");
+    expect(electronWorkflow).toContain("LOO-UME-Electron-arm64.dmg");
     expect(electronWorkflow).toContain("--prerelease");
     expect(electronWorkflow).toContain(
       "scripts/create-electron-unsigned-update.ts",
@@ -40,7 +40,7 @@ describe("Electron Mac release routing", () => {
     expect(launcherWorkflow).not.toContain("branches:\n      - main");
     expect(launcherWorkflow).toContain('tags:\n      - "mac-launcher-v*"');
     expect(readme).toContain(
-      "releases/download/electron-macos-unsigned/LOO-UME-Electron-universal.dmg",
+      "releases/download/electron-macos-unsigned/LOO-UME-Electron-arm64.dmg",
     );
     expect(readme).toContain("[Development](docs/DEVELOPMENT.md)");
   });
@@ -60,7 +60,7 @@ describe("Electron Mac release routing", () => {
     try {
       const dmg = Uint8Array.from([1, 2, 3, 4]);
       await writeFile(
-        join(releaseDirectory, "LOO-UME-Electron-universal.dmg"),
+        join(releaseDirectory, "LOO-UME-Electron-arm64.dmg"),
         dmg,
       );
       const metadata = await createUnsignedUpdateMetadata(
@@ -73,7 +73,7 @@ describe("Electron Mac release routing", () => {
         version: "0.1.123",
         commit: "a".repeat(40),
         downloadUrl: UNSIGNED_DMG_URL,
-        fileName: "LOO-UME-Electron-universal.dmg",
+        fileName: "LOO-UME-Electron-arm64.dmg",
         byteLength: 4,
       });
       expect(metadata.sha256).toMatch(/^[0-9a-f]{64}$/);

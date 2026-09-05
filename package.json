@@ -41,7 +41,7 @@
     "electron": "npm run stage:firmware && npm run build:electron && electron .",
     "review:electron:mac": "npm run stage:firmware && npm run build:electron-main && npm run build:electron-mac-icon && sh scripts/launch-local-packaged-electron.sh",
     "build:electron-mac-icon": "sh scripts/build-electron-mac-icon.sh",
-    "package:electron:mac": "npm run build:electron && npm run build:electron-mac-icon && electron-builder --mac dmg zip",
+    "package:electron:mac": "npm run build:electron && npm run build:electron-mac-icon && electron-builder --mac dmg zip --arm64",
     "start:desktop": "tsx scripts/local-editor-server.ts",
     "desktop": "npm run build:desktop && npm run start:desktop",
     "preview": "vite preview",

@@ -86,7 +86,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npx electron-builder --mac dmg zip --universal --publish never --config.mac.notarize=false
+        run: npx electron-builder --mac dmg zip --arm64 --publish never --config.mac.notarize=false
 
       - name: Package the signed and notarized release
         if: startsWith(github.ref, 'refs/tags/electron-v')
@@ -96,7 +96,7 @@ jobs:
           APPLE_ID: ${{ secrets.MACOS_APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.MACOS_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.MACOS_APPLE_TEAM_ID }}
-        run: npx electron-builder --mac dmg zip --universal --publish never
+        run: npx electron-builder --mac dmg zip --arm64 --publish never
 
       - name: Create the free update notice
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -109,10 +109,10 @@ jobs:
         run: |
           test -n "$(find release -maxdepth 1 -name '*.dmg' -print -quit)"
           test -n "$(find release -maxdepth 1 -name '*.zip' -print -quit)"
-          test -s "release/mac-universal/LOO UME.app/Contents/Resources/app/build/firmware/wled-orbital-esp32dev-full-flash.bin"
+          test -s "release/mac-arm64/LOO UME.app/Contents/Resources/app/build/firmware/wled-orbital-esp32dev-full-flash.bin"
           node scripts/verify-packaged-firmware.mjs \
-            "release/mac-universal/LOO UME.app/Contents/Resources/app/firmware/build-receipt.json" \
-            "release/mac-universal/LOO UME.app/Contents/Resources/app/build/firmware/wled-orbital-esp32dev-full-flash.bin"
+            "release/mac-arm64/LOO UME.app/Contents/Resources/app/firmware/build-receipt.json" \
+            "release/mac-arm64/LOO UME.app/Contents/Resources/app/build/firmware/wled-orbital-esp32dev-full-flash.bin"
           test -s release/latest-mac.yml
           if [ "$GITHUB_REF" = refs/heads/main ]; then
             test -s release/unsigned-update.json
@@ -159,11 +159,11 @@ jobs:
           set -eu
           sha256sum --check release/SHA256SUMS
           release_tag=electron-macos-unsigned
-          release_notes="Unsigned universal Mac build from canonical main at $GITHUB_SHA. Right-click Open is required once. Installed free builds can notify the operator and open this DMG; replacement remains manual."
+          release_notes="Unsigned Apple Silicon Mac build from canonical main at $GITHUB_SHA. Right-click Open is required once. Installed free builds can notify the operator and open this DMG; replacement remains manual."
           if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$release_tag" \
-              release/LOO-UME-Electron-universal.dmg \
-              release/LOO-UME-Electron-universal.zip \
+              release/LOO-UME-Electron-arm64.dmg \
+              release/LOO-UME-Electron-arm64.zip \
               release/unsigned-update.json \
               release/SHA256SUMS \
               --repo "$GITHUB_REPOSITORY" \
@@ -175,8 +175,8 @@ jobs:
               --prerelease
           else
             gh release create "$release_tag" \
-              release/LOO-UME-Electron-universal.dmg \
-              release/LOO-UME-Electron-universal.zip \
+              release/LOO-UME-Electron-arm64.dmg \
+              release/LOO-UME-Electron-arm64.zip \
               release/unsigned-update.json \
               release/SHA256SUMS \
               --repo "$GITHUB_REPOSITORY" \
@@ -186,9 +186,9 @@ jobs:
               --prerelease \
               --latest=false
           fi
-          download_url="https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag/LOO-UME-Electron-universal.dmg"
+          download_url="https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag/LOO-UME-Electron-arm64.dmg"
           printf '### Default unsigned Mac download\n\n[%s](%s)\n' \
-            'Download LOO-UME-Electron-universal.dmg' "$download_url" \
+            'Download LOO-UME-Electron-arm64.dmg' "$download_url" \
             >> "$GITHUB_STEP_SUMMARY"
 
   publish:
@@ -243,7 +243,7 @@ jobs:
             --title "LOO/UME Electron review $GITHUB_RUN_NUMBER" \
             --notes "Unsigned review build from $GITHUB_REF_NAME at $GITHUB_SHA. This is not an update feed." \
             --prerelease
-          download_url="https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag/LOO-UME-Electron-universal.dmg"
+          download_url="https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag/LOO-UME-Electron-arm64.dmg"
           printf '### Direct Electron review download\n\n[%s](%s)\n' \
-            'Download LOO-UME-Electron-universal.dmg' "$download_url" \
+            'Download LOO-UME-Electron-arm64.dmg' "$download_url" \
             >> "$GITHUB_STEP_SUMMARY"

@@ -5,14 +5,14 @@ import { fileURLToPath } from "node:url";
 
 export const UNSIGNED_DMG_URL =
   "https://github.com/MateSteinforth/LOO-UME/releases/download/" +
-  "electron-macos-unsigned/LOO-UME-Electron-universal.dmg";
+  "electron-macos-unsigned/LOO-UME-Electron-arm64.dmg";
 
 export interface UnsignedUpdateMetadata {
   schemaVersion: "1.0.0";
   version: string;
   commit: string;
   downloadUrl: typeof UNSIGNED_DMG_URL;
-  fileName: "LOO-UME-Electron-universal.dmg";
+  fileName: "LOO-UME-Electron-arm64.dmg";
   byteLength: number;
   sha256: string;
 }
@@ -28,14 +28,14 @@ export async function createUnsignedUpdateMetadata(
   if (!/^[0-9a-f]{40}$/.test(commit)) {
     throw new Error("Unsigned Electron update commit must be a full lowercase SHA-1.");
   }
-  const dmgPath = join(releaseDirectory, "LOO-UME-Electron-universal.dmg");
+  const dmgPath = join(releaseDirectory, "LOO-UME-Electron-arm64.dmg");
   const bytes = await readFile(dmgPath);
   const metadata: UnsignedUpdateMetadata = {
     schemaVersion: "1.0.0",
     version,
     commit,
     downloadUrl: UNSIGNED_DMG_URL,
-    fileName: "LOO-UME-Electron-universal.dmg",
+    fileName: "LOO-UME-Electron-arm64.dmg",
     byteLength: bytes.length,
     sha256: createHash("sha256").update(bytes).digest("hex"),
   };

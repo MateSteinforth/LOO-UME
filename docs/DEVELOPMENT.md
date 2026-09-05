@@ -195,7 +195,8 @@ checkout, Python, or Emscripten.
 
 ## Electron packaging
 
-Build the universal macOS DMG and update ZIP:
+Build the Apple Silicon macOS DMG and update ZIP:
+Apple Silicon (`arm64`) is the only required Mac target. Do not build Intel or universal Mac packages.
 
 ```bash
 npm run package:electron:mac

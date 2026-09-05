@@ -128,7 +128,7 @@ describe("Electron desktop boundaries", () => {
       version: "0.1.124",
       commit: "a".repeat(40),
       downloadUrl: UNSIGNED_DMG_URL,
-      fileName: "LOO-UME-Electron-universal.dmg",
+      fileName: "LOO-UME-Electron-arm64.dmg",
       byteLength: 1234,
       sha256: "b".repeat(64),
     })));
@@ -150,7 +150,7 @@ describe("Electron desktop boundaries", () => {
       version: "0.1.125",
       commit: "a".repeat(40),
       downloadUrl: "https://example.invalid/LOO-UME.dmg",
-      fileName: "LOO-UME-Electron-universal.dmg",
+      fileName: "LOO-UME-Electron-arm64.dmg",
       byteLength: 1234,
       sha256: "b".repeat(64),
     })));

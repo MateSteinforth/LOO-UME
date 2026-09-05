@@ -24,14 +24,14 @@ export const UNSIGNED_UPDATE_METADATA_URL =
   "electron-macos-unsigned/unsigned-update.json";
 export const UNSIGNED_DMG_URL =
   "https://github.com/MateSteinforth/LOO-UME/releases/download/" +
-  "electron-macos-unsigned/LOO-UME-Electron-universal.dmg";
+  "electron-macos-unsigned/LOO-UME-Electron-arm64.dmg";
 
 interface UnsignedUpdateMetadata {
   schemaVersion: "1.0.0";
   version: string;
   commit: string;
   downloadUrl: string;
-  fileName: "LOO-UME-Electron-universal.dmg";
+  fileName: "LOO-UME-Electron-arm64.dmg";
   byteLength: number;
   sha256: string;
 }
@@ -71,7 +71,7 @@ export async function checkUnsignedDesktopUpdate(
     typeof value.version !== "string" ||
     !/^[0-9a-f]{40}$/.test(value.commit ?? "") ||
     value.downloadUrl !== UNSIGNED_DMG_URL ||
-    value.fileName !== "LOO-UME-Electron-universal.dmg" ||
+    value.fileName !== "LOO-UME-Electron-arm64.dmg" ||
     !Number.isSafeInteger(value.byteLength) ||
     (value.byteLength ?? 0) <= 0 ||
     !/^[0-9a-f]{64}$/.test(value.sha256 ?? "")

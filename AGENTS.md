@@ -145,6 +145,9 @@ Historical Schema 1 inputs are available only through Git history.
 
 ## Working safely
 
+- Build macOS packages for Apple Silicon (`arm64`) only. Do not build Intel or
+  universal Mac packages.
+
 - Preserve user changes and comments recording print tests or fit corrections.
 - Keep geometry changes small and state their mechanical intent.
 - Do not refactor production code during documentation-only work.

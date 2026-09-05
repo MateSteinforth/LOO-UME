@@ -111,6 +111,16 @@ simulator and TouchDesigner DDP input.
 - Likely conflicts: Electron serial selection, ESP32 setup, firmware receipts,
   hardware profiles, release downloads, cache storage, and setup tests.
 
+## In Progress
+
+### `P1 · DEV-024` Build Apple Silicon Mac packages
+
+- Owner: GPT-6 Astra; branch `codex/apple-silicon-dmg`; worktree `/tmp/loo-ume-apple-silicon`.
+- Dependency: includes DEV-020 from `codex/dev-iteration`.
+- Scope: build ARM64 packages and align package checks and download metadata.
+- Acceptance: the Mac workflow produces a verified Apple Silicon review DMG.
+- Conflicts: Mac release workflow, package command, update metadata, and download documentation.
+
 ## Ready to Merge
 
 ### `P1 · DEV-020` Reduce development checks and repeated builds
