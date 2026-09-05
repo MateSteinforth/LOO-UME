@@ -111,7 +111,7 @@ simulator and TouchDesigner DDP input.
 - Likely conflicts: Electron serial selection, ESP32 setup, firmware receipts,
   hardware profiles, release downloads, cache storage, and setup tests.
 
-## In Progress
+## Ready to Merge
 
 ### `P1 · DEV-025` Correct Mac review signing
 
@@ -120,8 +120,10 @@ simulator and TouchDesigner DDP input.
 - Acceptance: signature verification and a packaged editor launch pass on Apple Silicon.
 - Dependency: includes DEV-020 and DEV-024. Apple notarization credentials are not configured.
 - Conflicts: Mac workflow, review entitlements, and package checks.
-
-## Ready to Merge
+- Checks: workflow validation, script syntax, DMG signature, ARM64 architecture, and packaged editor launch passed.
+- Delivery: run `33952586743` built commit `86c6018`.
+  [Download review 26](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-26/LOO-UME-Electron-arm64.dmg).
+- Limit: the runner launch does not prove Gatekeeper approval on the operator's Mac. This review has no Apple notarization.
 
 ### `P1 · DEV-024` Build Apple Silicon Mac packages
 

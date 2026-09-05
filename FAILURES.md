@@ -15,7 +15,7 @@ reveals a durable lesson.
 - **Correction:** Apply an explicit ad-hoc signature with review entitlements. Verify the signature and launch the application extracted from the DMG.
 - **Prevention:** Require both checks before publication. Distinguish launch checks from Apple notarization and download approval.
 - **Evidence:** Run `33952253932` reported that signing was skipped. DEV-025 adds the missing checks.
-- **Status:** Verification in progress.
+- **Status:** Run `33952586743` passed signature verification and launched the editor extracted from the DMG on Apple Silicon.
 
 - Add an entry when the cause and prevention are understood well enough to help
   the next agent. If the investigation is incomplete, mark that explicitly.
