@@ -111,7 +111,26 @@ simulator and TouchDesigner DDP input.
 - Likely conflicts: Electron serial selection, ESP32 setup, firmware receipts,
   hardware profiles, release downloads, cache storage, and setup tests.
 
-## Ready to Merge
+## Ready
+
+No tasks.
+
+## Done (latest integrations)
+
+### `P1 · INT-026` Integrate the latest completed application changes
+
+- Owner: GPT-6 Astra; branch `codex/integrate-latest`; worktree `/tmp/loo-ume-integrate-latest`.
+- Scope: combine DEV-020, DEV-024, DEV-025, LIVE-022, and LIVE-023 into `main`.
+- Acceptance: preserve manual GPIO fields, reconnect persistence, development checks, workers, and Apple Silicon package signing.
+- Checks: source checks, relevant unit and browser tests, production builds, and the Mac package launch check.
+- Conflicts: browser orchestration, Electron startup, and task and failure records.
+- Authorization: the operator requested integration into `main`. Retain deferred P2 defects and physical hardware review.
+- Result: integrated the complete branch chains without changing measured geometry or deferred P2 scope.
+- Verification: 586 tests passed. The 15 existing geometry failures match the earlier DEV-020 report; no new failures appeared.
+  Five browser journeys, formatting, lint, type-aware lint, TypeScript, production builds, and workflow validation passed.
+- Mac verification: run `33953179437` checked the DMG signature, ARM64 launch, four GPIO edits, and reconnect authorization across restart.
+- Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-27/LOO-UME-Electron-arm64.dmg).
+- Cleanup: remove this task's integrated temporary worktrees and branches after the main push. Preserve the separate LIVE worktrees and simulator-generation branch.
 
 ### `P1 · DEV-025` Correct Mac review signing
 
@@ -135,7 +154,7 @@ simulator and TouchDesigner DDP input.
 - Checks: 12 package and desktop tests, TypeScript, and YAML validation passed.
 - Delivery: Mac run `33952253932` built commit `c08bafd` and verified the packaged firmware.
   [Download the review DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-25/LOO-UME-Electron-arm64.dmg).
-- The operator must check application behavior on a Mac. No merge into `main` occurred.
+- Mac launch and GPIO checks now pass under INT-026. Physical device review remains separate.
 
 ### `P1 · DEV-020` Reduce development checks and repeated builds
 
@@ -166,13 +185,32 @@ simulator and TouchDesigner DDP input.
 - Limits: the complete suite still contains the deferred geometry failures.
   Electron startup, watched restart, and shutdown ran under a virtual display;
   that display blocks Electron WebGL. No physical hardware review was performed.
-  Do not merge into `main` without operator authorization.
+  The operator authorized integration under INT-026.
 
-## Ready
+### `P0 · LIVE-023` Configure replacement ESP32 output GPIOs
 
-No tasks.
+- Result: Developer utilities shows one field for each current output. It saves
+  unique approved ESP32-WROOM pins without changing routes or address order.
+- Verification: 53 focused unit tests, the GPIO browser journey, application
+  TypeScript, production web build, and diff checks passed.
+- Dependency: this branch includes LIVE-022 so physical review keeps automatic
+  reconnect. INT-026 integrates LIVE-022 with this task.
+- Owner: Codex on `codex/live-023-custom-gpios` in
+  `/tmp/loo-ume-live-023-custom-gpios`.
+- Remaining review: set GPIO 16, 17, 21, and 22. Run ESP32 setup once. Confirm
+  that all four physical chains receive their correct frames.
 
-## Done (latest integrations)
+### `P0 · LIVE-022` Persist Electron ESP32 reconnect authorization
+
+- Result: successful setup records reconnect authorization in Electron
+  application data. A later process reads it across random loopback ports.
+- Verification: the random-port restart regression, ESP32 setup tests,
+  Electron tests, application TypeScript, focused Node TypeScript, Electron
+  bundling, the production web build, and diff checks passed.
+- Owner: Codex on `codex/live-021-persistent-reconnect` in
+  `/tmp/loo-ume-live-021-reconnect`.
+- Remaining review: restart local Electron after one successful setup. Confirm
+  that LOO/UME finds `loo-ume.local` and enables the sculpture mirror.
 
 ### `P0 · FIRM-015` Include the verified ESP32 image in the Mac application
 
@@ -358,41 +396,7 @@ No tasks.
 
 ## In Progress
 
-### `P1 · INT-026` Integrate the latest completed application changes
-
-- Owner: GPT-6 Astra; branch `codex/integrate-latest`; worktree `/tmp/loo-ume-integrate-latest`.
-- Scope: combine DEV-020, DEV-024, DEV-025, LIVE-022, and LIVE-023 into `main`.
-- Acceptance: preserve manual GPIO fields, reconnect persistence, development checks, workers, and Apple Silicon package signing.
-- Checks: source checks, relevant unit and browser tests, production builds, and the Mac package launch check.
-- Conflicts: browser orchestration, Electron startup, and task and failure records.
-- Authorization: the operator requested integration into `main`. Retain deferred P2 defects and physical hardware review.
-
-## Ready to Merge
-
-### `P0 · LIVE-023` Configure replacement ESP32 output GPIOs
-
-- Result: Developer utilities shows one field for each current output. It saves
-  unique approved ESP32-WROOM pins without changing routes or address order.
-- Verification: 53 focused unit tests, the GPIO browser journey, application
-  TypeScript, production web build, and diff checks passed.
-- Dependency: this branch includes LIVE-022 so physical review keeps automatic
-  reconnect. Integrate LIVE-022 before or with this task.
-- Owner: Codex on `codex/live-023-custom-gpios` in
-  `/tmp/loo-ume-live-023-custom-gpios`.
-- Remaining review: set GPIO 16, 17, 21, and 22. Run ESP32 setup once. Confirm
-  that all four physical chains receive their correct frames.
-
-### `P0 · LIVE-022` Persist Electron ESP32 reconnect authorization
-
-- Result: successful setup records reconnect authorization in Electron
-  application data. A later process reads it across random loopback ports.
-- Verification: the random-port restart regression, ESP32 setup tests,
-  Electron tests, application TypeScript, focused Node TypeScript, Electron
-  bundling, the production web build, and diff checks passed.
-- Owner: Codex on `codex/live-021-persistent-reconnect` in
-  `/tmp/loo-ume-live-021-reconnect`.
-- Remaining review: restart local Electron after one successful setup. Confirm
-  that LOO/UME finds `loo-ume.local` and enables the sculpture mirror.
+No tasks.
 
 ## Human Review
 
