@@ -313,6 +313,37 @@ measurement status from silently passing readiness.
 
 ### Physical route review
 
+For the reported 41-panel mismatch, test backwards from physical output:
+standalone WLED first, then LOO/UME DDP, then external input. An unchanged
+export or matching fingerprint proves software consistency, not installed
+pixel order.
+
+For the specific project with map fingerprint `524500f5`, a direct JSON test
+can light the four corners of SQ-04. Quit LOO/UME and stop other senders first.
+This command uses WLED's individual-pixel JSON path with realtime disabled;
+it does not use DDP, change the map, save a preset, or change GPIOs:
+
+```bash
+curl --fail --show-error -H 'Content-Type: application/json' \
+  --data '{"live":false,"on":true,"tt":0,"seg":{"id":0,"i":[0,2624,"000000",31,"FF0000",32,"00FF00",311,"0000FF",312,"FFFFFF"]}}' \
+  http://loo-ume.local/json/state
+```
+
+The saved map sends these logical addresses to physical 0, 7, 56, and 63.
+View SQ-04 from the LED side with the north opening above it. Its saved pose
+places green and red at the upper left and upper right, and white and blue at
+the lower left and lower right. Other LEDs should be black. Record the actual
+corner colors before making changes. This tests the existing native mapping
+path; a disagreement still requires investigation of panel order and device
+state. It does not justify an assumed corrective rotation.
+
+Resume the previous effect without saving a new preset:
+
+```bash
+curl --fail --show-error -H 'Content-Type: application/json' \
+  --data '{"seg":{"id":0,"frz":false}}' http://loo-ume.local/json/state
+```
+
 The Mapping toolbox can review an already assembled route through a current
 WLED link. The tool suspends normal DDP output and lights one complete physical
 panel block at a time. It encodes this diagnostic into logical order through

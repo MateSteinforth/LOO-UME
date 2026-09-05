@@ -502,6 +502,8 @@ No tasks.
 - Verification: 58 focused tests passed, including all 41 panel blocks through the exported map and eight distinct review orientations. Both browser journeys passed without retries after assertions included gamma correction and controller mapping. TypeScript and scoped lint passed. Independent read-only review confirmed the common mapping path and symmetric-pattern weakness.
 - Remaining: compare the revised complete pattern on hardware. The cause of the shared physical mismatch remains unverified; global logical ordering alone cannot explain a difference from the simulator. Device state was requested to inspect segment transforms. No new DMG or main integration was requested.
 - Delivery: software changes are saved for review; the complete physical-output task remains in Human Review.
+- Hardware test order: operator requires standalone parity first, then LOO/UME DDP, then MadMapper. Start with a direct WLED JSON four-corner test on SQ-04, without changing the map. Logical 31/32/311/312 map to physical 0/7/56/63. See `docs/LED_MAPPING.md`.
+- Review build: Mac build 37 (`33985685786`) packaged and verified the application from `cd5b6d7`; its direct DMG is published under `electron-review-37`. This does not establish hardware parity.
 
 ### `P0 · LIVE-021` Confirm physical sculpture DDP output
 

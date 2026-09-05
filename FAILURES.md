@@ -3087,5 +3087,6 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Cause:** The equal-slope diagonal pattern is unchanged by reflection across its DIN-to-opposite-corner diagonal. This proves a review blind spot, not the reported hardware cause.
 - **Correction:** Use unequal axis slopes, keeping red 255 at DIN and black at the opposite corner. Compare both intermediate corners as well as DIN.
 - **Prevention:** Require eight distinct square orientation patterns and verify every panel through the exported map. Include output gamma in browser pixel assertions; low red values can round to zero.
+- **Operator correction:** An unchanged map and matching generated fingerprint do not prove correct physical addressing. Do not call the current map valid while standalone output disagrees with the simulator. Keep software consistency separate from hardware evidence.
 - **Evidence:** LIVE-032 tests all eight orientations and all 41 panel blocks against straight row addressing.
 - **Status:** Software checks passed. Physical pixel-order evidence remains required before changing measured profile facts or saved rotations.
