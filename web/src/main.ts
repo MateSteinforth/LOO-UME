@@ -148,6 +148,7 @@ import {
   assignPhysicalRouteReviewPanel,
   confirmPhysicalRouteReviewSlot,
   createPhysicalPanelReviewFrame,
+  createPhysicalPanelReviewReference,
   createPhysicalRouteReviewSession,
   nextPhysicalRouteReviewSlot,
   physicalRouteReviewChanges,
@@ -528,7 +529,7 @@ app.innerHTML = `
     <dialog id="physical-route-review-dialog" class="physical-route-review-dialog">
       <div class="physical-route-review-shell">
         <div class="section-heading"><span>Review physical wiring</span><small>Address-only calibration</small></div>
-        <p class="mapping-note">Only one physical panel is lit. Green marks DIN and the gradient runs toward purple at DOUT. Confirm the expected panel, or click the actual virtual panel, set its address orientation, and confirm.</p>
+        <p class="mapping-note">One panel shows a diagonal gradient from black to red. The brightest red pixel marks DIN in the simulator. Select the matching virtual panel. Rotate the physical gradient until it matches the fixed simulator pattern, then confirm.</p>
         <output id="physical-route-review-step" class="physical-route-review-step"></output>
         <div id="physical-route-review-current" class="physical-route-review-current"></div>
         <div id="physical-route-review-controls" class="physical-route-review-controls">
@@ -1525,13 +1526,6 @@ async function start(): Promise<void> {
     ): Promise<void> => {
       stopPhysicalRouteReviewRefresh();
       const revision = physicalRouteReviewFrameRevision;
-      physicalRouteReviewPixels = physicalRgbToLogicalPixels(
-        Uint8Array.from(pixels.flat()),
-        hardwareContract.mapping.entries,
-      );
-      viewerElement.dataset.physicalRouteReviewPixels = String(
-        pixels.filter((pixel) => pixel.some((channel) => channel !== 0)).length,
-      );
       if (physicalRouteReviewDemo) return;
       const deviceUrl = physicalRouteReviewDeviceUrl;
       if (!deviceUrl)
@@ -1569,6 +1563,8 @@ async function start(): Promise<void> {
       physicalRouteReviewApplyButton.hidden = physicalRouteReviewDemo;
       physicalRouteReviewSummaryBackButton.disabled = false;
       selectPhysicalRouteReviewPanel(null);
+      physicalRouteReviewPixels = new Uint32Array(session.ledCount);
+      viewerElement.dataset.physicalRouteReviewPixels = "0";
       const changes = physicalRouteReviewChanges(session, editorDefinition);
       physicalRouteReviewSummaryNote.textContent =
         changes.length === 0
@@ -1625,13 +1621,20 @@ async function start(): Promise<void> {
       physicalRouteReviewRotateRightButton.textContent = `↷ ${rotationDegrees}°`;
       physicalRouteReviewRotateLeftButton.setAttribute(
         "aria-label",
-        `Rotate address mapping ${rotationDegrees} degrees counter-clockwise`,
+        `Rotate physical gradient ${rotationDegrees} degrees counter-clockwise`,
       );
       physicalRouteReviewRotateRightButton.setAttribute(
         "aria-label",
-        `Rotate address mapping ${rotationDegrees} degrees clockwise`,
+        `Rotate physical gradient ${rotationDegrees} degrees clockwise`,
       );
-      selectPhysicalRouteReviewPanel(slot.panelId, slot.quarterTurnsClockwise);
+      selectPhysicalRouteReviewPanel(slot.panelId, 0);
+      physicalRouteReviewPixels = createPhysicalPanelReviewReference(
+        session,
+        slotIndex,
+      );
+      viewerElement.dataset.physicalRouteReviewPixels = String(
+        physicalRouteReviewPixels.filter((pixel) => pixel !== 0).length,
+      );
       physicalRouteReviewPreviousButton.disabled = slotIndex === 0;
       if (!sendFrame) return;
       setPhysicalRouteReviewBusy(true);
@@ -3049,7 +3052,7 @@ async function start(): Promise<void> {
               !changesIdentity,
             );
             const nextAction = changesIdentity
-              ? showPhysicalRouteReviewSlot(currentSlotIndex, false)
+              ? showPhysicalRouteReviewSlot(currentSlotIndex)
               : advancePhysicalRouteReview();
             void nextAction.catch((error) => {
               setLogMessage(
@@ -3367,12 +3370,16 @@ async function start(): Promise<void> {
       physicalRouteReviewSession = rotatePhysicalRouteReviewPanel(
         physicalRouteReviewSession,
         physicalRouteReviewSession.currentSlotIndex,
-        delta,
+        delta === 1 ? -1 : 1,
       );
       void showPhysicalRouteReviewSlot(
         physicalRouteReviewSession.currentSlotIndex,
-        false,
-      );
+      ).catch((error) => {
+        setLogMessage(
+          error instanceof Error ? error.message : String(error),
+          true,
+        );
+      });
     };
     physicalRouteReviewRotateLeftButton.addEventListener("click", () =>
       rotatePhysicalRouteReview(-1),

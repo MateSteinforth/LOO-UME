@@ -185,7 +185,11 @@ function panelWireIndex(
 export function transformInstalledPanelCoordinate(
   x: number,
   y: number,
-  transform: PanelDefinition["installedAddressTransform"],
+  transform: Pick<
+    PanelDefinition["installedAddressTransform"],
+    "quarterTurnsClockwise" | "mirrored"
+  > &
+    Partial<PanelDefinition["installedAddressTransform"]>,
   columns: number,
   rows: number,
 ): { x: number; y: number } {

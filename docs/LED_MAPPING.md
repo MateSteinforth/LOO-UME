@@ -315,9 +315,9 @@ measurement status from silently passing readiness.
 
 The Mapping toolbox can review an already assembled route through a current
 WLED link. The tool suspends normal DDP output and sends one complete physical
-panel block at a time. All other LEDs stay black. Pixel 0 is green at DIN, and
-the low-brightness gradient ends in purple at DOUT. The matching virtual panel
-shows the same diagnostic frame and the proposed DIN direction in both review modes.
+panel block at a time. All other panels stay black. A diagonal red gradient
+runs from black to red 255 at the simulator DIN corner.
+The simulator reference stays fixed while the physical pattern rotates.
 The tool refreshes the diagnostic frame every 250 ms after the previous send
 completes. This keeps WLED in realtime mode while the operator inspects a panel.
 The tool stops refreshes and waits for the pending send before applying mapping
@@ -331,8 +331,9 @@ or change project data. It is a rehearsal tool, not physical address evidence.
 The operator can confirm the expected panel or click the panel that is actually
 lit. A different choice swaps complete panel assignments so every physical
 slot stays unique, then waits for orientation confirmation. The rotation
-buttons change only the explicit back-view
-installed-address transform. Square fixtures use 90-degree steps. Non-square
+buttons immediately rotate the physical gradient as viewed from the LED side.
+The candidate address transform drives that frame and the mapping saved on confirmation.
+Panel poses remain unchanged. Square fixtures use 90-degree steps. Non-square
 fixtures use 180-degree steps because a quarter turn cannot preserve their
 address grid. Mirrored input is rejected; the review does not infer a mirror.
 

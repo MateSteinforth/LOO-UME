@@ -466,6 +466,16 @@ No tasks.
 
 ## Ready to Merge
 
+### `P1 · LIVE-031` Rotate a physical red calibration gradient
+
+- Owner: GPT-6 Astra; branch `codex/review-gradient`; worktree `/tmp/loo-ume-review-gradient`.
+- Scope: use a black-to-red diagonal with red 255 at DIN. Keep the simulator reference fixed while rotation changes physical output.
+- Acceptance: preserve GPIOs and poses. Save the same address transform used for the matching physical pattern.
+- Checks: gradient and mapping parity tests; physical review browser workflow; lint and TypeScript.
+- Dependency: includes the separate LIVE-030 review correction.
+- Verification: 20 mapping and review tests passed. Both browser journeys passed without retries, including physical rotation and fixed simulator reference checks.
+- Validation: formatting, full lint, and TypeScript passed. Native sculpture review remains required.
+
 ### `P1 · LIVE-030` Keep physical review patterns active
 
 - Owner: GPT-6 Astra; branch `codex/wiring-review-refresh`; worktree `/tmp/loo-ume-wiring-review-refresh`.

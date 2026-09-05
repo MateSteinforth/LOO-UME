@@ -10,6 +10,7 @@ import {
   assignPhysicalRouteReviewPanel,
   confirmPhysicalRouteReviewSlot,
   createPhysicalPanelReviewFrame,
+  createPhysicalPanelReviewReference,
   createPhysicalRouteReviewSession,
   nextPhysicalRouteReviewSlot,
   physicalRouteReviewChanges,
@@ -18,10 +19,9 @@ import {
 import { createProvisionalWiringPreview } from "../web/src/WiringPreview.ts";
 
 const SOURCE = "sculptures/rhombicosidodecahedron/sculpture.json";
-const PROFILE = JSON.parse(readFileSync(
-  "catalog/panels/ws2812b-8x8-66x65.json",
-  "utf8",
-));
+const PROFILE = JSON.parse(
+  readFileSync("catalog/panels/ws2812b-8x8-66x65.json", "utf8"),
+);
 
 function loaded() {
   const project = createPanelAssemblyProject(
@@ -37,14 +37,70 @@ function loaded() {
   );
   return {
     project,
-    contract: createHardwareMappingContract(mapping, wiring, project.panelProfile),
+    contract: createHardwareMappingContract(
+      mapping,
+      wiring,
+      project.panelProfile,
+    ),
   };
 }
 
 describe("physical route review", () => {
-  it("creates one low-scope physical panel frame with a DIN-to-DOUT gradient", () => {
+  it("rotates physical samples while the reference stays fixed and matches the saved mapping", () => {
     const { project, contract } = loaded();
-    const session = createPhysicalRouteReviewSession(project.sculpture, contract);
+    let session = createPhysicalRouteReviewSession(project.sculpture, contract);
+    session = assignPhysicalRouteReviewPanel(
+      session,
+      0,
+      session.slots[1]!.panelId,
+    );
+    const reference = createPhysicalPanelReviewReference(session, 0);
+    const startFrame = createPhysicalPanelReviewFrame(session, 0);
+    const brightestOffsets = [];
+    for (let turn = 0; turn < 4; turn += 1) {
+      const frame = createPhysicalPanelReviewFrame(session, 0);
+      brightestOffsets.push(frame.findIndex(([red]) => red === 255));
+      expect(createPhysicalPanelReviewReference(session, 0)).toEqual(reference);
+      let confirmed = session;
+      for (let slot = 0; slot < session.slots.length; slot += 1) {
+        confirmed = confirmPhysicalRouteReviewSlot(confirmed, slot);
+      }
+      const definition = applyPhysicalRouteReview(project.sculpture, confirmed);
+      const reviewed = createPanelAssemblyProject(
+        definition,
+        SOURCE,
+        project.panelProfile,
+      );
+      const mapping = createPanelAssemblyMapping(reviewed);
+      const wiring = createProvisionalWiringPreview(
+        mapping,
+        reviewed.sculpture,
+        reviewed.panelProfile,
+      );
+      const saved = createHardwareMappingContract(
+        mapping,
+        wiring,
+        reviewed.panelProfile,
+      );
+      for (const entry of saved.mapping.entries) {
+        expect(frame[entry.physicalIndex]).toEqual([
+          reference[entry.logicalIndex]! >>> 16,
+          0,
+          0,
+        ]);
+      }
+      session = rotatePhysicalRouteReviewPanel(session, 0, 1);
+    }
+    expect(brightestOffsets).toEqual([0, 7, 63, 56]);
+    expect(createPhysicalPanelReviewFrame(session, 0)).toEqual(startFrame);
+  });
+
+  it("creates a red diagonal from DIN to the opposite black corner", () => {
+    const { project, contract } = loaded();
+    const session = createPhysicalRouteReviewSession(
+      project.sculpture,
+      contract,
+    );
     expect(session.slots).toHaveLength(41);
     expect(session.slots[0]).toMatchObject({
       outputIndex: 0,
@@ -61,23 +117,36 @@ describe("physical route review", () => {
 
     const frame = createPhysicalPanelReviewFrame(session, 11);
     expect(frame).toHaveLength(2_624);
-    expect(frame.filter((pixel) => pixel.some((channel) => channel !== 0)))
-      .toHaveLength(64);
+    expect(
+      frame.filter((pixel) => pixel.some((channel) => channel !== 0)),
+    ).toHaveLength(63);
     expect(frame[703]).toEqual([0, 0, 0]);
-    expect(frame[704]).toEqual([0, 255, 0]);
-    expect(frame[767]).toEqual([128, 0, 160]);
+    expect(frame[704]).toEqual([255, 0, 0]);
+    expect(frame[705]).toEqual(frame[712]);
+    expect(frame[711]).toEqual([128, 0, 0]);
+    expect(frame[760]).toEqual([128, 0, 0]);
+    expect(frame[767]).toEqual([0, 0, 0]);
     expect(frame[768]).toEqual([0, 0, 0]);
   });
 
   it("swaps unique panel assignments and invalidates an earlier affected confirmation", () => {
     const { project, contract } = loaded();
-    const initial = createPhysicalRouteReviewSession(project.sculpture, contract);
+    const initial = createPhysicalRouteReviewSession(
+      project.sculpture,
+      contract,
+    );
     const firstId = initial.slots[0]!.panelId;
     const secondId = initial.slots[1]!.panelId;
     let session = confirmPhysicalRouteReviewSlot(initial, 1);
     session = assignPhysicalRouteReviewPanel(session, 0, secondId);
-    expect(session.slots[0]).toMatchObject({ panelId: secondId, confirmed: true });
-    expect(session.slots[1]).toMatchObject({ panelId: firstId, confirmed: false });
+    expect(session.slots[0]).toMatchObject({
+      panelId: secondId,
+      confirmed: true,
+    });
+    expect(session.slots[1]).toMatchObject({
+      panelId: firstId,
+      confirmed: false,
+    });
     expect(new Set(session.slots.map((slot) => slot.panelId)).size).toBe(41);
     expect(nextPhysicalRouteReviewSlot(session, 0)).toBe(1);
     expect(initial.slots[0]!.panelId).toBe(firstId);
@@ -124,12 +193,17 @@ describe("physical route review", () => {
       installedPanelOrientation: "measured",
       physicalChains: "measured",
     });
-    expect(reviewed.panels.every((panel) =>
-      panel.installedAddressTransform?.status === "measured" &&
-      panel.installedAddressTransform.selectionMethod === "manual"
-    )).toBe(true);
-    expect(reviewed.panels.find(({ id }) => id === secondId)?.installedAddressTransform)
-      .toMatchObject({ quarterTurnsClockwise: 1, mirrored: false });
+    expect(
+      reviewed.panels.every(
+        (panel) =>
+          panel.installedAddressTransform?.status === "measured" &&
+          panel.installedAddressTransform.selectionMethod === "manual",
+      ),
+    ).toBe(true);
+    expect(
+      reviewed.panels.find(({ id }) => id === secondId)
+        ?.installedAddressTransform,
+    ).toMatchObject({ quarterTurnsClockwise: 1, mirrored: false });
     expect({
       panelPoses: reviewed.panels.map(({ id, pose }) => ({ id, pose })),
       mechanicalShell: reviewed.mechanicalShell,
@@ -168,7 +242,10 @@ describe("physical route review", () => {
 
   it("fails closed until every slot has been confirmed", () => {
     const { project, contract } = loaded();
-    const session = createPhysicalRouteReviewSession(project.sculpture, contract);
+    const session = createPhysicalRouteReviewSession(
+      project.sculpture,
+      contract,
+    );
     expect(() => applyPhysicalRouteReview(project.sculpture, session)).toThrow(
       /Confirm every unique physical panel/,
     );
@@ -179,10 +256,12 @@ describe("physical route review", () => {
     const ringProject = createPanelAssemblyProject(
       JSON.parse(readFileSync(source, "utf8")),
       source,
-      JSON.parse(readFileSync(
-        "sculptures/one-metre-led-ring/panel-profile.json",
-        "utf8",
-      )),
+      JSON.parse(
+        readFileSync(
+          "sculptures/one-metre-led-ring/panel-profile.json",
+          "utf8",
+        ),
+      ),
     );
     const ringMapping = createPanelAssemblyMapping(ringProject);
     const ringWiring = createProvisionalWiringPreview(
@@ -204,8 +283,10 @@ describe("physical route review", () => {
     expect(session.slots[0]!.pixelCount).toBe(188);
     session = rotatePhysicalRouteReviewPanel(session, 0, 1);
     expect(session.slots[0]!.quarterTurnsClockwise).toBe(2);
-    expect(createPhysicalPanelReviewFrame(session, 0).filter((pixel) =>
-      pixel.some((channel) => channel !== 0)
-    )).toHaveLength(188);
+    expect(
+      createPhysicalPanelReviewFrame(session, 0).filter((pixel) =>
+        pixel.some((channel) => channel !== 0),
+      ),
+    ).toHaveLength(187);
   });
 });

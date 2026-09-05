@@ -161,7 +161,7 @@ test("runs the physical review workflow without hardware in demo mode", async ({
   await expect(dialog).toHaveAttribute("data-mode", "demo");
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-physical-route-review-pixels",
-    "64",
+    "63",
   );
   await page.locator("#physical-route-review-confirm").click();
   await expect(page.locator("#physical-route-review-step")).toContainText(
@@ -408,6 +408,9 @@ test("mirrors external frames and reviews a physical panel", async ({
 
   const reviewButton = page.locator("#open-physical-route-review");
   await expect(reviewButton).toBeEnabled();
+  await expect(
+    page.locator("#physical-route-review-availability"),
+  ).toContainText("Ready to review", { timeout: 20_000 });
   await reviewButton.click();
 
   const dialog = page.locator("#physical-route-review-dialog");
@@ -417,7 +420,7 @@ test("mirrors external frames and reviews a physical panel", async ({
   );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-physical-route-review-pixels",
-    "64",
+    "63",
   );
   await expect(page.locator("#app")).toHaveClass(/app--physical-route-review/);
   await expect(page.locator(".control-panel")).toHaveCSS(
@@ -437,15 +440,15 @@ test("mirrors external frames and reviews a physical panel", async ({
     .poll(() => frames.at(-1)?.byteLength)
     .toBe(contract.mapping.entries.length * 3);
   const firstDiagnostic = frames.at(-1)!;
-  expect([...firstDiagnostic.subarray(0, 3)]).toEqual([0, 255, 0]);
-  expect([...firstDiagnostic.subarray(63 * 3, 64 * 3)]).toEqual([56, 0, 91]);
+  expect([...firstDiagnostic.subarray(0, 3)]).toEqual([255, 0, 0]);
+  expect([...firstDiagnostic.subarray(63 * 3, 64 * 3)]).toEqual([0, 0, 0]);
   expect(
     Array.from({ length: contract.mapping.entries.length }, (_, index) =>
       firstDiagnostic
         .subarray(index * 3, index * 3 + 3)
         .some((channel) => channel !== 0),
     ).filter(Boolean),
-  ).toHaveLength(64);
+  ).toHaveLength(63);
 
   // Keep the same diagnostic frame active while the operator inspects the panel.
   const heldFrameCount = frames.length;
@@ -470,8 +473,18 @@ test("mirrors external frames and reviews a physical panel", async ({
   );
   await page.locator("#physical-route-review-rotate-right").click();
   await expect(page.locator("#physical-route-review-current")).toContainText(
-    "Address orientation 90°",
+    "Address orientation 270°",
   );
+  await expect
+    .poll(() => Array.from(frames.at(-1)?.subarray(56 * 3, 57 * 3) ?? []))
+    .toEqual([255, 0, 0]);
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-physical-route-review-turns",
+    "0",
+  );
+  await page.locator("#physical-route-review-rotate-left").click();
+  await expect.poll(() => frames.at(-1)?.equals(firstDiagnostic)).toBe(true);
+  await page.locator("#physical-route-review-rotate-right").click();
   await page.locator("#physical-route-review-confirm").click();
   await expect(page.locator("#physical-route-review-step")).toContainText(
     "2 / 3",
@@ -502,8 +515,11 @@ test("mirrors external frames and reviews a physical panel", async ({
     "Waiting for Art-Net",
   );
 
+  await expect(
+    page.locator("#physical-route-review-availability"),
+  ).toContainText("Ready to review", { timeout: 20_000 });
   await reviewButton.click();
-  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("data-mode", "device");
   await page
     .locator(`.panel-label[data-panel-id="${replacementPanelId}"]`)
     .click();

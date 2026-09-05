@@ -3059,3 +3059,13 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Correction:** Display the diagnostic frame in both modes. Refresh device output every 250 ms after the previous send completes.
 - **Prevention:** Test device review with custom GPIOs. Verify sustained output, simulator review state, and cleanup before mapping writes or normal output resumes.
 - **Status:** Corrected by LIVE-030. Physical ESP32 confirmation remains required; no GPIO fault is established by this report.
+
+### F-171 — Review rotation did not rotate physical output
+
+- **Date:** 2026-09-05
+- **Cause:** Rotation changed the candidate transform and simulator marker but skipped sending a new physical frame.
+- **Correction:** Send each candidate transform to the physical panel. Keep a fixed black-to-red simulator reference with red 255 at DIN.
+- **Prevention:** Check outgoing frames after both rotation buttons. Compare the confirmed mapping with the same logical reference after panel reassignment.
+- **Evidence:** LIVE-031 tests all four rotations and saved mapping parity. The browser test verifies clockwise output, inverse rotation, and a fixed reference marker.
+- **Test lesson:** After closing device review, wait for current device readiness before reopening it. An old reconnect log does not prove readiness.
+- **Status:** Corrected locally by LIVE-031. Native sculpture review remains required.
