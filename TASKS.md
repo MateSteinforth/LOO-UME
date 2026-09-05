@@ -74,7 +74,8 @@ simulator and TouchDesigner DDP input.
 
 - Dependency: REVIEW-020 must establish a passing geometry baseline first.
 - Scope: select relevant geometry and browser checks for pull requests. DEV-020
-  adds fast behavior checks to each normal build and retains all nightly checks.
+  adds fast behavior checks to each normal build. CI-027 keeps full regression
+  available manually while the P2 failures remain deferred.
 - Acceptance: source and fixture changes select the required checks. Files read
   dynamically must not disappear from dependency-based test selection.
 
@@ -396,7 +397,15 @@ No tasks.
 
 ## In Progress
 
-No tasks.
+### `P1 · CI-027` Correct repeated clean-checkout alerts
+
+- Owner: GPT-6 Astra; branch `codex/fix-clean-checkout`; worktree `/tmp/loo-ume-clean-checkout`.
+- Finding: scheduled run `33951147725` completed bootstrap setup but failed the full test suite. Broad browser regression also failed.
+- Scope: retain deferred P2 geometry work. Run focused daily checks and keep full regression available through a manual workflow input.
+- Acceptance: clean setup and managed-runtime fast and host tests pass. The default CI run uses the same checks as the schedule.
+- Browser scope: planar generation and ZIP reopen, structural worker generation, mechanics-free authoring, wiring rotation, and manual GPIO settings.
+- Mac scope: remove the Intel setup job to match the Apple Silicon-only rule.
+- Limit: this change does not repair deferred geometry or broad browser regression failures.
 
 ## Human Review
 

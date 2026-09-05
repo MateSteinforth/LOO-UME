@@ -116,7 +116,13 @@ Call this URL a review link. Do not call it a deployment.
 ## Verification
 
 Pushes and pull requests run the locked install, runtime integrity check,
-TypeScript, and production build. The broad test matrix runs nightly.
+TypeScript, and production build. Nightly checks verify clean setup, fast and host
+tests, printable prism generation, and five browser journeys. Mac setup runs on Apple Silicon only.
+
+To run all geometry and browser tests in CI, start **Verify Manifold application**
+manually with **full_regression** enabled. These tests include the deferred P2
+failures in REVIEW-020. The default manual run uses the same focused checks as
+the nightly run. Test failures still fail their job; no check uses `continue-on-error`.
 
 Use the narrowest command that covers a change:
 
