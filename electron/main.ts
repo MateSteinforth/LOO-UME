@@ -1,13 +1,11 @@
 import { mkdirSync, appendFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  shell,
-} from "electron";
+import { app, BrowserWindow, dialog, shell } from "electron";
 import updaterPackage from "electron-updater";
-import { startLocalEditorServer, type LocalEditorServer } from "../scripts/local-editor-server.ts";
+import {
+  startLocalEditorServer,
+  type LocalEditorServer,
+} from "../scripts/local-editor-server.ts";
 import { createEditorPipelineHandler } from "../scripts/editor-pipeline-handler.ts";
 import { createProjectLibraryHandler } from "../scripts/project-library-handler.ts";
 import {
@@ -15,6 +13,10 @@ import {
   createDesktopUpdateHandler,
 } from "./DesktopUpdateHandler.ts";
 import { quitAfterLastWindowCloses } from "./DesktopLifecycle.ts";
+import {
+  developmentUserDataDirectory,
+  resolveElectronRuntime,
+} from "./DevelopmentMode.ts";
 import { migrateLegacyProjectLibrary } from "./ProjectLibraryMigration.ts";
 import { isApprovedCp2102 } from "./SerialPolicy.ts";
 const { autoUpdater } = updaterPackage;
@@ -26,11 +28,18 @@ let logPath = "";
 const serialConfiguredSessions = new WeakSet<Electron.Session>();
 const localReview = process.env.LOO_UME_LOCAL_ELECTRON_REVIEW === "1";
 const localReviewUserData = process.env.LOO_UME_LOCAL_ELECTRON_REVIEW_DATA;
+const runtime = resolveElectronRuntime(process.env, app.isPackaged);
+const developmentUserData = developmentUserDataDirectory();
 
 if (localReview && localReviewUserData && isAbsolute(localReviewUserData)) {
   mkdirSync(localReviewUserData, { recursive: true });
   app.setPath("userData", localReviewUserData);
+} else if (developmentUserData) {
+  mkdirSync(developmentUserData, { recursive: true });
+  app.setPath("userData", developmentUserData);
 }
+
+let editorUrl: string | undefined = runtime.editorUrl;
 
 function log(message: string): void {
   const line = `${new Date().toISOString()} ${message}\n`;
@@ -51,9 +60,9 @@ function packagedPath(path: string): string {
 }
 
 function isEditorUrl(value: string): boolean {
-  if (!localServer) return false;
+  if (!editorUrl) return false;
   try {
-    return new URL(value).origin === new URL(localServer.url).origin;
+    return new URL(value).origin === new URL(editorUrl).origin;
   } catch {
     return false;
   }
@@ -89,49 +98,59 @@ function configureSerialSelection(window: BrowserWindow): void {
       event.preventDefault();
       const owner = BrowserWindow.fromWebContents(webContents) ?? mainWindow;
       const approved = ports.filter(isApprovedCp2102);
-      log(`Serial selection found ${ports.length} port(s) and ${approved.length} approved port(s).`);
-      for (const port of ports) log(`Serial candidate: ${serialPortSummary(port)}.`);
+      log(
+        `Serial selection found ${ports.length} port(s) and ${approved.length} approved port(s).`,
+      );
+      for (const port of ports)
+        log(`Serial candidate: ${serialPortSummary(port)}.`);
       if (approved.length === 0) {
         callback("");
         if (!owner) return;
         void dialog.showMessageBox(owner, {
           type: "warning",
           title: "CP2102 not found",
-          message: "Connect the approved Silicon Labs CP2102 ESP32, then try again.",
+          message:
+            "Connect the approved Silicon Labs CP2102 ESP32, then try again.",
         });
         return;
       }
       const buttons = [
-        ...approved.map((port) => port.displayName || port.portName || "CP2102 ESP32"),
+        ...approved.map(
+          (port) => port.displayName || port.portName || "CP2102 ESP32",
+        ),
         "Cancel",
       ];
       if (!owner) {
         callback("");
         return;
       }
-      void dialog.showMessageBox(owner, {
-        type: "question",
-        title: "Select the ESP32 serial device",
-        message: "Select the Silicon Labs CP2102 used by this sculpture.",
-        buttons,
-        cancelId: buttons.length - 1,
-        defaultId: 0,
-        noLink: true,
-      }).then(({ response }) => {
-        if (response < approved.length) {
-          const selected = approved[response]!;
-          log(`Serial selection accepted: ${serialPortSummary(selected)}.`);
-        } else {
-          log("Serial selection cancelled.");
-        }
-        callback(response < approved.length ? approved[response]!.portId : "");
-      });
+      void dialog
+        .showMessageBox(owner, {
+          type: "question",
+          title: "Select the ESP32 serial device",
+          message: "Select the Silicon Labs CP2102 used by this sculpture.",
+          buttons,
+          cancelId: buttons.length - 1,
+          defaultId: 0,
+          noLink: true,
+        })
+        .then(({ response }) => {
+          if (response < approved.length) {
+            const selected = approved[response]!;
+            log(`Serial selection accepted: ${serialPortSummary(selected)}.`);
+          } else {
+            log("Serial selection cancelled.");
+          }
+          callback(
+            response < approved.length ? approved[response]!.portId : "",
+          );
+        });
     },
   );
 }
 
 async function createWindow(): Promise<void> {
-  if (!localServer) throw new Error("The local editor service is not ready.");
+  if (!editorUrl) throw new Error("The local editor service is not ready.");
   const window = new BrowserWindow({
     width: 1500,
     height: 960,
@@ -161,7 +180,7 @@ async function createWindow(): Promise<void> {
   window.on("closed", () => {
     if (mainWindow === window) mainWindow = undefined;
   });
-  await window.loadURL(localServer.url);
+  await window.loadURL(editorUrl);
 }
 
 async function startDesktop(): Promise<void> {
@@ -175,7 +194,7 @@ async function startDesktop(): Promise<void> {
   logPath = join(logs, "desktop.log");
   log(`Desktop log: ${logPath}`);
   if (localReview) log("Local Electron review mode is active.");
-  if (process.platform === "darwin" && !localReview) {
+  if (process.platform === "darwin" && !localReview && !runtime.development) {
     const legacyProjects = join(
       app.getPath("home"),
       "Library",
@@ -186,62 +205,74 @@ async function startDesktop(): Promise<void> {
       "local",
     );
     try {
-      const migrated = await migrateLegacyProjectLibrary(legacyProjects, localProjects);
+      const migrated = await migrateLegacyProjectLibrary(
+        legacyProjects,
+        localProjects,
+      );
       if (migrated.length > 0) {
-        log(`Imported ${migrated.length} Project Library files from the earlier Mac installation.`);
+        log(
+          `Imported ${migrated.length} Project Library files from the earlier Mac installation.`,
+        );
       }
     } catch (error) {
-      log(`Earlier Project Library import was skipped: ${
-        error instanceof Error ? error.message : String(error)
-      }`);
+      log(
+        `Earlier Project Library import was skipped: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 
-  const rootDirectory = packagedPath("");
-  const pipelineHandler = await createEditorPipelineHandler({
-    rootDirectory,
-    generatedPublicDirectory,
-  });
-  const projectLibraryHandler = createProjectLibraryHandler({
-    rootDirectory,
-    demoDirectory: packagedPath("projects/demos"),
-    localDirectory: localProjects,
-    manifestPath: packagedPath("projects/manifest.json"),
-  });
-  autoUpdater.autoDownload = false;
-  autoUpdater.allowPrerelease = false;
-  const applicationUpdateHandler = createDesktopUpdateHandler({
-    currentVersion: app.getVersion(),
-    enabled: app.isPackaged && !localReview,
-    async check() {
-      if (app.getVersion().startsWith("0.1.")) {
-        return checkUnsignedDesktopUpdate(app.getVersion());
-      }
-      const result = await autoUpdater.checkForUpdates();
-      return {
-        available: result?.isUpdateAvailable ?? false,
-        version: result?.updateInfo.version ?? app.getVersion(),
-      };
-    },
-    async download() {
-      await autoUpdater.downloadUpdate();
-    },
-    async install() {
-      await localServer?.close();
-      localServer = undefined;
-      autoUpdater.quitAndInstall(false, true);
-    },
-  });
-  localServer = await startLocalEditorServer({
-    rootDirectory,
-    distDirectory: packagedPath("dist"),
-    generatedPublicDirectory,
-    port: 0,
-    pipelineHandler,
-    projectLibraryHandler,
-    applicationUpdateHandler,
-  });
-  log(`Desktop service ready at ${localServer.url}`);
+  if (runtime.development) {
+    log(`Electron development renderer ready at ${editorUrl}`);
+  } else {
+    const rootDirectory = packagedPath("");
+    const pipelineHandler = await createEditorPipelineHandler({
+      rootDirectory,
+      generatedPublicDirectory,
+    });
+    const projectLibraryHandler = createProjectLibraryHandler({
+      rootDirectory,
+      demoDirectory: packagedPath("projects/demos"),
+      localDirectory: localProjects,
+      manifestPath: packagedPath("projects/manifest.json"),
+    });
+    autoUpdater.autoDownload = false;
+    autoUpdater.allowPrerelease = false;
+    const applicationUpdateHandler = createDesktopUpdateHandler({
+      currentVersion: app.getVersion(),
+      enabled: app.isPackaged && !localReview,
+      async check() {
+        if (app.getVersion().startsWith("0.1.")) {
+          return checkUnsignedDesktopUpdate(app.getVersion());
+        }
+        const result = await autoUpdater.checkForUpdates();
+        return {
+          available: result?.isUpdateAvailable ?? false,
+          version: result?.updateInfo.version ?? app.getVersion(),
+        };
+      },
+      async download() {
+        await autoUpdater.downloadUpdate();
+      },
+      async install() {
+        await localServer?.close();
+        localServer = undefined;
+        autoUpdater.quitAndInstall(false, true);
+      },
+    });
+    localServer = await startLocalEditorServer({
+      rootDirectory,
+      distDirectory: packagedPath("dist"),
+      generatedPublicDirectory,
+      port: 0,
+      pipelineHandler,
+      projectLibraryHandler,
+      applicationUpdateHandler,
+    });
+    editorUrl = localServer.url;
+    log(`Desktop service ready at ${localServer.url}`);
+  }
   await createWindow();
 }
 
@@ -278,9 +309,14 @@ if (!hasLock) {
     quitting = true;
     void stopDesktop().finally(() => app.quit());
   });
-  app.whenReady().then(startDesktop).catch((error) => {
-    log(error instanceof Error ? error.stack ?? error.message : String(error));
-    void dialog.showErrorBox("LOO/UME could not start", String(error));
-    app.quit();
-  });
+  app
+    .whenReady()
+    .then(startDesktop)
+    .catch((error) => {
+      log(
+        error instanceof Error ? (error.stack ?? error.message) : String(error),
+      );
+      void dialog.showErrorBox("LOO/UME could not start", String(error));
+      app.quit();
+    });
 }

@@ -305,7 +305,19 @@ Free 6DOF mode uses local translation and rotation controls, writes one
 right-handed pose, and removes the old surface attachment. Structural downloads
 ZIP the same hash-verified connector asset set shown in the viewport.
 
-Manifold normally runs in the browser. The local server and Vite adapter share
+Manifold normally runs in a browser module worker. `GenerationClient.ts` owns
+one worker per request and transfers generated asset buffers back to the editor.
+`GenerationWorker.ts` calls the same planar and structural compilers as Node.
+The worker returns only data needed for asset display and export. It keeps
+compiler mesh details outside the browser control module. Worker failures retain
+their runtime or geometry classification. The client rejects concurrent requests
+and terminates its worker after completion or disposal. A project revision check
+rejects obsolete worker results before the editor applies generated assets.
+Planar generation can use the local HTTP fallback if the worker cannot start
+or load its runtime. Geometry and request-cloning errors do not use that fallback.
+Other asynchronous project-loading operations still need the REVIEW-022 work.
+
+The local server and Vite adapter share
 `createEditorPipelineHandler()`, which is a bounded loopback/same-origin fallback
 for a Manifold runtime-load failure. Geometry and validation errors do not use
 the fallback. The JSON field is limited to 5 MB and the complete multipart
@@ -447,36 +459,36 @@ current values are copied operating assumptions, not electrical approval.
 
 ## Subsystems
 
-| Area | Responsibility |
-| --- | --- |
-| `sculptures/` | Authored Schema 2 projects and their referenced design assets |
-| `catalog/` | Reusable panel dimensions, holes, connectors, corrections, and electrical assumptions |
-| `src/sculpture/PanelAssembly.ts` | Schema 2 parser, pose compilation, mapping geometry |
-| `src/sculpture/SculptureEditor.ts` | Panel mutations and derived-state invalidation |
-| `src/sculpture/PanelOutlineBoundary.ts` | Gap detection and closed-boundary validation |
-| `src/cad/CompilePanelBoundaryBundle.ts` | Boundary and exact Manifold STL bundle |
-| `src/cad/GeneratePanelClosureSolids.ts` | Printable Manifold solids |
-| `src/cad/GeneratePanelBoundaryParts.ts` | Atomic file publication |
-| `src/sculpture/StructuralDesign.ts` | Structural inputs, defaults, warnings, fingerprints |
-| `src/structure/StructuralPipeline.ts` | Candidate, advisory solve/optimization, and structural composition |
-| `src/cad/CompileStructuralArtifacts.ts` | Exact structural STL, preview, and 3MF bundle |
-| `web/src/` | Browser editor, renderer, mapping, wiring, project and package export |
-| `web/src/ProjectPackage.ts` | Versioned project ZIP manifest, embedded SVG/PNG thumbnail, and package validation |
-| `projects/thumbnails/` | Tracked framed WebGL PNGs embedded in deterministic demo ZIPs |
-| `web/src/ProjectLibraryClient.ts` | Revision-gated browser client for local ZIP persistence |
-| `projects/demos/` | Deterministic tracked demo ZIPs generated from authored sculpture sources |
-| `scripts/project-library-handler.ts` | Shared loopback-only validated demo/local ZIP read API |
-| `scripts/editor-pipeline-handler.ts` | Bounded local fallback handler |
-| `scripts/esp32-firmware-handler.ts` | Loopback-only, receipt-gated complete ESP32 image endpoint |
-| `scripts/esp32-device-handler.ts` | Loopback-only, bounded private WLED HTTP and 1-to-2,624-pixel segmented DDP broker |
-| `scripts/artnet-frame-assembler.ts` | Transport-independent bounded ArtDMX validation and complete physical-frame assembly |
-| `scripts/artnet-preview-handler.ts` | Dedicated loopback-address UDP 6454 receiver and same-origin binary browser stream |
-| `scripts/ddp-frame-assembler.ts` | Bounded complete logical DDP frame validation for local and LAN senders |
-| `scripts/ddp-preview-handler.ts` | UDP 4048 receiver and same-origin binary simulator stream |
-| `tests/browser/` | Real Chromium operator journeys |
-| `wasm/` | Deterministic subset of WLED 1D effects, not firmware |
-| `firmware/` | ESP32 receipt, setup procedure, and smoke configuration; WLED build tooling and binaries stay off-main |
-| `src/wled/` | Guarded deployment identity and deterministic diagnostic frame transport |
+| Area                                    | Responsibility                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `sculptures/`                           | Authored Schema 2 projects and their referenced design assets                                          |
+| `catalog/`                              | Reusable panel dimensions, holes, connectors, corrections, and electrical assumptions                  |
+| `src/sculpture/PanelAssembly.ts`        | Schema 2 parser, pose compilation, mapping geometry                                                    |
+| `src/sculpture/SculptureEditor.ts`      | Panel mutations and derived-state invalidation                                                         |
+| `src/sculpture/PanelOutlineBoundary.ts` | Gap detection and closed-boundary validation                                                           |
+| `src/cad/CompilePanelBoundaryBundle.ts` | Boundary and exact Manifold STL bundle                                                                 |
+| `src/cad/GeneratePanelClosureSolids.ts` | Printable Manifold solids                                                                              |
+| `src/cad/GeneratePanelBoundaryParts.ts` | Atomic file publication                                                                                |
+| `src/sculpture/StructuralDesign.ts`     | Structural inputs, defaults, warnings, fingerprints                                                    |
+| `src/structure/StructuralPipeline.ts`   | Candidate, advisory solve/optimization, and structural composition                                     |
+| `src/cad/CompileStructuralArtifacts.ts` | Exact structural STL, preview, and 3MF bundle                                                          |
+| `web/src/`                              | Browser editor, renderer, mapping, wiring, project and package export                                  |
+| `web/src/ProjectPackage.ts`             | Versioned project ZIP manifest, embedded SVG/PNG thumbnail, and package validation                     |
+| `projects/thumbnails/`                  | Tracked framed WebGL PNGs embedded in deterministic demo ZIPs                                          |
+| `web/src/ProjectLibraryClient.ts`       | Revision-gated browser client for local ZIP persistence                                                |
+| `projects/demos/`                       | Deterministic tracked demo ZIPs generated from authored sculpture sources                              |
+| `scripts/project-library-handler.ts`    | Shared loopback-only validated demo/local ZIP read API                                                 |
+| `scripts/editor-pipeline-handler.ts`    | Bounded local fallback handler                                                                         |
+| `scripts/esp32-firmware-handler.ts`     | Loopback-only, receipt-gated complete ESP32 image endpoint                                             |
+| `scripts/esp32-device-handler.ts`       | Loopback-only, bounded private WLED HTTP and 1-to-2,624-pixel segmented DDP broker                     |
+| `scripts/artnet-frame-assembler.ts`     | Transport-independent bounded ArtDMX validation and complete physical-frame assembly                   |
+| `scripts/artnet-preview-handler.ts`     | Dedicated loopback-address UDP 6454 receiver and same-origin binary browser stream                     |
+| `scripts/ddp-frame-assembler.ts`        | Bounded complete logical DDP frame validation for local and LAN senders                                |
+| `scripts/ddp-preview-handler.ts`        | UDP 4048 receiver and same-origin binary simulator stream                                              |
+| `tests/browser/`                        | Real Chromium operator journeys                                                                        |
+| `wasm/`                                 | Deterministic subset of WLED 1D effects, not firmware                                                  |
+| `firmware/`                             | ESP32 receipt, setup procedure, and smoke configuration; WLED build tooling and binaries stay off-main |
+| `src/wled/`                             | Guarded deployment identity and deterministic diagnostic frame transport                               |
 
 ## Verification boundaries
 

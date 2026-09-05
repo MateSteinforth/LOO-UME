@@ -19,12 +19,23 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
       - name: Install npm dependencies
         run: npm ci
+      - name: Check changed formatting and source rules
+        env:
+          CHECK_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'main' }}
+        run: |
+          npm run format:check
+          npm run lint:fast -- --all
+          npm run lint:typed -- --all
+      - name: Run fast behavior checks
+        run: npm run test:fast
       - name: Verify the checked-in runtime and production build
         run: npm run build:desktop
 

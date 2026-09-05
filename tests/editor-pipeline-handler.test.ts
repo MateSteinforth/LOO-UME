@@ -11,15 +11,26 @@ const temporaryDirectories: string[] = [];
 const servers: Server[] = [];
 
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolvePromise) =>
-    server.close(() => resolvePromise())
-  )));
-  await Promise.all(temporaryDirectories.splice(0).map((directory) =>
-    rm(directory, { recursive: true, force: true })
-  ));
+  await Promise.all(
+    servers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((resolvePromise) =>
+            server.close(() => resolvePromise()),
+          ),
+      ),
+  );
+  await Promise.all(
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
+  );
 });
 
-async function listen(handler: Awaited<ReturnType<typeof createEditorPipelineHandler>>) {
+async function listen(
+  handler: Awaited<ReturnType<typeof createEditorPipelineHandler>>,
+) {
   const server = createServer((request, response) => {
     void handler.handle(request, response).then((handled) => {
       if (!handled) {
@@ -29,9 +40,10 @@ async function listen(handler: Awaited<ReturnType<typeof createEditorPipelineHan
     });
   });
   servers.push(server);
-  await new Promise<void>((resolvePromise) =>
-    server.listen(0, "127.0.0.1", resolvePromise)
-  );
+  await new Promise<void>((resolvePromise, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolvePromise);
+  });
   const address = server.address() as AddressInfo;
   return `http://127.0.0.1:${address.port}`;
 }
@@ -41,21 +53,27 @@ async function postWithDeclaredLength(
 ): Promise<{ statusCode: number; body: string }> {
   const url = new URL("/api/editor-pipeline", origin);
   return await new Promise((resolvePromise, reject) => {
-    const request = httpRequest(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "multipart/form-data; boundary=size-limit-test",
-        "Content-Length": String(contentLength),
-        Origin: origin,
+    const request = httpRequest(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "multipart/form-data; boundary=size-limit-test",
+          "Content-Length": String(contentLength),
+          Origin: origin,
+        },
       },
-    }, (response) => {
-      const chunks: Buffer[] = [];
-      response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
-      response.on("end", () => resolvePromise({
-        statusCode: response.statusCode ?? 0,
-        body: Buffer.concat(chunks).toString("utf8"),
-      }));
-    });
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+        response.on("end", () =>
+          resolvePromise({
+            statusCode: response.statusCode ?? 0,
+            body: Buffer.concat(chunks).toString("utf8"),
+          }),
+        );
+      },
+    );
     request.on("error", reject);
     request.end();
   });
@@ -65,12 +83,16 @@ async function expectNoPublishedProject(
   generatedPublicDirectory: string,
   runId: string,
 ): Promise<void> {
-  await expect(readFile(join(
-    generatedPublicDirectory,
-    "generated-projects",
-    runId,
-    "sculpture.json",
-  ))).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(
+    readFile(
+      join(
+        generatedPublicDirectory,
+        "generated-projects",
+        runId,
+        "sculpture.json",
+      ),
+    ),
+  ).rejects.toMatchObject({ code: "ENOENT" });
 }
 
 describe("shared editor pipeline handler", () => {
@@ -112,7 +134,10 @@ describe("shared editor pipeline handler", () => {
     });
     const wrongScheme = await fetch(`${origin}/api/editor-pipeline`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Origin: origin.replace("http:", "https:") },
+      headers: {
+        "Content-Type": "application/json",
+        Origin: origin.replace("http:", "https:"),
+      },
       body: "{}",
     });
     expect(wrongScheme.status).toBe(403);
@@ -120,7 +145,9 @@ describe("shared editor pipeline handler", () => {
     expect(response.status).toBe(403);
   });
   it("rejects oversized raw JSON, sculpture fields, and multipart requests before generation", async () => {
-    const generatedPublicDirectory = await mkdtemp(join(tmpdir(), "pipeline-limits-"));
+    const generatedPublicDirectory = await mkdtemp(
+      join(tmpdir(), "pipeline-limits-"),
+    );
     temporaryDirectories.push(generatedPublicDirectory);
     const handler = await createEditorPipelineHandler({
       rootDirectory: process.cwd(),
@@ -137,8 +164,9 @@ describe("shared editor pipeline handler", () => {
       }),
     });
     expect(rawResponse.status).toBe(413);
-    expect((await rawResponse.json() as { error: string }).error)
-      .toBe("Sculpture JSON exceeds 5 MB.");
+    expect(((await rawResponse.json()) as { error: string }).error).toBe(
+      "Sculpture JSON exceeds 5 MB.",
+    );
 
     const form = new FormData();
     form.append(
@@ -154,16 +182,18 @@ describe("shared editor pipeline handler", () => {
       body: form,
     });
     expect(multipartResponse.status).toBe(413);
-    expect((await multipartResponse.json() as { error: string }).error)
-      .toBe("Sculpture JSON exceeds 5 MB.");
+    expect(((await multipartResponse.json()) as { error: string }).error).toBe(
+      "Sculpture JSON exceeds 5 MB.",
+    );
 
     const totalResponse = await postWithDeclaredLength(
       origin,
       64 * 1024 * 1024 + 1,
     );
     expect(totalResponse.statusCode).toBe(413);
-    expect((JSON.parse(totalResponse.body) as { error: string }).error)
-      .toBe("Generation request exceeds 64 MB.");
+    expect((JSON.parse(totalResponse.body) as { error: string }).error).toBe(
+      "Generation request exceeds 64 MB.",
+    );
 
     await expectNoPublishedProject(
       generatedPublicDirectory,
@@ -180,7 +210,9 @@ describe("shared editor pipeline handler", () => {
   });
 
   it("runs the bounded panel-outline generator and publishes its exact response", async () => {
-    const generatedPublicDirectory = await mkdtemp(join(tmpdir(), "pipeline-public-"));
+    const generatedPublicDirectory = await mkdtemp(
+      join(tmpdir(), "pipeline-public-"),
+    );
     temporaryDirectories.push(generatedPublicDirectory);
     const handler = await createEditorPipelineHandler({
       rootDirectory: process.cwd(),
@@ -197,7 +229,7 @@ describe("shared editor pipeline handler", () => {
       body: fixture,
     });
     expect(response.status).toBe(200);
-    const result = await response.json() as {
+    const result = (await response.json()) as {
       ok: boolean;
       assetSculptureId: string;
       projectSource: string;
@@ -210,26 +242,32 @@ describe("shared editor pipeline handler", () => {
         "./generated-projects/panel-outline-prism-boundary-fixture-editor-preview/sculpture.json",
     });
     expect(result.definition.generatedMechanics).toBeDefined();
-    await expect(readFile(join(
-      generatedPublicDirectory,
-      "generated-projects",
-      result.assetSculptureId,
-      "sculpture.json",
-    ), "utf8")).resolves.toContain('"generation": "complete"');
+    await expect(
+      readFile(
+        join(
+          generatedPublicDirectory,
+          "generated-projects",
+          result.assetSculptureId,
+          "sculpture.json",
+        ),
+        "utf8",
+      ),
+    ).resolves.toContain('"generation": "complete"');
   });
 
   it("publishes only a verified multipart design surface and preserves prior output on failure", async () => {
-    const generatedPublicDirectory = await mkdtemp(join(tmpdir(), "pipeline-design-"));
+    const generatedPublicDirectory = await mkdtemp(
+      join(tmpdir(), "pipeline-design-"),
+    );
     temporaryDirectories.push(generatedPublicDirectory);
     const handler = await createEditorPipelineHandler({
       rootDirectory: process.cwd(),
       generatedPublicDirectory,
     });
     const origin = await listen(handler);
-    const definition = JSON.parse(await readFile(
-      "sculptures/panel-outline-prism/sculpture.json",
-      "utf8",
-    )) as Record<string, unknown>;
+    const definition = JSON.parse(
+      await readFile("sculptures/panel-outline-prism/sculpture.json", "utf8"),
+    ) as Record<string, unknown>;
     definition.id = "panel-outline-with-design";
     const glbBytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 2, 0, 0, 0]);
     definition.designSurface = {
@@ -263,7 +301,7 @@ describe("shared editor pipeline handler", () => {
       body: requestBody(glbBytes),
     });
     expect(response.status).toBe(200);
-    const result = await response.json() as { assetSculptureId: string };
+    const result = (await response.json()) as { assetSculptureId: string };
     const publishedGlb = join(
       generatedPublicDirectory,
       "generated-projects",
@@ -271,7 +309,9 @@ describe("shared editor pipeline handler", () => {
       "design",
       "source.glb",
     );
-    await expect(readFile(publishedGlb)).resolves.toEqual(Buffer.from(glbBytes));
+    await expect(readFile(publishedGlb)).resolves.toEqual(
+      Buffer.from(glbBytes),
+    );
 
     const tampered = Uint8Array.from(glbBytes);
     tampered[0] ^= 0xff;
@@ -281,9 +321,12 @@ describe("shared editor pipeline handler", () => {
       body: requestBody(tampered),
     });
     expect(mismatch.status).toBe(400);
-    expect((await mismatch.json() as { error: string }).error)
-      .toMatch(/failed SHA-256 verification/);
-    await expect(readFile(publishedGlb)).resolves.toEqual(Buffer.from(glbBytes));
+    expect(((await mismatch.json()) as { error: string }).error).toMatch(
+      /failed SHA-256 verification/,
+    );
+    await expect(readFile(publishedGlb)).resolves.toEqual(
+      Buffer.from(glbBytes),
+    );
 
     const withoutGlb = await fetch(`${origin}/api/editor-pipeline`, {
       method: "POST",
@@ -306,7 +349,7 @@ describe("shared editor pipeline handler", () => {
       }),
     });
     expect(response.status).toBe(400);
-    expect((await response.json() as { error: string }).error).toContain(
+    expect(((await response.json()) as { error: string }).error).toContain(
       "holes between their outlines",
     );
   });

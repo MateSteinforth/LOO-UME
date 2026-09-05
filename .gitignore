@@ -16,6 +16,7 @@ dist/
 electron-dist/
 release/
 coverage/
+.cache/
 playwright-report/
 test-results/
 *.tsbuildinfo

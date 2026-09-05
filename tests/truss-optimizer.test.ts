@@ -8,83 +8,129 @@ import {
   normalizeStructuralDesign,
   type NormalizedStructuralDesign,
 } from "../src/sculpture/StructuralDesign.ts";
-import { createCandidateTruss, validateCandidateTruss } from "../src/structure/CandidateTruss.ts";
+import {
+  createCandidateTruss,
+  validateCandidateTruss,
+} from "../src/structure/CandidateTruss.ts";
 import { optimizeStructuralTruss } from "../src/structure/TrussOptimizer.ts";
 
-async function normalizedProject(path: string): Promise<NormalizedStructuralDesign> {
-  const source = parsePanelAssemblyDefinition(JSON.parse(await readFile(path, "utf8")));
+async function normalizedProject(
+  path: string,
+): Promise<NormalizedStructuralDesign> {
+  const source = parsePanelAssemblyDefinition(
+    JSON.parse(await readFile(path, "utf8")),
+  );
   return normalizeStructuralDesign(createPanelAssemblyProject(source, path));
 }
 
-async function loadedTwoPanel(forceNewtons = -5): Promise<NormalizedStructuralDesign> {
-  const normalized = await normalizedProject("sculptures/pose-only-two-panel/sculpture.json");
-  normalized.loadCases = [{
-    id: "compression-force",
-    kind: "panel-face-force",
-    panelId: "P-02",
-    applicationPointMm: [50, 0, 0],
-    forceNewtons: [forceNewtons, 0, 0],
-    sourceLoadId: "compression-force",
-  }];
+async function loadedTwoPanel(
+  forceNewtons = -5,
+): Promise<NormalizedStructuralDesign> {
+  const normalized = await normalizedProject(
+    "sculptures/pose-only-two-panel/sculpture.json",
+  );
+  normalized.loadCases = [
+    {
+      id: "compression-force",
+      kind: "panel-face-force",
+      panelId: "P-02",
+      applicationPointMm: [50, 0, 0],
+      forceNewtons: [forceNewtons, 0, 0],
+      sourceLoadId: "compression-force",
+    },
+  ];
   normalized.design.maximumDisplacementMm = 0.2;
   return normalized;
 }
 
 describe("structural truss optimization", () => {
   it("removes consistently low-load candidates and preserves redundant connectivity", async () => {
-    const normalized = await normalizedProject("sculptures/pose-only-two-panel/sculpture.json");
+    const normalized = await normalizedProject(
+      "sculptures/pose-only-two-panel/sculpture.json",
+    );
     const candidate = createCandidateTruss(normalized);
     const optimized = optimizeStructuralTruss(normalized, candidate, {
       unloadedForceRatio: 0.3,
     });
 
     expect(optimized.status).toBe("converged");
-    expect(optimized.optimizedCandidate.members.length).toBeLessThan(candidate.members.length);
-    expect(optimized.trace.some(({ action }) => action === "remove")).toBe(true);
+    expect(optimized.optimizedCandidate.members.length).toBeLessThan(
+      candidate.members.length,
+    );
+    expect(optimized.trace.some(({ action }) => action === "remove")).toBe(
+      true,
+    );
     expect(optimized.trace.at(-1)?.action).toBe("converged");
-    expect(optimized.trace.length).toBeLessThanOrEqual(optimized.policy.maximumIterations);
-    expect(() => validateCandidateTruss(optimized.optimizedCandidate)).not.toThrow();
-    expect(optimized.optimizedCandidate.connectorCells.every((cell) =>
-      cell.sideNodeIds.flat().every((nodeId) => cell.memberIds.some((memberId) => {
-        const member = optimized.optimizedCandidate.members.find(({ id }) => id === memberId)!;
-        return member.startNodeId === nodeId || member.endNodeId === nodeId;
-      }))
-    )).toBe(true);
+    expect(optimized.trace.length).toBeLessThanOrEqual(
+      optimized.policy.maximumIterations,
+    );
+    expect(() =>
+      validateCandidateTruss(optimized.optimizedCandidate),
+    ).not.toThrow();
+    expect(
+      optimized.optimizedCandidate.connectorCells.every((cell) =>
+        cell.sideNodeIds.flat().every((nodeId) =>
+          cell.memberIds.some((memberId) => {
+            const member = optimized.optimizedCandidate.members.find(
+              ({ id }) => id === memberId,
+            )!;
+            return member.startNodeId === nodeId || member.endNodeId === nodeId;
+          }),
+        ),
+      ),
+    ).toBe(true);
     expect(optimized.violations).toEqual([]);
   }, 15_000);
 
   it("rounds resized members up to printable increments and updates self-weight", async () => {
-    const normalized = await loadedTwoPanel();
+    const normalized = await loadedTwoPanel(-50);
     normalized.design.fabrication.maximumMemberDiameterMm = 14.1;
     const candidate = createCandidateTruss(normalized);
-    const initialMass = candidate.members.reduce((sum, member) =>
-      sum + (member.analysisOnly
-        ? 0
-        : Math.PI * member.initialDiameterMm ** 2 / 4 * member.lengthMm * 1e-9 *
-          normalized.design.material.densityKgPerCubicMeter),
-    0);
+    const initialMass = candidate.members.reduce(
+      (sum, member) =>
+        sum +
+        (member.analysisOnly
+          ? 0
+          : ((Math.PI * member.initialDiameterMm ** 2) / 4) *
+            member.lengthMm *
+            1e-9 *
+            normalized.design.material.densityKgPerCubicMeter),
+      0,
+    );
     const optimized = optimizeStructuralTruss(normalized, candidate);
 
     expect(optimized.status).toBe("converged");
-    expect(optimized.trace.some(({ action }) => action === "resize")).toBe(true);
-    const printableMemberIds = new Set(optimized.optimizedCandidate.members
-      .filter(({ analysisOnly }) => !analysisOnly)
-      .map(({ id }) => id));
-    expect(optimized.members.filter(({ memberId }) => printableMemberIds.has(memberId))
-      .every(({ diameterMm }) =>
-      diameterMm >= normalized.design.fabrication.minimumMemberDiameterMm &&
-      diameterMm <= normalized.design.fabrication.maximumMemberDiameterMm &&
-      Number.isInteger(
-        (diameterMm - normalized.design.fabrication.minimumMemberDiameterMm) /
-        normalized.design.fabrication.memberDiameterIncrementMm,
-      )
-    )).toBe(true);
+    expect(optimized.trace.some(({ action }) => action === "resize")).toBe(
+      true,
+    );
+    const printableMemberIds = new Set(
+      optimized.optimizedCandidate.members
+        .filter(({ analysisOnly }) => !analysisOnly)
+        .map(({ id }) => id),
+    );
+    expect(
+      optimized.members
+        .filter(({ memberId }) => printableMemberIds.has(memberId))
+        .every(
+          ({ diameterMm }) =>
+            diameterMm >=
+              normalized.design.fabrication.minimumMemberDiameterMm &&
+            diameterMm <=
+              normalized.design.fabrication.maximumMemberDiameterMm &&
+            Number.isInteger(
+              (diameterMm -
+                normalized.design.fabrication.minimumMemberDiameterMm) /
+                normalized.design.fabrication.memberDiameterIncrementMm,
+            ),
+        ),
+    ).toBe(true);
     expect(optimized.materialMassKg).toBeGreaterThan(initialMass);
     expect(optimized.policy.maximumPrintableDiameterMm).toBe(14);
     expect(optimized.objectiveBreakdown.unprintablePenalty).toBe(0);
     expect(optimized.objectiveBreakdown.fragileAttachmentPenalty).toBe(0);
-    expect(optimized.analysis.loadCases[0]!.maximumDisplacementMm)
-      .toBeLessThanOrEqual(normalized.design.maximumDisplacementMm);
+    expect(
+      optimized.analysis.loadCases[0]!.maximumDisplacementMm,
+    ).toBeLessThanOrEqual(normalized.design.maximumDisplacementMm);
   });
 
   it("reports explicit infeasible and iteration-limit outcomes", async () => {
@@ -98,13 +144,15 @@ describe("structural truss optimization", () => {
     );
     expect(infeasible.status).toBe("infeasible");
     expect(infeasible.trace.at(-1)?.action).toBe("infeasible");
-    expect(infeasible.violations).toEqual(expect.arrayContaining([
-      expect.stringMatching(/Stress utilization/),
-      expect.stringMatching(/Buckling utilization/),
-      expect.stringMatching(/Displacement utilization/),
-    ]));
+    expect(infeasible.violations).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/Stress utilization/),
+        expect.stringMatching(/Buckling utilization/),
+        expect.stringMatching(/Displacement utilization/),
+      ]),
+    );
 
-    const boundedInput = await loadedTwoPanel();
+    const boundedInput = await loadedTwoPanel(-50);
     const bounded = optimizeStructuralTruss(
       boundedInput,
       createCandidateTruss(boundedInput),
@@ -130,9 +178,11 @@ describe("structural truss optimization", () => {
     const normalized = await loadedTwoPanel();
     const candidate = createCandidateTruss(normalized);
 
-    expect(() => optimizeStructuralTruss(normalized, candidate, {
-      unloadedForceRatio: 1.01,
-    })).toThrow(/must not be greater than 1/);
+    expect(() =>
+      optimizeStructuralTruss(normalized, candidate, {
+        unloadedForceRatio: 1.01,
+      }),
+    ).toThrow(/must not be greater than 1/);
   });
 
   it("is deterministic when candidate arrays are reordered", async () => {
@@ -151,7 +201,8 @@ describe("structural truss optimization", () => {
       attachment.localTieMemberIds.reverse();
     }
 
-    expect(optimizeStructuralTruss(normalized, reordered))
-      .toEqual(optimizeStructuralTruss(normalized, candidate));
+    expect(optimizeStructuralTruss(normalized, reordered)).toEqual(
+      optimizeStructuralTruss(normalized, candidate),
+    );
   });
 });

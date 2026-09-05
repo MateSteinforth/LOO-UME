@@ -43,19 +43,24 @@ export function prepareInstalledAddressTransformsForReoptimization(
 function effectiveTransform(
   panel: PanelAssemblyDefinition["panels"][number],
 ): InstalledAddressTransform {
-  return panel.installedAddressTransform ?? {
-    status: "assumed",
-    referenceView: "back",
-    quarterTurnsClockwise: 0,
-    mirrored: false,
-    selectionMethod: "manual",
-  };
+  return (
+    panel.installedAddressTransform ?? {
+      status: "assumed",
+      referenceView: "back",
+      quarterTurnsClockwise: 0,
+      mirrored: false,
+      selectionMethod: "manual",
+    }
+  );
 }
 
 function transformDisplayToPcb(
   x: number,
   y: number,
-  transform: Pick<InstalledAddressTransform, "quarterTurnsClockwise" | "mirrored">,
+  transform: Pick<
+    InstalledAddressTransform,
+    "quarterTurnsClockwise" | "mirrored"
+  >,
   columns: number,
   rows: number,
 ): [number, number] {
@@ -68,6 +73,7 @@ function transformDisplayToPcb(
       return [columns - 1 - x, rows - 1 - y];
     case 3:
       return [y, columns - 1 - x];
+    case 0:
     default:
       return [x, y];
   }
@@ -86,7 +92,10 @@ function cornerCoordinate(
 
 function displayCoordinateForPcbCorner(
   corner: PanelCorner,
-  transform: Pick<InstalledAddressTransform, "quarterTurnsClockwise" | "mirrored">,
+  transform: Pick<
+    InstalledAddressTransform,
+    "quarterTurnsClockwise" | "mirrored"
+  >,
   columns: number,
   rows: number,
 ): [number, number] {
@@ -101,7 +110,8 @@ function displayCoordinateForPcbCorner(
     const [pcbX, pcbY] = transformDisplayToPcb(x, y, transform, columns, rows);
     return pcbX === targetX && pcbY === targetY;
   });
-  if (!match) throw new Error("Installed transform does not map a connector corner.");
+  if (!match)
+    throw new Error("Installed transform does not map a connector corner.");
   return match;
 }
 
@@ -128,7 +138,10 @@ function worldPositionAtDisplayCoordinate(
 function connectorPosition(
   panel: PanelAssemblyDefinition["panels"][number],
   corner: PanelCorner,
-  transform: Pick<InstalledAddressTransform, "quarterTurnsClockwise" | "mirrored">,
+  transform: Pick<
+    InstalledAddressTransform,
+    "quarterTurnsClockwise" | "mirrored"
+  >,
   panelProfile: PanelHardwareProfile,
 ): Point3 {
   const { columns, rows } = panelProfile.pixelGrid;
@@ -149,11 +162,7 @@ function connectorPosition(
 }
 
 function distance(first: Point3, second: Point3): number {
-  return Math.hypot(
-    first.x - second.x,
-    first.y - second.y,
-    first.z - second.z,
-  );
+  return Math.hypot(first.x - second.x, first.y - second.y, first.z - second.z);
 }
 
 function compareTurnSequences(
@@ -167,58 +176,96 @@ function compareTurnSequences(
   return 0;
 }
 
-function isBetterState(candidate: DynamicState, current: DynamicState | undefined): boolean {
+function isBetterState(
+  candidate: DynamicState,
+  current: DynamicState | undefined,
+): boolean {
   if (!current) return true;
   if (candidate.distance < current.distance - DISTANCE_EPSILON) return true;
-  return Math.abs(candidate.distance - current.distance) <= DISTANCE_EPSILON &&
-    compareTurnSequences(candidate.turns, current.turns) < 0;
+  return (
+    Math.abs(candidate.distance - current.distance) <= DISTANCE_EPSILON &&
+    compareTurnSequences(candidate.turns, current.turns) < 0
+  );
 }
 
 function requiredCurrentRoutes(
   definition: PanelAssemblyDefinition,
 ): Array<{ panelIds: string[] }> {
-  if (definition.wiring.status !== "authored" && definition.wiring.status !== "measured") {
-    throw new Error("Installed-transform optimization requires a current authored wiring route.");
+  if (
+    definition.wiring.status !== "authored" &&
+    definition.wiring.status !== "measured"
+  ) {
+    throw new Error(
+      "Installed-transform optimization requires a current authored wiring route.",
+    );
   }
-  if (definition.wiring.outputs.length !== definition.wiring.chainLengths.length) {
+  if (
+    definition.wiring.outputs.length !== definition.wiring.chainLengths.length
+  ) {
     throw new Error("Wiring output and chain-length counts must agree.");
   }
   const seen = new Set<string>();
-  for (let outputIndex = 0; outputIndex < definition.wiring.outputs.length; outputIndex += 1) {
+  for (
+    let outputIndex = 0;
+    outputIndex < definition.wiring.outputs.length;
+    outputIndex += 1
+  ) {
     const route = definition.wiring.outputs[outputIndex]!.panelIds;
-    if (!route || route.length !== definition.wiring.chainLengths[outputIndex]!) {
-      throw new Error("Installed-transform optimization requires complete authored panel routes.");
+    if (
+      !route ||
+      route.length !== definition.wiring.chainLengths[outputIndex]!
+    ) {
+      throw new Error(
+        "Installed-transform optimization requires complete authored panel routes.",
+      );
     }
     for (const panelId of route) {
       if (seen.has(panelId)) {
-        throw new Error("Authored panel routes cannot repeat a panel during installed-transform optimization.");
+        throw new Error(
+          "Authored panel routes cannot repeat a panel during installed-transform optimization.",
+        );
       }
       seen.add(panelId);
     }
   }
   if (seen.size !== definition.panels.length) {
-    throw new Error("Authored panel routes must cover every panel during installed-transform optimization.");
+    throw new Error(
+      "Authored panel routes must cover every panel during installed-transform optimization.",
+    );
   }
-  return definition.wiring.outputs.map((output) => ({ panelIds: output.panelIds! }));
+  return definition.wiring.outputs.map((output) => ({
+    panelIds: output.panelIds!,
+  }));
 }
 
 function choicesForPanel(
   panel: PanelAssemblyDefinition["panels"][number],
   panelProfile: PanelHardwareProfile,
 ): TransformChoice[] {
-  const turnChoices = panelProfile.pixelGrid.columns === panelProfile.pixelGrid.rows
-    ? TURN_CHOICES
-    : ([0, 2] as const);
+  const turnChoices =
+    panelProfile.pixelGrid.columns === panelProfile.pixelGrid.rows
+      ? TURN_CHOICES
+      : ([0, 2] as const);
   return turnChoices.map((turns) => ({
     turns,
-    din: connectorPosition(panel, panelProfile.dataConnectors.dinCorner, {
-      quarterTurnsClockwise: turns,
-      mirrored: false,
-    }, panelProfile),
-    dout: connectorPosition(panel, panelProfile.dataConnectors.doutCorner, {
-      quarterTurnsClockwise: turns,
-      mirrored: false,
-    }, panelProfile),
+    din: connectorPosition(
+      panel,
+      panelProfile.dataConnectors.dinCorner,
+      {
+        quarterTurnsClockwise: turns,
+        mirrored: false,
+      },
+      panelProfile,
+    ),
+    dout: connectorPosition(
+      panel,
+      panelProfile.dataConnectors.doutCorner,
+      {
+        quarterTurnsClockwise: turns,
+        mirrored: false,
+      },
+      panelProfile,
+    ),
   }));
 }
 
@@ -238,13 +285,16 @@ function optimalTurnsForRoute(
     const next: DynamicState[] = [];
     for (const choice of choices) {
       let best: DynamicState | undefined;
-      for (let previousIndex = 0; previousIndex < previous.length; previousIndex += 1) {
+      for (
+        let previousIndex = 0;
+        previousIndex < previous.length;
+        previousIndex += 1
+      ) {
         const previousState = previous[previousIndex]!;
         const candidate: DynamicState = {
-          distance: previousState.distance + distance(
-            previousChoices[previousIndex]!.dout,
-            choice.din,
-          ),
+          distance:
+            previousState.distance +
+            distance(previousChoices[previousIndex]!.dout, choice.din),
           turns: [...previousState.turns, choice.turns],
         };
         if (isBetterState(candidate, best)) best = candidate;
@@ -271,13 +321,16 @@ export function calculateAuthoredRouteCableLength(
   panelProfile: PanelHardwareProfile,
 ): number {
   const routes = requiredCurrentRoutes(definition);
-  const panelById = new Map(definition.panels.map((panel) => [panel.id, panel]));
+  const panelById = new Map(
+    definition.panels.map((panel) => [panel.id, panel]),
+  );
   let total = 0;
   for (const route of routes) {
     for (let index = 1; index < route.panelIds.length; index += 1) {
       const previous = panelById.get(route.panelIds[index - 1]!);
       const next = panelById.get(route.panelIds[index]!);
-      if (!previous || !next) throw new Error("Authored panel route references an unknown panel.");
+      if (!previous || !next)
+        throw new Error("Authored panel route references an unknown panel.");
       const previousTransform = effectiveTransform(previous);
       const nextTransform = effectiveTransform(next);
       total += distance(
@@ -318,7 +371,8 @@ export function optimizeInstalledAddressTransforms(
   for (const route of routes) {
     const panels = route.panelIds.map((panelId) => {
       const panel = panelById.get(panelId);
-      if (!panel) throw new Error("Authored panel route references an unknown panel.");
+      if (!panel)
+        throw new Error("Authored panel route references an unknown panel.");
       return panel;
     });
     const turns = optimalTurnsForRoute(panels, panelProfile);

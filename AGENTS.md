@@ -185,7 +185,7 @@ Historical Schema 1 inputs are available only through Git history.
   only reviewed runtime bytes and their synchronized receipt back to `main`.
 - Use the normal repository `apply_patch` helper for file edits first. In this
   Codex environment it can fail with `fs sandbox helper failed` / `bwrap: No
-  permissions to create a new namespace` even though approved shell commands
+permissions to create a new namespace` even though approved shell commands
   still work. When that exact failure occurs, use an exact unified diff with
   `git apply --unidiff-zero` as the established fallback. For a newly created
   untracked file, temporarily stage only that exact path so Git has a patch
@@ -344,6 +344,14 @@ entry over duplicates, link to durable evidence where available, and turn a
 recurring lesson into a rule or automated check.
 
 ## Verification
+
+For repeated development, use `npm run check:fast`, `npm run lint:typed`, and
+the relevant `test:fast`, `test:geometry`, or `test:host` group. Formatting and
+lint commands select changed source files by default. Set `CHECK_BASE` for
+another base. Use `-- --all` for full lint coverage before handoff. Do not use
+cached typed-lint results as proof after dependency type changes.
+Use `npm run dev:electron` for renderer hot updates and main-process watching.
+See `docs/DEVELOPMENT.md` for command boundaries and deferred checks.
 
 Use the narrowest relevant checks, then broaden when risk warrants it:
 

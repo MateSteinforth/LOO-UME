@@ -26,7 +26,7 @@ export default defineConfig({
   webServer: {
     command: "npm run serve:test:browser",
     url: "http://127.0.0.1:4174",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

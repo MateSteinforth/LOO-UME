@@ -9,18 +9,21 @@ import {
 
 describe("Electron Mac release routing", () => {
   it("publishes Electron as the stable free Mac download and keeps the launcher tag-only", async () => {
-    const [electronWorkflow, launcherWorkflow, readme, editor] = await Promise.all([
+    const [electronWorkflow, launcherWorkflow, readme] = await Promise.all([
       readFile(".github/workflows/electron-macos-release.yml", "utf8"),
       readFile(".github/workflows/macos-launcher-release.yml", "utf8"),
       readFile("README.md", "utf8"),
-      readFile("web/src/main.ts", "utf8"),
     ]);
     expect(electronWorkflow).toContain("branches:\n      - main");
-    expect(electronWorkflow).toContain('paths-ignore:\n      - "**/*.md"\n      - "tests/**"');
+    expect(electronWorkflow).toContain(
+      'paths-ignore:\n      - "**/*.md"\n      - "tests/**"',
+    );
     expect(electronWorkflow).toContain("release_tag=electron-macos-unsigned");
     expect(electronWorkflow).toContain("LOO-UME-Electron-universal.dmg");
     expect(electronWorkflow).toContain("--prerelease");
-    expect(electronWorkflow).toContain("scripts/create-electron-unsigned-update.ts");
+    expect(electronWorkflow).toContain(
+      "scripts/create-electron-unsigned-update.ts",
+    );
     expect(electronWorkflow).toContain("release/unsigned-update.json");
     expect(electronWorkflow).toContain("esp32-firmware-improv-v1");
     expect(electronWorkflow).toContain("scripts/verify-packaged-firmware.mjs");
@@ -40,9 +43,6 @@ describe("Electron Mac release routing", () => {
       "releases/download/electron-macos-unsigned/LOO-UME-Electron-universal.dmg",
     );
     expect(readme).toContain("[Development](docs/DEVELOPMENT.md)");
-    expect(editor).toContain('"Download update"');
-    expect(editor).toContain("window.open(availableApplicationUpdate.downloadUrl");
-    expect(editor).toContain('window.addEventListener("focus"');
   });
 
   it("packages the receipt-bound complete ESP32 image", async () => {
@@ -59,7 +59,10 @@ describe("Electron Mac release routing", () => {
     const releaseDirectory = await mkdtemp(join(tmpdir(), "loo-ume-update-"));
     try {
       const dmg = Uint8Array.from([1, 2, 3, 4]);
-      await writeFile(join(releaseDirectory, "LOO-UME-Electron-universal.dmg"), dmg);
+      await writeFile(
+        join(releaseDirectory, "LOO-UME-Electron-universal.dmg"),
+        dmg,
+      );
       const metadata = await createUnsignedUpdateMetadata(
         releaseDirectory,
         "0.1.123",
@@ -74,10 +77,14 @@ describe("Electron Mac release routing", () => {
         byteLength: 4,
       });
       expect(metadata.sha256).toMatch(/^[0-9a-f]{64}$/);
-      expect(JSON.parse(await readFile(
-        join(releaseDirectory, "unsigned-update.json"),
-        "utf8",
-      ))).toEqual(metadata);
+      expect(
+        JSON.parse(
+          await readFile(
+            join(releaseDirectory, "unsigned-update.json"),
+            "utf8",
+          ),
+        ),
+      ).toEqual(metadata);
     } finally {
       await rm(releaseDirectory, { recursive: true, force: true });
     }

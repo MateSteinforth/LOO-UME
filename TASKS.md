@@ -1,6 +1,6 @@
 # Project task board
 
-Last reconciled: 2026-09-03
+Last reconciled: 2026-09-05
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
@@ -31,6 +31,62 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P2 · REVIEW-020` Correct structural generation for saved examples
+
+- Deferred by the operator. Ribbon junctions and surface bridges can intersect
+  DOUT clearance. Some surface junctions produce degenerate triangles.
+- DEV-020 retained 15 geometry test failures, including older hole/address
+  expectations and blocked-anchor fixtures. The unchanged Node compiler also
+  rejects the spatial-trail browser fixture at a DOUT clearance.
+- Acceptance: affected saved examples compile, or clearly state unsupported
+  geometry. Keep physical clearance and mesh validation checks.
+
+### `P2 · REVIEW-021` Protect unsaved project changes
+
+- Deferred by the operator. Project replacement and window closure can discard
+  edits without a warning.
+- Acceptance: track unsaved changes and confirm discard before replacement or closure.
+
+### `P2 · REVIEW-022` Reject obsolete asynchronous project results
+
+- Deferred by the operator. Generation and surface loading can apply an old
+  result after the active project changes.
+- Acceptance: bind results to project revisions and cancel obsolete operations.
+- DEV-020 guards its new worker results. Surface loading and older HTTP fallback
+  operations remain in this task.
+
+### `P2 · REVIEW-023` Align firmware support across launch commands
+
+- Deferred by the operator. Vite omits firmware routes. Local desktop and Mac
+  packaging commands do not prepare their required firmware image.
+- Acceptance: supported commands expose or prepare the verified image consistently.
+
+### `P2 · DEV-021` Extend stricter Node and boundary lint checks
+
+- Priority: after DEV-020. Both TypeScript projects already use strict mode.
+  DEV-020 adds return and switch checks. A trial of Node indexed-access and
+  unused-code checks found about 40 diagnostics, mostly in older tests.
+- Scope: resolve those diagnostics without broad test rewrites. Assess
+  `exactOptionalPropertyTypes` and selected unsafe-value lint rules separately.
+- Acceptance: the added checks pass and detect useful defects without duplicate diagnostics.
+
+### `P2 · DEV-022` Gate affected geometry and browser changes before merge
+
+- Dependency: REVIEW-020 must establish a passing geometry baseline first.
+- Scope: select relevant geometry and browser checks for pull requests. DEV-020
+  adds fast behavior checks to each normal build and retains all nightly checks.
+- Acceptance: source and fixture changes select the required checks. Files read
+  dynamically must not disappear from dependency-based test selection.
+
+### `P2 · DEV-023` Measure remaining test and asset preparation costs
+
+- Priority: after DEV-020. Trial two browser workers only after tests with shared
+  UDP receivers have separate ownership. Measure repeated mapping-fixture setup
+  and source-asset staging before adding caches.
+- Acceptance: demonstrate lower repeated-check time with unchanged coverage and
+  correct invalidation. Keep one canonical mapping fingerprint check. Prefer
+  contract relationships over repeated fixture-specific constants elsewhere.
+
 ### `P1 · FIRM-016` Set up official WLED firmware for supported ESP32 targets
 
 - Scope: replace the packaged single-target image with official stable WLED
@@ -54,6 +110,39 @@ simulator and TouchDesigner DDP input.
   setup on each supported processor family.
 - Likely conflicts: Electron serial selection, ESP32 setup, firmware receipts,
   hardware profiles, release downloads, cache storage, and setup tests.
+
+## Ready to Merge
+
+### `P1 · DEV-020` Reduce development checks and repeated builds
+
+- Owner: GPT-6 Astra; branch `codex/dev-iteration`; worktree `/tmp/loo-ume-dev-iteration`.
+- Priority order: formatting and fast lint; separate TypeScript and typed lint;
+  focused test groups and reliable browser ownership; incremental Electron;
+  browser generation worker and a smaller generation interface in `main.ts`.
+- Acceptance: documented fast checks pass without asset builds; test arguments
+  reach Vitest; complete tests remain available; Electron reuses Vite and watches
+  main-process code; browser generation uses the same compiler in a worker.
+- Conflicts: package/configuration files, Electron startup, browser generation,
+  test configuration, and development documentation. Other worktrees remain unchanged.
+- Deferred: the four REVIEW-020 through REVIEW-023 problems above. Do not change
+  measured geometry to resolve existing test failures.
+- Review: independent review plus worker browser checks and Electron lifecycle checks.
+- Result: Prettier, cached syntax lint, typed lint, strict return/switch checks,
+  and separate fast/geometry/host tests are available. CI runs source and fast
+  behavior checks. Brittle text and mutable-fixture assertions were corrected.
+- Result: Electron development keeps Vite running and watches its main process.
+  Planar and structural generation use a worker with classified errors and
+  transferred asset buffers. New worker results have a project revision guard.
+- Verification: 388 fast tests passed in about 15 seconds on this host while
+  source checks also ran. All 117 host tests passed after correcting a
+  stale demo-library assertion and removing a formatting-sensitive UI string check.
+  Formatting, complete lint, TypeScript, web/Electron builds, WASM integrity,
+  and workflow YAML checks passed. Chromium verified planar generation and ZIP
+  reopen, structural generation and download, and mechanics-free editing.
+- Limits: the complete suite still contains the deferred geometry failures.
+  Electron startup, watched restart, and shutdown ran under a virtual display;
+  that display blocks Electron WebGL. No physical hardware review was performed.
+  Do not merge into `main` without operator authorization.
 
 ## Ready
 

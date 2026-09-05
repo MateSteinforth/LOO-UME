@@ -8,6 +8,8 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "strict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "noEmit": true,
     "types": ["node", "w3c-web-serial"]
   },
@@ -20,6 +22,8 @@
     "vitest.config.ts",
     "playwright.config.ts",
     "web/src/LedMapping.ts",
+    "web/src/GenerationClient.ts",
+    "web/src/GenerationWorkerProtocol.ts",
     "web/src/WiringPreview.ts",
     "web/src/WiringRouteEditor.ts",
     "web/src/HardwareMapping.ts",

@@ -38,6 +38,47 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 
 ## Lessons
 
+### F-156 — Test expectations depended on changed fixture details
+
+- **Date:** 2026-09-05
+- **Context:** DEV-020 development-check review.
+- **Symptom:** Tests failed on signed zero, old firmware hashes, and optimizer
+  fixtures that no longer needed a resize.
+- **Cause:** Assertions repeated mutable receipt values or depended on incidental
+  numeric and fixture details.
+- **Correction:** Compare coordinates with a tolerance. Bind deployment hashes
+  to the receipt. Use a load that requires resizing. Verify tie selection with
+  an exhaustive cost comparison. The focused tests pass.
+- **Prevention:** Keep integrity checks at the artifact authority. Other tests
+  must assert contract relationships and exercise their stated conditions.
+- **Evidence:** `tests/wled-deployment.test.ts`, `tests/truss-optimizer.test.ts`,
+  and `tests/installed-address-transform-optimizer.test.ts`.
+- **Status:** Resolved.
+
+### F-157 — A nested npm test alias discarded Vitest arguments
+
+- **Date:** 2026-09-05
+- **Context:** DEV-020 test selection and report collection.
+- **Symptom:** Reporter arguments became npm configuration warnings and never
+  reached Vitest.
+- **Cause:** The `test` script invoked another npm script without forwarding arguments.
+- **Correction:** Invoke Vitest directly from `test`. Keep separate test-group commands.
+- **Prevention:** Verify argument forwarding with an actual selected-file or reporter run.
+- **Evidence:** `package.json` and the DEV-020 JSON test report.
+- **Status:** Resolved.
+
+### F-158 — A fabrication package contains preview and printable STLs
+
+- **Date:** 2026-09-05
+- **Context:** DEV-020 structural worker browser verification.
+- **Symptom:** A one-part package test counted two STL files.
+- **Cause:** The assertion counted the assembly preview as a printable part.
+- **Correction:** Count printable files under `structure/parts/`. Check the
+  assembly preview separately. The structural browser check passes.
+- **Prevention:** Use artifact roles or their defined paths when counting parts.
+- **Evidence:** `tests/browser/generate-parts.spec.ts`.
+- **Status:** Resolved.
+
 ### F-001 — Sandbox helper can fail before repository commands run
 
 - **Date:** 2026-08-14
@@ -856,7 +897,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Context:** FIRM-013 after Improv found `AZIOT` at -47 dBm and returned a
   device URL four seconds after credentials were sent.
 - **Symptom:** The next browser request failed immediately with `Failed to
-  fetch`, before the configured HTTP timeout could expire.
+fetch`, before the configured HTTP timeout could expire.
 - **Cause:** The editor page directly fetched a different private HTTP origin.
   Browser cross-origin and private-network policy can block that response even
   when the local editor host can reach the ESP32.
@@ -1073,7 +1114,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Context:** FIRM-014 automatic reconnect after loading the three-panel JSON.
 - **Symptom:** The panels briefly followed the simulator, then returned to the
   local preset. The log ended with `WLED /json/state: The operation was aborted
-  due to timeout`.
+due to timeout`.
 - **Cause:** Preset persistence treated a missing HTTP response as proof that
   WLED rejected the write. A controller can complete the flash-backed preset
   mutation after the proxy or browser loses its response.
@@ -1707,6 +1748,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** The corrected 41-panel render fills the 480 x 300 card, while
   the empty project frames its complete authoring surface.
 - **Status:** Resolved by LIB-014.
+
 ### F-093 — Dependency symlink was removed while Vite was still running
 
 - **Date:** 2026-08-29
@@ -1827,7 +1869,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
   clean macOS `lo0` state and use shared-port behavior when both applications
   support it.
 - **Evidence:** `/sbin/ifconfig lo0` listed only `127.0.0.1`; `lsof -nP
-  -iUDP:6454` found no owner; the browser and host reported the exact failed
+-iUDP:6454` found no owner; the browser and host reported the exact failed
   bind at `127.0.0.2:6454`.
 - **Status:** Resolved and confirmed with all 16 universes on macOS.
 
@@ -1924,6 +1966,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Evidence:** Unit and browser MadMapper ZIP checks both require the routing
   table after the correction.
 - **Status:** Resolved during MadMapper preview integration.
+
 ### F-105 — Photographs are not dimensional or fabrication evidence
 
 - **Date:** 2026-08-29
@@ -2332,7 +2375,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Context:** Native launch immediately after a successful command-file
   removal.
 - **Symptom:** Terminal tried to execute the launcher below `/private/var/.../
-  AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
+AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Cause:** Finder handed the downloaded quarantined app to a temporary mount.
   The launcher opened Terminal before copying itself, and macOS removed the
   mount before the Terminal command started. A separate developer checkout also

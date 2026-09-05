@@ -62,6 +62,23 @@ Start the Electron application from the checkout:
 npm run electron
 ```
 
+For repeated Electron development, use:
+
+```bash
+npm run dev:electron
+```
+
+This command stages sculpture assets once and starts an owned Vite server.
+Renderer changes use Vite hot updates. Main-process changes rebuild the Electron
+bundle and restart only Electron. Failed builds keep the previous application
+open. Close the application or press `Ctrl+C` to stop the managed processes.
+Development uses separate Electron user data below `build/electron-development/`.
+The Vite library uses this worktree's `projects/local/` directory.
+Set `LOO_UME_ELECTRON_DEV_PORT` to change the default port, 5173.
+If another process owns the port, the command stops without using that process.
+Firmware setup still requires the separate packaged review path or a selected
+verified image. Development does not stage firmware automatically.
+
 For ESP32 review on macOS, build and open a local packaged Electron
 application:
 
@@ -108,6 +125,58 @@ npx tsc -b
 npm run build:web
 npm run test:browser
 ```
+
+### Fast source checks
+
+Use these commands during development:
+
+```bash
+npm run format
+npm run check:fast
+npm run lint:typed
+npm run typecheck:watch
+```
+
+`format` writes formatting only to changed source files. `check:fast` checks
+their formatting and syntax rules, then runs the complete TypeScript check.
+These commands do not stage assets or build the application.
+`lint:typed` checks promise handling and exhaustive switches with TypeScript
+information. Explicit `void` remains permitted for existing intentional background
+work. It does not handle a rejection. Handle errors in new background operations.
+
+Source selection includes committed branch changes since `main`, working-tree
+changes, and new files. Set `CHECK_BASE` to another Git base when necessary.
+Pass `-- --all` to a formatting or lint command to check all source files.
+Generated assets, firmware receipts, and vendor files are outside formatting scope.
+Existing files enter formatting coverage when changed. A full formatting check
+can report older files that have not yet entered this coverage.
+
+Fast ESLint results use a content cache below `.cache/`. Typed lint does not
+reuse file-only results because dependency type changes can affect unchanged files.
+CI checks complete lint coverage and changed-file formatting before its build.
+Keep editor formatting separate from lint. Do not run a formatter through ESLint.
+
+### Test selection
+
+```bash
+npm run test:fast
+npm run test:geometry
+npm run test:host
+npm run test:watch
+npm test -- tests/generation-client.test.ts
+```
+
+The fast group excludes geometry integration and host lifecycle checks.
+The geometry group includes Manifold and complete geometry compiler journeys.
+The host group includes local services, setup, packaging, and process lifecycle.
+`npm test` and `test:unit` still run all three groups. Arguments pass directly
+to Vitest. The watch command runs the fast group and updates affected tests.
+Use `npm run test:geometry -- --watch` for repeated geometry changes.
+Do not remove clearance or mapping tests to shorten a general development check.
+
+Browser tests always start their own server. They do not reuse an unknown
+listener on port 4174. Stop another server on that port before browser checks.
+Keep one browser worker until tests that share UDP receivers have separate ownership.
 
 Run the normal complete verifier:
 

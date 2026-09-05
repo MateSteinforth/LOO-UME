@@ -24,9 +24,11 @@ const localServers: LocalEditorServer[] = [];
 
 afterEach(async () => {
   await Promise.all(localServers.splice(0).map((server) => server.close()));
-  await Promise.all(temporaryDirectories.splice(0).map((directory) =>
-    rm(directory, { recursive: true, force: true })
-  ));
+  await Promise.all(
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
+  );
 });
 
 async function fixtureServer(
@@ -42,7 +44,12 @@ async function fixtureServer(
   await mkdir(distDirectory, { recursive: true });
   await writeFile(join(distDirectory, "index.html"), "<h1>Orbital Lab</h1>");
   await writeFile(
-    join(generatedPublicDirectory, "generated-projects", "sample", "sculpture.json"),
+    join(
+      generatedPublicDirectory,
+      "generated-projects",
+      "sample",
+      "sculpture.json",
+    ),
     '{"id":"sample"}\n',
   );
   const server = await startLocalEditorServer({
@@ -62,20 +69,27 @@ function requestWithHost(
   host: string,
 ): Promise<{ status: number; body: string }> {
   return new Promise((resolvePromise, reject) => {
-    const request = httpRequest({
-      hostname: "127.0.0.1",
-      port,
-      path,
-      headers: { Host: host },
-    }, (response) => {
-      let body = "";
-      response.setEncoding("utf8");
-      response.on("data", (chunk) => { body += chunk; });
-      response.on("end", () => resolvePromise({
-        status: response.statusCode ?? 0,
-        body,
-      }));
-    });
+    const request = httpRequest(
+      {
+        hostname: "127.0.0.1",
+        port,
+        path,
+        headers: { Host: host },
+      },
+      (response) => {
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk) => {
+          body += chunk;
+        });
+        response.on("end", () =>
+          resolvePromise({
+            status: response.statusCode ?? 0,
+            body,
+          }),
+        );
+      },
+    );
     request.on("error", reject);
     request.end();
   });
@@ -102,7 +116,8 @@ describe("production local editor server", () => {
       projects: expect.arrayContaining([
         expect.objectContaining({
           id: "generated-rhombicosidodecahedron-41-panel-preview",
-          readOnly: true,
+          location: "demo",
+          readOnly: false,
         }),
       ]),
     });
@@ -129,15 +144,18 @@ describe("production local editor server", () => {
       commands.push({ command: executable, args });
       if (executable === "/bin/sh") await updateGate;
       const text = args.join(" ");
-      if (text === "branch --show-current") return { stdout: "main\n", stderr: "" };
+      if (text === "branch --show-current")
+        return { stdout: "main\n", stderr: "" };
       if (text === "remote get-url origin") {
         return {
           stdout: "https://github.com/MateSteinforth/LOO-UME.git\n",
           stderr: "",
         };
       }
-      if (text === "rev-parse --verify HEAD") return { stdout: "1111\n", stderr: "" };
-      if (text === "rev-parse --verify origin/main") return { stdout: "2222\n", stderr: "" };
+      if (text === "rev-parse --verify HEAD")
+        return { stdout: "1111\n", stderr: "" };
+      if (text === "rev-parse --verify origin/main")
+        return { stdout: "2222\n", stderr: "" };
       if (text === "status --porcelain --untracked-files=normal") {
         return { stdout: "?? saved-project.loo.zip\n", stderr: "" };
       }
@@ -180,11 +198,17 @@ describe("production local editor server", () => {
     const appliedResponse = await appliedRequest;
     expect(appliedResponse.status).toBe(200);
     expect(await appliedResponse.json()).toMatchObject({ ok: true });
-    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 150));
+    await new Promise<void>((resolvePromise) =>
+      setTimeout(resolvePromise, 150),
+    );
     expect(applied).toHaveBeenCalledOnce();
-    expect(commands.some(({ command: executable, args }) =>
-      executable === "/bin/sh" && args[0]?.endsWith("bootstrap-update-apply.sh")
-    )).toBe(true);
+    expect(
+      commands.some(
+        ({ command: executable, args }) =>
+          executable === "/bin/sh" &&
+          args[0]?.endsWith("bootstrap-update-apply.sh"),
+      ),
+    ).toBe(true);
   });
 
   it("blocks non-loopback Host values and unsafe encoded paths", async () => {
@@ -220,7 +244,6 @@ describe("production local editor server", () => {
     await expect(fetch(server.url)).rejects.toThrow();
   });
 
-
   it("closes the production server once", async () => {
     const server = await fixtureServer();
     const firstClose = server.close(100);
@@ -233,10 +256,9 @@ describe("production local editor server", () => {
   it("generates and serves a current project through the production server", async () => {
     const server = await fixtureServer();
     const origin = server.url.slice(0, -1);
-    const fixture = JSON.parse(await readFile(
-      "sculptures/panel-outline-prism/sculpture.json",
-      "utf8",
-    )) as Record<string, unknown>;
+    const fixture = JSON.parse(
+      await readFile("sculptures/panel-outline-prism/sculpture.json", "utf8"),
+    ) as Record<string, unknown>;
     const glbBytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 2, 0, 0, 0]);
     fixture.designSurface = {
       kind: "triangle-mesh",
@@ -263,42 +285,55 @@ describe("production local editor server", () => {
       body: requestBody,
     });
     expect(response.status).toBe(200);
-    const result = await response.json() as {
+    const result = (await response.json()) as {
       ok: boolean;
       projectSource: string;
       definition: unknown;
     };
     expect(result.ok).toBe(true);
     const definition = parsePanelAssemblyDefinition(result.definition);
-    const profile = parsePanelHardwareProfile(JSON.parse(await readFile(
-      "catalog/panels/ws2812b-8x8-66x65.json",
-      "utf8",
-    )));
+    const profile = parsePanelHardwareProfile(
+      JSON.parse(
+        await readFile("catalog/panels/ws2812b-8x8-66x65.json", "utf8"),
+      ),
+    );
     expect(getGeneratedMechanicsState(definition, profile)).toBe("current");
 
-    const publishedResponse = await fetch(new URL(result.projectSource, server.url));
+    const publishedResponse = await fetch(
+      new URL(result.projectSource, server.url),
+    );
     expect(publishedResponse.status).toBe(200);
     expect(publishedResponse.headers.get("cache-control")).toBe("no-store");
     const publishedDefinition = parsePanelAssemblyDefinition(
       await publishedResponse.json(),
     );
     expect(publishedDefinition).toEqual(definition);
-    expect(getGeneratedMechanicsState(publishedDefinition, profile)).toBe("current");
+    expect(getGeneratedMechanicsState(publishedDefinition, profile)).toBe(
+      "current",
+    );
 
     const designSurface = publishedDefinition.designSurface!;
-    const designResponse = await fetch(new URL(
-      `${result.projectSource.slice(0, -"sculpture.json".length)}${designSurface.source}`,
-      server.url,
-    ));
+    const designResponse = await fetch(
+      new URL(
+        `${result.projectSource.slice(0, -"sculpture.json".length)}${designSurface.source}`,
+        server.url,
+      ),
+    );
     expect(designResponse.status).toBe(200);
-    expect(designResponse.headers.get("content-type")).toBe("model/gltf-binary");
-    expect(new Uint8Array(await designResponse.arrayBuffer())).toEqual(glbBytes);
+    expect(designResponse.headers.get("content-type")).toBe(
+      "model/gltf-binary",
+    );
+    expect(new Uint8Array(await designResponse.arrayBuffer())).toEqual(
+      glbBytes,
+    );
 
     for (const part of publishedDefinition.generatedMechanics?.parts ?? []) {
-      const partResponse = await fetch(new URL(
-        `${result.projectSource.slice(0, -"sculpture.json".length)}${part.source}`,
-        server.url,
-      ));
+      const partResponse = await fetch(
+        new URL(
+          `${result.projectSource.slice(0, -"sculpture.json".length)}${part.source}`,
+          server.url,
+        ),
+      );
       expect(partResponse.status).toBe(200);
       expect((await partResponse.arrayBuffer()).byteLength).toBeGreaterThan(0);
     }

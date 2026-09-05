@@ -1,8 +1,5 @@
 import "./styles.css";
-import {
-  createUniformSphereMapping,
-  validateMapping,
-} from "./LedMapping";
+import { createUniformSphereMapping, validateMapping } from "./LedMapping";
 import {
   physicalAddressContractKey,
   validateLedmapEquivalence,
@@ -29,9 +26,7 @@ import {
   sculptureJson,
   useSuggestedControllerPose,
 } from "../../src/sculpture/SculptureEditor";
-import {
-  generateClosedPanelBoundary,
-} from "../../src/sculpture/PanelOutlineBoundary";
+import { generateClosedPanelBoundary } from "../../src/sculpture/PanelOutlineBoundary";
 import {
   loadGlbDesignSurface,
   loadMechanicalShellDesignSurface,
@@ -79,9 +74,7 @@ import {
   type PortableProjectBundle,
   type PortableProjectFile,
 } from "./PortableProject.ts";
-import {
-  readProjectPackageSummary,
-} from "./ProjectPackage.ts";
+import { readProjectPackageSummary } from "./ProjectPackage.ts";
 import { createCompleteProjectPackageZip } from "./CompleteProjectPackage.ts";
 import { loadGeneratorStatus } from "./GeneratorStatus.ts";
 import { createEditorPipelineFormData } from "./EditorPipelineRequest.ts";
@@ -89,11 +82,7 @@ import {
   createWiringAssemblyManualModel,
   renderStandaloneWiringAssemblyManualDocument,
 } from "./WiringAssemblyManual.ts";
-import { compilePanelBoundaryBundle } from "../../src/cad/CompilePanelBoundaryBundle.ts";
-import {
-  readEditorPipelineResult,
-  shouldUseEditorPipelineFallback,
-} from "./EditorPipelineResponse.ts";
+import { readEditorPipelineResult } from "./EditorPipelineResponse.ts";
 import {
   createAssemblyPackageZip,
   createWiringReview,
@@ -105,16 +94,13 @@ import {
   ArtNetPreviewClient,
   physicalRgbToLogicalPixels,
 } from "./ArtNetPreview.ts";
-import {
-  DdpPreviewClient,
-  logicalRgbToPixels,
-} from "./DdpPreview.ts";
+import { DdpPreviewClient, logicalRgbToPixels } from "./DdpPreview.ts";
 import {
   ExternalFrameMirrorQueue,
   logicalPixelsToRgbFramebuffer,
 } from "./ExternalFrameMirror.ts";
 import wiringManualStyles from "./wiring-manual.css?raw";
-import { runStructuralPipeline } from "../../src/structure/StructuralPipeline.ts";
+import { GenerationClient, GenerationWorkerError } from "./GenerationClient.ts";
 import {
   assertRectangularPanelTools,
   supportsRectangularPanelTools,
@@ -586,10 +572,15 @@ const query = <T extends Element>(selector: string): T => {
 };
 
 const viewerElement = query<HTMLDivElement>("#viewer");
-const applicationUpdateNotice = query<HTMLElement>("#application-update-notice");
-const applicationUpdateMessage = query<HTMLElement>("#application-update-message");
-const applyApplicationUpdateButton =
-  query<HTMLButtonElement>("#apply-application-update");
+const applicationUpdateNotice = query<HTMLElement>(
+  "#application-update-notice",
+);
+const applicationUpdateMessage = query<HTMLElement>(
+  "#application-update-message",
+);
+const applyApplicationUpdateButton = query<HTMLButtonElement>(
+  "#apply-application-update",
+);
 const effectSelect = query<HTMLSelectElement>("#effect");
 const paletteSelect = query<HTMLSelectElement>("#palette");
 const previousEffectButton = query<HTMLButtonElement>("#previous-effect");
@@ -601,166 +592,237 @@ const speedValue = query<HTMLOutputElement>("#speed-value");
 const intensityInput = query<HTMLInputElement>("#intensity");
 const intensityValue = query<HTMLOutputElement>("#intensity-value");
 const sculptureSelect = query<HTMLSelectElement>("#sculpture-select");
-const openProjectLibraryButton = query<HTMLButtonElement>("#open-project-library");
-const projectLibraryDialog = query<HTMLDialogElement>("#project-library-dialog");
+const openProjectLibraryButton = query<HTMLButtonElement>(
+  "#open-project-library",
+);
+const projectLibraryDialog = query<HTMLDialogElement>(
+  "#project-library-dialog",
+);
 const projectLibraryGrid = query<HTMLElement>("#project-library-grid");
 const projectLibraryStatus = query<HTMLElement>("#project-library-status");
-const saveLibraryProjectButton = query<HTMLButtonElement>("#save-library-project");
-const downloadCompletePackageButton =
-  query<HTMLButtonElement>("#download-complete-package");
+const saveLibraryProjectButton = query<HTMLButtonElement>(
+  "#save-library-project",
+);
+const downloadCompletePackageButton = query<HTMLButtonElement>(
+  "#download-complete-package",
+);
 const saveProjectAsButton = query<HTMLButtonElement>("#save-project-as");
-const projectLibraryFilenameInput = query<HTMLInputElement>("#project-library-filename");
+const projectLibraryFilenameInput = query<HTMLInputElement>(
+  "#project-library-filename",
+);
 const currentProjectName = query<HTMLOutputElement>("#current-project-name");
 const sculptureJsonInput = query<HTMLInputElement>("#sculpture-json");
 const loadSculptureButton = query<HTMLButtonElement>("#load-sculpture");
 const developerUtilities = query<HTMLDetailsElement>("#developer-utilities");
 const ledCountInput = query<HTMLInputElement>("#led-count");
 const applyCountButton = query<HTMLButtonElement>("#apply-count");
-const toggleWiringRotationGateButton =
-  query<HTMLButtonElement>("#toggle-wiring-rotation-gate");
+const toggleWiringRotationGateButton = query<HTMLButtonElement>(
+  "#toggle-wiring-rotation-gate",
+);
 const displayMode = query<HTMLSelectElement>("#display-mode");
 const panelLabelsToggle = query<HTMLInputElement>("#panel-labels");
 const printableLayerToggle = query<HTMLInputElement>("#printable-layer");
-const connectorLayerToggle =
-  query<HTMLInputElement>("#connector-layer");
+const connectorLayerToggle = query<HTMLInputElement>("#connector-layer");
 const wiringLayerToggle = query<HTMLInputElement>("#wiring-layer");
 const wiringLayerControls = query<HTMLElement>("#wiring-layer-controls");
-const assemblyTutorialWarning =
-  query<HTMLElement>("#assembly-tutorial-warning");
-const assemblyTutorialInstruction =
-  query<HTMLElement>("#assembly-tutorial-instruction");
-const assemblyTutorialStartButton =
-  query<HTMLButtonElement>("#assembly-tutorial-start");
-const assemblyTutorialControls =
-  query<HTMLElement>("#assembly-tutorial-controls");
-const assemblyTutorialStep =
-  query<HTMLOutputElement>("#assembly-tutorial-step");
-const assemblyTutorialPreviousChainButton =
-  query<HTMLButtonElement>("#assembly-tutorial-previous-chain");
-const assemblyTutorialNextChainButton =
-  query<HTMLButtonElement>("#assembly-tutorial-next-chain");
-const assemblyTutorialPreviousPanelButton =
-  query<HTMLButtonElement>("#assembly-tutorial-previous-panel");
-const assemblyTutorialNextPanelButton =
-  query<HTMLButtonElement>("#assembly-tutorial-next-panel");
-const assemblyTutorialPreviousWireButton =
-  query<HTMLButtonElement>("#assembly-tutorial-previous-wire");
-const assemblyTutorialNextWireButton =
-  query<HTMLButtonElement>("#assembly-tutorial-next-wire");
-const assemblyTutorialExitButton =
-  query<HTMLButtonElement>("#assembly-tutorial-exit");
+const assemblyTutorialWarning = query<HTMLElement>(
+  "#assembly-tutorial-warning",
+);
+const assemblyTutorialInstruction = query<HTMLElement>(
+  "#assembly-tutorial-instruction",
+);
+const assemblyTutorialStartButton = query<HTMLButtonElement>(
+  "#assembly-tutorial-start",
+);
+const assemblyTutorialControls = query<HTMLElement>(
+  "#assembly-tutorial-controls",
+);
+const assemblyTutorialStep = query<HTMLOutputElement>(
+  "#assembly-tutorial-step",
+);
+const assemblyTutorialPreviousChainButton = query<HTMLButtonElement>(
+  "#assembly-tutorial-previous-chain",
+);
+const assemblyTutorialNextChainButton = query<HTMLButtonElement>(
+  "#assembly-tutorial-next-chain",
+);
+const assemblyTutorialPreviousPanelButton = query<HTMLButtonElement>(
+  "#assembly-tutorial-previous-panel",
+);
+const assemblyTutorialNextPanelButton = query<HTMLButtonElement>(
+  "#assembly-tutorial-next-panel",
+);
+const assemblyTutorialPreviousWireButton = query<HTMLButtonElement>(
+  "#assembly-tutorial-previous-wire",
+);
+const assemblyTutorialNextWireButton = query<HTMLButtonElement>(
+  "#assembly-tutorial-next-wire",
+);
+const assemblyTutorialExitButton = query<HTMLButtonElement>(
+  "#assembly-tutorial-exit",
+);
 const projectFileInput = query<HTMLInputElement>("#project-file");
 const openProjectFileButton = query<HTMLButtonElement>("#open-project-file");
-const saveSculptureFileButton =
-  query<HTMLButtonElement>("#save-sculpture-file");
+const saveSculptureFileButton = query<HTMLButtonElement>(
+  "#save-sculpture-file",
+);
 const projectFolderInput = query<HTMLInputElement>("#project-folder");
-const openProjectFolderButton =
-  query<HTMLButtonElement>("#open-project-folder");
-const exportProjectFolderButton =
-  query<HTMLButtonElement>("#export-project-folder");
+const openProjectFolderButton = query<HTMLButtonElement>(
+  "#open-project-folder",
+);
+const exportProjectFolderButton = query<HTMLButtonElement>(
+  "#export-project-folder",
+);
 const saveProjectButton = query<HTMLButtonElement>("#save-project");
 const routeEditorSection = query<HTMLElement>("#route-editor-section");
-const wiringOptimizationSummary =
-  query<HTMLElement>("#wiring-optimization-summary");
+const wiringOptimizationSummary = query<HTMLElement>(
+  "#wiring-optimization-summary",
+);
 const optimizeWiringButton = query<HTMLButtonElement>("#optimize-wiring");
 const routeEditorNote = query<HTMLElement>("#route-editor-note");
 const routeEditor = query<HTMLElement>("#route-editor");
 const routeActionButton = query<HTMLButtonElement>("#route-action");
-const controllerPositionStatus = query<HTMLElement>("#controller-position-status");
-const resetControllerPositionButton =
-  query<HTMLButtonElement>("#reset-controller-position");
-const designSurfaceFileInput =
-  query<HTMLInputElement>("#design-surface-file");
-const loadDesignSurfaceButton =
-  query<HTMLButtonElement>("#load-design-surface");
+const controllerPositionStatus = query<HTMLElement>(
+  "#controller-position-status",
+);
+const resetControllerPositionButton = query<HTMLButtonElement>(
+  "#reset-controller-position",
+);
+const designSurfaceFileInput = query<HTMLInputElement>("#design-surface-file");
+const loadDesignSurfaceButton = query<HTMLButtonElement>(
+  "#load-design-surface",
+);
 const surfaceScaleInput = query<HTMLInputElement>("#surface-scale");
-const automaticPanelPlacementControls =
-  query<HTMLElement>("#automatic-panel-placement-controls");
-const automaticPanelCountInput =
-  query<HTMLInputElement>("#automatic-panel-count");
-const automaticallyPlacePanelsButton =
-  query<HTMLButtonElement>("#automatically-place-panels");
+const automaticPanelPlacementControls = query<HTMLElement>(
+  "#automatic-panel-placement-controls",
+);
+const automaticPanelCountInput = query<HTMLInputElement>(
+  "#automatic-panel-count",
+);
+const automaticallyPlacePanelsButton = query<HTMLButtonElement>(
+  "#automatically-place-panels",
+);
 const addPanelFaceSelect = query<HTMLSelectElement>("#add-panel-face");
 const addPanelButton = query<HTMLButtonElement>("#add-panel");
 const addPanelControls = query<HTMLElement>("#add-panel-controls");
 const assemblyPackageButton = query<HTMLButtonElement>("#assembly-package");
-const generateStructureButton =
-  query<HTMLButtonElement>("#generate-structure");
-const generateSurfaceStructureButton =
-  query<HTMLButtonElement>("#generate-surface-structure");
+const generateStructureButton = query<HTMLButtonElement>("#generate-structure");
+const generateSurfaceStructureButton = query<HTMLButtonElement>(
+  "#generate-surface-structure",
+);
 const connectorSettings = query<HTMLElement>("#structural-connector-settings");
-const connectorNeighborDistanceInput = query<HTMLInputElement>("#connector-neighbor-distance");
-const connectorNeighborDegreeInput = query<HTMLInputElement>("#connector-neighbor-degree");
+const connectorNeighborDistanceInput = query<HTMLInputElement>(
+  "#connector-neighbor-distance",
+);
+const connectorNeighborDegreeInput = query<HTMLInputElement>(
+  "#connector-neighbor-degree",
+);
 const connectorBedInputs = [
   query<HTMLInputElement>("#connector-bed-x"),
   query<HTMLInputElement>("#connector-bed-y"),
   query<HTMLInputElement>("#connector-bed-z"),
 ] as const;
-const connectorSegmentLengthInput = query<HTMLInputElement>("#connector-segment-length");
-const connectorPairFirstSelect = query<HTMLSelectElement>("#connector-pair-first");
-const connectorPairSecondSelect = query<HTMLSelectElement>("#connector-pair-second");
-const includeConnectorPairButton = query<HTMLButtonElement>("#include-connector-pair");
+const connectorSegmentLengthInput = query<HTMLInputElement>(
+  "#connector-segment-length",
+);
+const connectorPairFirstSelect = query<HTMLSelectElement>(
+  "#connector-pair-first",
+);
+const connectorPairSecondSelect = query<HTMLSelectElement>(
+  "#connector-pair-second",
+);
+const includeConnectorPairButton = query<HTMLButtonElement>(
+  "#include-connector-pair",
+);
 const connectorPairList = query<HTMLElement>("#connector-pair-list");
 const panelTransformMode = query<HTMLButtonElement>("#panel-transform-mode");
 const pipelineStatus = query<HTMLElement>("#pipeline-status");
 const esp32SetupConsole = query<HTMLElement>("#esp32-setup-console");
 const esp32SetupDialog = query<HTMLDialogElement>("#esp32-setup-dialog");
 const openEsp32SetupButton = query<HTMLButtonElement>("#open-esp32-setup");
-const downloadMadMapperPackageButton =
-  query<HTMLButtonElement>("#download-madmapper-package");
-const downloadPanelLabelsButton =
-  query<HTMLButtonElement>("#download-panel-labels");
-const madMapperPreviewStatus = query<HTMLOutputElement>("#madmapper-preview-status");
+const downloadMadMapperPackageButton = query<HTMLButtonElement>(
+  "#download-madmapper-package",
+);
+const downloadPanelLabelsButton = query<HTMLButtonElement>(
+  "#download-panel-labels",
+);
+const madMapperPreviewStatus = query<HTMLOutputElement>(
+  "#madmapper-preview-status",
+);
 const ddpPreviewStatus = query<HTMLOutputElement>("#ddp-preview-status");
-const sculptureMirrorStatus = query<HTMLOutputElement>("#sculpture-mirror-status");
+const sculptureMirrorStatus = query<HTMLOutputElement>(
+  "#sculpture-mirror-status",
+);
 const controlPanel = query<HTMLElement>(".control-panel");
-const openPhysicalRouteReviewButton =
-  query<HTMLButtonElement>("#open-physical-route-review");
-const physicalRouteReviewAvailability =
-  query<HTMLElement>("#physical-route-review-availability");
-const physicalRouteReviewDialog =
-  query<HTMLDialogElement>("#physical-route-review-dialog");
-const physicalRouteReviewStep =
-  query<HTMLOutputElement>("#physical-route-review-step");
-const physicalRouteReviewCurrent =
-  query<HTMLElement>("#physical-route-review-current");
-const physicalRouteReviewControls =
-  query<HTMLElement>("#physical-route-review-controls");
-const physicalRouteReviewPreviousButton =
-  query<HTMLButtonElement>("#physical-route-review-previous");
-const physicalRouteReviewConfirmButton =
-  query<HTMLButtonElement>("#physical-route-review-confirm");
-const physicalRouteReviewRotateLeftButton =
-  query<HTMLButtonElement>("#physical-route-review-rotate-left");
-const physicalRouteReviewRotateRightButton =
-  query<HTMLButtonElement>("#physical-route-review-rotate-right");
-const physicalRouteReviewSummary =
-  query<HTMLElement>("#physical-route-review-summary");
-const physicalRouteReviewSummaryNote =
-  query<HTMLElement>("#physical-route-review-summary-note");
-const physicalRouteReviewChangeList =
-  query<HTMLOListElement>("#physical-route-review-change-list");
-const physicalRouteReviewSummaryBackButton =
-  query<HTMLButtonElement>("#physical-route-review-summary-back");
-const physicalRouteReviewApplyButton =
-  query<HTMLButtonElement>("#physical-route-review-apply");
-const physicalRouteReviewCancelButton =
-  query<HTMLButtonElement>("#physical-route-review-cancel");
+const openPhysicalRouteReviewButton = query<HTMLButtonElement>(
+  "#open-physical-route-review",
+);
+const physicalRouteReviewAvailability = query<HTMLElement>(
+  "#physical-route-review-availability",
+);
+const physicalRouteReviewDialog = query<HTMLDialogElement>(
+  "#physical-route-review-dialog",
+);
+const physicalRouteReviewStep = query<HTMLOutputElement>(
+  "#physical-route-review-step",
+);
+const physicalRouteReviewCurrent = query<HTMLElement>(
+  "#physical-route-review-current",
+);
+const physicalRouteReviewControls = query<HTMLElement>(
+  "#physical-route-review-controls",
+);
+const physicalRouteReviewPreviousButton = query<HTMLButtonElement>(
+  "#physical-route-review-previous",
+);
+const physicalRouteReviewConfirmButton = query<HTMLButtonElement>(
+  "#physical-route-review-confirm",
+);
+const physicalRouteReviewRotateLeftButton = query<HTMLButtonElement>(
+  "#physical-route-review-rotate-left",
+);
+const physicalRouteReviewRotateRightButton = query<HTMLButtonElement>(
+  "#physical-route-review-rotate-right",
+);
+const physicalRouteReviewSummary = query<HTMLElement>(
+  "#physical-route-review-summary",
+);
+const physicalRouteReviewSummaryNote = query<HTMLElement>(
+  "#physical-route-review-summary-note",
+);
+const physicalRouteReviewChangeList = query<HTMLOListElement>(
+  "#physical-route-review-change-list",
+);
+const physicalRouteReviewSummaryBackButton = query<HTMLButtonElement>(
+  "#physical-route-review-summary-back",
+);
+const physicalRouteReviewApplyButton = query<HTMLButtonElement>(
+  "#physical-route-review-apply",
+);
+const physicalRouteReviewCancelButton = query<HTMLButtonElement>(
+  "#physical-route-review-cancel",
+);
 const runEsp32SetupButton = query<HTMLButtonElement>("#run-esp32-setup");
 const closeEsp32SetupButton = query<HTMLButtonElement>("#close-esp32-setup");
 const esp32WifiSsidInput = query<HTMLInputElement>("#esp32-wifi-ssid");
 const esp32WifiPasswordInput = query<HTMLInputElement>("#esp32-wifi-password");
 const esp32FirmwareInput = query<HTMLInputElement>("#esp32-firmware-file");
 const esp32SetupProgress = query<HTMLProgressElement>("#esp32-setup-progress");
-const esp32SetupProgressLabel = query<HTMLOutputElement>("#esp32-setup-progress-label");
-const esp32BootInstruction = query<HTMLOutputElement>("#esp32-boot-instruction");
+const esp32SetupProgressLabel = query<HTMLOutputElement>(
+  "#esp32-setup-progress-label",
+);
+const esp32BootInstruction = query<HTMLOutputElement>(
+  "#esp32-boot-instruction",
+);
 const appendLogEntry = (
   target: HTMLElement,
   message: string,
   error: boolean,
 ): void => {
   const entry = document.createElement("div");
-  entry.className = error ? "esp32-console-entry esp32-console-entry--error" : "esp32-console-entry";
+  entry.className = error
+    ? "esp32-console-entry esp32-console-entry--error"
+    : "esp32-console-entry";
   entry.textContent = message;
   target.append(entry);
   while (target.childElementCount > 240) target.firstElementChild?.remove();
@@ -798,9 +860,11 @@ let availableApplicationUpdate: ApplicationUpdateStatus | null = null;
 
 async function loadApplicationUpdateStatus(): Promise<ApplicationUpdateStatus | null> {
   try {
-    const response = await fetch("./api/application-update", { cache: "no-store" });
+    const response = await fetch("./api/application-update", {
+      cache: "no-store",
+    });
     if (!response.ok) return null;
-    return await response.json() as ApplicationUpdateStatus;
+    return (await response.json()) as ApplicationUpdateStatus;
   } catch {
     return null;
   }
@@ -815,14 +879,18 @@ async function showAvailableApplicationUpdate(): Promise<void> {
   applyApplicationUpdateButton.textContent = status.downloadUrl
     ? "Download update"
     : "Update";
-  applyApplicationUpdateButton.disabled = !status.canApply && !status.downloadUrl;
+  applyApplicationUpdateButton.disabled =
+    !status.canApply && !status.downloadUrl;
   if (!status.canApply && !status.downloadUrl) {
-    applyApplicationUpdateButton.title = "Use the update method for this LOO/UME installation.";
+    applyApplicationUpdateButton.title =
+      "Use the update method for this LOO/UME installation.";
   }
 }
 
 async function waitForUpdatedApplication(): Promise<void> {
-  await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 2_000));
+  await new Promise<void>((resolvePromise) =>
+    setTimeout(resolvePromise, 2_000),
+  );
   for (let attempt = 0; attempt < 300; attempt += 1) {
     try {
       const response = await fetch(`./?update-probe=${Date.now()}`, {
@@ -835,7 +903,9 @@ async function waitForUpdatedApplication(): Promise<void> {
     } catch {
       // The old local server is stopping or the updated build is starting.
     }
-    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 1_000));
+    await new Promise<void>((resolvePromise) =>
+      setTimeout(resolvePromise, 1_000),
+    );
   }
   applicationUpdateMessage.textContent =
     "The update did not restart automatically. Reopen LOO/UME.";
@@ -845,7 +915,11 @@ async function waitForUpdatedApplication(): Promise<void> {
 applyApplicationUpdateButton.addEventListener("click", () => {
   void (async () => {
     if (availableApplicationUpdate?.downloadUrl) {
-      window.open(availableApplicationUpdate.downloadUrl, "_blank", "noopener,noreferrer");
+      window.open(
+        availableApplicationUpdate.downloadUrl,
+        "_blank",
+        "noopener,noreferrer",
+      );
       applicationUpdateMessage.textContent =
         "Download the DMG, quit LOO/UME, then replace LOO UME in Applications.";
       return;
@@ -853,16 +927,21 @@ applyApplicationUpdateButton.addEventListener("click", () => {
     applyApplicationUpdateButton.disabled = true;
     applicationUpdateMessage.textContent =
       "Preserving local projects and updating LOO/UME…";
-    const response = await fetch("./api/application-update", { method: "POST" });
-    const result = await response.json() as { message?: string; error?: string };
-    if (!response.ok) throw new Error(result.error ?? "Application update failed.");
-    applicationUpdateMessage.textContent = result.message ??
-      "LOO/UME updated. Restarting…";
+    const response = await fetch("./api/application-update", {
+      method: "POST",
+    });
+    const result = (await response.json()) as {
+      message?: string;
+      error?: string;
+    };
+    if (!response.ok)
+      throw new Error(result.error ?? "Application update failed.");
+    applicationUpdateMessage.textContent =
+      result.message ?? "LOO/UME updated. Restarting…";
     await waitForUpdatedApplication();
   })().catch((error) => {
-    applicationUpdateMessage.textContent = error instanceof Error
-      ? error.message
-      : String(error);
+    applicationUpdateMessage.textContent =
+      error instanceof Error ? error.message : String(error);
     applyApplicationUpdateButton.disabled = false;
   });
 });
@@ -875,10 +954,11 @@ window.addEventListener("focus", () => {
 async function start(): Promise<void> {
   try {
     const generatorStatusPromise = loadGeneratorStatus();
-    const [sculptureRegistry, initialProjectLibraryRegistry] = await Promise.all([
-      loadSculptureRegistry(),
-      loadProjectLibraryRegistry(),
-    ]);
+    const [sculptureRegistry, initialProjectLibraryRegistry] =
+      await Promise.all([
+        loadSculptureRegistry(),
+        loadProjectLibraryRegistry(),
+      ]);
     let projectLibraryRegistry = initialProjectLibraryRegistry;
     sculptureSelect.replaceChildren(
       ...sculptureRegistry.sculptures.map(
@@ -893,9 +973,7 @@ async function start(): Promise<void> {
       ? initialSculptureSource
       : "";
 
-    let loadedSculpture = await loadSculptureContract(
-      initialSculptureSource,
-    );
+    let loadedSculpture = await loadSculptureContract(initialSculptureSource);
     currentProjectName.textContent = loadedSculpture.definition.name;
     let editorDefinition = loadedSculpture.definition;
     let editorProject = loadedSculpture.project;
@@ -916,10 +994,12 @@ async function start(): Promise<void> {
     const outputLayerVisibility = new Map<number, boolean>();
     let routeEditorModel: WiringRouteEditorModel | null =
       createWiringRouteEditorModel(editorDefinition, wiringPreview);
-    renderer = new SphereRenderer(viewerElement, mapping, editorProject.panelProfile);
-    renderer.setShellTransparency(
-      DEFAULT_SHELL_TRANSPARENCY,
+    renderer = new SphereRenderer(
+      viewerElement,
+      mapping,
+      editorProject.panelProfile,
     );
+    renderer.setShellTransparency(DEFAULT_SHELL_TRANSPARENCY);
     renderer.setWiringPreview(wiringPreview);
 
     effectSelect.replaceChildren(
@@ -943,16 +1023,23 @@ async function start(): Promise<void> {
     let simulationTime = 0;
     let previousTime = performance.now();
     let currentDisplayMode: DisplayMode = "wled";
-    let activePlacementSurface: {
-      surface: LoadedDesignSurface;
-      attachmentSurface: "design-surface" | "mechanical-shell";
-    } | undefined;
+    let activePlacementSurface:
+      | {
+          surface: LoadedDesignSurface;
+          attachmentSurface: "design-surface" | "mechanical-shell";
+        }
+      | undefined;
     let verifiedGeneratedMechanics: VerifiedGeneratedMechanics | undefined;
     let verifiedGeneratedStructure: VerifiedGeneratedStructure | undefined;
     let generatedAssetLoadRevision = 0;
     let activePortableBundle: PortableProjectBundle | undefined;
     let availableProjectAssets = new Map<string, Uint8Array>();
     let generatedMemoryUrls = new Map<string, string>();
+    const generationClient = new GenerationClient();
+    let generationProjectRevision = 0;
+    window.addEventListener("pagehide", () => generationClient.dispose(), {
+      once: true,
+    });
     let selectedEditorPanelId: string | null = null;
     let simulatorDeviceUrl: URL | undefined;
     let simulatorFrameRequest: Promise<void> | undefined;
@@ -972,11 +1059,13 @@ async function start(): Promise<void> {
     let physicalRouteReviewApplying = false;
     let physicalRouteReviewDemo = false;
     let physicalRouteReviewDemoPixels: Uint32Array | undefined;
-    let physicalRouteReviewPendingApply: {
-      session: PhysicalRouteReviewSession;
-      deviceUrl: URL;
-      reviewedSculpture: LoadedSculpture;
-    } | undefined;
+    let physicalRouteReviewPendingApply:
+      | {
+          session: PhysicalRouteReviewSession;
+          deviceUrl: URL;
+          reviewedSculpture: LoadedSculpture;
+        }
+      | undefined;
     const artNetPreviewClient = new ArtNetPreviewClient();
     const ddpPreviewClient = new DdpPreviewClient();
     const externalFrameMirrorQueue = new ExternalFrameMirrorQueue();
@@ -1024,7 +1113,8 @@ async function start(): Promise<void> {
         return;
       }
       const deviceUrl = simulatorDeviceUrl;
-      if (!deviceUrl || simulatorSetupActive || physicalRouteReviewSession) return;
+      if (!deviceUrl || simulatorSetupActive || physicalRouteReviewSession)
+        return;
       const expectedFingerprint = hardwareContract.fingerprint;
       const expectedProjectRevision = simulatorProjectRevision;
       const abortController = new AbortController();
@@ -1037,8 +1127,13 @@ async function start(): Promise<void> {
             simulatorDeviceUrl?.href !== deviceUrl.href ||
             hardwareContract.fingerprint !== expectedFingerprint ||
             simulatorProjectRevision !== expectedProjectRevision
-          ) throw new DOMException("Sculpture mirror stopped.", "AbortError");
-          await sendSimulatorFramebuffer(deviceUrl, pixels, abortController.signal);
+          )
+            throw new DOMException("Sculpture mirror stopped.", "AbortError");
+          await sendSimulatorFramebuffer(
+            deviceUrl,
+            pixels,
+            abortController.signal,
+          );
         },
         onStatistics: ({ sentFrames, replacedFrames }) => {
           sculptureMirrorStatus.textContent =
@@ -1064,11 +1159,13 @@ async function start(): Promise<void> {
     const startMadMapperPreview = (): void => {
       if (artNetPreviewClient.active) return;
       if (!hardwareContract.readiness.mappingReady) {
-        madMapperPreviewStatus.textContent = "Art-Net input needs confirmed mapping";
+        madMapperPreviewStatus.textContent =
+          "Art-Net input needs confirmed mapping";
         return;
       }
       if (physicalRouteReviewSession) {
-        madMapperPreviewStatus.textContent = "Art-Net input paused for physical wiring review";
+        madMapperPreviewStatus.textContent =
+          "Art-Net input paused for physical wiring review";
         return;
       }
       const revision = ++artNetPreviewRevision;
@@ -1076,44 +1173,51 @@ async function start(): Promise<void> {
       artNetPreviewPixels = undefined;
       artNetPreviewFrameTimes = [];
       artNetPreviewTimedOut = false;
-      madMapperPreviewStatus.textContent = "Waiting for Art-Net on 127.0.0.1:6454";
-      const endUniverse = Math.ceil(hardwareContract.mapping.entries.length / 170);
+      madMapperPreviewStatus.textContent =
+        "Waiting for Art-Net on 127.0.0.1:6454";
+      const endUniverse = Math.ceil(
+        hardwareContract.mapping.entries.length / 170,
+      );
       setLogMessage(
         `MadMapper preview is listening on 127.0.0.1:6454, universes 1 through ${endUniverse}.`,
       );
-      void artNetPreviewClient.start({
-        pixelCount: hardwareContract.mapping.entries.length,
-        startUniverse: 1,
-        mappingFingerprint: expectedFingerprint,
-        onFrame: (frame) => {
-          if (
-            revision !== artNetPreviewRevision ||
-            hardwareContract.fingerprint !== expectedFingerprint
-          ) return;
-          artNetPreviewPixels = physicalRgbToLogicalPixels(
-            frame.physicalRgb,
-            hardwareContract.mapping.entries,
-          );
-          mirrorExternalFrame(artNetPreviewPixels);
-          artNetPreviewLastFrameAt = performance.now();
-          artNetPreviewTimedOut = false;
-          artNetPreviewFrameTimes.push(artNetPreviewLastFrameAt);
-          artNetPreviewFrameTimes = artNetPreviewFrameTimes.filter(
-            (time) => artNetPreviewLastFrameAt - time < 1_000,
-          );
+      void artNetPreviewClient
+        .start({
+          pixelCount: hardwareContract.mapping.entries.length,
+          startUniverse: 1,
+          mappingFingerprint: expectedFingerprint,
+          onFrame: (frame) => {
+            if (
+              revision !== artNetPreviewRevision ||
+              hardwareContract.fingerprint !== expectedFingerprint
+            )
+              return;
+            artNetPreviewPixels = physicalRgbToLogicalPixels(
+              frame.physicalRgb,
+              hardwareContract.mapping.entries,
+            );
+            mirrorExternalFrame(artNetPreviewPixels);
+            artNetPreviewLastFrameAt = performance.now();
+            artNetPreviewTimedOut = false;
+            artNetPreviewFrameTimes.push(artNetPreviewLastFrameAt);
+            artNetPreviewFrameTimes = artNetPreviewFrameTimes.filter(
+              (time) => artNetPreviewLastFrameAt - time < 1_000,
+            );
+            madMapperPreviewStatus.textContent =
+              `${artNetPreviewFrameTimes.length} FPS · ${frame.universeCount} universes · ` +
+              `${frame.incompleteFrames} incomplete · ${frame.rejectedPackets} rejected`;
+          },
+        })
+        .catch((error) => {
+          if (revision !== artNetPreviewRevision) return;
+          stopMadMapperPreview();
           madMapperPreviewStatus.textContent =
-            `${artNetPreviewFrameTimes.length} FPS · ${frame.universeCount} universes · ` +
-            `${frame.incompleteFrames} incomplete · ${frame.rejectedPackets} rejected`;
-        },
-      }).catch((error) => {
-        if (revision !== artNetPreviewRevision) return;
-        stopMadMapperPreview();
-        madMapperPreviewStatus.textContent = "Art-Net simulator input unavailable";
-        setLogMessage(
-          `MadMapper preview failed: ${error instanceof Error ? error.message : String(error)}`,
-          true,
-        );
-      });
+            "Art-Net simulator input unavailable";
+          setLogMessage(
+            `MadMapper preview failed: ${error instanceof Error ? error.message : String(error)}`,
+            true,
+          );
+        });
     };
 
     const startDdpPreview = (): void => {
@@ -1124,37 +1228,43 @@ async function start(): Promise<void> {
       ddpPreviewTimedOut = false;
       ddpPreviewFrameTimes = [];
       if (mapping.entries.length < 1 || mapping.entries.length > 2_624) {
-        ddpPreviewStatus.textContent = "DDP input needs from 1 through 2,624 LEDs";
+        ddpPreviewStatus.textContent =
+          "DDP input needs from 1 through 2,624 LEDs";
         return;
       }
       ddpPreviewStatus.textContent = "Waiting for DDP on UDP 4048";
       setTimeout(() => {
         if (revision !== ddpPreviewRevision) return;
-        void ddpPreviewClient.start({
-          pixelCount: mapping.entries.length,
-          mappingFingerprint: hardwareContract.fingerprint,
-          onFrame: (frame) => {
+        void ddpPreviewClient
+          .start({
+            pixelCount: mapping.entries.length,
+            mappingFingerprint: hardwareContract.fingerprint,
+            onFrame: (frame) => {
+              if (revision !== ddpPreviewRevision) return;
+              ddpPreviewPixels = logicalRgbToPixels(
+                frame.logicalRgb,
+                mapping.entries.length,
+              );
+              ddpPreviewLastFrameAt = performance.now();
+              ddpPreviewTimedOut = false;
+              ddpPreviewFrameTimes.push(ddpPreviewLastFrameAt);
+              ddpPreviewFrameTimes = ddpPreviewFrameTimes.filter(
+                (time) => ddpPreviewLastFrameAt - time < 1_000,
+              );
+              ddpPreviewStatus.textContent =
+                `${ddpPreviewFrameTimes.length} FPS DDP · ` +
+                `${frame.incompleteFrames} incomplete · ${frame.rejectedPackets} rejected`;
+              mirrorExternalFrame(ddpPreviewPixels);
+            },
+          })
+          .catch((error) => {
             if (revision !== ddpPreviewRevision) return;
-            ddpPreviewPixels = logicalRgbToPixels(frame.logicalRgb, mapping.entries.length);
-            ddpPreviewLastFrameAt = performance.now();
-            ddpPreviewTimedOut = false;
-            ddpPreviewFrameTimes.push(ddpPreviewLastFrameAt);
-            ddpPreviewFrameTimes = ddpPreviewFrameTimes.filter(
-              (time) => ddpPreviewLastFrameAt - time < 1_000,
+            ddpPreviewStatus.textContent = "DDP simulator input unavailable";
+            setLogMessage(
+              `DDP simulator input failed: ${error instanceof Error ? error.message : String(error)}`,
+              true,
             );
-            ddpPreviewStatus.textContent =
-              `${ddpPreviewFrameTimes.length} FPS DDP · ` +
-              `${frame.incompleteFrames} incomplete · ${frame.rejectedPackets} rejected`;
-            mirrorExternalFrame(ddpPreviewPixels);
-          },
-        }).catch((error) => {
-          if (revision !== ddpPreviewRevision) return;
-          ddpPreviewStatus.textContent = "DDP simulator input unavailable";
-          setLogMessage(
-            `DDP simulator input failed: ${error instanceof Error ? error.message : String(error)}`,
-            true,
-          );
-        });
+          });
       }, 50);
     };
 
@@ -1203,22 +1313,28 @@ async function start(): Promise<void> {
         gpio: output.gpio ?? defaultGpios[index]!,
       }));
       if (
-        outputs.some((output, index) =>
-          !isApprovedEsp32OutputGpio(output.gpio) ||
-          output.startIndex !== outputs
-            .slice(0, index)
-            .reduce((sum, prior) => sum + prior.pixelCount, 0) ||
-          output.pixelCount < pixelsPerFixture ||
-          output.pixelCount % pixelsPerFixture !== 0
+        outputs.some(
+          (output, index) =>
+            !isApprovedEsp32OutputGpio(output.gpio) ||
+            output.startIndex !==
+              outputs
+                .slice(0, index)
+                .reduce((sum, prior) => sum + prior.pixelCount, 0) ||
+            output.pixelCount < pixelsPerFixture ||
+            output.pixelCount % pixelsPerFixture !== 0,
         ) ||
         new Set(outputs.map((output) => output.gpio)).size !== outputs.length ||
         outputs.reduce((sum, output) => sum + output.pixelCount, 0) !== ledCount
       ) {
-        throw new Error("The loaded simulator does not have a contiguous approved ESP32 output layout.");
+        throw new Error(
+          "The loaded simulator does not have a contiguous approved ESP32 output layout.",
+        );
       }
       return { outputs, ledCount, panelCount };
     };
-    const physicalSimulatorFramebuffer = (): Array<[number, number, number]> => {
+    const physicalSimulatorFramebuffer = (): Array<
+      [number, number, number]
+    > => {
       const { ledCount } = loadedSimulatorDeployment();
       return mappedPanelFramebuffer(
         engine.pixels,
@@ -1257,7 +1373,11 @@ async function start(): Promise<void> {
             sx: Number(speedInput.value),
             ix: Number(intensityInput.value),
             frz: false,
-            col: [[255, 122, 24], [5, 8, 22], [0, 0, 0]],
+            col: [
+              [255, 122, 24],
+              [5, 8, 22],
+              [0, 0, 0],
+            ],
           },
         },
       };
@@ -1289,10 +1409,10 @@ async function start(): Promise<void> {
           ? "Physical wiring review is active in virtual-only mode."
           : "Physical wiring review is active."
         : !hardwareContract.readiness.mappingReady
-        ? "Regenerate mapping/wiring before reviewing physical panel order."
-        : simulatorDeviceUrl
-        ? `Ready to review ${hardwareContract.outputs.reduce((sum, output) => sum + output.panelIds.length, 0)} physical panels at ${simulatorDeviceUrl!.host}.`
-        : "No ESP32 is connected. Review will run on the virtual sculpture only.";
+          ? "Regenerate mapping/wiring before reviewing physical panel order."
+          : simulatorDeviceUrl
+            ? `Ready to review ${hardwareContract.outputs.reduce((sum, output) => sum + output.panelIds.length, 0)} physical panels at ${simulatorDeviceUrl!.host}.`
+            : "No ESP32 is connected. Review will run on the virtual sculpture only.";
       updateExternalFrameMirrorAvailability();
     };
     updatePhysicalRouteReviewAvailability();
@@ -1304,7 +1424,8 @@ async function start(): Promise<void> {
         physicalRouteReviewRotateLeftButton,
         physicalRouteReviewRotateRightButton,
         physicalRouteReviewSummaryBackButton,
-      ]) button.disabled = busy;
+      ])
+        button.disabled = busy;
     };
 
     const selectPhysicalRouteReviewPanel = (
@@ -1313,7 +1434,8 @@ async function start(): Promise<void> {
     ): void => {
       physicalRouteReviewProgrammaticSelection = true;
       renderer?.setPhysicalRouteReview(panelId, quarterTurnsClockwise);
-      if (panelId === null) renderer?.selectEditorPanel(physicalRouteReviewOriginalSelection);
+      if (panelId === null)
+        renderer?.selectEditorPanel(physicalRouteReviewOriginalSelection);
       physicalRouteReviewProgrammaticSelection = false;
     };
 
@@ -1326,12 +1448,14 @@ async function start(): Promise<void> {
           hardwareContract.mapping.entries,
         );
         viewerElement.dataset.physicalRouteReviewDemoPixels = String(
-          pixels.filter((pixel) => pixel.some((channel) => channel !== 0)).length,
+          pixels.filter((pixel) => pixel.some((channel) => channel !== 0))
+            .length,
         );
         return;
       }
       const deviceUrl = physicalRouteReviewDeviceUrl;
-      if (!deviceUrl) throw new Error("The reviewed ESP32 connection is unavailable.");
+      if (!deviceUrl)
+        throw new Error("The reviewed ESP32 connection is unavailable.");
       await physicalRouteReviewFrameRequest?.catch(() => undefined);
       const request = sendSimulatorFramebuffer(deviceUrl, pixels);
       physicalRouteReviewFrameRequest = request;
@@ -1353,22 +1477,32 @@ async function start(): Promise<void> {
       physicalRouteReviewSummaryBackButton.disabled = false;
       selectPhysicalRouteReviewPanel(null);
       const changes = physicalRouteReviewChanges(session, editorDefinition);
-      physicalRouteReviewSummaryNote.textContent = changes.length === 0
-        ? physicalRouteReviewDemo
-          ? "Demo complete. No project or device data changed."
-          : "All physical panel identities and address orientations match the current project. Applying records the completed physical review."
-        : physicalRouteReviewDemo
-        ? `${changes.length} simulated mapping ${changes.length === 1 ? "change" : "changes"}. Demo mode cannot apply them.`
-        : `${changes.length} mapping ${changes.length === 1 ? "change" : "changes"} will be applied. Panel poses and fabrication data will not change.`;
+      physicalRouteReviewSummaryNote.textContent =
+        changes.length === 0
+          ? physicalRouteReviewDemo
+            ? "Demo complete. No project or device data changed."
+            : "All physical panel identities and address orientations match the current project. Applying records the completed physical review."
+          : physicalRouteReviewDemo
+            ? `${changes.length} simulated mapping ${changes.length === 1 ? "change" : "changes"}. Demo mode cannot apply them.`
+            : `${changes.length} mapping ${changes.length === 1 ? "change" : "changes"} will be applied. Panel poses and fabrication data will not change.`;
       physicalRouteReviewChangeList.replaceChildren(
         ...(changes.length === 0
-          ? [Object.assign(document.createElement("li"), { textContent: "No route or orientation corrections." })]
+          ? [
+              Object.assign(document.createElement("li"), {
+                textContent: "No route or orientation corrections.",
+              }),
+            ]
           : changes.map((change) =>
-            Object.assign(document.createElement("li"), { textContent: change })
-          )),
+              Object.assign(document.createElement("li"), {
+                textContent: change,
+              }),
+            )),
       );
       await sendPhysicalRouteReviewFrame(
-        Array.from({ length: session.ledCount }, () => [0, 0, 0] as [number, number, number]),
+        Array.from(
+          { length: session.ledCount },
+          () => [0, 0, 0] as [number, number, number],
+        ),
       );
     };
 
@@ -1445,7 +1579,10 @@ async function start(): Promise<void> {
       if (physicalRouteReviewDialog.open) physicalRouteReviewDialog.close();
       if (resumeLivePreview && deviceUrl && simulatorDeviceUrl) {
         try {
-          await sendSimulatorFramebuffer(deviceUrl, physicalSimulatorFramebuffer());
+          await sendSimulatorFramebuffer(
+            deviceUrl,
+            physicalSimulatorFramebuffer(),
+          );
         } catch (error) {
           setLogMessage(
             `Live preview did not resume: ${error instanceof Error ? error.message : String(error)}`,
@@ -1459,18 +1596,27 @@ async function start(): Promise<void> {
 
     const beginPhysicalRouteReview = async (demo = false): Promise<void> => {
       if (!demo && !simulatorDeviceUrl) {
-        throw new Error("Connect the configured ESP32 before reviewing physical wiring.");
+        throw new Error(
+          "Connect the configured ESP32 before reviewing physical wiring.",
+        );
       }
       if (!hardwareContract.readiness.mappingReady) {
-        throw new Error("Regenerate mapping/wiring before reviewing physical wiring.");
+        throw new Error(
+          "Regenerate mapping/wiring before reviewing physical wiring.",
+        );
       }
       exitAssemblyTutorial(false);
       if (artNetPreviewClient.active) {
-        stopMadMapperPreview("MadMapper preview stopped for physical wiring review.");
+        stopMadMapperPreview(
+          "MadMapper preview stopped for physical wiring review.",
+        );
       }
-      madMapperPreviewStatus.textContent = "Art-Net input paused for physical wiring review";
+      madMapperPreviewStatus.textContent =
+        "Art-Net input paused for physical wiring review";
       if (externalFrameMirrorQueue.active) {
-        stopExternalFrameMirror("Sculpture mirror stopped for physical wiring review.");
+        stopExternalFrameMirror(
+          "Sculpture mirror stopped for physical wiring review.",
+        );
       }
       if (standaloneSaveTimer) {
         clearTimeout(standaloneSaveTimer);
@@ -1490,7 +1636,8 @@ async function start(): Promise<void> {
       physicalRouteReviewDemoPixels = undefined;
       physicalRouteReviewDeviceUrl = demo ? undefined : simulatorDeviceUrl;
       physicalRouteReviewPendingApply = undefined;
-      physicalRouteReviewApplyButton.textContent = "Apply and regenerate mapping";
+      physicalRouteReviewApplyButton.textContent =
+        "Apply and regenerate mapping";
       physicalRouteReviewCancelButton.disabled = false;
       appRoot.classList.add("app--physical-route-review");
       controlPanel.inert = true;
@@ -1506,7 +1653,12 @@ async function start(): Promise<void> {
     };
 
     const scheduleStandaloneSave = (): void => {
-      if (!simulatorDeviceUrl || simulatorSetupActive || physicalRouteReviewSession) return;
+      if (
+        !simulatorDeviceUrl ||
+        simulatorSetupActive ||
+        physicalRouteReviewSession
+      )
+        return;
       if (standaloneSaveTimer) clearTimeout(standaloneSaveTimer);
       standaloneSaveTimer = setTimeout(() => {
         standaloneSaveTimer = undefined;
@@ -1517,16 +1669,21 @@ async function start(): Promise<void> {
         }
         const payload = setupPayload();
         const deviceUrl = simulatorDeviceUrl;
-        const pendingFrame = simulatorFrameRequest?.catch(() => undefined) ?? Promise.resolve();
+        const pendingFrame =
+          simulatorFrameRequest?.catch(() => undefined) ?? Promise.resolve();
         standaloneSaveRequest = pendingFrame
           .then(() => persistStandaloneAnimation(deviceUrl, payload))
-          .then(() => setLogMessage(
-            "Saved the current animation as the ESP32 standalone boot preset.",
-          ))
-          .catch((error) => setLogMessage(
-            `Standalone animation save failed: ${error instanceof Error ? error.message : String(error)}`,
-            true,
-          ))
+          .then(() =>
+            setLogMessage(
+              "Saved the current animation as the ESP32 standalone boot preset.",
+            ),
+          )
+          .catch((error) =>
+            setLogMessage(
+              `Standalone animation save failed: ${error instanceof Error ? error.message : String(error)}`,
+              true,
+            ),
+          )
           .finally(() => {
             standaloneSaveRequest = undefined;
           });
@@ -1540,7 +1697,8 @@ async function start(): Promise<void> {
         physicalRouteReviewSession ||
         simulatorDeviceUrl ||
         simulatorReconnectRequest
-      ) return;
+      )
+        return;
       let reconnectPayload: Esp32SetupPayload;
       try {
         reconnectPayload = setupPayload();
@@ -1548,39 +1706,48 @@ async function start(): Promise<void> {
         return;
       }
       const requestedRevision = simulatorProjectRevision;
-      setLogMessage("Looking for loo-ume.local to reconnect the physical live preview.");
+      setLogMessage(
+        "Looking for loo-ume.local to reconnect the physical live preview.",
+      );
       const pendingDeviceWork = settleSimulatorDeviceWork([
         standaloneSaveRequest,
         simulatorFrameRequest,
       ]);
       simulatorReconnectRequest = pendingDeviceWork
-        .then(() => connectExistingSimulatorDevice(reconnectPayload, {
-          discoveryAttempts: 12,
-          shouldContinue: () => canEnableReconnectedSimulator(
-            reconnectPayload,
-            simulatorProjectRevision,
-            hardwareContract.fingerprint,
-            simulatorSetupActive,
-          ),
-          update: setLogMessage,
-        }))
+        .then(() =>
+          connectExistingSimulatorDevice(reconnectPayload, {
+            discoveryAttempts: 12,
+            shouldContinue: () =>
+              canEnableReconnectedSimulator(
+                reconnectPayload,
+                simulatorProjectRevision,
+                hardwareContract.fingerprint,
+                simulatorSetupActive,
+              ),
+            update: setLogMessage,
+          }),
+        )
         .then((deviceUrl) => {
-          if (canEnableReconnectedSimulator(
-            reconnectPayload,
-            simulatorProjectRevision,
-            hardwareContract.fingerprint,
-            simulatorSetupActive,
-          )) {
+          if (
+            canEnableReconnectedSimulator(
+              reconnectPayload,
+              simulatorProjectRevision,
+              hardwareContract.fingerprint,
+              simulatorSetupActive,
+            )
+          ) {
             enableSimulatorLink(deviceUrl, true);
           }
         })
         .catch((error) => {
-          if (canEnableReconnectedSimulator(
-            reconnectPayload,
-            simulatorProjectRevision,
-            hardwareContract.fingerprint,
-            simulatorSetupActive,
-          )) {
+          if (
+            canEnableReconnectedSimulator(
+              reconnectPayload,
+              simulatorProjectRevision,
+              hardwareContract.fingerprint,
+              simulatorSetupActive,
+            )
+          ) {
             setLogMessage(
               `Automatic ESP32 reconnect stopped: ${error instanceof Error ? error.message : String(error)}`,
               true,
@@ -1614,7 +1781,9 @@ async function start(): Promise<void> {
         updatePhysicalRouteReviewAvailability();
         if (!active) return;
         if (externalFrameMirrorQueue.active) {
-          stopExternalFrameMirror("Sculpture mirror stopped because the ESP32 connection changed.");
+          stopExternalFrameMirror(
+            "Sculpture mirror stopped because the ESP32 connection changed.",
+          );
         }
         simulatorDeviceUrl = undefined;
         updatePhysicalRouteReviewAvailability();
@@ -1622,7 +1791,9 @@ async function start(): Promise<void> {
           clearTimeout(standaloneSaveTimer);
           standaloneSaveTimer = undefined;
         }
-        setLogMessage("Live preview paused while standalone playback is verified.");
+        setLogMessage(
+          "Live preview paused while standalone playback is verified.",
+        );
         await settleSimulatorDeviceWork([
           simulatorReconnectRequest,
           standaloneSaveRequest,
@@ -1630,11 +1801,13 @@ async function start(): Promise<void> {
         ]);
       },
       onSetupComplete: (deviceUrl, payload) => {
-        if (!isCurrentSimulatorSetup(
-          payload,
-          simulatorProjectRevision,
-          hardwareContract.fingerprint,
-        )) {
+        if (
+          !isCurrentSimulatorSetup(
+            payload,
+            simulatorProjectRevision,
+            hardwareContract.fingerprint,
+          )
+        ) {
           setLogMessage(
             "ESP32 setup completed for an older project. Load the current project into the ESP32 before preview.",
             true,
@@ -1655,9 +1828,7 @@ async function start(): Promise<void> {
       if (available) tryReconnectSimulatorLink();
     });
 
-    const replacePortableBundle = (
-      bundle?: PortableProjectBundle,
-    ): void => {
+    const replacePortableBundle = (bundle?: PortableProjectBundle): void => {
       activePortableBundle?.dispose();
       generatedMemoryUrls.forEach((url) => URL.revokeObjectURL(url));
       generatedMemoryUrls = new Map();
@@ -1672,10 +1843,7 @@ async function start(): Promise<void> {
       );
     };
 
-    const rememberProjectAsset = (
-      source: string,
-      bytes: Uint8Array,
-    ): void => {
+    const rememberProjectAsset = (source: string, bytes: Uint8Array): void => {
       availableProjectAssets.set(source, Uint8Array.from(bytes));
     };
 
@@ -1692,15 +1860,18 @@ async function start(): Promise<void> {
 
     const updatePipelineAvailability = (): void => {
       const capabilities = deriveEditorCapabilities(
-        editorDefinition, activePlacementSurface !== undefined,
-        pipelineAvailable, editorProject.panelProfile,
+        editorDefinition,
+        activePlacementSurface !== undefined,
+        pipelineAvailable,
+        editorProject.panelProfile,
       );
       renderer?.setEditorCapabilities(capabilities);
       const packageIsCurrent = verifiedGeneratedMechanics !== undefined;
       assemblyPackageButton.textContent = packageIsCurrent
         ? "Download panel closures package"
         : "Generate panel closures";
-      assemblyPackageButton.disabled = mapping.topology !== "panelized-sculpture" ||
+      assemblyPackageButton.disabled =
+        mapping.topology !== "panelized-sculpture" ||
         (!packageIsCurrent && !capabilities.canGenerateGenericMechanics);
       assemblyPackageButton.title = packageIsCurrent
         ? "Download the current project, verified geometry, manual, and guarded deployment export."
@@ -1709,34 +1880,43 @@ async function start(): Promise<void> {
           : "Panel closure generation currently supports only rigid rectangular panel carriers.";
       downloadMadMapperPackageButton.disabled =
         !hardwareContract.readiness.mappingReady;
-      downloadMadMapperPackageButton.title = hardwareContract.readiness.mappingReady
+      downloadMadMapperPackageButton.title = hardwareContract.readiness
+        .mappingReady
         ? "Download the MadMapper SVG, patch information, manifest, and setup PDF."
         : "Confirm the authored route and panel addressing before MadMapper export.";
       downloadPanelLabelsButton.disabled = editorDefinition.panels.length === 0;
-      downloadPanelLabelsButton.title = editorDefinition.panels.length === 0
-        ? "Place at least one panel before downloading fabrication files."
-        : "Download panel labels, the manufacturing manual, and all current verified printable files.";
-      if (!hardwareContract.readiness.mappingReady && !artNetPreviewClient.active) {
-        madMapperPreviewStatus.textContent = "Art-Net input needs confirmed mapping";
+      downloadPanelLabelsButton.title =
+        editorDefinition.panels.length === 0
+          ? "Place at least one panel before downloading fabrication files."
+          : "Download panel labels, the manufacturing manual, and all current verified printable files.";
+      if (
+        !hardwareContract.readiness.mappingReady &&
+        !artNetPreviewClient.active
+      ) {
+        madMapperPreviewStatus.textContent =
+          "Art-Net input needs confirmed mapping";
       }
       updateExternalFrameMirrorAvailability();
       generateStructureButton.disabled =
         !capabilities.canGenerateStructuralMechanics;
-      generateSurfaceStructureButton.disabled = generateStructureButton.disabled;
-      generateStructureButton.title = capabilities.canGenerateStructuralMechanics
-        ? "Generate nearest-hole connector ribbons, STL, 3MF, and an optional load-path report."
-        : "Connector generation currently supports only rigid rectangular panel carriers.";
-      generateSurfaceStructureButton.title = capabilities.canGenerateStructuralMechanics
-        ? "Generate 2 mm full-edge bridges at the panel LED planes, STL, 3MF, and an optional load-path report."
-        : "Bridge generation currently supports only rigid rectangular panel carriers.";
+      generateSurfaceStructureButton.disabled =
+        generateStructureButton.disabled;
+      generateStructureButton.title =
+        capabilities.canGenerateStructuralMechanics
+          ? "Generate nearest-hole connector ribbons, STL, 3MF, and an optional load-path report."
+          : "Connector generation currently supports only rigid rectangular panel carriers.";
+      generateSurfaceStructureButton.title =
+        capabilities.canGenerateStructuralMechanics
+          ? "Generate 2 mm full-edge bridges at the panel LED planes, STL, 3MF, and an optional load-path report."
+          : "Bridge generation currently supports only rigid rectangular panel carriers.";
       automaticPanelPlacementControls.hidden = false;
       automaticallyPlacePanelsButton.disabled =
         !capabilities.canAutomaticallySeed;
       automaticallyPlacePanelsButton.title = activePlacementSurface
-          ? capabilities.canAutomaticallySeed
-            ? "Seed panels evenly across the active placement surface."
-            : "Automatic placement currently supports only rigid rectangular panel carriers."
-          : "Load a GLB or sculpture JSON shell first.";
+        ? capabilities.canAutomaticallySeed
+          ? "Seed panels evenly across the active placement surface."
+          : "Automatic placement currently supports only rigid rectangular panel carriers."
+        : "Load a GLB or sculpture JSON shell first.";
     };
 
     const selectedAssemblyTutorialChain = (): AssemblyTutorialChain | null => {
@@ -1768,36 +1948,41 @@ async function start(): Promise<void> {
       assemblyTutorialWarning.dataset.status = chain.routeStatus;
       const connectionIndex = assemblyTutorialConnectionIndex ?? 0;
       const panelIndex = assemblyTutorialPanelIndex;
-      const panel = panelIndex === null ? null : chain.panels[panelIndex] ?? null;
+      const panel =
+        panelIndex === null ? null : (chain.panels[panelIndex] ?? null);
       if (panel) {
         const cableInstructions = panel.connectionIndices
           .map((index) => chain.connections[index]?.instruction)
-          .filter((instruction): instruction is string => instruction !== undefined);
-        assemblyTutorialStep.value =
-          `${chain.label} · panel ${panel.chainPosition + 1} / ${chain.panels.length}`;
+          .filter(
+            (instruction): instruction is string => instruction !== undefined,
+          );
+        assemblyTutorialStep.value = `${chain.label} · panel ${panel.chainPosition + 1} / ${chain.panels.length}`;
         assemblyTutorialInstruction.textContent =
           `${panel.label}: solder ${cableInstructions.join("; ")}. ` +
           "If a printable part is highlighted, fit it before the contacts become difficult to reach.";
       } else {
         const connection = chain.connections[connectionIndex];
-        assemblyTutorialStep.value =
-          `${chain.label} · wire ${connectionIndex + 1} / ${chain.connections.length}`;
-        assemblyTutorialInstruction.textContent = connection?.instruction ??
-          "This connection is unavailable.";
+        assemblyTutorialStep.value = `${chain.label} · wire ${connectionIndex + 1} / ${chain.connections.length}`;
+        assemblyTutorialInstruction.textContent =
+          connection?.instruction ?? "This connection is unavailable.";
       }
-      assemblyTutorialPreviousChainButton.disabled = assemblyTutorialChainIndex === 0;
+      assemblyTutorialPreviousChainButton.disabled =
+        assemblyTutorialChainIndex === 0;
       assemblyTutorialNextChainButton.disabled =
         assemblyTutorialChainIndex === assemblyTutorialModel.chains.length - 1;
       assemblyTutorialNextWireButton.disabled =
-        assemblyTutorialChainIndex === assemblyTutorialModel.chains.length - 1 &&
+        assemblyTutorialChainIndex ===
+          assemblyTutorialModel.chains.length - 1 &&
         connectionIndex === chain.connections.length - 1;
       assemblyTutorialPreviousWireButton.disabled =
         assemblyTutorialChainIndex === 0 && connectionIndex === 0;
       assemblyTutorialNextPanelButton.disabled =
-        assemblyTutorialChainIndex === assemblyTutorialModel.chains.length - 1 &&
+        assemblyTutorialChainIndex ===
+          assemblyTutorialModel.chains.length - 1 &&
         (panelIndex ?? connectionIndex) === chain.panels.length - 1;
       assemblyTutorialPreviousPanelButton.disabled =
-        assemblyTutorialChainIndex === 0 && (panelIndex ?? connectionIndex) === 0;
+        assemblyTutorialChainIndex === 0 &&
+        (panelIndex ?? connectionIndex) === 0;
     };
 
     const exitAssemblyTutorial = (announce = true): void => {
@@ -1809,9 +1994,8 @@ async function start(): Promise<void> {
       renderer?.setAssemblyTutorial(null);
       if (assemblyTutorialOutputVisibility) {
         for (const output of wiringPreview.outputs) {
-          const visible = assemblyTutorialOutputVisibility.get(
-            output.outputIndex,
-          ) ?? true;
+          const visible =
+            assemblyTutorialOutputVisibility.get(output.outputIndex) ?? true;
           outputLayerVisibility.set(output.outputIndex, visible);
           renderer?.setOutputVisible(output.outputIndex, visible);
         }
@@ -1857,10 +2041,9 @@ async function start(): Promise<void> {
       assemblyTutorialWarning.textContent = chain.routeWarning;
       assemblyTutorialWarning.dataset.status = chain.routeStatus;
       if (!assemblyTutorialActive) {
-        assemblyTutorialInstruction.textContent =
-          `Isolate ${assemblyTutorialModel.chains.length} data ${
-            assemblyTutorialModel.chains.length === 1 ? "chain" : "chains"
-          } and step through every panel or cable.`;
+        assemblyTutorialInstruction.textContent = `Isolate ${assemblyTutorialModel.chains.length} data ${
+          assemblyTutorialModel.chains.length === 1 ? "chain" : "chains"
+        } and step through every panel or cable.`;
       } else {
         applyAssemblyTutorialView();
       }
@@ -1870,9 +2053,13 @@ async function start(): Promise<void> {
       const isPanelized = mapping.topology === "panelized-sculpture";
       routeEditorSection.hidden = !isPanelized;
       optimizeWiringButton.hidden = !isPanelized;
-      optimizeWiringButton.disabled = !isPanelized || editorDefinition.panels.length === 0 ||
-        wiringPreview.status === "measured" || wiringPreview.status === "hardware-verified";
-      const orientationPolicy = automaticWiringOrientationPolicy(editorDefinition);
+      optimizeWiringButton.disabled =
+        !isPanelized ||
+        editorDefinition.panels.length === 0 ||
+        wiringPreview.status === "measured" ||
+        wiringPreview.status === "hardware-verified";
+      const orientationPolicy =
+        automaticWiringOrientationPolicy(editorDefinition);
       const manualRotationGate =
         editorDefinition.wiring.panelRotationConstraint === "half-turns-only";
       toggleWiringRotationGateButton.hidden = !isPanelized;
@@ -1889,7 +2076,8 @@ async function start(): Promise<void> {
         : "Automatic wiring requires a panelized Schema 2 project.";
       if (!isPanelized || !routeEditorModel) {
         routeEditor.replaceChildren();
-        routeEditorNote.textContent = "A panelized sculpture is required for route editing.";
+        routeEditorNote.textContent =
+          "A panelized sculpture is required for route editing.";
         routeActionButton.hidden = true;
         routeActionButton.disabled = true;
         setLogMessage("No panel route is available.");
@@ -1901,30 +2089,36 @@ async function start(): Promise<void> {
         model,
       );
       const isDraftSuggestion = !model.copiedDraftSuggestion;
-      const sourceLabel = model.source === "temporary-draft-suggestion"
-        ? "The shown route is a temporary draft suggestion. The saved route evidence is below."
-        : model.source === "draft-suggestion"
-          ? "The shown route is a draft suggestion. Choose Edit suggested route before changing it."
-          : wiringPreview.status === "measured"
-            ? "This is the saved measured route. Regenerating mapping/wiring removes the old measurement approval."
-            : editorDefinition.wiring.routeRevision === undefined
-              ? "This saved route has no revision. Review it, then regenerate mapping/wiring."
-              : wiringPreview.status === "requires-review"
-                ? "This saved route requires review. Regenerate mapping/wiring only after its order matches the sculpture."
-                : "This is the saved authored route. Edit it, then regenerate mapping/wiring as a new revision.";
+      const sourceLabel =
+        model.source === "temporary-draft-suggestion"
+          ? "The shown route is a temporary draft suggestion. The saved route evidence is below."
+          : model.source === "draft-suggestion"
+            ? "The shown route is a draft suggestion. Choose Edit suggested route before changing it."
+            : wiringPreview.status === "measured"
+              ? "This is the saved measured route. Regenerating mapping/wiring removes the old measurement approval."
+              : editorDefinition.wiring.routeRevision === undefined
+                ? "This saved route has no revision. Review it, then regenerate mapping/wiring."
+                : wiringPreview.status === "requires-review"
+                  ? "This saved route requires review. Regenerate mapping/wiring only after its order matches the sculpture."
+                  : "This is the saved authored route. Edit it, then regenerate mapping/wiring as a new revision.";
       routeEditorNote.textContent = sourceLabel;
       routeActionButton.hidden = false;
       routeActionButton.textContent = isDraftSuggestion
         ? "Edit suggested route"
         : "Regenerate mapping/wiring";
       routeActionButton.disabled = !isDraftSuggestion && !validation.valid;
-      setLogMessage(validation.valid
-        ? isDraftSuggestion
-          ? "Review the suggestion, then choose Edit suggested route."
-          : `Route is complete. Regenerate mapping/wiring as revision ${(editorDefinition.wiring.routeRevision ?? 0) + 1}.`
-        : validation.errors[0]!, !validation.valid);
+      setLogMessage(
+        validation.valid
+          ? isDraftSuggestion
+            ? "Review the suggestion, then choose Edit suggested route."
+            : `Route is complete. Regenerate mapping/wiring as revision ${(editorDefinition.wiring.routeRevision ?? 0) + 1}.`
+          : validation.errors[0]!,
+        !validation.valid,
+      );
 
-      const nodeById = new Map(wiringPreview.nodes.map((node) => [node.panelId, node]));
+      const nodeById = new Map(
+        wiringPreview.nodes.map((node) => [node.panelId, node]),
+      );
       const outputFields = model.outputs.map((output) => {
         const fieldset = document.createElement("fieldset");
         fieldset.className = "route-output";
@@ -1941,7 +2135,10 @@ async function start(): Promise<void> {
           item.dataset.outputIndex = String(output.outputIndex);
           item.draggable = !isDraftSuggestion;
           item.tabIndex = 0;
-          item.setAttribute("aria-label", `Select panel ${panelId}; drag to reorder`);
+          item.setAttribute(
+            "aria-label",
+            `Select panel ${panelId}; drag to reorder`,
+          );
           item.classList.toggle(
             "route-panel--selected",
             selectedEditorPanelId === panelId,
@@ -1966,21 +2163,33 @@ async function start(): Promise<void> {
           assignment.className = "route-panel__assignment";
           assignment.textContent = "Output ";
           const outputSelect = document.createElement("select");
-          outputSelect.setAttribute("aria-label", `Assign ${panelId} to controller output`);
+          outputSelect.setAttribute(
+            "aria-label",
+            `Assign ${panelId} to controller output`,
+          );
           outputSelect.disabled = isDraftSuggestion;
-          outputSelect.append(...model.outputs.map((candidate) => new Option(
-            `${candidate.label} (GPIO ${candidate.gpio ?? "unknown"})`,
-            String(candidate.outputIndex),
-            candidate.outputIndex === output.outputIndex,
-            candidate.outputIndex === output.outputIndex,
-          )));
+          outputSelect.append(
+            ...model.outputs.map(
+              (candidate) =>
+                new Option(
+                  `${candidate.label} (GPIO ${candidate.gpio ?? "unknown"})`,
+                  String(candidate.outputIndex),
+                  candidate.outputIndex === output.outputIndex,
+                  candidate.outputIndex === output.outputIndex,
+                ),
+            ),
+          );
           outputSelect.addEventListener("change", () => {
             routeEditorModel = moveRoutePanelToOutput(
-              model, panelId, Number(outputSelect.value),
+              model,
+              panelId,
+              Number(outputSelect.value),
             );
             renderRouteEditor();
           });
-          outputSelect.addEventListener("click", (event) => event.stopPropagation());
+          outputSelect.addEventListener("click", (event) =>
+            event.stopPropagation(),
+          );
           assignment.append(outputSelect);
           item.addEventListener("click", () => {
             renderer?.selectEditorPanel(panelId);
@@ -1993,12 +2202,13 @@ async function start(): Promise<void> {
               return;
             }
             if (
-              !isDraftSuggestion && event.altKey &&
+              !isDraftSuggestion &&
+              event.altKey &&
               (event.key === "ArrowUp" || event.key === "ArrowDown")
             ) {
               event.preventDefault();
-              const destinationIndex = chainPosition +
-                (event.key === "ArrowUp" ? -1 : 2);
+              const destinationIndex =
+                chainPosition + (event.key === "ArrowUp" ? -1 : 2);
               routeEditorModel = moveRoutePanelToPosition(
                 model,
                 panelId,
@@ -2084,11 +2294,12 @@ async function start(): Promise<void> {
       const layout = createWiringControllerLayout(wiringPreview);
       const authoredPosition = editorDefinition.wiring.controller.position;
       resetControllerPositionButton.disabled = authoredPosition === undefined;
-      controllerPositionStatus.textContent = layout === null
-        ? "No controller is available for this project."
-        : authoredPosition
-        ? "Click the controller to edit its saved 6DOF pose."
-        : "Click the suggested controller to place and rotate it.";
+      controllerPositionStatus.textContent =
+        layout === null
+          ? "No controller is available for this project."
+          : authoredPosition
+            ? "Click the controller to edit its saved 6DOF pose."
+            : "Click the suggested controller to place and rotate it.";
     };
 
     const updateMappingStatus = (): void => {
@@ -2101,19 +2312,20 @@ async function start(): Promise<void> {
         ? validateLedmapEquivalence(mapping, hardwareContract.ledmap)
         : [];
       const allValid =
-        validation.valid &&
-        wiringValidation.valid &&
-        ledmapErrors.length === 0;
+        validation.valid && wiringValidation.valid && ledmapErrors.length === 0;
       if (!allValid) {
         setLogMessage(
-          validation.errors[0] ?? wiringValidation.errors[0] ??
-            ledmapErrors[0] ?? "Invalid mapping",
+          validation.errors[0] ??
+            wiringValidation.errors[0] ??
+            ledmapErrors[0] ??
+            "Invalid mapping",
           true,
         );
       }
       panelLabelsToggle.disabled = !isPanelized;
       const hasPrintableClosures =
-        isPanelized && (verifiedGeneratedMechanics !== undefined ||
+        isPanelized &&
+        (verifiedGeneratedMechanics !== undefined ||
           verifiedGeneratedStructure !== undefined ||
           (mechanicalShellIsCurrent() &&
             (mapping.printableClosures?.length ?? 0) > 0));
@@ -2131,9 +2343,7 @@ async function start(): Promise<void> {
       renderer?.setConnectorLayerVisible(
         isPanelized && connectorLayerToggle.checked,
       );
-      renderer?.setWiringLayerVisible(
-        isPanelized && wiringLayerToggle.checked,
-      );
+      renderer?.setWiringLayerVisible(isPanelized && wiringLayerToggle.checked);
       renderControllerPositionControls();
       updatePipelineAvailability();
     };
@@ -2162,11 +2372,12 @@ async function start(): Promise<void> {
             selected.project.source,
             fetch,
             document.baseURI,
-            selected.project.source.startsWith("local:") || generatedMemoryUrls.size > 0
+            selected.project.source.startsWith("local:") ||
+              generatedMemoryUrls.size > 0
               ? new Map([
-                ...(activePortableBundle?.assetUrls ?? []),
-                ...generatedMemoryUrls,
-              ])
+                  ...(activePortableBundle?.assetUrls ?? []),
+                  ...generatedMemoryUrls,
+                ])
               : undefined,
           );
           if (revision !== generatedAssetLoadRevision || !assets) return;
@@ -2179,7 +2390,8 @@ async function start(): Promise<void> {
           return;
         } catch (error) {
           if (revision !== generatedAssetLoadRevision) return;
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
           updateMappingStatus();
           return;
@@ -2209,11 +2421,12 @@ async function start(): Promise<void> {
           selected.project.source,
           fetch,
           document.baseURI,
-          selected.project.source.startsWith("local:") || generatedMemoryUrls.size > 0
+          selected.project.source.startsWith("local:") ||
+            generatedMemoryUrls.size > 0
             ? new Map([
-              ...(activePortableBundle?.assetUrls ?? []),
-              ...generatedMemoryUrls,
-            ])
+                ...(activePortableBundle?.assetUrls ?? []),
+                ...generatedMemoryUrls,
+              ])
             : undefined,
         );
         if (revision !== generatedAssetLoadRevision || !assets) return;
@@ -2233,21 +2446,23 @@ async function start(): Promise<void> {
     };
 
     const renderEditorFaces = (): void => {
-      const options = supportsRectangularPanelTools(editorProject.panelProfile) &&
-          mechanicalShellIsCurrent() && editorDefinition.closures
-        ? editorDefinition.closures.faceIds.flatMap((faceId) => {
-        try {
-          addPanelToClosureFace(
-            editorDefinition,
-            faceId,
-            editorProject.panelProfile.dimensions,
-          );
-          return [new Option(faceId, faceId)];
-        } catch {
-          return [];
-        }
-      })
-        : [];
+      const options =
+        supportsRectangularPanelTools(editorProject.panelProfile) &&
+        mechanicalShellIsCurrent() &&
+        editorDefinition.closures
+          ? editorDefinition.closures.faceIds.flatMap((faceId) => {
+              try {
+                addPanelToClosureFace(
+                  editorDefinition,
+                  faceId,
+                  editorProject.panelProfile.dimensions,
+                );
+                return [new Option(faceId, faceId)];
+              } catch {
+                return [];
+              }
+            })
+          : [];
       addPanelFaceSelect.replaceChildren(
         ...(options.length > 0
           ? [new Option("Choose a closure face…", "", true, true), ...options]
@@ -2263,15 +2478,21 @@ async function start(): Promise<void> {
       preserveEditorDefinition = false,
     ): Promise<void> => {
       if (artNetPreviewClient.active) {
-        stopMadMapperPreview("MadMapper preview stopped because the project changed.");
+        stopMadMapperPreview(
+          "MadMapper preview stopped because the project changed.",
+        );
       }
       if (externalFrameMirrorQueue.active) {
-        stopExternalFrameMirror("Sculpture mirror stopped because the project changed.");
+        stopExternalFrameMirror(
+          "Sculpture mirror stopped because the project changed.",
+        );
       }
       exitAssemblyTutorial(false);
+      generationProjectRevision += 1;
       simulatorProjectRevision += 1;
       simulatorLedmapUpdateAuthorized =
-        selectedHardwareContract.fingerprint !== selected.contract.fingerprint &&
+        selectedHardwareContract.fingerprint !==
+          selected.contract.fingerprint &&
         physicalAddressContractKey(selectedHardwareContract) ===
           physicalAddressContractKey(selected.contract);
       simulatorDeviceUrl = undefined;
@@ -2289,8 +2510,13 @@ async function start(): Promise<void> {
         editorDefinition = selected.definition;
         editorProject = selected.project;
         automaticPanelCountInput.min = String(editorDefinition.panels.length);
-        if (Number(automaticPanelCountInput.value) < editorDefinition.panels.length) {
-          automaticPanelCountInput.value = String(editorDefinition.panels.length);
+        if (
+          Number(automaticPanelCountInput.value) <
+          editorDefinition.panels.length
+        ) {
+          automaticPanelCountInput.value = String(
+            editorDefinition.panels.length,
+          );
         }
         renderEditorFaces();
       }
@@ -2314,6 +2540,15 @@ async function start(): Promise<void> {
       return restoreGeneratedMechanics(selected);
     };
 
+    const applyLoadedSculptureSafely = (selected: LoadedSculpture): void => {
+      void applyLoadedSculpture(selected).catch((error) => {
+        setLogMessage(
+          error instanceof Error ? error.message : String(error),
+          true,
+        );
+      });
+    };
+
     resetControllerPositionButton.addEventListener("click", () => {
       const nextDefinition = useSuggestedControllerPose(editorDefinition);
       const project = createPanelAssemblyProject(
@@ -2321,29 +2556,40 @@ async function start(): Promise<void> {
         editorProject.source,
         editorProject.panelProfile,
       );
-      void applyLoadedSculpture(createLoadedSculpture(project)).then(() => {
-        setLogMessage("The controller uses the suggested position.");
-      }).catch((error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
-      });
+      void applyLoadedSculpture(createLoadedSculpture(project))
+        .then(() => {
+          setLogMessage("The controller uses the suggested position.");
+        })
+        .catch((error) => {
+          setLogMessage(
+            error instanceof Error ? error.message : String(error),
+            true,
+          );
+        });
     });
 
     const connectorPairKey = (left: string, right: string): string =>
       [left, right].sort().join("\u0000");
 
-    const resolvedConnectorization = (): StructuralConnectorizationDefinition => ({
-      ...structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS),
-      ...structuredClone(editorDefinition.structuralDesign?.connectorization ?? {}),
-      panelPairOverrides: structuredClone(
-        editorDefinition.structuralDesign?.connectorization?.panelPairOverrides ?? [],
-      ),
-    });
+    const resolvedConnectorization =
+      (): StructuralConnectorizationDefinition => ({
+        ...structuredClone(STRUCTURAL_CONNECTOR_DEFAULTS),
+        ...structuredClone(
+          editorDefinition.structuralDesign?.connectorization ?? {},
+        ),
+        panelPairOverrides: structuredClone(
+          editorDefinition.structuralDesign?.connectorization
+            ?.panelPairOverrides ?? [],
+        ),
+      });
 
     const applyConnectorization = async (
       connectorization: StructuralConnectorizationDefinition,
     ): Promise<void> => {
       const nextDefinition = structuredClone(editorDefinition);
-      nextDefinition.structuralDesign ??= structuredClone(STRUCTURAL_PREVIEW_DEFAULTS);
+      nextDefinition.structuralDesign ??= structuredClone(
+        STRUCTURAL_PREVIEW_DEFAULTS,
+      );
       nextDefinition.structuralDesign.connectorization = connectorization;
       const project = createPanelAssemblyProject(
         nextDefinition,
@@ -2360,16 +2606,26 @@ async function start(): Promise<void> {
     const renderConnectorControls = (): void => {
       connectorSettings.hidden = editorDefinition.panels.length === 0;
       const settings = resolvedConnectorization();
-      connectorNeighborDistanceInput.value = String(settings.maximumNeighborDistanceMm);
-      connectorNeighborDegreeInput.value = String(settings.maximumAutomaticNeighborsPerPanel);
+      connectorNeighborDistanceInput.value = String(
+        settings.maximumNeighborDistanceMm,
+      );
+      connectorNeighborDegreeInput.value = String(
+        settings.maximumAutomaticNeighborsPerPanel,
+      );
       connectorBedInputs.forEach((input, axis) => {
         input.value = String(settings.printBedSizeMm[axis]);
       });
-      connectorSegmentLengthInput.value = String(settings.maximumStrutSegmentLengthMm);
+      connectorSegmentLengthInput.value = String(
+        settings.maximumStrutSegmentLengthMm,
+      );
       const panelIds = editorDefinition.panels.map(({ id }) => id).sort();
       const options = panelIds.map((id) => new Option(id, id));
-      connectorPairFirstSelect.replaceChildren(...options.map((option) => option.cloneNode(true)));
-      connectorPairSecondSelect.replaceChildren(...options.map((option) => option.cloneNode(true)));
+      connectorPairFirstSelect.replaceChildren(
+        ...options.map((option) => option.cloneNode(true)),
+      );
+      connectorPairSecondSelect.replaceChildren(
+        ...options.map((option) => option.cloneNode(true)),
+      );
       if (panelIds.length > 1) connectorPairSecondSelect.value = panelIds[1]!;
       includeConnectorPairButton.disabled = panelIds.length < 2;
       try {
@@ -2383,54 +2639,81 @@ async function start(): Promise<void> {
         for (const override of settings.panelPairOverrides.filter(
           ({ action }) => action === "exclude",
         )) {
-          if (!rows.some(({ panelIds: ids }) =>
-            connectorPairKey(...ids) === connectorPairKey(...override.panelIds)
-          )) rows.push({
-            panelIds: override.panelIds,
-            checked: false,
-            detail: "excluded",
-          });
+          if (
+            !rows.some(
+              ({ panelIds: ids }) =>
+                connectorPairKey(...ids) ===
+                connectorPairKey(...override.panelIds),
+            )
+          )
+            rows.push({
+              panelIds: override.panelIds,
+              checked: false,
+              detail: "excluded",
+            });
         }
         rows.sort((left, right) =>
-          connectorPairKey(...left.panelIds).localeCompare(connectorPairKey(...right.panelIds))
+          connectorPairKey(...left.panelIds).localeCompare(
+            connectorPairKey(...right.panelIds),
+          ),
         );
-        connectorPairList.replaceChildren(...rows.map((row) => {
-          const label = document.createElement("label");
-          const input = document.createElement("input");
-          input.type = "checkbox";
-          input.checked = row.checked;
-          input.addEventListener("change", () => {
-            const next = resolvedConnectorization();
-            const key = connectorPairKey(...row.panelIds);
-            next.panelPairOverrides = next.panelPairOverrides.filter(
-              ({ panelIds: ids }) => connectorPairKey(...ids) !== key,
+        connectorPairList.replaceChildren(
+          ...rows.map((row) => {
+            const label = document.createElement("label");
+            const input = document.createElement("input");
+            input.type = "checkbox";
+            input.checked = row.checked;
+            input.addEventListener("change", () => {
+              const next = resolvedConnectorization();
+              const key = connectorPairKey(...row.panelIds);
+              next.panelPairOverrides = next.panelPairOverrides.filter(
+                ({ panelIds: ids }) => connectorPairKey(...ids) !== key,
+              );
+              next.panelPairOverrides.push({
+                panelIds: [...row.panelIds],
+                action: input.checked ? "include" : "exclude",
+              });
+              void applyConnectorization(next).catch((error) => {
+                setLogMessage(
+                  error instanceof Error ? error.message : String(error),
+                  true,
+                );
+              });
+            });
+            label.append(
+              input,
+              `${row.panelIds[0]} ↔ ${row.panelIds[1]} (${row.detail})`,
             );
-            next.panelPairOverrides.push({
-              panelIds: [...row.panelIds],
-              action: input.checked ? "include" : "exclude",
-            });
-            void applyConnectorization(next).catch((error) => {
-              setLogMessage(error instanceof Error ? error.message : String(error), true);
-            });
-          });
-          label.append(input, `${row.panelIds[0]} ↔ ${row.panelIds[1]} (${row.detail})`);
-          return label;
-        }));
+            return label;
+          }),
+        );
       } catch (error) {
         const message = document.createElement("span");
-        message.textContent = error instanceof Error ? error.message : String(error);
+        message.textContent =
+          error instanceof Error ? error.message : String(error);
         connectorPairList.replaceChildren(message);
       }
     };
 
     const applyConnectorInputs = (): void => {
       const next = resolvedConnectorization();
-      next.maximumNeighborDistanceMm = Number(connectorNeighborDistanceInput.value);
-      next.maximumAutomaticNeighborsPerPanel = Number(connectorNeighborDegreeInput.value);
-      next.printBedSizeMm = connectorBedInputs.map((input) => Number(input.value)) as [number, number, number];
-      next.maximumStrutSegmentLengthMm = Number(connectorSegmentLengthInput.value);
+      next.maximumNeighborDistanceMm = Number(
+        connectorNeighborDistanceInput.value,
+      );
+      next.maximumAutomaticNeighborsPerPanel = Number(
+        connectorNeighborDegreeInput.value,
+      );
+      next.printBedSizeMm = connectorBedInputs.map((input) =>
+        Number(input.value),
+      ) as [number, number, number];
+      next.maximumStrutSegmentLengthMm = Number(
+        connectorSegmentLengthInput.value,
+      );
       void applyConnectorization(next).catch((error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
+        setLogMessage(
+          error instanceof Error ? error.message : String(error),
+          true,
+        );
       });
     };
     for (const input of [
@@ -2438,7 +2721,8 @@ async function start(): Promise<void> {
       connectorNeighborDegreeInput,
       ...connectorBedInputs,
       connectorSegmentLengthInput,
-    ]) input.addEventListener("change", applyConnectorInputs);
+    ])
+      input.addEventListener("change", applyConnectorInputs);
     includeConnectorPairButton.addEventListener("click", () => {
       const first = connectorPairFirstSelect.value;
       const second = connectorPairSecondSelect.value;
@@ -2451,9 +2735,15 @@ async function start(): Promise<void> {
       next.panelPairOverrides = next.panelPairOverrides.filter(
         ({ panelIds }) => connectorPairKey(...panelIds) !== key,
       );
-      next.panelPairOverrides.push({ panelIds: [first, second].sort() as [string, string], action: "include" });
+      next.panelPairOverrides.push({
+        panelIds: [first, second].sort() as [string, string],
+        action: "include",
+      });
       void applyConnectorization(next).catch((error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
+        setLogMessage(
+          error instanceof Error ? error.message : String(error),
+          true,
+        );
       });
     });
 
@@ -2468,8 +2758,8 @@ async function start(): Promise<void> {
     const showDesignSurface = (
       surface: LoadedDesignSurface,
       source: string,
-      attachmentSurface: "design-surface" | "mechanical-shell" =
-        "design-surface",
+      attachmentSurface:
+        "design-surface" | "mechanical-shell" = "design-surface",
     ): void => {
       activePlacementSurface = { surface, attachmentSurface };
       renderer?.setDesignSurface(surface.geometry, attachmentSurface);
@@ -2479,20 +2769,26 @@ async function start(): Promise<void> {
         .join(" × ");
       setLogMessage(
         source +
-        ": " +
-        surface.validation.triangleCount.toLocaleString() +
-        " triangles, " +
-        size +
-        " mm, watertight.",
+          ": " +
+          surface.validation.triangleCount.toLocaleString() +
+          " triangles, " +
+          size +
+          " mm, watertight.",
       );
     };
 
     const showMechanicalShellSurface = (message?: string): void => {
       if (!editorDefinition.mechanicalShell) {
-        throw new Error("This project has no JSON mechanical-shell placement surface.");
+        throw new Error(
+          "This project has no JSON mechanical-shell placement surface.",
+        );
       }
       const surface = loadMechanicalShellDesignSurface(editorDefinition);
-      showDesignSurface(surface, "sculpture JSON face graph", "mechanical-shell");
+      showDesignSurface(
+        surface,
+        "sculpture JSON face graph",
+        "mechanical-shell",
+      );
       if (message) setLogMessage(message);
     };
 
@@ -2509,10 +2805,13 @@ async function start(): Promise<void> {
         return;
       }
       surfaceScaleInput.value = String(definition.scaleToMillimeters);
-      const bundledSurface = activePortableBundle?.assets.get(definition.source);
-      const surfaceObjectUrl = bundledSurface?.sha256 === definition.sha256
-        ? bundledSurface.objectUrl
-        : undefined;
+      const bundledSurface = activePortableBundle?.assets.get(
+        definition.source,
+      );
+      const surfaceObjectUrl =
+        bundledSurface?.sha256 === definition.sha256
+          ? bundledSurface.objectUrl
+          : undefined;
       if (editorProject.source.startsWith("local:") && !surfaceObjectUrl) {
         if (editorDefinition.mechanicalShell) {
           showMechanicalShellSurface(
@@ -2522,7 +2821,8 @@ async function start(): Promise<void> {
           );
         } else {
           clearDesignSurface(
-            "This local pose-first project references " + definition.source +
+            "This local pose-first project references " +
+              definition.source +
               "; load that companion GLB to restore surface placement. All saved panel poses remain available.",
           );
         }
@@ -2530,10 +2830,12 @@ async function start(): Promise<void> {
       }
       clearDesignSurface("Loading referenced GLB " + definition.source + "…");
       try {
-        const surfaceUrl = surfaceObjectUrl ?? new URL(
-          definition.source,
-          new URL(editorProject.source, document.baseURI),
-        );
+        const surfaceUrl =
+          surfaceObjectUrl ??
+          new URL(
+            definition.source,
+            new URL(editorProject.source, document.baseURI),
+          );
         const response = await fetch(surfaceUrl);
         if (!response.ok) {
           throw new Error(
@@ -2547,7 +2849,9 @@ async function start(): Promise<void> {
         );
         if (surface.sha256.toLowerCase() !== definition.sha256.toLowerCase()) {
           surface.geometry.dispose();
-          throw new Error("The referenced GLB does not match its sculpture JSON SHA-256.");
+          throw new Error(
+            "The referenced GLB does not match its sculpture JSON SHA-256.",
+          );
         }
         rememberProjectAsset(definition.source, bytes);
         showDesignSurface(surface, definition.source);
@@ -2586,14 +2890,15 @@ async function start(): Promise<void> {
       const free3d = mode === "free-3d";
       synchronizePanelTransformToggle();
       renderer?.setPanelTransformMode(mode);
-      setLogMessage(free3d
-        ? "Free 6DOF panel transforms are active. A completed move detaches that panel from its placement surface."
-        : "Surface move mode is active. Panels stay on the active surface, or move in their saved local plane when no surface is loaded.");
+      setLogMessage(
+        free3d
+          ? "Free 6DOF panel transforms are active. A completed move detaches that panel from its placement surface."
+          : "Surface move mode is active. Panels stay on the active surface, or move in their saved local plane when no surface is loaded.",
+      );
     };
     panelTransformMode.addEventListener("click", () => {
-      panelTransformMode.dataset.mode = currentPanelTransformMode() === "surface"
-        ? "free-3d"
-        : "surface";
+      panelTransformMode.dataset.mode =
+        currentPanelTransformMode() === "surface" ? "free-3d" : "surface";
       applyPanelTransformMode();
     });
     synchronizePanelTransformToggle();
@@ -2606,11 +2911,14 @@ async function start(): Promise<void> {
             physicalRouteReviewProgrammaticSelection ||
             physicalRouteReviewApplying ||
             panelId === null
-          ) return;
+          )
+            return;
           try {
-            const currentSlotIndex = physicalRouteReviewSession.currentSlotIndex;
+            const currentSlotIndex =
+              physicalRouteReviewSession.currentSlotIndex;
             const changesIdentity =
-              physicalRouteReviewSession.slots[currentSlotIndex]?.panelId !== panelId;
+              physicalRouteReviewSession.slots[currentSlotIndex]?.panelId !==
+              panelId;
             physicalRouteReviewSession = assignPhysicalRouteReviewPanel(
               physicalRouteReviewSession,
               currentSlotIndex,
@@ -2627,29 +2935,41 @@ async function start(): Promise<void> {
               );
             });
           } catch (error) {
-            setLogMessage(error instanceof Error ? error.message : String(error), true);
+            setLogMessage(
+              error instanceof Error ? error.message : String(error),
+              true,
+            );
           }
           return;
         }
         selectedEditorPanelId = panelId;
-        for (const row of routeEditor.querySelectorAll<HTMLElement>(".route-panel")) {
+        for (const row of routeEditor.querySelectorAll<HTMLElement>(
+          ".route-panel",
+        )) {
           row.classList.toggle(
             "route-panel--selected",
             row.dataset.panelId === panelId,
           );
         }
         const capabilities = deriveEditorCapabilities(
-          editorDefinition, activePlacementSurface !== undefined,
-          pipelineAvailable, editorProject.panelProfile,
+          editorDefinition,
+          activePlacementSurface !== undefined,
+          pipelineAvailable,
+          editorProject.panelProfile,
         );
         if (panelId) {
           const free3d = currentPanelTransformMode() === "free-3d";
           const actions = [
-            capabilities.canTranslateOnActiveSurface || capabilities.canTranslateInPanelPlane
-              ? free3d ? "move on local X/Y/Z" : "move along the surface"
+            capabilities.canTranslateOnActiveSurface ||
+            capabilities.canTranslateInPanelPlane
+              ? free3d
+                ? "move on local X/Y/Z"
+                : "move along the surface"
               : "",
             capabilities.canRotateSelectedPanel
-              ? free3d ? "rotate on local X/Y/Z" : "rotate around local Z"
+              ? free3d
+                ? "rotate on local X/Y/Z"
+                : "rotate around local Z"
               : "",
             capabilities.canDeleteSelectedPanel ? "delete" : "",
           ].filter(Boolean);
@@ -2661,7 +2981,9 @@ async function start(): Promise<void> {
       onControllerSelectionChange: (selected) => {
         if (!selected) return;
         selectedEditorPanelId = null;
-        for (const row of routeEditor.querySelectorAll<HTMLElement>(".route-panel")) {
+        for (const row of routeEditor.querySelectorAll<HTMLElement>(
+          ".route-panel",
+        )) {
           row.classList.remove("route-panel--selected");
         }
         setLogMessage(
@@ -2680,30 +3002,49 @@ async function start(): Promise<void> {
             editorProject.source,
             editorProject.panelProfile,
           );
-          applyLoadedSculpture(createLoadedSculpture(project));
-          setLogMessage(edited.mechanicalShell
-              ? "Moved " + placement.panelId + ". Pose is saved; 3D generation will validate it against the JSON boundary and regenerate printable mechanics."
-              : "Moved " + placement.panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.");
+          applyLoadedSculptureSafely(createLoadedSculpture(project));
+          setLogMessage(
+            edited.mechanicalShell
+              ? "Moved " +
+                  placement.panelId +
+                  ". Pose is saved; 3D generation will validate it against the JSON boundary and regenerate printable mechanics."
+              : "Moved " +
+                  placement.panelId +
+                  ". Mapping and wiring refreshed; no printable mechanics exist yet.",
+          );
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
         }
       },
       onLocalTranslationCommit: (panelId, deltaX, deltaY) => {
         try {
           const edited = movePanelInLocalPlane(
-            editorDefinition, panelId, deltaX, deltaY,
+            editorDefinition,
+            panelId,
+            deltaX,
+            deltaY,
           );
           const project = createPanelAssemblyProject(
-            edited, editorProject.source, editorProject.panelProfile,
+            edited,
+            editorProject.source,
+            editorProject.panelProfile,
           );
-          applyLoadedSculpture(createLoadedSculpture(project));
+          applyLoadedSculptureSafely(createLoadedSculpture(project));
           renderer?.selectEditorPanel(panelId);
-          setLogMessage(edited.mechanicalShell
-              ? "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; generated mechanics require regeneration."
-              : "Moved " + panelId + " in its saved panel plane. Mapping and wiring refreshed; no printable mechanics exist yet.");
+          setLogMessage(
+            edited.mechanicalShell
+              ? "Moved " +
+                  panelId +
+                  " in its saved panel plane. Mapping and wiring refreshed; generated mechanics require regeneration."
+              : "Moved " +
+                  panelId +
+                  " in its saved panel plane. Mapping and wiring refreshed; no printable mechanics exist yet.",
+          );
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
         }
       },
@@ -2719,14 +3060,29 @@ async function start(): Promise<void> {
             editorProject.source,
             editorProject.panelProfile,
           );
-          applyLoadedSculpture(createLoadedSculpture(project));
+          applyLoadedSculptureSafely(createLoadedSculpture(project));
           renderer?.selectEditorPanel(panelId);
           const direction = degrees >= 0 ? "counter-clockwise" : "clockwise";
-          setLogMessage(edited.mechanicalShell
-              ? "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + " as viewed from outside. 3D generation will revalidate its full PCB envelope."
-              : "Rotated " + panelId + " " + Math.abs(degrees).toFixed(1) + "° " + direction + " as viewed from outside. Mapping and wiring refreshed; no printable mechanics exist yet.");
+          setLogMessage(
+            edited.mechanicalShell
+              ? "Rotated " +
+                  panelId +
+                  " " +
+                  Math.abs(degrees).toFixed(1) +
+                  "° " +
+                  direction +
+                  " as viewed from outside. 3D generation will revalidate its full PCB envelope."
+              : "Rotated " +
+                  panelId +
+                  " " +
+                  Math.abs(degrees).toFixed(1) +
+                  "° " +
+                  direction +
+                  " as viewed from outside. Mapping and wiring refreshed; no printable mechanics exist yet.",
+          );
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
         }
       },
@@ -2742,13 +3098,16 @@ async function start(): Promise<void> {
             editorProject.source,
             editorProject.panelProfile,
           );
-          applyLoadedSculpture(createLoadedSculpture(project));
+          applyLoadedSculptureSafely(createLoadedSculpture(project));
           renderer?.selectEditorPanel(transform.panelId);
-          setLogMessage(edited.mechanicalShell
-            ? `Transformed ${transform.panelId} freely in 3D. Its surface attachment was removed and generated mechanics require regeneration.`
-            : `Transformed ${transform.panelId} freely in 3D. Mapping and wiring refreshed; no printable mechanics exist yet.`);
+          setLogMessage(
+            edited.mechanicalShell
+              ? `Transformed ${transform.panelId} freely in 3D. Its surface attachment was removed and generated mechanics require regeneration.`
+              : `Transformed ${transform.panelId} freely in 3D. Mapping and wiring refreshed; no printable mechanics exist yet.`,
+          );
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
         }
       },
@@ -2760,19 +3119,22 @@ async function start(): Promise<void> {
             editorProject.source,
             editorProject.panelProfile,
           );
-          void applyLoadedSculpture(createLoadedSculpture(project)).then(() => {
-            renderer?.selectEditorController();
-            setLogMessage(
-              "Saved the controller position and orientation. Wiring geometry refreshed.",
-            );
-          }).catch((error) => {
-            setLogMessage(
-              error instanceof Error ? error.message : String(error),
-              true,
-            );
-          });
+          void applyLoadedSculpture(createLoadedSculpture(project))
+            .then(() => {
+              renderer?.selectEditorController();
+              setLogMessage(
+                "Saved the controller position and orientation. Wiring geometry refreshed.",
+              );
+            })
+            .catch((error) => {
+              setLogMessage(
+                error instanceof Error ? error.message : String(error),
+                true,
+              );
+            });
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
         }
       },
@@ -2784,14 +3146,17 @@ async function start(): Promise<void> {
             editorProject.source,
             editorProject.panelProfile,
           );
-          applyLoadedSculpture(createLoadedSculpture(project));
+          applyLoadedSculptureSafely(createLoadedSculpture(project));
           const panelId = edited.panels.at(-1)!.id;
           renderer?.selectEditorPanel(panelId);
-          setLogMessage(editorDefinition.mechanicalShell
-            ? `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. 3D generation will regenerate from the JSON mechanical boundary.`
-            : `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. Mapping and wiring refreshed; no printable mechanics exist yet.`);
+          setLogMessage(
+            editorDefinition.mechanicalShell
+              ? `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. 3D generation will regenerate from the JSON mechanical boundary.`
+              : `Added ${panelId} on canvas triangle ${placement.attachment.triangleIndex}. Mapping and wiring refreshed; no printable mechanics exist yet.`,
+          );
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
         }
       },
@@ -2803,12 +3168,19 @@ async function start(): Promise<void> {
             editorProject.source,
             editorProject.panelProfile,
           );
-          applyLoadedSculpture(createLoadedSculpture(project));
-          setLogMessage(edited.mechanicalShell
-              ? "Deleted " + panelId + ". 3D generation will regenerate the closed JSON mechanical boundary."
-              : "Deleted " + panelId + ". Mapping and wiring refreshed; no printable mechanics exist yet.");
+          applyLoadedSculptureSafely(createLoadedSculpture(project));
+          setLogMessage(
+            edited.mechanicalShell
+              ? "Deleted " +
+                  panelId +
+                  ". 3D generation will regenerate the closed JSON mechanical boundary."
+              : "Deleted " +
+                  panelId +
+                  ". Mapping and wiring refreshed; no printable mechanics exist yet.",
+          );
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
         }
       },
@@ -2817,23 +3189,42 @@ async function start(): Promise<void> {
     openPhysicalRouteReviewButton.addEventListener("click", () => {
       const demo = simulatorDeviceUrl === undefined;
       void beginPhysicalRouteReview(demo).catch(async (error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
+        setLogMessage(
+          error instanceof Error ? error.message : String(error),
+          true,
+        );
         await closePhysicalRouteReview(!demo);
       });
     });
     physicalRouteReviewPreviousButton.addEventListener("click", () => {
       const session = physicalRouteReviewSession;
-      if (!session || physicalRouteReviewApplying || session.currentSlotIndex <= 0) return;
-      void showPhysicalRouteReviewSlot(session.currentSlotIndex - 1).catch((error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
-      });
+      if (
+        !session ||
+        physicalRouteReviewApplying ||
+        session.currentSlotIndex <= 0
+      )
+        return;
+      void showPhysicalRouteReviewSlot(session.currentSlotIndex - 1).catch(
+        (error) => {
+          setLogMessage(
+            error instanceof Error ? error.message : String(error),
+            true,
+          );
+        },
+      );
     });
     physicalRouteReviewSummaryBackButton.addEventListener("click", () => {
       const session = physicalRouteReviewSession;
-      if (!session || physicalRouteReviewApplying || session.slots.length === 0) return;
-      void showPhysicalRouteReviewSlot(session.slots.length - 1).catch((error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
-      });
+      if (!session || physicalRouteReviewApplying || session.slots.length === 0)
+        return;
+      void showPhysicalRouteReviewSlot(session.slots.length - 1).catch(
+        (error) => {
+          setLogMessage(
+            error instanceof Error ? error.message : String(error),
+            true,
+          );
+        },
+      );
     });
     physicalRouteReviewConfirmButton.addEventListener("click", () => {
       if (!physicalRouteReviewSession || physicalRouteReviewApplying) return;
@@ -2842,7 +3233,10 @@ async function start(): Promise<void> {
         physicalRouteReviewSession.currentSlotIndex,
       );
       void advancePhysicalRouteReview().catch((error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
+        setLogMessage(
+          error instanceof Error ? error.message : String(error),
+          true,
+        );
       });
     });
     const rotatePhysicalRouteReview = (delta: -1 | 1): void => {
@@ -2858,21 +3252,25 @@ async function start(): Promise<void> {
       );
     };
     physicalRouteReviewRotateLeftButton.addEventListener("click", () =>
-      rotatePhysicalRouteReview(-1)
+      rotatePhysicalRouteReview(-1),
     );
     physicalRouteReviewRotateRightButton.addEventListener("click", () =>
-      rotatePhysicalRouteReview(1)
+      rotatePhysicalRouteReview(1),
     );
     physicalRouteReviewCancelButton.addEventListener("click", () => {
       void closePhysicalRouteReview(true).then(() => {
-        setLogMessage("Physical wiring review cancelled. No project data changed.");
+        setLogMessage(
+          "Physical wiring review cancelled. No project data changed.",
+        );
       });
     });
     physicalRouteReviewDialog.addEventListener("cancel", (event) => {
       event.preventDefault();
       if (physicalRouteReviewApplying) return;
       void closePhysicalRouteReview(true).then(() => {
-        setLogMessage("Physical wiring review cancelled. No project data changed.");
+        setLogMessage(
+          "Physical wiring review cancelled. No project data changed.",
+        );
       });
     });
     document.addEventListener("keydown", (event) => {
@@ -2880,10 +3278,13 @@ async function start(): Promise<void> {
         event.key !== "Escape" ||
         !physicalRouteReviewSession ||
         physicalRouteReviewApplying
-      ) return;
+      )
+        return;
       event.preventDefault();
       void closePhysicalRouteReview(true).then(() => {
-        setLogMessage("Physical wiring review cancelled. No project data changed.");
+        setLogMessage(
+          "Physical wiring review cancelled. No project data changed.",
+        );
       });
     });
     physicalRouteReviewApplyButton.addEventListener("click", () => {
@@ -2898,19 +3299,24 @@ async function start(): Promise<void> {
         setPhysicalRouteReviewBusy(true);
         physicalRouteReviewApplyButton.disabled = true;
         physicalRouteReviewCancelButton.disabled = true;
-        const pending = physicalRouteReviewPendingApply ?? (() => {
-          const reviewedDefinition = applyPhysicalRouteReview(editorDefinition, session);
-          const reviewedProject = createPanelAssemblyProject(
-            reviewedDefinition,
-            editorProject.source,
-            editorProject.panelProfile,
-          );
-          return {
-            session,
-            deviceUrl,
-            reviewedSculpture: createLoadedSculpture(reviewedProject),
-          };
-        })();
+        const pending =
+          physicalRouteReviewPendingApply ??
+          (() => {
+            const reviewedDefinition = applyPhysicalRouteReview(
+              editorDefinition,
+              session,
+            );
+            const reviewedProject = createPanelAssemblyProject(
+              reviewedDefinition,
+              editorProject.source,
+              editorProject.panelProfile,
+            );
+            return {
+              session,
+              deviceUrl,
+              reviewedSculpture: createLoadedSculpture(reviewedProject),
+            };
+          })();
         physicalRouteReviewPendingApply = pending;
         await physicalRouteReviewFrameRequest?.catch(() => undefined);
         await synchronizeDeviceLedmap(
@@ -2918,7 +3324,8 @@ async function start(): Promise<void> {
           `${JSON.stringify(pending.reviewedSculpture.contract.ledmap)}\n`,
           true,
           () =>
-            physicalRouteReviewSession === pending.session && physicalRouteReviewApplying,
+            physicalRouteReviewSession === pending.session &&
+            physicalRouteReviewApplying,
           setLogMessage,
         );
         await applyLoadedSculpture(pending.reviewedSculpture);
@@ -2933,7 +3340,8 @@ async function start(): Promise<void> {
         physicalRouteReviewDialog.close();
         physicalRouteReviewApplyButton.disabled = false;
         physicalRouteReviewCancelButton.disabled = false;
-        physicalRouteReviewApplyButton.textContent = "Apply and regenerate mapping";
+        physicalRouteReviewApplyButton.textContent =
+          "Apply and regenerate mapping";
         enableSimulatorLink(pending.deviceUrl, true);
         startMadMapperPreview();
         setLogMessage(
@@ -2941,7 +3349,8 @@ async function start(): Promise<void> {
         );
       })().catch((error) => {
         physicalRouteReviewApplyButton.disabled = false;
-        physicalRouteReviewApplyButton.textContent = "Retry exact ESP32 verification";
+        physicalRouteReviewApplyButton.textContent =
+          "Retry exact ESP32 verification";
         physicalRouteReviewCancelButton.disabled = true;
         physicalRouteReviewSummaryNote.textContent =
           "The ESP32 update is not yet verified. The old project cannot resume because the device might already use the reviewed map. Retry until exact activation and read-back succeed.";
@@ -2957,20 +3366,32 @@ async function start(): Promise<void> {
       resetTimeline();
       scheduleStandaloneSave();
     });
-    const cycleSelect = (select: HTMLSelectElement, direction: -1 | 1): void => {
+    const cycleSelect = (
+      select: HTMLSelectElement,
+      direction: -1 | 1,
+    ): void => {
       const optionCount = select.options.length;
       if (optionCount === 0) return;
-      select.selectedIndex = (select.selectedIndex + direction + optionCount) % optionCount;
+      select.selectedIndex =
+        (select.selectedIndex + direction + optionCount) % optionCount;
       select.dispatchEvent(new Event("change", { bubbles: true }));
     };
-    previousEffectButton.addEventListener("click", () => cycleSelect(effectSelect, -1));
-    nextEffectButton.addEventListener("click", () => cycleSelect(effectSelect, 1));
+    previousEffectButton.addEventListener("click", () =>
+      cycleSelect(effectSelect, -1),
+    );
+    nextEffectButton.addEventListener("click", () =>
+      cycleSelect(effectSelect, 1),
+    );
     paletteSelect.addEventListener("change", () => {
       engine.setPalette(Number(paletteSelect.value));
       scheduleStandaloneSave();
     });
-    previousPaletteButton.addEventListener("click", () => cycleSelect(paletteSelect, -1));
-    nextPaletteButton.addEventListener("click", () => cycleSelect(paletteSelect, 1));
+    previousPaletteButton.addEventListener("click", () =>
+      cycleSelect(paletteSelect, -1),
+    );
+    nextPaletteButton.addEventListener("click", () =>
+      cycleSelect(paletteSelect, 1),
+    );
     speedInput.addEventListener("input", () => {
       speedValue.value = speedInput.value;
       engine.setSpeed(Number(speedInput.value));
@@ -2993,7 +3414,10 @@ async function start(): Promise<void> {
       assemblyTutorialChainIndex = 0;
       const chain = selectedAssemblyTutorialChain();
       if (!chain || chain.panels.length === 0) {
-        setLogMessage("No data chain is available for the assembly tutorial.", true);
+        setLogMessage(
+          "No data chain is available for the assembly tutorial.",
+          true,
+        );
         return;
       }
       assemblyTutorialActive = true;
@@ -3020,9 +3444,11 @@ async function start(): Promise<void> {
       });
       assemblyTutorialChainIndex = previous.chainIndex;
       assemblyTutorialConnectionIndex = previous.connectionIndex;
-      assemblyTutorialPanelIndex = assemblyTutorialPanelIndex === null
-        ? null
-        : assemblyTutorialModel.chains[previous.chainIndex]!.panels.length - 1;
+      assemblyTutorialPanelIndex =
+        assemblyTutorialPanelIndex === null
+          ? null
+          : assemblyTutorialModel.chains[previous.chainIndex]!.panels.length -
+            1;
       syncAssemblyTutorialOutputControls();
       applyAssemblyTutorialView();
     });
@@ -3033,14 +3459,16 @@ async function start(): Promise<void> {
       });
       assemblyTutorialChainIndex = next.chainIndex;
       assemblyTutorialConnectionIndex = next.connectionIndex;
-      assemblyTutorialPanelIndex = assemblyTutorialPanelIndex === null ? null : 0;
+      assemblyTutorialPanelIndex =
+        assemblyTutorialPanelIndex === null ? null : 0;
       syncAssemblyTutorialOutputControls();
       applyAssemblyTutorialView();
     });
     assemblyTutorialPreviousPanelButton.addEventListener("click", () => {
       const previous = previousAssemblyTutorialPanel(assemblyTutorialModel, {
         chainIndex: assemblyTutorialChainIndex,
-        panelIndex: assemblyTutorialPanelIndex ?? assemblyTutorialConnectionIndex ?? 0,
+        panelIndex:
+          assemblyTutorialPanelIndex ?? assemblyTutorialConnectionIndex ?? 0,
       });
       assemblyTutorialChainIndex = previous.chainIndex;
       assemblyTutorialPanelIndex = previous.panelIndex;
@@ -3051,7 +3479,8 @@ async function start(): Promise<void> {
     assemblyTutorialNextPanelButton.addEventListener("click", () => {
       const next = nextAssemblyTutorialPanel(assemblyTutorialModel, {
         chainIndex: assemblyTutorialChainIndex,
-        panelIndex: assemblyTutorialPanelIndex ?? assemblyTutorialConnectionIndex ?? 0,
+        panelIndex:
+          assemblyTutorialPanelIndex ?? assemblyTutorialConnectionIndex ?? 0,
       });
       assemblyTutorialChainIndex = next.chainIndex;
       assemblyTutorialPanelIndex = next.panelIndex;
@@ -3096,8 +3525,12 @@ async function start(): Promise<void> {
     optimizeWiringButton.addEventListener("click", () => {
       void (async () => {
         optimizeWiringButton.disabled = true;
-        setLogMessage("Optimizing balanced outputs, GPIOs, panel order, and physical DIN/DOUT orientation…");
-        await new Promise<void>((resolvePromise) => requestAnimationFrame(() => resolvePromise()));
+        setLogMessage(
+          "Optimizing balanced outputs, GPIOs, panel order, and physical DIN/DOUT orientation…",
+        );
+        await new Promise<void>((resolvePromise) =>
+          requestAnimationFrame(() => resolvePromise()),
+        );
         try {
           const result = optimizeAutomaticWiring(
             editorDefinition,
@@ -3114,7 +3547,10 @@ async function start(): Promise<void> {
             `Optimized wiring revision ${result.definition.wiring.routeRevision}: ${result.outputCount} output${result.outputCount === 1 ? "" : "s"}, ${result.chainLengths.join("/")} panels, GPIO ${result.gpios.join("/")}, approximately ${result.estimatedCableLengthMm.toFixed(1)} mm data cable. ${result.orientationPolicy === "quarter-turns" ? "Panel orientation could use 0°, 90°, 180°, or 270°." : "The active rotation gate limited panel orientation changes to 0° or 180°."}${result.discardedLegacyAddressTurnPanelIds.length > 0 ? ` Current saved poses were used as fabricated authority; ${result.discardedLegacyAddressTurnPanelIds.length} assumed legacy address-only turns were discarded.` : ""}`,
           );
         } catch (error) {
-          setLogMessage(error instanceof Error ? error.message : String(error), true);
+          setLogMessage(
+            error instanceof Error ? error.message : String(error),
+            true,
+          );
           renderRouteEditor();
         }
       })();
@@ -3131,13 +3567,20 @@ async function start(): Promise<void> {
         editorProject.source,
         editorProject.panelProfile,
       );
-      void applyLoadedSculpture(createLoadedSculpture(project)).then(() => {
-        setLogMessage(enable
-          ? "Manual wiring rotation gate enabled. Optimize wiring will use current saved poses as fabricated authority, discard assumed legacy address-only turns, and apply only 0/180-degree pose changes."
-          : "Manual wiring rotation gate removed. Generated-part manifests still enforce 0/180-degree optimization when present.");
-      }).catch((error) => {
-        setLogMessage(error instanceof Error ? error.message : String(error), true);
-      });
+      void applyLoadedSculpture(createLoadedSculpture(project))
+        .then(() => {
+          setLogMessage(
+            enable
+              ? "Manual wiring rotation gate enabled. Optimize wiring will use current saved poses as fabricated authority, discard assumed legacy address-only turns, and apply only 0/180-degree pose changes."
+              : "Manual wiring rotation gate removed. Generated-part manifests still enforce 0/180-degree optimization when present.",
+          );
+        })
+        .catch((error) => {
+          setLogMessage(
+            error instanceof Error ? error.message : String(error),
+            true,
+          );
+        });
     });
     routeActionButton.addEventListener("click", () => {
       void (async () => {
@@ -3146,7 +3589,8 @@ async function start(): Promise<void> {
             throw new Error("A panelized wiring route is unavailable.");
           }
           if (!routeEditorModel.copiedDraftSuggestion) {
-            routeEditorModel = copyDraftSuggestionToRouteEditor(routeEditorModel);
+            routeEditorModel =
+              copyDraftSuggestionToRouteEditor(routeEditorModel);
             renderRouteEditor();
             return;
           }
@@ -3164,7 +3608,8 @@ async function start(): Promise<void> {
             `Regenerated mapping and wiring from route revision ${edited.wiring.routeRevision}. Export the project ZIP to keep it.`,
           );
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
         }
       })();
@@ -3219,17 +3664,27 @@ async function start(): Promise<void> {
     });
     applyCountButton.addEventListener("click", () => {
       const requested = Number(ledCountInput.value);
-      if (!Number.isInteger(requested) || requested < 64 || requested > 200000) {
-        ledCountInput.setCustomValidity("Choose an integer from 64 to 200,000.");
+      if (
+        !Number.isInteger(requested) ||
+        requested < 64 ||
+        requested > 200000
+      ) {
+        ledCountInput.setCustomValidity(
+          "Choose an integer from 64 to 200,000.",
+        );
         ledCountInput.reportValidity();
         return;
       }
       ledCountInput.setCustomValidity("");
       if (artNetPreviewClient.active) {
-        stopMadMapperPreview("MadMapper preview stopped because the mapping changed.");
+        stopMadMapperPreview(
+          "MadMapper preview stopped because the mapping changed.",
+        );
       }
       if (externalFrameMirrorQueue.active) {
-        stopExternalFrameMirror("Sculpture mirror stopped because the mapping changed.");
+        stopExternalFrameMirror(
+          "Sculpture mirror stopped because the mapping changed.",
+        );
       }
       exitAssemblyTutorial(false);
       engine.resize(requested);
@@ -3295,7 +3750,8 @@ async function start(): Promise<void> {
     let projectLibraryRendered = false;
     let currentLibraryProject: ProjectLibraryEntry | undefined;
     const normalizeLocalProjectFilename = (input: string): string => {
-      const base = input.trim()
+      const base = input
+        .trim()
         .replace(/\.loo\.zip$/i, "")
         .replace(/\.zip$/i, "")
         .replace(/[^A-Za-z0-9._-]+/g, "-")
@@ -3346,17 +3802,22 @@ async function start(): Promise<void> {
           new Uint32Array(mapping.entries.length),
           "physical-index",
         );
-        return Array.from(await renderer.captureFramedThumbnail({
-          direction: { x: 0.85, y: 0.45, z: 1 },
-        }));
+        return Array.from(
+          await renderer.captureFramedThumbnail({
+            direction: { x: 0.85, y: 0.45, z: 1 },
+          }),
+        );
       },
     });
     const clearProjectLibraryCache = (): void => {
       projectPackageBytes.clear();
-      for (const url of projectThumbnailUrls.splice(0)) URL.revokeObjectURL(url);
+      for (const url of projectThumbnailUrls.splice(0))
+        URL.revokeObjectURL(url);
       projectLibraryRendered = false;
     };
-    const loadProjectPackageBytes = async (source: string): Promise<Uint8Array> => {
+    const loadProjectPackageBytes = async (
+      source: string,
+    ): Promise<Uint8Array> => {
       const cached = projectPackageBytes.get(source);
       if (cached) return cached;
       const response = await fetch(source);
@@ -3368,7 +3829,9 @@ async function start(): Promise<void> {
       projectPackageBytes.set(source, bytes);
       return bytes;
     };
-    const openLibraryProject = async (entry: ProjectLibraryEntry): Promise<void> => {
+    const openLibraryProject = async (
+      entry: ProjectLibraryEntry,
+    ): Promise<void> => {
       const bytes = await loadProjectPackageBytes(entry.source);
       const summary = readProjectPackageSummary(bytes);
       const bundle = await openPortableProjectZip(
@@ -3384,7 +3847,8 @@ async function start(): Promise<void> {
     const refreshProjectLibrary = async (): Promise<void> => {
       clearProjectLibraryCache();
       projectLibraryRegistry = await loadProjectLibraryRegistry();
-      saveLibraryProjectButton.disabled = projectLibraryRegistry.writable !== true;
+      saveLibraryProjectButton.disabled =
+        projectLibraryRegistry.writable !== true;
       saveProjectAsButton.disabled = projectLibraryRegistry.writable !== true;
     };
     const saveAsLocalProject = async (filenameInput: string): Promise<void> => {
@@ -3394,8 +3858,9 @@ async function start(): Promise<void> {
         await currentProjectPackage(),
       );
       await refreshProjectLibrary();
-      currentLibraryProject = projectLibraryRegistry.projects.find((entry) =>
-        entry.location === "local" && entry.filename === saved.filename
+      currentLibraryProject = projectLibraryRegistry.projects.find(
+        (entry) =>
+          entry.location === "local" && entry.filename === saved.filename,
       );
       projectLibraryFilenameInput.value = saved.filename;
       setLogMessage(`Saved local project ${saved.filename}.`);
@@ -3403,8 +3868,8 @@ async function start(): Promise<void> {
     const renderProjectLibrary = async (): Promise<void> => {
       if (projectLibraryRendered) return;
       projectLibraryStatus.textContent = "Loading project ZIPs…";
-      const cards = await Promise.all(projectLibraryRegistry.projects.map(
-        async (entry) => {
+      const cards = await Promise.all(
+        projectLibraryRegistry.projects.map(async (entry) => {
           const card = document.createElement("article");
           card.className = "project-card-shell";
           const button = document.createElement("button");
@@ -3416,14 +3881,20 @@ async function start(): Promise<void> {
             if (!thumbnailUrl || panelCount === undefined) {
               const bytes = await loadProjectPackageBytes(entry.source);
               const summary = readProjectPackageSummary(bytes);
-              if (summary.manifest.id !== entry.id || summary.manifest.name !== entry.name) {
-                throw new Error(`Project library metadata disagrees with ${entry.source}.`);
+              if (
+                summary.manifest.id !== entry.id ||
+                summary.manifest.name !== entry.name
+              ) {
+                throw new Error(
+                  `Project library metadata disagrees with ${entry.source}.`,
+                );
               }
               panelCount = summary.manifest.panelCount;
-              thumbnailUrl = URL.createObjectURL(new Blob(
-                [Uint8Array.from(summary.thumbnailBytes)],
-                { type: summary.thumbnailMediaType },
-              ));
+              thumbnailUrl = URL.createObjectURL(
+                new Blob([Uint8Array.from(summary.thumbnailBytes)], {
+                  type: summary.thumbnailMediaType,
+                }),
+              );
               projectThumbnailUrls.push(thumbnailUrl);
             }
             const image = document.createElement("img");
@@ -3450,13 +3921,14 @@ async function start(): Promise<void> {
             button.addEventListener("click", () => {
               button.disabled = true;
               projectLibraryStatus.textContent = `Opening ${entry.name}…`;
-              void openLibraryProject(entry).catch((error) => {
-                projectLibraryStatus.textContent = error instanceof Error
-                  ? error.message
-                  : String(error);
-              }).finally(() => {
-                button.disabled = false;
-              });
+              void openLibraryProject(entry)
+                .catch((error) => {
+                  projectLibraryStatus.textContent =
+                    error instanceof Error ? error.message : String(error);
+                })
+                .finally(() => {
+                  button.disabled = false;
+                });
             });
           } catch (error) {
             button.disabled = true;
@@ -3464,7 +3936,9 @@ async function start(): Promise<void> {
           }
           card.append(button);
           if (
-            entry.location && entry.filename && entry.revision &&
+            entry.location &&
+            entry.filename &&
+            entry.revision &&
             projectLibraryRegistry.writable === true
           ) {
             const actions = document.createElement("div");
@@ -3473,7 +3947,10 @@ async function start(): Promise<void> {
             renameButton.type = "button";
             renameButton.textContent = "Rename";
             renameButton.addEventListener("click", () => {
-              const requested = window.prompt("New project ZIP filename", entry.filename);
+              const requested = window.prompt(
+                "New project ZIP filename",
+                entry.filename,
+              );
               if (requested === null) return;
               void (async () => {
                 try {
@@ -3489,16 +3966,18 @@ async function start(): Promise<void> {
                     currentLibraryProject?.location === entry.location &&
                     currentLibraryProject?.filename === entry.filename
                   ) {
-                    currentLibraryProject = projectLibraryRegistry.projects.find((candidate) =>
-                      candidate.location === "local" && candidate.filename === renamed.filename
-                    );
+                    currentLibraryProject =
+                      projectLibraryRegistry.projects.find(
+                        (candidate) =>
+                          candidate.location === "local" &&
+                          candidate.filename === renamed.filename,
+                      );
                   }
                   await renderProjectLibrary();
                   setLogMessage(`Renamed project to ${renamed.filename}.`);
                 } catch (error) {
-                  projectLibraryStatus.textContent = error instanceof Error
-                    ? error.message
-                    : String(error);
+                  projectLibraryStatus.textContent =
+                    error instanceof Error ? error.message : String(error);
                 }
               })();
             });
@@ -3524,9 +4003,8 @@ async function start(): Promise<void> {
                   await renderProjectLibrary();
                   setLogMessage(`Deleted project ${entry.filename}.`);
                 } catch (error) {
-                  projectLibraryStatus.textContent = error instanceof Error
-                    ? error.message
-                    : String(error);
+                  projectLibraryStatus.textContent =
+                    error instanceof Error ? error.message : String(error);
                 }
               })();
             });
@@ -3534,23 +4012,24 @@ async function start(): Promise<void> {
             card.append(actions);
           }
           return card;
-        },
-      ));
+        }),
+      );
       projectLibraryGrid.replaceChildren(...cards);
       const invalidCount = projectLibraryRegistry.invalidPackages?.length ?? 0;
-      projectLibraryStatus.textContent = invalidCount === 0
-        ? `${cards.length} project ZIPs`
-        : `${cards.length} project ZIPs · ${invalidCount} invalid package${invalidCount === 1 ? "" : "s"} ignored`;
+      projectLibraryStatus.textContent =
+        invalidCount === 0
+          ? `${cards.length} project ZIPs`
+          : `${cards.length} project ZIPs · ${invalidCount} invalid package${invalidCount === 1 ? "" : "s"} ignored`;
       projectLibraryRendered = true;
     };
     openProjectLibraryButton.addEventListener("click", () => {
-      projectLibraryFilenameInput.value = currentLibraryProject?.filename ??
+      projectLibraryFilenameInput.value =
+        currentLibraryProject?.filename ??
         `${portableProjectFolderName(editorDefinition)}.loo.zip`;
       projectLibraryDialog.showModal();
       void renderProjectLibrary().catch((error) => {
-        projectLibraryStatus.textContent = error instanceof Error
-          ? error.message
-          : String(error);
+        projectLibraryStatus.textContent =
+          error instanceof Error ? error.message : String(error);
       });
     });
     saveProjectAsButton.addEventListener("click", () => {
@@ -3560,27 +4039,32 @@ async function start(): Promise<void> {
           await saveAsLocalProject(projectLibraryFilenameInput.value);
           await renderProjectLibrary();
         } catch (error) {
-          projectLibraryStatus.textContent = error instanceof Error
-            ? error.message
-            : String(error);
+          projectLibraryStatus.textContent =
+            error instanceof Error ? error.message : String(error);
         } finally {
-          saveProjectAsButton.disabled = projectLibraryRegistry.writable !== true;
+          saveProjectAsButton.disabled =
+            projectLibraryRegistry.writable !== true;
         }
       })();
     });
-    saveLibraryProjectButton.disabled = projectLibraryRegistry.writable !== true;
+    saveLibraryProjectButton.disabled =
+      projectLibraryRegistry.writable !== true;
     saveProjectAsButton.disabled = projectLibraryRegistry.writable !== true;
     saveLibraryProjectButton.addEventListener("click", () => {
       void (async () => {
-        if (!currentLibraryProject?.location ||
-          !currentLibraryProject.filename || !currentLibraryProject.revision) {
+        if (
+          !currentLibraryProject?.location ||
+          !currentLibraryProject.filename ||
+          !currentLibraryProject.revision
+        ) {
           projectLibraryFilenameInput.value = `${portableProjectFolderName(editorDefinition)}.loo.zip`;
           projectLibraryDialog.showModal();
           await renderProjectLibrary();
           projectLibraryFilenameInput.focus();
           return;
         }
-        if (!window.confirm(`Overwrite ${currentLibraryProject.filename}?`)) return;
+        if (!window.confirm(`Overwrite ${currentLibraryProject.filename}?`))
+          return;
         saveLibraryProjectButton.disabled = true;
         try {
           const saved = await replaceProjectLibraryPackage(
@@ -3590,14 +4074,16 @@ async function start(): Promise<void> {
             currentLibraryProject.revision,
           );
           await refreshProjectLibrary();
-          currentLibraryProject = projectLibraryRegistry.projects.find((entry) =>
-            entry.location === "local" && entry.filename === saved.filename
+          currentLibraryProject = projectLibraryRegistry.projects.find(
+            (entry) =>
+              entry.location === "local" && entry.filename === saved.filename,
           );
           setLogMessage(`Overwrote project ${saved.filename}.`);
         } catch (error) {
           reportPortableError(error);
         } finally {
-          saveLibraryProjectButton.disabled = projectLibraryRegistry.writable !== true;
+          saveLibraryProjectButton.disabled =
+            projectLibraryRegistry.writable !== true;
         }
       })();
     });
@@ -3661,8 +4147,8 @@ async function start(): Promise<void> {
               bytes: new Uint8Array(await file.arrayBuffer()),
             })),
           );
-          const label = files[0]!.webkitRelativePath.split("/")[0] ||
-            "project-folder";
+          const label =
+            files[0]!.webkitRelativePath.split("/")[0] || "project-folder";
           const bundle = await openPortableProjectFiles(
             entries,
             label,
@@ -3685,10 +4171,9 @@ async function start(): Promise<void> {
         try {
           const folderName = portableProjectFolderName(editorDefinition);
           const bytes = await currentProjectPackage();
-          const objectUrl = URL.createObjectURL(new Blob(
-            [Uint8Array.from(bytes)],
-            { type: "application/zip" },
-          ));
+          const objectUrl = URL.createObjectURL(
+            new Blob([Uint8Array.from(bytes)], { type: "application/zip" }),
+          );
           const link = document.createElement("a");
           link.href = objectUrl;
           link.download = `${folderName}.zip`;
@@ -3717,9 +4202,11 @@ async function start(): Promise<void> {
       void (async () => {
         exportProjectFolderButton.disabled = true;
         try {
-          const picker = (window as unknown as {
-            showDirectoryPicker?: () => Promise<PortableDirectoryHandle>;
-          }).showDirectoryPicker;
+          const picker = (
+            window as unknown as {
+              showDirectoryPicker?: () => Promise<PortableDirectoryHandle>;
+            }
+          ).showDirectoryPicker;
           if (!picker) {
             throw new Error(
               "Folder export needs a browser with the directory picker; use project ZIP export here.",
@@ -3771,11 +4258,12 @@ async function start(): Promise<void> {
             editorProject.source,
             editorProject.panelProfile,
           );
-          applyLoadedSculpture(createLoadedSculpture(project));
+          applyLoadedSculptureSafely(createLoadedSculpture(project));
           rememberProjectAsset(file.name, bytes);
           showDesignSurface(surface, file.name);
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
         } finally {
           designSurfaceFileInput.value = "";
@@ -3823,16 +4311,18 @@ async function start(): Promise<void> {
           editorProject.source,
           editorProject.panelProfile,
         );
-        applyLoadedSculpture(createLoadedSculpture(project));
-        setLogMessage(result.placedPanelIds.length === 0
-          ? `The sculpture already has ${targetPanelCount} panels; nothing changed.`
-          : `Placed ${result.placedPanelIds.join(", ")} across the active ${
-            attachmentSurface === "design-surface" ? "GLB" : "JSON shell"
-          }. Mapping and provisional wiring are refreshed; adjust poses manually${
-            editorDefinition.mechanicalShell
-              ? " before separate 3D generation"
-              : "; 3D generation remains unavailable until boundary input exists"
-          }.`);
+        applyLoadedSculptureSafely(createLoadedSculpture(project));
+        setLogMessage(
+          result.placedPanelIds.length === 0
+            ? `The sculpture already has ${targetPanelCount} panels; nothing changed.`
+            : `Placed ${result.placedPanelIds.join(", ")} across the active ${
+                attachmentSurface === "design-surface" ? "GLB" : "JSON shell"
+              }. Mapping and provisional wiring are refreshed; adjust poses manually${
+                editorDefinition.mechanicalShell
+                  ? " before separate 3D generation"
+                  : "; 3D generation remains unavailable until boundary input exists"
+              }.`,
+        );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setLogMessage(message, true);
@@ -3856,7 +4346,7 @@ async function start(): Promise<void> {
           editorProject.source,
           editorProject.panelProfile,
         );
-        applyLoadedSculpture(createLoadedSculpture(project));
+        applyLoadedSculptureSafely(createLoadedSculpture(project));
         setLogMessage(
           `Added ${edited.panels.at(-1)!.id} to ${faceId}. Save the project ZIP or build the assembly package.`,
         );
@@ -3889,19 +4379,19 @@ async function start(): Promise<void> {
           ),
         },
       );
-      const objectUrl = URL.createObjectURL(new Blob(
-        [Uint8Array.from(zipBytes)],
-        { type: "application/zip" },
-      ));
+      const objectUrl = URL.createObjectURL(
+        new Blob([Uint8Array.from(zipBytes)], { type: "application/zip" }),
+      );
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download =
-        `${portableProjectFolderName(editorDefinition)}-assembly-package.zip`;
+      link.download = `${portableProjectFolderName(editorDefinition)}-assembly-package.zip`;
       link.click();
       URL.revokeObjectURL(objectUrl);
-      setLogMessage(hardwareContract.readiness.mappingReady
+      setLogMessage(
+        hardwareContract.readiness.mappingReady
           ? `Downloaded ${link.download} with the project, verified geometry, assembly manual, and guarded WLED installation bundle.`
-          : `Downloaded ${link.download} with the project, verified geometry, assembly manual, and diagnostic-only mapping files.`);
+          : `Downloaded ${link.download} with the project, verified geometry, assembly manual, and diagnostic-only mapping files.`,
+      );
     };
 
     const downloadMadMapperPackage = (): void => {
@@ -3909,14 +4399,12 @@ async function start(): Promise<void> {
         hardwareContract,
         editorDefinition.id,
       );
-      const objectUrl = URL.createObjectURL(new Blob(
-        [Uint8Array.from(zipBytes)],
-        { type: "application/zip" },
-      ));
+      const objectUrl = URL.createObjectURL(
+        new Blob([Uint8Array.from(zipBytes)], { type: "application/zip" }),
+      );
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download =
-        `${portableProjectFolderName(editorDefinition)}-madmapper.zip`;
+      link.download = `${portableProjectFolderName(editorDefinition)}-madmapper.zip`;
       link.click();
       URL.revokeObjectURL(objectUrl);
       setLogMessage(
@@ -3935,14 +4423,12 @@ async function start(): Promise<void> {
           structure: verifiedGeneratedStructure,
         },
       );
-      const objectUrl = URL.createObjectURL(new Blob(
-        [Uint8Array.from(zipBytes)],
-        { type: "application/zip" },
-      ));
+      const objectUrl = URL.createObjectURL(
+        new Blob([Uint8Array.from(zipBytes)], { type: "application/zip" }),
+      );
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download =
-        `${portableProjectFolderName(editorDefinition)}-fabrication.zip`;
+      link.download = `${portableProjectFolderName(editorDefinition)}-fabrication.zip`;
       link.click();
       URL.revokeObjectURL(objectUrl);
       setLogMessage(
@@ -3957,65 +4443,87 @@ async function start(): Promise<void> {
       generateSurfaceStructureButton.disabled = true;
       assemblyPackageButton.disabled = true;
       addPanelButton.disabled = true;
-      setLogMessage(surfaceStyle === "led-surface-bridge"
+      setLogMessage(
+        surfaceStyle === "led-surface-bridge"
           ? "Generating full-edge bridges at the LED planes and running optional load-path analysis…"
-          : "Generating nearest-hole ribbon geometry and running optional load-path analysis…");
+          : "Generating nearest-hole ribbon geometry and running optional load-path analysis…",
+      );
+      try {
+        const structuralDefinition = structuredClone(editorDefinition);
+        delete structuralDefinition.generatedMechanics;
+        delete structuralDefinition.mechanicalShell;
+        delete structuralDefinition.closures;
+        structuralDefinition.structuralDesign ??= structuredClone(
+          STRUCTURAL_PREVIEW_DEFAULTS,
+        );
+        structuralDefinition.structuralDesign.connectorization = {
+          ...resolvedConnectorization(),
+          surfaceStyle,
+        };
+        const structuralProject = createPanelAssemblyProject(
+          structuralDefinition,
+          editorProject.source,
+          editorProject.panelProfile,
+        );
+        const generationRevision = generationProjectRevision;
+        const designSurfaceBytes = structuralDefinition.designSurface
+          ? availableProjectAssets.get(
+              structuralDefinition.designSurface.source,
+            )
+          : undefined;
+        const result = await generationClient.generateStructural({
+          definition: structuralProject.sculpture,
+          projectSource: structuralProject.source,
+          panelProfile: structuralProject.panelProfile,
+          ...(designSurfaceBytes ? { designSurfaceBytes } : {}),
+        });
+        if (generationRevision !== generationProjectRevision) {
+          throw new Error(
+            "Project changed during structural generation. Generate again for the current project.",
+          );
+        }
+        const previousAssets = new Map(availableProjectAssets);
+        const previousUrls = generatedMemoryUrls;
+        const nextUrls = new Map<string, string>();
         try {
-          const structuralDefinition = structuredClone(editorDefinition);
-          delete structuralDefinition.generatedMechanics;
-          delete structuralDefinition.mechanicalShell;
-          delete structuralDefinition.closures;
-          structuralDefinition.structuralDesign ??= structuredClone(STRUCTURAL_PREVIEW_DEFAULTS);
-          structuralDefinition.structuralDesign.connectorization = {
-            ...resolvedConnectorization(),
-            surfaceStyle,
-          };
-          const structuralProject = createPanelAssemblyProject(
-            structuralDefinition,
-            editorProject.source,
+          for (const file of result.bundle.files) {
+            rememberProjectAsset(file.source, file.bytes);
+            if (
+              result.generatedStructure.artifacts.some(
+                ({ source }) => source === file.source,
+              )
+            ) {
+              nextUrls.set(
+                file.source,
+                URL.createObjectURL(new Blob([Uint8Array.from(file.bytes)])),
+              );
+            }
+          }
+          generatedMemoryUrls = nextUrls;
+          const generatedProject = createPanelAssemblyProject(
+            result.definition,
+            "local:in-process-structural",
             editorProject.panelProfile,
           );
-          const designSurfaceBytes = structuralDefinition.designSurface
-            ? availableProjectAssets.get(structuralDefinition.designSurface.source)
-            : undefined;
-          const result = await runStructuralPipeline(structuralProject, {
-            ...(designSurfaceBytes ? { designSurfaceBytes } : {}),
-          });
-          const previousAssets = new Map(availableProjectAssets);
-          const previousUrls = generatedMemoryUrls;
-          const nextUrls = new Map<string, string>();
-          try {
-            for (const file of result.bundle.files) {
-              rememberProjectAsset(file.source, file.bytes);
-              if (result.generatedStructure.artifacts.some(({ source }) => source === file.source)) {
-                nextUrls.set(file.source, URL.createObjectURL(new Blob(
-                  [Uint8Array.from(file.bytes)],
-                )));
-              }
-            }
-            generatedMemoryUrls = nextUrls;
-            const generatedProject = createPanelAssemblyProject(
-              result.definition,
-              "local:in-process-structural",
-              editorProject.panelProfile,
-            );
-            await applyLoadedSculpture(createLoadedSculpture(generatedProject));
-            previousUrls.forEach((url) => URL.revokeObjectURL(url));
-          } catch (error) {
-            nextUrls.forEach((url) => URL.revokeObjectURL(url));
-            generatedMemoryUrls = previousUrls;
-            availableProjectAssets = previousAssets;
-            throw error;
-          }
-          const loftBodyCount = result.analysis.printable.organicConnectors;
-          const junctionCount = result.analysis.printable.multiPanelJunctions;
-          const surfaceBridgeCount = result.analysis.printable.surfaceBridges;
-          const surfaceJunctionCount = result.analysis.printable.surfaceBridgeJunctions;
-          const generatedShape = surfaceStyle === "led-surface-bridge"
+          await applyLoadedSculpture(createLoadedSculpture(generatedProject));
+          previousUrls.forEach((url) => URL.revokeObjectURL(url));
+        } catch (error) {
+          nextUrls.forEach((url) => URL.revokeObjectURL(url));
+          generatedMemoryUrls = previousUrls;
+          availableProjectAssets = previousAssets;
+          throw error;
+        }
+        const loftBodyCount = result.analysis.printable.organicConnectors;
+        const junctionCount = result.analysis.printable.multiPanelJunctions;
+        const surfaceBridgeCount = result.analysis.printable.surfaceBridges;
+        const surfaceJunctionCount =
+          result.analysis.printable.surfaceBridgeJunctions;
+        const generatedShape =
+          surfaceStyle === "led-surface-bridge"
             ? `${surfaceBridgeCount} full-edge ${surfaceBridgeCount === 1 ? "bridge" : "bridges"} and ${surfaceJunctionCount} multi-panel surface ${surfaceJunctionCount === 1 ? "junction" : "junctions"}`
             : `${loftBodyCount} cap-surface loft ${loftBodyCount === 1 ? "body" : "bodies"} and ${junctionCount} multi-panel ribbon ${junctionCount === 1 ? "junction" : "junctions"}`;
-          setLogMessage(
-            `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${generatedShape}. ` +
+        setLogMessage(
+          `Generated and SHA-256 verified ${result.analysis.candidate.connectorCells} local panel-pair connectors as ${generatedShape}. ` +
             (result.analysis.printable.splitMembers > 0
               ? `PRINT SPLIT WARNING: ${result.analysis.printable.splitMembers} member(s) require numbered segments and splice sleeves. `
               : "") +
@@ -4023,14 +4531,14 @@ async function start(): Promise<void> {
               ? `Advisory truss analysis: ${result.analysis.optimization.status}; ${surfaceStyle === "led-surface-bridge" ? "surface-bridge" : "ribbon"} generation is unaffected. `
               : "") +
             `The package also contains 3MF, preview, analysis, and report. ${result.analysis.disclaimer}`,
-          );
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          setLogMessage(message, true);
-        } finally {
-          renderEditorFaces();
-          updatePipelineAvailability();
-        }
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setLogMessage(message, true);
+      } finally {
+        renderEditorFaces();
+        updatePipelineAvailability();
+      }
     };
 
     generateStructureButton.addEventListener("click", () => {
@@ -4041,56 +4549,73 @@ async function start(): Promise<void> {
     });
 
     const buildAssemblyPackage = async (): Promise<void> => {
-        assemblyPackageButton.disabled = true;
-        addPanelButton.disabled = true;
-        setLogMessage(editorDefinition.boundaryTopology
+      assemblyPackageButton.disabled = true;
+      addPanelButton.disabled = true;
+      setLogMessage(
+        editorDefinition.boundaryTopology
           ? "Deriving exact panel outlines and validating flat gap caps…"
           : editorDefinition.mechanicalShell && editorDefinition.closures
             ? "Regenerating mechanical topology, then generating Manifold STLs and printable previews…"
-            : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…");
+            : "Detecting unambiguous flat gap cycles from exact panel outlines, then validating and generating printable parts…",
+      );
+      try {
         try {
-          try {
-            const planarDefinition = structuredClone(editorDefinition);
-            delete planarDefinition.generatedStructure;
-            const planarProject = createPanelAssemblyProject(
-              planarDefinition,
-              editorProject.source,
-              editorProject.panelProfile,
+          const planarDefinition = structuredClone(editorDefinition);
+          delete planarDefinition.generatedStructure;
+          const planarProject = createPanelAssemblyProject(
+            planarDefinition,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          const generationRevision = generationProjectRevision;
+          const bundle = await generationClient.generatePlanar({
+            definition: planarProject.sculpture,
+            projectSource: planarProject.source,
+            panelProfile: planarProject.panelProfile,
+            panelProfileSource: planarDefinition.panelProfile.source,
+          });
+          if (generationRevision !== generationProjectRevision) {
+            throw new Error(
+              "Project changed during panel closure generation. Generate again for the current project.",
             );
-            const bundle = await compilePanelBoundaryBundle(
-              planarProject,
-              planarDefinition.panelProfile.source,
-            );
-            generatedMemoryUrls.forEach((url) => URL.revokeObjectURL(url));
-            generatedMemoryUrls = new Map();
-            for (const file of bundle.files) {
-              rememberProjectAsset(file.source, file.bytes);
-              generatedMemoryUrls.set(
-                file.source,
-                URL.createObjectURL(
+          }
+          generatedMemoryUrls.forEach((url) => URL.revokeObjectURL(url));
+          generatedMemoryUrls = new Map();
+          for (const file of bundle.files) {
+            rememberProjectAsset(file.source, file.bytes);
+            generatedMemoryUrls.set(
+              file.source,
+              URL.createObjectURL(
                 new Blob([Uint8Array.from(file.bytes)], { type: "model/stl" }),
               ),
-              );
-            }
-            const inProcessProject = createPanelAssemblyProject(
-              bundle.definition,
-              "local:in-process-manifold",
-              editorProject.panelProfile,
             );
-            await applyLoadedSculpture(
-              createLoadedSculpture(inProcessProject),
-            );
-            const partCount = bundle.files.filter((file) =>
-              file.source.startsWith("mechanics/parts/")
-            ).length;
-            setLogMessage(
-              `Built and SHA-256 verified ${partCount} printable parts. The assembly package is ready to download.`,
-            );
-          } catch (inProcessError) {
-            if (!shouldUseEditorPipelineFallback(inProcessError)) {
-              throw inProcessError;
-            }
-            const response = await fetch("./api/editor-pipeline", {
+          }
+          const inProcessProject = createPanelAssemblyProject(
+            bundle.definition,
+            "local:in-process-manifold",
+            editorProject.panelProfile,
+          );
+          await applyLoadedSculpture(createLoadedSculpture(inProcessProject));
+          const partCount = bundle.files.filter((file) =>
+            file.source.startsWith("mechanics/parts/"),
+          ).length;
+          setLogMessage(
+            `Built and SHA-256 verified ${partCount} printable parts. The assembly package is ready to download.`,
+          );
+        } catch (inProcessError) {
+          if (
+            !(inProcessError instanceof GenerationWorkerError) ||
+            !["manifold-runtime", "worker-runtime"].includes(
+              inProcessError.kind,
+            )
+          ) {
+            const message =
+              inProcessError instanceof Error
+                ? inProcessError.message
+                : String(inProcessError);
+            throw new Error(message, { cause: inProcessError });
+          }
+          const response = await fetch("./api/editor-pipeline", {
             method: "POST",
             body: createEditorPipelineFormData(
               editorDefinition,
@@ -4098,7 +4623,12 @@ async function start(): Promise<void> {
             ),
           });
           const result = await readEditorPipelineResult(response);
-          if (!response.ok || !result.ok || !result.assetSculptureId || !result.definition) {
+          if (
+            !response.ok ||
+            !result.ok ||
+            !result.assetSculptureId ||
+            !result.definition
+          ) {
             throw new Error(
               result.error ?? `Pipeline failed with HTTP ${response.status}.`,
             );
@@ -4115,7 +4645,9 @@ async function start(): Promise<void> {
             );
             editorDefinition = regeneratedProject.sculpture;
             editorProject = regeneratedProject;
-            const previewDefinition = structuredClone(regeneratedProject.sculpture);
+            const previewDefinition = structuredClone(
+              regeneratedProject.sculpture,
+            );
             previewDefinition.id = result.assetSculptureId;
             const previewProject = createPanelAssemblyProject(
               previewDefinition,
@@ -4129,16 +4661,17 @@ async function start(): Promise<void> {
           }
           const lastLogLine = result.log?.trim().split("\n").at(-1);
           setLogMessage(
-            lastLogLine ?? "Pipeline complete; exact STL meshes are now loaded.",
+            lastLogLine ??
+              "Pipeline complete; exact STL meshes are now loaded.",
           );
-          }
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          setLogMessage(message, true);
-        } finally {
-          renderEditorFaces();
-          updatePipelineAvailability();
         }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setLogMessage(message, true);
+      } finally {
+        renderEditorFaces();
+        updatePipelineAvailability();
+      }
     };
 
     assemblyPackageButton.addEventListener("click", () => {
@@ -4150,7 +4683,8 @@ async function start(): Promise<void> {
             await buildAssemblyPackage();
           }
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setLogMessage(message, true);
           updatePipelineAvailability();
         }
@@ -4217,7 +4751,8 @@ async function start(): Promise<void> {
         !artNetPreviewTimedOut
       ) {
         artNetPreviewTimedOut = true;
-        madMapperPreviewStatus.textContent = "Signal timeout · native simulation shown";
+        madMapperPreviewStatus.textContent =
+          "Signal timeout · native simulation shown";
       }
       if (
         ddpPreviewClient.active &&
@@ -4228,19 +4763,22 @@ async function start(): Promise<void> {
         ddpPreviewTimedOut = true;
         ddpPreviewStatus.textContent = "DDP timeout · native simulation shown";
       }
-      const externalPreviewPixels = ddpFrameIsCurrent && (
-        !artNetFrameIsCurrent || ddpPreviewLastFrameAt >= artNetPreviewLastFrameAt
-      )
-        ? ddpPreviewPixels
-        : artNetFrameIsCurrent
-        ? artNetPreviewPixels
-        : undefined;
-      const externalPreviewSource = externalPreviewPixels !== undefined &&
+      const externalPreviewPixels =
+        ddpFrameIsCurrent &&
+        (!artNetFrameIsCurrent ||
+          ddpPreviewLastFrameAt >= artNetPreviewLastFrameAt)
+          ? ddpPreviewPixels
+          : artNetFrameIsCurrent
+            ? artNetPreviewPixels
+            : undefined;
+      const externalPreviewSource =
+        externalPreviewPixels !== undefined &&
         externalPreviewPixels === ddpPreviewPixels
-        ? "ddp"
-        : externalPreviewPixels !== undefined && externalPreviewPixels === artNetPreviewPixels
-        ? "artnet"
-        : undefined;
+          ? "ddp"
+          : externalPreviewPixels !== undefined &&
+              externalPreviewPixels === artNetPreviewPixels
+            ? "artnet"
+            : undefined;
       if (externalPreviewSource) {
         viewerElement.dataset.externalFrameSource = externalPreviewSource;
       } else {
@@ -4250,8 +4788,7 @@ async function start(): Promise<void> {
         stopExternalFrameMirror();
       }
       renderer?.updateColors(
-        physicalRouteReviewDemoPixels ??
-          externalPreviewPixels ?? engine.pixels,
+        physicalRouteReviewDemoPixels ?? externalPreviewPixels ?? engine.pixels,
         physicalRouteReviewDemoPixels !== undefined || externalPreviewPixels
           ? "wled"
           : currentDisplayMode,
@@ -4269,24 +4806,24 @@ async function start(): Promise<void> {
       ) {
         nextSimulatorFrameAt = now + 100;
         const deviceUrl = simulatorDeviceUrl;
-        simulatorFrameRequest = Promise.resolve().then(() =>
-          sendSimulatorFramebuffer(
-            deviceUrl,
-            physicalSimulatorFramebuffer(),
+        simulatorFrameRequest = Promise.resolve()
+          .then(() =>
+            sendSimulatorFramebuffer(deviceUrl, physicalSimulatorFramebuffer()),
           )
-        ).catch((error) => {
-          if (simulatorDeviceUrl?.href === deviceUrl.href) {
-            simulatorDeviceUrl = undefined;
-            nextSimulatorFrameAt = 0;
-            updatePhysicalRouteReviewAvailability();
-          }
-          setLogMessage(
-            `Live simulator hardware link stopped: ${error instanceof Error ? error.message : String(error)} Run ESP32 setup to reconnect.`,
-            true,
-          );
-        }).finally(() => {
-          simulatorFrameRequest = undefined;
-        });
+          .catch((error) => {
+            if (simulatorDeviceUrl?.href === deviceUrl.href) {
+              simulatorDeviceUrl = undefined;
+              nextSimulatorFrameAt = 0;
+              updatePhysicalRouteReviewAvailability();
+            }
+            setLogMessage(
+              `Live simulator hardware link stopped: ${error instanceof Error ? error.message : String(error)} Run ESP32 setup to reconnect.`,
+              true,
+            );
+          })
+          .finally(() => {
+            simulatorFrameRequest = undefined;
+          });
       }
 
       if (engine.outOfBoundsWriteCount > 0) {

@@ -26,6 +26,38 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
     if (message.type() === "error") consoleErrors.push(message.text());
   });
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    let workerCount = 0;
+    let framesDuringGeneration = 0;
+    class TrackedWorker extends NativeWorker {
+      constructor(...args: ConstructorParameters<typeof Worker>) {
+        super(...args);
+        workerCount += 1;
+        let completed = false;
+        this.addEventListener(
+          "message",
+          () => {
+            completed = true;
+          },
+          { once: true },
+        );
+        const countFrame = (): void => {
+          if (completed) return;
+          framesDuringGeneration += 1;
+          requestAnimationFrame(countFrame);
+        };
+        requestAnimationFrame(countFrame);
+      }
+    }
+    window.Worker = TrackedWorker;
+    Object.defineProperty(window, "__generationWorkerCount", {
+      get: () => workerCount,
+    });
+    Object.defineProperty(window, "__framesDuringGeneration", {
+      get: () => framesDuringGeneration,
+    });
+  });
 
   const source = JSON.parse(
     await readFile("sculptures/panel-outline-prism/sculpture.json", "utf8"),
@@ -33,7 +65,9 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   delete source.boundaryTopology;
   delete source.generatedMechanics;
 
-  await page.goto("/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json");
+  await page.goto(
+    "/?sculptureJson=.%2Fsculptures%2Fpose-only-rhombicosidodecahedron%2Fsculpture.json",
+  );
   await expect(page.locator("#pipeline-status")).toContainText("watertight");
   await expect(page.locator("#automatically-place-panels")).toBeEnabled();
 
@@ -50,10 +84,29 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
     "Generate panel closures",
   );
   await expect(page.locator("#assembly-package")).toBeEnabled();
-  await expect(page.locator(".export-menu, #open-wiring-manual, #generate-mapping"))
-    .toHaveCount(0);
+  await expect(
+    page.locator(".export-menu, #open-wiring-manual, #generate-mapping"),
+  ).toHaveCount(0);
 
   await page.locator("#assembly-package").click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as Window & { __generationWorkerCount?: number })
+            .__generationWorkerCount,
+      ),
+    )
+    .toBe(1);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as Window & { __framesDuringGeneration?: number })
+            .__framesDuringGeneration,
+      ),
+    )
+    .toBeGreaterThan(0);
   await expect(page.locator("#assembly-package")).toHaveText(
     "Download panel closures package",
     { timeout: 120_000 },
@@ -64,8 +117,11 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   await page.locator("#download-panel-labels").click();
   const fabricationDownload = await fabricationPromise;
   const fabricationPath = await fabricationDownload.path();
-  if (!fabricationPath) throw new Error("The browser did not expose the fabrication ZIP.");
-  expect(Object.keys(unzipSync(await readFile(fabricationPath))).sort()).toEqual([
+  if (!fabricationPath)
+    throw new Error("The browser did not expose the fabrication ZIP.");
+  expect(
+    Object.keys(unzipSync(await readFile(fabricationPath))).sort(),
+  ).toEqual([
     "manufacturing-manual.pdf",
     "mechanics/boundary.stl",
     "mechanics/parts/part-001.stl",
@@ -80,7 +136,8 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
     "panel-outline-prism-boundary-fixture-assembly-package.zip",
   );
   const packagePath = await packageDownload.path();
-  if (!packagePath) throw new Error("The browser did not expose the assembly package.");
+  if (!packagePath)
+    throw new Error("The browser did not expose the assembly package.");
   const packageBytes = await readFile(packagePath);
   const packageFiles = unzipSync(packageBytes);
   const root = "panel-outline-prism-boundary-fixture/";
@@ -103,15 +160,23 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
   );
   expect(bundledManual).toContain("DRAFT SUGGESTION");
   expect(bundledManual).toContain("GPIO unassigned");
-  expect(JSON.parse(new TextDecoder().decode(
-    packageFiles[`${root}wled/diagnostic/ledmap.diagnostic.json`],
-  ))).toHaveProperty("map");
-  expect(JSON.parse(new TextDecoder().decode(
-    packageFiles[`${root}wled/diagnostic/wiring-review.diagnostic.json`],
-  ))).toMatchObject({ status: "draft", sculptureId: source.id });
-  const saved = JSON.parse(new TextDecoder().decode(
-    packageFiles[`${root}sculpture.json`],
-  )) as Record<string, unknown>;
+  expect(
+    JSON.parse(
+      new TextDecoder().decode(
+        packageFiles[`${root}wled/diagnostic/ledmap.diagnostic.json`],
+      ),
+    ),
+  ).toHaveProperty("map");
+  expect(
+    JSON.parse(
+      new TextDecoder().decode(
+        packageFiles[`${root}wled/diagnostic/wiring-review.diagnostic.json`],
+      ),
+    ),
+  ).toMatchObject({ status: "draft", sculptureId: source.id });
+  const saved = JSON.parse(
+    new TextDecoder().decode(packageFiles[`${root}sculpture.json`]),
+  ) as Record<string, unknown>;
   expect(saved.boundaryTopology).toMatchObject({
     kind: "panel-outline-gap-cycles",
   });
@@ -134,4 +199,45 @@ test("generates exact Manifold parts through the real UI and reopens a ZIP", asy
 
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
+});
+
+test("generates and displays a verified structural ribbon through the worker", async ({
+  page,
+}) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  const workerUrls: string[] = [];
+  page.on("worker", (worker) => workerUrls.push(worker.url()));
+  await page.goto(
+    "/?sculptureJson=./sculptures/pose-only-two-panel/sculpture.json",
+  );
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "No authoring surface",
+  );
+  await page.locator("#generate-structure").click();
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "Generated and SHA-256 verified 1 local panel-pair connectors",
+    { timeout: 30_000 },
+  );
+  expect(workerUrls.some((url) => url.includes("GenerationWorker"))).toBe(true);
+  await expect(page.locator("#printable-layer")).toBeEnabled();
+  await page.locator("#developer-utilities > summary").click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#download-panel-labels").click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  expect(path).not.toBeNull();
+  const files = unzipSync(await readFile(path!));
+  expect(
+    Object.keys(files).filter(
+      (name) => name.includes("/parts/") && name.endsWith(".stl"),
+    ),
+  ).toHaveLength(1);
+  expect(files["structure/assembly-preview.stl"]!.byteLength).toBeGreaterThan(
+    0,
+  );
+  expect(
+    Object.keys(files).filter((name) => name.endsWith(".3mf")),
+  ).toHaveLength(1);
+  expect(pageErrors).toEqual([]);
 });

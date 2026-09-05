@@ -20,8 +20,7 @@ export interface WledLedmap {
 export const LEDMAP_FINGERPRINT_VERSION = "fnv1a32-u32le-v2";
 export const LEGACY_LEDMAP_FINGERPRINT_VERSION = "fnv1a32-u16le-v1";
 export type LedmapFingerprintVersion =
-  | typeof LEDMAP_FINGERPRINT_VERSION
-  | typeof LEGACY_LEDMAP_FINGERPRINT_VERSION;
+  typeof LEDMAP_FINGERPRINT_VERSION | typeof LEGACY_LEDMAP_FINGERPRINT_VERSION;
 
 export interface OutputAddressRange {
   outputIndex: number;
@@ -75,7 +74,9 @@ export function physicalAddressContractKey(
         entry.panelPixelY,
         entry.physicalIndex,
       ])
-      .sort((first, second) => JSON.stringify(first).localeCompare(JSON.stringify(second))),
+      .sort((first, second) =>
+        JSON.stringify(first).localeCompare(JSON.stringify(second)),
+      ),
   });
 }
 
@@ -175,8 +176,7 @@ function panelWireIndex(
         ? rows - 1 - entry.panelPixelY
         : entry.panelPixelY;
   if (order.serpentine && line % 2 === 1) {
-    offset =
-      (order.traversalAxis === "rows" ? columns : rows) - 1 - offset;
+    offset = (order.traversalAxis === "rows" ? columns : rows) - 1 - offset;
   }
   return line * (order.traversalAxis === "rows" ? columns : rows) + offset;
 }
@@ -190,7 +190,9 @@ export function transformInstalledPanelCoordinate(
   rows: number,
 ): { x: number; y: number } {
   if (columns !== rows && transform.quarterTurnsClockwise % 2 === 1) {
-    throw new Error("Quarter-turn installed transforms require a square pixel grid.");
+    throw new Error(
+      "Quarter-turn installed transforms require a square pixel grid.",
+    );
   }
   // Pose-local LED coordinates are viewed from the outward/front face. The
   // profile and installed transform are defined in PCB back view, so reflect X
@@ -198,6 +200,8 @@ export function transformInstalledPanelCoordinate(
   x = columns - 1 - x;
   x = transform.mirrored ? columns - 1 - x : x;
   switch (transform.quarterTurnsClockwise) {
+    case 0:
+      break;
     case 1:
       [x, y] = [rows - 1 - y, x];
       break;
@@ -272,8 +276,7 @@ function assignPanel(
     pixelOrder: effectivePixelOrder(panel, panelProfile),
     wiring: {
       status:
-        wiringStatus === "measured" ||
-        wiringStatus === "hardware-verified"
+        wiringStatus === "measured" || wiringStatus === "hardware-verified"
           ? "assigned"
           : "provisional",
       output: output.outputIndex,
@@ -356,20 +359,16 @@ export function createHardwareMappingContract(
   const entries = geometryMapping.entries
     .map((entry) => {
       const physicalIndex = physicalByPixel.get(
-        panelPixelKey(
-          entry.panelId!,
-          entry.panelPixelX!,
-          entry.panelPixelY!,
-        ),
+        panelPixelKey(entry.panelId!, entry.panelPixelX!, entry.panelPixelY!),
       );
       if (physicalIndex === undefined) {
-        throw new Error("Missing physical assignment for " + entry.panelId + ".");
+        throw new Error(
+          "Missing physical assignment for " + entry.panelId + ".",
+        );
       }
       return { ...entry, physicalIndex };
     })
-    .sort(
-      (first, second) => first.physicalIndex - second.physicalIndex,
-    );
+    .sort((first, second) => first.physicalIndex - second.physicalIndex);
 
   const entriesByPanel = new Map<string, LedMappingEntry[]>();
   for (const entry of entries) {
@@ -450,8 +449,11 @@ interface GeneratedPanelMap {
   leds: LedMappingEntry[];
 }
 
-function normalizeGeneratedPanelTransform(panel: PanelDefinition): PanelDefinition {
-  const transform = (panel as Partial<PanelDefinition>).installedAddressTransform;
+function normalizeGeneratedPanelTransform(
+  panel: PanelDefinition,
+): PanelDefinition {
+  const transform = (panel as Partial<PanelDefinition>)
+    .installedAddressTransform;
   if (transform === undefined) {
     return {
       ...panel,
@@ -479,7 +481,9 @@ function normalizeGeneratedPanelTransform(panel: PanelDefinition): PanelDefiniti
     (transform.selectionMethod === "route-optimized") !==
       (transform.optimizationFingerprint !== undefined)
   ) {
-    throw new Error("Generated panel map has an invalid installed address transform.");
+    throw new Error(
+      "Generated panel map has an invalid installed address transform.",
+    );
   }
   return panel;
 }
@@ -511,13 +515,16 @@ export function loadGeneratedHardwareMappingContract(
     throw new Error("Generated mapping artifacts are incomplete.");
   }
   const legacyStatus = panelMap.wiring.status as string;
-  const normalizedStatus = legacyStatus === "generated-provisional"
-    ? "draft"
-    : legacyStatus === "authored-provisional"
-      ? "authored"
-      : legacyStatus;
+  const normalizedStatus =
+    legacyStatus === "generated-provisional"
+      ? "draft"
+      : legacyStatus === "authored-provisional"
+        ? "authored"
+        : legacyStatus;
   if (normalizedStatus === "hardware-verified") {
-    throw new Error("Hardware-verified mapping artifacts require accepted PROOF-010 validation.");
+    throw new Error(
+      "Hardware-verified mapping artifacts require accepted PROOF-010 validation.",
+    );
   }
   if (
     normalizedStatus !== "draft" &&
@@ -532,7 +539,9 @@ export function loadGeneratedHardwareMappingContract(
     panelMap.wiringLifecycle !== undefined &&
     panelMap.wiringLifecycle !== normalizedStatus
   ) {
-    throw new Error("Panel map wiring lifecycle disagrees with the wiring preview.");
+    throw new Error(
+      "Panel map wiring lifecycle disagrees with the wiring preview.",
+    );
   }
   const wiring = {
     ...panelMap.wiring,
@@ -551,7 +560,8 @@ export function loadGeneratedHardwareMappingContract(
     id: panelMap.id,
     status: panelMap.status,
     topology: panelMap.topology,
-    panelPixelGrid: panelMap.panelPixelGrid ??
+    panelPixelGrid:
+      panelMap.panelPixelGrid ??
       (panelMap.topology === "panelized-sculpture"
         ? { columns: 8, rows: 8 }
         : undefined),
@@ -570,8 +580,8 @@ export function loadGeneratedHardwareMappingContract(
   if (equivalenceErrors.length > 0) {
     throw new Error(equivalenceErrors[0]);
   }
-  const fingerprintVersion = panelMap.ledmapFingerprintVersion ??
-    LEGACY_LEDMAP_FINGERPRINT_VERSION;
+  const fingerprintVersion =
+    panelMap.ledmapFingerprintVersion ?? LEGACY_LEDMAP_FINGERPRINT_VERSION;
   if (
     fingerprintVersion !== LEDMAP_FINGERPRINT_VERSION &&
     fingerprintVersion !== LEGACY_LEDMAP_FINGERPRINT_VERSION
@@ -585,13 +595,17 @@ export function loadGeneratedHardwareMappingContract(
 
   const readiness = assessHardwareReadiness(mapping, wiring);
   if (panelMap.hardwareReady !== readiness.ready) {
-    throw new Error("Panel map hardware-ready status disagrees with the current mapping contract.");
+    throw new Error(
+      "Panel map hardware-ready status disagrees with the current mapping contract.",
+    );
   }
   if (
     panelMap.mappingReady !== undefined &&
     panelMap.mappingReady !== readiness.mappingReady
   ) {
-    throw new Error("Panel map mapping-ready status disagrees with the current mapping contract.");
+    throw new Error(
+      "Panel map mapping-ready status disagrees with the current mapping contract.",
+    );
   }
   return {
     mapping,
@@ -661,7 +675,9 @@ export function validateLedmapEquivalence(
       entry.physicalIndex < 0 ||
       entry.physicalIndex >= mapping.entries.length
     ) {
-      errors.push("Physical index " + entry.physicalIndex + " is out of range.");
+      errors.push(
+        "Physical index " + entry.physicalIndex + " is out of range.",
+      );
     }
     if (physical.has(entry.physicalIndex)) {
       errors.push("Physical index " + entry.physicalIndex + " is duplicated.");
@@ -676,15 +692,12 @@ export function assessHardwareReadiness(
   wiring: WiringPreview,
 ): HardwareReadiness {
   const currentCheckBlockers = new Set<string>();
-  if (
-    wiring.status !== "authored" &&
-    wiring.status !== "measured"
-  ) {
+  if (wiring.status !== "authored" && wiring.status !== "measured") {
     currentCheckBlockers.add(
       wiring.status === "requires-review"
         ? "The stored panel data chains require review."
         : wiring.status === "hardware-verified"
-            ? "Hardware-verified wiring cannot activate before accepted PROOF-010 validation exists."
+          ? "Hardware-verified wiring cannot activate before accepted PROOF-010 validation exists."
           : "The panel data chains are still a draft suggestion.",
     );
   }
@@ -701,23 +714,29 @@ export function assessHardwareReadiness(
         panel.pixelOrder.firstLineDirection === null,
     )
   ) {
-    currentCheckBlockers.add("Panel pixel-zero or within-panel order is incomplete.");
+    currentCheckBlockers.add(
+      "Panel pixel-zero or within-panel order is incomplete.",
+    );
   }
-  if (mapping.panels.some(
-    (panel) =>
-      panel.installedAddressTransform.selectionMethod !== "route-optimized" &&
-      !(
-        panel.installedAddressTransform.status === "measured" &&
-        panel.installedAddressTransform.selectionMethod === "manual"
-      ),
-  )) {
+  if (
+    mapping.panels.some(
+      (panel) =>
+        panel.installedAddressTransform.selectionMethod !== "route-optimized" &&
+        !(
+          panel.installedAddressTransform.status === "measured" &&
+          panel.installedAddressTransform.selectionMethod === "manual"
+        ),
+    )
+  ) {
     currentCheckBlockers.add(
       "Installed panel orientations are neither route-optimized nor manually measured.",
     );
   }
   const currentChecksPass = currentCheckBlockers.size === 0;
   const blockers = new Set(currentCheckBlockers);
-  blockers.add("Electrical protection approval is separate from mapping readiness.");
+  blockers.add(
+    "Electrical protection approval is separate from mapping readiness.",
+  );
   return {
     ready: false,
     mappingReady: currentChecksPass,

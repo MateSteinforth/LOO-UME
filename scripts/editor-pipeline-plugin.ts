@@ -26,17 +26,17 @@ export function editorPipelinePlugin(): Plugin {
       const applicationUpdateHandler = createApplicationUpdateHandler({
         rootDirectory: process.cwd(),
       });
-      server.middlewares.use(async (request, response, next) => {
-        try {
+      server.middlewares.use((request, response, next) => {
+        void (async () => {
           if (await projectLibraryHandler.handle(request, response)) return;
           if (await deviceHandler.handle(request, response)) return;
           if (await artNetPreviewHandler.handle(request, response)) return;
           if (await ddpPreviewHandler.handle(request, response)) return;
           if (await applicationUpdateHandler.handle(request, response)) return;
-          if (!await (await handler!).handle(request, response)) next();
-        } catch (error) {
+          if (!(await (await handler!).handle(request, response))) next();
+        })().catch((error: unknown) => {
           next(error instanceof Error ? error : new Error(String(error)));
-        }
+        });
       });
       server.httpServer?.once("close", () => {
         void handler?.then((activeHandler) => activeHandler.close());
