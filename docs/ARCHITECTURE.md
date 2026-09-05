@@ -53,6 +53,9 @@ edit marks derived mechanics stale but does not stop those functions.
    ledmap from the same current project.
 5. `createMadMapperFixtureBundle()` derives the supported SVG fixture atlas and
    patch manifest from a mapping-ready hardware contract.
+   Each rectangular fixture samples its LED UV center within the fixed 2:1 frame.
+   Samples span at most one image pixel. Empty areas remain unsampled.
+   Do not stretch fixtures to fill empty areas: this changes their sampling positions.
    `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
    final network values remain evidence-gated.
    `createTouchDesignerPackageFiles()` adds a reusable TOP component and bounded

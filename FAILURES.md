@@ -2648,7 +2648,7 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
   quad fixture, test rectangular bounds and interior overlap after SVG rounding.
 - **Evidence:** `web/src/MadMapperExport.ts`,
   `tests/madmapper-export.test.ts`, and the operator's MadMapper screenshot.
-- **Status:** Resolved by MAD-014; native MadMapper review passed.
+- **Status:** MAD-014 removed overlap. MAD-015 replaces its stretched rectangles because they displaced the sampling centers.
 
 ### F-137 — The managed sandbox blocked the tsx command pipe
 
@@ -2980,3 +2980,14 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Evidence:** Unit tests preserve routes and addresses. The browser test saves
   GPIOs 21, 22, 25, and 26 and rejects a duplicate.
 - **Status:** Resolved by LIVE-023; physical replacement-pin review remains.
+
+### F-162 — Complete fixture coverage displaced LED samples
+
+- **Date:** 2026-09-05
+- **Context:** The operator sent a diagonal pattern from MadMapper through LOO/UME to the manual 41-panel sculpture.
+- **Symptom:** Some lit pixels appeared away from the diagonal in the virtual sculpture.
+- **Cause:** The rectangular partition contained each LED coordinate but did not center each fixture on that coordinate.
+- **Correction:** Use small rectangular samples at the LED coordinates. Preserve the 2:1 frame and physical addresses.
+- **Prevention:** Check fixture centers and diagonal classifications after SVG serialization. Complete area coverage does not prove sampling accuracy.
+- **Evidence:** The new center tests fail against MAD-014. The corrected exporter passes the focused exporter, package, and preview tests.
+- **Status:** Corrected by MAD-015. Native MadMapper import and physical output still need review.

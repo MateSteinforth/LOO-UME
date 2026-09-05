@@ -413,6 +413,19 @@ No tasks.
 
 No tasks.
 
+## Ready to Merge
+
+### `P1 · MAD-015` Correct fixture sampling positions
+
+- Owner: GPT-6 Astra; branch `codex/madmapper-centered-fixtures`; worktree `/tmp/loo-ume-madmapper-centers`.
+- Scope: replace stretched fixture regions with small samples at the LED coordinates.
+- Acceptance: preserve the 2:1 frame and physical addresses. Verify sample centers and diagonal patterns for all 2,624 LEDs.
+- Checks: exporter, package, and preview tests; formatting, lint, and TypeScript.
+- Conflict areas: `MadMapperExport.ts`, exporter tests, setup instructions, and task records. Keep the Wi-Fi review branch separate.
+- Verification: all 14 focused tests passed. The center regression tests fail against the previous exporter. Formatting, lint, and TypeScript passed.
+- Remaining review: import a fresh ZIP into MadMapper and repeat the diagonal test. This host cannot verify native MadMapper sampling.
+- Delivery blocker: automatic approval review requires explicit permission to push this correction to `https://github.com/MateSteinforth/LOO-UME.git`.
+
 ## Human Review
 
 ### `P0 · LIVE-021` Confirm physical sculpture DDP output
