@@ -111,7 +111,7 @@ simulator and TouchDesigner DDP input.
 - Likely conflicts: Electron serial selection, ESP32 setup, firmware receipts,
   hardware profiles, release downloads, cache storage, and setup tests.
 
-## In Progress
+## Ready to Merge
 
 ### `P1 · DEV-024` Build Apple Silicon Mac packages
 
@@ -120,8 +120,10 @@ simulator and TouchDesigner DDP input.
 - Scope: build ARM64 packages and align package checks and download metadata.
 - Acceptance: the Mac workflow produces a verified Apple Silicon review DMG.
 - Conflicts: Mac release workflow, package command, update metadata, and download documentation.
-
-## Ready to Merge
+- Checks: 12 package and desktop tests, TypeScript, and YAML validation passed.
+- Delivery: Mac run `33952253932` built commit `c08bafd` and verified the packaged firmware.
+  [Download the review DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-25/LOO-UME-Electron-arm64.dmg).
+- The operator must check application behavior on a Mac. No merge into `main` occurred.
 
 ### `P1 · DEV-020` Reduce development checks and repeated builds
 
