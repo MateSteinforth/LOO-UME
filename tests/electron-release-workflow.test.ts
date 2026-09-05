@@ -25,7 +25,7 @@ describe("Electron Mac release routing", () => {
       "scripts/create-electron-unsigned-update.ts",
     );
     expect(electronWorkflow).toContain("release/unsigned-update.json");
-    expect(electronWorkflow).toContain("esp32-firmware-improv-v1");
+    expect(electronWorkflow).toContain("esp32-firmware-improv-rmt4-v1");
     expect(electronWorkflow).toContain("scripts/verify-packaged-firmware.mjs");
     expect(electronWorkflow).toContain(
       "Contents/Resources/app/build/firmware/wled-orbital-esp32dev-full-flash.bin",

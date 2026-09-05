@@ -10,7 +10,12 @@ the size and SHA-256 of the application and complete USB-installer images. The
 complete image contains the bootloader, partition table, boot application, and
 WLED application at their reviewed ESP32 offsets. Compiled images stay off
 `main`. The Electron release stages the receipt-bound complete image from the
-`esp32-firmware-improv-v1` release before packaging.
+`esp32-firmware-improv-rmt4-v1` release before packaging.
+
+Build `2609051` uses 128 RMT symbols per output. Four outputs use all 512
+symbols on the classic ESP32. The earlier 192-symbol allocation permitted only
+two outputs. The ESP32 target label remains unchanged for Wi-Fi update validation.
+See [RMT4_REBUILD.md](RMT4_REBUILD.md) for the exact patch and test procedure.
 
 ## Set up from the local editor
 

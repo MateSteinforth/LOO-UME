@@ -2980,3 +2980,25 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Evidence:** Unit tests preserve routes and addresses. The browser test saves
   GPIOs 21, 22, 25, and 26 and rejects a duplicate.
 - **Status:** Resolved by LIVE-023; physical replacement-pin review remains.
+
+### F-168 — RMT memory allowed only two configured LED outputs
+
+- **Date:** 2026-09-05
+- **Context:** FIRM-019, after the operator repeated the output failure on a fresh ESP32.
+- **Symptom:** GPIOs 16 and 17 produced LED data. Replacement GPIOs on outputs 3 and 4 did not.
+- **Cause:** The pinned Core-3 NeoPixelBus driver requested 192 RMT symbols per output. Classic ESP32 provides 512 symbols; four requests need 768.
+- **Correction:** Reduce the request to 128 symbols. Keep the pinned driver timing and GPIO configuration. Record exact source and binary hashes.
+- **Prevention:** Check the memory cost of each peripheral channel, not only the number of channels. Configuration read-back does not prove driver initialization.
+- **Evidence:** Pinned SDK capacity definitions, exact driver source, and rebuilt ELF instructions show four 128-symbol allocations fit.
+- **Status:** Build and Wi-Fi update passed. Four-chain physical observation and runtime stability remain under review.
+
+### F-169 — A changed target label blocked the firmware update
+
+- **Date:** 2026-09-05
+- **Context:** FIRM-019 Wi-Fi update of the rebuilt image.
+- **Symptom:** WLED rejected the image with a firmware release-name mismatch.
+- **Cause:** The first candidate used `ESP32-RMT4` as its target release label. The installed firmware expected `ESP32`.
+- **Correction:** Keep the original target label. Identify the correction with build number `2609051` and a new receipt.
+- **Prevention:** Use a build identifier for a same-target correction. Preserve the firmware target validation check.
+- **Evidence:** The first upload returned HTTP 500. The corrected upload succeeded; `/json/info` reported `release: ESP32` and `vid: 2609051`.
+- **Status:** Resolved without disabling firmware validation.

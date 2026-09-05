@@ -11,7 +11,7 @@ const firmwarePath = resolve(
 );
 const temporaryPath = `${firmwarePath}.${process.pid}.tmp`;
 const firmwareUrl =
-  "https://github.com/MateSteinforth/LOO-UME/releases/download/esp32-firmware-improv-v1/wled-orbital-esp32dev-full-flash.bin";
+  "https://github.com/MateSteinforth/LOO-UME/releases/download/esp32-firmware-improv-rmt4-v1/wled-orbital-esp32dev-full-flash.bin";
 
 try {
   await verifyPackagedFirmware(receiptPath, firmwarePath);

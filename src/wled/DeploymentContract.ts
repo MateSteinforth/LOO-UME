@@ -68,7 +68,7 @@ function assertFirmwareReceipt(): void {
     !/^[0-9a-f]{64}$/.test(firmwareReceipt.artifact.sha256) ||
     firmwareReceipt.fullFlashArtifact.name !==
       "wled-orbital-esp32dev-full-flash.bin" ||
-    firmwareReceipt.fullFlashArtifact.byteLength !== 1_177_456 ||
+    firmwareReceipt.fullFlashArtifact.byteLength !== 1_177_472 ||
     !/^[0-9a-f]{64}$/.test(firmwareReceipt.fullFlashArtifact.sha256) ||
     firmwareReceipt.fullFlashArtifact.flashAddress !== 0 ||
     firmwareReceipt.fullFlashArtifact.eraseAll !== true ||

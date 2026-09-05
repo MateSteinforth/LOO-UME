@@ -76,7 +76,7 @@ jobs:
         run: |
           mkdir -p build/firmware
           curl --fail --location --silent --show-error \
-            https://github.com/MateSteinforth/LOO-UME/releases/download/esp32-firmware-improv-v1/wled-orbital-esp32dev-full-flash.bin \
+            https://github.com/MateSteinforth/LOO-UME/releases/download/esp32-firmware-improv-rmt4-v1/wled-orbital-esp32dev-full-flash.bin \
             --output build/firmware/wled-orbital-esp32dev-full-flash.bin
           node scripts/verify-packaged-firmware.mjs \
             firmware/build-receipt.json \

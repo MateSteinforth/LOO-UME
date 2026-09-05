@@ -14,7 +14,9 @@
     "esptoolVersion": "5.1.2",
     "capabilities": {
       "serialProvisioning": "improv-v1"
-    }
+    },
+    "releaseName": "ESP32",
+    "buildId": 2609051
   },
   "inputs": {
     "pipZipapp": {
@@ -23,17 +25,35 @@
     },
     "uvVersion": "0.12.5",
     "platformioOverrideSha256": "5fa45dfd2c792fc569a6fdd910a44dd2b3442430ec302119f49237f771643f48",
-    "upstreamRequirementsSha256": "9226eadd19806ad6b644685e5182a47dfd8ff37f19f6d18429d2930270a37ce7"
+    "upstreamRequirementsSha256": "9226eadd19806ad6b644685e5182a47dfd8ff37f19f6d18429d2930270a37ce7",
+    "wledBuildNumber": {
+      "header": "wled00/wled.h",
+      "originalHeaderSha256": "e75b06ba221bade02978200bda453e45054b34e45300aa5a83eead35ae336ca9",
+      "patchedHeaderSha256": "aed45e3951d581f0b3ca9d6327881e6b3dfc7bb82fb24a36bea794fd0802ea20",
+      "patchScript": "firmware/patch-build-id.mjs",
+      "patchScriptSha256": "87195454047fbc46817696c20ba12a454a46472f3b0e7cd29459185aec5f4e4d"
+    },
+    "neopixelBus": {
+      "commit": "76afe832f74b0738a3fa1bba0caf389ade9e7693",
+      "header": "src/internal/methods/ESP/ESP32/NeoEsp32RmtXMethod.h",
+      "originalHeaderSha256": "873f04f31542043993106dddc483e42adbc7d30cb12198645354c46dbf097ee6",
+      "patchedHeaderSha256": "01189d3266629a6a72e2928faa56977b7536d7cf596f927c7355440036b658f7",
+      "patchScript": "firmware/patch-rmt.mjs",
+      "patchScriptSha256": "9923bf5723c4bf25104d9b4542cceb293226f170afa9bc4f18f86d370f4b7cb5",
+      "rmtSymbolsPerOutput": 128,
+      "classicEsp32SymbolCapacity": 512,
+      "maximumRmtOutputs": 4
+    }
   },
   "artifact": {
     "name": "wled-orbital-esp32dev.bin",
-    "byteLength": 1111920,
-    "sha256": "fdf7aa7361b3131071bee277b729e12f7a267dd6fc22b103141b8636d582396c"
+    "byteLength": 1111936,
+    "sha256": "f84dbc5015dab45ada68e53a5968732458f19ae2b993238cfc183d2ca87aae55"
   },
   "fullFlashArtifact": {
     "name": "wled-orbital-esp32dev-full-flash.bin",
-    "byteLength": 1177456,
-    "sha256": "98bee84b5dc0de4dd118677b2e3c340fe00c44249b7e2965b580b6ea90bf4b2b",
+    "byteLength": 1177472,
+    "sha256": "bb0409235fc12828bbe283809caea45d964d756c472e87c329c7344aef5dced1",
     "flashAddress": 0,
     "eraseAll": true,
     "flashMode": "dio",

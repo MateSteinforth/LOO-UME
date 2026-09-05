@@ -411,7 +411,20 @@ No tasks.
 
 ## In Progress
 
-No tasks.
+### `P0 · FIRM-019` Rebuild firmware for four RMT outputs
+
+- Owner: GPT-6 Astra; branch `codex/firmware-four-rmt-outputs`; worktree `/tmp/loo-ume-four-rmt-outputs`.
+- Scope: reduce the pinned LED driver's RMT memory request from 192 to 128 symbols per output. Preserve firmware features and project GPIO assignments.
+- Evidence: two fresh-board outputs work. The existing driver needs 768 symbols for four outputs; classic ESP32 hardware provides 512.
+- Plan: verify the allocation, build isolated pinned sources, synchronize the receipt, and prepare a four-chain physical test.
+- Acceptance: four allocations fit; the exact driver compiles; image and receipt checks pass; the operator observes all four chains.
+- Limits: the host has no attached USB serial device. Physical flashing and LED observation require the operator's computer.
+- Conflicts: firmware receipts, packaging downloads, and task records. Preserve the other agents' worktrees and changes.
+- Build: the application and complete USB image compiled with the pinned toolchain. Independent ELF review confirms the WS2812 initializer requests 128 symbols.
+- Checks: 43 focused firmware, deployment, setup, and release tests passed after the image-size guard was synchronized.
+- Device: authorized Wi-Fi update passed on MAC `24:62:AB:C9:F3:A8`; read-back confirms build `2609051` and unchanged four-output settings.
+- Physical review: a low-brightness red test was sent. Operator observation and the cause of an uptime reset remain pending.
+- Delivery: the operator requested an Apple Silicon review application with this image, LIVE-024 reconnect fixes, and the current setup dialog.
 
 ## Human Review
 
