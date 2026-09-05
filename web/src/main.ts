@@ -446,6 +446,10 @@ app.innerHTML = `
             <summary>Developer utilities</summary>
             <div class="compact-menu__content">
               <label class="field">
+                <span>Approved full-flash image (only if not staged locally)</span>
+                <input id="esp32-firmware-file" type="file" accept=".bin,application/octet-stream" />
+              </label>
+              <label class="field">
                 <span>Custom sculpture JSON URL</span>
                 <div class="input-action">
                   <input id="sculpture-json" type="text" />
@@ -545,6 +549,12 @@ app.innerHTML = `
       <form method="dialog" class="esp32-setup-form">
         <div class="section-heading"><span>Set up ESP32</span><small>USB + Wi-Fi</small></div>
         <label class="field">
+          <span>Available Wi-Fi networks</span>
+          <select id="esp32-wifi-networks"><option value="">Enter a network name below</option></select>
+        </label>
+        <button id="esp32-wifi-scan" class="editor-button" type="button">Scan Wi-Fi through ESP32</button>
+        <p class="mapping-note">Connect the ESP32 by USB. Release BOOT before scanning. Manual entry also works for hidden networks.</p>
+        <label class="field">
           <span>2.4 GHz Wi-Fi name</span>
           <input id="esp32-wifi-ssid" type="text" maxlength="32" autocomplete="off" />
         </label>
@@ -552,13 +562,11 @@ app.innerHTML = `
           <span>Wi-Fi password</span>
           <input id="esp32-wifi-password" type="password" maxlength="64" autocomplete="new-password" />
         </label>
-        <label class="field">
-          <span>Approved full-flash image (only if not staged locally)</span>
-          <input id="esp32-firmware-file" type="file" accept=".bin,application/octet-stream" />
-        </label>
+        <p id="esp32-wifi-storage-status" class="mapping-note" aria-live="polite">Wi-Fi details are remembered on this computer.</p>
+        <button id="esp32-wifi-forget" class="editor-button" type="button">Forget Wi-Fi</button>
         <div class="esp32-boot-instruction">
-          <output id="esp32-boot-instruction" data-state="hold">HOLD BOOT</output>
-          <small>Keep only this ESP32/CP2102 connected. Hold before selection; release when this instruction changes.</small>
+          <output id="esp32-boot-instruction" data-state="idle">BOOT RELEASED</output>
+          <small>Keep only this ESP32/CP2102 connected. Hold BOOT only when instructed during flashing.</small>
         </div>
         <div class="esp32-progress" aria-label="ESP32 flash progress">
           <div><span>Flash progress</span><output id="esp32-setup-progress-label">Ready</output></div>
@@ -1793,6 +1801,10 @@ async function start(): Promise<void> {
       closeButton: closeEsp32SetupButton,
       ssidInput: esp32WifiSsidInput,
       passwordInput: esp32WifiPasswordInput,
+      networkSelect: query<HTMLSelectElement>("#esp32-wifi-networks"),
+      scanButton: query<HTMLButtonElement>("#esp32-wifi-scan"),
+      forgetButton: query<HTMLButtonElement>("#esp32-wifi-forget"),
+      storageStatus: query<HTMLElement>("#esp32-wifi-storage-status"),
       firmwareInput: esp32FirmwareInput,
       progressElement: esp32SetupProgress,
       progressLabel: esp32SetupProgressLabel,

@@ -411,7 +411,17 @@ No tasks.
 
 ## In Progress
 
-No tasks.
+### `P1 · WIFI-028` Simplify repeated ESP32 setup
+
+- Owner: GPT-6 Astra; branch `codex/esp32-setup-wifi`; worktree `/tmp/loo-ume-esp32-wifi`.
+- Scope: move manual firmware selection to Developer utilities; scan nearby Wi-Fi networks through the connected ESP32; remember SSID and password.
+- Acceptance: retain manual network entry, prevent simultaneous scan and flash operations, restore saved credentials, and provide a forget action.
+- Storage: encrypt desktop credentials outside project files. Keep passwords out of logs and exports.
+- Checks: scan lifecycle, credential persistence and deletion, setup regressions, browser controls, and desktop restart persistence.
+- Ownership: the storage agent owns only the new credential handler and its tests. The primary agent owns all other files.
+- Local verification: 57 regression tests, two browser journeys, formatting, lint, type-aware lint, TypeScript, and web/Electron builds passed.
+- Pending verification: the Mac package must pass encrypted credential storage, restart restore, and deletion checks. Physical ESP32 scanning remains untested on this host.
+- Delivery blocker: automatic approval review rejected the GitHub branch push and Mac workflow trigger. It requires explicit approval for this source payload and destination.
 
 ## Human Review
 

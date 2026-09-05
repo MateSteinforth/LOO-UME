@@ -10,6 +10,7 @@ import {
 import type { AddressInfo, Socket } from "node:net";
 import { extname, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
+import type { WifiCredentialsHandler } from "./wifi-credentials-handler.ts";
 import {
   createEditorPipelineHandler,
   isLoopbackHost,
@@ -71,6 +72,7 @@ export interface LocalEditorServerOptions {
   artNetPreviewHandler?: ArtNetPreviewHandler;
   ddpPreviewHandler?: DdpPreviewHandler;
   esp32ReconnectAuthorizationHandler?: Esp32ReconnectAuthorizationHandler;
+  wifiCredentialsHandler?: WifiCredentialsHandler;
   applicationUpdateHandler?: ApplicationUpdateHandler;
   onApplicationUpdateApplied?: () => void;
 }
@@ -266,6 +268,8 @@ export async function startLocalEditorServer(
           response,
         )
       )
+        return;
+      if (await options.wifiCredentialsHandler?.handle(request, response))
         return;
       if (await applicationUpdateHandler.handle(request, response)) return;
       if (await pipelineHandler.handle(request, response)) return;

@@ -97,7 +97,13 @@ mapping.
 The setup uses the approved CP2102 serial device. It can flash the verified
 image, configure Wi-Fi, install the mapping, and check the saved WLED state.
 
-LOO/UME does not save or log the Wi-Fi password.
+Select **Scan Wi-Fi through ESP32** to list nearby networks. The ESP32 must
+already run WLED with Improv. You can also enter a network name manually.
+
+LOO/UME remembers the SSID and password on this computer. The desktop application
+encrypts saved credentials. Select **Forget Wi-Fi** to remove them. Passwords
+do not enter logs or project exports. Manual firmware selection is under
+**Developer utilities**.
 
 If an output pin is unavailable, open **Developer utilities**. Set one approved
 GPIO for each output. Use a different GPIO for each output. Run ESP32 setup once

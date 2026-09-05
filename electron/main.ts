@@ -1,6 +1,7 @@
 import { mkdirSync, appendFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
-import { app, BrowserWindow, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, safeStorage, shell } from "electron";
+import { createWifiCredentialsHandler } from "../scripts/wifi-credentials-handler.ts";
 import updaterPackage from "electron-updater";
 import {
   startLocalEditorServer,
@@ -242,6 +243,21 @@ async function startDesktop(): Promise<void> {
       createEsp32ReconnectAuthorizationHandler({
         authorizationPath: join(userData, "esp32-reconnect-authorization.json"),
       });
+    const wifiCredentialsHandler = createWifiCredentialsHandler({
+      credentialsPath: join(userData, "wifi-credentials.enc"),
+      async encrypt(value) {
+        if (!(await safeStorage.isAsyncEncryptionAvailable())) {
+          throw new Error("Local credential encryption is unavailable.");
+        }
+        return (await safeStorage.encryptStringAsync(value)).toString("base64");
+      },
+      async decrypt(value) {
+        const decrypted = await safeStorage.decryptStringAsync(
+          Buffer.from(value, "base64"),
+        );
+        return decrypted.result;
+      },
+    });
     autoUpdater.autoDownload = false;
     autoUpdater.allowPrerelease = false;
     const applicationUpdateHandler = createDesktopUpdateHandler({
@@ -275,6 +291,7 @@ async function startDesktop(): Promise<void> {
       projectLibraryHandler,
       applicationUpdateHandler,
       esp32ReconnectAuthorizationHandler,
+      wifiCredentialsHandler,
     });
     editorUrl = localServer.url;
     log(`Desktop service ready at ${localServer.url}`);

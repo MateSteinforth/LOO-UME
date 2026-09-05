@@ -1,4 +1,8 @@
 import SparkMD5 from "spark-md5";
+import {
+  createEsp32WifiControls,
+  type WifiNetwork,
+} from "./Esp32WifiControls.ts";
 import type { FlashOptions } from "esptool-js";
 import { WLED_FIRMWARE_BUILD_RECEIPT as firmwareReceipt } from "../../src/wled/DeploymentContract.ts";
 
@@ -384,6 +388,10 @@ export interface Esp32SetupControllerOptions {
   closeButton: HTMLButtonElement;
   ssidInput: HTMLInputElement;
   passwordInput: HTMLInputElement;
+  networkSelect: HTMLSelectElement;
+  scanButton: HTMLButtonElement;
+  forgetButton: HTMLButtonElement;
+  storageStatus: HTMLElement;
   firmwareInput: HTMLInputElement;
   progressElement: HTMLProgressElement;
   progressLabel: HTMLOutputElement;
@@ -406,6 +414,52 @@ interface FirmwareStatus {
 interface ImprovWifiProvisioner {
   scan(timeout?: number): Promise<Array<{ name: string; rssi: number }>>;
   provision(ssid: string, password: string, timeout?: number): Promise<void>;
+}
+
+interface WifiScanSession {
+  initialize(timeout: number): Promise<unknown>;
+  scan(timeout: number): Promise<WifiNetwork[]>;
+  close(): Promise<void>;
+}
+
+export async function scanEsp32WifiNetworks(
+  serial: Pick<Serial, "requestPort">,
+  createSession: (port: SerialPort) => Promise<WifiScanSession> = async (
+    port,
+  ) => {
+    const { ImprovSerial } =
+      await import("improv-wifi-serial-sdk/dist/serial.js");
+    return new ImprovSerial(port, { log() {}, error() {}, debug() {} });
+  },
+): Promise<WifiNetwork[]> {
+  const port = await serial.requestPort({ filters: [CP2102_FILTER] });
+  assertApprovedSerialDevice(port.getInfo());
+  let session: WifiScanSession | undefined;
+  let opened = false;
+  try {
+    await port.open({ baudRate: 115200 });
+    opened = true;
+    session = await createSession(port);
+    assertApprovedImprovIdentity(await session.initialize(15_000));
+    const found = new Map<string, WifiNetwork>();
+    for (const network of await session.scan(15_000)) {
+      if (
+        !network.name ||
+        new TextEncoder().encode(network.name).length > 32 ||
+        !Number.isFinite(network.rssi)
+      )
+        continue;
+      const previous = found.get(network.name);
+      if (!previous || network.rssi > previous.rssi)
+        found.set(network.name, network);
+    }
+    return [...found.values()].sort(
+      (a, b) => b.rssi - a.rssi || a.name.localeCompare(b.name),
+    );
+  } finally {
+    await session?.close().catch(() => undefined);
+    if (opened) await port.close().catch(() => undefined);
+  }
 }
 
 function errorMessage(error: unknown): string {
@@ -1682,12 +1736,12 @@ async function runSetup(
       "ESP32 setup is available only from the local desktop page in Chrome or Edge.",
     );
   }
-  const ssid = options.ssidInput.value.trim();
-  if (ssid.length === 0 || ssid.length > 32) {
-    throw new Error("Enter the 2.4 GHz Wi-Fi network name (1–32 characters).");
+  const ssid = options.ssidInput.value;
+  if (ssid.length === 0 || new TextEncoder().encode(ssid).length > 32) {
+    throw new Error("Enter the 2.4 GHz Wi-Fi network name (1–32 UTF-8 bytes).");
   }
-  if (options.passwordInput.value.length > 64) {
-    throw new Error("The Wi-Fi password must be at most 64 characters.");
+  if (new TextEncoder().encode(options.passwordInput.value).length > 64) {
+    throw new Error("The Wi-Fi password must be at most 64 UTF-8 bytes.");
   }
   options.setLogMessage("Verifying the approved complete ESP32 image.");
   options.progressLabel.value = "Verifying image";
@@ -1781,9 +1835,7 @@ async function runSetup(
     await loader.after("hard_reset");
     await transport.disconnect();
 
-    options.setLogMessage(
-      "Provisioning Wi-Fi over USB. Credentials stay only in this page.",
-    );
+    options.setLogMessage("Provisioning Wi-Fi over USB.");
     options.progressLabel.value = "Provisioning Wi-Fi";
     const improvConnection = await openImprov(
       port,
@@ -1824,7 +1876,6 @@ async function runSetup(
     options.bootInstruction.dataset.state = "complete";
     return { deviceUrl, payload };
   } finally {
-    options.passwordInput.value = "";
     if (improv) await improv.close().catch(() => undefined);
     await transport.disconnect().catch(() => undefined);
     if (activePort.readable || activePort.writable) {
@@ -1836,26 +1887,55 @@ async function runSetup(
 export function createEsp32SetupController(
   options: Esp32SetupControllerOptions,
 ): void {
-  options.openButton.addEventListener("click", () =>
-    options.dialog.showModal(),
-  );
-  const clearPassword = (): void => {
-    options.passwordInput.value = "";
+  let busy = false;
+  const setBusy = (active: boolean): void => {
+    busy = active;
+    for (const control of [
+      options.runButton,
+      options.scanButton,
+      options.closeButton,
+      options.forgetButton,
+      options.ssidInput,
+      options.passwordInput,
+      options.networkSelect,
+      options.firmwareInput,
+    ]) {
+      control.disabled = active;
+    }
   };
+  const wifi = createEsp32WifiControls({
+    ...options,
+    setBusy,
+    isBusy: () => busy,
+    scan: async () => {
+      if (!isLoopbackPage() || !("serial" in navigator))
+        throw new Error("Web Serial is unavailable.");
+      return scanEsp32WifiNetworks(navigator.serial);
+    },
+  });
+  options.openButton.addEventListener("click", () => {
+    options.dialog.showModal();
+    void wifi.restore();
+  });
   options.closeButton.addEventListener("click", () => {
-    clearPassword();
+    if (busy) return;
+    void wifi.save();
     options.dialog.close();
   });
-  options.dialog.addEventListener("close", clearPassword);
-  options.dialog.addEventListener("cancel", clearPassword);
+  options.dialog.addEventListener("cancel", (event) => {
+    if (busy) event.preventDefault();
+    else void wifi.save();
+  });
   options.runButton.addEventListener("click", () => {
+    if (busy) return;
     options.clearSetupLog();
-    options.runButton.disabled = true;
+    setBusy(true);
     options.progressElement.value = 0;
     options.progressLabel.value = "Preparing";
     options.bootInstruction.value = "HOLD BOOT";
     options.bootInstruction.dataset.state = "hold";
     void Promise.resolve(options.onSetupActiveChange?.(true))
+      .then(() => wifi.save())
       .then(() => runSetup(options))
       .then(async ({ deviceUrl, payload }) => {
         await options.onSetupComplete?.(deviceUrl, payload);
@@ -1866,9 +1946,11 @@ export function createEsp32SetupController(
         options.setLogMessage(errorMessage(error), true);
       })
       .finally(async () => {
-        await options.onSetupActiveChange?.(false);
-        clearPassword();
-        options.runButton.disabled = false;
+        try {
+          await options.onSetupActiveChange?.(false);
+        } finally {
+          setBusy(false);
+        }
       });
   });
 }
