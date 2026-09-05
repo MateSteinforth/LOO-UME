@@ -126,17 +126,33 @@ No tasks.
 
 ## Ready to Merge
 
-### `P0 · LIVE-024` Restore the ESP32 project before desktop reconnect
-
-- Owner: GPT-6 Astra; branch `codex/esp32-reconnect-readback`; worktree `/tmp/loo-ume-reconnect-readback`.
-- Result: save a project ZIP after a verified connection. Restore it before discovery and report exact configuration differences.
-- Checks: 44 focused unit and host tests, two browser tests, formatting, full lint, full typed lint, TypeScript, browser and Electron builds, and WASM integrity passed.
-- Review: save the project before new reconnect permission. Failed replacement preserves the last saved ZIP; exact device checks remain active.
-- Conflicts: the flash-dialog task also changes `web/src/Esp32Setup.ts`, `web/src/main.ts`, and documentation. Review those changes during integration.
-- Limit: installed-application restart review remains. FIRM-019 resolves the missing-output test.
-- Host contribution: `c05b250` on `codex/esp32-startup-snapshot-host`, worktree `/tmp/loo-ume-startup-snapshot-host`, integrated here as `8abed54`.
+No tasks.
 
 ## Done (latest integrations)
+
+### `P0 · FIRM-019` Enable four ESP32 LED outputs
+
+- Result: build `2609051` allocates 128 RMT symbols per output. The operator confirmed GPIOs 16, 17, 21, and 22.
+- Delivery: integrated into `main` at `8b27334` with operator approval. Mac version `0.1.34` includes the verified USB image.
+- Verification: 62 tests, four browser tests, full lint, full typed lint, TypeScript, firmware integrity, and Electron builds passed.
+- Mac verification: [build 34](https://github.com/MateSteinforth/LOO-UME/actions/runs/33981301983) passed package, signature, launch, GPIO, reconnect, and credential checks.
+- Download: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-macos-unsigned/LOO-UME-Electron-arm64.dmg).
+- Evidence: `firmware/build-receipt.json` records the exact sources and images. Local test records are under `build/firmware-rmt4-2609051`.
+- Limits: extended stability and complete sculpture address parity remain untested. The device became unreachable before the previous animation could be restored.
+
+### `P0 · LIVE-024` Restore the project before ESP32 reconnect
+
+- Result: save the verified project ZIP before new reconnect authorization. Restore the ZIP before discovery and report exact configuration differences.
+- Delivery: integrated into `main` at `8b27334` and included in Mac version `0.1.34`.
+- Verification: host persistence, failed snapshot replacement, replacement GPIO startup, and invalid snapshot recovery checks passed.
+- Limit: operator review of installed-application reconnect remains.
+
+### `P1 · WIFI-028` Simplify repeated ESP32 setup
+
+- Result: add Wi-Fi scan controls and encrypted desktop credential storage. Keep manual network entry and firmware selection available.
+- Delivery: integrated into `main` at `8b27334` and included in Mac version `0.1.34`.
+- Verification: browser controls and native Mac credential encryption, restart restoration, and deletion checks passed.
+- Limit: physical Wi-Fi scan review remains. FIRM-018 records the separate Improv timeout.
 
 ### `P1 · LIVE-029` Recover Art-Net input without restarting
 
@@ -446,36 +462,7 @@ No tasks.
 
 ## In Progress
 
-### `P0 · FIRM-019` Rebuild firmware for four RMT outputs
-
-- Owner: GPT-6 Astra; branch `codex/firmware-four-rmt-outputs`; worktree `/tmp/loo-ume-four-rmt-outputs`.
-- Scope: reduce the pinned LED driver's RMT memory request from 192 to 128 symbols per output. Preserve firmware features and project GPIO assignments.
-- Evidence: two fresh-board outputs work. The existing driver needs 768 symbols for four outputs; classic ESP32 hardware provides 512.
-- Plan: verify the allocation, build isolated pinned sources, synchronize the receipt, and prepare a four-chain physical test.
-- Acceptance: four allocations fit; the exact driver compiles; image and receipt checks pass; the operator observes all four chains.
-- Access: USB is attached to the operator's laptop. The host completed the authorized update through Wi-Fi.
-- Conflicts: firmware receipts, packaging downloads, and task records. Preserve the other agents' worktrees and changes.
-- Build: the application and complete USB image compiled with the pinned toolchain. Independent ELF review confirms the WS2812 initializer requests 128 symbols.
-- Checks: 62 combined tests, four browser tests, lint, typed lint, TypeScript, and the Electron build passed. Workflow YAML and image integrity checks passed.
-- Device: authorized Wi-Fi update passed on MAC `24:62:AB:C9:F3:A8`; read-back confirms build `2609051` and unchanged four-output settings.
-- Physical review: the operator confirmed that GPIOs 16, 17, 21, and 22 work on 2026-09-05. Extended stability remains untested.
-- Delivery: the operator authorized main integration and an Apple Silicon application with this image, LIVE-024 reconnect fixes, and the current setup dialog.
-
-## Ready to Merge
-
-### `P1 · WIFI-028` Simplify repeated ESP32 setup
-
-- Owner: GPT-6 Astra; branch `codex/esp32-setup-wifi`; worktree `/tmp/loo-ume-esp32-wifi`.
-- Scope: move manual firmware selection to Developer utilities; scan nearby Wi-Fi networks through the connected ESP32; remember SSID and password.
-- Acceptance: retain manual network entry, prevent simultaneous scan and flash operations, restore saved credentials, and provide a forget action.
-- Storage: encrypt desktop credentials outside project files. Keep passwords out of logs and exports.
-- Checks: scan lifecycle, credential persistence and deletion, setup regressions, browser controls, and desktop restart persistence.
-- Ownership: the storage agent owns only the new credential handler and its tests. The primary agent owns all other files.
-- Local verification: 57 regression tests, two browser journeys, formatting, lint, type-aware lint, TypeScript, and web/Electron builds passed.
-- Mac verification: [review build 30](https://github.com/MateSteinforth/LOO-UME/actions/runs/33977651280) passed launch, GPIO, reconnect, encrypted credential storage, restart restore, and deletion checks.
-- Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-30/LOO-UME-Electron-arm64.dmg), built from `00dfdfd1c215fdda6321f3ce02b902bd7973a29a`.
-- Pending review: test Wi-Fi scanning with a physical ESP32 that runs WLED with Improv support.
-- Delivery: the operator authorized the review build. Keep this branch and worktree separate from `main` until the operator requests integration.
+No tasks.
 
 ## Human Review
 
