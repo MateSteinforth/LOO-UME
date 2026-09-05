@@ -424,6 +424,8 @@ No tasks.
 - Dependency: includes the MAD-015 exporter correction. Keep the Wi-Fi branch separate.
 - Verification: 15 Art-Net tests, formatting, full lint, and TypeScript passed. The real UDP startup-order test fails with the previous client.
 - Remaining review: repeat both startup orders in native MadMapper on macOS.
+- Delivery blocker: automatic approval review rejected the push of `60426e8` to `codex/artnet-recovery` at `https://github.com/MateSteinforth/LOO-UME.git`.
+  The review requires explicit permission for this recovery branch and its source changes.
 
 ### `P1 · MAD-015` Correct fixture sampling positions
 
