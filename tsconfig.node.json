@@ -45,6 +45,8 @@
     "web/src/EditorCapabilities.ts",
     "web/src/EditorPipelineResponse.ts",
     "web/src/Esp32Setup.ts",
+    "web/src/WifiCredentialsClient.ts",
+    "web/src/Esp32WifiControls.ts",
     "web/src/AssemblyPackage.ts",
     "web/src/FabricationPackage.ts",
     "web/src/DesignSurfaceLoader.ts",

@@ -158,6 +158,13 @@ on a random loopback port. The Electron main process owns Project Library
 storage, generated files, logs, Art-Net and DDP receivers, private WLED access,
 and shutdown.
 After successful ESP32 setup, Electron stores reconnect authorization in its
+application data. Wi-Fi credentials use a separate encrypted file through Electron
+`safeStorage`. The local credential endpoint rejects external origins and never
+writes credentials into projects. Browser development uses local browser storage
+instead; clearing that storage removes its saved credentials. USB Wi-Fi scans use
+the existing Improv session protocol and release the port before flashing.
+
+Reconnect authorization remains in the Electron
 application-data directory. This authorization is independent of the random
 loopback port. A later Electron process can verify and reconnect the same WLED
 device without another flash. Browser and LAN modes continue to use

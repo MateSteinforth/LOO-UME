@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { _electron as electron } from "playwright";
@@ -54,12 +54,44 @@ try {
     return (await response.json()).enabled;
   });
   assert.equal(enabled, true);
+  await page.locator("#open-esp32-setup").click();
+  await expect(page.locator("#esp32-setup-dialog")).toBeVisible();
+  await page.locator("#esp32-wifi-ssid").fill("Package test network");
+  await page.locator("#esp32-wifi-password").fill("package-test-password");
+  await page.locator("#esp32-wifi-password").blur();
+  await expect(page.locator("#esp32-wifi-storage-status")).toHaveText(
+    "Wi-Fi details saved on this computer.",
+    { timeout: 30_000 },
+  );
+  const encryptedWifi = await readFile(
+    join(userData, "wifi-credentials.enc"),
+    "utf8",
+  );
+  assert.ok(encryptedWifi.length > 0);
+  assert.ok(!encryptedWifi.includes("Package test network"));
+  assert.ok(!encryptedWifi.includes("package-test-password"));
+  await page.locator("#close-esp32-setup").click();
   assert.deepEqual(errors, []);
   await application.close();
   application = undefined;
   application = await launch();
   const reopenedPage = await application.firstWindow();
   await reopenedPage.locator("#viewer canvas").waitFor({ state: "visible" });
+  await reopenedPage.locator("#open-esp32-setup").click();
+  await expect(reopenedPage.locator("#esp32-wifi-ssid")).toHaveValue(
+    "Package test network",
+    { timeout: 30_000 },
+  );
+  await expect(reopenedPage.locator("#esp32-wifi-password")).toHaveValue(
+    "package-test-password",
+  );
+  await reopenedPage.locator("#esp32-wifi-forget").click();
+  await expect(reopenedPage.locator("#esp32-wifi-storage-status")).toHaveText(
+    "Saved Wi-Fi details removed.",
+  );
+  await assert.rejects(readFile(join(userData, "wifi-credentials.enc")), {
+    code: "ENOENT",
+  });
   assert.equal(
     await reopenedPage.evaluate(async () => {
       const response = await fetch("/api/esp32-reconnect-authorization", {
@@ -71,7 +103,7 @@ try {
     true,
   );
   console.log(
-    "The packaged Apple Silicon editor passed launch, GPIO, and reconnect persistence checks.",
+    "The packaged Apple Silicon editor passed launch, GPIO, reconnect, and encrypted Wi-Fi persistence checks.",
   );
 } finally {
   await application?.close();
