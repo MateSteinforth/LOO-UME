@@ -84,26 +84,26 @@ function guideLines(
     `MadMapper: ${manifest.minimumMadMapperVersion} or later`,
     `Patch: ${manifest.pixelFixtureCount} individual RGB fixtures in ${manifest.panelFixtureCount} panel groups`,
     `Address range: universe ${manifest.startUniverse}, channel 1 through universe ${manifest.endUniverse}, channel ${manifest.panels.at(-1)?.endAddress.channel ?? "?"}`,
-    "",
     "IMPORT FIXTURES",
     "1. Extract this ZIP and open MadMapper 6.1 or later.",
     "2. Select File > Import Fixtures and choose fixtures.svg.",
     `3. Confirm ${manifest.panelFixtureCount} panel groups and ${manifest.pixelFixtureCount} individual RGB fixtures.`,
     "4. Confirm the fixture definition is Generic - Pixel RGB.",
     "5. In the fixture definition, enable Avoid Cross Universe Pixels.",
+    "Keep the full 4096 x 2048 input frame. Do not crop to fixture bounds.",
+    "Small fixtures sample LED positions. Gaps contain no LED samples.",
+    "Before importing a replacement SVG, remove the old fixtures.",
     boundaryPanel
       ? `6. Open the DMX Monitor. ${boundaryPanel.id} must start at universe ${boundaryPanel.startAddress.universe}, channel ${boundaryPanel.startAddress.channel},`
       : "6. Open the DMX Monitor and inspect the first and last fixture addresses.",
     boundaryPanel
       ? `   cross the boundary, and end at universe ${boundaryPanel.endAddress.universe}, channel ${boundaryPanel.endAddress.channel}.`
       : "",
-    "",
     "LOCAL LOO/UME PREVIEW",
     "1. In Preferences > Project > DMX, select Art-Net, lo0 / 127.0.0.1, and 30 FPS.",
     "2. Enable Use Unicast and disable Enable Universe Synchronization.",
     "3. Import artnet-unicast-loopback.csv in the ArtNet Interface table.",
     "4. Start the MadMapper preview in LOO/UME.",
-    "",
     "LIVE SCULPTURE OUTPUT",
     "1. Keep MadMapper Art-Net output on loopback at 127.0.0.1.",
     "2. In LOO/UME, start Receive and then start Sculpture output.",
@@ -163,7 +163,8 @@ export function createMadMapperSettingsPdf(
   const xrefOffset = textEncoder.encode(document).length;
   document += `xref\n0 ${objects.length + 1}\n`;
   document += "0000000000 65535 f \n";
-  document += offsets.slice(1)
+  document += offsets
+    .slice(1)
     .map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`)
     .join("");
   document += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n`;

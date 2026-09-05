@@ -53,6 +53,9 @@ edit marks derived mechanics stale but does not stop those functions.
    ledmap from the same current project.
 5. `createMadMapperFixtureBundle()` derives the supported SVG fixture atlas and
    patch manifest from a mapping-ready hardware contract.
+   Each rectangular fixture samples its LED UV center within the fixed 2:1 frame.
+   Samples span at most one image pixel. Empty areas remain unsampled.
+   Do not stretch fixtures to fill empty areas: this changes their sampling positions.
    `createMadMapperPackageZip()` adds the readable CSV and draft settings PDF;
    final network values remain evidence-gated.
    `createTouchDesignerPackageFiles()` adds a reusable TOP component and bounded
@@ -464,6 +467,10 @@ loopback, and assembles the exact consecutive physical universes exported in
 the MadMapper fixture atlas. The downloaded MadMapper package includes one
 importable unicast routing-table row for each of those universes. The service
 publishes only complete RGB frames through a same-origin binary HTTP stream.
+The Art-Net client reopens the stream after three seconds without a complete
+frame. Each retry waits 500 ms for the previous UDP listener to close.
+This restores reception when MadMapper binds the shared port after LOO/UME.
+An explicit stop cancels the active request and all retries.
 The browser maps those physical indices back to the current logical renderer
 indices and shows them on the pose-derived 3D LEDs. The DDP service listens on
 UDP port 4048 for local and LAN senders. It accepts only complete bounded RGB

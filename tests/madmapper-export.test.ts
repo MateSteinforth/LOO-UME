@@ -31,17 +31,10 @@ function flagshipContract() {
 
 function fixturePoints(svg: string): Array<Array<[number, number]>> {
   return [...svg.matchAll(/<polygon [^>]*points="([^"]+)"/g)].map((match) =>
-    match[1]!.split(" ").map((point) =>
-      point.split(",").map(Number) as [number, number]
-    )
+    match[1]!
+      .split(" ")
+      .map((point) => point.split(",").map(Number) as [number, number]),
   );
-}
-
-function polygonArea(points: Array<[number, number]>): number {
-  return Math.abs(points.reduce((area, point, index) => {
-    const next = points[(index + 1) % points.length]!;
-    return area + point[0] * next[1] - next[0] * point[1];
-  }, 0) / 2);
 }
 
 function rectangleBounds(points: Array<[number, number]>) {
@@ -51,29 +44,6 @@ function rectangleBounds(points: Array<[number, number]>) {
     minY: Math.min(...points.map(([, y]) => y)),
     maxY: Math.max(...points.map(([, y]) => y)),
   };
-}
-
-function boundaryIntervals(
-  fixtures: Array<Array<[number, number]>>,
-  boundaryY: number,
-): Array<[number, number]> {
-  return fixtures.flatMap((points) => points.flatMap((point, index) => {
-    const next = points[(index + 1) % points.length]!;
-    if (point[1] !== boundaryY || next[1] !== boundaryY) return [];
-    return [[Math.min(point[0], next[0]), Math.max(point[0], next[0])] as [number, number]];
-  })).sort((first, second) => first[0] - second[0]);
-}
-
-function expectDividedBoundary(intervals: Array<[number, number]>): void {
-  expect(intervals.length).toBeGreaterThan(2);
-  expect(intervals[0]![0]).toBe(0);
-  let coveredUntil = 0;
-  for (const [start, end] of intervals) {
-    expect(start - coveredUntil).toBeLessThanOrEqual(0.002);
-    coveredUntil = Math.max(coveredUntil, end);
-  }
-  expect(coveredUntil).toBe(4096);
-  expect(Math.max(...intervals.map(([start, end]) => end - start))).toBeLessThan(4096);
 }
 
 describe("MadMapper fixture export", () => {
@@ -117,7 +87,9 @@ describe("MadMapper fixture export", () => {
     });
     expect(bundle.svg.match(/<g id=/g)).toHaveLength(41);
     expect(bundle.svg.match(/<polygon /g)).toHaveLength(2_624);
-    expect(bundle.svg).toContain('width="4096" height="2048" viewBox="0 0 4096 2048"');
+    expect(bundle.svg).toContain(
+      'width="4096" height="2048" viewBox="0 0 4096 2048"',
+    );
     expect(bundle.svg).toContain('fixture_definition="Generic - Pixel RGB"');
     expect(bundle.svg).not.toContain("Generic – Pixel RGB");
     expect(bundle.svg).not.toContain("matrix_width=");
@@ -126,12 +98,13 @@ describe("MadMapper fixture export", () => {
     expect(bundle.patchCsv.trim().split("\n")).toHaveLength(42);
   });
 
-  it("covers the fixed 2:1 atlas with rectangular fixtures", async () => {
+  it("centers small fixtures on every LED in the fixed 2:1 atlas", async () => {
     const contract = await flagshipContract();
     const bundle = createMadMapperFixtureBundle(contract);
     const fixtures = fixturePoints(bundle.svg);
-    const physicalEntries = [...contract.mapping.entries]
-      .sort((first, second) => first.physicalIndex - second.physicalIndex);
+    const physicalEntries = [...contract.mapping.entries].sort(
+      (first, second) => first.physicalIndex - second.physicalIndex,
+    );
 
     expect(fixtures).toHaveLength(2_624);
     for (const [index, points] of fixtures.entries()) {
@@ -146,13 +119,23 @@ describe("MadMapper fixture export", () => {
       const entry = physicalEntries[index]!;
       const siteX = ((entry.u - 0.2 + 1) % 1) * 4096;
       const siteY = entry.v * 2048;
-      expect(siteX).toBeGreaterThanOrEqual(bounds.minX - 0.001);
-      expect(siteX).toBeLessThanOrEqual(bounds.maxX + 0.001);
-      expect(siteY).toBeGreaterThanOrEqual(bounds.minY - 0.001);
-      expect(siteY).toBeLessThanOrEqual(bounds.maxY + 0.001);
+      const centerX = (bounds.minX + bounds.maxX) / 2;
+      const centerY = (bounds.minY + bounds.maxY) / 2;
+      expect(Math.abs(centerX - siteX)).toBeLessThan(0.000002);
+      expect(Math.abs(centerY - siteY)).toBeLessThan(0.000002);
+      expect(bounds.maxX - bounds.minX).toBeGreaterThan(0);
+      expect(bounds.maxY - bounds.minY).toBeGreaterThan(0);
+      expect(bounds.maxX - bounds.minX).toBeLessThanOrEqual(1.000001);
+      expect(bounds.maxY - bounds.minY).toBeLessThanOrEqual(1.000001);
+      // Test several diagonal edges in both directions against the authored samples.
+      for (const slope of [-0.5, 0.5]) {
+        for (const offset of [256, 768, 1280, 1792]) {
+          expect(centerY > slope * centerX + offset).toBe(
+            siteY > slope * siteX + offset,
+          );
+        }
+      }
     }
-    const coveredArea = fixtures.reduce((area, points) => area + polygonArea(points), 0);
-    expect(Math.abs(coveredArea - 4096 * 2048)).toBeLessThan(20);
   });
 
   it("does not give two fixtures overlapping interiors", async () => {
@@ -161,9 +144,11 @@ describe("MadMapper fixture export", () => {
     let overlap: [number, number] | undefined;
     for (let first = 0; first < bounds.length; first += 1) {
       for (let second = first + 1; second < bounds.length; second += 1) {
-        const overlapWidth = Math.min(bounds[first]!.maxX, bounds[second]!.maxX) -
+        const overlapWidth =
+          Math.min(bounds[first]!.maxX, bounds[second]!.maxX) -
           Math.max(bounds[first]!.minX, bounds[second]!.minX);
-        const overlapHeight = Math.min(bounds[first]!.maxY, bounds[second]!.maxY) -
+        const overlapHeight =
+          Math.min(bounds[first]!.maxY, bounds[second]!.maxY) -
           Math.max(bounds[first]!.minY, bounds[second]!.minY);
         if (overlapWidth > 0.001 && overlapHeight > 0.001) {
           overlap = [first, second];
@@ -175,23 +160,50 @@ describe("MadMapper fixture export", () => {
     expect(overlap).toBeUndefined();
   });
 
-  it("divides the complete top and bottom atlas edges between several LEDs", async () => {
-    const bundle = createMadMapperFixtureBundle(await flagshipContract());
-    const fixtures = fixturePoints(bundle.svg);
-    expectDividedBoundary(boundaryIntervals(fixtures, 0));
-    expectDividedBoundary(boundaryIntervals(fixtures, 2048));
+  it("keeps seam and pole samples inside the frame without a material center shift", async () => {
+    const contract = structuredClone(await flagshipContract());
+    contract.mapping.entries[0]!.u = 0.2;
+    contract.mapping.entries[0]!.v = 0;
+    contract.mapping.entries[1]!.u = 0.7;
+    contract.mapping.entries[1]!.v = 1;
+    const bundle = createMadMapperFixtureBundle(contract);
+    const physicalEntries = [...contract.mapping.entries].sort(
+      (first, second) => first.physicalIndex - second.physicalIndex,
+    );
+    for (const [index, points] of fixturePoints(bundle.svg).entries()) {
+      const bounds = rectangleBounds(points);
+      const entry = physicalEntries[index]!;
+      expect(bounds.minX).toBeGreaterThanOrEqual(0);
+      expect(bounds.maxX).toBeLessThanOrEqual(4096);
+      expect(bounds.minY).toBeGreaterThanOrEqual(0);
+      expect(bounds.maxY).toBeLessThanOrEqual(2048);
+      expect(bounds.maxX).toBeGreaterThan(bounds.minX);
+      expect(bounds.maxY).toBeGreaterThan(bounds.minY);
+      expect(
+        Math.abs(
+          (bounds.minX + bounds.maxX) / 2 - ((entry.u - 0.2 + 1) % 1) * 4096,
+        ),
+      ).toBeLessThan(0.000002);
+      expect(
+        Math.abs((bounds.minY + bounds.maxY) / 2 - entry.v * 2048),
+      ).toBeLessThan(0.000002);
+    }
   });
 
   it("keeps every physical Art-Net assignment unchanged", async () => {
     const bundle = createMadMapperFixtureBundle(await flagshipContract());
-    const assignments = [...bundle.svg.matchAll(
-      /<polygon [^>]*universe="(\d+)" channel="(\d+)"/g,
-    )].map((match) => ({ universe: Number(match[1]), channel: Number(match[2]) }));
+    const assignments = [
+      ...bundle.svg.matchAll(/<polygon [^>]*universe="(\d+)" channel="(\d+)"/g),
+    ].map((match) => ({
+      universe: Number(match[1]),
+      channel: Number(match[2]),
+    }));
     expect(assignments).toHaveLength(2_624);
-    expect(assignments).toEqual(Array.from(
-      { length: 2_624 },
-      (_, physicalIndex) => madMapperAddressForPixel(physicalIndex),
-    ));
+    expect(assignments).toEqual(
+      Array.from({ length: 2_624 }, (_, physicalIndex) =>
+        madMapperAddressForPixel(physicalIndex),
+      ),
+    );
     expect(bundle.manifest.mappingFingerprint).toBe("524500f5");
   });
 
@@ -200,9 +212,11 @@ describe("MadMapper fixture export", () => {
       madMapperAddressForPixel(index),
     );
     expect(new Set(addresses.map((address) => address.universe)).size).toBe(16);
-    expect(new Set(addresses.map(
-      (address) => `${address.universe}:${address.channel}`,
-    )).size).toBe(2_624);
+    expect(
+      new Set(
+        addresses.map((address) => `${address.universe}:${address.channel}`),
+      ).size,
+    ).toBe(2_624);
     expect(addresses.every((address) => address.channel <= 510)).toBe(true);
     expect(addresses[169]).toEqual({ universe: 1, channel: 508 });
     expect(addresses[170]).toEqual({ universe: 2, channel: 1 });

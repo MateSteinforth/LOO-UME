@@ -44,6 +44,7 @@ export interface MadMapperPatchManifest {
   addressOrder: "physical-wire-order";
   fixtureDefinition: typeof FIXTURE_DEFINITION;
   fixtureLayout: "individual-physical-pixels";
+  fixtureSampling: "led-uv-centers";
   panelFixtureCount: number;
   pixelFixtureCount: number;
   pixelCount: number;
@@ -87,18 +88,28 @@ export function madMapperAddressForPixel(
   startUniverse = 1,
 ): MadMapperAddress {
   if (!Number.isInteger(physicalIndex) || physicalIndex < 0) {
-    throw new Error("MadMapper physical pixel index must be a non-negative integer.");
+    throw new Error(
+      "MadMapper physical pixel index must be a non-negative integer.",
+    );
   }
-  if (!Number.isInteger(startUniverse) || startUniverse < 0 || startUniverse > 32767) {
-    throw new Error("MadMapper start universe must be an integer from 0 to 32767.");
+  if (
+    !Number.isInteger(startUniverse) ||
+    startUniverse < 0 ||
+    startUniverse > 32767
+  ) {
+    throw new Error(
+      "MadMapper start universe must be an integer from 0 to 32767.",
+    );
   }
-  const universe = startUniverse + Math.floor(physicalIndex / RGB_PIXELS_PER_UNIVERSE);
+  const universe =
+    startUniverse + Math.floor(physicalIndex / RGB_PIXELS_PER_UNIVERSE);
   if (universe > 32767) {
     throw new Error("MadMapper patch exceeds universe 32767.");
   }
   return {
     universe,
-    channel: (physicalIndex % RGB_PIXELS_PER_UNIVERSE) * CHANNELS_PER_RGB_PIXEL + 1,
+    channel:
+      (physicalIndex % RGB_PIXELS_PER_UNIVERSE) * CHANNELS_PER_RGB_PIXEL + 1,
   };
 }
 
@@ -112,20 +123,34 @@ function assertExportable(contract: HardwareMappingContract): void {
     contract.mapping.topology !== "panelized-sculpture" ||
     !contract.mapping.panelPixelGrid
   ) {
-    throw new Error("MadMapper export requires a panelized pixel-grid mapping.");
+    throw new Error(
+      "MadMapper export requires a panelized pixel-grid mapping.",
+    );
   }
-  if (fingerprintLedmap(contract.ledmap, contract.fingerprintVersion) !== contract.fingerprint) {
-    throw new Error("MadMapper export mapping fingerprint is stale or inconsistent.");
+  if (
+    fingerprintLedmap(contract.ledmap, contract.fingerprintVersion) !==
+    contract.fingerprint
+  ) {
+    throw new Error(
+      "MadMapper export mapping fingerprint is stale or inconsistent.",
+    );
   }
-  const equivalenceErrors = validateLedmapEquivalence(contract.mapping, contract.ledmap);
+  const equivalenceErrors = validateLedmapEquivalence(
+    contract.mapping,
+    contract.ledmap,
+  );
   if (equivalenceErrors.length > 0) {
-    throw new Error("MadMapper export ledmap is inconsistent: " + equivalenceErrors.join(" "));
+    throw new Error(
+      "MadMapper export ledmap is inconsistent: " + equivalenceErrors.join(" "),
+    );
   }
   const physicalIndices = contract.mapping.entries
     .map((entry) => entry.physicalIndex)
     .sort((first, second) => first - second);
   if (physicalIndices.some((index, position) => index !== position)) {
-    throw new Error("MadMapper export requires complete physical pixel indices from zero.");
+    throw new Error(
+      "MadMapper export requires complete physical pixel indices from zero.",
+    );
   }
 }
 
@@ -144,97 +169,7 @@ interface AtlasSite extends AtlasPoint {
   physicalIndex: number;
 }
 
-interface AtlasBounds {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-}
-
-interface AtlasSplit {
-  axis: "x" | "y";
-  first: AtlasSite[];
-  second: AtlasSite[];
-  coordinate: number;
-  balance: number;
-  normalizedGap: number;
-}
-
-function splitCandidate(
-  sites: AtlasSite[],
-  axis: "x" | "y",
-  bounds: AtlasBounds,
-): AtlasSplit | undefined {
-  const sorted = [...sites].sort(
-    (first, second) => first[axis] - second[axis] ||
-      first.physicalIndex - second.physicalIndex,
-  );
-  const extent = axis === "x"
-    ? bounds.maxX - bounds.minX
-    : bounds.maxY - bounds.minY;
-  let result: AtlasSplit | undefined;
-  for (let index = 1; index < sorted.length; index += 1) {
-    const gap = sorted[index]![axis] - sorted[index - 1]![axis];
-    if (gap <= 1e-9) continue;
-    const candidate: AtlasSplit = {
-      axis,
-      first: sorted.slice(0, index),
-      second: sorted.slice(index),
-      coordinate: (sorted[index]![axis] + sorted[index - 1]![axis]) / 2,
-      balance: Math.abs(sorted.length - index * 2),
-      normalizedGap: gap / extent,
-    };
-    if (
-      !result ||
-      candidate.balance < result.balance ||
-      (
-        candidate.balance === result.balance &&
-        candidate.normalizedGap > result.normalizedGap
-      )
-    ) {
-      result = candidate;
-    }
-  }
-  return result;
-}
-
-function partitionAtlas(
-  sites: AtlasSite[],
-  bounds: AtlasBounds,
-  cells: Map<number, AtlasPoint[]>,
-): void {
-  if (sites.length === 1) {
-    cells.set(sites[0]!.physicalIndex, [
-      { x: bounds.minX, y: bounds.minY },
-      { x: bounds.maxX, y: bounds.minY },
-      { x: bounds.maxX, y: bounds.maxY },
-      { x: bounds.minX, y: bounds.maxY },
-    ]);
-    return;
-  }
-  const candidates = [
-    splitCandidate(sites, "x", bounds),
-    splitCandidate(sites, "y", bounds),
-  ].filter((candidate): candidate is AtlasSplit => candidate !== undefined);
-  candidates.sort(
-    (first, second) => first.balance - second.balance ||
-      second.normalizedGap - first.normalizedGap ||
-      (first.axis === second.axis ? 0 : first.axis === "x" ? -1 : 1),
-  );
-  const split = candidates[0];
-  if (!split) {
-    throw new Error("MadMapper export requires distinct LED UV centers.");
-  }
-  if (split.axis === "x") {
-    partitionAtlas(split.first, { ...bounds, maxX: split.coordinate }, cells);
-    partitionAtlas(split.second, { ...bounds, minX: split.coordinate }, cells);
-  } else {
-    partitionAtlas(split.first, { ...bounds, maxY: split.coordinate }, cells);
-    partitionAtlas(split.second, { ...bounds, minY: split.coordinate }, cells);
-  }
-}
-
-function createRectangularCells(
+function createSampleCells(
   contract: HardwareMappingContract,
 ): Map<number, AtlasPoint[]> {
   const sites: AtlasSite[] = contract.mapping.entries.map((entry) => ({
@@ -243,12 +178,41 @@ function createRectangularCells(
     y: entry.v * ATLAS_HEIGHT,
   }));
   const cells = new Map<number, AtlasPoint[]>();
-  partitionAtlas(sites, {
-    minX: 0,
-    minY: 0,
-    maxX: ATLAS_WIDTH,
-    maxY: ATLAS_HEIGHT,
-  }, cells);
+  for (const site of sites) {
+    if (
+      !Number.isFinite(site.x) ||
+      !Number.isFinite(site.y) ||
+      site.y < 0 ||
+      site.y > ATLAS_HEIGHT
+    ) {
+      throw new Error(
+        "MadMapper export requires finite LED UV coordinates within the atlas.",
+      );
+    }
+    // Limit each sample to one image pixel. Leave empty regions unsampled.
+    let radius = 0.5;
+    for (const other of sites) {
+      if (other === site) continue;
+      const distance = Math.max(
+        Math.abs(site.x - other.x),
+        Math.abs(site.y - other.y),
+      );
+      if (distance < 0.00001) {
+        throw new Error("MadMapper export requires distinct LED UV centers.");
+      }
+      radius = Math.min(radius, distance * 0.4);
+    }
+    // Shrink boundary samples symmetrically. At an exact edge, use a tiny inset.
+    const x = Math.max(0.000001, Math.min(ATLAS_WIDTH - 0.000001, site.x));
+    const y = Math.max(0.000001, Math.min(ATLAS_HEIGHT - 0.000001, site.y));
+    radius = Math.min(radius, x, ATLAS_WIDTH - x, y, ATLAS_HEIGHT - y);
+    cells.set(site.physicalIndex, [
+      { x: x - radius, y: y - radius },
+      { x: x + radius, y: y - radius },
+      { x: x + radius, y: y + radius },
+      { x: x - radius, y: y + radius },
+    ]);
+  }
   return cells;
 }
 
@@ -262,73 +226,90 @@ function panelFixtures(
   const columns = contract.mapping.panelPixelGrid!.columns;
   const rows = contract.mapping.panelPixelGrid!.rows;
   const pixelsPerPanel = columns * rows;
-  const outputByPanel = new Map<string, { outputIndex: number; chainPosition: number }>();
-  const rectangularCells = createRectangularCells(contract);
+  const outputByPanel = new Map<
+    string,
+    { outputIndex: number; chainPosition: number }
+  >();
+  const rectangularCells = createSampleCells(contract);
   for (const output of contract.outputs) {
     output.panelIds.forEach((panelId, chainPosition) => {
-      outputByPanel.set(panelId, { outputIndex: output.outputIndex, chainPosition });
+      outputByPanel.set(panelId, {
+        outputIndex: output.outputIndex,
+        chainPosition,
+      });
     });
   }
 
-  return contract.mapping.panels.map((panel) => {
-    const entries = contract.mapping.entries
-      .filter((entry) => entry.panelId === panel.id)
-      .sort((first, second) => first.physicalIndex - second.physicalIndex);
-    if (
-      entries.length !== pixelsPerPanel ||
-      entries.some((entry, offset) => entry.physicalIndex !== entries[0]!.physicalIndex + offset)
-    ) {
-      throw new Error(`MadMapper panel ${panel.id} is not one contiguous physical matrix.`);
-    }
-    const route = outputByPanel.get(panel.id);
-    if (!route) {
-      throw new Error(`MadMapper panel ${panel.id} has no output route.`);
-    }
-    const pixels = entries.map((entry) => {
+  return contract.mapping.panels
+    .map((panel) => {
+      const entries = contract.mapping.entries
+        .filter((entry) => entry.panelId === panel.id)
+        .sort((first, second) => first.physicalIndex - second.physicalIndex);
+      if (
+        entries.length !== pixelsPerPanel ||
+        entries.some(
+          (entry, offset) =>
+            entry.physicalIndex !== entries[0]!.physicalIndex + offset,
+        )
+      ) {
+        throw new Error(
+          `MadMapper panel ${panel.id} is not one contiguous physical matrix.`,
+        );
+      }
+      const route = outputByPanel.get(panel.id);
+      if (!route) {
+        throw new Error(`MadMapper panel ${panel.id} has no output route.`);
+      }
+      const pixels = entries.map((entry) => {
+        return {
+          id: `${panel.id}-pixel-${entry.panelPixelX}-${entry.panelPixelY}`,
+          address: madMapperAddressForPixel(entry.physicalIndex, startUniverse),
+          points: rectangularCells.get(entry.physicalIndex)!,
+        };
+      });
+      const physicalStart = entries[0]!.physicalIndex;
+      const physicalEnd = entries.at(-1)!.physicalIndex;
       return {
-        id: `${panel.id}-pixel-${entry.panelPixelX}-${entry.panelPixelY}`,
-        address: madMapperAddressForPixel(entry.physicalIndex, startUniverse),
-        points: rectangularCells.get(entry.physicalIndex)!,
+        patch: {
+          id: panel.id,
+          outputIndex: route.outputIndex,
+          chainPosition: route.chainPosition,
+          physicalStart,
+          physicalEnd,
+          pixelCount: pixelsPerPanel,
+          startAddress: madMapperAddressForPixel(physicalStart, startUniverse),
+          endAddress: madMapperAddressForPixel(physicalEnd, startUniverse),
+          installedAddressTransform: panel.installedAddressTransform,
+        },
+        pixels,
       };
-    });
-    const physicalStart = entries[0]!.physicalIndex;
-    const physicalEnd = entries.at(-1)!.physicalIndex;
-    return {
-      patch: {
-        id: panel.id,
-        outputIndex: route.outputIndex,
-        chainPosition: route.chainPosition,
-        physicalStart,
-        physicalEnd,
-        pixelCount: pixelsPerPanel,
-        startAddress: madMapperAddressForPixel(physicalStart, startUniverse),
-        endAddress: madMapperAddressForPixel(physicalEnd, startUniverse),
-        installedAddressTransform: panel.installedAddressTransform,
-      },
-      pixels,
-    };
-  }).sort(
-    (first, second) => first.patch.physicalStart - second.patch.physicalStart,
-  );
+    })
+    .sort(
+      (first, second) => first.patch.physicalStart - second.patch.physicalStart,
+    );
 }
 
 function renderSvg(
   fixtures: ReturnType<typeof panelFixtures>,
   fingerprint: string,
 ): string {
-  const groups = fixtures.map(({ patch, pixels }) => {
-    const pixelElements = pixels.map((pixel) => {
-      const pointText = pixel.points
-        .map((point) => `${point.x.toFixed(3)},${point.y.toFixed(3)}`)
-        .join(" ");
-      return `    <polygon id="${xmlEscape(pixel.id)}" points="${pointText}" universe="${pixel.address.universe}" channel="${pixel.address.channel}" fixture_type="fixture_quad" fixture_definition="${FIXTURE_DEFINITION}"/>`;
-    }).join("\n");
-    return [
-      `  <g id="${xmlEscape(patch.id)}">`,
-      pixelElements,
-      "  </g>",
-    ].join("\n");
-  }).join("\n");
+  const groups = fixtures
+    .map(({ patch, pixels }) => {
+      const pixelElements = pixels
+        .map((pixel) => {
+          const pointText = pixel.points
+            .map((point) => `${point.x.toFixed(6)},${point.y.toFixed(6)}`)
+            .join(" ");
+          return `    <polygon id="${xmlEscape(pixel.id)}" points="${pointText}" universe="${pixel.address.universe}" channel="${pixel.address.channel}" fixture_type="fixture_quad" fixture_definition="${FIXTURE_DEFINITION}"/>`;
+        })
+        .join("\n");
+      return [
+        `  <g id="${xmlEscape(patch.id)}">`,
+        pixelElements,
+        "  </g>",
+      ].join("\n");
+    })
+    .join("\n");
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<svg xmlns="http://www.w3.org/2000/svg" width="${ATLAS_WIDTH}" height="${ATLAS_HEIGHT}" viewBox="0 0 ${ATLAS_WIDTH} ${ATLAS_HEIGHT}">`,
@@ -343,9 +324,18 @@ function renderSvg(
 
 function renderCsv(panels: MadMapperPanelPatch[]): string {
   const header = [
-    "panel_id", "output", "chain_position", "physical_start", "physical_end",
-    "pixel_count", "start_universe", "start_channel", "end_universe", "end_channel",
-    "quarter_turns_clockwise_back_view", "mirrored",
+    "panel_id",
+    "output",
+    "chain_position",
+    "physical_start",
+    "physical_end",
+    "pixel_count",
+    "start_universe",
+    "start_channel",
+    "end_universe",
+    "end_channel",
+    "quarter_turns_clockwise_back_view",
+    "mirrored",
   ];
   const rows = panels.map((panel) => [
     panel.id,
@@ -361,7 +351,9 @@ function renderCsv(panels: MadMapperPanelPatch[]): string {
     panel.installedAddressTransform.quarterTurnsClockwise,
     panel.installedAddressTransform.mirrored,
   ]);
-  return [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n") + "\n";
+  return (
+    [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n") + "\n"
+  );
 }
 
 export function createMadMapperFixtureBundle(
@@ -373,7 +365,10 @@ export function createMadMapperFixtureBundle(
   madMapperAddressForPixel(0, startUniverse);
   const fixtures = panelFixtures(contract, startUniverse);
   const pixelCount = contract.mapping.entries.length;
-  const endUniverse = madMapperAddressForPixel(pixelCount - 1, startUniverse).universe;
+  const endUniverse = madMapperAddressForPixel(
+    pixelCount - 1,
+    startUniverse,
+  ).universe;
   const manifest: MadMapperPatchManifest = {
     schemaVersion: "1.2.0",
     generator: "loo-ume-madmapper-svg",
@@ -383,6 +378,7 @@ export function createMadMapperFixtureBundle(
     addressOrder: "physical-wire-order",
     fixtureDefinition: FIXTURE_DEFINITION,
     fixtureLayout: "individual-physical-pixels",
+    fixtureSampling: "led-uv-centers",
     panelFixtureCount: fixtures.length,
     pixelFixtureCount: pixelCount,
     pixelCount,

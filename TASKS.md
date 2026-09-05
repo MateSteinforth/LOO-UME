@@ -130,6 +130,21 @@ No tasks.
 
 ## Done (latest integrations)
 
+### `P1 · LIVE-029` Recover Art-Net input without restarting
+
+- Result: silent Art-Net input reopens automatically after three seconds. Explicit stop cancels pending retries.
+- Verification: 15 Art-Net tests, full lint, and TypeScript passed. The real UDP startup-order test fails with the previous client.
+- Delivery: the operator confirmed review DMG 32 works and authorized integration and task cleanup on 2026-09-05.
+- Mac verification: [build 32](https://github.com/MateSteinforth/LOO-UME/actions/runs/33980162768) passed packaging, signature, launch, GPIO, and reconnect checks.
+- Implementation: `60426e8`. Includes MAD-015. The Wi-Fi review work remains separate.
+
+### `P1 · MAD-015` Correct fixture sampling positions
+
+- Result: small fixtures sample the LED coordinates. The 2:1 frame and physical addresses remain unchanged.
+- Verification: 14 exporter, package, and preview tests passed. The center tests fail against the previous exporter.
+- Delivery: included in the accepted review DMG 32 and the LIVE-029 integration.
+- Implementation: `6a78c8c`. Existing MadMapper fixtures need replacement with a fresh export to use the correction.
+
 ### `P1 · CI-027` Correct repeated clean-checkout alerts
 
 - Owner: GPT-6 Astra; branch `codex/fix-clean-checkout`; worktree `/tmp/loo-ume-clean-checkout`.
@@ -430,13 +445,13 @@ No tasks.
 - Evidence: two fresh-board outputs work. The existing driver needs 768 symbols for four outputs; classic ESP32 hardware provides 512.
 - Plan: verify the allocation, build isolated pinned sources, synchronize the receipt, and prepare a four-chain physical test.
 - Acceptance: four allocations fit; the exact driver compiles; image and receipt checks pass; the operator observes all four chains.
-- Limits: the host has no attached USB serial device. Physical flashing and LED observation require the operator's computer.
+- Access: USB is attached to the operator's laptop. The host completed the authorized update through Wi-Fi.
 - Conflicts: firmware receipts, packaging downloads, and task records. Preserve the other agents' worktrees and changes.
 - Build: the application and complete USB image compiled with the pinned toolchain. Independent ELF review confirms the WS2812 initializer requests 128 symbols.
 - Checks: 43 focused firmware, deployment, setup, and release tests passed after the image-size guard was synchronized.
 - Device: authorized Wi-Fi update passed on MAC `24:62:AB:C9:F3:A8`; read-back confirms build `2609051` and unchanged four-output settings.
-- Physical review: a low-brightness red test was sent. Operator observation and the cause of an uptime reset remain pending.
-- Delivery: the operator requested an Apple Silicon review application with this image, LIVE-024 reconnect fixes, and the current setup dialog.
+- Physical review: the operator confirmed that GPIOs 16, 17, 21, and 22 work on 2026-09-05. Extended stability remains untested.
+- Delivery: the operator authorized main integration and an Apple Silicon application with this image, LIVE-024 reconnect fixes, and the current setup dialog.
 
 ## Ready to Merge
 
@@ -453,6 +468,10 @@ No tasks.
 - Review package: [Apple Silicon DMG](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-30/LOO-UME-Electron-arm64.dmg), built from `00dfdfd1c215fdda6321f3ce02b902bd7973a29a`.
 - Pending review: test Wi-Fi scanning with a physical ESP32 that runs WLED with Improv support.
 - Delivery: the operator authorized the review build. Keep this branch and worktree separate from `main` until the operator requests integration.
+
+## Ready to Merge
+
+No tasks.
 
 ## Human Review
 
