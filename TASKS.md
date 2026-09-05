@@ -118,6 +118,20 @@ No tasks.
 
 ## Done (latest integrations)
 
+### `P1 · CI-027` Correct repeated clean-checkout alerts
+
+- Owner: GPT-6 Astra; branch `codex/fix-clean-checkout`; worktree `/tmp/loo-ume-clean-checkout`.
+- Finding: scheduled run `33951147725` completed bootstrap setup but failed the full test suite. Broad browser regression also failed.
+- Scope: retain deferred P2 geometry work. Run focused daily checks and keep full regression available through a manual workflow input.
+- Acceptance: clean setup and managed-runtime fast and host tests pass. The default CI run uses the same checks as the schedule.
+- Browser scope: planar generation and ZIP reopen, structural worker generation, mechanics-free authoring, wiring rotation, and manual GPIO settings.
+- Mac scope: remove the Intel setup job to match the Apple Silicon-only rule.
+- Limit: this change does not repair deferred geometry or broad browser regression failures.
+- Corrections: use `origin/main` for manual source comparison; update the Apple Silicon bootstrap test; allow a newly spawned launcher child to reach exec.
+- Local checks: clean setup, 510 fast and host tests, source checks, and all 19 launcher tests passed. The new regression detects the original startup race.
+- Final verification: all eight jobs passed in [run 33954580828](https://github.com/MateSteinforth/LOO-UME/actions/runs/33954580828), including clean-checkout and browser smoke.
+- Integration: apply this correction to `main` under the operator's ongoing latest-main request. Remove only this task's clean merged worktree after the push.
+
 ### `P1 · INT-026` Integrate the latest completed application changes
 
 - Owner: GPT-6 Astra; branch `codex/integrate-latest`; worktree `/tmp/loo-ume-integrate-latest`.
@@ -397,17 +411,7 @@ No tasks.
 
 ## In Progress
 
-### `P1 · CI-027` Correct repeated clean-checkout alerts
-
-- Owner: GPT-6 Astra; branch `codex/fix-clean-checkout`; worktree `/tmp/loo-ume-clean-checkout`.
-- Finding: scheduled run `33951147725` completed bootstrap setup but failed the full test suite. Broad browser regression also failed.
-- Scope: retain deferred P2 geometry work. Run focused daily checks and keep full regression available through a manual workflow input.
-- Acceptance: clean setup and managed-runtime fast and host tests pass. The default CI run uses the same checks as the schedule.
-- Browser scope: planar generation and ZIP reopen, structural worker generation, mechanics-free authoring, wiring rotation, and manual GPIO settings.
-- Mac scope: remove the Intel setup job to match the Apple Silicon-only rule.
-- Limit: this change does not repair deferred geometry or broad browser regression failures.
-- Corrections: use `origin/main` for manual source comparison; update the Apple Silicon bootstrap test; allow a newly spawned launcher child to reach exec.
-- Local checks: clean setup, 510 fast and host tests, source checks, and all 19 launcher tests passed. The new regression detects the original startup race.
+No tasks.
 
 ## Human Review
 
