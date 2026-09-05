@@ -474,6 +474,8 @@ No tasks.
 - Checks: physical review browser test, formatting, lint, and TypeScript.
 - Verification: both browser journeys passed with custom GPIOs. Checks cover sustained frames, both simulator modes, cancellation, and the mapping-write boundary.
 - Validation: formatting, full lint, and TypeScript passed. Physical ESP32 review remains required.
+- Delivery blocker: automatic approval review rejected the push of `1e2bb43` to `codex/wiring-review-refresh` at `https://github.com/MateSteinforth/LOO-UME.git`.
+  Explicit approval is required for this branch upload.
 
 ## Human Review
 
