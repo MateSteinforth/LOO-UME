@@ -48,6 +48,15 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 
 ## Lessons
 
+### F-165 — A delegated edit used the integration checkout
+
+- **Date:** 2026-09-05
+- **Symptom:** The pre-merge check found an uncommitted launcher test edit on `main`.
+- **Cause:** The delegated investigator edited the default checkout instead of the assigned task worktree.
+- **Correction:** Confirm edit ownership. Save the exact patch and reverse only that patch. Integrate the separately verified task result.
+- **Prevention:** Use absolute task paths for edits. Check the working directory before every delegated write.
+- **Evidence:** CI-027 pre-merge status and the agent's ownership report. The rejected patch remains at `/tmp/ci027-unmerged-agent.patch`.
+
 ### F-163 — Scheduled regression did not match deferred work
 
 - **Date:** 2026-09-05
