@@ -1109,10 +1109,13 @@ async function start(): Promise<void> {
     let physicalRouteReviewDeviceUrl: URL | undefined;
     let physicalRouteReviewOriginalSelection: string | null = null;
     let physicalRouteReviewFrameRequest: Promise<void> | undefined;
+    let physicalRouteReviewFrameTimer:
+      ReturnType<typeof setTimeout> | undefined;
+    let physicalRouteReviewFrameRevision = 0;
     let physicalRouteReviewProgrammaticSelection = false;
     let physicalRouteReviewApplying = false;
     let physicalRouteReviewDemo = false;
-    let physicalRouteReviewDemoPixels: Uint32Array | undefined;
+    let physicalRouteReviewPixels: Uint32Array | undefined;
     let physicalRouteReviewPendingApply:
       | {
           session: PhysicalRouteReviewSession;
@@ -1511,24 +1514,30 @@ async function start(): Promise<void> {
       physicalRouteReviewProgrammaticSelection = false;
     };
 
+    const stopPhysicalRouteReviewRefresh = (): void => {
+      physicalRouteReviewFrameRevision += 1;
+      clearTimeout(physicalRouteReviewFrameTimer);
+      physicalRouteReviewFrameTimer = undefined;
+    };
+
     const sendPhysicalRouteReviewFrame = async (
       pixels: Array<[number, number, number]>,
     ): Promise<void> => {
-      if (physicalRouteReviewDemo) {
-        physicalRouteReviewDemoPixels = physicalRgbToLogicalPixels(
-          Uint8Array.from(pixels.flat()),
-          hardwareContract.mapping.entries,
-        );
-        viewerElement.dataset.physicalRouteReviewDemoPixels = String(
-          pixels.filter((pixel) => pixel.some((channel) => channel !== 0))
-            .length,
-        );
-        return;
-      }
+      stopPhysicalRouteReviewRefresh();
+      const revision = physicalRouteReviewFrameRevision;
+      physicalRouteReviewPixels = physicalRgbToLogicalPixels(
+        Uint8Array.from(pixels.flat()),
+        hardwareContract.mapping.entries,
+      );
+      viewerElement.dataset.physicalRouteReviewPixels = String(
+        pixels.filter((pixel) => pixel.some((channel) => channel !== 0)).length,
+      );
+      if (physicalRouteReviewDemo) return;
       const deviceUrl = physicalRouteReviewDeviceUrl;
       if (!deviceUrl)
         throw new Error("The reviewed ESP32 connection is unavailable.");
       await physicalRouteReviewFrameRequest?.catch(() => undefined);
+      if (revision !== physicalRouteReviewFrameRevision) return;
       const request = sendSimulatorFramebuffer(deviceUrl, pixels);
       physicalRouteReviewFrameRequest = request;
       try {
@@ -1538,6 +1547,18 @@ async function start(): Promise<void> {
           physicalRouteReviewFrameRequest = undefined;
         }
       }
+      if (revision !== physicalRouteReviewFrameRevision) return;
+      physicalRouteReviewFrameTimer = setTimeout(() => {
+        void sendPhysicalRouteReviewFrame(pixels).catch((error) => {
+          if (physicalRouteReviewFrameRevision !== revision + 1) return;
+          setLogMessage(
+            `Physical review output stopped: ${error instanceof Error ? error.message : String(error)}`,
+            true,
+          );
+          physicalRouteReviewCurrent.textContent =
+            "The diagnostic frame could not be sent. Close the review and check the ESP32 connection.";
+        });
+      }, 250);
     };
 
     const showPhysicalRouteReviewSummary = async (): Promise<void> => {
@@ -1635,6 +1656,7 @@ async function start(): Promise<void> {
     const closePhysicalRouteReview = async (
       resumeLivePreview: boolean,
     ): Promise<void> => {
+      stopPhysicalRouteReviewRefresh();
       const deviceUrl = physicalRouteReviewDeviceUrl;
       await physicalRouteReviewFrameRequest?.catch(() => undefined);
       physicalRouteReviewSession = undefined;
@@ -1642,8 +1664,8 @@ async function start(): Promise<void> {
       physicalRouteReviewApplying = false;
       physicalRouteReviewPendingApply = undefined;
       physicalRouteReviewDemo = false;
-      physicalRouteReviewDemoPixels = undefined;
-      delete viewerElement.dataset.physicalRouteReviewDemoPixels;
+      physicalRouteReviewPixels = undefined;
+      delete viewerElement.dataset.physicalRouteReviewPixels;
       appRoot.classList.remove("app--physical-route-review");
       controlPanel.inert = false;
       selectPhysicalRouteReviewPanel(null);
@@ -1705,7 +1727,7 @@ async function start(): Promise<void> {
         hardwareContract,
       );
       physicalRouteReviewDemo = demo;
-      physicalRouteReviewDemoPixels = undefined;
+      physicalRouteReviewPixels = undefined;
       physicalRouteReviewDeviceUrl = demo ? undefined : simulatorDeviceUrl;
       physicalRouteReviewPendingApply = undefined;
       physicalRouteReviewApplyButton.textContent =
@@ -3397,6 +3419,7 @@ async function start(): Promise<void> {
           throw new Error("The physical wiring review is no longer active.");
         }
         physicalRouteReviewApplying = true;
+        stopPhysicalRouteReviewRefresh();
         setPhysicalRouteReviewBusy(true);
         physicalRouteReviewApplyButton.disabled = true;
         physicalRouteReviewCancelButton.disabled = true;
@@ -3432,6 +3455,8 @@ async function start(): Promise<void> {
         await applyLoadedSculpture(pending.reviewedSculpture);
         physicalRouteReviewSession = undefined;
         physicalRouteReviewDeviceUrl = undefined;
+        physicalRouteReviewPixels = undefined;
+        delete viewerElement.dataset.physicalRouteReviewPixels;
         physicalRouteReviewApplying = false;
         physicalRouteReviewPendingApply = undefined;
         appRoot.classList.remove("app--physical-route-review");
@@ -4928,8 +4953,8 @@ async function start(): Promise<void> {
         stopExternalFrameMirror();
       }
       renderer?.updateColors(
-        physicalRouteReviewDemoPixels ?? externalPreviewPixels ?? engine.pixels,
-        physicalRouteReviewDemoPixels !== undefined || externalPreviewPixels
+        physicalRouteReviewPixels ?? externalPreviewPixels ?? engine.pixels,
+        physicalRouteReviewPixels !== undefined || externalPreviewPixels
           ? "wled"
           : currentDisplayMode,
       );

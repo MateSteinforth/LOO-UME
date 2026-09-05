@@ -3049,3 +3049,13 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
   SDK 2.8.1 uses an asynchronous Promise executor during initialization; inspect rejection handling without assuming that it caused the missing device response.
 - **Prevention:** Do not attribute this failure to a held BOOT button without evidence. Test repeated setup attempts and board changes within one application session.
 - **Status:** Open; FIRM-018 records the deferred correction. No software fix is confirmed.
+
+### F-170 — Device wiring review left the simulator effect active
+
+- **Date:** 2026-09-05
+- **Context:** The operator opened physical wiring review after configuring replacement GPIOs.
+- **Symptom:** The simulator kept playing its WLED effect instead of showing the diagnostic panel.
+- **Cause:** Only demo review supplied diagnostic pixels to the renderer. Device review also sent its physical diagnostic frame only once.
+- **Correction:** Display the diagnostic frame in both modes. Refresh device output every 250 ms after the previous send completes.
+- **Prevention:** Test device review with custom GPIOs. Verify sustained output, simulator review state, and cleanup before mapping writes or normal output resumes.
+- **Status:** Corrected by LIVE-030. Physical ESP32 confirmation remains required; no GPIO fault is established by this report.

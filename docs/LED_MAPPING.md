@@ -317,7 +317,11 @@ The Mapping toolbox can review an already assembled route through a current
 WLED link. The tool suspends normal DDP output and sends one complete physical
 panel block at a time. All other LEDs stay black. Pixel 0 is green at DIN, and
 the low-brightness gradient ends in purple at DOUT. The matching virtual panel
-shows the proposed DIN direction.
+shows the same diagnostic frame and the proposed DIN direction in both review modes.
+The tool refreshes the diagnostic frame every 250 ms after the previous send
+completes. This keeps WLED in realtime mode while the operator inspects a panel.
+The tool stops refreshes and waits for the pending send before applying mapping
+changes or resuming normal output. The diagnostic frame does not change GPIOs.
 
 When no controller is connected, the same **Review physical wiring** action
 automatically uses virtual-only mode. It shows the diagnostic pixels only on

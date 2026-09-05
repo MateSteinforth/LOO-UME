@@ -464,6 +464,17 @@ No tasks.
 
 No tasks.
 
+## Ready to Merge
+
+### `P1 · LIVE-030` Keep physical review patterns active
+
+- Owner: GPT-6 Astra; branch `codex/wiring-review-refresh`; worktree `/tmp/loo-ume-wiring-review-refresh`.
+- Scope: show the diagnostic frame in both review modes. Refresh physical output until the operator changes panels, applies the review, or closes it.
+- Acceptance: keep one diagnostic panel lit without changing GPIOs. Stop obsolete frames before device mapping writes or live output resumes.
+- Checks: physical review browser test, formatting, lint, and TypeScript.
+- Verification: both browser journeys passed with custom GPIOs. Checks cover sustained frames, both simulator modes, cancellation, and the mapping-write boundary.
+- Validation: formatting, full lint, and TypeScript passed. Physical ESP32 review remains required.
+
 ## Human Review
 
 ### `P0 · LIVE-021` Confirm physical sculpture DDP output

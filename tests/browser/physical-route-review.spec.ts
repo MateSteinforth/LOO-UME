@@ -12,17 +12,20 @@ import { createPhysicalRouteReviewSession } from "../../web/src/PhysicalRouteRev
 import { createProvisionalWiringPreview } from "../../web/src/WiringPreview.ts";
 
 const SOURCE = "./physical-route-review.json";
-const panelProfile = JSON.parse(readFileSync(
-  "catalog/panels/ws2812b-8x8-66x65.json",
-  "utf8",
-));
-const threePanelInput = JSON.parse(readFileSync(
-  "sculptures/structural-three-panel-trail/sculpture.json",
-  "utf8",
-));
-for (const [index, panel] of (threePanelInput.panels as Array<{
-  pose: { position: number[]; orientation: Record<string, number[]> };
-}>).entries()) {
+const panelProfile = JSON.parse(
+  readFileSync("catalog/panels/ws2812b-8x8-66x65.json", "utf8"),
+);
+const threePanelInput = JSON.parse(
+  readFileSync(
+    "sculptures/structural-three-panel-trail/sculpture.json",
+    "utf8",
+  ),
+);
+for (const [index, panel] of (
+  threePanelInput.panels as Array<{
+    pose: { position: number[]; orientation: Record<string, number[]> };
+  }>
+).entries()) {
   panel.pose.position = [index * 80, 0, 0];
   panel.pose.orientation = {
     xAxis: [1, 0, 0],
@@ -34,6 +37,9 @@ const sourceDefinition = optimizeAutomaticWiring(
   threePanelInput,
   panelProfile,
 ).definition;
+for (const [index, output] of sourceDefinition.wiring.outputs.entries()) {
+  output.gpio = [21, 22, 25, 26][index]!;
+}
 const project = createPanelAssemblyProject(
   sourceDefinition,
   SOURCE,
@@ -45,7 +51,11 @@ const wiring = createProvisionalWiringPreview(
   project.sculpture,
   project.panelProfile,
 );
-const contract = createHardwareMappingContract(mapping, wiring, project.panelProfile);
+const contract = createHardwareMappingContract(
+  mapping,
+  wiring,
+  project.panelProfile,
+);
 const session = createPhysicalRouteReviewSession(project.sculpture, contract);
 const config = createSimulatorSetupConfig(
   JSON.parse(readFileSync("firmware/one-panel-smoke-cfg.json", "utf8")),
@@ -59,7 +69,9 @@ const config = createSimulatorSetupConfig(
 ) as Record<string, unknown>;
 (config as { id?: unknown }).id = { mdns: "loo-ume", name: "LOO/UME" };
 
-async function routeThreePanelProject(page: import("@playwright/test").Page): Promise<void> {
+async function routeThreePanelProject(
+  page: import("@playwright/test").Page,
+): Promise<void> {
   await page.route("**/physical-route-review.json", async (route) => {
     await route.fulfill({
       status: 200,
@@ -69,7 +81,11 @@ async function routeThreePanelProject(page: import("@playwright/test").Page): Pr
   });
 }
 
-function artDmx(universe: number, data: Uint8Array, sequence: number): Uint8Array {
+function artDmx(
+  universe: number,
+  data: Uint8Array,
+  sequence: number,
+): Uint8Array {
   const packet = new Uint8Array(18 + data.byteLength);
   packet.set([0x41, 0x72, 0x74, 0x2d, 0x4e, 0x65, 0x74, 0x00]);
   packet.set([0x00, 0x50, 0x00, 0x0e, sequence, 0x00], 8);
@@ -119,12 +135,18 @@ async function sendDdpFrame(data: Uint8Array): Promise<void> {
   }
 }
 
-test("runs the physical review workflow without hardware in demo mode", async ({ page }) => {
+test("runs the physical review workflow without hardware in demo mode", async ({
+  page,
+}) => {
   let hardwareFrames = 0;
   await routeThreePanelProject(page);
   await page.route("**/api/esp32-frame?**", async (route) => {
     hardwareFrames += 1;
-    await route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: "{}",
+    });
   });
   await page.goto("/?sculptureJson=.%2Fphysical-route-review.json");
   await expect(page.locator("#pipeline-status")).toContainText(
@@ -138,28 +160,32 @@ test("runs the physical review workflow without hardware in demo mode", async ({
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute("data-mode", "demo");
   await expect(page.locator("#viewer")).toHaveAttribute(
-    "data-physical-route-review-demo-pixels",
+    "data-physical-route-review-pixels",
     "64",
   );
   await page.locator("#physical-route-review-confirm").click();
-  await expect(page.locator("#physical-route-review-step")).toContainText("2 / 3");
+  await expect(page.locator("#physical-route-review-step")).toContainText(
+    "2 / 3",
+  );
   await page.locator("#physical-route-review-confirm").click();
   await page.locator("#physical-route-review-confirm").click();
   await expect(page.locator("#physical-route-review-summary")).toBeVisible();
-  await expect(page.locator("#physical-route-review-summary-note")).toContainText(
-    "Demo complete",
-  );
+  await expect(
+    page.locator("#physical-route-review-summary-note"),
+  ).toContainText("Demo complete");
   await expect(page.locator("#physical-route-review-apply")).toBeHidden();
   expect(hardwareFrames).toBe(0);
   await page.locator("#physical-route-review-cancel").click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator("#viewer")).not.toHaveAttribute(
-    "data-physical-route-review-demo-pixels",
+    "data-physical-route-review-pixels",
     /.+/,
   );
 });
 
-test("mirrors external frames and reviews a physical panel", async ({ page }) => {
+test("mirrors external frames and reviews a physical panel", async ({
+  page,
+}) => {
   const frames: Buffer[] = [];
   const applyEvents: string[] = [];
   let savedPreset: Record<string, unknown> | undefined;
@@ -177,7 +203,11 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
   await page.route("**/api/esp32-frame?**", async (route) => {
     frames.push(route.request().postDataBuffer() ?? Buffer.alloc(0));
     if (recordApplyEvents) applyEvents.push("live-frame");
-    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "{}",
+    });
   });
   await page.route("**/api/esp32-device?**", async (route) => {
     const request = route.request();
@@ -199,7 +229,11 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
       return;
     }
     if (path === "/json/cfg") {
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(config) });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(config),
+      });
       return;
     }
     if (path === "/edit?func=edit&path=/ledmap.json") {
@@ -226,11 +260,19 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
       return;
     }
     if (path === "/json/eff") {
-      await route.fulfill({ status: 200, contentType: "application/json", body: '["Rainbow"]' });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: '["Rainbow"]',
+      });
       return;
     }
     if (path === "/json/pal") {
-      await route.fulfill({ status: 200, contentType: "application/json", body: '["Rainbow"]' });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: '["Rainbow"]',
+      });
       return;
     }
     if (path === "/presets.json") {
@@ -244,28 +286,52 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
     if (path === "/json/state" && request.method() === "POST") {
       const body = request.postDataJSON() as Record<string, unknown>;
       if (body.psave === 1) savedPreset = body;
-      if (recordApplyEvents && body.ledmap === 0) applyEvents.push("activate-map-0");
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+      if (recordApplyEvents && body.ledmap === 0)
+        applyEvents.push("activate-map-0");
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "{}",
+      });
       return;
     }
     if (path === "/json/state") {
       if (recordApplyEvents) applyEvents.push("active-map-read");
-      await route.fulfill({ status: 200, contentType: "application/json", body: '{"ledmap":0}' });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: '{"ledmap":0}',
+      });
       return;
     }
     if (path === "/upload" && request.method() === "POST") {
-      const match = request.postDataBuffer()?.toString("utf8").match(/\{"map":\[[0-9,]+\]\}/);
+      const match = request
+        .postDataBuffer()
+        ?.toString("utf8")
+        .match(/\{"map":\[[0-9,]+\]\}/);
       if (!match) {
-        await route.fulfill({ status: 400, contentType: "application/json", body: "{}" });
+        await route.fulfill({
+          status: 400,
+          contentType: "application/json",
+          body: "{}",
+        });
         return;
       }
       servedLedmap = JSON.parse(match[0]);
       reviewedLedmapUploaded = true;
       if (recordApplyEvents) applyEvents.push("ledmap-upload");
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "{}",
+      });
       return;
     }
-    await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: "{}",
+    });
   });
 
   await routeThreePanelProject(page);
@@ -276,7 +342,10 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
     const loaded = await module.loadSculptureContract(
       "./physical-route-review.json",
     );
-    return { fingerprint: loaded.contract.fingerprint, ledmap: loaded.contract.ledmap };
+    return {
+      fingerprint: loaded.contract.fingerprint,
+      ledmap: loaded.contract.ledmap,
+    };
   });
   servedLedmap = browserContract.ledmap;
   resolveLedmap();
@@ -286,11 +355,11 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
     { timeout: 20_000 },
   );
   await expect(page.locator("#madmapper-preview")).toHaveCount(0);
-  await expect(page.locator("#madmapper-preview-status")).toContainText("Waiting for Art-Net");
+  await expect(page.locator("#madmapper-preview-status")).toContainText(
+    "Waiting for Art-Net",
+  );
 
-  await sendArtNetPackets([
-    artDmx(1, new Uint8Array(510).fill(63), 21),
-  ]);
+  await sendArtNetPackets([artDmx(1, new Uint8Array(510).fill(63), 21)]);
   await page.waitForTimeout(250);
   await expect(page.locator("#sculpture-mirror-status")).toHaveText(
     "Sculpture mirror is ready",
@@ -308,22 +377,34 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
   for (const entry of contract.mapping.entries) {
     for (let channel = 0; channel < 3; channel += 1) {
       const value = physicalRgb[entry.physicalIndex * 3 + channel]!;
-      logicalRgb[entry.logicalIndex * 3 + channel] =
-        Math.floor((value / 255) ** 2.2 * 255 + 0.5);
+      logicalRgb[entry.logicalIndex * 3 + channel] = Math.floor(
+        (value / 255) ** 2.2 * 255 + 0.5,
+      );
     }
   }
-  await expect.poll(() => frames.some((frame) => frame.equals(logicalRgb))).toBe(true);
-  await expect(page.locator("#sculpture-mirror-status")).toContainText("1 visible frame mirrored");
+  await expect
+    .poll(() => frames.some((frame) => frame.equals(logicalRgb)))
+    .toBe(true);
+  await expect(page.locator("#sculpture-mirror-status")).toContainText(
+    "1 visible frame mirrored",
+  );
 
-  await expect(page.locator("#ddp-preview-status")).toContainText("Waiting for DDP");
+  await expect(page.locator("#ddp-preview-status")).toContainText(
+    "Waiting for DDP",
+  );
   const ddpRgb = new Uint8Array(contract.mapping.entries.length * 3).fill(96);
   await sendDdpFrame(ddpRgb);
-  const gammaDdpRgb = Buffer.from(ddpRgb.map((value) =>
-    Math.floor((value / 255) ** 2.2 * 255 + 0.5)
-  ));
+  const gammaDdpRgb = Buffer.from(
+    ddpRgb.map((value) => Math.floor((value / 255) ** 2.2 * 255 + 0.5)),
+  );
   await expect(page.locator("#ddp-preview-status")).toContainText("FPS DDP");
-  await expect(page.locator("#viewer")).toHaveAttribute("data-external-frame-source", "ddp");
-  await expect.poll(() => frames.some((frame) => frame.equals(gammaDdpRgb))).toBe(true);
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-external-frame-source",
+    "ddp",
+  );
+  await expect
+    .poll(() => frames.some((frame) => frame.equals(gammaDdpRgb)))
+    .toBe(true);
 
   const reviewButton = page.locator("#open-physical-route-review");
   await expect(reviewButton).toBeEnabled();
@@ -331,30 +412,59 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
 
   const dialog = page.locator("#physical-route-review-dialog");
   await expect(dialog).toBeVisible();
-  await expect(page.locator("#madmapper-preview-status"))
-    .toHaveText("Art-Net input paused for physical wiring review");
+  await expect(page.locator("#madmapper-preview-status")).toHaveText(
+    "Art-Net input paused for physical wiring review",
+  );
+  await expect(page.locator("#viewer")).toHaveAttribute(
+    "data-physical-route-review-pixels",
+    "64",
+  );
   await expect(page.locator("#app")).toHaveClass(/app--physical-route-review/);
-  await expect(page.locator(".control-panel")).toHaveCSS("pointer-events", "none");
-  expect(await page.locator(".control-panel").evaluate((element) =>
-    (element as HTMLElement).inert
-  )).toBe(true);
+  await expect(page.locator(".control-panel")).toHaveCSS(
+    "pointer-events",
+    "none",
+  );
+  expect(
+    await page
+      .locator(".control-panel")
+      .evaluate((element) => (element as HTMLElement).inert),
+  ).toBe(true);
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-physical-route-review-panel",
     session.slots[0]!.panelId,
   );
-  await expect.poll(() => frames.at(-1)?.byteLength).toBe(
-    contract.mapping.entries.length * 3,
-  );
+  await expect
+    .poll(() => frames.at(-1)?.byteLength)
+    .toBe(contract.mapping.entries.length * 3);
   const firstDiagnostic = frames.at(-1)!;
   expect([...firstDiagnostic.subarray(0, 3)]).toEqual([0, 255, 0]);
   expect([...firstDiagnostic.subarray(63 * 3, 64 * 3)]).toEqual([56, 0, 91]);
-  expect(Array.from({ length: contract.mapping.entries.length }, (_, index) =>
-    firstDiagnostic.subarray(index * 3, index * 3 + 3).some((channel) => channel !== 0)
-  ).filter(Boolean)).toHaveLength(64);
+  expect(
+    Array.from({ length: contract.mapping.entries.length }, (_, index) =>
+      firstDiagnostic
+        .subarray(index * 3, index * 3 + 3)
+        .some((channel) => channel !== 0),
+    ).filter(Boolean),
+  ).toHaveLength(64);
+
+  // Keep the same diagnostic frame active while the operator inspects the panel.
+  const heldFrameCount = frames.length;
+  await expect
+    .poll(() => frames.length)
+    .toBeGreaterThanOrEqual(heldFrameCount + 12);
+  expect(
+    frames
+      .slice(heldFrameCount)
+      .every((frame) => frame.equals(firstDiagnostic)),
+  ).toBe(true);
 
   const replacementPanelId = session.slots[1]!.panelId;
-  await page.locator(`.panel-label[data-panel-id="${replacementPanelId}"]`).click();
-  await expect(page.locator("#physical-route-review-step")).toContainText("1 / 3");
+  await page
+    .locator(`.panel-label[data-panel-id="${replacementPanelId}"]`)
+    .click();
+  await expect(page.locator("#physical-route-review-step")).toContainText(
+    "1 / 3",
+  );
   await expect(page.locator("#physical-route-review-current")).toContainText(
     `Assigned ${replacementPanelId}`,
   );
@@ -363,7 +473,9 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
     "Address orientation 90°",
   );
   await page.locator("#physical-route-review-confirm").click();
-  await expect(page.locator("#physical-route-review-step")).toContainText("2 / 3");
+  await expect(page.locator("#physical-route-review-step")).toContainText(
+    "2 / 3",
+  );
   await expect(page.locator("#viewer")).toHaveAttribute(
     "data-physical-route-review-panel",
     session.slots[0]!.panelId,
@@ -371,43 +483,73 @@ test("mirrors external frames and reviews a physical panel", async ({ page }) =>
 
   await page.locator("#physical-route-review-cancel").click();
   await expect(dialog).not.toBeVisible();
-  await expect(page.locator("#app")).not.toHaveClass(/app--physical-route-review/);
-  expect(await page.locator(".control-panel").evaluate((element) =>
-    (element as HTMLElement).inert
-  )).toBe(false);
+  await expect(page.locator("#app")).not.toHaveClass(
+    /app--physical-route-review/,
+  );
+  expect(
+    await page
+      .locator(".control-panel")
+      .evaluate((element) => (element as HTMLElement).inert),
+  ).toBe(false);
   await expect(page.locator("#pipeline-status")).toContainText(
     "Physical wiring review cancelled. No project data changed.",
   );
-  await expect(page.locator("#madmapper-preview-status")).toContainText("Waiting for Art-Net");
+  await expect(page.locator("#viewer")).not.toHaveAttribute(
+    "data-physical-route-review-pixels",
+    /.+/,
+  );
+  await expect(page.locator("#madmapper-preview-status")).toContainText(
+    "Waiting for Art-Net",
+  );
 
   await reviewButton.click();
   await expect(dialog).toBeVisible();
-  await page.locator(`.panel-label[data-panel-id="${replacementPanelId}"]`).click();
+  await page
+    .locator(`.panel-label[data-panel-id="${replacementPanelId}"]`)
+    .click();
   await page.locator("#physical-route-review-confirm").click();
   for (let index = 1; index < session.slots.length; index += 1) {
     await page.locator("#physical-route-review-confirm").click();
   }
   await expect(page.locator("#physical-route-review-summary")).toBeVisible();
-  await expect(page.locator("#physical-route-review-change-list")).toContainText(
-    replacementPanelId,
-  );
+  await expect(
+    page.locator("#physical-route-review-change-list"),
+  ).toContainText(replacementPanelId);
   recordApplyEvents = true;
   applyEvents.length = 0;
+  const framesBeforeApply = frames.length;
   await page.locator("#physical-route-review-apply").click();
   await expect(dialog).toBeVisible();
   await expect(page.locator("#physical-route-review-apply")).toHaveText(
     "Retry exact ESP32 verification",
   );
   await expect(page.locator("#physical-route-review-cancel")).toBeDisabled();
-  await expect(page.locator("#physical-route-review-summary-back")).toBeDisabled();
+  await expect(
+    page.locator("#physical-route-review-summary-back"),
+  ).toBeDisabled();
   await expect(page.locator("#physical-route-review-summary")).toBeVisible();
-  expect(applyEvents).not.toContain("live-frame");
+  const firstMapRead = applyEvents.indexOf("ledmap-read");
+  expect(firstMapRead).toBeGreaterThanOrEqual(0);
+  expect(applyEvents.slice(firstMapRead)).not.toContain("live-frame");
+  expect(
+    frames
+      .slice(framesBeforeApply)
+      .every((frame) => frame.every((value) => value === 0)),
+  ).toBe(true);
+  // A pending blackout may finish before mapping access starts.
+  applyEvents.splice(0, firstMapRead);
   await page.locator("#physical-route-review-apply").click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator("#pipeline-status")).toContainText(
     "Physical panel order and address orientation were saved",
   );
-  await expect(page.locator("#madmapper-preview-status")).toContainText("Waiting for Art-Net");
+  await expect(page.locator("#viewer")).not.toHaveAttribute(
+    "data-physical-route-review-pixels",
+    /.+/,
+  );
+  await expect(page.locator("#madmapper-preview-status")).toContainText(
+    "Waiting for Art-Net",
+  );
   expect(applyEvents.slice(0, 5)).toEqual([
     "ledmap-read",
     "ledmap-upload",
