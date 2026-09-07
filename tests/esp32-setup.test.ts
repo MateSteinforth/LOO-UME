@@ -1001,6 +1001,21 @@ describe("guarded ESP32 setup contracts", () => {
     expect(saveBody).not.toHaveProperty("bootps");
   });
 
+  it("does not write an audio preset to firmware without the microphone usermod", async () => {
+    const value = payload();
+    value.state.AudioReactive = { enabled: true };
+    value.expectedEffectName = "Pixels";
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ um: [] })));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      persistStandaloneAnimation(new URL("http://192.168.68.53/"), value),
+    ).rejects.toThrow(/does not support the selected microphone effect/);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBeUndefined();
+  });
+
   it("reconciles a lost state-write response without repeating the mutation", async () => {
     const value = payload();
     const presetSegment = { ...(value.state.seg as object), fx: 2, pal: 1 };

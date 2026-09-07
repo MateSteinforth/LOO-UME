@@ -31,6 +31,16 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-021` Try controller audio effects from the effect dropdown
+
+- Status: Ready to Merge. Owner: Codex; branch `codex/audio-effect-picker`; worktree `/tmp/loo-ume-audio-effect-picker`.
+- Scope: discover supported 1D audio effects from connected WLED, add a separate dropdown group, and pause simulator streaming while native microphone effects run.
+- Acceptance: audio selection and speed/palette/intensity controls reach WLED; ordinary effects restore the simulator path; offline and non-audio firmware do not offer unusable audio choices.
+- Verification: 50 focused device/catalog tests and two Chromium journeys passed, including external DDP isolation and normal-effect resume. Formatting, lint, TypeScript, WASM integrity and production build passed.
+- Delivery: prepare an Apple Silicon review build from this task branch; main integration remains separate.
+- Conflicts: `web/src/main.ts`, `web/src/Esp32Setup.ts`, fixed device broker, related tests and documentation. Firmware packaging and main integration are separate.
+- Hardware evidence: operator confirmed microphone response and continued operation after power cycle on build 2609061, with 2624 configured LEDs on GPIO 16, 17, 21, 22. This is not complete address-parity evidence.
+
 ### `P1 · FIRM-018` Recover USB Improv setup without an application restart
 
 - Scope: investigate Improv detection failure after changing ESP32 boards during one application session.

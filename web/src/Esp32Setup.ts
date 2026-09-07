@@ -1,4 +1,5 @@
 import SparkMD5 from "spark-md5";
+import { audioEffectsFromDevice, type AudioEffect } from "./AudioEffects.ts";
 import {
   createEsp32WifiControls,
   type WifiNetwork,
@@ -745,6 +746,32 @@ async function deviceFetch(
   });
 }
 
+export async function readDeviceAudioEffects(
+  baseUrl: URL,
+): Promise<AudioEffect[]> {
+  const info = await readJsonResponse(
+    await deviceFetch(baseUrl, "/json/info"),
+    "WLED audio capability",
+  );
+  if (
+    !Array.isArray((info as { um?: unknown })?.um) ||
+    !(info as { um: unknown[] }).um.includes(32)
+  )
+    return [];
+  const results = await Promise.allSettled([
+    deviceFetch(baseUrl, "/json/eff").then((response) =>
+      readJsonResponse(response, "WLED effects"),
+    ),
+    deviceFetch(baseUrl, "/json/fxdata").then((response) =>
+      readJsonResponse(response, "WLED effect metadata"),
+    ),
+  ]);
+  const [names, metadata] = results;
+  if (names.status === "rejected") throw names.reason;
+  if (metadata.status === "rejected") throw metadata.reason;
+  return audioEffectsFromDevice(info, names.value, metadata.value);
+}
+
 async function waitForWledInfo(
   baseUrl: URL,
   timeoutMs = 45_000,
@@ -1407,12 +1434,18 @@ export function assertStandalonePresetReadback(
     "frz",
     "col",
   ] as const;
+  const audioKeys = ["si", "m12"] as const;
   if (
     preset?.n !== "LOO/UME standalone" ||
     preset.on !== payload.state.on ||
     preset.bri !== payload.state.bri ||
     !actualSegment ||
     !inactiveTrailingSegments ||
+    audioKeys.some(
+      (key) =>
+        expectedSegment?.[key] !== undefined &&
+        actualSegment[key] !== expectedSegment[key],
+    ) ||
     keys.some(
       (key) =>
         JSON.stringify(actualSegment[key]) !==
@@ -1434,6 +1467,16 @@ export async function persistStandaloneAnimation(
   assertBoundedSimulatorPayload(payload);
   if (!shouldContinue())
     throw new Error("Standalone animation save was cancelled.");
+  if (payload.state.AudioReactive !== undefined) {
+    const effects = await readDeviceAudioEffects(baseUrl);
+    if (!effects.some((effect) => effect.name === payload.expectedEffectName)) {
+      throw new Error(
+        "The connected ESP32 does not support the selected microphone effect.",
+      );
+    }
+    if (!shouldContinue())
+      throw new Error("Standalone animation save was cancelled.");
+  }
   const [effects, palettes] = await Promise.all([
     readJsonResponse(
       await deviceFetch(baseUrl, "/json/eff"),

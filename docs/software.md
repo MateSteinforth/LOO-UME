@@ -5,8 +5,9 @@ This document records the selected prototype controller and software contract.
 flash/setup path, and one-panel smoke configuration. The firmware generation
 branch is no longer active. The binary is an ignored build artifact.
 The ESP32 flash, one-panel address/color test, and three-panel native/DDP
-playback path have physical evidence. Complete 41-panel parity, audio, and
-custom effects remain later or external work. Direct WLED Art-Net over Ethernet
+playback path have physical evidence. The separate AudioReactive build 2609061
+also has operator-confirmed microphone response and power-cycle evidence.
+Complete 41-panel parity and custom effects remain later or external work. Direct WLED Art-Net over Ethernet
 is not planned.
 
 ## Hardware baseline
@@ -16,8 +17,8 @@ is not planned.
 - The north-pole pentagonal opening is intentionally unpopulated.
 - The assumed prototype controller is an ESP32-DevKitC V4 with an
   ESP32-WROOM-32E-N4 module. It uses the pinned WLED `esp32dev` build and four
-  SN74AHCT125-shifted outputs on GPIOs 16, 17, 18, and 19. Ethernet, audio, and
-  custom effects remain deferred.
+  SN74AHCT125-shifted outputs on GPIOs 16, 17, 18, and 19. The tested replacement
+  controller uses GPIOs 16, 17, 21, and 22. Ethernet and custom effects remain deferred.
 - Four data outputs use the assumed 11/10/10/10 panel split. The route must be
   confirmed through **Regenerate mapping/wiring** before it becomes an authored
   assembly route. The obsolete 42-panel split must not be reused.
@@ -33,14 +34,30 @@ electrical plan or software gate.
 The WLED path uses native effects for autonomous playback. FIRM-014 adds a
 segmented 1-to-2,624-pixel DDP preview with a finite fallback to the saved boot
 preset. The operator physically confirmed fallback and power-cycle playback on
-the 192-LED three-panel project. Microphones, audio-reactive presets, and custom
-effects remain deferred. LOO/UME receives complete Art-Net frames on loopback.
+the 192-LED three-panel project. LOO/UME receives complete Art-Net frames on loopback.
 It also receives complete logical DDP frames from local or LAN senders. The
 newest external frame controls the simulator and a connected WLED sculpture.
 The operator accepts this path without more software work. The complete project
 ZIP includes a TouchDesigner `.tox` component. The component accepts one TOP.
 It makes a centered 2:1 image for the DDP simulator input. A future custom
 effect belongs in a WLED usermod, not in patched WLED core files.
+
+When a connected controller has the AudioReactive usermod, the Effect dropdown
+adds **Audio reactive · ESP32 microphone**. Choices come from that controller's
+effect names and metadata; only available 1D volume/frequency effects appear.
+Selecting one uses its default speed/intensity, enables microphone processing,
+and saves the native effect through the existing standalone-preset path.
+Palette, Speed, Intensity, and the previous/next buttons continue to work.
+LOO/UME pauses both its normal DDP output and external-frame forwarding while
+an audio effect is selected. The 3D view does not simulate the physical microphone;
+its LEDs stay dark unless an external preview is present. Selecting an ordinary
+effect restores simulator output. Firmware without AudioReactive keeps the
+existing simulator-only choices. This change does not replace the bundled firmware.
+
+The operator tested build 2609061 with an INMP441 on SD 32, WS 26, SCK 27,
+3.3 V power, and L/R grounded. Sound response survived a power cycle with no
+reported output issues on the four configured chains (2624 LEDs). These observations
+do not establish every physical LED address or extended-duration stability.
 
 ## Mapping
 

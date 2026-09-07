@@ -45,6 +45,7 @@
     "web/src/EditorCapabilities.ts",
     "web/src/EditorPipelineResponse.ts",
     "web/src/Esp32Setup.ts",
+    "web/src/AudioEffects.ts",
     "web/src/WifiCredentialsClient.ts",
     "web/src/Esp32WifiControls.ts",
     "web/src/Esp32ReconnectProject.ts",
