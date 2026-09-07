@@ -37,7 +37,8 @@ simulator and TouchDesigner DDP input.
 - Scope: discover supported 1D audio effects from connected WLED, add a separate dropdown group, and pause simulator streaming while native microphone effects run.
 - Acceptance: audio selection and speed/palette/intensity controls reach WLED; ordinary effects restore the simulator path; offline and non-audio firmware do not offer unusable audio choices.
 - Verification: 50 focused device/catalog tests and two Chromium journeys passed, including external DDP isolation and normal-effect resume. Formatting, lint, TypeScript, WASM integrity and production build passed.
-- Delivery: prepare an Apple Silicon review build from this task branch; main integration remains separate.
+- Delivery: code commit `0a87dc8` is published on the task branch. [Apple Silicon review 41](https://github.com/MateSteinforth/LOO-UME/releases/tag/electron-review-41) passed package checks in workflow `34138075039`. Main integration remains separate.
+- Live catalog read-back: the final parser found 24 supported microphone effects on the operator's controller at build 2609061. The new picker still needs operator review in the installed Mac app.
 - Conflicts: `web/src/main.ts`, `web/src/Esp32Setup.ts`, fixed device broker, related tests and documentation. Firmware packaging and main integration are separate.
 - Hardware evidence: operator confirmed microphone response and continued operation after power cycle on build 2609061, with 2624 configured LEDs on GPIO 16, 17, 21, 22. This is not complete address-parity evidence.
 
