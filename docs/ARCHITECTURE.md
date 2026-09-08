@@ -446,8 +446,13 @@ loopback host accepts only 1 to 2,624 RGB pixels, splits frames into WLED's
 fixed DDP port 4048. WLED is
 configured with a 2.5-second realtime timeout so it can resume the saved native
 animation if the browser, host, network, or laptop stops sending frames. The
-editor keeps one request in flight, updates at no more than 10 frames per
-second, and backs off after a network error. The sender applies the pinned WLED
+editor selects the displayed native, Art-Net, or DDP framebuffer once in its
+animation loop and forwards it through one queue at up to 30 frames per second.
+The queue keeps one request in flight and replaces its single pending frame
+with the newest displayed frame. It preserves the in-flight barrier across
+stop/restart and stops the link after a network error. Native microphone mode,
+setup, preset writes, and physical review pause ordinary forwarding.
+The sender applies the pinned WLED
 2.2 color-gamma curve because realtime input is configured with `no-gc: true`;
 native and DDP pixels therefore use the same output color pipeline. This is a
 bounded test-sculpture link for the loaded sculpture.

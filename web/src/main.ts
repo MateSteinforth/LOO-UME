@@ -1136,7 +1136,6 @@ async function start(): Promise<void> {
     };
     let simulatorFrameRequest: Promise<void> | undefined;
     let simulatorReconnectRequest: Promise<void> | undefined;
-    let nextSimulatorFrameAt = 0;
     let standaloneSaveTimer: ReturnType<typeof setTimeout> | undefined;
     let standaloneSaveRequest: Promise<void> | undefined;
     let simulatorProjectRevision = 0;
@@ -1164,7 +1163,6 @@ async function start(): Promise<void> {
     const artNetPreviewClient = new ArtNetPreviewClient();
     const ddpPreviewClient = new DdpPreviewClient();
     const externalFrameMirrorQueue = new ExternalFrameMirrorQueue();
-    let externalFrameMirrorAbortController: AbortController | undefined;
     let artNetPreviewPixels: Uint32Array | undefined;
     let artNetPreviewLastFrameAt = 0;
     let artNetPreviewTimedOut = false;
@@ -1195,8 +1193,7 @@ async function start(): Promise<void> {
     };
 
     const stopExternalFrameMirror = (message?: string): void => {
-      externalFrameMirrorAbortController?.abort();
-      externalFrameMirrorAbortController = undefined;
+      // Drain an issued request: cancelling fetch does not stop a broker's UDP send.
       externalFrameMirrorQueue.stop();
       updateExternalFrameMirrorAvailability();
       if (message) setLogMessage(message);
@@ -1211,38 +1208,53 @@ async function start(): Promise<void> {
       if (
         !deviceUrl ||
         simulatorSetupActive ||
+        simulatorReconnectRequest ||
+        standaloneSaveRequest ||
         physicalRouteReviewSession ||
         audioEffectSelected()
       )
         return;
       const expectedFingerprint = hardwareContract.fingerprint;
       const expectedProjectRevision = simulatorProjectRevision;
-      const abortController = new AbortController();
-      externalFrameMirrorAbortController = abortController;
+      const sentFrameTimes: number[] = [];
+      let lastSentCount = 0;
       externalFrameMirrorQueue.start({
+        minFrameIntervalMs: 1000 / 30,
         send: async (pixels) => {
-          await simulatorFrameRequest?.catch(() => undefined);
           if (
-            abortController.signal.aborted ||
             simulatorDeviceUrl?.href !== deviceUrl.href ||
             hardwareContract.fingerprint !== expectedFingerprint ||
             simulatorProjectRevision !== expectedProjectRevision ||
-            audioEffectSelected()
+            audioEffectSelected() ||
+            simulatorSetupActive ||
+            physicalRouteReviewSession ||
+            standaloneSaveRequest
           )
             throw new DOMException("Sculpture mirror stopped.", "AbortError");
-          await sendSimulatorFramebuffer(
-            deviceUrl,
-            pixels,
-            abortController.signal,
-          );
+          const request = sendSimulatorFramebuffer(deviceUrl, pixels);
+          simulatorFrameRequest = request;
+          try {
+            await request;
+          } finally {
+            if (simulatorFrameRequest === request)
+              simulatorFrameRequest = undefined;
+          }
         },
         onStatistics: ({ sentFrames, replacedFrames }) => {
+          const now = performance.now();
+          if (sentFrames > lastSentCount) sentFrameTimes.push(now);
+          lastSentCount = sentFrames;
+          while (sentFrameTimes.length && sentFrameTimes[0]! <= now - 1000)
+            sentFrameTimes.shift();
           sculptureMirrorStatus.textContent =
-            `${sentFrames} visible frame${sentFrames === 1 ? "" : "s"} mirrored · ` +
+            `${sentFrameTimes.length} FPS mirrored · 30 FPS target · ` +
             `${replacedFrames} frame${replacedFrames === 1 ? "" : "s"} replaced`;
         },
         onError: (error) => {
+          if (simulatorDeviceUrl?.href === deviceUrl.href)
+            simulatorDeviceUrl = undefined;
           stopExternalFrameMirror();
+          updatePhysicalRouteReviewAvailability();
           setLogMessage(
             `Sculpture mirror stopped: ${error instanceof Error ? error.message : String(error)}`,
             true,
@@ -1252,7 +1264,7 @@ async function start(): Promise<void> {
       sculptureMirrorStatus.textContent = "Sculpture mirror is active";
     };
 
-    const mirrorExternalFrame = (pixels: Uint32Array): void => {
+    const mirrorDisplayedFrame = (pixels: Uint32Array): void => {
       startExternalFrameMirror();
       externalFrameMirrorQueue.push(logicalPixelsToRgbFramebuffer(pixels));
     };
@@ -1297,7 +1309,6 @@ async function start(): Promise<void> {
               frame.physicalRgb,
               hardwareContract.mapping.entries,
             );
-            mirrorExternalFrame(artNetPreviewPixels);
             artNetPreviewLastFrameAt = performance.now();
             artNetPreviewTimedOut = false;
             artNetPreviewFrameTimes.push(artNetPreviewLastFrameAt);
@@ -1355,7 +1366,6 @@ async function start(): Promise<void> {
               ddpPreviewStatus.textContent =
                 `${ddpPreviewFrameTimes.length} FPS DDP · ` +
                 `${frame.incompleteFrames} incomplete · ${frame.rejectedPackets} rejected`;
-              mirrorExternalFrame(ddpPreviewPixels);
             },
           })
           .catch((error) => {
@@ -1432,10 +1442,6 @@ async function start(): Promise<void> {
         );
       }
       return { outputs, ledCount, panelCount };
-    };
-    const logicalSimulatorFramebuffer = (): Array<[number, number, number]> => {
-      loadedSimulatorDeployment();
-      return logicalPixelsToRgbFramebuffer(engine.pixels);
     };
     const setupPayload = (): Esp32SetupPayload => {
       const { outputs, ledCount } = loadedSimulatorDeployment();
@@ -1544,7 +1550,6 @@ async function start(): Promise<void> {
         );
       }
       simulatorLedmapUpdateAuthorized = false;
-      nextSimulatorFrameAt = 0;
       updateExternalFrameMirrorAvailability();
       setLogMessage(
         `${reconnected ? "Reconnected" : "Standalone animation saved and live preview started"} at ${deviceUrl.host} for ${panelCount} panel${panelCount === 1 ? "" : "s"} (${ledCount} LEDs) on GPIO ${outputs.map((output) => output.gpio).join(", ")}.`,
@@ -1775,19 +1780,7 @@ async function start(): Promise<void> {
       selectPhysicalRouteReviewPanel(null);
       physicalRouteReviewOriginalSelection = null;
       if (physicalRouteReviewDialog.open) physicalRouteReviewDialog.close();
-      if (resumeLivePreview && deviceUrl && simulatorDeviceUrl) {
-        try {
-          await sendSimulatorFramebuffer(
-            deviceUrl,
-            logicalSimulatorFramebuffer(),
-          );
-        } catch (error) {
-          setLogMessage(
-            `Live preview did not resume: ${error instanceof Error ? error.message : String(error)}`,
-            true,
-          );
-        }
-      }
+      if (resumeLivePreview) updateExternalFrameMirrorAvailability();
       updatePhysicalRouteReviewAvailability();
       startMadMapperPreview();
     };
@@ -1811,6 +1804,10 @@ async function start(): Promise<void> {
       }
       madMapperPreviewStatus.textContent =
         "Art-Net input paused for physical wiring review";
+      physicalRouteReviewSession = createPhysicalRouteReviewSession(
+        editorDefinition,
+        hardwareContract,
+      );
       if (externalFrameMirrorQueue.active) {
         stopExternalFrameMirror(
           "Sculpture mirror stopped for physical wiring review.",
@@ -1826,10 +1823,6 @@ async function start(): Promise<void> {
         simulatorFrameRequest,
       ]);
       physicalRouteReviewOriginalSelection = selectedEditorPanelId;
-      physicalRouteReviewSession = createPhysicalRouteReviewSession(
-        editorDefinition,
-        hardwareContract,
-      );
       physicalRouteReviewDemo = demo;
       physicalRouteReviewPath.value = "standalone";
       physicalRouteReviewPath.disabled = demo;
@@ -1870,8 +1863,8 @@ async function start(): Promise<void> {
         }
         const payload = setupPayload();
         const deviceUrl = simulatorDeviceUrl;
-        const pendingFrame =
-          simulatorFrameRequest?.catch(() => undefined) ?? Promise.resolve();
+        stopExternalFrameMirror();
+        const pendingFrame = externalFrameMirrorQueue.drain();
         standaloneSaveRequest = pendingFrame
           .then(() =>
             persistStandaloneAnimation(
@@ -5128,15 +5121,14 @@ async function start(): Promise<void> {
       } else {
         delete viewerElement.dataset.externalFrameSource;
       }
-      if (!externalPreviewPixels && externalFrameMirrorQueue.active) {
-        stopExternalFrameMirror();
-      }
       if (audioPreviewPixels.length !== mapping.entries.length)
         audioPreviewPixels = new Uint32Array(mapping.entries.length);
-      renderer?.updateColors(
+      const displayedPixels =
         physicalRouteReviewPixels ??
-          externalPreviewPixels ??
-          (audioEffectSelected() ? audioPreviewPixels : engine.pixels),
+        externalPreviewPixels ??
+        (audioEffectSelected() ? audioPreviewPixels : engine.pixels);
+      renderer?.updateColors(
+        displayedPixels,
         physicalRouteReviewPixels !== undefined || externalPreviewPixels
           ? "wled"
           : currentDisplayMode,
@@ -5148,32 +5140,11 @@ async function start(): Promise<void> {
         !physicalRouteReviewSession &&
         !audioEffectSelected() &&
         !standaloneSaveRequest &&
-        simulatorDeviceUrl &&
-        !externalFrameMirrorQueue.active &&
-        !simulatorFrameRequest &&
-        now >= nextSimulatorFrameAt
+        !simulatorReconnectRequest &&
+        simulatorDeviceUrl
       ) {
-        nextSimulatorFrameAt = now + 100;
-        const deviceUrl = simulatorDeviceUrl;
-        simulatorFrameRequest = Promise.resolve()
-          .then(() =>
-            sendSimulatorFramebuffer(deviceUrl, logicalSimulatorFramebuffer()),
-          )
-          .catch((error) => {
-            if (simulatorDeviceUrl?.href === deviceUrl.href) {
-              simulatorDeviceUrl = undefined;
-              nextSimulatorFrameAt = 0;
-              updatePhysicalRouteReviewAvailability();
-            }
-            setLogMessage(
-              `Live simulator hardware link stopped: ${error instanceof Error ? error.message : String(error)} Run ESP32 setup to reconnect.`,
-              true,
-            );
-          })
-          .finally(() => {
-            simulatorFrameRequest = undefined;
-          });
-      }
+        mirrorDisplayedFrame(displayedPixels);
+      } else if (externalFrameMirrorQueue.active) stopExternalFrameMirror();
 
       if (engine.outOfBoundsWriteCount > 0) {
         setLogMessage(

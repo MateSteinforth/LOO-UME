@@ -31,6 +31,14 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-022` Unify simulator-to-DDP forwarding
+
+- Status: Ready to Merge. Owner: Codex; branch `codex/unified-ddp-mirror`; worktree `/tmp/loo-ume-unified-ddp-mirror`. Base: audio-effect-picker review 41.
+- Scope: select the visible native/Art-Net/DDP frame once and forward through one paced 30 FPS queue with one active request and one replaceable pending frame.
+- Acceptance: source switching and timeout fallback use the same sender; microphone mode, setup, preset saves and physical review pause/drain ordinary forwarding; mapping and gamma are applied once.
+- Verification: 56 focused tests and four Chromium journeys passed, including pacing/backpressure, Art-Net/DDP source switching, microphone isolation, gamma/address parity, and physical review. Formatting, lint, TypeScript, WASM integrity and desktop production build passed. Physical throughput and pixel glitches need operator review.
+- Conflicts: main browser loop, frame queue, related tests and software documentation. Physical flicker cause remains unconfirmed.
+
 ### `P1 · FIRM-021` Try controller audio effects from the effect dropdown
 
 - Status: Ready to Merge. Owner: Codex; branch `codex/audio-effect-picker`; worktree `/tmp/loo-ume-audio-effect-picker`.

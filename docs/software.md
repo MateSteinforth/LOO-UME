@@ -37,6 +37,12 @@ preset. The operator physically confirmed fallback and power-cycle playback on
 the 192-LED three-panel project. LOO/UME receives complete Art-Net frames on loopback.
 It also receives complete logical DDP frames from local or LAN senders. The
 newest external frame controls the simulator and a connected WLED sculpture.
+Built-in effects and external input share one forwarding pass after the simulator
+selects its displayed frame. It targets 30 FPS, keeps one send in flight, and
+replaces stale pending frames. The sculpture-mirror status reports completed
+forwarding FPS; it does not measure receipt or physical display on the ESP32.
+Input callbacks never send directly to the sculpture. A source timeout falls
+back to the built-in effect through the same queue.
 The operator accepts this path without more software work. The complete project
 ZIP includes a TouchDesigner `.tox` component. The component accepts one TOP.
 It makes a centered 2:1 image for the DDP simulator input. A future custom
@@ -58,6 +64,14 @@ The operator tested build 2609061 with an INMP441 on SD 32, WS 26, SCK 27,
 3.3 V power, and L/R grounded. Sound response survived a power cycle with no
 reported output issues on the four configured chains (2624 LEDs). These observations
 do not establish every physical LED address or extended-duration stability.
+
+Audio processing does not automatically suspend during DDP when WLED's
+main-segment-only input setting is enabled, as it is in the current project
+configuration. Use the AudioReactive toggle for a controlled comparison.
+WLED's FPS counter is not a count of fresh DDP frames received. On 2026-09-08,
+the operator reported slow built-in mirroring and pixel glitches. The old
+10 FPS built-in forwarding limit is confirmed; the cause of the pixel glitches
+is not yet confirmed by a physical test of the unified sender.
 
 ## Mapping
 

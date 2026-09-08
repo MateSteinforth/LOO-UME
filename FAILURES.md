@@ -48,6 +48,15 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 
 ## Lessons
 
+### F-170 — Native WLED FPS did not establish DDP smoothness
+
+- **Date:** 2026-09-08
+- **Symptom:** The physical built-in mirror appeared slow and showed glitches although WLED reported roughly 45 FPS.
+- **Cause:** The built-in mirror was capped at 10 FPS while external input used a separate sender. WLED refresh FPS was mistaken for fresh-frame throughput. Audio auto-suspension was also incorrectly assumed despite `mso: true`.
+- **Correction:** FIRM-022 uses one paced sender after visible-frame selection and reports completed forwarding FPS. A brief audio on/off comparison showed similar WLED counters, not proof of unchanged physical output.
+- **Prevention:** Distinguish source, forwarding, and controller refresh rates. Inspect the exact firmware conditions before claiming audio suspends during DDP.
+- **Status:** Unified forwarding passed queue and browser checks. Physical pixel-glitch cause remains unconfirmed.
+
 ### F-165 — A delegated edit used the integration checkout
 
 - **Date:** 2026-09-05

@@ -104,6 +104,15 @@ for (const audioSupported of [true, false]) {
       "Reconnected at",
     );
     await expect.poll(() => frames).toBeGreaterThan(2);
+    const rateStart = frames;
+    await page.waitForTimeout(1000);
+    // Software-rendered Chromium is not a hardware throughput benchmark.
+    // Deterministic queue tests establish the 30 FPS pacing independently.
+    expect(frames - rateStart).toBeGreaterThan(0);
+    expect(frames - rateStart).toBeLessThanOrEqual(33);
+    await expect(page.locator("#sculpture-mirror-status")).toContainText(
+      "30 FPS target",
+    );
     const group = page.locator(
       '#effect optgroup[label="Audio reactive · ESP32 microphone"]',
     );
