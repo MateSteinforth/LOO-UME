@@ -38,7 +38,9 @@ the 192-LED three-panel project. LOO/UME receives complete Art-Net frames on loo
 It also receives complete logical DDP frames from local or LAN senders. The
 newest external frame controls the simulator and a connected WLED sculpture.
 Built-in effects and external input share one forwarding pass after the simulator
-selects its displayed frame. It targets 40 FPS, keeps one send in flight, and
+selects its displayed frame. The Mapping panel offers 20, 25, 30 and 40 FPS;
+30 FPS is the default on each app launch. Changing the target preserves simulator
+speed, configured pixel counts and device settings. It keeps one send in flight, and
 replaces stale pending frames. The sculpture-mirror status reports completed
 forwarding FPS; it does not measure receipt or physical display on the ESP32.
 Input callbacks never send directly to the sculpture. A source timeout falls

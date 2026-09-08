@@ -449,7 +449,9 @@ fixed DDP port 4048. WLED is
 configured with a 2.5-second realtime timeout so it can resume the saved native
 animation if the browser, host, network, or laptop stops sending frames. The
 editor selects the displayed native, Art-Net, or DDP framebuffer once in its
-animation loop and forwards it through one queue with a 40 FPS target.
+animation loop and forwards it through one queue with a selectable 20/25/30/40 FPS
+target (30 FPS on startup). A target change stops and restarts queue pacing while
+retaining any issued request; it does not write device state or change pixel counts.
 Deadlines advance independently of timer callback rounding, with at most 1 ms
 of timing correction and no burst to recover missed frames.
 The queue keeps one request in flight and replaces its single pending frame

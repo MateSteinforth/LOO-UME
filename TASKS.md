@@ -31,6 +31,13 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-025` Select DDP rate for physical comparison
+
+- Status: Ready to Merge. Owner: Codex; branch `codex/ddp-rate-control`; worktree `/tmp/loo-ume-ddp-rate-control`. Base: review 43.
+- Scope: expose 20, 25, 30 and 40 FPS mirror targets, default 30 for this comparison; preserve all configured pixels and simulator speed.
+- Acceptance: changing rate restarts the existing single-flight queue without overlapping sends or writing device configuration; status identifies the selected target.
+- Verification: eight queue tests, two Chromium journeys with live 30/40/30 rate changes, formatting, lint, TypeScript and desktop build passed. Mac review packaging and physical result pending.
+
 ### `P1 · FIRM-023` Improve DDP pacing and effect-change continuity
 
 - Status: Ready to Merge. Owner: Codex; branch `codex/ddp-frame-pacing`; worktree `/tmp/loo-ume-ddp-frame-pacing`. Base: review 42.

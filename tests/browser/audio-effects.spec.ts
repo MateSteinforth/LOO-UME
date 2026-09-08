@@ -121,10 +121,22 @@ for (const audioSupported of [true, false]) {
     expect(frames - rateStart).toBeGreaterThan(0);
     expect(frames - rateStart).toBeLessThanOrEqual(43);
     await expect(page.locator("#sculpture-mirror-status")).toContainText(
-      "40 FPS target",
+      "30 FPS target",
     );
     expect(presetWrites).toBe(0);
     const priorStateWrites = stateWrites;
+    const framesBeforeRateChange = frames;
+    await page.locator("#ddp-mirror-fps").selectOption("40");
+    await expect(page.locator("#sculpture-mirror-status")).toContainText(
+      "40 FPS target",
+    );
+    await expect.poll(() => frames).toBeGreaterThan(framesBeforeRateChange);
+    await page.locator("#ddp-mirror-fps").selectOption("30");
+    await expect(page.locator("#sculpture-mirror-status")).toContainText(
+      "30 FPS target",
+    );
+    expect(stateWrites).toBe(priorStateWrites);
+    expect(presetWrites).toBe(0);
     await page.locator("#effect").selectOption("9");
     await page.locator("#intensity").fill("140");
     const beforeChange = frames;

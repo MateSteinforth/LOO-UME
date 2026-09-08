@@ -349,6 +349,15 @@ app.innerHTML = `
           <output id="madmapper-preview-status" class="mapping-note" aria-live="polite">Art-Net simulator input is starting</output>
           <output id="ddp-preview-status" class="mapping-note" aria-live="polite">DDP simulator input is starting</output>
           <output id="sculpture-mirror-status" class="mapping-note" aria-live="polite">Sculpture mirror waits for ESP32</output>
+          <label class="field">
+            <span>DDP mirror frame rate</span>
+            <select id="ddp-mirror-fps">
+              <option value="20">20 FPS</option>
+              <option value="25">25 FPS</option>
+              <option value="30" selected>30 FPS</option>
+              <option value="40">40 FPS</option>
+            </select>
+          </label>
           <div id="controller-position-section" class="controller-position-controls">
             <p id="controller-position-status" class="mapping-note"></p>
             <button id="reset-controller-position" class="editor-button" type="button">Use suggested position</button>
@@ -1222,8 +1231,11 @@ async function start(): Promise<void> {
       const expectedProjectRevision = simulatorProjectRevision;
       const sentFrameTimes: number[] = [];
       let lastSentCount = 0;
+      const targetFps = Number(
+        query<HTMLSelectElement>("#ddp-mirror-fps").value,
+      );
       externalFrameMirrorQueue.start({
-        minFrameIntervalMs: 1000 / 40,
+        minFrameIntervalMs: 1000 / targetFps,
         send: async (pixels) => {
           if (
             simulatorDeviceUrl?.href !== deviceUrl.href ||
@@ -1251,7 +1263,7 @@ async function start(): Promise<void> {
           while (sentFrameTimes.length && sentFrameTimes[0]! <= now - 1000)
             sentFrameTimes.shift();
           sculptureMirrorStatus.textContent =
-            `${sentFrameTimes.length} FPS mirrored · 40 FPS target · ` +
+            `${sentFrameTimes.length} FPS mirrored · ${targetFps} FPS target · ` +
             `${replacedFrames} frame${replacedFrames === 1 ? "" : "s"} replaced`;
         },
         onError: (error) => {
@@ -1267,6 +1279,14 @@ async function start(): Promise<void> {
       });
       sculptureMirrorStatus.textContent = "Sculpture mirror is active";
     };
+
+    query<HTMLSelectElement>("#ddp-mirror-fps").addEventListener(
+      "change",
+      () => {
+        stopExternalFrameMirror();
+        // The next displayed frame restarts pacing; the queue retains any active send.
+      },
+    );
 
     const mirrorDisplayedFrame = (pixels: Uint32Array): void => {
       startExternalFrameMirror();
