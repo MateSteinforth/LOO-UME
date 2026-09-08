@@ -38,6 +38,7 @@ simulator and TouchDesigner DDP input.
 - Acceptance: source switching and timeout fallback use the same sender; microphone mode, setup, preset saves and physical review pause/drain ordinary forwarding; mapping and gamma are applied once.
 - Verification: 56 focused tests and four Chromium journeys passed, including pacing/backpressure, Art-Net/DDP source switching, microphone isolation, gamma/address parity, and physical review. Formatting, lint, TypeScript, WASM integrity and desktop production build passed. Physical throughput and pixel glitches need operator review.
 - Conflicts: main browser loop, frame queue, related tests and software documentation. Physical flicker cause remains unconfirmed.
+- Delivery: code `00138f3` is published as [Apple Silicon review 42](https://github.com/MateSteinforth/LOO-UME/releases/tag/electron-review-42). Workflow `34256416129` passed packaging and DMG verification. Main integration remains separate.
 
 ### `P1 · FIRM-021` Try controller audio effects from the effect dropdown
 
