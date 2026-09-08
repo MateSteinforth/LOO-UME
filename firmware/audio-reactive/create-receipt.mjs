@@ -99,13 +99,13 @@ for (const name of [
 const wledHeader = await readFile(resolve(source, "wled00/wled.h"));
 assert.equal(
   sha256(wledHeader),
-  "4585459bee0d8c14d530143a1cbceb0be4d9f4ed4556fa4a0d8904073dab9955",
+  "c13f713ddb39c0e53501119517c175e78ece046e1c8defca810186c986483922",
 );
 const fft = await json(
   resolve(source, ".pio/libdeps/orbital_esp32dev/arduinoFFT/library.json"),
 );
 assert.equal(fft.version, "2.0.1");
-receipt.target.buildId = 2609061;
+receipt.target.buildId = 2609082;
 receipt.target.capabilities.audioReactive = {
   usermod: "audioreactive",
   enabledByDefault: true,
@@ -134,6 +134,16 @@ receipt.inputs.audioReactive = {
   fftVersion: fft.version,
   compileCommandsSha256: sha256(commandsBytes),
   elfSha256: sha256(await readFile(elf)),
+};
+assert.equal(receipt.inputs.audioReactive.sourceSha256,
+  "538547f009c9c34d6602c7e27ff54f0be73735095ed347c1854771e05c550338");
+const sourceHeaderSha256 = sha256(await readFile(resolve(source, "usermods/audioreactive/audio_source.h")));
+assert.equal(sourceHeaderSha256, "e7085fc728e9203a07e6a2d292720f72dae62dd68cd017fe7170646c44946017");
+receipt.inputs.audioReactive.captureSuspension = {
+  during: "DDP including main-segment mode, manual disable and OTA",
+  sourceHeaderSha256,
+  patchScript: "firmware/audio-reactive/patch-ddp-capture.mjs",
+  patchScriptSha256: sha256(await readFile(resolve(variant, "patch-ddp-capture.mjs"))),
 };
 for (const [field, name] of [
   ["artifact", "wled-audioreactive-rmt4-esp32.bin"],

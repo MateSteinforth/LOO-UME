@@ -48,6 +48,15 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 
 ## Lessons
 
+### F-178 — Disabling FFT did not stop microphone capture
+
+- **Date:** 2026-09-08
+- **Evidence:** The operator confirmed DDP flicker disappeared on non-audio build 2609051, while build 2609061 flickered even with AudioReactive disabled. The original disable hook suspended FFT without calling `i2s_stop`. The exact IDF 5.3.4 legacy driver stops RX DMA and disables its interrupt in that function. The priority-3 experiment worsened flicker and was rolled back.
+- **Correction under test:** FIRM-026 build 2609082 stops capture during DDP (including main-segment mode), manual disable and OTA; resumes for native audio. The original RMT priority is retained. Host-compiled transition tests exercise repeated requests, failed driver calls and 100 stop/start cycles.
+- **Prevention:** Verify peripheral capture state separately from processing state. Keep a tested no-audio rollback image and compare hardware with the same sender, mapping and frame rate.
+- **Status:** Physical test failed with severe flicker despite confirmed stopped I2S capture and suspended processing. Snapshot still showed active DDP from the laptop, fx 11 frozen, so the reported native-audio flicker was not isolated. Validated rollback to 2609051 completed; identity, LED configuration and mapping verified. Stopping capture is insufficient. Do not promote this build.
+- **Test constraint:** WLED ignores realtime override in main-segment mode. The native read-back check temporarily used full-strip mode, then restored main-segment mode and the exact saved segment. Normal operator switching should use LOO/UME's audio dropdown, which stops DDP before requesting native audio.
+
 ### F-165 — A delegated edit used the integration checkout
 
 - **Date:** 2026-09-05

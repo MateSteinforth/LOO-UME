@@ -1,14 +1,44 @@
 # AudioReactive firmware with four outputs
 
+**Rejected diagnostic:** build 2609082 produced severe physical flicker despite
+confirmed stopped I2S capture during DDP. The controller was rolled back to
+2609051, with identity, LED configuration and mapping verified. Do not install
+or promote this build as a fix. Source and tests are retained as negative evidence.
+
 FIRM-020 builds a separate classic ESP32 variant with AudioReactive enabled.
 It retains WLED commit `d9b9a846561227351ad929e3109781daadb7bed2` and the FIRM-019 RMT patch.
 Each LED output requests 128 symbols. Four outputs fit the 512-symbol RMT memory.
-The build number is `2609061`. The release name remains `ESP32` for Wi-Fi updates.
+The FIRM-026 build number is `2609082`. The release name remains `ESP32` for Wi-Fi updates.
+It keeps the original RMT priority; the rejected priority-3 experiment is not included.
 Improv and the existing 1D effects remain available. The variant keeps 2D effects disabled.
 
 This variant does not replace LOO/UME's bundled firmware.
 Its application and complete USB images have a separate receipt in this directory.
-Microphone response and four-output stability remain untested on this variant.
+Build and receipt checks passed; validated OTA installed 2609082 on 2026-09-08.
+Device read-back confirmed stopped capture in DDP, running capture and processing
+in a temporary native Gravimeter check, then stopped capture on DDP resume.
+LED/realtime configuration, mapping and presets were preserved. DDP pixel integrity
+and physical microphone response still require operator confirmation on this build.
+
+## DDP microphone suspension
+
+The original AudioReactive disable path suspended FFT but left I2S capture running.
+The operator confirmed that GPIO 16 flicker disappeared on non-audio build 2609051.
+This build stops the legacy I2S receiver during DDP, including main-segment mode,
+and skips local audio processing. Native audio resumes after DDP ends if audio
+remains enabled. Manual disable and OTA also stop capture. DMA buffers and pin
+reservations remain allocated so switching does not require flash writes or reboot.
+The read timeout is bounded at 50 ms so a stopped capture cannot block indefinitely.
+The status field `u["I2S capture"]` reports `running`, `stopped for DDP`, `stopped`
+or `unavailable`. DDP takes priority over local audio even with audio sync enabled.
+
+This is verified for the selected Generic I2S/INMP441 target only. Analog microphone
+and other controller variants are outside this test. The pinned legacy driver
+stops RX DMA and disables its interrupt in `i2s_stop()`:
+[ESP-IDF 5.3.4 source](https://github.com/espressif/esp-idf/blob/v5.3.4/components/driver/deprecated/i2s_legacy.c).
+
+Rollback image: `/home/mate/Documents/led-rhombicosidodecahedron/build/firmware-rmt4-2609051/wled-orbital-esp32dev.bin`.
+Use the application image with validated OTA; do not use the full-flash USB image for OTA.
 
 ## INMP441 connections
 
@@ -35,7 +65,7 @@ Use `wled-audioreactive-rmt4-esp32-full-flash.bin` for USB flashing at address z
 A complete USB installation needs normal project configuration afterward.
 The current LOO/UME receipt check does not accept this separate variant for guarded USB flashing.
 
-After an authorized update, verify build `2609061` in `/json/info`.
+After an authorized update, verify build `2609082` in `/json/info`.
 Compare LED GPIOs, lengths, mapping, and current settings with the saved project.
 Keep the LED buses on the RMT driver. Audio uses I2S0; an I2S LED driver can conflict with audio input.
 In AudioReactive settings, select Generic I2S and confirm SD 32, WS 26, SCK 27, and MCLK -1.
@@ -71,6 +101,8 @@ cp firmware/audio-reactive/platformio.ini build/firmware-source/platformio_overr
 node firmware/audio-reactive/patch-build-id.mjs build/firmware-source
 python3 -m platformio pkg install --project-dir build/firmware-source --environment orbital_esp32dev
 node firmware/patch-rmt.mjs build/firmware-source/.pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575
+node firmware/audio-reactive/patch-ddp-capture.mjs build/firmware-source
+node firmware/audio-reactive/test-ddp-capture.mjs
 python3 -m platformio run --project-dir build/firmware-source --environment orbital_esp32dev --target compiledb
 python3 -m platformio run --project-dir build/firmware-source --environment orbital_esp32dev
 ```

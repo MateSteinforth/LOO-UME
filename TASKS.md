@@ -31,6 +31,16 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-026` Suspend microphone capture during DDP
+
+- Status: Human Review (physical test failed; rolled back). Owner: Codex; branch `codex/audio-ddp-suspend`; worktree `/tmp/loo-ume-audio-ddp-suspend`.
+- Scope: AudioReactive build 2609082 stops legacy I2S capture and skips audio work during DDP, including main-segment mode; resumes capture for native audio. Retain original RMT priority and four 128-symbol outputs.
+- Evidence: operator confirmed flicker absent after rollback to non-audio build 2609051. Original AudioReactive disable suspended FFT but did not stop I2S DMA/interrupts. Priority-3 diagnostic worsened flicker and was rejected.
+- Acceptance: pinned patches, guarded stop/start transitions, successful build and receipt, unchanged device setup after OTA; physical DDP and audio switching require operator review.
+- Outcome: operator reports severe flicker, including during perceived audio playback. Failure snapshot shows DDP still active from laptop, segment fx 11 frozen, I2S capture stopped and processing suspended; this is not isolated native-audio evidence. Rolled back by validated OTA to 2609051 and verified identity, LED configuration and mapping. Capture suspension alone is insufficient; do not promote this build.
+- Rollback: verified non-audio build 2609051 retained. No app, mapping, output length or frame-rate change is bundled with this test.
+- Verification: pinned patch guards and host-compiled capture methods passed repeated requests, driver failures and 100 switching cycles; PlatformIO build and receipt passed. Validated OTA installed 2609082 on MAC `2462abc9f3a8`; LED/realtime configuration, mapping and presets unchanged. Hardware read-back confirmed capture stopped during DDP, running during a temporary native Gravimeter override, then stopped again after restoring DDP and main-segment mode. Physical flicker and microphone responsiveness still require operator observation.
+
 ### `P1 · FIRM-018` Recover USB Improv setup without an application restart
 
 - Scope: investigate Improv detection failure after changing ESP32 boards during one application session.
