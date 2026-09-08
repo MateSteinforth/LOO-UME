@@ -52,7 +52,7 @@ assert.equal(
 );
 assert.equal(
   sha256(await readFile(resolve(dependency, RMT_HEADER))),
-  receipt.inputs.neopixelBus.patchedHeaderSha256,
+  "a05b6bff508c4390cd5988449cff72590405a20947d4003201ee363b41845995",
 );
 const compiledDependencies = await readFile(
   resolve(source, ".pio/build/orbital_esp32dev/src/bus_manager.cpp.d"),
@@ -99,13 +99,24 @@ for (const name of [
 const wledHeader = await readFile(resolve(source, "wled00/wled.h"));
 assert.equal(
   sha256(wledHeader),
-  "4585459bee0d8c14d530143a1cbceb0be4d9f4ed4556fa4a0d8904073dab9955",
+  "f027a11833bd4f6a687adfa2455dc515f71ffa9f229fb842bb4ff1a28b21603b",
 );
 const fft = await json(
   resolve(source, ".pio/libdeps/orbital_esp32dev/arduinoFFT/library.json"),
 );
 assert.equal(fft.version, "2.0.1");
-receipt.target.buildId = 2609061;
+receipt.target.buildId = 2609085;
+const callbacks = symbols.split("\n").filter(line => line.includes("loo_rmt_encode_led_strip") || /\brmt_encode_(bytes|copy)$/.test(line));
+assert.ok(callbacks.length >= 3, "The shared refill and IDF encoder callbacks must remain in the ELF.");
+for (const line of callbacks) {
+  const address = parseInt(line.slice(0, 8), 16);
+  assert.ok(address >= 0x40080000 && address < 0x400a0000, `Callback outside IRAM: ${line}`);
+}
+assert.ok(!symbols.split("\n").some(line => line.includes("::rmt_encode_led_strip")), "No flash-resident template callback may remain.");
+receipt.inputs.neopixelBus.patchedHeaderSha256 = sha256(await readFile(resolve(dependency, RMT_HEADER)));
+receipt.inputs.neopixelBus.iramPatchScript = "firmware/audio-reactive/patch-rmt-iram.mjs";
+receipt.inputs.neopixelBus.iramPatchScriptSha256 = sha256(await readFile(resolve(variant, "patch-rmt-iram.mjs")));
+receipt.inputs.neopixelBus.iramCallbackSymbols = callbacks;
 receipt.target.capabilities.audioReactive = {
   usermod: "audioreactive",
   enabledByDefault: true,

@@ -48,6 +48,14 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 
 ## Lessons
 
+### F-181 — An IRAM annotation did not establish callback placement
+
+- **Date:** 2026-09-08
+- **Evidence:** The original NeoPixelBus RMT refill template callbacks were at flash addresses, while IDF bytes/copy encoders and the ISR were in IRAM. Adding IRAM_ATTR to the template method still produced flash-resident callbacks; the candidate failed binary verification and was not installed.
+- **Correction under test:** FIRM-028 moves the identical callback body to a shared non-template IRAM function. Build 2609085 passes ELF address checks and excludes the failed DDP receiver, priority-3 and capture-stop changes.
+- **Prevention:** Verify final ELF symbol placement, not just source annotations, for interrupt hot paths.
+- **Status:** Built and verified locally, not installed. Physical comparison is paused pending baseline recovery: operator reports GPIO 17 corruption even after rollback to 2609051 and quitting LOO/UME. Device read-back confirms DDP off, native segment unfrozen, and unchanged LED/map settings. Full controller/LED power cycle requested.
+
 ### F-165 — A delegated edit used the integration checkout
 
 - **Date:** 2026-09-05

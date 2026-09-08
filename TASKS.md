@@ -31,6 +31,14 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-028` Isolate AudioReactive RMT callback placement
+
+- Status: Human Review (built, not installed; baseline recovery pending). Owner: Codex; branch `codex/audio-rmt-iram`; worktree `/tmp/loo-ume-audio-rmt-iram`.
+- Scope: move the template-independent RMT refill callback into one non-template IRAM function on original AudioReactive firmware, build 2609085. Preserve original DDP receiver, priority, 128-symbol allocation and audio lifecycle.
+- Evidence: original callback is flash-resident; merely adding IRAM_ATTR to the templated method did not change placement, as verified from the ELF. Receiver rewrite and prior audio experiments failed physical tests and were rolled back to 2609051.
+- Acceptance: exact patch guards and unchanged callback body; verify compiled refill, bytes and copy callbacks in IRAM; pinned build receipt; operator baseline recovery before another hardware comparison. Original no-audio rollback retained.
+- Verification: callback body equality and patch rejection checks passed; build and receipt passed; shared callback and IDF bytes/copy callbacks are in IRAM, old template callbacks absent. Candidate 2609085 not installed. GPIO 17 remained corrupted on verified rollback 2609051 with DDP off and native segment unfrozen; operator asked to power-cycle controller and LEDs before further testing.
+
 ### `P1 · FIRM-018` Recover USB Improv setup without an application restart
 
 - Scope: investigate Improv detection failure after changing ESP32 boards during one application session.
