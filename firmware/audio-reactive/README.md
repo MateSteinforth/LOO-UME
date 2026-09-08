@@ -1,5 +1,9 @@
 # AudioReactive firmware with four outputs
 
+**Rejected diagnostic:** the operator reported substantially worse DDP flicker on
+build 2609081. The controller was rolled back to 2609061, with device identity and
+LED configuration verified. Do not install or promote this priority-3 build.
+
 FIRM-020 builds a separate classic ESP32 variant with AudioReactive enabled.
 It retains WLED commit `d9b9a846561227351ad929e3109781daadb7bed2` and the FIRM-019 RMT patch.
 Each LED output requests 128 symbols. Four outputs fit the 512-symbol RMT memory.

@@ -57,7 +57,7 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 - **Action:** FIRM-024 isolates interrupt priority 3 in AudioReactive build 2609081, retaining the previous firmware and configuration backup for rollback. No sender or DDP receiver change is combined with this test.
 - **Prevention:** Distinguish complete-frame arrival, LED refresh rate and physical pixel integrity. A solid frame cannot rule out faults that require changing data.
 - **Reconnect correction:** Review 43 rejects `mso=false` because its project contract requires `true`. The operator supplied this exact reconnect error after the firmware test. Restored `mso=true` in RAM and verified build 2609081 remains installed. Do not instruct an app restart with a temporary device configuration that violates its reconnect contract. The next comparison uses main-segment mode, not the earlier full-strip test conditions.
-- **Status:** Diagnostic firmware compiled, receipt verified and installed by validated OTA. Build 2609081 and unchanged LED configuration, mapping and presets verified. Physical comparison pending; no confirmed correction yet.
+- **Status:** Priority-3 test rejected: operator reports substantially worse flicker. Validated OTA rollback to 2609061 completed; MAC and unchanged LED configuration verified. Audio remains off; mso=true permits app reconnect. Do not treat priority 3 as a fix.
 
 ### F-165 — A delegated edit used the integration checkout
 

@@ -33,10 +33,11 @@ simulator and TouchDesigner DDP input.
 
 ### `P1 · FIRM-024` Test RMT priority under DDP load
 
-- Status: Ready to Merge (diagnostic build only; physical outcome pending). Owner: Codex; branch `codex/rmt-priority-test`; worktree `/tmp/loo-ume-rmt-priority-test`.
+- Status: Human Review (diagnostic rejected; rolled back). Owner: Codex; branch `codex/rmt-priority-test`; worktree `/tmp/loo-ume-rmt-priority-test`.
 - Scope: isolated AudioReactive firmware build 2609081 requests RMT interrupt priority 3; preserve four 128-symbol outputs, timing, pins and application behavior.
 - Evidence: operator reports standalone smooth, DDP corruption on the GPIO 16 chain including SQ-24. Disabling audio did not resolve it; temporary full-strip realtime mode improved it. RMT starvation is a hypothesis, not a confirmed cause.
 - Acceptance: pinned source patch, successful firmware build and receipt, retained rollback image, verified device configuration after test installation; physical result requires operator observation.
+- Outcome: operator reports substantially worse flicker on build 2609081. Rolled back by validated OTA to 2609061 and verified device identity and unchanged LED configuration. Microphone disabled again; mso=true matches the app contract. Do not promote this diagnostic firmware.
 - Conflicts: AudioReactive variant build scripts and receipt; bundled application firmware remains unchanged.
 - Verification: patch adds exactly one priority assignment and rejects altered/already-patched input; compilation and receipt checks passed. OTA returned success; device MAC `2462abc9f3a8` reports build 2609081. LED configuration, mapping and presets match the private backup. Temporary `mso=false` and microphone-off conditions restored without flash saving. DDP was inactive after restart; operator asked to reconnect for comparison.
 
