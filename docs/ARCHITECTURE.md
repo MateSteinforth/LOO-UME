@@ -434,8 +434,10 @@ frame, and sends `live:false` before the snapshot so WLED cannot save a frozen
 realtime segment instead of the selected native effect.
 It restarts WLED and verifies the config, preset, state,
 device identity, and boot-preset selection before setup succeeds. Because HTTP
-can recover after discovery, this complete snapshot has a bounded retry. Later
-control changes update the same standalone preset.
+can recover after discovery, this complete snapshot has a bounded retry.
+Later preview controls do not write flash. **Save startup effect** explicitly
+updates the same verified standalone preset. Native microphone previews apply
+and verify live state without saving. Ordinary reconnect preserves the boot preset.
 The browser suspends DDP for the complete setup operation. This prevents a live
 frame from freezing WLED realtime state before the native preset is verified.
 It also drains prior reconnect, preset-save, and frame requests before flashing.
@@ -447,7 +449,9 @@ fixed DDP port 4048. WLED is
 configured with a 2.5-second realtime timeout so it can resume the saved native
 animation if the browser, host, network, or laptop stops sending frames. The
 editor selects the displayed native, Art-Net, or DDP framebuffer once in its
-animation loop and forwards it through one queue at up to 30 frames per second.
+animation loop and forwards it through one queue with a 40 FPS target.
+Deadlines advance independently of timer callback rounding, with at most 1 ms
+of timing correction and no burst to recover missed frames.
 The queue keeps one request in flight and replaces its single pending frame
 with the newest displayed frame. It preserves the in-flight barrier across
 stop/restart and stops the link after a network error. Native microphone mode,
@@ -465,7 +469,7 @@ intentionally changes the spatial ledmap but not the
 physical route or bus layout. After identity and bus verification, reconnect
 uploads that valid changed map, activates map 0 through the WLED state API,
 verifies the active map and exact stored bytes, and only then updates the
-standalone preset and resumes DDP. Invalid map JSON and all other contract
+playback path and resumes DDP without overwriting the startup effect. Invalid map JSON and all other contract
 mismatches still stop without a controller mutation.
 The operator physically confirmed on the 192-LED three-panel project that WLED
 leaves DDP realtime mode and runs the saved native animation. A USB power cycle

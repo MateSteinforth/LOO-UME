@@ -253,6 +253,7 @@ app.innerHTML = `
               <span>Intensity <output id="intensity-value">128</output></span>
               <input id="intensity" type="range" min="0" max="255" value="128" />
             </label>
+            <button id="save-startup-effect" type="button" disabled>Save startup effect</button>
           </div>
           <div id="wiring-layer-controls" class="layer-controls wiring-assembly">
             <div class="wiring-assembly__layers">
@@ -1116,6 +1117,9 @@ async function start(): Promise<void> {
     let audioPreviewPixels = new Uint32Array(mapping.entries.length);
     let animationSelectionRevision = 0;
     const audioEffectStatus = query<HTMLOutputElement>("#audio-effect-status");
+    const saveStartupEffectButton = query<HTMLButtonElement>(
+      "#save-startup-effect",
+    );
     const audioEffectGroup = document.createElement("optgroup");
     audioEffectGroup.label = "Audio reactive · ESP32 microphone";
     const audioEffectSelected = (): boolean =>
@@ -1219,7 +1223,7 @@ async function start(): Promise<void> {
       const sentFrameTimes: number[] = [];
       let lastSentCount = 0;
       externalFrameMirrorQueue.start({
-        minFrameIntervalMs: 1000 / 30,
+        minFrameIntervalMs: 1000 / 40,
         send: async (pixels) => {
           if (
             simulatorDeviceUrl?.href !== deviceUrl.href ||
@@ -1247,7 +1251,7 @@ async function start(): Promise<void> {
           while (sentFrameTimes.length && sentFrameTimes[0]! <= now - 1000)
             sentFrameTimes.shift();
           sculptureMirrorStatus.textContent =
-            `${sentFrameTimes.length} FPS mirrored · 30 FPS target · ` +
+            `${sentFrameTimes.length} FPS mirrored · 40 FPS target · ` +
             `${replacedFrames} frame${replacedFrames === 1 ? "" : "s"} replaced`;
         },
         onError: (error) => {
@@ -1559,6 +1563,11 @@ async function start(): Promise<void> {
     };
 
     const updatePhysicalRouteReviewAvailability = (): void => {
+      saveStartupEffectButton.disabled =
+        !simulatorDeviceUrl ||
+        simulatorSetupActive ||
+        !!physicalRouteReviewSession ||
+        !!standaloneSaveRequest;
       updateAudioEffectAvailability();
       const available =
         hardwareContract.readiness.mappingReady &&
@@ -1845,59 +1854,73 @@ async function start(): Promise<void> {
       );
     };
 
-    const scheduleStandaloneSave = (): void => {
+    const scheduleAnimationUpdate = (saveStartup = false): void => {
       const selectionRevision = ++animationSelectionRevision;
+      if (standaloneSaveTimer) clearTimeout(standaloneSaveTimer);
+      if (!saveStartup && !audioEffectSelected()) return;
       if (
         !simulatorDeviceUrl ||
         simulatorSetupActive ||
         physicalRouteReviewSession
       )
         return;
-      if (standaloneSaveTimer) clearTimeout(standaloneSaveTimer);
-      standaloneSaveTimer = setTimeout(() => {
-        standaloneSaveTimer = undefined;
-        if (!simulatorDeviceUrl) return;
-        if (standaloneSaveRequest) {
-          standaloneSaveTimer = setTimeout(scheduleStandaloneSave, 500);
-          return;
-        }
-        const payload = setupPayload();
-        const deviceUrl = simulatorDeviceUrl;
-        stopExternalFrameMirror();
-        const pendingFrame = externalFrameMirrorQueue.drain();
-        standaloneSaveRequest = pendingFrame
-          .then(() =>
-            persistStandaloneAnimation(
-              deviceUrl,
-              payload,
-              () =>
-                selectionRevision === animationSelectionRevision &&
-                simulatorDeviceUrl?.href === deviceUrl.href &&
-                simulatorProjectRevision === payload.sourceRevision,
-            ),
-          )
-          .then(() =>
-            setLogMessage(
-              audioEffectSelected()
-                ? "Saved the microphone effect as the ESP32 standalone boot preset. Simulator streaming is paused."
-                : "Saved the current animation as the ESP32 standalone boot preset.",
-            ),
-          )
-          .catch((error) => {
-            if (selectionRevision !== animationSelectionRevision) return;
-            if (audioEffectSelected())
-              audioEffectStatus.textContent =
-                "Microphone effect could not be saved. Check the activity log and reconnect the ESP32.";
-            setLogMessage(
-              `Standalone animation save failed: ${error instanceof Error ? error.message : String(error)}`,
-              true,
+      standaloneSaveTimer = setTimeout(
+        () => {
+          standaloneSaveTimer = undefined;
+          if (!simulatorDeviceUrl) return;
+          if (standaloneSaveRequest) {
+            standaloneSaveTimer = setTimeout(
+              () => scheduleAnimationUpdate(saveStartup),
+              150,
             );
-          })
-          .finally(() => {
-            standaloneSaveRequest = undefined;
-          });
-      }, 500);
+            return;
+          }
+          const payload = setupPayload();
+          const deviceUrl = simulatorDeviceUrl;
+          stopExternalFrameMirror();
+          const pendingFrame = externalFrameMirrorQueue.drain();
+          standaloneSaveRequest = pendingFrame
+            .then(() =>
+              persistStandaloneAnimation(
+                deviceUrl,
+                payload,
+                () =>
+                  selectionRevision === animationSelectionRevision &&
+                  simulatorDeviceUrl?.href === deviceUrl.href &&
+                  simulatorProjectRevision === payload.sourceRevision,
+                undefined,
+                saveStartup,
+              ),
+            )
+            .then(() =>
+              setLogMessage(
+                saveStartup
+                  ? "Saved the current animation as the ESP32 standalone boot preset."
+                  : "Microphone effect updated on the sculpture.",
+              ),
+            )
+            .catch((error) => {
+              if (selectionRevision !== animationSelectionRevision) return;
+              if (audioEffectSelected())
+                audioEffectStatus.textContent =
+                  "Microphone effect could not be updated. Check the activity log and reconnect the ESP32.";
+              setLogMessage(
+                `${saveStartup ? "Startup save" : "Microphone update"} failed: ${error instanceof Error ? error.message : String(error)}`,
+                true,
+              );
+            })
+            .finally(() => {
+              standaloneSaveRequest = undefined;
+              updatePhysicalRouteReviewAvailability();
+            });
+          updatePhysicalRouteReviewAvailability();
+        },
+        saveStartup ? 0 : 150,
+      );
     };
+    saveStartupEffectButton.addEventListener("click", () =>
+      scheduleAnimationUpdate(true),
+    );
 
     const tryReconnectSimulatorLink = (): void => {
       if (
@@ -1927,6 +1950,16 @@ async function start(): Promise<void> {
         .then(() =>
           connectExistingSimulatorDevice(reconnectPayload, {
             discoveryAttempts: 12,
+            persist: async (deviceUrl, payload, shouldContinue) => {
+              if (payload.state.AudioReactive)
+                await persistStandaloneAnimation(
+                  deviceUrl,
+                  payload,
+                  shouldContinue,
+                  undefined,
+                  false,
+                );
+            },
             shouldContinue: () =>
               canEnableReconnectedSimulator(
                 reconnectPayload,
@@ -3650,7 +3683,7 @@ async function start(): Promise<void> {
       }
       updateAudioEffectAvailability();
       resetTimeline();
-      scheduleStandaloneSave();
+      scheduleAnimationUpdate();
     });
     const cycleSelect = (
       select: HTMLSelectElement,
@@ -3682,7 +3715,7 @@ async function start(): Promise<void> {
     );
     paletteSelect.addEventListener("change", () => {
       engine.setPalette(Number(paletteSelect.value));
-      scheduleStandaloneSave();
+      scheduleAnimationUpdate();
     });
     previousPaletteButton.addEventListener("click", () =>
       cycleSelect(paletteSelect, -1),
@@ -3693,12 +3726,12 @@ async function start(): Promise<void> {
     speedInput.addEventListener("input", () => {
       speedValue.value = speedInput.value;
       engine.setSpeed(Number(speedInput.value));
-      scheduleStandaloneSave();
+      scheduleAnimationUpdate();
     });
     intensityInput.addEventListener("input", () => {
       intensityValue.value = intensityInput.value;
       engine.setIntensity(Number(intensityInput.value));
-      scheduleStandaloneSave();
+      scheduleAnimationUpdate();
     });
     displayMode.addEventListener("change", () => {
       currentDisplayMode = displayMode.value as DisplayMode;

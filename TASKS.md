@@ -31,6 +31,14 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-023` Improve DDP pacing and effect-change continuity
+
+- Status: Ready to Merge. Owner: Codex; branch `codex/ddp-frame-pacing`; worktree `/tmp/loo-ume-ddp-frame-pacing`. Base: review 42.
+- Scope: target 40 FPS with deadline-based pacing; remove automatic preset flash writes from preview controls and reconnect; retain explicit startup saving and native microphone controls.
+- Acceptance: no accumulated timer rounding drift or catch-up bursts; ordinary effect changes keep DDP active; startup saving remains verified and explicit.
+- Verification: 59 focused tests and four Chromium journeys passed, covering queue timing, uninterrupted preview changes, explicit startup saves, microphone controls and physical review. Formatting, lint, TypeScript, WASM integrity and desktop build passed. Mac packaging and operator hardware confirmation remain pending.
+- Conflicts: frame queue, main controls, ESP32 state helpers, tests, and software documentation.
+
 ### `P1 · FIRM-022` Unify simulator-to-DDP forwarding
 
 - Status: Ready to Merge. Owner: Codex; branch `codex/unified-ddp-mirror`; worktree `/tmp/loo-ume-unified-ddp-mirror`. Base: audio-effect-picker review 41.

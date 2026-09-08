@@ -1128,9 +1128,7 @@ export async function connectExistingSimulatorDevice(
     );
     assertConfigReadback(updatedConfiguration, payload);
   }
-  options.update?.(
-    "ESP32 contract matched. Syncing the current animation preset.",
-  );
+  options.update?.("ESP32 contract matched. Preparing playback.");
   await (options.persist ?? persistStandaloneAnimation)(
     currentUrl,
     payload,
@@ -1463,6 +1461,7 @@ export async function persistStandaloneAnimation(
   payload: Esp32SetupPayload,
   shouldContinue: () => boolean = () => true,
   update?: (message: string) => void,
+  saveStartup = true,
 ): Promise<void> {
   assertBoundedSimulatorPayload(payload);
   if (!shouldContinue())
@@ -1492,16 +1491,29 @@ export async function persistStandaloneAnimation(
     throw new Error("Standalone animation save was cancelled.");
   let stateWriteError: unknown;
   try {
-    await postDeviceJson(
-      baseUrl,
-      "/json/state",
-      standalonePresetState(payload),
-    );
+    const state = standalonePresetState(payload);
+    if (!saveStartup) {
+      delete state.psave;
+      delete state.n;
+      delete state.ib;
+      delete state.sb;
+    }
+    await postDeviceJson(baseUrl, "/json/state", state);
   } catch (error) {
     stateWriteError = error;
     update?.(
       `WLED state-write response was lost: ${errorMessage(error)} Verifying the exact saved state before retrying any mutation.`,
     );
+  }
+  if (!saveStartup) {
+    if (stateWriteError) throw stateWriteError;
+    if (!shouldContinue()) throw new Error("Animation update was cancelled.");
+    const state = await readJsonResponse(
+      await deviceFetch(baseUrl, "/json/state"),
+      "WLED live animation read-back",
+    );
+    assertStateReadback(state, payload);
+    return;
   }
   const deadline = Date.now() + PRESET_PERSISTENCE_DEADLINE_MS;
   let lastError: unknown = stateWriteError;

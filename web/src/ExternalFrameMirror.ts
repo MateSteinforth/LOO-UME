@@ -94,7 +94,13 @@ export class ExternalFrameMirrorQueue {
     const revision = this.revision;
     const pixels = this.pending;
     this.pending = undefined;
-    this.nextSendAt = performance.now() + (options.minFrameIntervalMs ?? 0);
+    const now = performance.now();
+    const interval = options.minFrameIntervalMs ?? 0;
+    // Advance from the deadline, not the late timer callback. Skip missed slots.
+    this.nextSendAt = Math.max(
+      this.nextSendAt + interval,
+      now + interval - Math.min(1, interval),
+    );
     let request: Promise<void>;
     try {
       request = Promise.resolve(options.send(pixels));

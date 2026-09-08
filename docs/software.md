@@ -38,7 +38,7 @@ the 192-LED three-panel project. LOO/UME receives complete Art-Net frames on loo
 It also receives complete logical DDP frames from local or LAN senders. The
 newest external frame controls the simulator and a connected WLED sculpture.
 Built-in effects and external input share one forwarding pass after the simulator
-selects its displayed frame. It targets 30 FPS, keeps one send in flight, and
+selects its displayed frame. It targets 40 FPS, keeps one send in flight, and
 replaces stale pending frames. The sculpture-mirror status reports completed
 forwarding FPS; it does not measure receipt or physical display on the ESP32.
 Input callbacks never send directly to the sculpture. A source timeout falls
@@ -52,13 +52,19 @@ When a connected controller has the AudioReactive usermod, the Effect dropdown
 adds **Audio reactive · ESP32 microphone**. Choices come from that controller's
 effect names and metadata; only available 1D volume/frequency effects appear.
 Selecting one uses its default speed/intensity, enables microphone processing,
-and saves the native effect through the existing standalone-preset path.
+and updates native playback without writing flash.
 Palette, Speed, Intensity, and the previous/next buttons continue to work.
 LOO/UME pauses both its normal DDP output and external-frame forwarding while
 an audio effect is selected. The 3D view does not simulate the physical microphone;
 its LEDs stay dark unless an external preview is present. Selecting an ordinary
 effect restores simulator output. Firmware without AudioReactive keeps the
 existing simulator-only choices. This change does not replace the bundled firmware.
+
+Preview controls and ordinary reconnect do not overwrite the startup preset.
+Use **Save startup effect** to store the selected effect, palette, speed and
+intensity for autonomous playback. This explicit save pauses DDP, writes preset 1,
+verifies it, then resumes streaming for a non-audio selection. Changes to built-in
+preview effects continue streaming without that pause or flash write.
 
 The operator tested build 2609061 with an INMP441 on SD 32, WS 26, SCK 27,
 3.3 V power, and L/R grounded. Sound response survived a power cycle with no

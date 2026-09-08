@@ -45,6 +45,9 @@ for (const audioSupported of [true, false]) {
   }) => {
     let frames = 0;
     let saved: Record<string, unknown> = {};
+    let liveState: Record<string, unknown> = {};
+    let presetWrites = 0;
+    let stateWrites = 0;
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.addInitScript(() =>
@@ -90,11 +93,18 @@ for (const audioSupported of [true, false]) {
         return route.fulfill({ json: { "1": saved } });
       if (path === "/json/state" && route.request().method() === "POST") {
         const body = route.request().postDataJSON() as Record<string, unknown>;
-        if (body.psave === 1) saved = body;
+        stateWrites++;
+        if (body.seg) liveState = body;
+        if (body.psave === 1) {
+          saved = body;
+          presetWrites++;
+        }
         return route.fulfill({ json: { success: true } });
       }
       if (path === "/json/state")
-        return route.fulfill({ json: { ...saved, ledmap: 0 } });
+        return route.fulfill({
+          json: { ...liveState, seg: [liveState.seg], ledmap: 0 },
+        });
       throw new Error(`Unexpected device request: ${path}`);
     });
     await page.goto(
@@ -107,12 +117,26 @@ for (const audioSupported of [true, false]) {
     const rateStart = frames;
     await page.waitForTimeout(1000);
     // Software-rendered Chromium is not a hardware throughput benchmark.
-    // Deterministic queue tests establish the 30 FPS pacing independently.
+    // Deterministic queue tests establish the 40 FPS pacing independently.
     expect(frames - rateStart).toBeGreaterThan(0);
-    expect(frames - rateStart).toBeLessThanOrEqual(33);
+    expect(frames - rateStart).toBeLessThanOrEqual(43);
     await expect(page.locator("#sculpture-mirror-status")).toContainText(
-      "30 FPS target",
+      "40 FPS target",
     );
+    expect(presetWrites).toBe(0);
+    const priorStateWrites = stateWrites;
+    await page.locator("#effect").selectOption("9");
+    await page.locator("#intensity").fill("140");
+    const beforeChange = frames;
+    await page.waitForTimeout(800);
+    expect(frames).toBeGreaterThan(beforeChange);
+    expect(stateWrites).toBe(priorStateWrites);
+    expect(presetWrites).toBe(0);
+    await page.locator("#effect").selectOption("8");
+    await page.locator("#save-startup-effect").click();
+    await expect.poll(() => presetWrites).toBe(1);
+    await expect(page.locator("#save-startup-effect")).toBeEnabled();
+    await expect.poll(() => saved.seg).toMatchObject({ fx: 0 });
     const group = page.locator(
       '#effect optgroup[label="Audio reactive · ESP32 microphone"]',
     );
@@ -124,10 +148,11 @@ for (const audioSupported of [true, false]) {
     await expect(group.locator("option")).toHaveText(["Pixels", "Freqwave"]);
     await page.locator("#effect").selectOption("audio:1");
     await expect
-      .poll(() => saved.seg)
+      .poll(() => liveState.seg)
       .toMatchObject({ fx: 1, si: 0, m12: 0, ix: 64 });
-    expect(saved.AudioReactive).toEqual({ enabled: true });
-    expect(saved.live).toBe(false);
+    expect(liveState.AudioReactive).toEqual({ enabled: true });
+    expect(liveState.live).toBe(false);
+    expect(presetWrites).toBe(1);
     await expect(page.locator("#audio-effect-status")).toContainText(
       "3D view does not show",
     );
@@ -160,12 +185,13 @@ for (const audioSupported of [true, false]) {
     await page.locator("#next-effect").click();
     await expect(page.locator("#effect")).toHaveValue("audio:2");
     await expect
-      .poll(() => saved.seg)
+      .poll(() => liveState.seg)
       .toMatchObject({ fx: 2, sx: 90, ix: 120 });
     await page.locator("#intensity").fill("180");
-    await expect.poll(() => saved.seg).toMatchObject({ fx: 2, ix: 180 });
+    await expect.poll(() => liveState.seg).toMatchObject({ fx: 2, ix: 180 });
     expect(frames).toBe(pausedFrames);
     await page.locator("#effect").selectOption("8");
+    expect(presetWrites).toBe(1);
     await expect.poll(() => saved.seg).toMatchObject({ fx: 0 });
     await expect.poll(() => frames).toBeGreaterThan(pausedFrames);
     await expect(page.locator("#audio-effect-status")).toBeHidden();

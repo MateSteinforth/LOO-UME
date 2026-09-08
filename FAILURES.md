@@ -48,6 +48,15 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 
 ## Lessons
 
+### F-175 — Preview changes triggered device flash writes
+
+- **Date:** 2026-09-08
+- **Symptom:** Review 42 was smoother at 28–29 FPS, but the operator still saw brief pixel glitches when changing effects.
+- **Cause:** Preview controls paused DDP and saved a native boot preset on every settled change. The pinned WLED source warns that flash access during LED sendout can cause glitches. This is a concrete interruption path, not proof of the observed pixel-glitch mechanism.
+- **Correction:** FIRM-023 separates live preview updates from explicit startup saving and preserves saved presets on reconnect. Deadline-based pacing targets 40 FPS without accumulating fractional timer rounding.
+- **Prevention:** Do not write controller flash as a side effect of live preview controls. Measure forwarding cadence separately from renderer and WLED refresh FPS.
+- **Status:** Software checks passed (59 focused tests, four Chromium journeys and desktop build); operator hardware confirmation remains required.
+
 ### F-170 — Native WLED FPS did not establish DDP smoothness
 
 - **Date:** 2026-09-08

@@ -1001,6 +1001,40 @@ describe("guarded ESP32 setup contracts", () => {
     expect(saveBody).not.toHaveProperty("bootps");
   });
 
+  it("updates live playback without a flash write and verifies the live state", async () => {
+    const value = payload();
+    let posted: Record<string, unknown> = {};
+    const paths: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: URL, init?: RequestInit) => {
+        const path = new URL(url).searchParams.get("path")!;
+        paths.push(path);
+        if (path === "/json/eff")
+          return new Response(JSON.stringify(["Rainbow"]));
+        if (path === "/json/pal")
+          return new Response(JSON.stringify(["Forest"]));
+        if (init?.method === "POST") {
+          posted = JSON.parse(String(init.body));
+          return new Response('{"success":true}');
+        }
+        return new Response(JSON.stringify({ ...posted, seg: [posted.seg] }));
+      }),
+    );
+    await persistStandaloneAnimation(
+      new URL("http://192.168.68.53/"),
+      value,
+      () => true,
+      undefined,
+      false,
+    );
+    expect(posted).toMatchObject({ live: false, seg: { fx: 0, pal: 0 } });
+    expect(posted).not.toHaveProperty("psave");
+    expect(posted).not.toHaveProperty("bootps");
+    expect(paths).not.toContain("/presets.json");
+    expect(paths.at(-1)).toBe("/json/state");
+  });
+
   it("does not write an audio preset to firmware without the microphone usermod", async () => {
     const value = payload();
     value.state.AudioReactive = { enabled: true };

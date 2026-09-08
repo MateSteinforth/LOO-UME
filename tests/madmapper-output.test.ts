@@ -6,17 +6,58 @@ import {
 
 describe("external frame sculpture mirror", () => {
   afterEach(() => vi.useRealTimers());
-  it("forwards about 30 frames from a 60 FPS simulator without the old 10 FPS cap", async () => {
+  it("does not accumulate fractional timer rounding across ten seconds", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
     const send = vi.fn(async () => undefined);
     const queue = new ExternalFrameMirrorQueue();
     queue.start({ minFrameIntervalMs: 1000 / 30, send });
+    for (let frame = 0; frame < 800; frame++) {
+      queue.push([[frame % 255, 0, 0]]);
+      await vi.advanceTimersByTimeAsync(12.5);
+    }
+    expect(send.mock.calls.length).toBeGreaterThanOrEqual(299);
+    expect(send.mock.calls.length).toBeLessThanOrEqual(301);
+    queue.stop();
+  });
+  it("does not burst to catch up after a slow request", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+    const times: number[] = [];
+    let finish!: () => void;
+    const queue = new ExternalFrameMirrorQueue();
+    queue.start({
+      minFrameIntervalMs: 25,
+      send: () => {
+        times.push(performance.now());
+        return times.length === 1
+          ? new Promise<void>((resolve) => {
+              finish = resolve;
+            })
+          : Promise.resolve();
+      },
+    });
+    queue.push([[1, 0, 0]]);
+    await vi.advanceTimersByTimeAsync(40);
+    queue.push([[2, 0, 0]]);
+    finish();
+    await vi.advanceTimersByTimeAsync(0);
+    queue.push([[3, 0, 0]]);
+    await vi.advanceTimersByTimeAsync(23);
+    expect(times).toEqual([0, 40]);
+    await vi.advanceTimersByTimeAsync(2);
+    expect(times[2]).toBeGreaterThanOrEqual(64);
+    queue.stop();
+  });
+  it("targets 40 frames from a 60 FPS simulator", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+    const send = vi.fn(async () => undefined);
+    const queue = new ExternalFrameMirrorQueue();
+    queue.start({ minFrameIntervalMs: 1000 / 40, send });
     for (let frame = 0; frame < 60; frame++) {
       queue.push([[frame, 0, 0]]);
       await vi.advanceTimersByTimeAsync(1000 / 60);
     }
-    expect(send.mock.calls.length).toBeGreaterThanOrEqual(29);
-    expect(send.mock.calls.length).toBeLessThanOrEqual(30);
+    expect(send.mock.calls.length).toBeGreaterThanOrEqual(39);
+    expect(send.mock.calls.length).toBeLessThanOrEqual(41);
     queue.stop();
   });
   it("paces all sources at 30 FPS and sends the latest displayed frame", async () => {
