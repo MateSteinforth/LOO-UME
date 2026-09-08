@@ -36,7 +36,8 @@ simulator and TouchDesigner DDP input.
 - Status: Ready to Merge. Owner: Codex; branch `codex/ddp-frame-pacing`; worktree `/tmp/loo-ume-ddp-frame-pacing`. Base: review 42.
 - Scope: target 40 FPS with deadline-based pacing; remove automatic preset flash writes from preview controls and reconnect; retain explicit startup saving and native microphone controls.
 - Acceptance: no accumulated timer rounding drift or catch-up bursts; ordinary effect changes keep DDP active; startup saving remains verified and explicit.
-- Verification: 59 focused tests and four Chromium journeys passed, covering queue timing, uninterrupted preview changes, explicit startup saves, microphone controls and physical review. Formatting, lint, TypeScript, WASM integrity and desktop build passed. Mac packaging and operator hardware confirmation remain pending.
+- Verification: 59 focused tests and four Chromium journeys passed, covering queue timing, uninterrupted preview changes, explicit startup saves, microphone controls and physical review. Formatting, lint, TypeScript, WASM integrity and desktop build passed. Mac packaging and DMG verification passed; operator hardware confirmation remains pending.
+- Delivery: code `d0399a8` is published as [Apple Silicon review 43](https://github.com/MateSteinforth/LOO-UME/releases/tag/electron-review-43). Workflow `34258646905` passed packaging, DMG verification and publication. Main integration remains separate.
 - Conflicts: frame queue, main controls, ESP32 state helpers, tests, and software documentation.
 
 ### `P1 · FIRM-022` Unify simulator-to-DDP forwarding
