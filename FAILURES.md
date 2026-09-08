@@ -48,6 +48,16 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 
 ## Lessons
 
+### F-177 — Smooth forwarding did not prove clean physical output
+
+- **Date:** 2026-09-08
+- **Symptom:** Review 43 sent about 39 FPS, but the operator saw wrong pixels on the GPIO 16 chain (including SQ-24 and PC-08). Standalone animation was smooth.
+- **Evidence:** Disabling microphone processing did not remove the problem. Temporarily setting `if.live.mso=false` improved playback but did not remove corruption. A static frame did not expose the fault. SQ-24 is inside DDP packet 1 and PC-08 inside packet 2 in the saved route.
+- **Cause:** Not established. The pinned RMT driver uses 128 symbols per output without an explicit interrupt priority. Espressif documents repeated RMT data when encoder service is delayed; this is a candidate mechanism, not a diagnosis.
+- **Action:** FIRM-024 isolates interrupt priority 3 in AudioReactive build 2609081, retaining the previous firmware and configuration backup for rollback. No sender or DDP receiver change is combined with this test.
+- **Prevention:** Distinguish complete-frame arrival, LED refresh rate and physical pixel integrity. A solid frame cannot rule out faults that require changing data.
+- **Status:** Diagnostic firmware compiled, receipt verified and installed by validated OTA. Build 2609081 and unchanged LED configuration, mapping and presets verified. Physical comparison pending; no confirmed correction yet.
+
 ### F-165 — A delegated edit used the integration checkout
 
 - **Date:** 2026-09-05

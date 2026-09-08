@@ -3,12 +3,27 @@
 FIRM-020 builds a separate classic ESP32 variant with AudioReactive enabled.
 It retains WLED commit `d9b9a846561227351ad929e3109781daadb7bed2` and the FIRM-019 RMT patch.
 Each LED output requests 128 symbols. Four outputs fit the 512-symbol RMT memory.
-The build number is `2609061`. The release name remains `ESP32` for Wi-Fi updates.
+FIRM-024 tests RMT interrupt priority 3 with build number `2609081`.
+The release name remains `ESP32` for Wi-Fi updates.
+Only the interrupt priority and reported build number change from build `2609061`.
+The original build remains available in `/tmp/loo-ume-firmware-audioreactive/build/firmware-audioreactive/` for rollback.
+This is a diagnostic build, not a confirmed correction for DDP pixel corruption.
+The operator reports smooth standalone output and DDP corruption on the chain
+containing SQ-24 and PC-08. Temporary full-strip realtime mode helped, but did not
+remove the problem. Disabling audio alone did not remove it.
+
+Espressif documents that delayed RMT encoder service can repeat old data:
+[ESP-IDF 5.3.4 RMT documentation](https://docs.espressif.com/projects/esp-idf/en/v5.3.4/esp32/api-reference/peripherals/rmt.html).
+This build explicitly requests priority 3 to test that hypothesis. It does not
+add DDP frame assembly or promise that all network frames are received.
 Improv and the existing 1D effects remain available. The variant keeps 2D effects disabled.
 
 This variant does not replace LOO/UME's bundled firmware.
 Its application and complete USB images have a separate receipt in this directory.
-Microphone response and four-output stability remain untested on this variant.
+Build 2609081 compiled and passed receipt checks. Validated OTA installation on
+the operator's controller succeeded on 2026-09-08. LED configuration, mapping and
+presets matched the pre-update backup. DDP pixel integrity and microphone response
+on this diagnostic build still require operator confirmation.
 
 ## INMP441 connections
 
@@ -35,7 +50,7 @@ Use `wled-audioreactive-rmt4-esp32-full-flash.bin` for USB flashing at address z
 A complete USB installation needs normal project configuration afterward.
 The current LOO/UME receipt check does not accept this separate variant for guarded USB flashing.
 
-After an authorized update, verify build `2609061` in `/json/info`.
+After an authorized update, verify build `2609081` in `/json/info`.
 Compare LED GPIOs, lengths, mapping, and current settings with the saved project.
 Keep the LED buses on the RMT driver. Audio uses I2S0; an I2S LED driver can conflict with audio input.
 In AudioReactive settings, select Generic I2S and confirm SD 32, WS 26, SCK 27, and MCLK -1.
@@ -71,6 +86,7 @@ cp firmware/audio-reactive/platformio.ini build/firmware-source/platformio_overr
 node firmware/audio-reactive/patch-build-id.mjs build/firmware-source
 python3 -m platformio pkg install --project-dir build/firmware-source --environment orbital_esp32dev
 node firmware/patch-rmt.mjs build/firmware-source/.pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575
+node firmware/audio-reactive/patch-rmt-priority.mjs build/firmware-source/.pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575
 python3 -m platformio run --project-dir build/firmware-source --environment orbital_esp32dev --target compiledb
 python3 -m platformio run --project-dir build/firmware-source --environment orbital_esp32dev
 ```

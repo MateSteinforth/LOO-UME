@@ -52,7 +52,7 @@ assert.equal(
 );
 assert.equal(
   sha256(await readFile(resolve(dependency, RMT_HEADER))),
-  receipt.inputs.neopixelBus.patchedHeaderSha256,
+  "e0c989818f92a008d53faf0df967c91a2706574aac93a5cfc009d54637c595e8",
 );
 const compiledDependencies = await readFile(
   resolve(source, ".pio/build/orbital_esp32dev/src/bus_manager.cpp.d"),
@@ -99,13 +99,17 @@ for (const name of [
 const wledHeader = await readFile(resolve(source, "wled00/wled.h"));
 assert.equal(
   sha256(wledHeader),
-  "4585459bee0d8c14d530143a1cbceb0be4d9f4ed4556fa4a0d8904073dab9955",
+  "c04efb2a2325e76f03224eacdce7830aa523bf0f712168a0db47858a95a4446e",
 );
 const fft = await json(
   resolve(source, ".pio/libdeps/orbital_esp32dev/arduinoFFT/library.json"),
 );
 assert.equal(fft.version, "2.0.1");
-receipt.target.buildId = 2609061;
+receipt.target.buildId = 2609081;
+receipt.inputs.neopixelBus.patchedHeaderSha256 = sha256(await readFile(resolve(dependency, RMT_HEADER)));
+receipt.inputs.neopixelBus.interruptPriority = 3;
+receipt.inputs.neopixelBus.priorityPatchScript = "firmware/audio-reactive/patch-rmt-priority.mjs";
+receipt.inputs.neopixelBus.priorityPatchScriptSha256 = sha256(await readFile(resolve(variant, "patch-rmt-priority.mjs")));
 receipt.target.capabilities.audioReactive = {
   usermod: "audioreactive",
   enabledByDefault: true,

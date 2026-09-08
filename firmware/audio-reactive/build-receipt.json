@@ -26,7 +26,7 @@
       }
     },
     "releaseName": "ESP32",
-    "buildId": 2609061
+    "buildId": 2609081
   },
   "inputs": {
     "pipZipapp": {
@@ -39,39 +39,42 @@
     "wledBuildNumber": {
       "header": "wled00/wled.h",
       "originalHeaderSha256": "e75b06ba221bade02978200bda453e45054b34e45300aa5a83eead35ae336ca9",
-      "patchedHeaderSha256": "4585459bee0d8c14d530143a1cbceb0be4d9f4ed4556fa4a0d8904073dab9955",
+      "patchedHeaderSha256": "c04efb2a2325e76f03224eacdce7830aa523bf0f712168a0db47858a95a4446e",
       "patchScript": "firmware/audio-reactive/patch-build-id.mjs",
-      "patchScriptSha256": "1b6b623cac5d2c7a0d5c9d9635f23efca40130ccfab926dd2f4b8d2767190170"
+      "patchScriptSha256": "98cd99b2c8b75febf5cc1912cea78e9a75012cc8cfc580b2aa9bdb414809c9bd"
     },
     "neopixelBus": {
       "commit": "76afe832f74b0738a3fa1bba0caf389ade9e7693",
       "header": "src/internal/methods/ESP/ESP32/NeoEsp32RmtXMethod.h",
       "originalHeaderSha256": "873f04f31542043993106dddc483e42adbc7d30cb12198645354c46dbf097ee6",
-      "patchedHeaderSha256": "01189d3266629a6a72e2928faa56977b7536d7cf596f927c7355440036b658f7",
+      "patchedHeaderSha256": "e0c989818f92a008d53faf0df967c91a2706574aac93a5cfc009d54637c595e8",
       "patchScript": "firmware/patch-rmt.mjs",
       "patchScriptSha256": "9923bf5723c4bf25104d9b4542cceb293226f170afa9bc4f18f86d370f4b7cb5",
       "rmtSymbolsPerOutput": 128,
       "classicEsp32SymbolCapacity": 512,
-      "maximumRmtOutputs": 4
+      "maximumRmtOutputs": 4,
+      "interruptPriority": 3,
+      "priorityPatchScript": "firmware/audio-reactive/patch-rmt-priority.mjs",
+      "priorityPatchScriptSha256": "0761eb49259668d5dc114280d78d122ba315f7cba9090e994eb7ceb57027124f"
     },
     "sourceArchiveSha256": "42f12c1b286030301dde811079386e99cbe6590989c7b45daa323bb0495fa8d1",
     "audioReactive": {
       "source": "usermods/audioreactive/audio_reactive.cpp",
       "sourceSha256": "aee744f400c9c96f2863ef87ce07be8b10d4df959a7a1be0dc2d074105a799ca",
       "fftVersion": "2.0.1",
-      "compileCommandsSha256": "03e9a0fd7104eb5db5cfc7c565a95c14b22eba2329e93a215c77ee2e1da9a2ac",
-      "elfSha256": "43afe3290c10891fa944760d394ca5a8026cf4859d190215b99d206a5e8feb61"
+      "compileCommandsSha256": "fe1c69aec32868c881c9d29caeb52c11bad8aa445a9d9962432512bce76842bf",
+      "elfSha256": "fa80776726f917cfc75638929a087cb56627769cead4c57c8b1a8208fd01f1e7"
     }
   },
   "artifact": {
     "name": "wled-audioreactive-rmt4-esp32.bin",
-    "byteLength": 1149520,
-    "sha256": "cf038e4d5c966704d4780fef31ca3e7dd0040d41cef81937864214c0d6507ce1"
+    "byteLength": 1149488,
+    "sha256": "faa5ceb86eb4d39525c89ee2b4f016961755422f27afb77442bfad81b772aa72"
   },
   "fullFlashArtifact": {
     "name": "wled-audioreactive-rmt4-esp32-full-flash.bin",
-    "byteLength": 1215056,
-    "sha256": "1eff1b4c332b7a700ced61e061bf11cd3fc101efcde4f4ad69f800057f8c705d",
+    "byteLength": 1215024,
+    "sha256": "eb01af2031ca8aa12d801b8d701d019c70d964ed1e554447cfdad1b4c6ffb719",
     "flashAddress": 0,
     "eraseAll": true,
     "flashMode": "dio",
