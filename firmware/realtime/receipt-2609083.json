@@ -1,0 +1,25 @@
+{
+  "build": 2609083,
+  "baselineWledCommit": "d9b9a846561227351ad929e3109781daadb7bed2",
+  "audio": false,
+  "frameBufferBytes": 23616,
+  "rmtHeaderSha256": "01189d3266629a6a72e2928faa56977b7536d7cf596f927c7355440036b658f7",
+  "overrideSha256": "5fa45dfd2c792fc569a6fdd910a44dd2b3442430ec302119f49237f771643f48",
+  "sourceHashes": {
+    "e131.cpp": "d2c616f2cd2bc125dca066f93864707ca28aa971c6e63976b9fe0cbdc92ba4de",
+    "udp.cpp": "e16c7d2efc8fb6303c64fde2de47d3473f18567f809677034fb46abdf1486a59",
+    "wled.cpp": "33b69db2eeea4cf1faab9c0af6bf73e731c371e434d33da772294a3ec0008c32",
+    "wled.h": "d6da279a0036058ced59166ac69514ce9178d79e81f352d0f944b85a8c0ac594",
+    "json.cpp": "6b0495e555a06399262272a561eb9a2bf73be9f4f9f5fce88b04c174c5c54802",
+    "DdpFrames.h": "fcbe808fd99bbac9b828b4a8b1fbd18f5aa6b275347a47c82bed44a8cbd211e6",
+    "loo_ddp.cpp": "e8e8b313d8cf249272178603ca9670fd7418fb4fc2b10f30c8a84bac495f8fc5",
+    "loo_ddp.h": "ce86185669035af552ea2d8a6468989c24448103401f64124bfc34190e0acca2"
+  },
+  "elfSha256": "7a5b8fc3fed556fcad22a16026bbc139432abd2a2c1ff08bebd5524228adffb8",
+  "artifact": {
+    "name": "wled-2609083.bin",
+    "byteLength": 1113456,
+    "sha256": "0691c9770e21d199e691de9274f868259a5f7fff782f8e40dd4fc99871eb2360"
+  },
+  "status": "built; physical result pending"
+}

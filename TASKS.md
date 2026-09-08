@@ -31,6 +31,13 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-027` Separate DDP frame delivery from LED transmission
+
+- Status: Human Review (rejected diagnostic; rolled back). Owner: Codex; branch `codex/ddp-frame-boundary`; worktree `/tmp/loo-ume-ddp-frame-boundary`.
+- Scope: assemble complete RGB DDP frames outside WLED's live pixel buffer, exchange buffer ownership with brief locks, submit only complete frames when all LED buses are ready, and report receive/submit counters and timing. First test on non-audio firmware; investigate flash-resident RMT encoder callbacks separately for audio.
+- Evidence: operator confirms all chains stutter synchronously on non-audio build 2609051; AudioReactive builds corrupt GPIO 16. Priority-3 and I2S-stop diagnostics failed and were rolled back. Original RMT wrapper callback resides in flash while IDF encoder/ISR routines reside in IRAM.
+- Outcome: host ASan/UBSan and concurrent ownership tests passed, but physical 2609083 test corrupted GPIO 17. Initial native-to-DDP handoff also needed correction. Counters on the rejected corrected build measured 38.6 received and 24.9 submitted FPS with no rejected packets over 60 seconds; these do not establish the pre-existing bottleneck. Validated rollback to 2609051 completed and LED configuration verified. Do not promote the receiver rewrite. Audio 2609084 candidate failed its IRAM placement check and was never installed.
+
 ### `P1 · FIRM-018` Recover USB Improv setup without an application restart
 
 - Scope: investigate Improv detection failure after changing ESP32 boards during one application session.

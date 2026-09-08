@@ -1,0 +1,11 @@
+import {createHash} from "node:crypto";
+import {readFile,writeFile} from "node:fs/promises";
+import {resolve} from "node:path";
+import {RMT_HEADER} from "../patch-rmt.mjs";
+const dir=process.argv[2]; if(!dir) throw new Error("Provide pinned four-output NeoPixelBus directory.");
+const path=resolve(dir,RMT_HEADER), bytes=await readFile(path);
+if(createHash("sha256").update(bytes).digest("hex")!=="01189d3266629a6a72e2928faa56977b7536d7cf596f927c7355440036b658f7") throw new Error("Expected exact four-output RMT baseline.");
+const before="static size_t rmt_encode_led_strip(", after="static size_t IRAM_ATTR rmt_encode_led_strip(";
+const source=bytes.toString(); if(source.split(before).length!==2) throw new Error("Expected one encoder callback.");
+await writeFile(path,source.replace(before,after));
+console.log("Moved the refill callback into IRAM; interrupt priority and symbol count unchanged.");
