@@ -36,7 +36,7 @@ simulator and TouchDesigner DDP input.
 - Status: Ready to Merge. Owner: Codex; branch `codex/ddp-rate-control`; worktree `/tmp/loo-ume-ddp-rate-control`. Base: review 43.
 - Scope: expose 20, 25, 30 and 40 FPS mirror targets, default 30 for this comparison; preserve all configured pixels and simulator speed.
 - Acceptance: changing rate restarts the existing single-flight queue without overlapping sends or writing device configuration; status identifies the selected target.
-- Verification: eight queue tests, two Chromium journeys with live 30/40/30 rate changes, formatting, lint, TypeScript and desktop build passed. Mac review packaging and physical result pending.
+- Verification: eight queue tests, two Chromium journeys with live 30/40/30 rate changes, formatting, lint, TypeScript and desktop build passed. Mac review 44 packaging and DMG verification passed in workflow `34265064262` for code `d1aae78`. [Apple Silicon download](https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-44/LOO-UME-Electron-arm64.dmg). Physical result pending. Controller 2609061 remains installed; restored mso=true and frozen live segment for reconnect, microphone off.
 
 ### `P1 · FIRM-023` Improve DDP pacing and effect-change continuity
 
