@@ -34,7 +34,8 @@ known non-operational serialization differences, not silently ignored.
 After more than90seconds settling, the observation was announced around
 09:03:10UTC; clock start09:03:14, nominal deadline09:04:14, stop check09:04:20.
 The stop was about6seconds late. No queries occurred during the visual window.
-Physical GPIO17/GPIO22 feedback is pending; do not invent a result or count.
+The first run received no physical report. The repeat below has operator
+feedback; do not invent a result or count for this first window.
 
 The exact original cfg.json was restored through WLED's supported `/upload`
 handler at09:04:43.910UTC. That handler reboots the controller. Read-back
@@ -59,18 +60,30 @@ read-back verified the same swapped allocation, DDP active, probes off, and
 unchanged physical mapping/segment state. The same known inactive-usermod
 serialization differences apply; exact full config restoration is prepared.
 
-Allow90seconds to settle before announcing a60-second observation. On this
-repeat, keep the test allocation active until the operator reports the result,
-then restore the original configuration. Keep LOOUME open during the temporary
-allocation. No result or stability claim exists yet.
+The repeat used90seconds settling before a60-second observation. The initial
+plan was to keep the test active until feedback and then restore; the operator's
+subsequent departure instruction defers restoration. Keep LOOUME open during
+the temporary allocation.
 
 Repeat observation was announced around09:18:00UTC, clock start09:18:06 and
 nominal deadline09:19:06. The finish message was sent after a09:19:01 clock
 check and a short wait; the next clock check was09:19:21. Treat feedback as
 approximate intervals rather than exact one-minute counts. Ending read-back
 confirmed the intended swapped allocation and active DDP. The test allocation
-remains active while waiting for feedback; restore has not yet run for this
-repeat. Keep this state distinct from the restored first run.
+remains active; restore has not yet run for this repeat. Keep this state
+distinct from the restored first run.
+
+Operator result: most flashes onGPIO22 every1–4seconds; fewer onGPIO16, about
+every6seconds; other chains solid during this observation. Flashing did not
+move toGPIO17 with the previousGPIO22 RMT slot. This weakens a slot-only cause;
+it does not prove a downstream hardware fault or exclude firmware timing.
+
+The operator is leaving, requested that this keep running, and asked for a
+complete TASKS.md handoff to continue with a cheaper model. Leave the current
+DDP/test configuration untouched while they are away. The top of TASKS.md is
+the authoritative current state, restore procedure, evidence summary and
+ordered FIRM-036–043 plan. Offline code/build/test preparation may continue;
+physical observation, restore/reboot and installation resume with the operator.
 
 ## Independently reviewed route to reliable output
 

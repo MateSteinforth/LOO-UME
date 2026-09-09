@@ -7,6 +7,120 @@ fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 Current milestone: deliver one complete package with a unified external-frame
 simulator and TouchDesigner DDP input.
 
+## Active firmware handoff — read this first (2026-09-09)
+
+**Operator goal:** reliable, smooth LOOUME→DDP mirroring AND standalone
+microphone-reactive WLED effects on the same controller. Minimize flashes,
+aim for zero observed corruption. A lower flash rate alone is not a completed
+fix; report measured rates and let the operator accept any residual limit.
+Clean30FPS is the first motion target;40FPS is a subsequent measured target.
+
+**Latest instruction:** operator is leaving and wants to keep this running,
+then continue with a cheaper model. Leave the current live device/session
+unchanged while they are away. Offline inspection, implementation, builds and
+host tests can continue. Do not start physical tests, restore/reboot, change
+live configuration or flash while the operator is absent. Prepare concrete
+candidates for the next attended test. Do not infer physical results.
+
+**Current state — differs from the normal project order:**
+
+- Firmware2609094, non-audio diagnostic; timing/CRC collection OFF. DDP active
+  at last read-back. Mic functionality is currently unavailable.
+- ESP32 WROOM, `loo-ume.local`, lastIP192.168.68.53; verify MAC2462abc9f3a8
+  before writes. Four level-shifted WS2812 RGB outputs, GRB order0,2624LEDs.
+- Allocation-test bus list is **[16,22,21,17]**, RMT channels[0,2,4,6].
+  Per-pin addressing is unchanged:16 start0 len704;17 start704 len640;
+  21 start1344 len640;22 start1984 len640. Keep the map and brightness128.
+- Latest observed repeat: **GPIO22 flashes every1–4s; GPIO16 about every6s;
+  GPIO17/21 solid during the observation.** Flashing did not follow the old
+  GPIO22 RMT slot toGPIO17. This weakens a slot-only explanation, but does
+  not prove a hardware fault or exclude firmware timing.
+- This repeat has NOT been restored. User departure supersedes the earlier
+  plan to restore immediately after feedback. Keep LOOUME open in this state;
+  reconnect can reject the temporary list order. Do not apply ESP32 Setup as
+  a workaround or overwrite the authored route.
+
+**Working location:** `/tmp/loo-ume-output-order-test`, branch
+`codex/output-order-test`. Prior repeat commit24b7a76; handoff updates follow it.
+Do not use main's older task board as the latest firmware state. Continue
+repository implementation in a new task branch/worktree, following AGENTS.md.
+No implementation task below is already complete merely because it is listed.
+
+**Exact repeat backup/restore (use when operator returns):**
+
+```bash
+# workdir: /tmp/loo-ume-output-order-test
+env LOO_ORDER_TEST_RUN=repeat-20260909-091533 python3 firmware/output-order/test.py restore
+# Wait for the supported cfg upload/reboot to finish, then:
+env LOO_ORDER_TEST_RUN=repeat-20260909-091533 python3 firmware/output-order/test.py verify restored
+```
+
+The script restores the complete private cfg.json, including inactive audio
+options that a non-audio `/json/cfg` save omits. It guards against unrelated
+configuration changes. On guard failure, inspect and preserve those changes;
+do not weaken assertions or blindly upload an old config. Evidence/backup:
+`build/repeat-20260909-091533/`. Earlier run `build/device-test/` is separate.
+Normal bus order is[16,17,21,22]. Config restore does not install audio firmware.
+
+**Preserve these exact artifacts; never overwrite them:**
+
+- Audio2609085: `/tmp/loo-ume-audio-rmt-iram/build/firmware-audioreactive/wled-audioreactive-rmt4-esp32.bin`;
+  SHA256 `2d2194e8617d077d4f85567484eda801b0abe9249fca52c7fa8c852f7e6cd1e2`.
+  Native animation/Gravimeter132 and mic response were physically clean after
+  the repairedGPIO17 solder joint; DDP remained imperfect.
+- Non-audio2609051: `/home/mate/Documents/led-rhombicosidodecahedron/build/firmware-rmt4-2609051/wled-orbital-esp32dev.bin`;
+  SHA256 `f84dbc5015dab45ada68e53a5968732458f19ae2b993238cfc183d2ca87aae55`.
+- Reset300us2609093: `/tmp/loo-ume-rmt-reset-gap-test/build/firmware-reset-gap/wled-nonaudio-reset300-2609093.bin`;
+  SHA256 `752e485c34433d8dc3a1132d605e34618c919654f1ebf46b8b78fb63a3054f71`.
+- Original mic restore: `/tmp/loo-ume-audio-cold-off-20260909-073913/restore.json`.
+  Returning to audio needs enabled=true, GenericI2S type1, SD32/WS26/SCK27,
+  MCLK-1, then reboot. Current stored disabled/type255 options would prevent
+  audio even after installing an audio image. Keep private configs out of Git.
+
+**Reuse established evidence to control cost:**
+
+- Read `firmware/output-order/README.md` for exact DMA source references and
+  `firmware/rmt-probe/RESULTS.md` for measurements. Read the long
+  `/home/mate/WLED-AUDIO-DDP-HANDOFF.md` only for a specific historical question.
+- Audio shutdown/uninstall builds2609082/091/092 made flicker worse. Raising
+  RMT priority, shorteningGPIO16, suppressing autonomous refresh and extending
+  reset to300us did not eliminate it. Do not repeat these without new evidence.
+- Original non-audio also flashes under repeated Solid; audio is not necessary
+  for all corruption. Stable task buffers:2646completed CRC checks/output,
+  zero changes/mutations in a separate sample. Sparse verified RMT refill
+  delays cannot account for frequentGPIO22 flashes. Probes can change timing.
+- Current RMT source/ELF: `/tmp/loo-ume-rmt-output-probe/build/firmware-source`.
+  Audio baseline source: `/tmp/loo-ume-audio-rmt-iram/build/firmware-source`.
+  WLEDd9b9a846561227351ad929e3109781daadb7bed2;
+  NPB76afe832f74b0738a3fa1bba0caf389ade9e7693;
+  Arduino3.3.7 / exact Tasmota IDFb3b492ffc273f17f4ed3c83c19ed110cd6c73c7a.
+  Vanilla IDF5.3.4 private driver files differ. Shared toolchain is preserved
+  under the audio baseline's `build/firmware-toolchain`.
+- Current app reference: `/tmp/loo-ume-ddp-rate-control`, review44. Built-in
+  effects and MadMapper both use simulator→DDP; do not send MadMapper directly
+  to WLED or rebuild an already-completed forwarding pipeline.
+- Use one bounded implementation slice at a time, narrow `rg`/reads and focused
+  tests. Reuse existing harnesses. No repeated broad audits, constant device
+  polling, speculative flashes or default parallel agents. Follow AGENTS.md
+  cost routing; use additional review only for a concrete high-risk seam.
+- Build in isolated copies/caches. Generate compiledb BEFORE final build;
+  validate final ELF/image and fallback hashes. Use toolchain `core/penv/bin/python`
+  for esptool. Existing remote-push approval restriction is unresolved: save
+  local commits, do not bypass it or merge main.
+
+**Every attended physical test:** one intended variable; private before/after
+config/map/state; explicit prediction;90s settling; announce60s start and stop;
+no polling/preview during the count. Check absolute clock after interruptions.
+Record actual duration or label intervals as estimates. Leave the test available
+long enough for feedback; state the restore point. If behavior varies, repeat
+at5minutes before classifying stability. Software FPS/CRC is not physical proof.
+
+**Order of work:** while away, FIRM-036 and then037 can be prepared. When the
+operator returns, close035's restore step and run038. Then039 tests the guarded
+DMA path,040 resolves moving-frame delivery,041 restores audio,042 checks mode
+transitions and043 provides sustained acceptance/recovery evidence. A persistent
+signal fault from038/039 must be resolved before a clean-output claim.
+
 ## Control rules
 
 1. Use stable task IDs in commits and handoffs.
@@ -31,17 +145,81 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-036` Prepare a guarded parallel-DMA candidate
+
+- Status: Ready (offline work allowed). Dependency: reuse exact-source DMA review in035. No live-device mutation while operator is away.
+- Implement: existing classic ESP32 X8 I2S1 DMA backend, preserving pins/lengths/map and separate I2S0 mic. No Core downgrade is required. Keep RMT available for comparison/recovery. Do not enable a new default before validation.
+- Memory: longest lane needs51408 contiguous DMA bytes plus descriptors and7872front-buffer bytes. Report largest/free MALLOC_CAP_DMA block and actual allocation sizes; total freeheap117KB is insufficient proof. Trace all init/destruct/partial-failure callers. Eliminate null-buffer memset and unsafe use after failed allocation; propagate failure so HTTP/config recovery remains available, no boot loop or fake successful bus.
+- Tests: actual allocation failure injection, insufficient contiguous block, partial lane init/cleanup/retry, normal four-lane init, mono-buffer ownership (never edit active DMA), all lanes updated before start, reset/pulse encoding and bounds at704/640pixels. Verify exact compiled I2S1 path and recoverable RMT fallback. Add only low-cost task-context telemetry; no per-pixel logging.
+- Deliver: isolated build/receipt, image integrity, exact patch/source hashes and memory-budget report including audio and prospective DDP buffers. Keep microphone initially uninitialized for backend isolation; audio-capable build may use disabled/type255 until041. Use actual callbacks/ABI from pinned source, not a new private SDK override by release label.
+- Gate: candidate must be reviewable and memory failures safe before drv1 is selected. Allocation guards alone do not establish physical reliability.
+
+### `P1 · FIRM-037` Make LOOUME's driver contract explicit
+
+- Status: Ready (offline; execute after036's bounded slice). Scope: support selected drv1 without losing exact mapping checks; preserve existing drv0 projects and firmware bundles.
+- Inspect `src/wled/DeploymentContract.ts` (drv0 generation/validation) and `web/src/Esp32Setup.ts` (read-back compare); verify current app branch before editing. Record driver preference in the relevant authored/deployment contract, generated setup, validation and reconnect. Keep GPIOs, starts, counts, map identity and current limits authoritative. Do not silently accept any arbitrary config or report I2S as RMT.
+- Tests: existing RMT project reconnect, explicitly selected DMA reconnect, changed GPIO/length/map still rejected, driver round-trip/save/load, setup read-back and restart, original order retained. One simulator→DDP pass must remain intact for built-in and MadMapper sources.
+- Deliver: focused checks and reviewable app build using repository packaging workflow; retain review44 recovery. Remote publication remains subject to existing restriction. No broad UI redesign or requirement that operator reapply a project to conceal mismatch.
+
+### `P1 · FIRM-038` Distinguish GPIO22 output from its downstream chain
+
+- Status: Human Review (operator present required; next physical isolation). First restore035's exact original configuration/order and verify DDP reconnect. Same Solid/FPS/brightness; count each GPIO after settling.
+- If controller data leads are accessible and the operator can perform the check: label the physical chains, remove power before touching wiring, swap onlyGPIO17/22 chain data leads at the level-shifter outputs. Both chains are640pixels and must receive identical Solid. Do not change power rails or open the sculpture unnecessarily. Restore leads before moving/addressed content.
+- Prediction: original physicalGPIO22 chain still flashes when driven byGPIO17 → downstream cable/panels/power more plausible. Fault followsGPIO22/shifter output onto the other chain → controller output/level-shifter path more plausible. Both/neither is inconclusive. Label physical chains separately from GPIO names after the swap.
+- If available, capture a good output andGPIO22 at ESP32 pin, level-shifter output and first-panel DIN. Compare repeated decoded bytes, pulse/reset timing and electrical levels. Logic-only capture cannot establish voltage margin; prefer scope for signal quality. Do not infer panel failure or demand unavailable equipment. If unavailable, record this limit and continue controlled DMA comparison without claiming electrical exclusion.
+- Exit: restore/verify wiring and map, record outcome. The old repairedGPIO17 solder fault is distinct and must not be reused as a blanket explanation.
+
+### `P1 · FIRM-039` Compare RMT and DMA on repeated Solid
+
+- Status: Backlog. Dependencies:036/037 prepared,038 result/limits recorded, operator present.
+- Use one guarded candidate for RMT vs DMA comparison, diagnostics off and audio source uninitialized in both. All four homogeneous outputs must be drv1 together for parallel I2S1; retain original order and per-pin config. Verify real backend, all2624pixels/four lanes, contiguous allocation, no placeholder buses, reset/clock and responsive HTTP recovery.
+- Test the identical existing Solid at fixed30FPS first;90s settle,60s counts, then repeat at5minutes. Repeat primary red/green/blue and a fixed asymmetric spatial pattern at the same brightness. Return to same-candidate RMT when needed to check time variation; do not perform an endless A/B loop. Log actual TX rate separately from sender FPS.
+- Decision: clean DMA supports adopting the output backend; persistentGPIO22 routes back to038 and/or targeted encoded-buffer/wire capture. Do not add another audio-shutdown patch. Additional probes need a specific predicted observation and a probe-off control.
+- Acceptance: no observed wrong-color/black flashes across the agreed windows, correct addresses, stable memory and no resets. Report residual counts honestly and leave the goal open if they persist. Preserve fallback085 and exact settings recovery.
+
+### `P1 · FIRM-040` Make moving DDP frames complete and evenly presented
+
+- Status: Backlog; offline harness work can follow036/037. Physical acceptance depends on039's stable output.
+- Reuse audit `/tmp/loo-ume-firmware-ddp-audit/docs/FIRMWARE_DDP_AUDIT.md` and experimental `/tmp/loo-ume-ddp-frame-boundary` (7ebf577). Its24.87 submissions/s is a diagnostic result, not baseline throughput; original rejection coincided with subsequently repaired hardware. Do not blindly reinstall it.
+- Trace network callback→PUSH→segment→bus ownership. Assemble/validate complete7872-byte RGB frames before publishing. Define bounded ready/in-flight ownership, incomplete-frame discard, sender restart, sequence wrap/zero semantics, timeout and latest-frame replacement under overload. Avoid boolean PUSH coalescing and autonomous native repaints presenting partial data. Keep native effect lifecycle correct on DDP exit.
+- Tests: real receiver/service harness with full6-packet frames; delayed/lost/duplicate/reordered/truncated packets; missing PUSH; sequence wrap/restart; frame-boundary publication while output busy; no deadlock/starvation or active-buffer mutation. Count received complete, invalid/incomplete, intentional superseded, presented and TX-completed separately. Fit frame buffers inside measured DMA+audio memory budget.
+- Physical: slow moving scan/gradient that reveals discontinuities, then faster/high-change content at30FPS and40FPS separately. Test built-in LOOUME and MadMapper→LOOUME through the same pass; effect changes, stream stop/start and reconnect. Sample before/after metrics, no continuous previews during visual windows. Use recorded/high-frame-rate video if available for objective gaps; don't require it for basic progress.
+- Acceptance: no new corrupt pixels at effect changes; steady complete-frame cadence at30FPS without systematic whole-sculpture drops.40FPS only if rendering+encoding+21.42ms wire time permit it. Separate unavoidable network loss/intentional latest-frame drops from scheduling defects. Do not claim47FPS solely from WLED or host counters.
+
+### `P1 · FIRM-041` Restore and validate standalone audio on the selected backend
+
+- Status: Backlog. Dependencies:036 memory budget,039 stable output,040 delivery validation or separately documented remaining work; operator present.
+- Restore original AudioReactive settings from the private restore file and reboot an audio-capable candidate. Confirm actual I2S0 capture/FFT processing, GenericI2S type1, SD32/WS26/SCK27/MCLK-1. Verify LED DMA uses I2S1, no shared peripheral/pin conflict. Test with LOOUME fully closed and info.live=false.
+- Compare native non-audio motion, then known Gravimeter132 and several contrasting available audio effects. Test silence, normal sound, stronger sound and recovery; check microphone response, all four chains, wrong colors, motion pauses, clipping/AGC and memory headroom. Select effect IDs from the actual firmware list; reuse the existing audio dropdown work.
+- Acceptance: sustained responsive standalone audio without observed flashes, crashes or periodic pauses; native brightness/preset restored after power cycle. Settings persistence and microphone initialization must be verified, not inferred from an audio-enabled binary.
+
+### `P1 · FIRM-042` Validate DDP/audio transitions and overload recovery
+
+- Status: Backlog. Dependencies:040/041; operator present for visual/audio acceptance.
+- First test DDP with microphone capture still enabled on the separate peripheral. Do not disable/reinstall audio unless measured resource contention justifies it. Audio may be unavailable during DDP, as operator authorized, but must recover on exit.
+- Run standalone audio→DDP30→stop/timeout→audio; repeat with40FPS if supported. Test effect changes, sender app quit/relaunch, Wi-Fi interruption/reconnect, explicit override and controller restart. Progress1→5→20 transitions after successful checks; capture state/heap/errors at endpoints. No RMT/I2S resources left orphaned and no downward heap trend.
+- If suspension is needed, base it on measured scheduling/memory evidence; verify capture/FFT shutdown and sample-boundary resume, pin/driver ownership and failure recovery. Do not reuse rejected2609082/091/092 merely because unit tests passed.
+- Acceptance: correct saved standalone preset/brightness, normal mic response after timeout, first resumed frames clean, no stalls/boot loops/ghost DDP source, all chains consistent. Report separately whether audio must stop during DDP.
+
+### `P1 · FIRM-043` Sustained acceptance, recovery and final handoff
+
+- Status: Backlog. Dependencies:039–042; operator available to define/observe final acceptance.
+- Run each selected mode for at least30minutes: Solid, moving DDP at accepted FPS, standalone audio. Record start/end and an observation at5minutes; extend to an hour if earlier faults appeared intermittently. Count flashes by chain, visible/recorded discontinuities, controller resets and stream interruptions. Monitoring must be bounded and its overhead stated.
+- Repeat after controller/LED power cycle and LOOUME restart; confirm exact driver/project/map/preset/audio settings. Verify documented rollback image and complete config restore remain available, without needlessly flashing the fallback again.
+- Final record: one chosen firmware/app/config set with hashes, tested FPS/brightness/content, microphone wiring, transition behavior, physical durations/counts and remaining limits. Zero observed flashes is scoped to those tests, not a guarantee. Any accepted nonzero rate needs the operator's explicit acceptance; never quietly redefine success.
+- Commit scoped changes locally; push/merge only through the permitted workflow. Update this quick-start state and `/home/mate/WLED-AUDIO-DDP-HANDOFF.md`, removing stale active-test instructions. Mark the overall goal complete only after both DDP motion and native audio meet the recorded acceptance.
+
 ### `P1 · FIRM-035` Isolate output allocation from the physical GPIO22 path
 
-- Status: Human Review (repeat observation finished; test allocation held for feedback). Owner: Codex; branch `codex/output-order-test`; worktree `/tmp/loo-ume-output-order-test`.
+- Status: Human Review (result received; restoration deferred while operator is away). Owner: Codex; branch `codex/output-order-test`; worktree `/tmp/loo-ume-output-order-test`.
 - Scope: user reports persistentGPIO22 flashes after power cycling2609094 with probes off. Perform a reversible configuration-only swap of theGPIO17/22 bus entries, retaining every per-pin setting and address range. Preserve firmware and all fallbacks. Independently inspect a DMA backend as a possible route to reliable DDP and native audio.
 - Acceptance: source confirms bus allocation follows list order while pixel addressing uses explicit start/length; private backup and exact restore; read-back changes only list order with probes off and DDP active;90s settling then explicit60s feedback window; restore and verify original LOOUME contract after the test. No diagnosis from merely improved appearance.
 - Plan: review source and reconnect constraints; prepare guarded apply/restore and address equivalence proof; verify changed RMT-to-GPIO allocation; run timed observation; restore original ordering; record evidence and next architecture decision. No new flash in this test.
 - Interpretation: movement towardGPIO17 supports an allocation/scheduling-related cause; persistentGPIO22 points toward a pin/chain-specific path but does not prove electrical failure. Order also changes allocation addresses and launch order, so this does not isolate the hardware RMT block alone. Native audio and moving-frame delivery remain required later acceptance tests.
 - Conflicts: TASKS.md, firmware/output-order/. Independent reviewer is read-only on existing firmware sources.
-- Progress: configuration-only allocation swap applied and verified; timed visual window completed with physical feedback pending. Full original cfg.json restored through supported upload/reboot, including inactive audio options omitted by the non-audio serializer. Original ordering/map/segment state and DDP verified. DMA architecture review found existing I2S1 output alongside I2S0 audio; capacity guard and explicit LOOUME drv1 contract are required before rollout. See firmware/output-order/README.md. No flash.
-- Repeat: user requested the allocation test again. Fresh private run `build/repeat-20260909-091533`; applied09:16:26.502UTC and verified identical intended allocation/per-pin mapping with DDP active and probes off.90s settling then explicit60s observation. Hold the test allocation until the user supplies feedback, then restore the exact original cfg.json. First-run evidence remains unchanged.
-- Repeat observation: announced around09:18:00UTC; clock start09:18:06, nominal stop09:19:06; finish announced and ending read-back passed. GPIO17/GPIO22 feedback pending; swapped allocation remains active by the stated protocol. No restoration for this repeat yet.
+- First run: configuration-only allocation swap applied and verified; first timed visual window was unreported. Full original cfg.json then restored through supported upload/reboot, including inactive audio options omitted by the non-audio serializer. Original ordering/map/segment state and DDP verified. DMA architecture review found existing I2S1 output alongside I2S0 audio; capacity guard and explicit LOOUME drv1 contract are required before rollout. See firmware/output-order/README.md. No flash.
+- Repeat: user requested the allocation test again. Fresh private run `build/repeat-20260909-091533`; applied09:16:26.502UTC and verified intended allocation/per-pin mapping with DDP active and probes off.90s settling then explicit60s observation. Initial plan was restore after feedback; subsequent instruction to keep this running while the operator is away defers restoration. First-run evidence remains unchanged.
+- Repeat result: announced around09:18:00UTC; clock start09:18:06, nominal stop09:19:06; finish announced and ending read-back passed. User reportsGPIO22 every1–4s,GPIO16 about6s, other chains solid. It did not move toGPIO17. User is leaving and wants this running; leave current allocation active and defer exact restore until an attended test. No restoration for this repeat yet.
 
 ### `P1 · FIRM-034` Measure submitted pixels and RMT refill timing
 
