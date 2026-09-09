@@ -121,8 +121,10 @@ DMA path,040 resolves moving-frame delivery,041 restores audio,042 checks mode
 transitions and043 provides sustained acceptance/recovery evidence. A persistent
 signal fault from038/039 must be resolved before a clean-output claim.
 
-**Current continuation:** GPT-6 Astra owns FIRM-036 in
-`/tmp/loo-ume-ddp-output-diagnostics`, branch `codex/ddp-output-diagnostics`.
+**Current continuation:** GPT-6 Astra completed the offline FIRM-040 candidate in
+`/tmp/loo-ume-ddp-dma-frames`, branch `codex/ddp-dma-frames`.
+FIRM-036 is committed at `0d97501`. FIRM-037 is committed at `25977c4`
+in `/tmp/loo-ume-ddp-driver-contract`, branch `codex/ddp-driver-contract`.
 The operator confirms quiet periods of 7–10 seconds before flashing returns.
 Short quiet periods do not establish stable output. Questions for the operator
 remain deferred: available signal measurement equipment, physical chain isolation,
@@ -166,7 +168,8 @@ candidate comparison, and standalone microphone response. Leave the device uncha
 
 ### `P1 · FIRM-037` Make LOOUME's driver contract explicit
 
-- Status: Ready (offline; execute after036's bounded slice). Scope: support selected drv1 without losing exact mapping checks; preserve existing drv0 projects and firmware bundles.
+- Status: Ready to Merge (offline application change), commit `25977c4`. Scope: selected driver persistence, bus-only switching, telemetry checks, and USB guards. Legacy RMT exports retain their format; DMA exports remain diagnostic without paired firmware.
+- Checks: 102 focused tests, four browser checks, static checks, full typed lint, WASM integrity, and desktop build passed. Existing USB browser test expects a different baseline BOOT label; recorded in the app board.
 - Inspect `src/wled/DeploymentContract.ts` (drv0 generation/validation) and `web/src/Esp32Setup.ts` (read-back compare); verify current app branch before editing. Record driver preference in the relevant authored/deployment contract, generated setup, validation and reconnect. Keep GPIOs, starts, counts, map identity and current limits authoritative. Do not silently accept any arbitrary config or report I2S as RMT.
 - Tests: existing RMT project reconnect, explicitly selected DMA reconnect, changed GPIO/length/map still rejected, driver round-trip/save/load, setup read-back and restart, original order retained. One simulator→DDP pass must remain intact for built-in and MadMapper sources.
 - Deliver: focused checks and reviewable app build using repository packaging workflow; retain review44 recovery. Remote publication remains subject to existing restriction. No broad UI redesign or requirement that operator reapply a project to conceal mismatch.
@@ -189,7 +192,13 @@ candidate comparison, and standalone microphone response. Leave the device uncha
 
 ### `P1 · FIRM-040` Add complete-frame DDP buffering with parallel DMA output to WLED
 
-- Status: Backlog; offline harness work can follow036/037. Physical acceptance depends on039's stable output.
+- Status: Ready to Merge (offline implementation only; physical acceptance remains open). Owner: GPT-6 Astra; branch `codex/ddp-dma-frames`; worktree `/tmp/loo-ume-ddp-dma-frames`. Physical acceptance depends on039's stable output.
+- Plan: implement bounded frame ownership and DMA-completion service; exercise the exact receiver/service code with host tests; build and verify an isolated candidate. Preserve audio and recovery images.
+- Conflicts: new `firmware/ddp-dma/` patch, queue, harness, receipt, and task records. Do not edit the preserved FIRM-036 source or application task files.
+- Result: candidate2609096 combines guarded DMA with three complete-frame buffers, latest-ready replacement, strict packet validation, timeout discard, and native recovery. Pixel painting checks allocation/suspension and uses WLED's service ownership flag. Address offsets and mapping remain in the WLED path.
+- Verification: queue concurrency/bounds tests and extracted receiver/service/lifecycle tests passed ASan/UBSan. Indexed mapping, busy output,30FPS simulated pacing,40FPS overload, allocation failure, suspension, override, and timeout tests passed. Pinned firmware build, source/ELF receipt, independent integration review, and all recovery image hashes passed.
+- Artifact: `build/firmware-ddp-dma/wled-audio-ddp-dma-2609096.bin`; receipt and reproduction under `firmware/ddp-dma/`. The queue object uses23720staticbytes. Runtime audio/DMA capacity is not verified. DMA completion telemetry observes data EOF, not physical LED latching.
+- Remaining work: restore035 with the operator present, then038/039 physical isolation and DMA comparison. Test040 moving DDP,041 standalone microphone effects,042 transitions, and043 sustained acceptance. No live change, publication, or integration occurred.
 - Operator request: combine complete-frame buffering with the guarded parallel DMA output from FIRM-036 inside WLED. Preserve standalone audio effects.
 - Frame boundary: start a complete frame at a controlled interval after the previous DMA transmission finishes. Keep output data unchanged during transmission.
 - WS2812 has no external VSYNC input. Use DMA completion and the required reset interval to control the software frame boundary.

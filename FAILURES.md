@@ -7,6 +7,15 @@ reveals a durable lesson.
 
 ## How to use this log
 
+### F-191 — A copied lifecycle test can hide source defects
+
+- **Date:** 2026-09-09
+- **Symptom:** initial DDP tests copied realtime lifecycle logic and used uniform colors to check a nontrivial LED map.
+- **Cause:** the test could pass without exercising the current entry, exit, and mapping behavior.
+- **Correction:** tests now extract the actual receiver, realtime lifecycle, notification prefix, painting guards, and realtime pixel function. Indexed RGB data checks every mapped output.
+- **Prevention:** compile the changed source in timing and ownership tests. State each simulated boundary. Use distinct pixel values to check addressing.
+- **Evidence:** FIRM-040 `firmware/ddp-dma/test-service.py` passes with ASan/UBSan, including allocation failure, suspension, offset mapping, timeout, and native override.
+
 ### F-159 — A package build did not prove Mac launch readiness
 
 - **Date:** 2026-09-05

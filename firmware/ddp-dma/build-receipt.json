@@ -1,0 +1,69 @@
+{
+  "status": "built-not-installed",
+  "buildId": 2609096,
+  "baselineBuildId": 2609095,
+  "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2",
+  "neoPixelBusCommit": "76afe832f74b0738a3fa1bba0caf389ade9e7693",
+  "versions": {
+    "platformVersion": "2026.02.30",
+    "frameworkVersion": "3.3.7+sha.b3b492ff",
+    "toolchainVersion": "15.1.0+20250607",
+    "esptoolVersion": "5.1.2"
+  },
+  "audioCompiled": true,
+  "audioSourceUnchanged": true,
+  "defaultDriverChanged": false,
+  "ddpReceiverChanged": true,
+  "memory": {
+    "queuePixelBytes": 23616,
+    "queueObjectBytes": 23720,
+    "dmaEncodedBytes": 51408,
+    "frontBytes": 7872,
+    "knownPixelBuffersTotalBytes": 82896,
+    "runtimeCapacityVerified": false,
+    "elfSize": "text\t   data\t    bss\t    dec\t    hex\tfilename\n1006941\t 175180\t  84109\t1266230\t 135236\t/tmp/loo-ume-ddp-dma-frames/build/firmware-source/.pio/build/orbital_esp32dev/firmware.elf"
+  },
+  "inputs": {
+    "wled00/e131.cpp": "e8b5baf938a6206af7d99dccd25e0b56b1abe237c0893d0f17e1cb6f48243505",
+    "wled00/udp.cpp": "d29d43d4258a4f65a6fbd92d92a3c7b7cdba041c44bfe67a6eaa75cbd0bc3b81",
+    "wled00/wled.cpp": "33b69db2eeea4cf1faab9c0af6bf73e731c371e434d33da772294a3ec0008c32",
+    "wled00/json.cpp": "f836e8aef8fd1ab8e044e0909f2cee6006df6d49f21944d8cc2ed464a2afcd73",
+    "wled00/wled.h": "efe1d51499dccc13b90f7cad8dbe6adff1e755d4b621cfe2fdc480352ddbcc08",
+    "wled00/FX_fcn.cpp": "327375f403c461823ed4f92ea83ffab0f3713b9f939590f1e4e5bc23cba40521",
+    "wled00/FX.h": "1784267e52fb4360b12199a2fdcdada31cb74e573728a9450bd731cfcb2efce9",
+    "wled00/DdpFrames.h": "7a88e26fb81836de790cb32e8eb6efb179b18f72ba8a5f8cf12ceb51686be756",
+    "wled00/loo_ddp.h": "d7513996ec21f6ebc9394c3341bda9a90b85c19ad6e231fb2dd3ca2df07b94b9",
+    "wled00/loo_ddp.cpp": "0b3fb10b72f192c30c44ce430b4c96573b74ea017e8781749af0048e578d6268",
+    "wled00/bus_wrapper.h": "e58e042c8192741f1057d494756b0eaaaaabbf6bb0dba331ce88b1fdb4c39a7f",
+    "wled00/bus_manager.cpp": "56129541cd7e1ee81410a797587186d91632a77271f50a9f0022a29edcbfc762",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/NeoPixelBus.h": "dc38c6e299872841d02f404d182d4ee39bcc4f319379ac8dc744d463d405cc23",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/NeoEsp32I2sXMethod.h": "662998efd3621f3de11aa4dad3d7952c0ce2cdae12c49b7b106a6a6aad76b031",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/Esp32_i2s.c": "b682e8271727fe9ba7499c39f1eaf8673883a94cf3320563f475ae228d576782",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/Esp32_i2s.h": "2fd893957bec649ccc24e535b5c38144545eae0feeebd45ea568a8ec7d97e825",
+    "wled00/loo_dma_status.h": "2a5c6fe5e0298006ccb0cae5c960dc153ce37e6f44656d125da65fd0ae13f147",
+    "wled00/loo_dma_status.cpp": "4e1ae7a8aabc231a0ae34d9d6ec1d794e70346e33c63846923fabcc27cab74fe",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/NeoEsp32RmtXMethod.h": "a05b6bff508c4390cd5988449cff72590405a20947d4003201ee363b41845995",
+    "usermods/audioreactive/audio_reactive.cpp": "aee744f400c9c96f2863ef87ce07be8b10d4df959a7a1be0dc2d074105a799ca",
+    "usermods/audioreactive/audio_source.h": "96ba38dc8702c344e2f39c8b5af53b431972a5e601866f201317e93b5880389f",
+    "platformio_override.ini": "9cea6317f15a2f96a4405d0fe26366d318f388c660b0491e2bdb9779850e29f2"
+  },
+  "scripts": {
+    "DdpFrames.h": "7a88e26fb81836de790cb32e8eb6efb179b18f72ba8a5f8cf12ceb51686be756",
+    "fake-wled.h": "a94b63cb1b9343f5148e1aa146f422ac50202d46192bb6753242d999f3d5f338",
+    "loo_ddp.cpp": "0b3fb10b72f192c30c44ce430b4c96573b74ea017e8781749af0048e578d6268",
+    "loo_ddp.h": "d7513996ec21f6ebc9394c3341bda9a90b85c19ad6e231fb2dd3ca2df07b94b9",
+    "patch.py": "503089dfa50067ae1114ee9edf3c066a2f493dba44d269b11a9d6825ccb63a6f",
+    "service-harness.cpp": "552f2aa45951d3e20c6fc0ac62fd286310f105dd84e42ab79cd8865fe7bc8390",
+    "test-queue.cpp": "b5457381e63e8231287758ae407de9b67d0793e9681035a4c79e1c7931c2fce1",
+    "test-service.py": "564cc348020eaffbc54eb81110a629791670231ec35dcb1c94867b51709c3f64",
+    "verify.py": "78aaf16d0a88d6576eed1bee06e9df839613d027809107b21c15eebba6ff1263"
+  },
+  "elfSha256": "71642b84ade172af307b1ec0adb5b2f451674d385c7c1f410eb9659a53698082",
+  "compileCommandsSha256": "29c10dd1f5ba6d2cd05cc87fa90a9a08fd2d8ff4e0919432db302de11c74f8f4",
+  "artifact": {
+    "name": "wled-audio-ddp-dma-2609096.bin",
+    "byteLength": 1154624,
+    "sha256": "d5e0d7d10febd7339f9623e5d5140f4f570ce390301efca9db893187f179a2d3"
+  },
+  "physicalAcceptance": "Pending attended DDP, audio, and memory checks; no live changes"
+}
