@@ -3142,6 +3142,23 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Prevention:** Do not select private replacement code from a release label alone. Account for LTO in map ownership. Follow reachable Xtensa basic blocks when checking calls; a linear disassembly can invent calls across unreachable zero padding.
 - **Status:** Verified by FIRM-034 build and independent review. This establishes diagnostic compatibility, not flicker-free output.
 
+### F-189 — A driver test selected a different DMA variant
+
+- **Date:** 2026-09-09
+- **Context:** The first DMA test checked source text. Its replacement selected four-step double buffering instead of the compiled three-step mono-buffer path.
+- **Correction:** Execute the actual selected classes with injected allocation failures, transfer-busy checks, and exact encoded-byte assertions. Verify the same variant in the ELF.
+- **Prevention:** Source matches and a passing test for another variant do not establish runtime failure recovery.
+- **Environment:** LeakSanitizer cannot run under host process tracing. Keep address and undefined-behavior checks enabled; use explicit allocation accounting for leaks.
+- **Status:** The selected 51,408-byte path passed executed failure, retry, encoding, reset, and ownership checks. Physical acceptance remains open.
+
+### F-188 — An older task board caused duplicate diagnostic preparation
+
+- **Date:** 2026-09-09
+- **Context:** Main and the reset diagnostic branch did not contain the latest firmware task state.
+- **Correction:** Read the active output-order task board before implementation. Stop duplicate probe work and continue FIRM-036 from the recorded evidence.
+- **Prevention:** Locate the latest related task worktree before assigning a new task ID or repeating a diagnostic.
+- **Status:** The current task branch includes the newer board. No duplicate diagnostic code or device changes remain.
+
 ### F-187 — A non-audio configuration write omits stored AudioReactive options
 
 - **Date:** 2026-09-09

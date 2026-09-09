@@ -121,6 +121,13 @@ DMA path,040 resolves moving-frame delivery,041 restores audio,042 checks mode
 transitions and043 provides sustained acceptance/recovery evidence. A persistent
 signal fault from038/039 must be resolved before a clean-output claim.
 
+**Current continuation:** GPT-6 Astra owns FIRM-036 in
+`/tmp/loo-ume-ddp-output-diagnostics`, branch `codex/ddp-output-diagnostics`.
+The operator confirms quiet periods of 7–10 seconds before flashing returns.
+Short quiet periods do not establish stable output. Questions for the operator
+remain deferred: available signal measurement equipment, physical chain isolation,
+candidate comparison, and standalone microphone response. Leave the device unchanged.
+
 ## Control rules
 
 1. Use stable task IDs in commits and handoffs.
@@ -147,7 +154,10 @@ signal fault from038/039 must be resolved before a clean-output claim.
 
 ### `P1 · FIRM-036` Prepare a guarded parallel-DMA candidate
 
-- Status: Ready (offline work allowed). Dependency: reuse exact-source DMA review in035. No live-device mutation while operator is away.
+- Status: Ready to Merge (offline candidate; physical acceptance remains in039). Owner: GPT-6 Astra; branch `codex/ddp-output-diagnostics`; worktree `/tmp/loo-ume-ddp-output-diagnostics`.
+- Result: audio-capable candidate 2609095 guards DMA/front/descriptor/interrupt allocation, releases a failed output group, and reports capacity/failure state. Defaults, original RMT, DDP receiver, and audio code remain unchanged.
+- Verification: exact three-step mono-buffer tests passed 140 injected failures and transfer ownership checks. Descriptor tests passed 20 failure/retry cycles. WLED group tests, source guards, firmware build, ELF/source receipt, and independent review passed. All three recovery image hashes match.
+- Artifact: `build/firmware-dma-output/wled-audio-dma-guarded-2609095.bin`; receipt and reproduction under `firmware/dma-output/`. No device changes or physical reliability claim. Continue037 offline.
 - Implement: existing classic ESP32 X8 I2S1 DMA backend, preserving pins/lengths/map and separate I2S0 mic. No Core downgrade is required. Keep RMT available for comparison/recovery. Do not enable a new default before validation.
 - Memory: longest lane needs51408 contiguous DMA bytes plus descriptors and7872front-buffer bytes. Report largest/free MALLOC_CAP_DMA block and actual allocation sizes; total freeheap117KB is insufficient proof. Trace all init/destruct/partial-failure callers. Eliminate null-buffer memset and unsafe use after failed allocation; propagate failure so HTTP/config recovery remains available, no boot loop or fake successful bus.
 - Tests: actual allocation failure injection, insufficient contiguous block, partial lane init/cleanup/retry, normal four-lane init, mono-buffer ownership (never edit active DMA), all lanes updated before start, reset/pulse encoding and bounds at704/640pixels. Verify exact compiled I2S1 path and recoverable RMT fallback. Add only low-cost task-context telemetry; no per-pixel logging.
@@ -177,9 +187,14 @@ signal fault from038/039 must be resolved before a clean-output claim.
 - Decision: clean DMA supports adopting the output backend; persistentGPIO22 routes back to038 and/or targeted encoded-buffer/wire capture. Do not add another audio-shutdown patch. Additional probes need a specific predicted observation and a probe-off control.
 - Acceptance: no observed wrong-color/black flashes across the agreed windows, correct addresses, stable memory and no resets. Report residual counts honestly and leave the goal open if they persist. Preserve fallback085 and exact settings recovery.
 
-### `P1 · FIRM-040` Make moving DDP frames complete and evenly presented
+### `P1 · FIRM-040` Add complete-frame DDP buffering with parallel DMA output to WLED
 
 - Status: Backlog; offline harness work can follow036/037. Physical acceptance depends on039's stable output.
+- Operator request: combine complete-frame buffering with the guarded parallel DMA output from FIRM-036 inside WLED. Preserve standalone audio effects.
+- Frame boundary: start a complete frame at a controlled interval after the previous DMA transmission finishes. Keep output data unchanged during transmission.
+- WS2812 has no external VSYNC input. Use DMA completion and the required reset interval to control the software frame boundary.
+- Recovery: discard incomplete frames and restore the saved standalone effect after the DDP timeout. Verify memory capacity for DMA, frame buffers, and audio.
+- Limit: buffering and DMA do not exclude signal or downstream hardware faults. Physical checks must confirm the combined result.
 - Reuse audit `/tmp/loo-ume-firmware-ddp-audit/docs/FIRMWARE_DDP_AUDIT.md` and experimental `/tmp/loo-ume-ddp-frame-boundary` (7ebf577). Its24.87 submissions/s is a diagnostic result, not baseline throughput; original rejection coincided with subsequently repaired hardware. Do not blindly reinstall it.
 - Trace network callback→PUSH→segment→bus ownership. Assemble/validate complete7872-byte RGB frames before publishing. Define bounded ready/in-flight ownership, incomplete-frame discard, sender restart, sequence wrap/zero semantics, timeout and latest-frame replacement under overload. Avoid boolean PUSH coalescing and autonomous native repaints presenting partial data. Keep native effect lifecycle correct on DDP exit.
 - Tests: real receiver/service harness with full6-packet frames; delayed/lost/duplicate/reordered/truncated packets; missing PUSH; sequence wrap/restart; frame-boundary publication while output busy; no deadlock/starvation or active-buffer mutation. Count received complete, invalid/incomplete, intentional superseded, presented and TX-completed separately. Fit frame buffers inside measured DMA+audio memory budget.
