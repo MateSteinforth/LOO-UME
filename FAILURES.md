@@ -7,6 +7,15 @@ reveals a durable lesson.
 
 ## How to use this log
 
+### F-192 — Repeated DMA accounting rejects a supported output group
+
+- **Date:** 2026-09-09
+- **Symptom:** Firmware2609096 reported DMA failure2, zero active lanes, and zero retained DMA memory on the controller.
+- **Cause:** `finalizeInit()` adds `BusConfig::memUsage()`, then `getBusSize()`, and also the common DMA estimate. The parallel path counts DMA repeatedly. The fourth output becomes a placeholder, which causes group cleanup.
+- **Correction:** Count each allocation once for the guarded four-output group. Include the reset tail and a descriptor reserve. Retain allocation guards and the existing memory limit.
+- **Prevention:** Test the WLED admission loop as well as the driver allocator. Zero retained allocation after cleanup does not identify an allocation failure.
+- **Evidence:** The host regression reproduces rejection and verifies corrected admission. Installed2609097 reports four active lanes,51408 DMA bytes,192 descriptor bytes, and failure0. Physical acceptance remains open.
+
 ### F-191 — A copied lifecycle test can hide source defects
 
 - **Date:** 2026-09-09

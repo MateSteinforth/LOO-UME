@@ -9,18 +9,59 @@ simulator and TouchDesigner DDP input.
 
 ## Active firmware handoff — read this first (2026-09-09)
 
+**Current live state:** Firmware2609097 is installed and uses four active DMA lanes.
+MAC2462abc9f3a8, IP192.168.68.53, normal GPIO order[16,17,21,22], and brightness128 are verified.
+The saved LED map matches the backup. DDP is active.
+DMA telemetry reports failure0,51408 allocated bytes, and192 descriptor bytes.
+The first read-back reports1158 presented and1158 completed frames, with no failed show.
+These counters establish software operation, not absence of physical flashes.
+The operator observation question is pending. Standalone microphone testing remains pending.
+Microphone processing remains disabled in the saved settings; audio code is compiled.
+The firmware build, memory regression test, DDP service test, and source/ELF checks pass.
+Artifact: `build/firmware-dma-budget/wled-audio-ddp-dma-2609097.bin`.
+SHA256: `1286d761c9067e5e878b2cc02f171e857bbfc5da10d9c3f40f3878d6ca9e022e`.
+Owner: GPT-6 Astra; branch `codex/ddp-dma-attended`; worktree `/tmp/loo-ume-ddp-dma-attended`.
+Keep LOOUME open during observation. Its older driver contract can reject DMA during reconnection.
+Next: record physical DDP observation, then check standalone audio and restart persistence.
+The recovery details below describe earlier states, not the current driver.
+
+**Latest attended recovery:** After the operator power cycle, read-back confirms
+firmware2609094 on MAC2462abc9f3a8. DDP is active. All four buses use RMT,
+in normal GPIO order[16,17,21,22]. Brightness remains128.
+Firmware2609096 ran before the restart, but its DMA initialization failed.
+Telemetry reported failure2, zero active lanes, and zero retained DMA allocation.
+Failure2 identifies group cleanup; it does not identify the failed allocation.
+The RMT recovery POST timed out before the operator restarted the controller.
+The older firmware returned; automatic rollback is possible but not yet proved.
+The operator reports flashes mainly onGPIO16 andGPIO22, with flashes on other chains too.
+Do not attribute this observation to working DMA. DMA operation was not confirmed.
+Private read-back evidence: `build/attended/power-cycle-{info,cfg,state}.json`.
+Next: identify the failed initialization stage and check firmware rollback before another DMA test.
+Source inspection now confirms repeated DMA accounting in `finalizeInit()`.
+The fourth bus exceeds the estimate limit and becomes a placeholder.
+Group cleanup then produces failure2 and zero retained DMA memory.
+Firmware2609097 corrects accounting only for the supported four-output DMA group.
+Owner scope now includes `firmware/dma-budget/`, its regression checks, and the attended build receipt.
+The regression agent owns only `firmware/dma-budget/test-budget.py`; the primary agent owns other files.
+The firmware return to2609094 remains unexplained. Do not report a confirmed automatic rollback.
+The older allocation-test state and restore instructions below are historical.
+Do not run their firmware2609094 restore script against a newer firmware.
+
 **Operator goal:** reliable, smooth LOOUME→DDP mirroring AND standalone
 microphone-reactive WLED effects on the same controller. Minimize flashes,
 aim for zero observed corruption. A lower flash rate alone is not a completed
 fix; report measured rates and let the operator accept any residual limit.
 Clean30FPS is the first motion target;40FPS is a subsequent measured target.
 
-**Latest instruction:** operator is leaving and wants to keep this running,
-then continue with a cheaper model. Leave the current live device/session
-unchanged while they are away. Offline inspection, implementation, builds and
-host tests can continue. Do not start physical tests, restore/reboot, change
-live configuration or flash while the operator is absent. Prepare concrete
-candidates for the next attended test. Do not infer physical results.
+**Latest instruction:** the operator has returned and still observes GPIO22 flashing.
+The operator confirms that chain swaps across channels were already tested and considers the hardware sound.
+Do not repeat the chain-swap request. Continue with the prepared firmware candidate.
+The allocation-test configuration was restored and verified: original output order,
+unchanged mapping/state, and active DDP. Attended firmware testing can resume.
+Owner: GPT-6 Astra; branch `codex/ddp-dma-attended`; worktree `/tmp/loo-ume-ddp-dma-attended`.
+Scope: guarded installation and DMA selection, saved configuration recovery, runtime read-back, and physical observation records.
+Plan: save a fresh private backup; install2609096; verify RMT and exact settings; select all four DMA lanes; verify allocation and observe output.
+The chain-swap report is operator evidence. Do not infer an unobserved scope or electrical measurement.
 
 **Current state — differs from the normal project order:**
 
