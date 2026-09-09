@@ -33,11 +33,11 @@ simulator and TouchDesigner DDP input.
 
 ### `P1 · FIRM-029` Combine IRAM refill with DDP capture suspension
 
-- Status: Human Review (installed; physical DDP result pending). Owner: Codex; branch `codex/audio-iram-ddp-suspend`; worktree `/tmp/loo-ume-audio-iram-ddp-suspend`. Conflicts: firmware/audio-reactive, TASKS.md, FAILURES.md.
+- Status: Human Review (rejected; rollback to 2609085). Owner: Codex; branch `codex/audio-iram-ddp-suspend`; worktree `/tmp/loo-ume-audio-iram-ddp-suspend`. Conflicts: firmware/audio-reactive, TASKS.md, FAILURES.md.
 - Scope: build 2609091 combines FIRM-028 callback placement and FIRM-026 capture lifecycle only. Preserve original DDP receiver, interrupt priority, GPIOs and lengths.
 - Evidence: operator repaired loose TX2 solder connection; original firmware standalone clean. Build 2609085 standalone and Gravimeter clean on all outputs; DDP still flashes GPIO16 and drops frames at 30/40 FPS.
 - Acceptance: guarded patches, capture lifecycle host checks, pinned build and IRAM symbol receipt; device read-back capture stopped during DDP; physical DDP and native resume checks. No claim of smoothness from host FPS.
-- Verification: C++ capture lifecycle test and exact patch checks passed; pinned build succeeded in 90.567 seconds; receipt verifies IRAM callback addresses and both images. Normal OTA installed 2609091; read-back confirms DDP active, I2S capture stopped for DDP, sound processing suspended, LED/realtime configuration and map unchanged. Operator visual result and audio resume remain pending.
+- Verification: C++ capture lifecycle test and exact patch checks passed; pinned build succeeded in 90.567 seconds; receipt verifies IRAM callback addresses and both images. Normal OTA installed 2609091; read-back confirms DDP active, I2S capture stopped for DDP, sound processing suspended, LED/realtime configuration and map unchanged. Operator reports severely worse GPIO16 flicker at 30 FPS with capture confirmed stopped. Candidate rejected; rollback to 2609085 verified; LED/realtime configuration and map preserved. Audio resume was not tested after the regression.
 
 
 ### `P1 · FIRM-028` Isolate AudioReactive RMT callback placement

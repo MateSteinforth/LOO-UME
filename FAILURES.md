@@ -3123,3 +3123,9 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - Date: 2026-09-09. During firmware comparisons, GPIO17 remained corrupted on the original non-audio firmware, after power cycling and with DDP off. A software pin-assignment swap did not move the corruption. These observations did not prove either a firmware or hardware fault.
 - Operator found and repaired a loose soldered TX2 connection. Original standalone playback became clean, then 2609085 standalone and audio playback passed on all chains. DDP flashes on GPIO16 and synchronous stutter remain separate unresolved observations.
 - Prevention: record physical repair boundaries and repeat the baseline. Do not label a controller pin defective from a logical assignment swap, and do not treat a prior failed experiment as a proven fix after hardware repair.
+
+### F-183 — Stopping I2S capture did not resolve DDP flicker with IRAM refill
+
+- Date: 2026-09-09. Build 2609091 combined the unchanged IRAM refill callback from 2609085 with the earlier capture-suspension patch. Host lifecycle checks, build, receipt and actual IRAM address checks passed. Device read-back confirmed capture stopped for DDP and sound processing suspended.
+- Operator observed severely worse GPIO16 flicker at 30 FPS. Reject this combination; passing capture-state checks does not establish LED timing stability or identify microphone activity as the cause. Roll back to 2609085 before further diagnosis.
+- Keep native/audio success on 2609085 separate from unresolved DDP frame completeness and pacing. Do not repeat capture suspension as a presumed fix.

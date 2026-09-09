@@ -1,5 +1,10 @@
 # AudioReactive firmware with four outputs
 
+**Rejected candidate:** 2609091 severely worsened GPIO16 flicker in DDP at
+30 FPS despite confirmed stopped capture. Do not promote this build.
+Rollback target is 2609085, which passed native/audio playback but still has
+DDP flashes and frame drops.
+
 FIRM-020 builds a separate classic ESP32 variant with AudioReactive enabled.
 It retains WLED commit `d9b9a846561227351ad929e3109781daadb7bed2` and the FIRM-019 RMT patch.
 Each LED output requests 128 symbols. Four outputs fit the 512-symbol RMT memory.
@@ -15,7 +20,8 @@ IRAM callback placement with the previously tested DDP capture suspension.
 Build 2609091 was installed through normal validated OTA on 2026-09-09.
 Read-back confirms DDP active, capture stopped for DDP, and sound processing
 suspended. LED/realtime configuration and mapping match the private backup.
-Physical DDP results and audio resume validation are pending.
+Operator reports severe GPIO16 flicker regression; native audio resume was not
+tested after this failure. Rollback to 2609085 verified; LED/realtime configuration and map preserved.
 
 ## Combined timing and capture test
 
