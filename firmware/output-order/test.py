@@ -5,11 +5,14 @@ import copy
 import datetime
 import hashlib
 import json
+import os
 import sys
 import urllib.request
 
 ROOT=Path(__file__).resolve().parents[2]
-DIRECTORY=ROOT/'build/device-test'
+RUN=os.environ.get('LOO_ORDER_TEST_RUN','device-test')
+assert RUN.replace('-','').replace('_','').isalnum(), 'Invalid run directory'
+DIRECTORY=ROOT/'build'/RUN
 BASE='http://192.168.68.53/'
 PINS=[16,17,21,22]
 TEST_PINS=[16,22,21,17]

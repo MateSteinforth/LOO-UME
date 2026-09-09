@@ -49,6 +49,29 @@ as well as RMT channel assignment, so it does not isolate one RMT block alone.
 LOOUME compares bus entries by index; restore the original order before an
 ordinary reconnect. It was kept running during this temporary test.
 
+## Operator-requested repeat
+
+The operator requested the same allocation test again. Separate private
+evidence is in `build/repeat-20260909-091533/`; the first run is preserved.
+Select that run with `LOO_ORDER_TEST_RUN=repeat-20260909-091533` when invoking
+`test.py`. Fresh prepare checks and fallback hash passed. Apply09:16:26.502UTC;
+read-back verified the same swapped allocation, DDP active, probes off, and
+unchanged physical mapping/segment state. The same known inactive-usermod
+serialization differences apply; exact full config restoration is prepared.
+
+Allow90seconds to settle before announcing a60-second observation. On this
+repeat, keep the test allocation active until the operator reports the result,
+then restore the original configuration. Keep LOOUME open during the temporary
+allocation. No result or stability claim exists yet.
+
+Repeat observation was announced around09:18:00UTC, clock start09:18:06 and
+nominal deadline09:19:06. The finish message was sent after a09:19:01 clock
+check and a short wait; the next clock check was09:19:21. Treat feedback as
+approximate intervals rather than exact one-minute counts. Ending read-back
+confirmed the intended swapped allocation and active DDP. The test allocation
+remains active while waiting for feedback; restore has not yet run for this
+repeat. Keep this state distinct from the restored first run.
+
 ## Independently reviewed route to reliable output
 
 The pinned code already compiles an eight-lane parallel I2S1 DMA backend for
