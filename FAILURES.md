@@ -3132,3 +3132,12 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Correction:** Record that audio is not necessary for all current corruption. Preserve the earlier observation as historical evidence, without treating it as a repeatable clean control or proof of an audio-only cause. The physical reason for the difference is unmeasured.
 - **Prevention:** Compare the same input and verified settings when isolating a firmware difference. Distinguish a reduction in flashes, clean sampled software pixels, and clean physical output. Do not use repeated audio shutdown as a substitute for inspecting the shared LED output path.
 - **Status:** Comparison documented; flicker and frame-drop fixes remain open.
+
+### F-186 — A release number did not identify the installed private RMT ABI
+
+- **Date:** 2026-09-09
+- **Context:** FIRM-034 needed a local transmitter override to measure refill timing.
+- **Evidence:** The installed SDK reports5.3.4.260127 and its package declares Tasmota IDF commit `b3b492ffc273f17f4ed3c83c19ed110cd6c73c7a`. Vanilla5.3.4 transmitter/private-header files differ. The exact source matches the package's private structure offsets and distinct behavior in archive disassembly.
+- **Correction:** Pin exact driver/header hashes, compile ABI size/offset assertions, keep the SDK archive unchanged, and require the final link map to attribute TX symbols to the local object without extracting the old TX object.
+- **Prevention:** Do not select private replacement code from a release label alone. Account for LTO in map ownership. Follow reachable Xtensa basic blocks when checking calls; a linear disassembly can invent calls across unreachable zero padding.
+- **Status:** Verified by FIRM-034 build and independent review. This establishes diagnostic compatibility, not flicker-free output.

@@ -31,6 +31,16 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-034` Measure submitted pixels and RMT refill timing
+
+- Status: Ready to Merge (diagnostic completed; flicker/audio/frame-drop goal remains open). Owner: Codex; branch `codex/rmt-output-probe`; worktree `/tmp/loo-ume-rmt-output-probe`.
+- Scope: user-authorized diagnostic2609094 based on2609093. Add runtime-controlled payload fingerprints and fixed DRAM RMT timing/status counters. Retain300us reset, original non-audio receiver, bus configuration and IRQ policy. Preserve2609085 and other controls.
+- Acceptance: match installed SDK source/ABI for driver probe; no ISR logging/allocation/CRC; no public/private handle guesses; measure probe cost; verified ELF/receipt and original controller settings;90seconds settling then a clearly marked60-second observation with feedback requested afterward.
+- Plan: validate SDK provenance independently; implement task-context payload checks and bounded telemetry; instrument exact transmitter; build/review and verify; install and run timed physical/telemetry comparison. No diagnosis from80us callback gaps alone.
+- Conflicts: TASKS.md and firmware/rmt-probe/. Separate reviewer owns only `/tmp/loo-ume-rmt-probe-sdk-audit`.
+- Verification: host fault-injection tests, exact private ABI assertions, final LTO source ownership, ISR IRAM/DRAM checks, retained bit/reset timing, image checksum and independent review passed. Installed2609094; full config exceptvid, map and brightness verified unchanged at installation and final read-back; DDP active. Three fallback hashes intact. Timing-only, measurement-off and separate CRC samples completed. CRC remains a separate measurement because it can change channel start spacing.
+- Result: timing-on user estimatesGPIO22 every1–2s andGPIO16 every4–5s. Sparse verified late refills do not explain the full observed rate. After90s settling with measurement off, user reportedGPIO22 every1–2s and no flashes on other outputs during the explicitly timed minute. Separate~57.68s CRC sample found2646completed comparisons/output with no changes or mutations. Collection off again08:51:32.746UTC; full evidence/limits in firmware/rmt-probe/RESULTS.md. Original fallback2609085 preserved. Save commits locally; remote push remains subject to the existing unresolved approval rejection and is not retried.
+
 ### `P1 · FIRM-033` Isolate the encoded RMT reset interval
 
 - Status: Ready to Merge (diagnostic completed; residual flashes remain). Owner: Codex; branch `codex/rmt-reset-gap-test`; worktree `/tmp/loo-ume-rmt-reset-gap-test`.

@@ -1,0 +1,64 @@
+{
+  "status": "built-not-installed",
+  "buildId": 2609094,
+  "baselineBuildId": 2609093,
+  "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2",
+  "neoPixelBusCommit": "76afe832f74b0738a3fa1bba0caf389ade9e7693",
+  "idfCommit": "b3b492ffc273f17f4ed3c83c19ed110cd6c73c7a",
+  "originalDriverSha256": "26227799fa83cfcc155e8e591e91d87822308519291bb8689007d7b0aa281f79",
+  "sdkArchiveSha256": "1063997f77febadc4b38b79880759cec95128164a96cd4897571009dd111dfe6",
+  "audioCompiled": false,
+  "rmtSymbolsPerOutput": 128,
+  "rmtClockHz": 40000000,
+  "resetMicroseconds": 300,
+  "txSymbolsFromLocalObject": [
+    "rmt_del_sync_manager",
+    "rmt_new_sync_manager",
+    "rmt_new_tx_channel",
+    "rmt_sync_reset",
+    "rmt_transmit",
+    "rmt_tx_register_event_callbacks",
+    "rmt_tx_switch_gpio",
+    "rmt_tx_wait_all_done"
+  ],
+  "probeIsrSymbols": {
+    "loo_probe_start": {
+      "address": "0x40081190",
+      "bytes": 162
+    },
+    "loo_probe_threshold_begin": {
+      "address": "0x40081234",
+      "bytes": 515
+    },
+    "loo_probe_threshold_end": {
+      "address": "0x40081438",
+      "bytes": 267
+    },
+    "loo_probe_done": {
+      "address": "0x40081544",
+      "bytes": 46
+    }
+  },
+  "inputs": {
+    "wled00/wled.h": "fc636c07237ab75719b3bc2a87813ffee9b0797c56155ce5505436ffb33468a7",
+    "wled00/json.cpp": "5da609d065b310c06a0d23257e7c683293b1885dd02436b4f683178fabf807c2",
+    "wled00/loo_probe_rmt_tx.c": "54ad1da1a179f9fba345e80914876d2e068d3cb873f5fc964e6a3a468fb453fc",
+    "wled00/rmt_private.h": "bf0e0256bbcc87129d532a4d4d8606e2f3bf818c50ccec96637514357a2d89d2",
+    "wled00/loo_rmt_probe.c": "a3a4108c96a2721f128110e96808747929f7f107ec1117d1f869c05761e3773a",
+    "wled00/loo_rmt_probe.h": "7ec58efdca3116e6ca41f589a452789681ea401d1927bee103b61b807d8aedc7",
+    "wled00/loo_rmt_probe_json.cpp": "73f67ee8e01535a3ba5710daa23698861e25b7e8622cdfdc7569ce633f75006b",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/NeoEsp32RmtXMethod.h": "3bf1b98a9f85649f891a205ab8f0836d10fb943021dcb460462b658a189e14f5",
+    "compile_commands.json": "552734140065f9bf49e93366f3cbf9c89a037a993a409e692f3a460c0e33d448"
+  },
+  "elfSha256": "f9c5bdce295aaa9ea20d0e4a35d0b4d36bbbee53d2c84c3b95ad8ee0fcc0c5a5",
+  "fallbacks": {
+    "/tmp/loo-ume-audio-rmt-iram/build/firmware-audioreactive/wled-audioreactive-rmt4-esp32.bin": "2d2194e8617d077d4f85567484eda801b0abe9249fca52c7fa8c852f7e6cd1e2",
+    "/home/mate/Documents/led-rhombicosidodecahedron/build/firmware-rmt4-2609051/wled-orbital-esp32dev.bin": "f84dbc5015dab45ada68e53a5968732458f19ae2b993238cfc183d2ca87aae55",
+    "/tmp/loo-ume-rmt-reset-gap-test/build/firmware-reset-gap/wled-nonaudio-reset300-2609093.bin": "752e485c34433d8dc3a1132d605e34618c919654f1ebf46b8b78fb63a3054f71"
+  },
+  "artifact": {
+    "name": "wled-nonaudio-rmtprobe-2609094.bin",
+    "byteLength": 1121280,
+    "sha256": "ed878276cd32084054d4af3ad47fb8e754525d1ebdbc3c93758bad3d4498c0fa"
+  }
+}

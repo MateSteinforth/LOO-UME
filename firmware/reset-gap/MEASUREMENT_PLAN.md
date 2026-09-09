@@ -1,6 +1,8 @@
 # Measure the remaining output corruption
 
-This is the reviewed design for a future diagnostic, not an implemented probe.
+This was the reviewed design for the diagnostic now implemented under
+`firmware/rmt-probe/`. See that directory for exact SDK provenance, runtime
+controls and limitations. The following records the pre-probe baseline.
 Current controller2609093 remains unchanged. The operator's latest estimate is
 one flash every2–3seconds onGPIO16 andGPIO22, other chains clean, during Solid.
 Earlier estimates ranged from1–2seconds to3–5seconds; GPIO22/PC02 was predominant.
@@ -87,8 +89,14 @@ Preserve the original shared toolchain and use an isolated build.
 
 ## Exact source reference points from the independent review
 
-Matching IDF5.3.4 `rmt_tx.c` was inspected at
+Vanilla IDF5.3.4 `rmt_tx.c` was initially inspected at
 `/tmp/loo-ume-firmware-ddp-audit/build/idf-source/rmt_tx.c`:
+
+That file is not byte-identical to the installed package and must not be used
+as the replacement driver. The subsequent exact-source audit identified
+Tasmota IDF commit `b3b492ffc273f17f4ed3c83c19ed110cd6c73c7a`; the probe patch
+pins that driver's hash and checks the installed ABI. Line references below
+describe the initial audit copy only.
 
 - Lines322–330: half threshold and wrap enabled.
 - Lines722–730:128-symbol preload, then next `mem_end=64`.
