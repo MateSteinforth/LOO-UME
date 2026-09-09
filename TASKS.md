@@ -15,7 +15,13 @@ MAC2462abc9f3a8, IP192.168.68.53, original GPIO order, mapping, and brightness12
 The operator reports good DDP mirroring on this exact RMT/audio configuration.
 A91s sample measured29.21 complete frames/s and25.63 presented frames/s; about3.57 frames/s were replaced before presentation.
 The30-frame target remains unmet. Do not equate the positive visual report with zero frame loss.
-Standalone audio testing is next. The operator has been asked to stop mirroring so the native effect can run.
+The operator confirms DDP mirroring looks great, then confirms standaloneGravimeter132 also looks great after stopping LOOUME.
+Native read-back verifies no DDP, effect132, unfrozen segment, microphone processing, and reported43FPS.
+The operator reports glitchy mirroring when LOOUME restarts after standalone audio.
+The latest capture was already back in standalone mode, so the failing transition is not yet captured.
+Bus and live settings match the working DDP configuration; `lor` is0 in that inactive capture.
+Current work: capture the active failure and distinguish startup-only corruption from sustained corruption before another firmware change.
+The operator has been asked to leave mirroring running for that capture. Preserve RMT and the accepted standalone effect.
 The microphone uses Generic I2S, SD32, WS26, CK27, MCLK-1, with the previous gain/settings restored.
 Firmware2609099 passed the build and focused expiry/service regressions.
 Its DMA trial failed: the operator reported severe corruption across outputs.
