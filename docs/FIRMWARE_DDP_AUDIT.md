@@ -1,14 +1,18 @@
 # FIRM-031: independent DDP/audio firmware audit
 
-Date: 2026-09-09. Controller remained on 2609085 throughout this audit. No OTA,
-configuration write, LED stream injection, or physical wiring change was made.
+Date: 2026-09-09. The initial FIRM-031 audit was read-only and preserved 2609085.
+FIRM-032 follow-up tests below include reversible configuration changes and an
+operator-requested return to original non-audio 2609051. No firmware source,
+LED mapping, or physical wiring was changed.
 
 ## Conclusion
 
-The leading testable explanation for the wrong-color flashes is an insufficient
-LED reset/latch interval under repeated DDP refreshes. The selected WS2812x speed
+An insufficient LED reset/latch interval remains a testable explanation, but
+the subsequent solid-color timer test weakens it as the sole explanation.
+The selected WS2812x speed
 class declares 300 microseconds, but the actual Core 3 RMT encoder emits only
-50 microseconds. This is confirmed in both source and the compiled 2609085 ELF.
+50 microseconds. This is confirmed in source and both compiled 2609085 and
+2609051 ELFs. Thus it is not a change introduced by adding AudioReactive.
 
 Independently, the DDP receiver does not preserve complete-frame ownership. The
 normal animation timer can present partially received frames, and notifications
@@ -16,9 +20,10 @@ can collapse. These are reproducible code behaviors and plausible contributors
 to tearing and uneven motion. Their physical contribution has not been measured.
 
 Neither finding yet establishes the sole cause of every observed symptom.
-In particular, the non-audio build also has the short-reset driver and previously
-had clean DDP. Its actual inter-transmission idle time was not measured. Do not
-attribute that comparison to audio CPU load alone.
+The repeated Solid comparison now also produces fewer, occasional flashes on
+original non-audio 2609051. Audio is therefore not required for all observed
+corruption. Audio build/runtime differences can aggravate a shared output fault;
+that mechanism and actual inter-transmission idle time remain unmeasured.
 
 ## Preserved baseline
 
@@ -34,6 +39,66 @@ attribute that comparison to audio CPU load alone.
 - Source and ELF root: `/tmp/loo-ume-audio-rmt-iram/build/firmware-source`.
 - Repaired TX2 solder fault is separate. The failed 2609091/2609092 shutdown
   experiments and GPIO16 length reduction are not accepted fixes.
+
+## Follow-up physical tests — FIRM-032
+
+These results supersede the initial ranking of hypotheses. Software preview
+samples read WLED's pixel buffer before the LED output path. They sample every
+third pixel at roughly 60 ms intervals; they cannot exclude corruption of other
+pixels, brief transients, or later output stages. Their collection briefly adds
+network work and each subscription was closed after the bounded capture.
+
+1. **Suppress native timer refreshes.** Temporarily setting `hw.led.fps` from 42
+   to 1 retains PUSH-triggered DDP output. First comparison: reported show rate
+   fell from 47 to 31; the operator reported a slight reduction but continuing
+   flashes. The source effect during this first comparison was not independently
+   confirmed. Restoring 42 produced complete original config/map equality.
+2. **Repeat with verified Solid.** Before and during the same timer change,
+   two captures each contained 40 frames of 874 sampled pixels, all `ff3201`.
+   The operator still saw wrong-color flashes, predominantly GPIO16 with some
+   on other chains, and reiterated that non-audio firmware had been clean.
+   Restored 42 and verified full original config/map equality. Ordinary mixing
+   of identical frames does not explain those colors. Short reset intervals,
+   late RMT refills, and corruption later in software remain unmeasured.
+3. **Exclude audio initialization on the same binary.** Booted 2609085 with
+   `um.AudioReactive.enabled=false` and `digitalmic.type=255`. Source setup
+   explicitly treats 255 as no audio source, does not install the microphone
+   driver, and skips FFT task creation. Setting only `enabled=false` would still
+   initialize the microphone driver. LED buses initialize before the usermod.
+   This differs from stopping or unloading audio after its initialization.
+   Full config differed only in these two values; LED mapping and brightness
+   were unchanged. DDP resumed. The operator reported flashes still present
+   but much reduced. This is not a complete fix, and the improvement does not
+   isolate IRQ activity from memory allocation or startup state.
+4. **Reinstall original non-audio 2609051.** The operator explicitly requested
+   this comparison with the same Solid stream. Verified the preserved image
+   hash and installed it through WLED's validated OTA. Device identity/build,
+   original LED/realtime settings, mapping, and brightness 128 were verified.
+   DDP resumed. A third 40-frame preview contained 34,960 sampled pixels, all
+   `ff3201`. **The operator reports some remaining flashes, predominantly whole
+   GPIO16 black/blue frames, with fewer flashes than the multiple blue lines
+   seen with audio.** Thus the previously clean non-audio result did not repeat
+   under the current Solid test. It cannot be used as proof that every flash
+   requires audio activity or the audio build. The observations are qualitative;
+   no per-frame error count or waveform capture was made.
+
+Original non-audio application SHA-256:
+`f84dbc5015dab45ada68e53a5968732458f19ae2b993238cfc183d2ca87aae55`.
+The preserved 2609085 application hash remains unchanged as listed above.
+No new firmware was built for these comparisons.
+
+Private evidence directories (not committed; may contain device secrets):
+
+- `/tmp/loo-ume-ddp-timer-test-20260909-092405`
+- `/tmp/loo-ume-solid-preview-1788939004008`
+- `/tmp/loo-ume-audio-cold-off-20260909-073913`
+- `/tmp/loo-ume-nonaudio-solid-20260909-074243`
+
+Current device is 2609051, DDP active, native timer 42. Audio is unavailable on
+this comparison firmware. When returning to 2609085, apply the original audio
+settings from the cold-off directory's `restore.json` (also copied as
+`restore-audio-config.json` in the non-audio evidence directory), then reboot.
+The temporary no-source setting must not become the normal audio configuration.
 
 ## 1. Actual reset interval differs from the selected speed
 
@@ -51,6 +116,11 @@ Paths below are relative to the source root. `NPB` means
   `0x400e8595`: two low intervals of 1000 ticks. At the configured 40 MHz,
   2000 ticks are exactly 50 microseconds. The ELF also shows the encoder object
   being zeroed; there is no uninitialized encoder-state finding.
+- The original 2609051 ELF's Ws2812x `Initialize()` is at `0x400e1e24`.
+  It also allocates 128 symbols, selects 40 MHz, loads the reset literal
+  `0x03e803e8` at `0x400e1ea8`, and stores it at `0x400e1ead`.
+  Its refill wrapper is flash-resident at `0x400e61c0`; 2609085 moved that
+  wrapper into IRAM. Both use the Core 3 RMT driver for the configured RGB bus.
 
 The manufacturer's [WS2812B-V5/W datasheet, page 3](https://datasheet.lcsc.com/datasheet/pdf/3795cfb9d54f7ec8ecc0b043ede3c05a.pdf?productCode=C2846931)
 specifies a reset low interval greater than 280 microseconds. The installed LED
@@ -76,7 +146,8 @@ restarts. Its reset low can approach 50 microseconds plus software overhead.
 Shorter buses have already finished and ordinarily receive extra idle time while
 the caller waits for GPIO16. Actual start skew and software costs are unmeasured.
 
-This accounts for the direction of several observations:
+This could account for the direction of several earlier observations, but the
+follow-up timer/solid result above weakens it as a complete explanation:
 
 - Native animation uses a roughly 23 ms cadence and can leave ample reset time.
 - DDP PUSH triggers can request output sooner than the native cadence and bring
@@ -217,6 +288,15 @@ shutdown rewrite and then infer which change mattered.
 ## Remaining uncertainty
 
 There is no proven zero-drop throughput measurement, wire capture, or confirmed
-installed LED revision. The exact reason non-audio 2609051 had no visible flashes
-remains open. Physical tests above have been prepared but not executed. No fix
-is claimed, and 2609085 remains the untouched fallback.
+installed LED revision. The renewed non-audio comparison also shows flashes;
+why the earlier observation was clean is unknown. Both builds share the short
+reset and refill-driven output driver. The next discriminating firmware change
+would alter only the encoded reset duration to the selected speed's 300
+microseconds, preserving the receiver and audio lifecycle. Ideally capture the
+actual GPIO16 waveform or instrument refill deadlines and transmit errors to
+separate reset failure from delayed refill. A longer reset is a test candidate,
+not a promised fix or evidence of complete-frame delivery.
+
+No further firmware change has been built or installed. The controller remains
+on original 2609051 for comparison, and the 2609085 application remains the
+untouched fallback with its original microphone settings saved for restoration.

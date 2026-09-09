@@ -3123,3 +3123,12 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Correction:** Generate the compilation database before the final build. Use a fresh cache to restore missing compiler dependency evidence.
 - **Prevention:** Check the final ELF, dependency files, and image hashes after all build targets finish. Preserve the matching evidence before cleanup.
 - **Status:** The build procedure records the required order. Physical firmware tests remain separate from compiler evidence.
+
+### F-185 — An earlier clean firmware observation did not repeat with Solid
+
+- **Date:** 2026-09-09
+- **Context:** Repeated audio shutdown experiments followed earlier reports of clean non-audio DDP.
+- **Evidence:** FIRM-032 reinstalled the exact preserved non-audio 2609051 image with the current Solid stream. Identity, LED/realtime settings, mapping and brightness matched; sampled software pixels were uniformly `ff3201`. The operator still observed occasional whole-GPIO16 black/blue flashes, fewer than with audio.
+- **Correction:** Record that audio is not necessary for all current corruption. Preserve the earlier observation as historical evidence, without treating it as a repeatable clean control or proof of an audio-only cause. The physical reason for the difference is unmeasured.
+- **Prevention:** Compare the same input and verified settings when isolating a firmware difference. Distinguish a reduction in flashes, clean sampled software pixels, and clean physical output. Do not use repeated audio shutdown as a substitute for inspecting the shared LED output path.
+- **Status:** Comparison documented; flicker and frame-drop fixes remain open.

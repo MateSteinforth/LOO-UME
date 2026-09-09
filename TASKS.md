@@ -31,6 +31,16 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-032` Compare firmware using repeated solid DDP frames
+
+- Status: Ready to Merge (comparison documented; flicker and frame drops remain unresolved). Owner: Codex; branch `codex/firmware-solid-comparison`; worktree `/tmp/loo-ume-firmware-solid-comparison`.
+- Scope: document the operator-authorized tests following FIRM-031; preserve both original firmware artifacts and configuration backups. No firmware source changes.
+- Acceptance: distinguish identical-frame corruption from ordinary frame mixing; compare timer suppression, audio excluded at boot, and original non-audio firmware; verify device identity, LED/realtime settings, brightness and map after each change. Record physical observations without claiming a fix from software read-back.
+- Conflicts: TASKS.md and docs/FIRMWARE_DDP_AUDIT.md. The implementation/audit task branches remain preserved.
+- Result: timer suppression did not remove flashes; booting 2609085 with no audio source reduced them but did not remove them. Original 2609051 also produced occasional flashes: predominantly whole-chain black/blue frames on GPIO16, fewer than the multiple blue lines seen with audio. This replaces the assumption that non-audio eliminates all flashes under current conditions. Both artifact hashes are unchanged. See the audit's follow-up results.
+- Verification: full configuration/map comparisons for reversible settings tests; original LED/realtime configuration, map and brightness verified after OTA. Three solid preview runs each sampled 34,960 identical `ff3201` pixels. Operator supplied physical observations for all comparisons. Original microphone settings must be restored and the controller rebooted when returning to 2609085.
+- Delivery: documentation only, no production changes or new firmware build. Publication remains local because repository publication review from the prior task is unresolved; no remote write attempted.
+
 ### `P1 · FIRM-031` Independently audit DDP ownership and timing
 
 - Status: Ready to Merge (audit only; physical diagnosis remains pending). Owner: Codex; branch `codex/firmware-ddp-audit`; worktree `/tmp/loo-ume-firmware-ddp-audit`.
