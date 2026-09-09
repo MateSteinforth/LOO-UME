@@ -99,13 +99,14 @@ for (const name of [
 const wledHeader = await readFile(resolve(source, "wled00/wled.h"));
 assert.equal(
   sha256(wledHeader),
-  "f027a11833bd4f6a687adfa2455dc515f71ffa9f229fb842bb4ff1a28b21603b",
+  "3f4278cb064a37e087acfb5ebced9fa33c9c3bc8a5e018c423c4c4a48a78c0dd",
 );
 const fft = await json(
   resolve(source, ".pio/libdeps/orbital_esp32dev/arduinoFFT/library.json"),
 );
 assert.equal(fft.version, "2.0.1");
-receipt.target.buildId = 2609085;
+receipt.status = "built";
+receipt.target.buildId = 2609092;
 const callbacks = symbols.split("\n").filter(line => line.includes("loo_rmt_encode_led_strip") || /\brmt_encode_(bytes|copy)$/.test(line));
 assert.ok(callbacks.length >= 3, "The shared refill and IDF encoder callbacks must remain in the ELF.");
 for (const line of callbacks) {
@@ -145,6 +146,18 @@ receipt.inputs.audioReactive = {
   fftVersion: fft.version,
   compileCommandsSha256: sha256(commandsBytes),
   elfSha256: sha256(await readFile(elf)),
+};
+const deepInputs = {};
+for (const name of ["audio_source.h", "audio_reactive.cpp", "DeepAudioSleep.h"]) {
+  deepInputs[name] = sha256(await readFile(resolve(source, "usermods/audioreactive", name)));
+}
+assert.equal(deepInputs["audio_source.h"], "d78579389de352f6df2fc9c784d05e2d3920f3a25768f497694810b507cdbe64");
+assert.equal(deepInputs["audio_reactive.cpp"], "e327e4f2d6dfff57f876cf7a0132a9bd9f736740793972211c6d88e63955d9c1");
+assert.equal(deepInputs["DeepAudioSleep.h"], "23b7ac152b775b044863d97d02d34ef0969c9c02095f7faa3141489f74403adf");
+receipt.inputs.audioReactive.deepSleep = {
+  behavior: "worker uninstalls I2S then blocks indefinitely on notification; retains task memory and pin reservations",
+  sourceHashes: deepInputs,
+  patchScriptSha256: sha256(await readFile(resolve(variant, "patch-deep-sleep.mjs"))),
 };
 for (const [field, name] of [
   ["artifact", "wled-audioreactive-rmt4-esp32.bin"],

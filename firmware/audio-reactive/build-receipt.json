@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.2.0",
-  "status": "built-not-flashed",
+  "status": "built",
   "target": {
     "board": "ESP32-DevKitC V4",
     "module": "ESP32-WROOM-32E-N4",
@@ -26,7 +26,7 @@
       }
     },
     "releaseName": "ESP32",
-    "buildId": 2609085
+    "buildId": 2609092
   },
   "inputs": {
     "pipZipapp": {
@@ -39,9 +39,9 @@
     "wledBuildNumber": {
       "header": "wled00/wled.h",
       "originalHeaderSha256": "e75b06ba221bade02978200bda453e45054b34e45300aa5a83eead35ae336ca9",
-      "patchedHeaderSha256": "f027a11833bd4f6a687adfa2455dc515f71ffa9f229fb842bb4ff1a28b21603b",
+      "patchedHeaderSha256": "3f4278cb064a37e087acfb5ebced9fa33c9c3bc8a5e018c423c4c4a48a78c0dd",
       "patchScript": "firmware/audio-reactive/patch-build-id.mjs",
-      "patchScriptSha256": "77722f83b261d384552010e018c63c75d8c587188ee3371bd3ca67918a0503ca"
+      "patchScriptSha256": "c23f75a58cead69616ed9cd287332a1eb2c42b1f4136769259d4b79392c1e47d"
     },
     "neopixelBus": {
       "commit": "76afe832f74b0738a3fa1bba0caf389ade9e7693",
@@ -64,21 +64,30 @@
     "sourceArchiveSha256": "42f12c1b286030301dde811079386e99cbe6590989c7b45daa323bb0495fa8d1",
     "audioReactive": {
       "source": "usermods/audioreactive/audio_reactive.cpp",
-      "sourceSha256": "aee744f400c9c96f2863ef87ce07be8b10d4df959a7a1be0dc2d074105a799ca",
+      "sourceSha256": "e327e4f2d6dfff57f876cf7a0132a9bd9f736740793972211c6d88e63955d9c1",
       "fftVersion": "2.0.1",
-      "compileCommandsSha256": "b3f8c7429d3a1e17a2b7f1b5d53ea8107d89967f3afe722983ea907a7649139e",
-      "elfSha256": "766003809159fade37de9ce60b9d7def99c0a2e4b713165f1d6fac562bc21626"
+      "compileCommandsSha256": "5991ba3380d24cc562e64a40fd2c4a17983d3e4b41769337c0a7c82fffb0163f",
+      "elfSha256": "cac2aaca24d825dd3b8d61ec841323e212af7db1be3b76a963bfa6537d770d77",
+      "deepSleep": {
+        "behavior": "worker uninstalls I2S then blocks indefinitely on notification; retains task memory and pin reservations",
+        "sourceHashes": {
+          "audio_source.h": "d78579389de352f6df2fc9c784d05e2d3920f3a25768f497694810b507cdbe64",
+          "audio_reactive.cpp": "e327e4f2d6dfff57f876cf7a0132a9bd9f736740793972211c6d88e63955d9c1",
+          "DeepAudioSleep.h": "23b7ac152b775b044863d97d02d34ef0969c9c02095f7faa3141489f74403adf"
+        },
+        "patchScriptSha256": "e37322bb27094246c4d594ed57654c379c74d8a8eb0044444c569835e4233f44"
+      }
     }
   },
   "artifact": {
     "name": "wled-audioreactive-rmt4-esp32.bin",
-    "byteLength": 1149296,
-    "sha256": "2d2194e8617d077d4f85567484eda801b0abe9249fca52c7fa8c852f7e6cd1e2"
+    "byteLength": 1149632,
+    "sha256": "cbb8f213e84586244f69eeaa5f8f99728b76b0e7a0d8c5e8182c8189e2d07cc2"
   },
   "fullFlashArtifact": {
     "name": "wled-audioreactive-rmt4-esp32-full-flash.bin",
-    "byteLength": 1214832,
-    "sha256": "07a537fba33d700621d7aa30bccf22fd70a2be9f285b523eac5491ecb291e1cc",
+    "byteLength": 1215168,
+    "sha256": "1b46eba97f2d25ce8e0e7b07183b4ae718921eac65a66172e42feee9e81ec480",
     "flashAddress": 0,
     "eraseAll": true,
     "flashMode": "dio",

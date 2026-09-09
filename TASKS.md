@@ -31,6 +31,15 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-030` Cooperatively unload audio during DDP
+
+- Status: Human Review (installed; physical result and native resume pending). Owner: Codex; branch `codex/audio-ddp-deep-sleep`, worktree `/tmp/loo-ume-audio-ddp-deep-sleep`. Conflicts: firmware/audio-reactive and task documentation.
+- Scope: build2609092 based on2609085 IRAM callback. Worker owns driver uninstall/reinstall at sample boundaries, then blocks on task notification without periodic wakeups. Retain task/FFT memory and pin reservations. No DDP receiver changes.
+- Evidence:2609085 native/audio clean; DDP flicker remains. Capture-stop2609091 severely worsened flicker and was rolled back. GPIO16 reduction704->640 spread flicker to other chains; original704 restored. TX2 solder issue separately repaired.
+- Acceptance: race-safe request/wakeup lifecycle, bounded reads, driver failure handling, host tests of actual implementation, build/IRAM receipt, device status confirms driver unloaded and worker parked during DDP; visual checks and native resume.
+- Verification: actual C++ lifecycle/driver methods passed1000cycles, repeated/coalesced requests and install/uninstall/pin/clock/cleanup failures. Pinned build90.607s and IRAM/image receipt passed. Validated OTA installed2609092; device confirms DDP active, Audio driver unloaded, FFT task blocked, sound processing suspended; LED/realtime config and map unchanged. Physical flicker, frame drops and native resume are not yet validated.
+
+
 ### `P1 · FIRM-028` Isolate AudioReactive RMT callback placement
 
 - Status: Human Review (built, not installed; baseline recovery pending). Owner: Codex; branch `codex/audio-rmt-iram`; worktree `/tmp/loo-ume-audio-rmt-iram`.

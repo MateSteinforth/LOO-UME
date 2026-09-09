@@ -17,6 +17,6 @@ const before = "#define VERSION 2607201";
 const text = original.toString("utf8");
 if (text.split(before).length !== 2)
   throw new Error("Expected one build number.");
-const patched = text.replace(before, "#define VERSION 2609085");
+const patched = text.replace(before, "#define VERSION 2609092");
 await writeFile(path, patched);
-console.log(`Build 2609085 source: ${sha256(patched)}`);
+console.log(`Build 2609092 source: ${sha256(patched)}`);
