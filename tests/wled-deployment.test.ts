@@ -79,6 +79,7 @@ describe("guarded WLED deployment contract", () => {
       };
     };
     expect(config.hw.led).toMatchObject({ total: 2624, maxpwr: 0 });
+    expect(config.hw.led.ins.map((bus) => bus.drv)).toEqual([0, 0, 0, 0]);
     expect(
       config.hw.led.ins.map((bus) => ({
         start: bus.start,
@@ -168,6 +169,41 @@ describe("guarded WLED deployment contract", () => {
         bundle.deploymentIdentity,
       ),
     ).not.toThrow();
+  });
+
+  it("keeps parallel I2S as diagnostic output until its paired firmware exists", async () => {
+    const { contract, sculptureBytes } = await fixture();
+    const dma = {
+      ...contract,
+      wiring: {
+        ...contract.wiring,
+        controller: {
+          ...contract.wiring.controller!,
+          ledDriver: "parallel-i2s" as const,
+        },
+      },
+    };
+    const rmt = createWledDeploymentBundle(contract, sculptureBytes);
+    const bundle = createWledDeploymentBundle(dma, sculptureBytes);
+    expect(bundle.mode).toBe("diagnostic");
+    expect(bundle.files.has("wled/cfg.json")).toBe(false);
+    expect(JSON.parse(bundle.manifestBytes)).toMatchObject({
+      ledDriver: "parallel-i2s",
+    });
+    expect(bundle.deploymentIdentity).not.toBe(rmt.deploymentIdentity);
+    expect(JSON.parse(bundle.manifestBytes).mappingFingerprint).toBe(
+      contract.fingerprint,
+    );
+    expect(() =>
+      validateWledDeploymentBundle(
+        bundle.manifestBytes,
+        fileRecord(bundle.files, sculptureBytes),
+        bundle.deploymentIdentity,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      createWledDeploymentBundle(dma, sculptureBytes, "installation"),
+    ).toThrow(/paired guarded firmware receipt/);
   });
 
   it("uses diagnostic-only names for draft or explicitly diagnostic output", async () => {

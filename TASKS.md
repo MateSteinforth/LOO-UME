@@ -31,6 +31,20 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-037` Make the selected LED driver explicit
+
+- Status: Ready to Merge (offline application change). Owner: GPT-6 Astra; branch `codex/ddp-driver-contract`; worktree `/tmp/loo-ume-ddp-driver-contract`.
+- Dependency: FIRM-036 candidate 2609095 passed offline checks at `0d97501`. The current firmware plan is in `/tmp/loo-ume-ddp-output-diagnostics/TASKS.md`.
+- Scope: save an explicit RMT or parallel-I2S preference in the project. Generate and verify the selected driver without weakening address or device checks.
+- Acceptance: legacy projects retain RMT; selected DMA survives save/load and setup; failed DMA initialization rejects reconnect; GPIO/count/map differences still reject reconnect.
+- Plan: extend the authored/deployment contract; add one driver control; test setup, persistence, reconnect, and the existing DDP path.
+- Conflicts: controller schema, deployment generation, ESP32 setup, browser orchestration, and focused tests. Firmware worktree remains unchanged.
+- Limits: leave the live controller unchanged while the operator is away. Physical DDP/audio checks and publication remain pending.
+- Result: saved driver preference, bounded bus-only switching, runtime DMA verification, and USB preflight guard are implemented. DMA packages remain diagnostic until paired firmware is available.
+- Checks: 102 focused tests passed across seven files after fixture correction. Four browser checks passed for driver restoration and audio controls. Format, fast lint, type checking, full typed lint, WASM integrity, and the desktop build passed.
+- Existing failure: unchanged `tests/browser/esp32-setup.spec.ts:17` expects `HOLD BOOT`; baseline `web/src/main.ts` starts with `BOOT RELEASED`. This task does not change that initial state.
+- Handoff: local review only. No controller write, flash, merge, or publication occurred. Continue offline FIRM-040 from the firmware task board.
+
 ### `P1 · FIRM-025` Select DDP rate for physical comparison
 
 - Status: Ready to Merge. Owner: Codex; branch `codex/ddp-rate-control`; worktree `/tmp/loo-ume-ddp-rate-control`. Base: review 43.

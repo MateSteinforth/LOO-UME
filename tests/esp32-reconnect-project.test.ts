@@ -49,6 +49,7 @@ describe("ESP32 startup project", () => {
       ),
     );
     const definition = setWiringOutputGpios(source, [16, 17, 21, 22]);
+    definition.wiring.controller.ledDriver = "parallel-i2s";
     const profile = new Uint8Array(
       await readFile("catalog/panels/ws2812b-8x8-66x65.json"),
     );
@@ -76,6 +77,9 @@ describe("ESP32 startup project", () => {
       expect(
         bundle?.project.sculpture.wiring?.outputs?.map((output) => output.gpio),
       ).toEqual([16, 17, 21, 22]);
+      expect(bundle?.project.sculpture.wiring.controller.ledDriver).toBe(
+        "parallel-i2s",
+      );
       expect(bundle?.project.sculpture.panels).toEqual(definition.panels);
       expect(bundle?.project.sculpture.panelProfile).toEqual(
         definition.panelProfile,

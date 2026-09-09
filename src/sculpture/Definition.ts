@@ -7,10 +7,7 @@ export type { PanelCarrierDefinition } from "./PanelCarrier.ts";
 export type FactStatus = "unknown" | "provisional" | "measured";
 
 export type PanelCorner =
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
 export type PanelMountingHoleId =
   | "top-left"
@@ -32,16 +29,10 @@ export interface PixelOrderDefinition {
   pixelZeroCorner: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   traversalAxis: "rows" | "columns";
   lineProgression:
-    | "top-to-bottom"
-    | "bottom-to-top"
-    | "left-to-right"
-    | "right-to-left";
+    "top-to-bottom" | "bottom-to-top" | "left-to-right" | "right-to-left";
   serpentine: boolean;
   firstLineDirection:
-    | "left-to-right"
-    | "right-to-left"
-    | "top-to-bottom"
-    | "bottom-to-top";
+    "left-to-right" | "right-to-left" | "top-to-bottom" | "bottom-to-top";
   description: string;
 }
 
@@ -189,9 +180,10 @@ export function panelConnectorLocalPosition(
 ): PanelLocalPosition {
   const explicit = profile.dataConnectors.localPositions?.[kind];
   if (explicit) return [explicit[0], explicit[1], explicit[2]];
-  const corner = kind === "din"
-    ? profile.dataConnectors.dinCorner
-    : profile.dataConnectors.doutCorner;
+  const corner =
+    kind === "din"
+      ? profile.dataConnectors.dinCorner
+      : profile.dataConnectors.doutCorner;
   const backX = corner.endsWith("left") ? -1 : 1;
   return [
     -backX * (profile.dimensions.width / 2 - edgeInset),
@@ -209,11 +201,10 @@ export function panelBackViewPointToOutwardPoseLocal(
 }
 
 export type WiringLifecycleStatus =
-  | "draft"
-  | "authored"
-  | "requires-review"
-  | "measured"
-  | "hardware-verified";
+  "draft" | "authored" | "requires-review" | "measured" | "hardware-verified";
+
+/** The selected ESP32 LED-output implementation. Missing values retain RMT. */
+export type LedDriver = "rmt" | "parallel-i2s";
 
 export interface WiringDefinition {
   /** `provisional` is retained only to load pre-WIRE-013 Schema 2 files. */
@@ -237,6 +228,8 @@ export interface WiringDefinition {
       yAxis: [number, number, number];
       normal: [number, number, number];
     };
+    /** Missing values retain the legacy RMT driver. */
+    ledDriver?: LedDriver;
   };
   connector: {
     edgeInset: number;
@@ -272,9 +265,7 @@ export interface WiringDefinition {
  * ordered panel list. Older chain-length-only projects remain draft inputs for
  * the deterministic preview heuristic.
  */
-export function hasAuthoredWiringRoutes(
-  wiring: WiringDefinition,
-): boolean {
+export function hasAuthoredWiringRoutes(wiring: WiringDefinition): boolean {
   return (
     wiring.outputs.length > 0 &&
     wiring.outputs.every((output) => Array.isArray(output.panelIds))
@@ -370,11 +361,14 @@ export function parsePanelHardwareProfile(
   requirePositiveNumber(dimensions, "width");
   requirePositiveNumber(dimensions, "height");
   requirePositiveNumber(dimensions, "thickness");
-  validatePanelCarrier(profileInput.carrier, dimensions as unknown as {
-    width: number;
-    height: number;
-    thickness: number;
-  });
+  validatePanelCarrier(
+    profileInput.carrier,
+    dimensions as unknown as {
+      width: number;
+      height: number;
+      thickness: number;
+    },
+  );
   const pixelGrid = requireRecord(profileInput, "pixelGrid");
   const columns = requirePositiveNumber(pixelGrid, "columns");
   const rows = requirePositiveNumber(pixelGrid, "rows");
@@ -396,15 +390,17 @@ export function parsePanelHardwareProfile(
       if (
         !Array.isArray(position) ||
         position.length !== 3 ||
-        position.some((coordinate) =>
-          typeof coordinate !== "number" || !Number.isFinite(coordinate)
+        position.some(
+          (coordinate) =>
+            typeof coordinate !== "number" || !Number.isFinite(coordinate),
         )
       ) {
         throw new Error(
           "Explicit emitter positions must contain three finite pose-local coordinates.",
         );
       }
-      const key = position.map((coordinate) => Object.is(coordinate, -0) ? 0 : coordinate)
+      const key = position
+        .map((coordinate) => (Object.is(coordinate, -0) ? 0 : coordinate))
         .join(",");
       if (positionKeys.has(key)) {
         throw new Error("Explicit emitter positions must be unique.");
@@ -423,8 +419,9 @@ export function parsePanelHardwareProfile(
     "GBR",
   ]);
   const wledValue = requireFiniteNumber(colorOrder, "wledValue");
-  const expectedWledValue = ["GRB", "RGB", "BRG", "RBG", "BGR", "GBR"]
-    .indexOf(channelSequence);
+  const expectedWledValue = ["GRB", "RGB", "BRG", "RBG", "BGR", "GBR"].indexOf(
+    channelSequence,
+  );
   if (!Number.isInteger(wledValue) || wledValue !== expectedWledValue) {
     throw new Error("Panel color order and WLED value are inconsistent.");
   }
@@ -552,7 +549,8 @@ export function parsePanelHardwareProfile(
   if (
     dataConnectors.referenceView !== "back" ||
     (dataConnectors.orientationReference !== "three-mounting-holes-vertical" &&
-      dataConnectors.orientationReference !== "six-holes-three-columns-two-rows" &&
+      dataConnectors.orientationReference !==
+        "six-holes-three-columns-two-rows" &&
       dataConnectors.orientationReference !== "pose-local-explicit-connectors")
   ) {
     throw new Error(
@@ -590,8 +588,9 @@ export function parsePanelHardwareProfile(
       if (
         !Array.isArray(position) ||
         position.length !== 3 ||
-        position.some((coordinate) =>
-          typeof coordinate !== "number" || !Number.isFinite(coordinate)
+        position.some(
+          (coordinate) =>
+            typeof coordinate !== "number" || !Number.isFinite(coordinate),
         )
       ) {
         throw new Error(
@@ -599,7 +598,9 @@ export function parsePanelHardwareProfile(
         );
       }
     }
-    if (JSON.stringify(localPositions.din) === JSON.stringify(localPositions.dout)) {
+    if (
+      JSON.stringify(localPositions.din) === JSON.stringify(localPositions.dout)
+    ) {
       throw new Error("Explicit DIN and DOUT positions must be different.");
     }
   }
@@ -617,19 +618,32 @@ export function parsePanelHardwareProfile(
   ];
   const wireIndex = (corner: PanelCorner): number => {
     const [x, y] = cornerCoordinate(corner);
-    const line = order.traversalAxis === "rows"
-      ? order.lineProgression === "bottom-to-top" ? rows - 1 - y : y
-      : order.lineProgression === "right-to-left" ? columns - 1 - x : x;
-    let offset = order.traversalAxis === "rows"
-      ? order.firstLineDirection === "right-to-left" ? columns - 1 - x : x
-      : order.firstLineDirection === "bottom-to-top" ? rows - 1 - y : y;
+    const line =
+      order.traversalAxis === "rows"
+        ? order.lineProgression === "bottom-to-top"
+          ? rows - 1 - y
+          : y
+        : order.lineProgression === "right-to-left"
+          ? columns - 1 - x
+          : x;
+    let offset =
+      order.traversalAxis === "rows"
+        ? order.firstLineDirection === "right-to-left"
+          ? columns - 1 - x
+          : x
+        : order.firstLineDirection === "bottom-to-top"
+          ? rows - 1 - y
+          : y;
     if (order.serpentine && line % 2 === 1) {
       offset = (order.traversalAxis === "rows" ? columns : rows) - 1 - offset;
     }
     return line * (order.traversalAxis === "rows" ? columns : rows) + offset;
   };
   const corners: PanelCorner[] = [
-    "top-left", "top-right", "bottom-left", "bottom-right",
+    "top-left",
+    "top-right",
+    "bottom-left",
+    "bottom-right",
   ];
   if (order.status === "measured") {
     if (wireIndex(order.pixelZeroCorner as PanelCorner) !== 0) {
@@ -687,10 +701,10 @@ export function parsePanelHardwareProfile(
     power,
     "worstCaseCurrentPerPanel",
   );
-  if (
-    Math.abs(currentPerPanel - columns * rows * currentPerPixel) > 1e-9
-  ) {
-    throw new Error("Panel worst-case current must equal pixel count times per-pixel current.");
+  if (Math.abs(currentPerPanel - columns * rows * currentPerPixel) > 1e-9) {
+    throw new Error(
+      "Panel worst-case current must equal pixel count times per-pixel current.",
+    );
   }
   const pads = requireRecord(power, "pads");
   if (
@@ -705,17 +719,24 @@ export function parsePanelHardwareProfile(
     !pads.roles.includes("V+") ||
     !pads.roles.includes("V-")
   ) {
-    throw new Error("Power pads must provide provisional V+ and V- injection at both data ends.");
+    throw new Error(
+      "Power pads must provide provisional V+ and V- injection at both data ends.",
+    );
   }
   const singlePanelLead = requireRecord(power, "singlePanelLead");
   if (
     singlePanelLead.scope !== "short-5v-and-ground-leads" ||
     singlePanelLead.sharedFeedsRequireLargerConductors !== true
   ) {
-    throw new Error("Single-panel wire sizing must not be applied to shared feeds.");
+    throw new Error(
+      "Single-panel wire sizing must not be applied to shared feeds.",
+    );
   }
   requirePositiveNumber(singlePanelLead, "minimumCrossSectionMm2");
-  const approximateAwg = requirePositiveNumber(singlePanelLead, "approximateAwg");
+  const approximateAwg = requirePositiveNumber(
+    singlePanelLead,
+    "approximateAwg",
+  );
   if (!Number.isInteger(approximateAwg)) {
     throw new Error("Approximate AWG must be an integer.");
   }
@@ -731,7 +752,9 @@ export function parsePanelHardwareProfile(
   if (
     Math.abs(minimumPanelVoltage - nominalVoltage * (1 - maximumDrop)) > 1e-9
   ) {
-    throw new Error("Minimum panel voltage must match the configured drop limit.");
+    throw new Error(
+      "Minimum panel voltage must match the configured drop limit.",
+    );
   }
   const fusing = requireRecord(power, "fusing");
   if (
@@ -742,7 +765,9 @@ export function parsePanelHardwareProfile(
       (!Number.isInteger(fusing.panelsPerFuse) ||
         (fusing.panelsPerFuse as number) <= 0))
   ) {
-    throw new Error("Fuse grouping must remain provisional and protect the external wire.");
+    throw new Error(
+      "Fuse grouping must remain provisional and protect the external wire.",
+    );
   }
   requireString(power, "note");
 

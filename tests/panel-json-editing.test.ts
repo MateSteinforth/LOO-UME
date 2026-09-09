@@ -13,6 +13,7 @@ import {
   rotatePanelAroundLocalZ,
   setControllerWorldPose,
   setWiringOutputGpios,
+  setWiringLedDriver,
   useSuggestedControllerPose,
 } from "../src/sculpture/SculptureEditor.ts";
 import { deriveEditorCapabilities } from "../web/src/EditorCapabilities.ts";
@@ -65,6 +66,37 @@ function mappingFor(definition: Awaited<ReturnType<typeof loadManual>>) {
 }
 
 describe("mechanics-independent panel JSON editing", () => {
+  it("changes the LED driver without changing poses or address geometry", async () => {
+    const source = await loadManual();
+    const edited = setWiringLedDriver(source, "parallel-i2s");
+    expect(edited.wiring.controller.ledDriver).toBe("parallel-i2s");
+    expect(source.wiring.controller.ledDriver).toBeUndefined();
+    expect(edited.panels).toEqual(source.panels);
+    expect(edited.wiring.outputs).toEqual(source.wiring.outputs);
+    expect(edited.generatedMechanics).toEqual(source.generatedMechanics);
+    expect(edited.mechanicalShell).toEqual(source.mechanicalShell);
+    expect(setWiringLedDriver(edited, "rmt").wiring.controller.ledDriver).toBe(
+      "rmt",
+    );
+  });
+  it("removes device proof when the LED driver changes", async () => {
+    const source = await loadManual();
+    source.wiring.status = "hardware-verified";
+    source.wiring.controller.status = "measured";
+    source.wiring.hardwareProof = {
+      kind: "proof-010-hardware-verification",
+      taskId: "PROOF-010",
+      status: "passed",
+      deploymentIdentity: "a".repeat(64),
+      deviceReadbackSha256: "b".repeat(64),
+      asBuiltRecordSha256: "c".repeat(64),
+      parityProofSha256: "d".repeat(64),
+    };
+    const edited = setWiringLedDriver(source, "parallel-i2s");
+    expect(edited.wiring.hardwareProof).toBeUndefined();
+    expect(edited.wiring.status).toBe("measured");
+    expect(source.wiring.hardwareProof).toBeDefined();
+  });
   it("changes only the wiring output GPIO assignments", async () => {
     const source = await loadManual();
     const edited = setWiringOutputGpios(source, [21, 22, 25, 26]);

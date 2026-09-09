@@ -1,6 +1,4 @@
-import panelProfileJson from "../../catalog/panels/ws2812b-8x8-66x65.json" with {
-  type: "json",
-};
+import panelProfileJson from "../../catalog/panels/ws2812b-8x8-66x65.json" with { type: "json" };
 import {
   getWiringLifecycleStatus,
   panelBackViewPointToOutwardPoseLocal,
@@ -63,17 +61,16 @@ export interface GeneratedMechanicsManifest {
     format: "stl";
   };
   /** Stable order used by viewer controls and portable export. */
-  parts: Array<ProjectAssetReference & {
-    id: string;
-    format: "stl";
-  }>;
+  parts: Array<
+    ProjectAssetReference & {
+      id: string;
+      format: "stl";
+    }
+  >;
 }
 
 export type PanelOutlineCornerId =
-  | "bottom-left"
-  | "bottom-right"
-  | "top-right"
-  | "top-left";
+  "bottom-left" | "bottom-right" | "top-right" | "top-left";
 
 export interface InstalledAddressTransform {
   /** Assumed values keep simulation usable but cannot satisfy hardware readiness. */
@@ -262,11 +259,13 @@ export function compareLogicalLedOrder(
 ): number {
   const left = logicalLedOrderKey(first);
   const right = logicalLedOrderKey(second);
-  return left.latitudeBin - right.latitudeBin ||
+  return (
+    left.latitudeBin - right.latitudeBin ||
     left.longitudeBin - right.longitudeBin ||
     compareStableText(left.panelId, right.panelId) ||
     left.panelPixelY - right.panelPixelY ||
-    left.panelPixelX - right.panelPixelX;
+    left.panelPixelX - right.panelPixelX
+  );
 }
 
 /**
@@ -274,19 +273,23 @@ export function compareLogicalLedOrder(
  * Panel storage order does not matter; each panel ID remains bound to its pose.
  */
 export function createInstalledAddressOptimizationFingerprint(
-  definition: Pick<PanelAssemblyDefinition, "panelProfile" | "wiring" | "panels">,
+  definition: Pick<
+    PanelAssemblyDefinition,
+    "panelProfile" | "wiring" | "panels"
+  >,
   panelProfile: Pick<
     PanelHardwareProfile,
     "id" | "dimensions" | "pixelGrid" | "dataConnectors"
   >,
 ): string {
-  const authoredControllerPose = definition.wiring.controller.position &&
-      definition.wiring.controller.orientation
-    ? {
-      position: definition.wiring.controller.position,
-      orientation: definition.wiring.controller.orientation,
-    }
-    : undefined;
+  const authoredControllerPose =
+    definition.wiring.controller.position &&
+    definition.wiring.controller.orientation
+      ? {
+          position: definition.wiring.controller.position,
+          orientation: definition.wiring.controller.orientation,
+        }
+      : undefined;
   const source = JSON.stringify({
     coordinateContract: INSTALLED_ADDRESS_COORDINATE_CONTRACT,
     panelProfileReference: definition.panelProfile,
@@ -313,7 +316,9 @@ export function createInstalledAddressOptimizationFingerprint(
       outputIndex: output.outputIndex,
       panelIds: output.panelIds ?? null,
     })),
-    ...(authoredControllerPose ? { controllerPose: authoredControllerPose } : {}),
+    ...(authoredControllerPose
+      ? { controllerPose: authoredControllerPose }
+      : {}),
     panels: [...definition.panels]
       .sort((first, second) => first.id.localeCompare(second.id))
       .map((panel) => ({ id: panel.id, pose: panel.pose })),
@@ -458,9 +463,12 @@ function validateMappingDefinition(value: unknown): void {
     value.projection !== "equirectangular" ||
     value.logicalOrder !== "north-to-south-then-longitude"
   ) {
-    throw new Error("Mapping requires the supported projection and logical order.");
+    throw new Error(
+      "Mapping requires the supported projection and logical order.",
+    );
   }
-  if (value.notes !== undefined) validateStringArray(value.notes, "Mapping notes");
+  if (value.notes !== undefined)
+    validateStringArray(value.notes, "Mapping notes");
 }
 
 function validateCalibration(value: unknown): void {
@@ -491,8 +499,13 @@ function validateCalibration(value: unknown): void {
 }
 
 function isFiniteVector3(value: unknown): value is [number, number, number] {
-  return Array.isArray(value) && value.length === 3 && value.every(
-    (coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate),
+  return (
+    Array.isArray(value) &&
+    value.length === 3 &&
+    value.every(
+      (coordinate) =>
+        typeof coordinate === "number" && Number.isFinite(coordinate),
+    )
   );
 }
 
@@ -505,14 +518,19 @@ function isValidOrientation(orientation: unknown): boolean {
     !isFiniteVector3(xAxis) ||
     !isFiniteVector3(yAxis) ||
     !isFiniteVector3(normal)
-  ) return false;
+  )
+    return false;
   const orthonormalError = Math.max(
     Math.abs(Math.hypot(...xAxis) - 1),
     Math.abs(Math.hypot(...yAxis) - 1),
     Math.abs(Math.hypot(...normal) - 1),
     Math.abs(xAxis[0] * yAxis[0] + xAxis[1] * yAxis[1] + xAxis[2] * yAxis[2]),
-    Math.abs(xAxis[0] * normal[0] + xAxis[1] * normal[1] + xAxis[2] * normal[2]),
-    Math.abs(yAxis[0] * normal[0] + yAxis[1] * normal[1] + yAxis[2] * normal[2]),
+    Math.abs(
+      xAxis[0] * normal[0] + xAxis[1] * normal[1] + xAxis[2] * normal[2],
+    ),
+    Math.abs(
+      yAxis[0] * normal[0] + yAxis[1] * normal[1] + yAxis[2] * normal[2],
+    ),
     Math.hypot(
       xAxis[1] * yAxis[2] - xAxis[2] * yAxis[1] - normal[0],
       xAxis[2] * yAxis[0] - xAxis[0] * yAxis[2] - normal[1],
@@ -523,21 +541,30 @@ function isValidOrientation(orientation: unknown): boolean {
 }
 
 function isValidPanelPose(value: unknown): boolean {
-  return isRecord(value) &&
+  return (
+    isRecord(value) &&
     isFiniteVector3(value.position) &&
-    isValidOrientation(value.orientation);
+    isValidOrientation(value.orientation)
+  );
 }
 
 function validateAuthoringBoundary(value: unknown): void {
   if (value === undefined) return;
-  if (!isRecord(value)) throw new Error("Authoring boundary must be an object.");
-  assertOnlyKeys(value, ["vertices", "faces", "authoredPanels"], "Authoring boundary");
+  if (!isRecord(value))
+    throw new Error("Authoring boundary must be an object.");
+  assertOnlyKeys(
+    value,
+    ["vertices", "faces", "authoredPanels"],
+    "Authoring boundary",
+  );
   if (
     !Array.isArray(value.vertices) ||
     value.vertices.length < 4 ||
     value.vertices.some((vertex) => !isFiniteVector3(vertex))
   ) {
-    throw new Error("Authoring boundary requires at least four finite vertices.");
+    throw new Error(
+      "Authoring boundary requires at least four finite vertices.",
+    );
   }
   const vertices = value.vertices;
   if (!Array.isArray(value.faces) || value.faces.length < 4) {
@@ -545,22 +572,31 @@ function validateAuthoringBoundary(value: unknown): void {
   }
   const faceIds = new Set<string>();
   for (const face of value.faces) {
-    if (!isRecord(face)) throw new Error("Authoring boundary faces must be objects.");
-    assertOnlyKeys(face, ["id", "vertexIndices", "panelPlacement"], "Authoring boundary face");
+    if (!isRecord(face))
+      throw new Error("Authoring boundary faces must be objects.");
+    assertOnlyKeys(
+      face,
+      ["id", "vertexIndices", "panelPlacement"],
+      "Authoring boundary face",
+    );
     if (
       typeof face.id !== "string" ||
       face.id.length === 0 ||
       faceIds.has(face.id) ||
-      (face.panelPlacement !== undefined && face.panelPlacement !== "whole-face") ||
+      (face.panelPlacement !== undefined &&
+        face.panelPlacement !== "whole-face") ||
       !Array.isArray(face.vertexIndices) ||
       face.vertexIndices.length < 3 ||
-      face.vertexIndices.some((index) =>
-        !Number.isInteger(index) ||
-        (index as number) < 0 ||
-        (index as number) >= vertices.length
+      face.vertexIndices.some(
+        (index) =>
+          !Number.isInteger(index) ||
+          (index as number) < 0 ||
+          (index as number) >= vertices.length,
       )
     ) {
-      throw new Error("Authoring boundary faces require unique IDs and valid vertex indices.");
+      throw new Error(
+        "Authoring boundary faces require unique IDs and valid vertex indices.",
+      );
     }
     faceIds.add(face.id);
   }
@@ -569,8 +605,13 @@ function validateAuthoringBoundary(value: unknown): void {
   }
   const panelIds = new Set<string>();
   for (const panel of value.authoredPanels) {
-    if (!isRecord(panel)) throw new Error("Authoring boundary panels must be objects.");
-    assertOnlyKeys(panel, ["id", "mountFaceId", "pose"], "Authoring boundary panel");
+    if (!isRecord(panel))
+      throw new Error("Authoring boundary panels must be objects.");
+    assertOnlyKeys(
+      panel,
+      ["id", "mountFaceId", "pose"],
+      "Authoring boundary panel",
+    );
     if (
       typeof panel.id !== "string" ||
       panel.id.length === 0 ||
@@ -579,7 +620,9 @@ function validateAuthoringBoundary(value: unknown): void {
       !faceIds.has(panel.mountFaceId) ||
       !isValidPanelPose(panel.pose)
     ) {
-      throw new Error("Authoring boundary panels require unique IDs, known faces, and valid poses.");
+      throw new Error(
+        "Authoring boundary panels require unique IDs, known faces, and valid poses.",
+      );
     }
     panelIds.add(panel.id);
   }
@@ -600,37 +643,54 @@ function validateGeneratedMechanics(value: unknown): void {
   const status = record(value, "status");
   const boundary = record(value, "boundary");
   assertOnlyKeys(generator, ["id", "version"], "Generated mechanics generator");
-  assertOnlyKeys(sourceFingerprint, ["algorithm", "value"], "Generated mechanics fingerprint");
-  assertOnlyKeys(status, ["generation", "validation"], "Generated mechanics status");
-  assertOnlyKeys(boundary, ["kind", "format", "source", "sha256"], "Generated boundary");
+  assertOnlyKeys(
+    sourceFingerprint,
+    ["algorithm", "value"],
+    "Generated mechanics fingerprint",
+  );
+  assertOnlyKeys(
+    status,
+    ["generation", "validation"],
+    "Generated mechanics status",
+  );
+  assertOnlyKeys(
+    boundary,
+    ["kind", "format", "source", "sha256"],
+    "Generated boundary",
+  );
   if (
     typeof generator.id !== "string" ||
     generator.id.length === 0 ||
     typeof generator.version !== "string" ||
     generator.version.length === 0
   ) {
-    throw new Error("Generated mechanics require generator identity and version.");
+    throw new Error(
+      "Generated mechanics require generator identity and version.",
+    );
   }
   if (
     sourceFingerprint.algorithm !== "sha256" ||
     !isLowercaseSha256(sourceFingerprint.value)
   ) {
-    throw new Error("Generated mechanics require a lowercase SHA-256 source fingerprint.");
+    throw new Error(
+      "Generated mechanics require a lowercase SHA-256 source fingerprint.",
+    );
   }
   if (status.generation !== "complete" || status.validation !== "passed") {
     throw new Error(
       "A generated-mechanics manifest must describe a complete, validated asset set.",
     );
   }
-  if (
-    boundary.kind !== "closed-boundary-mesh" ||
-    boundary.format !== "stl"
-  ) {
-    throw new Error("Generated mechanics require one closed-boundary STL asset.");
+  if (boundary.kind !== "closed-boundary-mesh" || boundary.format !== "stl") {
+    throw new Error(
+      "Generated mechanics require one closed-boundary STL asset.",
+    );
   }
   assertProjectAssetReference(boundary, "Generated boundary");
   if (!Array.isArray(value.parts) || value.parts.length === 0) {
-    throw new Error("Generated mechanics require an ordered, non-empty STL part list.");
+    throw new Error(
+      "Generated mechanics require an ordered, non-empty STL part list.",
+    );
   }
   const partIds = new Set<string>();
   for (const part of value.parts) {
@@ -641,15 +701,23 @@ function validateGeneratedMechanics(value: unknown): void {
       part.format !== "stl" ||
       partIds.has(part.id)
     ) {
-      throw new Error("Generated STL parts require unique, non-empty stable IDs.");
+      throw new Error(
+        "Generated STL parts require unique, non-empty stable IDs.",
+      );
     }
-    assertOnlyKeys(part, ["id", "format", "source", "sha256"], `Generated part ${part.id}`);
+    assertOnlyKeys(
+      part,
+      ["id", "format", "source", "sha256"],
+      `Generated part ${part.id}`,
+    );
     assertProjectAssetReference(part, `Generated part ${part.id}`);
     partIds.add(part.id);
   }
 }
 
-function validateUniqueProjectAssetSources(input: Record<string, unknown>): void {
+function validateUniqueProjectAssetSources(
+  input: Record<string, unknown>,
+): void {
   const sources = new Set<string>();
   const add = (value: unknown, label: string): void => {
     if (!isRecord(value) || typeof value.source !== "string") return;
@@ -666,9 +734,12 @@ function validateUniqueProjectAssetSources(input: Record<string, unknown>): void
     add(input.generatedMechanics.boundary, "Generated boundary");
     if (Array.isArray(input.generatedMechanics.parts)) {
       for (const part of input.generatedMechanics.parts) {
-        add(part, isRecord(part) && typeof part.id === "string"
-          ? `Generated part ${part.id}`
-          : "Generated part");
+        add(
+          part,
+          isRecord(part) && typeof part.id === "string"
+            ? `Generated part ${part.id}`
+            : "Generated part",
+        );
       }
     }
   }
@@ -687,15 +758,20 @@ function validateWiring(
   const controller = record(wiring, "controller");
   assertOnlyKeys(
     controller,
-    ["placement", "status", "position", "orientation"],
+    ["placement", "status", "position", "orientation", "ledDriver"],
     "Wiring controller",
   );
   if (
     controller.placement !== "near-top" ||
     (controller.status !== "provisional" && controller.status !== "measured") ||
-    (controller.position !== undefined && !isFiniteVector3(controller.position)) ||
+    (controller.ledDriver !== undefined &&
+      controller.ledDriver !== "rmt" &&
+      controller.ledDriver !== "parallel-i2s") ||
+    (controller.position !== undefined &&
+      !isFiniteVector3(controller.position)) ||
     (controller.orientation !== undefined &&
-      (!isValidOrientation(controller.orientation) || controller.position === undefined))
+      (!isValidOrientation(controller.orientation) ||
+        controller.position === undefined))
   ) {
     throw new Error(
       "Panel assemblies require a near-top controller, an optional finite right-handed world pose, and a known lifecycle state.",
@@ -717,7 +793,9 @@ function validateWiring(
     !Array.isArray(wiring.chainLengths) ||
     !Array.isArray(wiring.outputs)
   ) {
-    throw new Error("Panel assemblies require a supported wiring lifecycle and route strategy.");
+    throw new Error(
+      "Panel assemblies require a supported wiring lifecycle and route strategy.",
+    );
   }
   if (
     wiring.outputs.length === 0 ||
@@ -737,7 +815,8 @@ function validateWiring(
   positive(connector, "surfaceOffset");
 
   const outputs = wiring.outputs.map((output) => {
-    if (!isRecord(output)) throw new Error("Each wiring output must be an object.");
+    if (!isRecord(output))
+      throw new Error("Each wiring output must be an object.");
     return output;
   });
   const outputIndices = new Set<number>();
@@ -839,10 +918,7 @@ function validateWiring(
     throw new Error("Wiring proof records must be passed PROOF-010 evidence.");
   }
   if (lifecycle === "hardware-verified") {
-    if (
-      proof === undefined ||
-      controller.status !== "measured"
-    ) {
+    if (proof === undefined || controller.status !== "measured") {
       throw new Error(
         "Hardware-verified wiring requires a passed PROOF-010 evidence record and a measured controller.",
       );
@@ -861,12 +937,15 @@ function validateInstalledAddressOptimizationFingerprintShape(
   definition: PanelAssemblyDefinition,
 ): void {
   const routeOptimized = definition.panels.filter(
-    (panel) => panel.installedAddressTransform?.selectionMethod === "route-optimized",
+    (panel) =>
+      panel.installedAddressTransform?.selectionMethod === "route-optimized",
   );
   const transformsWithFingerprint = definition.panels.filter(
-    (panel) => panel.installedAddressTransform?.optimizationFingerprint !== undefined,
+    (panel) =>
+      panel.installedAddressTransform?.optimizationFingerprint !== undefined,
   );
-  if (routeOptimized.length === 0 && transformsWithFingerprint.length === 0) return;
+  if (routeOptimized.length === 0 && transformsWithFingerprint.length === 0)
+    return;
 
   for (const panel of definition.panels) {
     const transform = panel.installedAddressTransform;
@@ -895,16 +974,20 @@ function validateInstalledAddressOptimizationFingerprint(
   panelProfile: PanelHardwareProfile,
 ): void {
   const routeOptimized = definition.panels.filter(
-    (panel) => panel.installedAddressTransform?.selectionMethod === "route-optimized",
+    (panel) =>
+      panel.installedAddressTransform?.selectionMethod === "route-optimized",
   );
   if (routeOptimized.length === 0) return;
   const expected = createInstalledAddressOptimizationFingerprint(
     definition,
     panelProfile,
   );
-  if (routeOptimized.some(
-    (panel) => panel.installedAddressTransform!.optimizationFingerprint !== expected,
-  )) {
+  if (
+    routeOptimized.some(
+      (panel) =>
+        panel.installedAddressTransform!.optimizationFingerprint !== expected,
+    )
+  ) {
     throw new Error(
       "Route-optimized installed transforms require the current optimization fingerprint.",
     );
@@ -952,7 +1035,9 @@ export function parsePanelAssemblyDefinition(
       designSurface.scaleToMillimeters <= 0 ||
       designSurface.status !== "watertight"
     ) {
-      throw new Error("Design surface must reference a validated GLB and SHA-256 hash.");
+      throw new Error(
+        "Design surface must reference a validated GLB and SHA-256 hash.",
+      );
     }
     assertOnlyKeys(
       designSurface,
@@ -973,7 +1058,9 @@ export function parsePanelAssemblyDefinition(
   const usesGeneratedMechanics = hasMechanicalShell && hasClosures;
   if (
     input.generatedStructure !== undefined &&
-    (input.generatedMechanics !== undefined || hasMechanicalShell || hasClosures)
+    (input.generatedMechanics !== undefined ||
+      hasMechanicalShell ||
+      hasClosures)
   ) {
     throw new Error(
       "Generated structural assets cannot be combined with planar mechanics.",
@@ -988,20 +1075,23 @@ export function parsePanelAssemblyDefinition(
     );
   }
   if (hasMechanicalShell !== hasClosures) {
-    throw new Error("Generated mechanics require both a mechanical shell and closure policy.");
+    throw new Error(
+      "Generated mechanics require both a mechanical shell and closure policy.",
+    );
   }
   const geometry = usesGeneratedMechanics
     ? record(input, "mechanicalShell")
     : undefined;
   validateAuthoringBoundary(geometry?.authoringBoundary);
-  if (geometry && (
-    (geometry.derivationStatus !== undefined &&
+  if (
+    geometry &&
+    ((geometry.derivationStatus !== undefined &&
       geometry.derivationStatus !== "authored" &&
       geometry.derivationStatus !== "requires-regeneration") ||
-    geometry.kind !== "explicit-planar-face-graph" ||
-    !Array.isArray(geometry.vertices) ||
-    !Array.isArray(geometry.faces)
-  )) {
+      geometry.kind !== "explicit-planar-face-graph" ||
+      !Array.isArray(geometry.vertices) ||
+      !Array.isArray(geometry.faces))
+  ) {
     throw new Error("Mechanical shell must be an explicit planar face graph.");
   }
   const sourceVertices = (geometry?.vertices ?? []) as unknown[];
@@ -1010,17 +1100,21 @@ export function parsePanelAssemblyDefinition(
     if (
       !Array.isArray(vertex) ||
       vertex.length !== 3 ||
-      vertex.some((coordinate) =>
-        typeof coordinate !== "number" || !Number.isFinite(coordinate)
+      vertex.some(
+        (coordinate) =>
+          typeof coordinate !== "number" || !Number.isFinite(coordinate),
       )
     ) {
-      throw new Error("Every geometry vertex must contain three finite numbers.");
+      throw new Error(
+        "Every geometry vertex must contain three finite numbers.",
+      );
     }
   }
   const faceIds = new Set<string>();
   for (const face of sourceFaces) {
     const connectorPolicy = isRecord(face) ? face.connectorPolicy : undefined;
-    const connectorPolicyIsValid = connectorPolicy === undefined ||
+    const connectorPolicyIsValid =
+      connectorPolicy === undefined ||
       (isRecord(connectorPolicy) &&
         connectorPolicy.minimumPanelHoleConnectors === 2 &&
         typeof connectorPolicy.reason === "string" &&
@@ -1041,13 +1135,16 @@ export function parsePanelAssemblyDefinition(
           (index as number) >= sourceVertices.length,
       )
     ) {
-      throw new Error("Geometry faces require unique IDs and valid vertex indices.");
+      throw new Error(
+        "Geometry faces require unique IDs and valid vertex indices.",
+      );
     }
     faceIds.add(face.id);
   }
   if (
     !Array.isArray(input.panels) ||
-    (input.panels.length === 0 && usesGeneratedMechanics &&
+    (input.panels.length === 0 &&
+      usesGeneratedMechanics &&
       (geometry?.derivationStatus !== "requires-regeneration" ||
         !isRecord(geometry.authoringBoundary)))
   ) {
@@ -1058,14 +1155,17 @@ export function parsePanelAssemblyDefinition(
   const panelIds = new Set<string>();
   const panelFaceIds = new Set<string>();
   for (const panel of input.panels) {
-    const surfaceAttachment = isRecord(panel) ? panel.surfaceAttachment : undefined;
+    const surfaceAttachment = isRecord(panel)
+      ? panel.surfaceAttachment
+      : undefined;
     const attachmentBarycentric = isRecord(surfaceAttachment)
       ? surfaceAttachment.barycentric
       : undefined;
-    const surfaceAttachmentIsValid = surfaceAttachment === undefined ||
+    const surfaceAttachmentIsValid =
+      surfaceAttachment === undefined ||
       (isRecord(surfaceAttachment) &&
         ((surfaceAttachment.surface === "mechanical-shell" &&
-            usesGeneratedMechanics) ||
+          usesGeneratedMechanics) ||
           ((surfaceAttachment.surface === undefined ||
             surfaceAttachment.surface === "design-surface") &&
             designSurface !== undefined)) &&
@@ -1073,18 +1173,24 @@ export function parsePanelAssemblyDefinition(
         (surfaceAttachment.triangleIndex as number) >= 0 &&
         Array.isArray(attachmentBarycentric) &&
         attachmentBarycentric.length === 3 &&
-        attachmentBarycentric.every((value) =>
-          typeof value === "number" && Number.isFinite(value) && value >= -1e-6
+        attachmentBarycentric.every(
+          (value) =>
+            typeof value === "number" &&
+            Number.isFinite(value) &&
+            value >= -1e-6,
         ) &&
-        Math.abs(attachmentBarycentric.reduce(
-          (sum, value) => sum + (value as number),
-          0,
-        ) - 1) <= 1e-5 &&
+        Math.abs(
+          attachmentBarycentric.reduce(
+            (sum, value) => sum + (value as number),
+            0,
+          ) - 1,
+        ) <= 1e-5 &&
         typeof surfaceAttachment.normalOffset === "number" &&
         Number.isFinite(surfaceAttachment.normalOffset) &&
         surfaceAttachment.normalOffset >= 0);
     const connectorPolicy = isRecord(panel) ? panel.connectorPolicy : undefined;
-    const connectorPolicyIsValid = connectorPolicy === undefined ||
+    const connectorPolicyIsValid =
+      connectorPolicy === undefined ||
       (isRecord(connectorPolicy) &&
         connectorPolicy.allowSharedClosureAcrossAdjacentEdges === true &&
         typeof connectorPolicy.reason === "string" &&
@@ -1092,7 +1198,8 @@ export function parsePanelAssemblyDefinition(
     const installedAddressTransform = isRecord(panel)
       ? panel.installedAddressTransform
       : undefined;
-    const installedAddressTransformIsValid = installedAddressTransform === undefined ||
+    const installedAddressTransformIsValid =
+      installedAddressTransform === undefined ||
       (isRecord(installedAddressTransform) &&
         (installedAddressTransform.status === "assumed" ||
           installedAddressTransform.status === "measured") &&
@@ -1105,8 +1212,11 @@ export function parsePanelAssemblyDefinition(
           installedAddressTransform.selectionMethod === "manual" ||
           installedAddressTransform.selectionMethod === "route-optimized") &&
         (installedAddressTransform.optimizationFingerprint === undefined ||
-          (typeof installedAddressTransform.optimizationFingerprint === "string" &&
-            /^[0-9a-f]{16}$/.test(installedAddressTransform.optimizationFingerprint))));
+          (typeof installedAddressTransform.optimizationFingerprint ===
+            "string" &&
+            /^[0-9a-f]{16}$/.test(
+              installedAddressTransform.optimizationFingerprint,
+            ))));
     const poseIsValid = isRecord(panel) && isValidPanelPose(panel.pose);
     if (
       !isRecord(panel) ||
@@ -1120,13 +1230,15 @@ export function parsePanelAssemblyDefinition(
         panel.faceType !== "pentagon-centre") ||
       (panel.neighborPanelIds !== undefined &&
         (!Array.isArray(panel.neighborPanelIds) ||
-          panel.neighborPanelIds.some((id) =>
-            typeof id !== "string" || id.length === 0
+          panel.neighborPanelIds.some(
+            (id) => typeof id !== "string" || id.length === 0,
           ) ||
-          new Set(panel.neighborPanelIds).size !== panel.neighborPanelIds.length)) ||
+          new Set(panel.neighborPanelIds).size !==
+            panel.neighborPanelIds.length)) ||
       (panel.rotationDegrees !== undefined &&
         panel.rotationDegrees !== null &&
-        (typeof panel.rotationDegrees !== "number" || !Number.isFinite(panel.rotationDegrees))) ||
+        (typeof panel.rotationDegrees !== "number" ||
+          !Number.isFinite(panel.rotationDegrees))) ||
       (panel.mirrored !== undefined &&
         panel.mirrored !== null &&
         typeof panel.mirrored !== "boolean") ||
@@ -1144,7 +1256,8 @@ export function parsePanelAssemblyDefinition(
       );
     }
     panelIds.add(panel.id);
-    if (panel.mountFaceId !== undefined) panelFaceIds.add(panel.mountFaceId as string);
+    if (panel.mountFaceId !== undefined)
+      panelFaceIds.add(panel.mountFaceId as string);
   }
   for (const panel of input.panels) {
     if (
@@ -1157,7 +1270,8 @@ export function parsePanelAssemblyDefinition(
   }
   if (
     input.panels.length === 0 &&
-    (input.structuralDesign !== undefined || input.generatedStructure !== undefined)
+    (input.structuralDesign !== undefined ||
+      input.generatedStructure !== undefined)
   ) {
     throw new Error(
       "Structural design and generated structural assets require at least one panel pose.",
@@ -1170,9 +1284,10 @@ export function parsePanelAssemblyDefinition(
   );
   if (
     calibration.installedPanelOrientation === "measured" &&
-    input.panels.some((panel) =>
-      !isRecord(panel.installedAddressTransform) ||
-      panel.installedAddressTransform.status !== "measured"
+    input.panels.some(
+      (panel) =>
+        !isRecord(panel.installedAddressTransform) ||
+        panel.installedAddressTransform.status !== "measured",
     )
   ) {
     throw new Error(
@@ -1181,9 +1296,10 @@ export function parsePanelAssemblyDefinition(
   }
   if (
     calibration.installedPanelOrientation !== "measured" &&
-    input.panels.some((panel) =>
-      isRecord(panel.installedAddressTransform) &&
-      panel.installedAddressTransform.status === "measured"
+    input.panels.some(
+      (panel) =>
+        isRecord(panel.installedAddressTransform) &&
+        panel.installedAddressTransform.status === "measured",
     )
   ) {
     throw new Error(
@@ -1210,22 +1326,25 @@ export function parsePanelAssemblyDefinition(
     }
     const gapIds = new Set<string>();
     for (const gap of topology.gaps) {
-      const cornerReferences = isRecord(gap) && Array.isArray(gap.vertices)
-        ? gap.vertices.flatMap((vertex) =>
-          isRecord(vertex) &&
-            typeof vertex.panelId === "string" &&
-            typeof vertex.corner === "string"
-            ? [`${vertex.panelId}:${vertex.corner}`]
-            : []
-        )
-        : [];
+      const cornerReferences =
+        isRecord(gap) && Array.isArray(gap.vertices)
+          ? gap.vertices.flatMap((vertex) =>
+              isRecord(vertex) &&
+              typeof vertex.panelId === "string" &&
+              typeof vertex.corner === "string"
+                ? [`${vertex.panelId}:${vertex.corner}`]
+                : [],
+            )
+          : [];
       if (
         isRecord(gap) &&
         Array.isArray(gap.vertices) &&
         cornerReferences.length === gap.vertices.length &&
         new Set(cornerReferences).size !== cornerReferences.length
       ) {
-        throw new Error("Boundary gaps cannot repeat a panel-corner reference.");
+        throw new Error(
+          "Boundary gaps cannot repeat a panel-corner reference.",
+        );
       }
       if (
         !isRecord(gap) ||
@@ -1234,11 +1353,12 @@ export function parsePanelAssemblyDefinition(
         gapIds.has(gap.id) ||
         !Array.isArray(gap.vertices) ||
         gap.vertices.length < 3 ||
-        gap.vertices.some((vertex) =>
-          !isRecord(vertex) ||
-          typeof vertex.panelId !== "string" ||
-          !panelIds.has(vertex.panelId) ||
-          !validCorners.has(vertex.corner as PanelOutlineCornerId)
+        gap.vertices.some(
+          (vertex) =>
+            !isRecord(vertex) ||
+            typeof vertex.panelId !== "string" ||
+            !panelIds.has(vertex.panelId) ||
+            !validCorners.has(vertex.corner as PanelOutlineCornerId),
         )
       ) {
         throw new Error(
@@ -1286,9 +1406,12 @@ export function parsePanelAssemblyDefinition(
         preferredVertexCounts.has(preference.closureVertexCount as number) ||
         !Array.isArray(preference.panelHoleIds) ||
         preference.panelHoleIds.length === 0 ||
-        new Set(preference.panelHoleIds).size !== preference.panelHoleIds.length ||
+        new Set(preference.panelHoleIds).size !==
+          preference.panelHoleIds.length ||
         preference.panelHoleIds.some(
-          (id) => typeof id !== "string" || !validHoleIds.includes(id as PanelMountingHoleId),
+          (id) =>
+            typeof id !== "string" ||
+            !validHoleIds.includes(id as PanelMountingHoleId),
         )
       ) {
         throw new Error(
@@ -1306,12 +1429,16 @@ export function parsePanelAssemblyDefinition(
       panelFaceIds.has(faceId) ||
       closureFaceIds.has(faceId)
     ) {
-      throw new Error("Closure faces must be unique, known, and not panel faces.");
+      throw new Error(
+        "Closure faces must be unique, known, and not panel faces.",
+      );
     }
     closureFaceIds.add(faceId);
   }
   if (panelFaceIds.size + closureFaceIds.size !== faceIds.size) {
-    throw new Error("Every face must be assigned to exactly one panel or closure.");
+    throw new Error(
+      "Every face must be assigned to exactly one panel or closure.",
+    );
   }
   for (const key of [
     "coverThickness",
@@ -1345,7 +1472,10 @@ export function assertMechanicalShellReady(
       "Generic 3D-part generation is unavailable until generation input exists. Add a supported mechanical boundary, or wait for panel-outline boundary generation.",
     );
   }
-  if (project.sculpture.mechanicalShell.derivationStatus === "requires-regeneration") {
+  if (
+    project.sculpture.mechanicalShell.derivationStatus ===
+    "requires-regeneration"
+  ) {
     throw new Error(
       "Mechanical shell is out of date with design-surface panel poses; regenerate connector topology before producing CAD.",
     );
@@ -1396,7 +1526,11 @@ export async function loadPanelAssemblyProject(
     sculpture.panelProfile,
     source,
   );
-  return createValidatedPanelAssemblyProject(sculpture, source, panelProfileInput);
+  return createValidatedPanelAssemblyProject(
+    sculpture,
+    source,
+    panelProfileInput,
+  );
 }
 
 function vector(x: number, y: number, z: number): Vector3Data {
@@ -1450,11 +1584,7 @@ function polygonNormal(values: Vector3Data[]): Vector3Data {
 }
 
 function distanceSquared(a: Vector3Data, b: Vector3Data): number {
-  return (
-    (a.x - b.x) ** 2 +
-    (a.y - b.y) ** 2 +
-    (a.z - b.z) ** 2
-  );
+  return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
 }
 
 function panelHoles(
@@ -1463,9 +1593,8 @@ function panelHoles(
 ): CompiledMountingHole[] {
   return profile.mounting.holes.map(
     ({ id, localPosition: profileLocalPosition, mechanicalUse, blockedBy }) => {
-      const localPosition = panelBackViewPointToOutwardPoseLocal(
-        profileLocalPosition,
-      );
+      const localPosition =
+        panelBackViewPointToOutwardPoseLocal(profileLocalPosition);
       return {
         id,
         localPosition,
@@ -1493,14 +1622,17 @@ function holeToCapEdgeEvennessCost(
   const segment = subtract(end, start);
   const lengthSquared = dot(segment, segment);
   const midpoint = add(start, scale(segment, 0.5));
-  const t = lengthSquared === 0
-    ? 0.5
-    : Math.max(
-      0,
-      Math.min(1, dot(subtract(point, start), segment) / lengthSquared),
-    );
-  return distanceSquared(point, midpoint) +
-    0.25 * (t - 0.5) * (t - 0.5) * lengthSquared;
+  const t =
+    lengthSquared === 0
+      ? 0.5
+      : Math.max(
+          0,
+          Math.min(1, dot(subtract(point, start), segment) / lengthSquared),
+        );
+  return (
+    distanceSquared(point, midpoint) +
+    0.25 * (t - 0.5) * (t - 0.5) * lengthSquared
+  );
 }
 
 export function compilePanelAssembly(
@@ -1514,12 +1646,12 @@ export function compilePanelAssembly(
       "Projects without generated mechanics do not compile generic closure topology.",
     );
   }
-  const vertices = mechanicalShell.vertices.map(([x, y, z]) =>
-    vector(x, y, z),
-  );
+  const vertices = mechanicalShell.vertices.map(([x, y, z]) => vector(x, y, z));
   const panelByFace = new Map(
     definition.panels.flatMap((panel) =>
-      panel.mountFaceId === undefined ? [] : [[panel.mountFaceId, panel] as const]
+      panel.mountFaceId === undefined
+        ? []
+        : [[panel.mountFaceId, panel] as const],
     ),
   );
   const closureFaceIds = new Set(closures.faceIds);
@@ -1537,9 +1669,11 @@ export function compilePanelAssembly(
       subtract(faceVertices[2]!, faceVertices[1]!),
     );
     const strictNormal = normalize(strictRawNormal);
-    const strictPlanarity = Math.max(...faceVertices.map((vertex) =>
-      Math.abs(dot(subtract(vertex, center), strictNormal))
-    ));
+    const strictPlanarity = Math.max(
+      ...faceVertices.map((vertex) =>
+        Math.abs(dot(subtract(vertex, center), strictNormal)),
+      ),
+    );
     const usesBoundedClosureProjection =
       role === "closure" && strictPlanarity > 1e-6;
     const rawNormal = usesBoundedClosureProjection
@@ -1547,19 +1681,24 @@ export function compilePanelAssembly(
       : strictRawNormal;
     const normal = normalize(rawNormal);
     if (dot(normal, center) <= 0) {
-      throw new Error(`Face ${source.id} winding does not point away from the origin.`);
+      throw new Error(
+        `Face ${source.id} winding does not point away from the origin.`,
+      );
     }
-    const planarityTolerance = role === "closure"
-      ? GENERATED_CLOSURE_PLANARITY_MM
-      : 1e-6;
+    const planarityTolerance =
+      role === "closure" ? GENERATED_CLOSURE_PLANARITY_MM : 1e-6;
     for (const vertex of faceVertices) {
-      if (Math.abs(dot(subtract(vertex, center), normal)) > planarityTolerance) {
+      if (
+        Math.abs(dot(subtract(vertex, center), normal)) > planarityTolerance
+      ) {
         throw new Error(`Face ${source.id} is not planar.`);
       }
     }
-    const xAxis = normalize(usesBoundedClosureProjection
-      ? subtract(firstEdge, scale(normal, dot(firstEdge, normal)))
-      : firstEdge);
+    const xAxis = normalize(
+      usesBoundedClosureProjection
+        ? subtract(firstEdge, scale(normal, dot(firstEdge, normal)))
+        : firstEdge,
+    );
     const yAxis = normalize(cross(normal, xAxis));
     return {
       id: source.id,
@@ -1583,7 +1722,9 @@ export function compilePanelAssembly(
   const faceById = new Map(faces.map((face) => [face.id, face]));
   const panels: CompiledPanelPlacement[] = definition.panels.map((source) => {
     if (source.mountFaceId === undefined) {
-      throw new Error(`Panel ${source.id} needs regenerated mechanical topology.`);
+      throw new Error(
+        `Panel ${source.id} needs regenerated mechanical topology.`,
+      );
     }
     const face = faceById.get(source.mountFaceId)!;
     const axes = {
@@ -1592,10 +1733,7 @@ export function compilePanelAssembly(
       normal: vector(...source.pose.orientation.normal),
     };
     const rawRotationDegrees =
-      (Math.atan2(
-        dot(axes.xAxis, face.yAxis),
-        dot(axes.xAxis, face.xAxis),
-      ) *
+      (Math.atan2(dot(axes.xAxis, face.yAxis), dot(axes.xAxis, face.xAxis)) *
         180) /
       Math.PI;
     const rotationDegrees =
@@ -1628,9 +1766,14 @@ export function compilePanelAssembly(
     }>
   >();
   for (const face of faces) {
-    for (let edgeIndex = 0; edgeIndex < face.vertexIndices.length; edgeIndex += 1) {
+    for (
+      let edgeIndex = 0;
+      edgeIndex < face.vertexIndices.length;
+      edgeIndex += 1
+    ) {
       const first = face.vertexIndices[edgeIndex]!;
-      const second = face.vertexIndices[(edgeIndex + 1) % face.vertexIndices.length]!;
+      const second =
+        face.vertexIndices[(edgeIndex + 1) % face.vertexIndices.length]!;
       const orderedVertices: [number, number] =
         first < second ? [first, second] : [second, first];
       const key = `${orderedVertices[0]}:${orderedVertices[1]}`;
@@ -1655,7 +1798,8 @@ export function compilePanelAssembly(
     const b = second[0]!.orderedVertices;
     return a[0] - b[0] || a[1] - b[1];
   })) {
-    if (uses.length !== 2) throw new Error("Face graph must be a closed two-manifold.");
+    if (uses.length !== 2)
+      throw new Error("Face graph must be a closed two-manifold.");
     const first = uses[0]!;
     const second = uses[1]!;
     first.face.adjacentFaceIds.push(second.face.id);
@@ -1678,12 +1822,30 @@ export function compilePanelAssembly(
       interiorDihedralDegrees: 180 - normalAngle,
     });
 
-    const panelUse = first.face.role === "panel" ? first : second.face.role === "panel" ? second : null;
-    const closureUse = first.face.role === "closure" ? first : second.face.role === "closure" ? second : null;
-    if (!panelUse && first.face.role === "closure" && second.face.role === "closure") {
+    const panelUse =
+      first.face.role === "panel"
+        ? first
+        : second.face.role === "panel"
+          ? second
+          : null;
+    const closureUse =
+      first.face.role === "closure"
+        ? first
+        : second.face.role === "closure"
+          ? second
+          : null;
+    if (
+      !panelUse &&
+      first.face.role === "closure" &&
+      second.face.role === "closure"
+    ) {
       continue;
     }
-    if (!closureUse && first.face.role === "panel" && second.face.role === "panel") {
+    if (
+      !closureUse &&
+      first.face.role === "panel" &&
+      second.face.role === "panel"
+    ) {
       continue;
     }
     if (!panelUse || !closureUse) {
@@ -1722,7 +1884,9 @@ export function compilePanelAssembly(
         `Panel ${panel.id} has ${interfaces.length} cap interfaces but only ${eligibleHoles.length} eligible mounting holes.`,
       );
     }
-    const sourcePanel = definition.panels.find((source) => source.id === panel.id)!;
+    const sourcePanel = definition.panels.find(
+      (source) => source.id === panel.id,
+    )!;
     if (
       !sourcePanel.connectorPolicy?.allowSharedClosureAcrossAdjacentEdges &&
       new Set(interfaces.map((candidate) => candidate.closure.id)).size !==
@@ -1733,7 +1897,8 @@ export function compilePanelAssembly(
       );
     }
     const allowsSharedClosure =
-      sourcePanel.connectorPolicy?.allowSharedClosureAcrossAdjacentEdges === true;
+      sourcePanel.connectorPolicy?.allowSharedClosureAcrossAdjacentEdges ===
+      true;
 
     let bestScore = Number.POSITIVE_INFINITY;
     let bestAssignment: number[] | null = null;
@@ -1744,18 +1909,20 @@ export function compilePanelAssembly(
       score: number,
     ): void => {
       if (holeIndex === eligibleHoles.length) {
-        if (
-          interfaceCounts.every((count) => count > 0) &&
-          score < bestScore
-        ) {
+        if (interfaceCounts.every((count) => count > 0) && score < bestScore) {
           bestScore = score;
           bestAssignment = [...assignment];
         }
         return;
       }
       const hole = eligibleHoles[holeIndex]!;
-      for (let interfaceIndex = 0; interfaceIndex < interfaces.length; interfaceIndex += 1) {
-        if (!allowsSharedClosure && interfaceCounts[interfaceIndex]! > 0) continue;
+      for (
+        let interfaceIndex = 0;
+        interfaceIndex < interfaces.length;
+        interfaceIndex += 1
+      ) {
+        if (!allowsSharedClosure && interfaceCounts[interfaceIndex]! > 0)
+          continue;
         const panelInterface = interfaces[interfaceIndex]!;
         const preference = closures.holePreferences?.find(
           (candidate) =>
@@ -1783,7 +1950,12 @@ export function compilePanelAssembly(
         );
       }
     };
-    assign(0, [], interfaces.map(() => 0), 0);
+    assign(
+      0,
+      [],
+      interfaces.map(() => 0),
+      0,
+    );
     if (!bestAssignment) {
       throw new Error(`Panel ${panel.id} has no valid cap-to-hole assignment.`);
     }
@@ -1795,9 +1967,7 @@ export function compilePanelAssembly(
         add(panelInterface.edgeStart, panelInterface.edgeEnd),
         0.5,
       );
-      const panelInwardAxis = normalize(
-        subtract(panel.position, edgeMidpoint),
-      );
+      const panelInwardAxis = normalize(subtract(panel.position, edgeMidpoint));
       panelInterface.closure.connectors.push({
         panelId: panel.id,
         panelFaceId: panel.faceId,
@@ -1834,20 +2004,30 @@ export function compilePanelAssembly(
   }
   for (const [partId, regions] of closureParts) {
     const connectors = regions.flatMap((region) => region.connectors);
-    const minimumConnectors = Math.max(...regions.map((region) => {
-      const sourceFace = mechanicalShell.faces.find(
-        (face) => face.id === region.id,
-      )!;
-      return sourceFace.connectorPolicy?.minimumPanelHoleConnectors ?? 3;
-    }));
+    const minimumConnectors = Math.max(
+      ...regions.map((region) => {
+        const sourceFace = mechanicalShell.faces.find(
+          (face) => face.id === region.id,
+        )!;
+        return sourceFace.connectorPolicy?.minimumPanelHoleConnectors ?? 3;
+      }),
+    );
     if (connectors.length < minimumConnectors) {
       throw new Error(
-        "Printable part " + partId + " needs at least " + minimumConnectors + " panel-hole connectors; found " + connectors.length + ".",
+        "Printable part " +
+          partId +
+          " needs at least " +
+          minimumConnectors +
+          " panel-hole connectors; found " +
+          connectors.length +
+          ".",
       );
     }
     const normals = regions.map((region) => region.normal);
     if (normals.some((normal) => dot(normal, normals[0]!) < 1 - 1e-6)) {
-      throw new Error(`Printable part ${partId} contains non-coplanar regions and cannot print flat.`);
+      throw new Error(
+        `Printable part ${partId} contains non-coplanar regions and cannot print flat.`,
+      );
     }
     const adjacentPanels = connectors.map((connector) => connector.panelId);
     for (const panelId of adjacentPanels) {
@@ -1855,7 +2035,8 @@ export function compilePanelAssembly(
       panel.neighborPanelIds.push(
         ...adjacentPanels.filter(
           (candidate) =>
-            candidate !== panelId && !panel.neighborPanelIds.includes(candidate),
+            candidate !== panelId &&
+            !panel.neighborPanelIds.includes(candidate),
         ),
       );
     }
@@ -1875,7 +2056,9 @@ export function compilePanelAssembly(
         `Panel ${panel.id} does not use all four eligible mounting holes.`,
       );
     }
-    const sourcePanel = definition.panels.find((source) => source.id === panel.id)!;
+    const sourcePanel = definition.panels.find(
+      (source) => source.id === panel.id,
+    )!;
     if (
       !sourcePanel.connectorPolicy?.allowSharedClosureAcrossAdjacentEdges &&
       new Set(assignedHoles.map((hole) => hole.assignedClosureId)).size !==
@@ -1931,18 +2114,21 @@ export function createPanelAssemblyMapping(
   project: PanelAssemblyProject,
   assembly?: CompiledPanelAssembly,
 ): LedMapping {
-  const resolvedAssembly = assembly ??
+  const resolvedAssembly =
+    assembly ??
     (!supportsRectangularPanelTools(project.panelProfile) ||
-        !project.sculpture.mechanicalShell ||
-        !project.sculpture.closures ||
-        project.sculpture.mechanicalShell.derivationStatus === "requires-regeneration"
+    !project.sculpture.mechanicalShell ||
+    !project.sculpture.closures ||
+    project.sculpture.mechanicalShell.derivationStatus ===
+      "requires-regeneration"
       ? null
       : compilePanelAssembly(project));
   const columns = project.panelProfile.pixelGrid.columns;
   const rows = project.panelProfile.pixelGrid.rows;
   const ledsPerPanel = columns * rows;
-  const panelSources = resolvedAssembly?.panels ?? project.sculpture.panels.map(
-    (source) => ({
+  const panelSources =
+    resolvedAssembly?.panels ??
+    project.sculpture.panels.map((source) => ({
       id: source.id,
       position: vector(...source.pose.position),
       normal: vector(...source.pose.orientation.normal),
@@ -1952,55 +2138,57 @@ export function createPanelAssemblyMapping(
       height: project.panelProfile.dimensions.height,
       neighborPanelIds: source.neighborPanelIds ?? [],
       rotationDegrees: source.rotationDegrees ?? null,
-    }),
-  );
+    }));
   const panels: PanelDefinition[] = panelSources.map((source) => {
-    const sourcePanel = project.sculpture.panels.find((panel) => panel.id === source.id);
+    const sourcePanel = project.sculpture.panels.find(
+      (panel) => panel.id === source.id,
+    );
     return {
-    id: source.id,
-    faceType:
-      sourcePanel?.faceType ??
-      "square-face",
-    transformStatus: project.sculpture.calibration.panelTransforms,
-    position: source.position,
-    normal: source.normal,
-    xAxis: source.xAxis,
-    yAxis: source.yAxis,
-    previewWidth: source.width,
-    previewHeight: source.height,
-    neighborPanelIds: source.neighborPanelIds,
-    ledIndices: [],
-    rotationDegrees: source.rotationDegrees,
-    mirrored: sourcePanel?.mirrored === undefined ? false : sourcePanel.mirrored,
-    installedAddressTransform: sourcePanel?.installedAddressTransform ?? {
-      status: "assumed",
-      referenceView: "back",
-      quarterTurnsClockwise: 0,
-      mirrored: false,
-    },
-    pixelOrder: {
-      status: project.panelProfile.pixelGrid.provisionalOrder.status,
-      pixelZeroCorner:
-        project.panelProfile.pixelGrid.provisionalOrder.pixelZeroCorner,
-      traversalAxis:
-        project.panelProfile.pixelGrid.provisionalOrder.traversalAxis,
-      lineProgression:
-        project.panelProfile.pixelGrid.provisionalOrder.lineProgression,
-      serpentine: project.panelProfile.pixelGrid.provisionalOrder.serpentine,
-      firstLineDirection:
-        project.panelProfile.pixelGrid.provisionalOrder.firstLineDirection,
-    },
-    wiring: {
-      status: "unassigned",
-      output: null,
-      chainPosition: null,
-      previousPanelId: null,
-      nextPanelId: null,
-    },
+      id: source.id,
+      faceType: sourcePanel?.faceType ?? "square-face",
+      transformStatus: project.sculpture.calibration.panelTransforms,
+      position: source.position,
+      normal: source.normal,
+      xAxis: source.xAxis,
+      yAxis: source.yAxis,
+      previewWidth: source.width,
+      previewHeight: source.height,
+      neighborPanelIds: source.neighborPanelIds,
+      ledIndices: [],
+      rotationDegrees: source.rotationDegrees,
+      mirrored:
+        sourcePanel?.mirrored === undefined ? false : sourcePanel.mirrored,
+      installedAddressTransform: sourcePanel?.installedAddressTransform ?? {
+        status: "assumed",
+        referenceView: "back",
+        quarterTurnsClockwise: 0,
+        mirrored: false,
+      },
+      pixelOrder: {
+        status: project.panelProfile.pixelGrid.provisionalOrder.status,
+        pixelZeroCorner:
+          project.panelProfile.pixelGrid.provisionalOrder.pixelZeroCorner,
+        traversalAxis:
+          project.panelProfile.pixelGrid.provisionalOrder.traversalAxis,
+        lineProgression:
+          project.panelProfile.pixelGrid.provisionalOrder.lineProgression,
+        serpentine: project.panelProfile.pixelGrid.provisionalOrder.serpentine,
+        firstLineDirection:
+          project.panelProfile.pixelGrid.provisionalOrder.firstLineDirection,
+      },
+      wiring: {
+        status: "unassigned",
+        output: null,
+        chainPosition: null,
+        previousPanelId: null,
+        nextPanelId: null,
+      },
     };
   });
   const entries: LedMappingEntry[] = [];
-  const localEmitterPositions = panelEmitterLocalPositions(project.panelProfile);
+  const localEmitterPositions = panelEmitterLocalPositions(
+    project.panelProfile,
+  );
   for (let panelIndex = 0; panelIndex < panels.length; panelIndex += 1) {
     const panel = panels[panelIndex]!;
     for (let pixelY = 0; pixelY < rows; pixelY += 1) {
@@ -2010,14 +2198,8 @@ export function createPanelAssemblyMapping(
         const [localX, localY, localZ] =
           localEmitterPositions[pixelY * columns + pixelX]!;
         const position = add(
-          add(
-            panel.position,
-            scale(panel.xAxis, localX),
-          ),
-          add(
-            scale(panel.yAxis, localY),
-            scale(panel.normal, localZ),
-          ),
+          add(panel.position, scale(panel.xAxis, localX)),
+          add(scale(panel.yAxis, localY), scale(panel.normal, localZ)),
         );
         entries.push({
           physicalIndex,
@@ -2032,11 +2214,9 @@ export function createPanelAssemblyMapping(
       }
     }
   }
-  [...entries]
-    .sort(compareLogicalLedOrder)
-    .forEach((entry, logicalIndex) => {
-      entry.logicalIndex = logicalIndex;
-    });
+  [...entries].sort(compareLogicalLedOrder).forEach((entry, logicalIndex) => {
+    entry.logicalIndex = logicalIndex;
+  });
   const closurePartMap = new Map<string, CompiledAssemblyFace[]>();
   for (const face of resolvedAssembly?.faces.filter(
     (candidate) => candidate.role === "closure",
@@ -2069,8 +2249,10 @@ export function createPanelAssemblyMapping(
       ),
     printableClosures: resolvedAssembly?.faces
       .filter((face) => face.role === "closure")
-      .filter((face, index, faces) =>
-        faces.findIndex((candidate) => candidate.partId === face.partId) === index
+      .filter(
+        (face, index, faces) =>
+          faces.findIndex((candidate) => candidate.partId === face.partId) ===
+          index,
       )
       .map((face) => ({
         id: face.partId,
@@ -2078,27 +2260,28 @@ export function createPanelAssemblyMapping(
         normal: face.normal,
         coverThickness: project.sculpture.closures!.coverThickness,
         exteriorClipping: project.sculpture.closures!.exteriorClipping,
-        cadMeshAsset:
-          `./generated-cad/${project.sculpture.id}/closure-${face.partId.toLowerCase()}.stl`,
+        cadMeshAsset: `./generated-cad/${project.sculpture.id}/closure-${face.partId.toLowerCase()}.stl`,
         frame: {
           origin: face.center,
           xAxis: face.xAxis,
           yAxis: face.yAxis,
           inwardAxis: scale(face.normal, -1),
         },
-        connectors: closurePartMap.get(face.partId)!
-          .flatMap((region) => region.connectors).map((connector) => ({
-          panelId: connector.panelId,
-          holeId: connector.panelHoleId,
-          pilotPosition: connector.pilotPosition,
-          panelInwardNormal: connector.panelInwardNormal,
-          panelMountOffset:
-            project.panelProfile.dimensions.thickness +
-            project.panelProfile.mounting.physicalCorrections.surfaceFlush,
-          flangeThickness: project.sculpture.closures!.flangeThickness,
-          screwTabWidth: project.sculpture.closures!.screwTabWidth,
-          pilotDiameter: project.panelProfile.mounting.printedPilotDiameter,
-        })),
+        connectors: closurePartMap
+          .get(face.partId)!
+          .flatMap((region) => region.connectors)
+          .map((connector) => ({
+            panelId: connector.panelId,
+            holeId: connector.panelHoleId,
+            pilotPosition: connector.pilotPosition,
+            panelInwardNormal: connector.panelInwardNormal,
+            panelMountOffset:
+              project.panelProfile.dimensions.thickness +
+              project.panelProfile.mounting.physicalCorrections.surfaceFlush,
+            flangeThickness: project.sculpture.closures!.flangeThickness,
+            screwTabWidth: project.sculpture.closures!.screwTabWidth,
+            pilotDiameter: project.panelProfile.mounting.printedPilotDiameter,
+          })),
       })),
     surfaceFaces: resolvedAssembly?.faces.map((face) => ({
       id: face.id,
@@ -2108,13 +2291,13 @@ export function createPanelAssemblyMapping(
     })),
     notes: project.sculpture.mapping.notes ?? [
       project.sculpture.mechanicalShell
-          ? "Panel transforms compile directly from explicit poses in sculpture.json; the mechanical shell supplies closure faces."
-          : "Panel transforms compile directly from explicit poses in sculpture.json; no printable mechanics exist yet.",
+        ? "Panel transforms compile directly from explicit poses in sculpture.json; the mechanical shell supplies closure faces."
+        : "Panel transforms compile directly from explicit poses in sculpture.json; no printable mechanics exist yet.",
       resolvedAssembly
         ? "Each closure connector targets a real, uniquely assigned PCB mounting hole."
         : project.sculpture.mechanicalShell
-            ? "Mechanical previews are omitted until the design-surface poses receive regenerated shell topology."
-            : "Mechanical previews are omitted because this project has no mechanics.",
+          ? "Mechanical previews are omitted until the design-surface poses receive regenerated shell topology."
+          : "Mechanical previews are omitted because this project has no mechanics.",
       resolvedAssembly
         ? `${resolvedAssembly.edges.filter((edge) => edge.faceIds.every((faceId) => resolvedAssembly.faces.find((face) => face.id === faceId)?.role === "closure")).length} closure-to-closure edges are clean butt seams without PCB-hole tabs.`
         : "Printable closure and mechanical-mount layers are intentionally unavailable.",

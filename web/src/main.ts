@@ -23,6 +23,7 @@ import {
   setControllerWorldPose,
   setPanelWorldPose,
   setWiringOutputGpios,
+  setWiringLedDriver,
   setWiringPanelRotationConstraint,
   sculptureJson,
   useSuggestedControllerPose,
@@ -129,6 +130,7 @@ import {
   automaticEsp32ReconnectAvailable,
   canEnableReconnectedSimulator,
   connectExistingSimulatorDevice,
+  configureSimulatorLedDriver,
   createSimulatorSetupConfig,
   desktopEsp32ReconnectAvailable,
   isApprovedEsp32OutputGpio,
@@ -491,6 +493,18 @@ app.innerHTML = `
                 <button id="apply-output-gpios" class="editor-button" type="button">Apply output GPIOs</button>
                 <small>Approved pins: ${APPROVED_CLASSIC_ESP32_OUTPUT_GPIOS.join(", ")}.</small>
               </fieldset>
+              <fieldset class="developer-gpio-fieldset">
+                <legend>LED output driver</legend>
+                <label class="field">
+                  <span>Saved driver</span>
+                  <select id="led-output-driver">
+                    <option value="rmt">RMT output</option>
+                    <option value="parallel-i2s">Parallel DMA output (test)</option>
+                  </select>
+                </label>
+                <button id="apply-led-output-driver" class="editor-button" type="button">Save LED driver</button>
+                <small>Parallel DMA requires reviewed firmware and four outputs with at most 704 pixels each.</small>
+              </fieldset>
               <button id="toggle-wiring-rotation-gate" class="editor-button" type="button" aria-pressed="false">Use current poses + 0/180° gate</button>
               <button id="download-madmapper-package" class="editor-button" type="button">Download MadMapper ZIP only</button>
               <button id="download-panel-labels" class="editor-button" type="button">Download fabrication ZIP only</button>
@@ -660,6 +674,10 @@ const ledCountInput = query<HTMLInputElement>("#led-count");
 const applyCountButton = query<HTMLButtonElement>("#apply-count");
 const outputGpioInputs = query<HTMLElement>("#output-gpio-inputs");
 const applyOutputGpiosButton = query<HTMLButtonElement>("#apply-output-gpios");
+const ledOutputDriver = query<HTMLSelectElement>("#led-output-driver");
+const applyLedOutputDriver = query<HTMLButtonElement>(
+  "#apply-led-output-driver",
+);
 const toggleWiringRotationGateButton = query<HTMLButtonElement>(
   "#toggle-wiring-rotation-gate",
 );
@@ -1467,13 +1485,16 @@ async function start(): Promise<void> {
       }
       return { outputs, ledCount, panelCount };
     };
-    const setupPayload = (): Esp32SetupPayload => {
+    const setupPayload = (
+      driver = editorDefinition.wiring.controller.ledDriver ?? "rmt",
+    ): Esp32SetupPayload => {
       const { outputs, ledCount } = loadedSimulatorDeployment();
       const config = createSimulatorSetupConfig(
         smokeConfig as Record<string, unknown>,
         outputs,
         hardwareContract.wledColorOrder.wledValue,
         mapping.panelPixelGrid!.columns * mapping.panelPixelGrid!.rows,
+        driver,
       );
       return {
         sourceFingerprint: hardwareContract.fingerprint,
@@ -1583,6 +1604,12 @@ async function start(): Promise<void> {
     };
 
     const updatePhysicalRouteReviewAvailability = (): void => {
+      applyLedOutputDriver.textContent = simulatorDeviceUrl
+        ? "Apply LED driver"
+        : "Save LED driver";
+      applyLedOutputDriver.disabled =
+        simulatorSetupActive || !!physicalRouteReviewSession;
+      ledOutputDriver.disabled = applyLedOutputDriver.disabled;
       saveStartupEffectButton.disabled =
         !simulatorDeviceUrl ||
         simulatorSetupActive ||
@@ -2320,6 +2347,18 @@ async function start(): Promise<void> {
 
     const renderRouteEditor = (): void => {
       const isPanelized = mapping.topology === "panelized-sculpture";
+      ledOutputDriver.value =
+        editorDefinition.wiring.controller.ledDriver ?? "rmt";
+      const dmaOption = ledOutputDriver.querySelector<HTMLOptionElement>(
+        'option[value="parallel-i2s"]',
+      );
+      if (dmaOption) {
+        dmaOption.disabled =
+          hardwareContract.outputs.length !== 4 ||
+          hardwareContract.outputs.some(
+            (output) => output.pixelCount < 1 || output.pixelCount > 704,
+          );
+      }
       outputGpioInputs.replaceChildren(
         ...editorDefinition.wiring.outputs.map((output) => {
           const label = document.createElement("label");
@@ -3932,6 +3971,59 @@ async function start(): Promise<void> {
             true,
           );
         });
+    });
+    applyLedOutputDriver.addEventListener("click", () => {
+      void (async () => {
+        if (simulatorSetupActive || physicalRouteReviewSession) return;
+        const driver = ledOutputDriver.value;
+        if (driver !== "rmt" && driver !== "parallel-i2s") return;
+        const deviceUrl = simulatorDeviceUrl;
+        const revision = simulatorProjectRevision;
+        try {
+          const payload = setupPayload(driver);
+          const nextDefinition = setWiringLedDriver(editorDefinition, driver);
+          simulatorSetupActive = true;
+          stopExternalFrameMirror();
+          simulatorDeviceUrl = undefined;
+          if (standaloneSaveTimer) {
+            clearTimeout(standaloneSaveTimer);
+            standaloneSaveTimer = undefined;
+          }
+          updatePhysicalRouteReviewAvailability();
+          await settleSimulatorDeviceWork([
+            standaloneSaveRequest,
+            simulatorFrameRequest,
+            externalFrameMirrorQueue.drain(),
+          ]);
+          if (deviceUrl) await configureSimulatorLedDriver(deviceUrl, payload);
+          if (revision !== simulatorProjectRevision) {
+            throw new Error(
+              "The project changed during driver configuration. Reconnect the current project.",
+            );
+          }
+          const project = createPanelAssemblyProject(
+            nextDefinition,
+            editorProject.source,
+            editorProject.panelProfile,
+          );
+          await applyLoadedSculpture(createLoadedSculpture(project));
+          setLogMessage(
+            deviceUrl
+              ? "LED driver applied and verified. The project records the selected driver."
+              : "LED driver saved in the project. Apply the same driver on reviewed firmware before reconnecting.",
+          );
+        } catch (error) {
+          setLogMessage(
+            error instanceof Error ? error.message : String(error),
+            true,
+          );
+        } finally {
+          simulatorSetupActive = false;
+          renderRouteEditor();
+          updatePhysicalRouteReviewAvailability();
+          tryReconnectSimulatorLink();
+        }
+      })();
     });
     applyOutputGpiosButton.addEventListener("click", () => {
       void (async () => {

@@ -303,8 +303,22 @@ identity transform; legacy `rotationDegrees` and `mirrored` values are never
 inferred. A measured calibration requires an explicit measured transform on
 every panel. Color order is a WLED bus fact. Bus reversal stays false because
 the authored route and ledmap already own direction. The assumed WLED fragment
-records type 22, measured GRB order 0, RMT driver 0, GPIO, global start, length, current
+records type 22, measured GRB order 0, the selected LED driver, GPIO, global start, length, current
 limits, and power-domain labels for all four outputs.
+
+The optional `wiring.controller.ledDriver` selects `rmt` or `parallel-i2s`.
+An omitted value selects RMT. WLED uses `drv:0` for RMT and `drv:1` for parallel I2S.
+The driver changes deployment identity, but does not change LED addresses or the mapping fingerprint.
+Changing the driver removes prior device proof.
+The current parallel I2S candidate requires four RGB outputs, each with at most 704 pixels.
+It uses I2S1 for LEDs and reserves I2S0 for the microphone.
+
+Developer utilities can save the driver preference or apply it to a verified controller.
+An online change stops frame output, preserves bus settings, and verifies the new driver.
+DMA reconnect requires guarded firmware telemetry with four active lanes and no initialization failure.
+The packaged USB firmware does not contain these DMA guards. USB setup rejects a selected parallel I2S driver before serial access.
+DMA project packages contain diagnostic mapping files until the package includes matching reviewed firmware.
+Driver selection does not establish physical output quality. DDP and standalone audio require separate physical checks.
 
 A panel pose or panel-set edit keeps the quarter-turn and mirror values, but
 changes their status to assumed and changes the global installed-orientation

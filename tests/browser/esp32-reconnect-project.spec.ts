@@ -19,6 +19,7 @@ test("restores replacement GPIOs before automatic device discovery", async ({
     [16, 17, 21, 22],
   );
   definition.name = "Saved ESP32 replacement outputs";
+  definition.wiring.controller.ledDriver = "parallel-i2s";
   const bytes = createProjectPackageZip(definition, new Map());
   let snapshotReturned = false;
   let discoveryStarted = false;
@@ -42,6 +43,7 @@ test("restores replacement GPIOs before automatic device discovery", async ({
     definition.name,
   );
   await expect(page.locator("#output-gpio-inputs input")).toHaveCount(4);
+  await expect(page.locator("#led-output-driver")).toHaveValue("parallel-i2s");
   expect(
     await page
       .locator("#output-gpio-inputs input")
@@ -51,6 +53,7 @@ test("restores replacement GPIOs before automatic device discovery", async ({
   ).toEqual(["16", "17", "21", "22"]);
   await expect.poll(() => discoveryStarted).toBe(true);
   await page.reload();
+  await expect(page.locator("#led-output-driver")).toHaveValue("parallel-i2s");
   await expect(page.locator("#current-project-name")).toHaveText(
     definition.name,
   );
@@ -61,6 +64,17 @@ test("restores replacement GPIOs before automatic device discovery", async ({
   await page.goto(
     "/?sculptureJson=/sculptures/rhombicosidodecahedron/sculpture.json",
   );
+  await expect(page.locator("#output-gpio-inputs input").nth(2)).toHaveValue(
+    "18",
+  );
+  await expect(page.locator("#led-output-driver")).toHaveValue("rmt");
+  await page.locator("#developer-utilities > summary").click();
+  await page.locator("#led-output-driver").selectOption("parallel-i2s");
+  await page.locator("#apply-led-output-driver").click();
+  await expect(page.locator("#pipeline-status")).toContainText(
+    "LED driver saved in the project",
+  );
+  await expect(page.locator("#led-output-driver")).toHaveValue("parallel-i2s");
   await expect(page.locator("#output-gpio-inputs input").nth(2)).toHaveValue(
     "18",
   );

@@ -18,14 +18,14 @@ import {
 } from "../web/src/PortableProject.ts";
 
 const GLB = new Uint8Array([
-  0x67, 0x6c, 0x54, 0x46,
-  0x02, 0x00, 0x00, 0x00,
-  0x0c, 0x00, 0x00, 0x00,
+  0x67, 0x6c, 0x54, 0x46, 0x02, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
 ]);
 
 async function portableFixture(): Promise<{
   definition: PanelAssemblyDefinition;
-  profile: Awaited<ReturnType<typeof loadPanelAssemblyProjectFromFile>>["panelProfile"];
+  profile: Awaited<
+    ReturnType<typeof loadPanelAssemblyProjectFromFile>
+  >["panelProfile"];
   files: PortableProjectFile[];
 }> {
   const loaded = await loadPanelAssemblyProjectFromFile(
@@ -81,6 +81,35 @@ function zipWithEntries(
 }
 
 describe("portable project folder and ZIP validation", () => {
+  it("persists the optional LED driver and rejects an untrusted value", async () => {
+    const { definition, profile } = await portableFixture();
+    definition.wiring.controller.ledDriver = "parallel-i2s";
+    const reopened = await openPortableProjectZip(
+      createPortableProjectZip(
+        definition,
+        new Map([["design/source.glb", GLB]]),
+      ),
+      "driver.zip",
+      async () => profile,
+    );
+    try {
+      expect(reopened.project.sculpture.wiring.controller.ledDriver).toBe(
+        "parallel-i2s",
+      );
+    } finally {
+      reopened.dispose();
+    }
+
+    const untrusted = structuredClone(definition) as unknown as Record<
+      string,
+      unknown
+    >;
+    const wiring = untrusted.wiring as Record<string, unknown>;
+    const controller = wiring.controller as Record<string, unknown>;
+    controller.ledDriver = "unsupported";
+    expect(() => parsePanelAssemblyDefinition(untrusted)).toThrow(/controller/);
+  });
+
   it("uses identical relative paths and hashes for folder and ZIP transport", async () => {
     const { definition, profile } = await portableFixture();
     const assets = new Map([["design/source.glb", GLB]]);
@@ -136,8 +165,9 @@ describe("portable project folder and ZIP validation", () => {
       );
       expect(folder.assets.get("design/source.glb")?.bytes).toEqual(GLB);
       expect(zip.assets.get("design/source.glb")?.bytes).toEqual(GLB);
-      expect(zip.project.sculpture.designSurface?.source)
-        .toBe("design/source.glb");
+      expect(zip.project.sculpture.designSurface?.source).toBe(
+        "design/source.glb",
+      );
     } finally {
       folder.dispose();
       zip.dispose();
@@ -148,11 +178,41 @@ describe("portable project folder and ZIP validation", () => {
     const { definition, profile } = await portableFixture();
     delete definition.designSurface;
     const structural = [
-      { id: "part", role: "part", format: "stl", source: "structure/parts/part.stl", bytes: new Uint8Array([1, 2, 3]) },
-      { id: "preview", role: "preview", format: "stl", source: "structure/preview.stl", bytes: new Uint8Array([4, 5]) },
-      { id: "package", role: "package", format: "3mf", source: "structure/model.3mf", bytes: new Uint8Array([6, 7, 8]) },
-      { id: "analysis", role: "analysis", format: "json", source: "structure/analysis.json", bytes: new TextEncoder().encode("{}\n") },
-      { id: "report", role: "report", format: "markdown", source: "structure/report.md", bytes: new TextEncoder().encode("# Report\n") },
+      {
+        id: "part",
+        role: "part",
+        format: "stl",
+        source: "structure/parts/part.stl",
+        bytes: new Uint8Array([1, 2, 3]),
+      },
+      {
+        id: "preview",
+        role: "preview",
+        format: "stl",
+        source: "structure/preview.stl",
+        bytes: new Uint8Array([4, 5]),
+      },
+      {
+        id: "package",
+        role: "package",
+        format: "3mf",
+        source: "structure/model.3mf",
+        bytes: new Uint8Array([6, 7, 8]),
+      },
+      {
+        id: "analysis",
+        role: "analysis",
+        format: "json",
+        source: "structure/analysis.json",
+        bytes: new TextEncoder().encode("{}\n"),
+      },
+      {
+        id: "report",
+        role: "report",
+        format: "markdown",
+        source: "structure/report.md",
+        bytes: new TextEncoder().encode("# Report\n"),
+      },
     ] as const;
     definition.generatedStructure = {
       schemaVersion: "1.0.0",
@@ -165,7 +225,9 @@ describe("portable project folder and ZIP validation", () => {
       })),
     };
     definition.panelProfile.source = "catalog/panel-profile.json";
-    const profileBytes = new TextEncoder().encode(`${JSON.stringify(profile)}\n`);
+    const profileBytes = new TextEncoder().encode(
+      `${JSON.stringify(profile)}\n`,
+    );
     const assets = new Map<string, Uint8Array>([
       [definition.panelProfile.source, profileBytes],
       ...structural.map(({ source, bytes }) => [source, bytes] as const),
@@ -183,15 +245,21 @@ describe("portable project folder and ZIP validation", () => {
     try {
       expect(reopened.project.panelProfile).toEqual(profile);
       expect(reopened.assets.size).toBe(structural.length + 1);
-      expect(reopened.assets.get(definition.panelProfile.source)?.bytes).toEqual(profileBytes);
+      expect(
+        reopened.assets.get(definition.panelProfile.source)?.bytes,
+      ).toEqual(profileBytes);
       for (const { source, bytes } of structural) {
         expect(reopened.assets.get(source)?.bytes).toEqual(bytes);
       }
       const reexported = createPortableProjectFiles(
         reopened.project.sculpture,
-        new Map([...reopened.assets].map(([source, asset]) => [source, asset.bytes])),
+        new Map(
+          [...reopened.assets].map(([source, asset]) => [source, asset.bytes]),
+        ),
       );
-      expect(reexported.get(definition.panelProfile.source)).toEqual(profileBytes);
+      expect(reexported.get(definition.panelProfile.source)).toEqual(
+        profileBytes,
+      );
     } finally {
       reopened.dispose();
     }
@@ -235,51 +303,57 @@ describe("portable project folder and ZIP validation", () => {
 
   it("rejects a missing referenced file", async () => {
     const { profile, files } = await portableFixture();
-    await expect(openPortableProjectFiles(
-      files.slice(0, 1),
-      "missing",
-      async () => profile,
-    )).rejects.toThrow(/missing referenced file design\/source\.glb/);
+    await expect(
+      openPortableProjectFiles(
+        files.slice(0, 1),
+        "missing",
+        async () => profile,
+      ),
+    ).rejects.toThrow(/missing referenced file design\/source\.glb/);
   });
 
   it("rejects duplicate container entries and duplicate sculpture documents", async () => {
     const { profile, files } = await portableFixture();
-    await expect(openPortableProjectFiles(
-      [...files, { ...files[1]!, bytes: Uint8Array.from(GLB) }],
-      "duplicate-file",
-      async () => profile,
-    )).rejects.toThrow(/duplicate file/);
-    await expect(openPortableProjectFiles(
-      [
-        ...files,
-        {
-          path: "other/sculpture.json",
-          bytes: files[0]!.bytes,
-        },
-      ],
-      "duplicate-json",
-      async () => profile,
-    )).rejects.toThrow(/duplicate sculpture\.json/);
+    await expect(
+      openPortableProjectFiles(
+        [...files, { ...files[1]!, bytes: Uint8Array.from(GLB) }],
+        "duplicate-file",
+        async () => profile,
+      ),
+    ).rejects.toThrow(/duplicate file/);
+    await expect(
+      openPortableProjectFiles(
+        [
+          ...files,
+          {
+            path: "other/sculpture.json",
+            bytes: files[0]!.bytes,
+          },
+        ],
+        "duplicate-json",
+        async () => profile,
+      ),
+    ).rejects.toThrow(/duplicate sculpture\.json/);
   });
 
   it("rejects unsafe folder and ZIP paths before reading project assets", async () => {
     const { profile, files } = await portableFixture();
-    await expect(openPortableProjectFiles(
-      [...files, { path: "../escape.stl", bytes: new Uint8Array() }],
-      "unsafe-folder",
-      async () => profile,
-    )).rejects.toThrow(/safe portable path/);
+    await expect(
+      openPortableProjectFiles(
+        [...files, { path: "../escape.stl", bytes: new Uint8Array() }],
+        "unsafe-folder",
+        async () => profile,
+      ),
+    ).rejects.toThrow(/safe portable path/);
 
     const unsafeZip = zipSync({
       "project/sculpture.json": files[0]!.bytes,
       "project/design/source.glb": GLB,
       "../escape.stl": new Uint8Array(),
     });
-    await expect(openPortableProjectZip(
-      unsafeZip,
-      "unsafe.zip",
-      async () => profile,
-    )).rejects.toThrow(/safe portable path/);
+    await expect(
+      openPortableProjectZip(unsafeZip, "unsafe.zip", async () => profile),
+    ).rejects.toThrow(/safe portable path/);
   });
 
   it("rejects hash mismatches on import and export", async () => {
@@ -289,15 +363,15 @@ describe("portable project folder and ZIP validation", () => {
       ...mismatched[1]!,
       bytes: new Uint8Array([...GLB.slice(0, -1), 0xff]),
     };
-    await expect(openPortableProjectFiles(
-      mismatched,
-      "mismatched",
-      async () => profile,
-    )).rejects.toThrow(/failed SHA-256 verification/);
-    expect(() => createPortableProjectZip(
-      definition,
-      new Map([["design/source.glb", mismatched[1]!.bytes]]),
-    )).toThrow(/failed SHA-256 verification/);
+    await expect(
+      openPortableProjectFiles(mismatched, "mismatched", async () => profile),
+    ).rejects.toThrow(/failed SHA-256 verification/);
+    expect(() =>
+      createPortableProjectZip(
+        definition,
+        new Map([["design/source.glb", mismatched[1]!.bytes]]),
+      ),
+    ).toThrow(/failed SHA-256 verification/);
   });
 
   it("rejects duplicate file names preserved in a ZIP central stream", async () => {
@@ -307,11 +381,13 @@ describe("portable project folder and ZIP validation", () => {
       { name: files[1]!.path, bytes: files[1]!.bytes },
       { name: files[1]!.path, bytes: files[1]!.bytes },
     ]);
-    await expect(openPortableProjectZip(
-      duplicateZip,
-      "duplicate.zip",
-      async () => profile,
-    )).rejects.toThrow(/duplicate file/);
+    await expect(
+      openPortableProjectZip(
+        duplicateZip,
+        "duplicate.zip",
+        async () => profile,
+      ),
+    ).rejects.toThrow(/duplicate file/);
   });
 
   it("rejects a suspiciously compressed ZIP before project parsing", async () => {
@@ -319,24 +395,29 @@ describe("portable project folder and ZIP validation", () => {
     const compressedBomb = zipSync({
       "project/sculpture.json": new Uint8Array(1024 * 1024),
     });
-    await expect(openPortableProjectZip(
-      compressedBomb,
-      "compressed-bomb.zip",
-      async () => profile,
-    )).rejects.toThrow(/suspicious compression ratio/);
+    await expect(
+      openPortableProjectZip(
+        compressedBomb,
+        "compressed-bomb.zip",
+        async () => profile,
+      ),
+    ).rejects.toThrow(/suspicious compression ratio/);
   });
 
   it("rejects URL-escaped asset paths before direct folder reopen", async () => {
     const { definition, profile, files } = await portableFixture();
     definition.designSurface!.source = "%2e%2e/secret.glb";
-    const unsafeFiles = files.map((file) => file.path.endsWith("sculpture.json")
-      ? { ...file, bytes: new TextEncoder().encode(JSON.stringify(definition)) }
-      : file);
-    await expect(openPortableProjectFiles(
-      unsafeFiles,
-      "project",
-      async () => profile,
-    )).rejects.toThrow(/safe portable path/);
+    const unsafeFiles = files.map((file) =>
+      file.path.endsWith("sculpture.json")
+        ? {
+            ...file,
+            bytes: new TextEncoder().encode(JSON.stringify(definition)),
+          }
+        : file,
+    );
+    await expect(
+      openPortableProjectFiles(unsafeFiles, "project", async () => profile),
+    ).rejects.toThrow(/safe portable path/);
   });
 
   it("rejects duplicate relative asset references in sculpture.json", async () => {
@@ -351,15 +432,18 @@ describe("portable project folder and ZIP validation", () => {
         source: "mechanics/shared.stl",
         sha256: "b".repeat(64),
       },
-      parts: [{
-        id: "part-001",
-        format: "stl",
-        source: "mechanics/shared.stl",
-        sha256: "b".repeat(64),
-      }],
+      parts: [
+        {
+          id: "part-001",
+          format: "stl",
+          source: "mechanics/shared.stl",
+          sha256: "b".repeat(64),
+        },
+      ],
     };
-    expect(() => parsePanelAssemblyDefinition(definition))
-      .toThrow(/duplicates project asset source/);
+    expect(() => parsePanelAssemblyDefinition(definition)).toThrow(
+      /duplicates project asset source/,
+    );
   });
 
   it("rejects asset references that collide after portable case folding", async () => {
@@ -374,14 +458,17 @@ describe("portable project folder and ZIP validation", () => {
         source: "DESIGN/SOURCE.GLB",
         sha256: "b".repeat(64),
       },
-      parts: [{
-        id: "part-001",
-        format: "stl",
-        source: "mechanics/part-001.stl",
-        sha256: "c".repeat(64),
-      }],
+      parts: [
+        {
+          id: "part-001",
+          format: "stl",
+          source: "mechanics/part-001.stl",
+          sha256: "c".repeat(64),
+        },
+      ],
     };
-    expect(() => parsePanelAssemblyDefinition(definition))
-      .toThrow(/duplicates project asset source/);
+    expect(() => parsePanelAssemblyDefinition(definition)).toThrow(
+      /duplicates project asset source/,
+    );
   });
 });

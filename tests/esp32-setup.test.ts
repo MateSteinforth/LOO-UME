@@ -7,11 +7,14 @@ import {
   assertApprovedSerialDevice,
   applyAndVerifyDevice,
   assertConfigReadback,
+  assertLedDriverTelemetry,
+  assertUsbSetupLedDriver,
   assertLedmapReadback,
   assertStandalonePresetReadback,
   assertStandaloneStateReadback,
   assertStateReadback,
   canEnableReconnectedSimulator,
+  configureSimulatorLedDriver,
   connectExistingSimulatorDevice,
   createSimulatorSetupConfig,
   desktopEsp32ReconnectAvailable,
@@ -360,6 +363,21 @@ describe("guarded ESP32 setup contracts", () => {
         { start: 1_984, len: 640, pin: [19], maxpwr: 14_000 },
       ],
     });
+    const dmaConfig = createSimulatorSetupConfig(
+      template,
+      [
+        { startIndex: 0, pixelCount: 704, gpio: 16 },
+        { startIndex: 704, pixelCount: 640, gpio: 17 },
+        { startIndex: 1_344, pixelCount: 640, gpio: 18 },
+        { startIndex: 1_984, pixelCount: 640, gpio: 19 },
+      ],
+      0,
+      64,
+      "parallel-i2s",
+    ) as { hw: { led: { ins: Array<{ drv: number }> } } };
+    expect(dmaConfig.hw.led.ins.map((output) => output.drv)).toEqual([
+      1, 1, 1, 1,
+    ]);
     const replacementConfig = createSimulatorSetupConfig(
       template,
       [
@@ -414,7 +432,224 @@ describe("guarded ESP32 setup contracts", () => {
         6,
       ),
     ).toThrow(/WLED color order/);
+    expect(() =>
+      createSimulatorSetupConfig(
+        template,
+        [{ startIndex: 0, pixelCount: 192, gpio: 16 }],
+        0,
+        64,
+        "parallel-i2s",
+      ),
+    ).toThrow(/Parallel I2S/);
   });
+
+  it("requires selected parallel I2S firmware telemetry but keeps RMT compatible", () => {
+    expect(() => assertLedDriverTelemetry({}, "rmt")).not.toThrow();
+    expect(() =>
+      assertLedDriverTelemetry(
+        { loo_dma: { requested: true, failure: 0, active_lanes: 4 } },
+        "rmt",
+      ),
+    ).toThrow(/still reports/);
+    expect(() =>
+      assertLedDriverTelemetry(
+        { loo_dma: { requested: false, failure: 0, active_lanes: 1 } },
+        "rmt",
+      ),
+    ).toThrow(/still reports/);
+    expect(() => assertLedDriverTelemetry({}, "parallel-i2s")).toThrow(
+      /four active/,
+    );
+    expect(() =>
+      assertLedDriverTelemetry(
+        { loo_dma: { requested: true, failure: 1, active_lanes: 4 } },
+        "parallel-i2s",
+      ),
+    ).toThrow(/four active/);
+    expect(() =>
+      assertLedDriverTelemetry(
+        { loo_dma: { requested: true, failure: 0, active_lanes: 4 } },
+        "parallel-i2s",
+      ),
+    ).not.toThrow();
+  });
+
+  it("rejects parallel I2S before USB firmware or serial work", () => {
+    const value = payload();
+    value.config = createSimulatorSetupConfig(
+      value.config,
+      [
+        { startIndex: 0, pixelCount: 64, gpio: 16 },
+        { startIndex: 64, pixelCount: 64, gpio: 17 },
+        { startIndex: 128, pixelCount: 64, gpio: 18 },
+        { startIndex: 192, pixelCount: 64, gpio: 19 },
+      ],
+      0,
+      64,
+      "parallel-i2s",
+    );
+    expect(() => assertUsbSetupLedDriver(value)).toThrow(
+      /cannot flash the packaged RMT firmware/,
+    );
+  });
+
+  it("keeps RMT driver changes compatible with firmware without DMA telemetry", async () => {
+    const value = payload();
+    const config = structuredClone(value.config) as {
+      id?: { mdns: string };
+      hw: { led: { ins: Array<{ drv?: number }> } };
+    };
+    config.id = { mdns: "loo-ume" };
+    config.hw.led.ins[0]!.drv = 0;
+    value.config = config;
+    const info = {
+      arch: "esp32",
+      ip: "192.168.68.53",
+      mac: "aa:bb:cc:dd:ee:ff",
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(config)));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      configureSimulatorLedDriver(new URL("http://192.168.68.53/"), value),
+    ).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports recovery when guarded DMA activation fails after its one bus write", async () => {
+    const value = payload();
+    value.expectedLedCount = 256;
+    value.config = createSimulatorSetupConfig(
+      value.config,
+      [
+        { startIndex: 0, pixelCount: 64, gpio: 16 },
+        { startIndex: 64, pixelCount: 64, gpio: 17 },
+        { startIndex: 128, pixelCount: 64, gpio: 18 },
+        { startIndex: 192, pixelCount: 64, gpio: 19 },
+      ],
+      0,
+      64,
+      "parallel-i2s",
+    );
+    const expected = structuredClone(value.config) as {
+      id?: { mdns: string };
+      hw: { led: { ins: Array<{ drv: number }> } };
+    };
+    expected.id = { mdns: "loo-ume" };
+    const current = structuredClone(expected);
+    current.hw.led.ins.forEach((bus) => {
+      bus.drv = 0;
+    });
+    const info = {
+      arch: "esp32",
+      ip: "192.168.68.53",
+      mac: "aa:bb:cc:dd:ee:ff",
+      loo_dma: { requested: false, failure: 0, active_lanes: 0 },
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(info)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(current)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ...info,
+            loo_dma: { requested: true, failure: 2, active_lanes: 0 },
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify(expected)));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      configureSimulatorLedDriver(new URL("http://192.168.68.53/"), value),
+    ).rejects.toThrow(/LED driver change needs recovery/);
+    const write = fetchMock.mock.calls[2]?.[1];
+    expect(JSON.parse(String(write?.body))).toEqual({
+      hw: {
+        led: { ins: current.hw.led.ins.map((bus) => ({ ...bus, drv: 1 })) },
+      },
+    });
+  });
+
+  it.each([
+    { name: "DMA", currentDriver: 0, targetDriver: "parallel-i2s" as const },
+    { name: "RMT", currentDriver: 1, targetDriver: "rmt" as const },
+  ])(
+    "changes $name without changing the map or bus settings",
+    async ({ currentDriver, targetDriver }) => {
+      const value = payload();
+      value.expectedLedCount = 256;
+      value.ledmapBytes = '{"map":[0,1,2,3]}\n';
+      value.config = createSimulatorSetupConfig(
+        value.config,
+        [
+          { startIndex: 0, pixelCount: 64, gpio: 16 },
+          { startIndex: 64, pixelCount: 64, gpio: 17 },
+          { startIndex: 128, pixelCount: 64, gpio: 18 },
+          { startIndex: 192, pixelCount: 64, gpio: 19 },
+        ],
+        0,
+        64,
+        targetDriver,
+      );
+      const expected = structuredClone(value.config) as {
+        id?: { mdns: string };
+        hw: {
+          led: { ins: Array<{ drv: number; pin: number[]; len: number }> };
+        };
+      };
+      expected.id = { mdns: "loo-ume" };
+      const current = structuredClone(expected);
+      current.hw.led.ins.forEach((bus) => {
+        bus.drv = currentDriver;
+      });
+      const before = {
+        arch: "esp32",
+        ip: "192.168.68.53",
+        mac: "aa:bb:cc:dd:ee:ff",
+        loo_dma: {
+          requested: currentDriver === 1,
+          failure: 0,
+          active_lanes: currentDriver === 1 ? 4 : 0,
+        },
+      };
+      const after = {
+        ...before,
+        loo_dma: {
+          requested: targetDriver === "parallel-i2s",
+          failure: 0,
+          active_lanes: targetDriver === "parallel-i2s" ? 4 : 0,
+        },
+      };
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify(before)))
+        .mockResolvedValueOnce(new Response(JSON.stringify(current)))
+        .mockResolvedValueOnce(new Response(value.ledmapBytes))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ success: true })))
+        .mockResolvedValueOnce(new Response(JSON.stringify(after)))
+        .mockResolvedValueOnce(new Response(JSON.stringify(expected)))
+        .mockResolvedValueOnce(new Response(value.ledmapBytes));
+      vi.stubGlobal("fetch", fetchMock);
+      await expect(
+        configureSimulatorLedDriver(new URL("http://192.168.68.53/"), value),
+      ).resolves.toBeUndefined();
+      expect(JSON.parse(String(fetchMock.mock.calls[3]?.[1]?.body))).toEqual({
+        hw: {
+          led: {
+            ins: current.hw.led.ins.map((bus) => ({
+              ...bus,
+              drv: targetDriver === "parallel-i2s" ? 1 : 0,
+            })),
+          },
+        },
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(7);
+    },
+  );
 
   it("requires the exact generated ledmap JSON", () => {
     expect(() =>

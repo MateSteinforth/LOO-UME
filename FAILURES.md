@@ -7,6 +7,15 @@ reveals a durable lesson.
 
 ## How to use this log
 
+### F-190 — Driver settings must match packaged firmware evidence
+
+- **Date:** 2026-09-09
+- **Symptom:** review found DMA installation settings paired with the existing RMT firmware receipt.
+- **Cause:** driver selection changed configuration without changing the package capability check.
+- **Correction:** DMA exports now contain diagnostic mapping files. Explicit DMA installation export rejects the unmatched firmware pair.
+- **Prevention:** check the driver, receipt, artifact, and USB installation path together. Configuration read-back alone does not prove driver initialization.
+- **Evidence:** FIRM-037 deployment, USB preflight, driver-switch, and telemetry tests pass. Legacy RMT installation bytes retain their prior format.
+
 ### F-159 — A package build did not prove Mac launch readiness
 
 - **Date:** 2026-09-05

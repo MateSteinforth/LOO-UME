@@ -107,6 +107,22 @@ export function setWiringOutputGpios(
   return parsePanelAssemblyDefinition(definition);
 }
 
+export function setWiringLedDriver(
+  source: PanelAssemblyDefinition,
+  driver: "rmt" | "parallel-i2s",
+): PanelAssemblyDefinition {
+  const definition = structuredClone(source);
+  if ((source.wiring.controller.ledDriver ?? "rmt") === driver) {
+    return parsePanelAssemblyDefinition(definition);
+  }
+  definition.wiring.controller.ledDriver = driver;
+  delete definition.wiring.hardwareProof;
+  if (definition.wiring.status === "hardware-verified") {
+    definition.wiring.status = "measured";
+  }
+  return parsePanelAssemblyDefinition(definition);
+}
+
 export function projectPanelOrientationOntoSurface(
   sourceXAxis: Vector3Tuple,
   surfaceNormal: Vector3Tuple,

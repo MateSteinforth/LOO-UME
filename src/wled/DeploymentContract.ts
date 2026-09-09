@@ -1,5 +1,6 @@
 import { sha256Text } from "../sculpture/GeneratedMechanics.ts";
 import type { HardwareMappingContract } from "../../web/src/HardwareMapping.ts";
+import type { LedDriver } from "../sculpture/Definition.ts";
 import firmwareReceipt from "../../firmware/build-receipt.json" with {
   type: "json",
 };
@@ -28,6 +29,13 @@ const DIAGNOSTIC_PATHS = {
 } as const;
 
 export type WledDeploymentMode = "diagnostic" | "installation";
+
+function selectedLedDriver(contract: HardwareMappingContract): LedDriver {
+  const driver = contract.wiring.controller?.ledDriver;
+  if (driver === undefined || driver === "rmt") return "rmt";
+  if (driver === "parallel-i2s") return driver;
+  throw new Error("The saved controller LED driver is invalid.");
+}
 
 export interface WledDeploymentBundle {
   mode: WledDeploymentMode;
@@ -118,6 +126,7 @@ function assertInstallationContract(contract: HardwareMappingContract): void {
 }
 
 function createConfigBytes(contract: HardwareMappingContract): string {
+  const ledDriver = selectedLedDriver(contract);
   const buses = contract.outputs.map((output, index) => ({
     start: output.startIndex,
     len: output.pixelCount,
@@ -131,7 +140,7 @@ function createConfigBytes(contract: HardwareMappingContract): string {
     freq: 0,
     maxpwr: 14000,
     ledma: 60,
-    drv: 0,
+    drv: ledDriver === "parallel-i2s" ? 1 : 0,
     text: `Output ${index} / domain ${index < 2 ? "A" : "B"}`,
   }));
   return jsonBytes({
@@ -164,23 +173,31 @@ function fileEntry(path: string, bytes: string): DeploymentFileEntry {
 export function createWledDeploymentBundle(
   contract: HardwareMappingContract,
   sculptureBytes: string,
-  requestedMode: WledDeploymentMode = contract.readiness.mappingReady
-    ? "installation"
-    : "diagnostic",
+  requestedMode?: WledDeploymentMode,
 ): WledDeploymentBundle {
-  if (requestedMode === "installation") assertInstallationContract(contract);
-  if (requestedMode === "installation") assertFirmwareReceipt();
+  const ledDriver = selectedLedDriver(contract);
+  const mode = requestedMode ??
+    (contract.readiness.mappingReady && ledDriver === "rmt"
+      ? "installation"
+      : "diagnostic");
+  if (mode === "installation" && ledDriver === "parallel-i2s") {
+    throw new Error(
+      "Parallel I2S installation requires a paired guarded firmware receipt.",
+    );
+  }
+  if (mode === "installation") assertInstallationContract(contract);
+  if (mode === "installation") assertFirmwareReceipt();
 
   const files = new Map<string, string>();
   const ledmapBytes = JSON.stringify(contract.ledmap) + "\n";
   const routeMappingBytes = createRouteMappingBytes(contract);
   const smokeConfigBytes = jsonBytes(smokeConfig);
   const firmwareReceiptBytes = jsonBytes(firmwareReceipt);
-  const manifestPath = requestedMode === "installation"
+  const manifestPath = mode === "installation"
     ? INSTALLATION_PATHS.manifest
     : DIAGNOSTIC_PATHS.manifest;
 
-  if (requestedMode === "installation") {
+  if (mode === "installation") {
     files.set(INSTALLATION_PATHS.config, createConfigBytes(contract));
     files.set(INSTALLATION_PATHS.ledmap, ledmapBytes);
     files.set(INSTALLATION_PATHS.routeMapping, routeMappingBytes);
@@ -193,21 +210,21 @@ export function createWledDeploymentBundle(
 
   const manifestBytes = jsonBytes({
     schemaVersion: "1.0.0",
-    status: requestedMode === "installation"
+    status: mode === "installation"
       ? "mapping-ready-installation"
       : "diagnostic-only",
     target: {
       board: "ESP32-DevKitC V4",
       module: "ESP32-WROOM-32E-N4",
-      platformioEnvironment: requestedMode === "installation"
+      platformioEnvironment: mode === "installation"
         ? "orbital_esp32dev"
         : "esp32dev",
-      ...(requestedMode === "installation"
+      ...(mode === "installation"
         ? { upstreamEnvironment: "esp32dev" }
         : {}),
       wledCommit: WLED_COMMIT,
     },
-    ...(requestedMode === "installation"
+    ...(mode === "installation"
       ? {
         firmware: {
           receiptPath: INSTALLATION_PATHS.firmwareReceipt,
@@ -225,11 +242,14 @@ export function createWledDeploymentBundle(
     mappingFingerprint: contract.fingerprint,
     mappingFingerprintVersion: contract.fingerprintVersion,
     wledColorOrder: contract.wledColorOrder,
+    ...(ledDriver === "parallel-i2s"
+      ? { ledDriver }
+      : {}),
     files: [...files].map(([path, bytes]) => fileEntry(path, bytes)),
   });
   files.set(manifestPath, manifestBytes);
   return {
-    mode: requestedMode,
+    mode,
     files,
     manifestPath,
     manifestBytes,
@@ -262,6 +282,7 @@ export function validateWledDeploymentBundle(
     mappingFingerprint?: string;
     mappingFingerprintVersion?: string;
     wledColorOrder?: HardwareMappingContract["wledColorOrder"];
+    ledDriver?: unknown;
     files?: DeploymentFileEntry[];
   };
   const installation = manifest.status === "mapping-ready-installation";
@@ -310,6 +331,10 @@ export function validateWledDeploymentBundle(
     manifest.wledColorOrder?.status !== "measured" ||
     manifest.wledColorOrder.channelSequence !== "GRB" ||
     manifest.wledColorOrder.wledValue !== 0 ||
+    (installation && manifest.ledDriver !== undefined && manifest.ledDriver !== "rmt") ||
+    (!installation &&
+      manifest.ledDriver !== undefined &&
+      manifest.ledDriver !== "parallel-i2s") ||
     !Array.isArray(manifest.files) ||
     manifest.files.length !== expectedPaths.length
   ) {
@@ -378,7 +403,8 @@ export function validateWledDeploymentBundle(
       bus.order !== manifest.wledColorOrder!.wledValue ||
       bus.rev !== false || bus.skip !== 0 || bus.type !== 22 ||
       bus.ref !== false || bus.rgbwm !== 0 || bus.freq !== 0 ||
-      bus.maxpwr !== 14000 || bus.ledma !== 60 || bus.drv !== 0 ||
+      bus.maxpwr !== 14000 || bus.ledma !== 60 ||
+      bus.drv !== (manifest.ledDriver === "parallel-i2s" ? 1 : 0) ||
       bus.text !== `Output ${index} / domain ${index < 2 ? "A" : "B"}`
     ) {
       throw new Error(`WLED deployment bus ${index} contradicts the prototype contract.`);

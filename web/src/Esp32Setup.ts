@@ -6,6 +6,7 @@ import {
 } from "./Esp32WifiControls.ts";
 import type { FlashOptions } from "esptool-js";
 import { WLED_FIRMWARE_BUILD_RECEIPT as firmwareReceipt } from "../../src/wled/DeploymentContract.ts";
+import type { LedDriver } from "../../src/sculpture/Definition.ts";
 
 const CP2102_FILTER = { usbVendorId: 0x10c4, usbProductId: 0xea60 };
 export const AUTOMATIC_RECONNECT_STORAGE_KEY =
@@ -309,6 +310,7 @@ export function createSimulatorSetupConfig(
   outputs: readonly SimulatorSetupOutput[],
   colorOrder: number,
   pixelsPerFixture = 64,
+  ledDriver: LedDriver = "rmt",
 ): Record<string, unknown> {
   const ledCount = outputs.reduce((sum, output) => sum + output.pixelCount, 0);
   const gpioSet = new Set(outputs.map((output) => output.gpio));
@@ -336,10 +338,14 @@ export function createSimulatorSetupConfig(
     ) ||
     !Number.isInteger(colorOrder) ||
     colorOrder < 0 ||
-    colorOrder > 5
+    colorOrder > 5 ||
+    (ledDriver !== "rmt" && ledDriver !== "parallel-i2s") ||
+    (ledDriver === "parallel-i2s" &&
+      (outputs.length !== 4 ||
+        outputs.some((output) => output.pixelCount > 704)))
   ) {
     throw new Error(
-      "ESP32 setup requires 1 through 41 complete fixtures on one through four contiguous approved GPIO outputs and a WLED color order.",
+      "ESP32 setup requires 1 through 41 complete fixtures on one through four contiguous approved GPIO outputs and a WLED color order. Parallel I2S requires exactly four outputs of at most 704 pixels.",
     );
   }
   const config = structuredClone(source);
@@ -371,6 +377,7 @@ export function createSimulatorSetupConfig(
     len: output.pixelCount,
     pin: [output.gpio],
     order: colorOrder,
+    drv: ledDriver === "parallel-i2s" ? 1 : 0,
     maxpwr: completeAuthority
       ? 14_000
       : Math.round((output.pixelCount / 64) * 1_000),
@@ -380,6 +387,65 @@ export function createSimulatorSetupConfig(
     live: { en: true, mso: true, rlm: true, timeout: 25, "no-gc": true },
   };
   return config;
+}
+
+function isUnknownRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Require firmware proof that the selected parallel I2S driver is active. */
+export function assertLedDriverTelemetry(
+  information: unknown,
+  ledDriver: LedDriver,
+): void {
+  if (ledDriver === "rmt") {
+    if (!isUnknownRecord(information)) return;
+    const telemetry = information.loo_dma;
+    if (
+      isUnknownRecord(telemetry) &&
+      (telemetry.requested === true ||
+        (typeof telemetry.active_lanes === "number" &&
+          telemetry.active_lanes > 0))
+    ) {
+      throw new Error("WLED still reports an active parallel I2S LED driver.");
+    }
+    return;
+  }
+  if (!isUnknownRecord(information)) {
+    throw new Error("WLED firmware read-back is invalid.");
+  }
+  const telemetry = information.loo_dma;
+  if (
+    !isUnknownRecord(telemetry) ||
+    telemetry.requested !== true ||
+    telemetry.failure !== 0 ||
+    telemetry.active_lanes !== 4
+  ) {
+    throw new Error("WLED did not confirm four active parallel I2S LED lanes.");
+  }
+}
+
+function assertDmaFirmwareMarker(information: unknown): void {
+  if (!isUnknownRecord(information) || !isUnknownRecord(information.loo_dma)) {
+    throw new Error(
+      "WLED firmware does not include the guarded parallel I2S driver.",
+    );
+  }
+}
+
+function payloadLedDriver(payload: Esp32SetupPayload): LedDriver {
+  const buses = expectedBuses(payload.config);
+  const drivers = buses.map((bus) =>
+    isUnknownRecord(bus) ? bus.drv : undefined,
+  );
+  if (drivers.every((driver) => driver === 0 || driver === undefined))
+    return "rmt";
+  if (drivers.length === 4 && drivers.every((driver) => driver === 1)) {
+    return "parallel-i2s";
+  }
+  throw new Error(
+    "The selected WLED config has an invalid LED driver contract.",
+  );
 }
 
 export interface Esp32SetupControllerOptions {
@@ -1089,6 +1155,7 @@ export async function connectExistingSimulatorDevice(
       "The existing WLED address does not match the verified device.",
     );
   }
+  assertLedDriverTelemetry(currentInfo, payloadLedDriver(payload));
   // Older LOO/UME builds sent physical frames with realtime mapping disabled.
   // Validate every other field before allowing this one-field migration.
   const migratedConfiguration = structuredClone(configuration) as {
@@ -1136,6 +1203,135 @@ export async function connectExistingSimulatorDevice(
     options.update,
   );
   return currentUrl;
+}
+
+/**
+ * Change only the LED-driver field on an already verified LOO/UME controller.
+ * USB setup cannot install the guarded parallel-I2S firmware.
+ */
+export async function configureSimulatorLedDriver(
+  baseUrl: URL,
+  payload: Esp32SetupPayload,
+  update: (message: string) => void = () => undefined,
+): Promise<void> {
+  assertBoundedSimulatorPayload(payload);
+  const ledDriver = payloadLedDriver(payload);
+  const [information, configuration] = await Promise.all([
+    readJsonResponse(
+      await deviceFetch(baseUrl, "/json/info"),
+      "WLED firmware read-back",
+    ),
+    readJsonResponse(
+      await deviceFetch(baseUrl, "/json/cfg"),
+      "WLED config read-back",
+    ),
+  ]);
+  if (!isUnknownRecord(information)) {
+    throw new Error("WLED firmware read-back is invalid.");
+  }
+  if (
+    information.arch !== "esp32" ||
+    information.ip !== baseUrl.hostname ||
+    typeof information.mac !== "string"
+  ) {
+    throw new Error(
+      "The selected WLED address does not match the verified device.",
+    );
+  }
+  const expectedMac = information.mac;
+  if (!isUnknownRecord(configuration)) {
+    throw new Error("WLED configuration read-back is invalid.");
+  }
+  const actualBuses = expectedBuses(configuration);
+  const actualDrivers = actualBuses.map((bus) =>
+    isUnknownRecord(bus) ? bus.drv : undefined,
+  );
+  const currentDriver = actualDrivers[0];
+  if (
+    (currentDriver !== 0 && currentDriver !== 1) ||
+    !actualDrivers.every((driver) => driver === currentDriver)
+  ) {
+    throw new Error("WLED configuration has no uniform LED driver.");
+  }
+  const expectedCurrentConfig = structuredClone(payload.config);
+  const expectedCurrentBuses = expectedBuses(expectedCurrentConfig);
+  for (const bus of expectedCurrentBuses) {
+    if (!isUnknownRecord(bus)) {
+      throw new Error("The selected WLED config has an invalid bus.");
+    }
+    bus.drv = currentDriver;
+  }
+  assertConfigReadback(configuration, {
+    ...payload,
+    config: expectedCurrentConfig,
+  });
+  if (payload.ledmapBytes !== undefined) {
+    await readAndAssertLedmap(baseUrl, payload.ledmapBytes);
+  }
+  if (ledDriver === "parallel-i2s") {
+    assertDmaFirmwareMarker(information);
+  }
+  const targetDriver = ledDriver === "parallel-i2s" ? 1 : 0;
+  if (currentDriver === targetDriver) {
+    assertLedDriverTelemetry(information, ledDriver);
+    return;
+  }
+  const targetBuses = actualBuses.map((bus) => {
+    if (!isUnknownRecord(bus)) {
+      throw new Error("WLED configuration has an invalid LED bus.");
+    }
+    return { ...bus, drv: targetDriver };
+  });
+  update("Applying the selected ESP32 LED driver.");
+  try {
+    await postDeviceJson(baseUrl, "/json/cfg", {
+      hw: { led: { ins: targetBuses } },
+    });
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      try {
+        const [updatedInformation, updatedConfiguration] = await Promise.all([
+          readJsonResponse(
+            await deviceFetch(baseUrl, "/json/info"),
+            "WLED LED-driver firmware read-back",
+          ),
+          readJsonResponse(
+            await deviceFetch(baseUrl, "/json/cfg"),
+            "WLED LED-driver config read-back",
+          ),
+        ]);
+        if (
+          !isUnknownRecord(updatedInformation) ||
+          updatedInformation.arch !== "esp32" ||
+          updatedInformation.ip !== baseUrl.hostname ||
+          updatedInformation.mac !== expectedMac
+        ) {
+          throw new Error(
+            "The restarted WLED address does not match the verified device.",
+          );
+        }
+        assertConfigReadback(updatedConfiguration, payload);
+        if (payload.ledmapBytes !== undefined) {
+          await readAndAssertLedmap(baseUrl, payload.ledmapBytes);
+        }
+        assertLedDriverTelemetry(updatedInformation, ledDriver);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt < 5) {
+          if (attempt === 1) {
+            update("Waiting for the ESP32 LED driver to restart.");
+          }
+          await wait(500);
+        }
+      }
+    }
+    throw lastError;
+  } catch (error) {
+    throw new Error(
+      `LED driver change needs recovery. Reconnect the controller, verify the LED driver, then try again: ${errorMessage(error)}`,
+    );
+  }
 }
 
 export function assertLedmapReadback(
@@ -1758,6 +1954,7 @@ export async function verifyRestartedDevice(
       ) {
         throw new Error("WLED standalone playback did not survive restart.");
       }
+      assertLedDriverTelemetry(restarted, payloadLedDriver(payload));
       return;
     } catch (error) {
       lastError = error;
@@ -1819,6 +2016,7 @@ export async function applyAndVerifyDevice(
       "The live WLED target or LED count does not match the setup.",
     );
   }
+  assertLedDriverTelemetry(info, payloadLedDriver(payload));
   if (typeof info.mac !== "string") {
     throw new Error(
       "WLED did not report a device MAC address before the boot-preset test.",
@@ -1875,6 +2073,15 @@ async function openImprov(
   }
 }
 
+/** The packaged USB image supports only the legacy RMT LED driver. */
+export function assertUsbSetupLedDriver(payload: Esp32SetupPayload): void {
+  if (payloadLedDriver(payload) === "parallel-i2s") {
+    throw new Error(
+      "Parallel I2S setup cannot flash the packaged RMT firmware. Use Apply LED driver on a verified controller.",
+    );
+  }
+}
+
 async function runSetup(
   options: Esp32SetupControllerOptions,
 ): Promise<{ deviceUrl: URL; payload: Esp32SetupPayload }> {
@@ -1883,6 +2090,9 @@ async function runSetup(
       "ESP32 setup is available only from the local desktop page in Chrome or Edge.",
     );
   }
+  const payload = options.getPayload();
+  assertBoundedSimulatorPayload(payload);
+  assertUsbSetupLedDriver(payload);
   const ssid = options.ssidInput.value;
   if (ssid.length === 0 || new TextEncoder().encode(ssid).length > 32) {
     throw new Error("Enter the 2.4 GHz Wi-Fi network name (1–32 UTF-8 bytes).");
@@ -1893,8 +2103,6 @@ async function runSetup(
   options.setLogMessage("Verifying the approved complete ESP32 image.");
   options.progressLabel.value = "Verifying image";
   const firmware = await loadFirmware(options.firmwareInput.files?.[0]);
-  const payload = options.getPayload();
-  assertBoundedSimulatorPayload(payload);
   if (!("serial" in navigator)) {
     throw new Error(
       "This browser does not support Web Serial. Use Chrome or Edge.",
