@@ -69,10 +69,13 @@ present, perhaps slightly reduced; later reported nearly gone, with residual
 flashes visible on GPIO22/PC02. At uptime484s, read-back confirmed2609093 and
 unchanged full configuration/map, brightness128 and DDP active. This preserves
 both observations rather than treating either as a stable measured error rate.
-With controller polling/previews idle, the operator estimated a flash every
-1–2seconds and clarified bothGPIO16 andGPIO22, predominantlyGPIO22/PC02. This
-is an approximate operator rate, not a timed automated count. The residual
-rate remains unacceptable. See [the measurement plan](MEASUREMENT_PLAN.md)
+With controller polling/previews idle, the operator's estimates varied from
+1–2seconds to3–5seconds. The latest report is every2–3seconds onGPIO16 andGPIO22,
+other chains clean; GPIO22/PC02 had been predominant. These are approximate
+operator rates. A planned60-second count overran after an interruption, so do
+not present it as an exact timed count. The operator requested an explicit
+feedback point after settling. The residual rate remains unacceptable.
+See [the measurement plan and feedback protocol](MEASUREMENT_PLAN.md)
 for the next diagnostic design; no instrumentation has been built or installed.
 
 The reset change alone is not an accepted zero-flash fix. The qualitative

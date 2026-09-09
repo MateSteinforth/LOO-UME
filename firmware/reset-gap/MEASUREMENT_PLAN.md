@@ -1,10 +1,31 @@
 # Measure the remaining output corruption
 
 This is the reviewed design for a future diagnostic, not an implemented probe.
-Current controller2609093 remains unchanged. The operator estimates one flash
-every1–2seconds, now onGPIO16 andGPIO22, predominantlyGPIO22/PC02, during Solid.
+Current controller2609093 remains unchanged. The operator's latest estimate is
+one flash every2–3seconds onGPIO16 andGPIO22, other chains clean, during Solid.
+Earlier estimates ranged from1–2seconds to3–5seconds; GPIO22/PC02 was predominant.
 The 300us reset did not establish a zero-flash result. Frame drops remain a
 separate unresolved outcome; uniform frames cannot reveal them.
+
+## Explicit feedback protocol
+
+The operator requested clear timing because immediate observations can miss
+later improvements. Announce the firmware/settings change, then allow90seconds
+to settle before a60-second observation. State the start and stop point before
+the count and ask for feedback only after that window. Keep source, sender FPS,
+brightness and controller settings fixed; leave preview subscriptions and
+polling closed. Ask for counts by GPIO, or label interval estimates as estimates.
+If behavior changes over time, repeat the same window at a stated later point
+(for example5minutes after restart) before classifying stability. A settling
+period is an observation convention, not proof that startup effects have ended.
+
+In this run, a count was announced at08:10:28UTC. A sleep interrupted by user
+input returned early, but the next wall-clock check was already78seconds after
+the announced start. The assistant initially said the count was still running
+before checking the clock. The stop was therefore late. Retain the operator's
+reported2–3second interval as an estimate; do not fabricate60-second totals.
+On interruption, recheck the absolute deadline before saying a window remains
+open. Do not infer remaining time from the sleep tool's elapsed time alone.
 
 ## Falsifiable mechanism
 
