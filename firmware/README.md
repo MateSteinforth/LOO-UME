@@ -1,6 +1,10 @@
 # ESP32 setup and maintenance
 
-For the separate AudioReactive build with four-output support, see [audio-reactive/README.md](audio-reactive/README.md).
+The best observed combined DDP and standalone audio firmware is 2609099, with four RMT outputs and DMA off.
+See [the receiver correction](ddp-expiry/README.md) and [current physical results](../TASKS.md).
+Some flashes and frame loss remain. This result does not establish flicker-free output.
+The packaged firmware described below remains a separate baseline.
+For the earlier AudioReactive build, see [audio-reactive/README.md](audio-reactive/README.md).
 
 FIRM-011 selects an ESP32-DevKitC V4 with an ESP32-WROOM-32E-N4 module. The
 firmware uses WLED commit `d9b9a846561227351ad929e3109781daadb7bed2`. The

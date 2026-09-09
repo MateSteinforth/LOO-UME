@@ -9,6 +9,15 @@ simulator and TouchDesigner DDP input.
 
 ## Active firmware handoff — read this first (2026-09-09)
 
+**Integration milestone: Ready to Merge.** The operator authorized integration into `main` and a push on 2026-09-09.
+The expiry regression, service harness, exact-source verification, and artifact hash check pass.
+This milestone preserves the best observed combined firmware. Residual flashes and frame loss remain open.
+After integration, preserve `/tmp/loo-ume-ddp-audio-unified` as a local archive with its source, toolchain, binary, and private settings.
+Remove its Git worktree registration and task branch only after the remote contains the integration commit.
+The controller stays on firmware 2609099 with RMT and audio enabled.
+Next investigation: correlate residual flashes with frame data and RMT timing before another firmware change.
+Check native-to-DDP transitions separately from steady playback. Do not assume a transition defect without evidence.
+
 **Best overall result so far — operator confirmed2026-09-09:** Firmware2609099 with RMT, DMA off, and microphone processing enabled.
 DDP mirroring and standaloneGravimeter132 both have positive physical observations on this same firmware.
 After restarting mirroring, the operator reports some flashes but considers this the best overall result yet.
@@ -50,7 +59,7 @@ Record source rate and frame loss separately. Do not assume that a corrected def
 The primary agent owns `firmware/ddp-expiry/`, build records, device writes, and shared task records.
 Preserve original2609051 and candidate2609098. Keep GPIOs, mapping, brightness, and microphone pins unchanged.
 
-**Current live state:** Original non-audio firmware2609051 is restored and verified with four RMT outputs.
+**Historical recovery state, superseded by the 2609099 result above:** Original non-audio firmware2609051 was restored and verified with four RMT outputs.
 The operator reported a large improvement during recovery after the RMT switch.
 The final read-back confirms2609051, active DDP, and reported47FPS.
 The operator confirms this version gives the best animated content so far; solid colors still flash.
