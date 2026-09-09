@@ -102,13 +102,17 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="loo-ddp-service-") as directory:
         out = Path(directory)
         (out / "wled.h").write_text((HERE / "fake-wled.h").read_text())
+        for name in ("fake-wled.h", "service-harness.cpp"):
+            shutil.copyfile(HERE / name, out / name)
+        for name in ("DdpFrames.h", "loo_ddp.h", "loo_ddp.cpp"):
+            shutil.copyfile(source / name, out / name)
         (out / "loo_dma_status.h").write_text((source / "loo_dma_status.h").read_text())
         (out / "extracted-ddp-handler.inc").write_text(extracted_handler(source / "e131.cpp"))
         (out / "extracted-lifecycle.inc").write_text(extracted_lifecycle(source))
         command = [
             compiler, "-std=c++20", "-Wall", "-Wextra", "-Werror", "-fsanitize=address,undefined",
             "-fno-omit-frame-pointer", "-I", str(out), "-I", str(HERE),
-            str(HERE / "service-harness.cpp"), str(HERE / "loo_ddp.cpp"), "-o", str(out / "service-harness"),
+            str(out / "service-harness.cpp"), str(out / "loo_ddp.cpp"), "-o", str(out / "service-harness"),
         ]
         subprocess.run(command, check=True)
         environment = {"ASAN_OPTIONS": "detect_leaks=0", "UBSAN_OPTIONS": "halt_on_error=1"}

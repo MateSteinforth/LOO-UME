@@ -9,6 +9,30 @@ simulator and TouchDesigner DDP input.
 
 ## Active firmware handoff — read this first (2026-09-09)
 
+**Active combined-firmware task:** The operator authorizes correction of the confirmed defects and further checks of one DDP/audio firmware.
+**Current device:** Firmware2609099, four RMT outputs, DMA off, microphone enabled and processing.
+MAC2462abc9f3a8, IP192.168.68.53, original GPIO order, mapping, and brightness128 are verified.
+The operator reports good DDP mirroring on this exact RMT/audio configuration.
+A91s sample measured29.21 complete frames/s and25.63 presented frames/s; about3.57 frames/s were replaced before presentation.
+The30-frame target remains unmet. Do not equate the positive visual report with zero frame loss.
+Standalone audio testing is next. The operator has been asked to stop mirroring so the native effect can run.
+The microphone uses Generic I2S, SD32, WS26, CK27, MCLK-1, with the previous gain/settings restored.
+Firmware2609099 passed the build and focused expiry/service regressions.
+Its DMA trial failed: the operator reported severe corruption across outputs.
+With audio running,65s of telemetry measured29.72 complete frames/s and23.45 presented frames/s.
+Invalid and expired frame deltas were zero; about6.26 frames/s were replaced before presentation.
+The receiver correction removed observed false expiry, but it did not meet the output requirement.
+Original2609051 was restored and verified. The operator reported good output during recovery.
+That observation overlaps the RMT switch and firmware restore; do not attribute it to one firmware without version evidence.
+The successful visual comparison uses the same2609099 audio firmware with RMT only. Do not repeat DMA trials in this task.
+Owner: GPT-6 Astra; branch `codex/ddp-audio-unified`; worktree `/tmp/loo-ume-ddp-audio-unified`.
+Scope: correct false DDP expiry, retain the DMA descriptor correction, and verify DDP plus standalone microphone effects.
+Plan: run focused regressions; build and verify one candidate; check static/moving DDP and measured throughput; check standalone audio and restart recovery.
+Acceptance requires no observed corruption in the defined windows and at least30 presented frames/s under a suitable source stream.
+Record source rate and frame loss separately. Do not assume that a corrected defect proves physical acceptance.
+The primary agent owns `firmware/ddp-expiry/`, build records, device writes, and shared task records.
+Preserve original2609051 and candidate2609098. Keep GPIOs, mapping, brightness, and microphone pins unchanged.
+
 **Current live state:** Original non-audio firmware2609051 is restored and verified with four RMT outputs.
 The operator reported a large improvement during recovery after the RMT switch.
 The final read-back confirms2609051, active DDP, and reported47FPS.

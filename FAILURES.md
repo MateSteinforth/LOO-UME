@@ -12,7 +12,8 @@ reveals a durable lesson.
 - **Date:** 2026-09-09
 - **Defect:** The complete-frame receiver uses caller timestamps sampled before its queue lock. A newer protected timestamp can appear before the caller gets the lock. Unsigned subtraction then causes false expiry.
 - **Evidence:** `firmware/ddp-expiry/test-expiry.cpp` reproduces immediate loss of ready and staging data. Normal100ms expiry and clock wrap act as controls.
-- **Status:** Reproduced, not corrected. The contribution to observed frame drops remains unmeasured. Original2609051 is installed.
+- **Correction:** Firmware2609099 rejects negative modular ages while retaining the100ms timeout and normal clock wrap. Tests cover both expiry entry points and completion of a preserved partial frame.
+- **Status:** Build and host regressions pass. Device throughput and the contribution to observed frame drops remain under test.
 - **Prevention:** Test timestamp ordering across lock acquisition. A race-free data structure can still use an invalid time snapshot.
 
 ### F-193 — DMA completion can depend on a short interrupt deadline
@@ -20,9 +21,10 @@ reveals a durable lesson.
 - **Date:** 2026-09-09
 - **Symptom:** The2609097 DMA trial reduced some flashes, but moving patterns caused severeGPIO16 corruption and dropped frames.
 - **Source defect:** The old descriptor chain can repeat data if the EOF interrupt misses the silent return window. A late interrupt then reports idle while DMA can read repeated data. The mono-buffer encoder can overwrite that buffer.
-- **Correction:** Candidate2609098 uses two descriptor banks that end at a closed silent gate. The interrupt only records completion. The candidate remains uninstalled.
+- **Source correction:** Candidate2609098 uses two descriptor banks that end at a closed silent gate. The interrupt only records completion. Firmware2609099 includes the same correction.
 - **Evidence:** The exact selected driver functions compile in the host regression. The old graph permits repeated-data reuse; the corrected graph parks on zeros. This does not prove the cause of the observed flashes.
-- **Recovery:** Original2609051, RMT settings, mapping, brightness128, and active DDP are verified. The operator reported improvement during recovery.
+- **Physical result:** Firmware2609099 still caused severe corruption with DMA and presented23.45 of29.72 complete frames/s with audio running. Source correctness did not establish a working DMA output.
+- **Recovery:** Original2609051 was restored first. The same2609099 candidate then ran with RMT, microphone processing, original mapping, and brightness128. The operator reports good DDP mirroring on RMT. Its measured25.63 presented frames/s remains below target.
 - **Prevention:** Require moving-pattern and throughput observations as well as static flash observations. Software completion counters do not prove output quality.
 
 ### F-192 — Repeated DMA accounting rejects a supported output group
@@ -40,7 +42,7 @@ reveals a durable lesson.
 - **Symptom:** initial DDP tests copied realtime lifecycle logic and used uniform colors to check a nontrivial LED map.
 - **Cause:** the test could pass without exercising the current entry, exit, and mapping behavior.
 - **Correction:** tests now extract the actual receiver, realtime lifecycle, notification prefix, painting guards, and realtime pixel function. Indexed RGB data checks every mapped output.
-- **Prevention:** compile the changed source in timing and ownership tests. State each simulated boundary. Use distinct pixel values to check addressing.
+- **Prevention:** compile the selected candidate's source and headers in timing and ownership tests. Extracted integration functions are insufficient if the harness still includes an older queue header. State each simulated boundary. Use distinct pixel values to check addressing.
 - **Evidence:** FIRM-040 `firmware/ddp-dma/test-service.py` passes with ASan/UBSan, including allocation failure, suspension, offset mapping, timeout, and native override.
 
 ### F-159 — A package build did not prove Mac launch readiness

@@ -6,17 +6,26 @@ A concurrent receiver can publish a newer timestamp before that lock becomes ava
 Unsigned subtraction then treats the older sample as a very large elapsed interval.
 The queue immediately discards fresh staging data or a ready frame.
 
-This defect remains uncorrected. Its contribution to physical frame drops is unmeasured.
-Firmware2609051 does not use this receiver and remains installed.
-Candidate2609098 still contains this receiver defect and must not be considered ready for another physical trial.
+Firmware2609099 corrects this defect and retains the DMA descriptor correction from2609098.
+The timeout check rejects negative modular ages from stale snapshots.
+It still expires data at100ms and handles clock wrap.
+The comparison assumes queue ages below half the32-bit microsecond range, about35.8 minutes.
+The normal queue lifetime is100ms; realtime exit and configuration reset discard its data.
+Physical throughput and flash suppression require device checks.
 
-Run the reproduction against the tracked header:
+Apply the pinned patch to an independent copy of2609098, then run the regression:
 
 ```sh
-c++ -std=c++17 -Wall -Wextra -Werror -Ifirmware/ddp-dma firmware/ddp-expiry/test-expiry.cpp -o /tmp/loo-ddp-expiry-test
+python3 firmware/ddp-expiry/patch.py build/firmware-source
+c++ -std=c++17 -Wall -Wextra -Werror -Ibuild/firmware-source/wled00 firmware/ddp-expiry/test-expiry.cpp -o /tmp/loo-ddp-expiry-test
 /tmp/loo-ddp-expiry-test
+python3 firmware/ddp-dma/test-service.py build/firmware-source
 ```
 
-The test expects the current defect and checks valid timeout and clock-wrap behavior.
-When the receiver is corrected, change the assertions to require preservation of fresh frames.
-Prefer sampling time under the same queue lock. Preserve deterministic clock tests.
+The regression requires preservation of fresh ready and staging frames through both expiry entry points.
+It also checks assembly completion, the timeout boundary, and normal and stale clock-wrap cases.
+The service harness compiles the selected candidate's actual receiver and queue header.
+
+Build with the isolated PlatformIO environment and generate the `compiledb` target.
+Then run `python3 firmware/ddp-expiry/verify.py` to reconstruct the source and verify the image.
+The task board records the device state and physical acceptance.
