@@ -31,6 +31,16 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-031` Independently audit DDP ownership and timing
+
+- Status: Ready to Merge (audit only; physical diagnosis remains pending). Owner: Codex; branch `codex/firmware-ddp-audit`; worktree `/tmp/loo-ume-firmware-ddp-audit`.
+- Scope: read-only controller inspection, exact-source host reproductions, and a testable diagnosis before any new flash. Preserve 2609085 source and application image.
+- Evidence: native/audio playback is clean on 2609085; DDP flashes remain. Capture stop and cooperative driver unload worsened DDP; GPIO16 length reduction spread flashes. Repaired TX2 fault is separate.
+- Acceptance: identify demonstrated software behavior separately from unconfirmed physical causes; trace receiver, segment, bus and RMT ownership; inspect frame pacing and audio differences; prepare discriminating tests. No firmware or controller configuration changes.
+- Conflicts: TASKS.md, firmware diagnostic documentation/scripts. QUALITY review includes a bounded independent RMT audit.
+- Result: compiled 2609085 uses a 50-microsecond reset despite selected Ws2812x declaring 300. Sequential bus scheduling makes this a leading explanation for longest-chain corruption and spread after equalizing lengths. Exact-source host harness reproduces four complete-frame ownership failures and verifies the native-timer diagnostic. Normal NeoPixelBus transmit-buffer ownership was independently checked; no active payload overwrite was demonstrated. See `docs/FIRMWARE_DDP_AUDIT.md` for evidence, caveats and no-flash tests.
+- Verification: five host checks passed; source and ELF inspected; fallback SHA-256 and read-only controller state verified. No firmware, configuration or pixel-stream writes. Audit saved locally; repository publication authorization review was already unresolved from the prior task, so no new push was attempted.
+
 ### `P1 · FIRM-028` Isolate AudioReactive RMT callback placement
 
 - Status: Human Review (built, not installed; baseline recovery pending). Owner: Codex; branch `codex/audio-rmt-iram`; worktree `/tmp/loo-ume-audio-rmt-iram`.

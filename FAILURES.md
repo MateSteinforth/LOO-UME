@@ -48,6 +48,13 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 
 ## Lessons
 
+### F-184 — A speed-class reset constant did not prove emitted reset timing
+
+- Date: 2026-09-09. The prior firmware handoff assumed 300 microseconds of WS2812 reset time from the selected speed class. The active Core 3 RMT encoder instead hard-codes 50 microseconds and does not use that constant.
+- Evidence: FIRM-031 inspected the source and 2609085 ELF; the emitted reset symbol has two 1000-tick low intervals at 40 MHz. Native timer pacing can hide this by leaving extra idle time, while repeated DDP refreshes can bring the longest bus close to the short encoded-reset floor.
+- Prevention: inspect the selected encoder and compiled timing, including any idle gap outside the encoded transaction. Do not treat nominal constants, FPS counters, or successful compilation as proof of waveform timing.
+- Status: reset mismatch confirmed; contribution to sculpture flicker is a testable hypothesis. Exact-source host checks separately demonstrate DDP partial-frame publication. Physical timing and no-flash diagnostic checks remain pending; 2609085 was preserved.
+
 ### F-181 — An IRAM annotation did not establish callback placement
 
 - **Date:** 2026-09-08
