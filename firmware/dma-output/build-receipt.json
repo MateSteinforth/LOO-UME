@@ -1,0 +1,55 @@
+{
+  "status": "built-not-installed",
+  "buildId": 2609095,
+  "baselineBuildId": 2609085,
+  "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2",
+  "neoPixelBusCommit": "76afe832f74b0738a3fa1bba0caf389ade9e7693",
+  "versions": {
+    "platformVersion": "2026.02.30",
+    "frameworkVersion": "3.3.7+sha.b3b492ff",
+    "toolchainVersion": "15.1.0+20250607",
+    "esptoolVersion": "5.1.2"
+  },
+  "audioCompiled": true,
+  "defaultDriverChanged": false,
+  "ddpReceiverChanged": false,
+  "dmaScope": "Classic ESP32 I2S1; four RGB buses; 1\u2013704 pixels per bus; no skipped pixels",
+  "memory": {
+    "encodedBytesAt704Pixels": 51408,
+    "frontBytesAt2624Pixels": 7872,
+    "futureThreeDdpFramesBytes": 23616,
+    "runtimeCapacityVerified": false
+  },
+  "inputs": {
+    "wled00/bus_wrapper.h": "e58e042c8192741f1057d494756b0eaaaaabbf6bb0dba331ce88b1fdb4c39a7f",
+    "wled00/bus_manager.cpp": "56129541cd7e1ee81410a797587186d91632a77271f50a9f0022a29edcbfc762",
+    "wled00/FX_fcn.cpp": "f5f19b1e443afc11ba3af9892bb30c3e7730d70ae1493653b3165b44858d4a80",
+    "wled00/wled.h": "1c2151e3a9f1cabb323fc8a470d58e174b0423d727e9d01e5bace5003f3b0d5e",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/NeoPixelBus.h": "dc38c6e299872841d02f404d182d4ee39bcc4f319379ac8dc744d463d405cc23",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/NeoEsp32I2sXMethod.h": "662998efd3621f3de11aa4dad3d7952c0ce2cdae12c49b7b106a6a6aad76b031",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/Esp32_i2s.c": "b682e8271727fe9ba7499c39f1eaf8673883a94cf3320563f475ae228d576782",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/Esp32_i2s.h": "2fd893957bec649ccc24e535b5c38144545eae0feeebd45ea568a8ec7d97e825",
+    "wled00/loo_dma_status.h": "2a5c6fe5e0298006ccb0cae5c960dc153ce37e6f44656d125da65fd0ae13f147",
+    "wled00/loo_dma_status.cpp": "4e1ae7a8aabc231a0ae34d9d6ec1d794e70346e33c63846923fabcc27cab74fe",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/NeoEsp32RmtXMethod.h": "a05b6bff508c4390cd5988449cff72590405a20947d4003201ee363b41845995"
+  },
+  "scripts": {
+    "loo_dma_status.cpp": "4e1ae7a8aabc231a0ae34d9d6ec1d794e70346e33c63846923fabcc27cab74fe",
+    "loo_dma_status.h": "2a5c6fe5e0298006ccb0cae5c960dc153ce37e6f44656d125da65fd0ae13f147",
+    "method-harness.cpp": "67d72c1a0f614d6c6654857c9cb80606fccb2051d865970d2f4ed08dc7583936",
+    "patch-wled.py": "145bd39de0878d6915820d4f2592a791d48bbe489940e42a6deb90d754fd0830",
+    "patch.py": "704c180f649ae23e90dc7180f7db49dd349f36365bfa352460258dcedd78ddc5",
+    "test-descriptors.py": "18d99ee6a0e5fe5991006a175d3ca81bf02617670ebb01858c5e5d3ff9fd0263",
+    "test-driver.py": "d35ca110fdd9fac82ca039692a51efeed15961ecd764630741b661c950af262b",
+    "test-wled.py": "05e353243e0d02ddffd2d544e8f300248434451402e214042cd8fbe2c163ed14",
+    "verify.py": "2db860b7be8ea9f393d0de051c3b0093e23e7271228aff701e6987123388f158"
+  },
+  "elfSha256": "1ed17873f718ccd8ac69e274d9d0ad2ba21a5dd45f0ed21da23e4029510289ad",
+  "compileCommandsSha256": "3c44eb3a98d679076e20c7bbb343e63884b3f9a0f535d386603cbb974506f2f8",
+  "artifact": {
+    "name": "wled-audio-dma-guarded-2609095.bin",
+    "byteLength": 1151424,
+    "sha256": "b7a8a893b98e6d9ca5e6373367923489ccc284224ca5607da74e31352322fa6d"
+  },
+  "physicalAcceptance": "Pending operator review; no live changes in this task"
+}

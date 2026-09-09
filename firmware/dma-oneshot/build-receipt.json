@@ -1,0 +1,43 @@
+{
+  "buildId": 2609098,
+  "baselineBuildId": 2609097,
+  "baselineArtifactSha256": "1286d761c9067e5e878b2cc02f171e857bbfc5da10d9c3f40f3878d6ca9e022e",
+  "status": "build-verified",
+  "inputs": {
+    "wled00/e131.cpp": "e8b5baf938a6206af7d99dccd25e0b56b1abe237c0893d0f17e1cb6f48243505",
+    "wled00/udp.cpp": "d29d43d4258a4f65a6fbd92d92a3c7b7cdba041c44bfe67a6eaa75cbd0bc3b81",
+    "wled00/wled.cpp": "33b69db2eeea4cf1faab9c0af6bf73e731c371e434d33da772294a3ec0008c32",
+    "wled00/json.cpp": "f836e8aef8fd1ab8e044e0909f2cee6006df6d49f21944d8cc2ed464a2afcd73",
+    "wled00/wled.h": "16d334fc85a31946a0d301fbee17b3658e3577ad80a829999c61a8d82e2dba83",
+    "wled00/FX_fcn.cpp": "8d0e1ac015c86fb18e0244cfb10774351877aa76e9433d3f394a91c98d49a80a",
+    "wled00/FX.h": "1784267e52fb4360b12199a2fdcdada31cb74e573728a9450bd731cfcb2efce9",
+    "wled00/DdpFrames.h": "7a88e26fb81836de790cb32e8eb6efb179b18f72ba8a5f8cf12ceb51686be756",
+    "wled00/loo_ddp.h": "d7513996ec21f6ebc9394c3341bda9a90b85c19ad6e231fb2dd3ca2df07b94b9",
+    "wled00/loo_ddp.cpp": "0b3fb10b72f192c30c44ce430b4c96573b74ea017e8781749af0048e578d6268",
+    "wled00/bus_wrapper.h": "e58e042c8192741f1057d494756b0eaaaaabbf6bb0dba331ce88b1fdb4c39a7f",
+    "wled00/bus_manager.cpp": "56129541cd7e1ee81410a797587186d91632a77271f50a9f0022a29edcbfc762",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/NeoPixelBus.h": "dc38c6e299872841d02f404d182d4ee39bcc4f319379ac8dc744d463d405cc23",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/NeoEsp32I2sXMethod.h": "662998efd3621f3de11aa4dad3d7952c0ce2cdae12c49b7b106a6a6aad76b031",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/Esp32_i2s.c": "fe83029c05fedcf3808bfe15aa2e0f4c7303d97ef897a0a9e3392234b4161ed7",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/Esp32_i2s.h": "2fd893957bec649ccc24e535b5c38144545eae0feeebd45ea568a8ec7d97e825",
+    "wled00/loo_dma_status.h": "2a5c6fe5e0298006ccb0cae5c960dc153ce37e6f44656d125da65fd0ae13f147",
+    "wled00/loo_dma_status.cpp": "ec0bf5492f9a43a82ce53dcf967419c4ce2d58c12987d4944595e21495a667ef",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/NeoEsp32RmtXMethod.h": "a05b6bff508c4390cd5988449cff72590405a20947d4003201ee363b41845995",
+    "usermods/audioreactive/audio_reactive.cpp": "aee744f400c9c96f2863ef87ce07be8b10d4df959a7a1be0dc2d074105a799ca",
+    "usermods/audioreactive/audio_source.h": "96ba38dc8702c344e2f39c8b5af53b431972a5e601866f201317e93b5880389f",
+    "platformio_override.ini": "9cea6317f15a2f96a4405d0fe26366d318f388c660b0491e2bdb9779850e29f2"
+  },
+  "scripts": {
+    "patch.py": "dbe3285594c7289bc48f562c26f288ddc515566908f1c36067c6b5c9d6411b34",
+    "verify.py": "f6ee016718b0e519bd4097a02a0d428f5e0da02d1c941efe14e60ca3caaaa1d4",
+    "test-write.py": "cf5f62bc74bac080efb6b72a854cc246d411054100eb0699bf21caf1da8f85b2"
+  },
+  "elfSha256": "6f7f1c00b75fc1b59ab557eea20685613311f3afef7fa86c0887d79caac0420f",
+  "compileCommandsSha256": "b979015ab3976018db4c5b63ace75d5fff84074523b6b9affbe4ead18c9ebc39",
+  "artifact": {
+    "name": "wled-audio-ddp-dma-2609098.bin",
+    "byteLength": 1154912,
+    "sha256": "f8a142f866a2df8597ae5eef819610e38ddfe680c22ec40d160c24ceabe86f5e"
+  },
+  "physicalAcceptance": "Pending flash observation, standalone audio, and restart checks."
+}

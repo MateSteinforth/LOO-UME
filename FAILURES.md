@@ -7,6 +7,44 @@ reveals a durable lesson.
 
 ## How to use this log
 
+### F-194 — A timestamp sampled before a lock can expire fresh data
+
+- **Date:** 2026-09-09
+- **Defect:** The complete-frame receiver uses caller timestamps sampled before its queue lock. A newer protected timestamp can appear before the caller gets the lock. Unsigned subtraction then causes false expiry.
+- **Evidence:** `firmware/ddp-expiry/test-expiry.cpp` reproduces immediate loss of ready and staging data. Normal100ms expiry and clock wrap act as controls.
+- **Correction:** Firmware2609099 rejects negative modular ages while retaining the100ms timeout and normal clock wrap. Tests cover both expiry entry points and completion of a preserved partial frame.
+- **Status:** Build and host regressions pass. Device throughput and the contribution to observed frame drops remain under test.
+- **Prevention:** Test timestamp ordering across lock acquisition. A race-free data structure can still use an invalid time snapshot.
+
+### F-193 — DMA completion can depend on a short interrupt deadline
+
+- **Date:** 2026-09-09
+- **Symptom:** The2609097 DMA trial reduced some flashes, but moving patterns caused severeGPIO16 corruption and dropped frames.
+- **Source defect:** The old descriptor chain can repeat data if the EOF interrupt misses the silent return window. A late interrupt then reports idle while DMA can read repeated data. The mono-buffer encoder can overwrite that buffer.
+- **Source correction:** Candidate2609098 uses two descriptor banks that end at a closed silent gate. The interrupt only records completion. Firmware2609099 includes the same correction.
+- **Evidence:** The exact selected driver functions compile in the host regression. The old graph permits repeated-data reuse; the corrected graph parks on zeros. This does not prove the cause of the observed flashes.
+- **Physical result:** Firmware2609099 still caused severe corruption with DMA and presented23.45 of29.72 complete frames/s with audio running. Source correctness did not establish a working DMA output.
+- **Recovery:** Original2609051 was restored first. The same2609099 candidate then ran with RMT, microphone processing, original mapping, and brightness128. The operator reports good DDP mirroring on RMT. Its measured25.63 presented frames/s remains below target.
+- **Prevention:** Require moving-pattern and throughput observations as well as static flash observations. Software completion counters do not prove output quality.
+
+### F-192 — Repeated DMA accounting rejects a supported output group
+
+- **Date:** 2026-09-09
+- **Symptom:** Firmware2609096 reported DMA failure2, zero active lanes, and zero retained DMA memory on the controller.
+- **Cause:** `finalizeInit()` adds `BusConfig::memUsage()`, then `getBusSize()`, and also the common DMA estimate. The parallel path counts DMA repeatedly. The fourth output becomes a placeholder, which causes group cleanup.
+- **Correction:** Count each allocation once for the guarded four-output group. Include the reset tail and a descriptor reserve. Retain allocation guards and the existing memory limit.
+- **Prevention:** Test the WLED admission loop as well as the driver allocator. Zero retained allocation after cleanup does not identify an allocation failure.
+- **Evidence:** The host regression reproduces rejection and verifies corrected admission. Installed2609097 reports four active lanes,51408 DMA bytes,192 descriptor bytes, and failure0. Physical acceptance remains open.
+
+### F-191 — A copied lifecycle test can hide source defects
+
+- **Date:** 2026-09-09
+- **Symptom:** initial DDP tests copied realtime lifecycle logic and used uniform colors to check a nontrivial LED map.
+- **Cause:** the test could pass without exercising the current entry, exit, and mapping behavior.
+- **Correction:** tests now extract the actual receiver, realtime lifecycle, notification prefix, painting guards, and realtime pixel function. Indexed RGB data checks every mapped output.
+- **Prevention:** compile the selected candidate's source and headers in timing and ownership tests. Extracted integration functions are insufficient if the harness still includes an older queue header. State each simulated boundary. Use distinct pixel values to check addressing.
+- **Evidence:** FIRM-040 `firmware/ddp-dma/test-service.py` passes with ASan/UBSan, including allocation failure, suspension, offset mapping, timeout, and native override.
+
 ### F-159 — A package build did not prove Mac launch readiness
 
 - **Date:** 2026-09-05
@@ -47,6 +85,21 @@ Copy this section for new entries and replace `NNN` with the next identifier.
 ```
 
 ## Lessons
+
+### F-184 — A speed-class reset constant did not prove emitted reset timing
+
+- Date: 2026-09-09. The prior firmware handoff assumed 300 microseconds of WS2812 reset time from the selected speed class. The active Core 3 RMT encoder instead hard-codes 50 microseconds and does not use that constant.
+- Evidence: FIRM-031 inspected the source and 2609085 ELF; the emitted reset symbol has two 1000-tick low intervals at 40 MHz. Native timer pacing can hide this by leaving extra idle time, while repeated DDP refreshes can bring the longest bus close to the short encoded-reset floor.
+- Prevention: inspect the selected encoder and compiled timing, including any idle gap outside the encoded transaction. Do not treat nominal constants, FPS counters, or successful compilation as proof of waveform timing.
+- Status: reset mismatch confirmed; contribution to sculpture flicker is a testable hypothesis. Exact-source host checks separately demonstrate DDP partial-frame publication. Physical timing and no-flash diagnostic checks remain pending; 2609085 was preserved.
+
+### F-181 — An IRAM annotation did not establish callback placement
+
+- **Date:** 2026-09-08
+- **Evidence:** The original NeoPixelBus RMT refill template callbacks were at flash addresses, while IDF bytes/copy encoders and the ISR were in IRAM. Adding IRAM_ATTR to the template method still produced flash-resident callbacks; the candidate failed binary verification and was not installed.
+- **Correction under test:** FIRM-028 moves the identical callback body to a shared non-template IRAM function. Build 2609085 passes ELF address checks and excludes the failed DDP receiver, priority-3 and capture-stop changes.
+- **Prevention:** Verify final ELF symbol placement, not just source annotations, for interrupt hot paths.
+- **Status:** Built and verified locally, not installed. Physical comparison is paused pending baseline recovery: operator reports GPIO 17 corruption even after rollback to 2609051 and quitting LOO/UME. Device read-back confirms DDP off, native segment unfrozen, and unchanged LED/map settings. Full controller/LED power cycle requested.
 
 ### F-165 — A delegated edit used the integration checkout
 
@@ -3099,3 +3152,55 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Baseline:** The same geometry failures reproduced on unchanged `main` at `3c32370`; its full run passed 608 tests and failed 16, including one additional launcher failure.
 - **Prevention:** Compare failures on the unchanged integration base before attributing them to a task. Report full verification as failed even when focused checks and the production build pass. Do not change proven PCB or geometry facts merely to satisfy stale expectations.
 - **Status:** Existing geometry failures remain open for a separate investigation. Physical-review browser tests, TypeScript, WASM integrity, and the integration production build passed.
+
+### F-175 — Compilation database generation removed firmware evidence
+
+- **Date:** 2026-09-06
+- **Context:** FIRM-020 needed compiler flags and the final ELF for independent review.
+- **Cause:** PlatformIO's `compiledb` target removed the existing build files. A cached rebuild restored objects but omitted header dependency files.
+- **Correction:** Generate the compilation database before the final build. Use a fresh cache to restore missing compiler dependency evidence.
+- **Prevention:** Check the final ELF, dependency files, and image hashes after all build targets finish. Preserve the matching evidence before cleanup.
+- **Status:** The build procedure records the required order. Physical firmware tests remain separate from compiler evidence.
+
+### F-185 — An earlier clean firmware observation did not repeat with Solid
+
+- **Date:** 2026-09-09
+- **Context:** Repeated audio shutdown experiments followed earlier reports of clean non-audio DDP.
+- **Evidence:** FIRM-032 reinstalled the exact preserved non-audio 2609051 image with the current Solid stream. Identity, LED/realtime settings, mapping and brightness matched; sampled software pixels were uniformly `ff3201`. The operator still observed occasional whole-GPIO16 black/blue flashes, fewer than with audio.
+- **Correction:** Record that audio is not necessary for all current corruption. Preserve the earlier observation as historical evidence, without treating it as a repeatable clean control or proof of an audio-only cause. The physical reason for the difference is unmeasured.
+- **Prevention:** Compare the same input and verified settings when isolating a firmware difference. Distinguish a reduction in flashes, clean sampled software pixels, and clean physical output. Do not use repeated audio shutdown as a substitute for inspecting the shared LED output path.
+- **Status:** Comparison documented; flicker and frame-drop fixes remain open.
+
+### F-186 — A release number did not identify the installed private RMT ABI
+
+- **Date:** 2026-09-09
+- **Context:** FIRM-034 needed a local transmitter override to measure refill timing.
+- **Evidence:** The installed SDK reports5.3.4.260127 and its package declares Tasmota IDF commit `b3b492ffc273f17f4ed3c83c19ed110cd6c73c7a`. Vanilla5.3.4 transmitter/private-header files differ. The exact source matches the package's private structure offsets and distinct behavior in archive disassembly.
+- **Correction:** Pin exact driver/header hashes, compile ABI size/offset assertions, keep the SDK archive unchanged, and require the final link map to attribute TX symbols to the local object without extracting the old TX object.
+- **Prevention:** Do not select private replacement code from a release label alone. Account for LTO in map ownership. Follow reachable Xtensa basic blocks when checking calls; a linear disassembly can invent calls across unreachable zero padding.
+- **Status:** Verified by FIRM-034 build and independent review. This establishes diagnostic compatibility, not flicker-free output.
+
+### F-189 — A driver test selected a different DMA variant
+
+- **Date:** 2026-09-09
+- **Context:** The first DMA test checked source text. Its replacement selected four-step double buffering instead of the compiled three-step mono-buffer path.
+- **Correction:** Execute the actual selected classes with injected allocation failures, transfer-busy checks, and exact encoded-byte assertions. Verify the same variant in the ELF.
+- **Prevention:** Source matches and a passing test for another variant do not establish runtime failure recovery.
+- **Environment:** LeakSanitizer cannot run under host process tracing. Keep address and undefined-behavior checks enabled; use explicit allocation accounting for leaks.
+- **Status:** The selected 51,408-byte path passed executed failure, retry, encoding, reset, and ownership checks. Physical acceptance remains open.
+
+### F-188 — An older task board caused duplicate diagnostic preparation
+
+- **Date:** 2026-09-09
+- **Context:** Main and the reset diagnostic branch did not contain the latest firmware task state.
+- **Correction:** Read the active output-order task board before implementation. Stop duplicate probe work and continue FIRM-036 from the recorded evidence.
+- **Prevention:** Locate the latest related task worktree before assigning a new task ID or repeating a diagnostic.
+- **Status:** The current task branch includes the newer board. No duplicate diagnostic code or device changes remain.
+
+### F-187 — A non-audio configuration write omits stored AudioReactive options
+
+- **Date:** 2026-09-09
+- **Context:** FIRM-035 temporarily reordered bus entries on non-audio2609094.
+- **Evidence:** `/json/cfg` rewrote the full file, updatedvid to the running build and omitted `um.AudioReactive`, which remained stored from2609085 despite the non-audio OTA. `cfg.cpp:1282` serializes only compiled usermods. The physical bus settings and map were unchanged.
+- **Correction:** Preserve the complete cfg.json privately before a settings test. Restore that exact file through WLED's supported config upload, which reboots; verify full stored configuration and live output mapping afterward. API-merging an unknown usermod does not guarantee it survives the serializer.
+- **Status:** Complete original configuration, original order, map/state and DDP restored and verified. No microphone settings were lost.

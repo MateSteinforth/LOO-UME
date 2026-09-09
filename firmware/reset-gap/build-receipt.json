@@ -1,0 +1,34 @@
+{
+  "status": "built-not-installed",
+  "buildId": 2609093,
+  "baselineBuildId": 2609051,
+  "baselineImageSha256": "f84dbc5015dab45ada68e53a5968732458f19ae2b993238cfc183d2ca87aae55",
+  "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2",
+  "neoPixelBusCommit": "76afe832f74b0738a3fa1bba0caf389ade9e7693",
+  "versions": {
+    "platformVersion": "2026.02.30",
+    "frameworkVersion": "3.3.7+sha.b3b492ff",
+    "toolchainVersion": "15.1.0+20250607",
+    "esptoolVersion": "5.1.2"
+  },
+  "audioCompiled": false,
+  "rmtSymbolsPerOutput": 128,
+  "rmtClockHz": 40000000,
+  "resetMicroseconds": 300,
+  "resetSymbolHex": "17701770",
+  "initializerAddress": "0x400e1e30",
+  "refillCallbackAddress": "0x400e61e0",
+  "inputs": {
+    "platformioOverrideSha256": "5fa45dfd2c792fc569a6fdd910a44dd2b3442430ec302119f49237f771643f48",
+    "patchScriptSha256": "131b0663bb63d3646ca21d0aae3b38b6aa72b2cdd0ff9ed85fa08d0bd96370ff",
+    "wledHeaderSha256": "e117af1bd1498e6c34110b6dc2ef00029155b841fb416f139e17201c440fb082",
+    "rmtHeaderSha256": "47c69cbd2375c5e0346deb9711706963814cec74f0b6f6c79e4c426e06b83245",
+    "compileCommandsSha256": "b540ab6b1b2b72cb952b8d5dfc714681674a5a6b150f7939b6f19b9ecb466674",
+    "elfSha256": "b519831675e123916ffa87857baee4e2780a4f5d17de8a0d977d2f170f856b32"
+  },
+  "artifact": {
+    "name": "wled-nonaudio-reset300-2609093.bin",
+    "byteLength": 1111968,
+    "sha256": "752e485c34433d8dc3a1132d605e34618c919654f1ebf46b8b78fb63a3054f71"
+  }
+}

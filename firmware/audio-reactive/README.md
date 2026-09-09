@@ -1,0 +1,111 @@
+# AudioReactive firmware with four outputs
+
+FIRM-020 builds a separate classic ESP32 variant with AudioReactive enabled.
+It retains WLED commit `d9b9a846561227351ad929e3109781daadb7bed2` and the FIRM-019 RMT patch.
+Each LED output requests 128 symbols. Four outputs fit the 512-symbol RMT memory.
+The FIRM-028 build number is `2609085`. The release name remains `ESP32` for Wi-Fi updates.
+Improv and the existing 1D effects remain available. The variant keeps 2D effects disabled.
+
+This variant does not replace LOO/UME's bundled firmware.
+Its application and complete USB images have a separate receipt in this directory.
+This candidate compiled and passed its receipt and IRAM-address checks, but has
+not been installed. Physical testing is paused until the operator recovers clean
+standalone output on 2609051 after a full controller/LED power cycle.
+
+## Isolated callback placement test
+
+The original RMT refill callback was a template member in flash. A simple
+IRAM_ATTR annotation did not move it in the compiled ELF. FIRM-028 relocates its
+unchanged, template-independent body into one shared non-template IRAM function.
+The receipt verifies that this callback and the IDF bytes/copy encoder callbacks
+have instruction-RAM addresses, and no old template callback remains.
+The original interrupt priority, 128-symbol allocation, DDP receiver and audio
+lifecycle are retained. Failed receiver-buffering, priority-3 and capture-stop
+experiments are excluded. This is a candidate, not a confirmed fix.
+
+## INMP441 connections
+
+Disconnect power before wiring the microphone.
+
+| INMP441 pin | ESP32 connection |
+| ----------- | ---------------- |
+| VDD         | 3.3 V            |
+| GND         | GND              |
+| SD          | GPIO 32          |
+| WS          | GPIO 26          |
+| SCK         | GPIO 27          |
+| L/R         | GND              |
+
+These are proposed defaults for an INMP441. It does not need MCLK.
+Keep microphone wires short. Connect the microphone signals directly to the ESP32; they use 3.3 V.
+These pins do not overlap LED GPIOs 16, 17, 21, and 22.
+Saved AudioReactive settings can override the compiled defaults.
+
+## Installation and physical checks
+
+Use `wled-audioreactive-rmt4-esp32.bin` with WLED's Wi-Fi firmware updater.
+Use `wled-audioreactive-rmt4-esp32-full-flash.bin` for USB flashing at address zero.
+A complete USB installation needs normal project configuration afterward.
+The current LOO/UME receipt check does not accept this separate variant for guarded USB flashing.
+
+After an authorized update, verify build `2609085` in `/json/info`.
+Compare LED GPIOs, lengths, mapping, and current settings with the saved project.
+Keep the LED buses on the RMT driver. Audio uses I2S0; an I2S LED driver can conflict with audio input.
+In AudioReactive settings, select Generic I2S and confirm SD 32, WS 26, SCK 27, and MCLK -1.
+After a microphone configuration change, restart the ESP32.
+Select a 1D audio effect, such as Gravimeter, and check its response to sound and silence.
+Test all four chains with static colors and moving effects while audio input is active.
+Check for flicker, pauses, reduced frame rate, and unexpected restarts.
+Repeat after a power cycle. Build checks do not establish physical stability.
+
+## Rebuild
+
+Use a separate task worktree and the pinned tool versions in `build-receipt.json`.
+Save the archive from `https://codeload.github.com/wled/WLED/tar.gz/d9b9a846561227351ad929e3109781daadb7bed2` as `build/wled-source.tar.gz`.
+Its SHA-256 is `42f12c1b286030301dde811079386e99cbe6590989c7b45daa323bb0495fa8d1`.
+Extract it into `build/firmware-source` with one leading path component removed.
+
+Install the upstream `requirements.txt` and `uv==0.12.5` into `build/firmware-toolchain/python` with the pinned pip zipapp.
+See [the four-output build procedure](../RMT4_REBUILD.md) for the tool layout.
+Create `build/firmware-toolchain/core/penv` with uv. Install `uv==0.12.5` into that environment too.
+Set the environment before PlatformIO commands:
+
+```bash
+export PATH="$PWD/build/firmware-toolchain/python/bin:$PATH"
+export PYTHONPATH="$PWD/build/firmware-toolchain/python"
+export PLATFORMIO_CORE_DIR="$PWD/build/firmware-toolchain/core"
+export PLATFORMIO_BUILD_CACHE_DIR="$PWD/build/firmware-toolchain/cache"
+```
+
+For clean sources, run these commands once:
+
+```bash
+cp firmware/audio-reactive/platformio.ini build/firmware-source/platformio_override.ini
+node firmware/audio-reactive/patch-build-id.mjs build/firmware-source
+python3 -m platformio pkg install --project-dir build/firmware-source --environment orbital_esp32dev
+node firmware/patch-rmt.mjs build/firmware-source/.pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575
+node firmware/audio-reactive/patch-rmt-iram.mjs build/firmware-source/.pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575
+python3 -m platformio run --project-dir build/firmware-source --environment orbital_esp32dev --target compiledb
+python3 -m platformio run --project-dir build/firmware-source --environment orbital_esp32dev
+```
+
+Generate the compilation database before the final build. That target can remove existing build files.
+Use a fresh build cache when header dependency files are missing. Cached objects do not necessarily restore those files.
+Do not reapply patches to patched files; both patch scripts reject unexpected input.
+Create the installation images and receipt:
+
+```bash
+mkdir -p build/firmware-audioreactive
+cp build/firmware-source/.pio/build/orbital_esp32dev/firmware.bin build/firmware-audioreactive/wled-audioreactive-rmt4-esp32.bin
+build/firmware-toolchain/core/penv/bin/python -m esptool --chip esp32 merge-bin \
+  --output build/firmware-audioreactive/wled-audioreactive-rmt4-esp32-full-flash.bin \
+  --flash-mode dio --flash-freq 40m --flash-size 4MB \
+  0x1000 build/firmware-source/.pio/build/orbital_esp32dev/bootloader.bin \
+  0x8000 build/firmware-source/.pio/build/orbital_esp32dev/partitions.bin \
+  0xe000 build/firmware-toolchain/core/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin \
+  0x10000 build/firmware-source/.pio/build/orbital_esp32dev/firmware.bin
+node firmware/audio-reactive/create-receipt.mjs
+```
+
+The receipt checks headers, tool versions, microphone flags, compiled audio symbols, and application bytes inside the USB image.
+Keep binaries outside Git. Preserve the receipt and build log with the delivered images.
