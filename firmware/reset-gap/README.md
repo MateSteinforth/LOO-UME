@@ -64,8 +64,21 @@ matched2609051 except its build ID, and mapping/brightness were unchanged.
 DDP resumed. A bounded pixel-preview capture again contained40frames of874
 sampled pixels, all `ff3201`; this is software-buffer evidence, not a physical
 output measurement. Private device evidence is under
-`build/device-test-20260909-075621`. Physical Solid result is pending.
-No flicker-free or frame-drop-free result is claimed yet. The build receipt's
+`build/device-test-20260909-075621`. The operator first reported flashes still
+present, perhaps slightly reduced; later reported nearly gone, with residual
+flashes visible on GPIO22/PC02. At uptime484s, read-back confirmed2609093 and
+unchanged full configuration/map, brightness128 and DDP active. This preserves
+both observations rather than treating either as a stable measured error rate.
+With controller polling/previews idle, the operator estimated a flash every
+1–2seconds and clarified bothGPIO16 andGPIO22, predominantlyGPIO22/PC02. This
+is an approximate operator rate, not a timed automated count. The residual
+rate remains unacceptable. See [the measurement plan](MEASUREMENT_PLAN.md)
+for the next diagnostic design; no instrumentation has been built or installed.
+
+The reset change alone is not an accepted zero-flash fix. The qualitative
+reduction does not prove the physical mechanism, and Solid cannot establish
+frame-drop improvement. Controller remains on2609093 for investigation; no
+additional change is installed. The build receipt's
 status describes its creation before installation; this paragraph records the
 subsequent device test.
 
