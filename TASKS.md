@@ -9,20 +9,44 @@ simulator and TouchDesigner DDP input.
 
 ## Active firmware handoff — read this first (2026-09-09)
 
-**Current live state:** Firmware2609097 is installed and uses four active DMA lanes.
+**Current live state:** Original non-audio firmware2609051 is restored and verified with four RMT outputs.
+The operator reported a large improvement during recovery after the RMT switch.
+The final read-back confirms2609051, active DDP, and reported47FPS.
+The operator confirms this version gives the best animated content so far; solid colors still flash.
+The output settings, LED map, and brightness128 match the saved recovery configuration.
+Leave this baseline running. Do not reinstall a DMA candidate without a defined moving-pattern and throughput comparison.
+Standalone audio remains an unmet goal; this baseline has no audio support.
+Private recovery evidence is under `build/attended/recovery-051-*`.
+Firmware2609098 is built for offline review only; it has NOT been installed.
+Its two descriptor banks remove the identified delayed-interrupt data-repeat path.
+Its physical flicker, throughput, and audio behavior remain unverified.
+Exact-source descriptor tests pass, including delayed interrupts and short frames. Candidate2609098 remains uninstalled.
+The new DDP receiver also has a reproduced timestamp race: a pre-lock timestamp can expire a newer frame immediately.
+`firmware/ddp-expiry/test-expiry.cpp` reproduces both ready-frame and staging-frame loss, with normal timeout and clock-wrap controls.
+This defect is not yet corrected. Its contribution to the observed frame drops is unmeasured.
+Next: correct and test receiver timing before any further device trial. Require static and moving output plus throughput comparisons.
+The operator raised quota concerns. Keep the baseline installed and avoid further speculative device trials.
+
+**Previous DMA trial:** Firmware2609097 used four active DMA lanes.
 MAC2462abc9f3a8, IP192.168.68.53, normal GPIO order[16,17,21,22], and brightness128 are verified.
 The saved LED map matches the backup. DDP is active.
 DMA telemetry reports failure0,51408 allocated bytes, and192 descriptor bytes.
 The first read-back reports1158 presented and1158 completed frames, with no failed show.
 These counters establish software operation, not absence of physical flashes.
-The operator observation question is pending. Standalone microphone testing remains pending.
+The operator confirms far fewer flashes with2609097. Remaining flashes occur onPC05 in theGPIO17 chain.
+The operator subsequently reports extensiveGPIO16 corruption during moving-pattern playback on2609097.
+The reduced flash count does not establish reliable moving output. Moving patterns require a separate acceptance observation.
+This is a substantial observed improvement, not complete physical acceptance.
+Flash color and affected pixel count remain unknown. Standalone microphone testing remains pending.
 Microphone processing remains disabled in the saved settings; audio code is compiled.
 The firmware build, memory regression test, DDP service test, and source/ELF checks pass.
 Artifact: `build/firmware-dma-budget/wled-audio-ddp-dma-2609097.bin`.
 SHA256: `1286d761c9067e5e878b2cc02f171e857bbfc5da10d9c3f40f3878d6ca9e022e`.
 Owner: GPT-6 Astra; branch `codex/ddp-dma-attended`; worktree `/tmp/loo-ume-ddp-dma-attended`.
-Keep LOOUME open during observation. Its older driver contract can reject DMA during reconnection.
-Next: record physical DDP observation, then check standalone audio and restart persistence.
+The older LOOUME driver contract can reject DMA during reconnection; current RMT settings avoid that mismatch.
+Next: inspect the selected mono-buffer DMA timing and the remainingPC05 flashes, then check standalone audio and restart persistence.
+The regression agent owns `firmware/dma-oneshot/test-write.py` for a delayed-interrupt descriptor test.
+The primary agent owns DMA changes and shared records. The payload agent reviews source without edits.
 The recovery details below describe earlier states, not the current driver.
 
 **Latest attended recovery:** After the operator power cycle, read-back confirms

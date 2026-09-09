@@ -7,6 +7,24 @@ reveals a durable lesson.
 
 ## How to use this log
 
+### F-194 — A timestamp sampled before a lock can expire fresh data
+
+- **Date:** 2026-09-09
+- **Defect:** The complete-frame receiver uses caller timestamps sampled before its queue lock. A newer protected timestamp can appear before the caller gets the lock. Unsigned subtraction then causes false expiry.
+- **Evidence:** `firmware/ddp-expiry/test-expiry.cpp` reproduces immediate loss of ready and staging data. Normal100ms expiry and clock wrap act as controls.
+- **Status:** Reproduced, not corrected. The contribution to observed frame drops remains unmeasured. Original2609051 is installed.
+- **Prevention:** Test timestamp ordering across lock acquisition. A race-free data structure can still use an invalid time snapshot.
+
+### F-193 — DMA completion can depend on a short interrupt deadline
+
+- **Date:** 2026-09-09
+- **Symptom:** The2609097 DMA trial reduced some flashes, but moving patterns caused severeGPIO16 corruption and dropped frames.
+- **Source defect:** The old descriptor chain can repeat data if the EOF interrupt misses the silent return window. A late interrupt then reports idle while DMA can read repeated data. The mono-buffer encoder can overwrite that buffer.
+- **Correction:** Candidate2609098 uses two descriptor banks that end at a closed silent gate. The interrupt only records completion. The candidate remains uninstalled.
+- **Evidence:** The exact selected driver functions compile in the host regression. The old graph permits repeated-data reuse; the corrected graph parks on zeros. This does not prove the cause of the observed flashes.
+- **Recovery:** Original2609051, RMT settings, mapping, brightness128, and active DDP are verified. The operator reported improvement during recovery.
+- **Prevention:** Require moving-pattern and throughput observations as well as static flash observations. Software completion counters do not prove output quality.
+
 ### F-192 — Repeated DMA accounting rejects a supported output group
 
 - **Date:** 2026-09-09
