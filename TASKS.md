@@ -31,6 +31,16 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-033` Isolate the encoded RMT reset interval
+
+- Status: Human Review (diagnostic installed; physical Solid result pending). Owner: Codex; branch `codex/rmt-reset-gap-test`; worktree `/tmp/loo-ume-rmt-reset-gap-test`.
+- Scope: prepare non-audio diagnostic 2609093 from the original 2609051 recipe, changing only the RMT reset to the selected speed's duration (300 microseconds for installed RGB buses), plus the diagnostic build ID. Preserve both original images.
+- Acceptance: exact pinned-source guards; unchanged original non-audio build flags, 128 symbols, IRQ priority, callback placement and DDP receiver; compiled ELF confirms the 300-microsecond reset; application receipt and explicit physical comparison before any stability claim.
+- Plan: prepare guarded source patch; build from a separate source tree; verify flags, source delta and compiled reset; compare the same Solid stream against 2609051 when installed. No frame-drop fix is claimed by this reset test.
+- Conflicts: TASKS.md and firmware/reset-gap/. No edits to baseline firmware source or artifacts.
+- Verification: guarded patch checks, pinned source comparisons, original flags/tool versions, no compiled audio, and firmware build passed. ELF confirms two 6000-tick low fields at40MHz (300us), unchanged data pulse literals, and original flash-resident callback. Independent timing/scope review passed. Installed2609093 via validated OTA; full configuration matches2609051 except build ID, map and brightness unchanged, DDP active. Both original image hashes verified intact.
+- Delivery: source/receipt and diagnostic result saved locally. Publication remains local because the prior repository publication review is unresolved; no remote write attempted.
+
 ### `P1 · FIRM-032` Compare firmware using repeated solid DDP frames
 
 - Status: Ready to Merge (comparison documented; flicker and frame drops remain unresolved). Owner: Codex; branch `codex/firmware-solid-comparison`; worktree `/tmp/loo-ume-firmware-solid-comparison`.
