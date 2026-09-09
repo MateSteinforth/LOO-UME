@@ -31,6 +31,16 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-035` Isolate output allocation from the physical GPIO22 path
+
+- Status: Human Review (allocation-test feedback pending). Owner: Codex; branch `codex/output-order-test`; worktree `/tmp/loo-ume-output-order-test`.
+- Scope: user reports persistentGPIO22 flashes after power cycling2609094 with probes off. Perform a reversible configuration-only swap of theGPIO17/22 bus entries, retaining every per-pin setting and address range. Preserve firmware and all fallbacks. Independently inspect a DMA backend as a possible route to reliable DDP and native audio.
+- Acceptance: source confirms bus allocation follows list order while pixel addressing uses explicit start/length; private backup and exact restore; read-back changes only list order with probes off and DDP active;90s settling then explicit60s feedback window; restore and verify original LOOUME contract after the test. No diagnosis from merely improved appearance.
+- Plan: review source and reconnect constraints; prepare guarded apply/restore and address equivalence proof; verify changed RMT-to-GPIO allocation; run timed observation; restore original ordering; record evidence and next architecture decision. No new flash in this test.
+- Interpretation: movement towardGPIO17 supports an allocation/scheduling-related cause; persistentGPIO22 points toward a pin/chain-specific path but does not prove electrical failure. Order also changes allocation addresses and launch order, so this does not isolate the hardware RMT block alone. Native audio and moving-frame delivery remain required later acceptance tests.
+- Conflicts: TASKS.md, firmware/output-order/. Independent reviewer is read-only on existing firmware sources.
+- Progress: configuration-only allocation swap applied and verified; timed visual window completed with physical feedback pending. Full original cfg.json restored through supported upload/reboot, including inactive audio options omitted by the non-audio serializer. Original ordering/map/segment state and DDP verified. DMA architecture review found existing I2S1 output alongside I2S0 audio; capacity guard and explicit LOOUME drv1 contract are required before rollout. See firmware/output-order/README.md. No flash.
+
 ### `P1 · FIRM-034` Measure submitted pixels and RMT refill timing
 
 - Status: Ready to Merge (diagnostic completed; flicker/audio/frame-drop goal remains open). Owner: Codex; branch `codex/rmt-output-probe`; worktree `/tmp/loo-ume-rmt-output-probe`.

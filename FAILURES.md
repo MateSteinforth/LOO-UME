@@ -3141,3 +3141,11 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Correction:** Pin exact driver/header hashes, compile ABI size/offset assertions, keep the SDK archive unchanged, and require the final link map to attribute TX symbols to the local object without extracting the old TX object.
 - **Prevention:** Do not select private replacement code from a release label alone. Account for LTO in map ownership. Follow reachable Xtensa basic blocks when checking calls; a linear disassembly can invent calls across unreachable zero padding.
 - **Status:** Verified by FIRM-034 build and independent review. This establishes diagnostic compatibility, not flicker-free output.
+
+### F-187 — A non-audio configuration write omits stored AudioReactive options
+
+- **Date:** 2026-09-09
+- **Context:** FIRM-035 temporarily reordered bus entries on non-audio2609094.
+- **Evidence:** `/json/cfg` rewrote the full file, updatedvid to the running build and omitted `um.AudioReactive`, which remained stored from2609085 despite the non-audio OTA. `cfg.cpp:1282` serializes only compiled usermods. The physical bus settings and map were unchanged.
+- **Correction:** Preserve the complete cfg.json privately before a settings test. Restore that exact file through WLED's supported config upload, which reboots; verify full stored configuration and live output mapping afterward. API-merging an unknown usermod does not guarantee it survives the serializer.
+- **Status:** Complete original configuration, original order, map/state and DDP restored and verified. No microphone settings were lost.
