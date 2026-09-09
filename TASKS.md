@@ -9,6 +9,18 @@ simulator and TouchDesigner DDP input.
 
 ## Active firmware handoff — read this first (2026-09-09)
 
+**Best overall result so far — operator confirmed2026-09-09:** Firmware2609099 with RMT, DMA off, and microphone processing enabled.
+DDP mirroring and standaloneGravimeter132 both have positive physical observations on this same firmware.
+After restarting mirroring, the operator reports some flashes but considers this the best overall result yet.
+Preserve this firmware and configuration as the comparison baseline. Do not replace it with the failed DMA configuration.
+Artifact: `/tmp/loo-ume-ddp-audio-unified/build/firmware-unified/wled-audio-ddp-2609099.bin`.
+SHA256: `007c3e6c584a86d7b9bfc1522a9413d0a9867677b27f2ba07d81f4680d42cac4`.
+Implementation commit: `1894028`; build receipt: `firmware/ddp-expiry/build-receipt.json`.
+Read-back at12:14:47UTC confirms2609099, active DDP, DMA off, microphone processing, brightness128, and GPIOs16,17,21,22.
+Private evidence and settings: `build/device/best-overall-{info,state,cfg}.json`.
+Remaining work: reduce residual flashes, check repeated mode changes and restart persistence, and address the measured frame-rate gap.
+This milestone does not establish flicker-free output or complete the full acceptance criteria.
+
 **Active combined-firmware task:** The operator authorizes correction of the confirmed defects and further checks of one DDP/audio firmware.
 **Current device:** Firmware2609099, four RMT outputs, DMA off, microphone enabled and processing.
 MAC2462abc9f3a8, IP192.168.68.53, original GPIO order, mapping, and brightness128 are verified.
@@ -17,11 +29,10 @@ A91s sample measured29.21 complete frames/s and25.63 presented frames/s; about3.
 The30-frame target remains unmet. Do not equate the positive visual report with zero frame loss.
 The operator confirms DDP mirroring looks great, then confirms standaloneGravimeter132 also looks great after stopping LOOUME.
 Native read-back verifies no DDP, effect132, unfrozen segment, microphone processing, and reported43FPS.
-The operator reports glitchy mirroring when LOOUME restarts after standalone audio.
-The latest capture was already back in standalone mode, so the failing transition is not yet captured.
-Bus and live settings match the working DDP configuration; `lor` is0 in that inactive capture.
-Current work: capture the active failure and distinguish startup-only corruption from sustained corruption before another firmware change.
-The operator has been asked to leave mirroring running for that capture. Preserve RMT and the accepted standalone effect.
+The operator initially reported glitchy mirroring after restarting LOOUME, then revised the observation to some flashes and the best overall result so far.
+The latest capture confirms active DDP on the accepted RMT/audio configuration.
+The earlier inactive capture had unchanged bus/live settings and `lor`0.
+Preserve the accepted baseline before investigating residual transition behavior.
 The microphone uses Generic I2S, SD32, WS26, CK27, MCLK-1, with the previous gain/settings restored.
 Firmware2609099 passed the build and focused expiry/service regressions.
 Its DMA trial failed: the operator reported severe corruption across outputs.
