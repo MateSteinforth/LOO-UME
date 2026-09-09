@@ -3116,3 +3116,10 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Correction:** Generate the compilation database before the final build. Use a fresh cache to restore missing compiler dependency evidence.
 - **Prevention:** Check the final ELF, dependency files, and image hashes after all build targets finish. Preserve the matching evidence before cleanup.
 - **Status:** The build procedure records the required order. Physical firmware tests remain separate from compiler evidence.
+
+
+### F-182 — GPIO17 corruption was confounded by an intermittent TX2 connection
+
+- Date: 2026-09-09. During firmware comparisons, GPIO17 remained corrupted on the original non-audio firmware, after power cycling and with DDP off. A software pin-assignment swap did not move the corruption. These observations did not prove either a firmware or hardware fault.
+- Operator found and repaired a loose soldered TX2 connection. Original standalone playback became clean, then 2609085 standalone and audio playback passed on all chains. DDP flashes on GPIO16 and synchronous stutter remain separate unresolved observations.
+- Prevention: record physical repair boundaries and repeat the baseline. Do not label a controller pin defective from a logical assignment swap, and do not treat a prior failed experiment as a proven fix after hardware repair.

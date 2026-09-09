@@ -99,13 +99,14 @@ for (const name of [
 const wledHeader = await readFile(resolve(source, "wled00/wled.h"));
 assert.equal(
   sha256(wledHeader),
-  "f027a11833bd4f6a687adfa2455dc515f71ffa9f229fb842bb4ff1a28b21603b",
+  "bb112e36e1ee46b054173ce061e62f9c38a5d7685e066e3b109c7e53e6445002",
 );
 const fft = await json(
   resolve(source, ".pio/libdeps/orbital_esp32dev/arduinoFFT/library.json"),
 );
 assert.equal(fft.version, "2.0.1");
-receipt.target.buildId = 2609085;
+receipt.status = "built"; // Physical installation results are recorded separately in README.md.
+receipt.target.buildId = 2609091;
 const callbacks = symbols.split("\n").filter(line => line.includes("loo_rmt_encode_led_strip") || /\brmt_encode_(bytes|copy)$/.test(line));
 assert.ok(callbacks.length >= 3, "The shared refill and IDF encoder callbacks must remain in the ELF.");
 for (const line of callbacks) {
@@ -145,6 +146,16 @@ receipt.inputs.audioReactive = {
   fftVersion: fft.version,
   compileCommandsSha256: sha256(commandsBytes),
   elfSha256: sha256(await readFile(elf)),
+};
+assert.equal(receipt.inputs.audioReactive.sourceSha256,
+  "538547f009c9c34d6602c7e27ff54f0be73735095ed347c1854771e05c550338");
+const sourceHeaderSha256 = sha256(await readFile(resolve(source, "usermods/audioreactive/audio_source.h")));
+assert.equal(sourceHeaderSha256, "e7085fc728e9203a07e6a2d292720f72dae62dd68cd017fe7170646c44946017");
+receipt.inputs.audioReactive.captureSuspension = {
+  during: "DDP including main-segment mode, manual disable and OTA",
+  sourceHeaderSha256,
+  patchScript: "firmware/audio-reactive/patch-ddp-capture.mjs",
+  patchScriptSha256: sha256(await readFile(resolve(variant, "patch-ddp-capture.mjs"))),
 };
 for (const [field, name] of [
   ["artifact", "wled-audioreactive-rmt4-esp32.bin"],

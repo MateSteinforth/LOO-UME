@@ -31,13 +31,22 @@ simulator and TouchDesigner DDP input.
 
 ## Backlog
 
+### `P1 · FIRM-029` Combine IRAM refill with DDP capture suspension
+
+- Status: Human Review (installed; physical DDP result pending). Owner: Codex; branch `codex/audio-iram-ddp-suspend`; worktree `/tmp/loo-ume-audio-iram-ddp-suspend`. Conflicts: firmware/audio-reactive, TASKS.md, FAILURES.md.
+- Scope: build 2609091 combines FIRM-028 callback placement and FIRM-026 capture lifecycle only. Preserve original DDP receiver, interrupt priority, GPIOs and lengths.
+- Evidence: operator repaired loose TX2 solder connection; original firmware standalone clean. Build 2609085 standalone and Gravimeter clean on all outputs; DDP still flashes GPIO16 and drops frames at 30/40 FPS.
+- Acceptance: guarded patches, capture lifecycle host checks, pinned build and IRAM symbol receipt; device read-back capture stopped during DDP; physical DDP and native resume checks. No claim of smoothness from host FPS.
+- Verification: C++ capture lifecycle test and exact patch checks passed; pinned build succeeded in 90.567 seconds; receipt verifies IRAM callback addresses and both images. Normal OTA installed 2609091; read-back confirms DDP active, I2S capture stopped for DDP, sound processing suspended, LED/realtime configuration and map unchanged. Operator visual result and audio resume remain pending.
+
+
 ### `P1 · FIRM-028` Isolate AudioReactive RMT callback placement
 
-- Status: Human Review (built, not installed; baseline recovery pending). Owner: Codex; branch `codex/audio-rmt-iram`; worktree `/tmp/loo-ume-audio-rmt-iram`.
+- Status: Human Review (standalone/audio passed; DDP remains unresolved). Owner: Codex; branch `codex/audio-rmt-iram`; worktree `/tmp/loo-ume-audio-rmt-iram`.
 - Scope: move the template-independent RMT refill callback into one non-template IRAM function on original AudioReactive firmware, build 2609085. Preserve original DDP receiver, priority, 128-symbol allocation and audio lifecycle.
 - Evidence: original callback is flash-resident; merely adding IRAM_ATTR to the templated method did not change placement, as verified from the ELF. Receiver rewrite and prior audio experiments failed physical tests and were rolled back to 2609051.
 - Acceptance: exact patch guards and unchanged callback body; verify compiled refill, bytes and copy callbacks in IRAM; pinned build receipt; operator baseline recovery before another hardware comparison. Original no-audio rollback retained.
-- Verification: callback body equality and patch rejection checks passed; build and receipt passed; shared callback and IDF bytes/copy callbacks are in IRAM, old template callbacks absent. Candidate 2609085 not installed. GPIO 17 remained corrupted on verified rollback 2609051 with DDP off and native segment unfrozen; operator asked to power-cycle controller and LEDs before further testing.
+- Verification: callback body equality and patch rejection checks passed; build and receipt passed; shared callback and IDF bytes/copy callbacks are in IRAM, old template callbacks absent. After operator TX2 solder repair, original baseline was clean. Installed 2609085 on 2026-09-09: operator confirms smooth native animation and Gravimeter on all chains. DDP still flashes GPIO16 and drops frames at 30/40 FPS. Combined capture test tracked in FIRM-029.
 
 ### `P1 · FIRM-018` Recover USB Improv setup without an application restart
 

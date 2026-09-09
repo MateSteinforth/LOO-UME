@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.2.0",
-  "status": "built-not-flashed",
+  "status": "built",
   "target": {
     "board": "ESP32-DevKitC V4",
     "module": "ESP32-WROOM-32E-N4",
@@ -26,7 +26,7 @@
       }
     },
     "releaseName": "ESP32",
-    "buildId": 2609085
+    "buildId": 2609091
   },
   "inputs": {
     "pipZipapp": {
@@ -39,9 +39,9 @@
     "wledBuildNumber": {
       "header": "wled00/wled.h",
       "originalHeaderSha256": "e75b06ba221bade02978200bda453e45054b34e45300aa5a83eead35ae336ca9",
-      "patchedHeaderSha256": "f027a11833bd4f6a687adfa2455dc515f71ffa9f229fb842bb4ff1a28b21603b",
+      "patchedHeaderSha256": "bb112e36e1ee46b054173ce061e62f9c38a5d7685e066e3b109c7e53e6445002",
       "patchScript": "firmware/audio-reactive/patch-build-id.mjs",
-      "patchScriptSha256": "77722f83b261d384552010e018c63c75d8c587188ee3371bd3ca67918a0503ca"
+      "patchScriptSha256": "9deeb30bf90f43da4d48a8fd9e3eff763dcfdf6893fe9ec2f50d41520fe9a64d"
     },
     "neopixelBus": {
       "commit": "76afe832f74b0738a3fa1bba0caf389ade9e7693",
@@ -64,21 +64,27 @@
     "sourceArchiveSha256": "42f12c1b286030301dde811079386e99cbe6590989c7b45daa323bb0495fa8d1",
     "audioReactive": {
       "source": "usermods/audioreactive/audio_reactive.cpp",
-      "sourceSha256": "aee744f400c9c96f2863ef87ce07be8b10d4df959a7a1be0dc2d074105a799ca",
+      "sourceSha256": "538547f009c9c34d6602c7e27ff54f0be73735095ed347c1854771e05c550338",
       "fftVersion": "2.0.1",
-      "compileCommandsSha256": "b3f8c7429d3a1e17a2b7f1b5d53ea8107d89967f3afe722983ea907a7649139e",
-      "elfSha256": "766003809159fade37de9ce60b9d7def99c0a2e4b713165f1d6fac562bc21626"
+      "compileCommandsSha256": "564f4c1021a825a24262e469160b9ece3d402863135b4930fb4d9275e891a7aa",
+      "elfSha256": "e405113e110ba79b498b669032b3a08e9c7703f6b2cf17bebe4d9ad668775939",
+      "captureSuspension": {
+        "during": "DDP including main-segment mode, manual disable and OTA",
+        "sourceHeaderSha256": "e7085fc728e9203a07e6a2d292720f72dae62dd68cd017fe7170646c44946017",
+        "patchScript": "firmware/audio-reactive/patch-ddp-capture.mjs",
+        "patchScriptSha256": "f2059c5ac4ab767a58bde4f8f93b8f9b31a3e5500beac3b5d39b1a0d87c7fdec"
+      }
     }
   },
   "artifact": {
     "name": "wled-audioreactive-rmt4-esp32.bin",
-    "byteLength": 1149296,
-    "sha256": "2d2194e8617d077d4f85567484eda801b0abe9249fca52c7fa8c852f7e6cd1e2"
+    "byteLength": 1149856,
+    "sha256": "88250675048664c0386a29f1a7be77210f400ca2eb0af40114955cfc4077a6f9"
   },
   "fullFlashArtifact": {
     "name": "wled-audioreactive-rmt4-esp32-full-flash.bin",
-    "byteLength": 1214832,
-    "sha256": "07a537fba33d700621d7aa30bccf22fd70a2be9f285b523eac5491ecb291e1cc",
+    "byteLength": 1215392,
+    "sha256": "4d9014610afe121b2901a6460cde214daee409cc2fd4174e549f380fcda60c94",
     "flashAddress": 0,
     "eraseAll": true,
     "flashMode": "dio",
