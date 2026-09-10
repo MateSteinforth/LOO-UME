@@ -22,7 +22,9 @@ simulator and TouchDesigner DDP input.
 - Preserve Equator Wave, shared rendering, all firmware binaries, and controller settings. Do not change or install firmware.
 - File ownership: primary agent owns picker integration, task records, and validation. An independent agent owns microphone diagnosis and correction.
 - Checks pass: 77 focused tests, four browser tests, TypeScript, full typed lint, WASM integrity, and the desktop build.
-- The signed macOS package check and physical laptop microphone confirmation remain delivery checks. No controller write occurred.
+- Delivery: commit `d0a164e` is published on `codex/bass-wave-sparks`. Review 47 build `34488978386` passed, including signed microphone entitlement checks.
+- Download: https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-47/LOO-UME-Electron-arm64.dmg
+- Physical laptop microphone confirmation remains pending. No controller write or main merge occurred.
 
 ### Native WLED audio effects in the simulator — Ready
 
