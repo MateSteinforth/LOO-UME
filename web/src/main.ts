@@ -1086,11 +1086,18 @@ async function start(): Promise<void> {
     renderer.setWiringPreview(wiringPreview);
     engine.setMapping(mapping);
 
-    effectSelect.replaceChildren(
-      ...engine.effects.map(
-        ({ id, name }) => new Option(name, String(id), id === 8, id === 8),
-      ),
-    );
+    const nonAudioEffectGroup = document.createElement("optgroup");
+    nonAudioEffectGroup.label = "Non-audio effects";
+    const computerAudioEffectGroup = document.createElement("optgroup");
+    computerAudioEffectGroup.label = "Audio reactive · Computer microphone";
+    for (const { id, name } of engine.effects) {
+      const group =
+        id === EQUATOR_EFFECT_ID
+          ? computerAudioEffectGroup
+          : nonAudioEffectGroup;
+      group.append(new Option(name, String(id), id === 8, id === 8));
+    }
+    effectSelect.replaceChildren(nonAudioEffectGroup, computerAudioEffectGroup);
     paletteSelect.replaceChildren(
       ...engine.palettes.map(
         ({ id, name }) => new Option(name, String(id), id === 6, id === 6),

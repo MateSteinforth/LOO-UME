@@ -9,6 +9,15 @@ simulator and TouchDesigner DDP input.
 
 ## Active firmware handoff — read this first (2026-09-09)
 
+### Simulator effect groups — Ready to Merge (2026-09-10)
+
+- Owner: primary agent; branch `codex/audio-effect-groups`; worktree `/tmp/loo-ume-audio-effect-groups`.
+- Scope: separate non-audio simulator effects from computer microphone effects with labeled selector groups.
+- Acceptance: Equator Wave appears under the computer microphone group. Effect values and selection behavior remain unchanged.
+- File ownership: `web/src/main.ts` and this task record. These files can conflict with other audio work.
+- Checks pass: TypeScript, changed-file typed lint, formatting, and both existing audio preview browser tests.
+- This selector change follows review 47. The published review 47 DMG does not contain these labels.
+
 ### Audio review 46 corrections — Ready to Merge (2026-09-10)
 
 - Owner: primary agent; branch `codex/audio-review-fixes`; worktree `/tmp/loo-ume-audio-review-fixes`.
