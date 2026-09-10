@@ -10,6 +10,7 @@
 
 #include "fastled_slim.h"
 #include "EquatorWave.h"
+#include "GlitchAudio.h"
 
 using byte = std::uint8_t;
 using std::max;
@@ -41,6 +42,7 @@ struct EquatorPoint {
 
 std::vector<EquatorPoint> g_equator_points;
 loo_equator::State g_equator_state{};
+loo_glitch::State g_glitch_state{};
 std::uint32_t g_oob_writes = 0;
 std::uint32_t g_rng_state = 0x1A2B3C4D;
 std::uint32_t g_effect_id = 8;
@@ -398,6 +400,7 @@ void reset_runtime() {
   g_segment.aux1 = 0;
   g_segment.call = 0;
   strip.now = 0;
+  loo_glitch::reset(g_glitch_state, 0x1A2B3C4DU);
 }
 
 } // namespace
@@ -509,6 +512,37 @@ void equator_tick(
     g_pixels[index] = point.mapped
       ? loo_equator::pixel(
           g_equator_state,
+          point.longitude,
+          point.height,
+          static_cast<std::uint32_t>(index),
+          primary_color
+        )
+      : BLACK;
+  }
+}
+
+void glitch_reset(std::uint32_t seed) {
+  loo_glitch::reset(g_glitch_state, seed);
+}
+
+void glitch_tick(
+  std::uint8_t effect,
+  std::uint32_t time_ms,
+  std::uint8_t bass,
+  std::uint8_t mid,
+  std::uint8_t treble,
+  std::uint8_t speed,
+  std::uint8_t intensity,
+  std::uint32_t primary_color
+) {
+  if (effect > 2U) return;
+  loo_glitch::advance(g_glitch_state, time_ms, bass, mid, treble, speed, intensity);
+  for (std::size_t index = 0; index < g_pixels.size(); ++index) {
+    const EquatorPoint &point = g_equator_points[index];
+    g_pixels[index] = point.mapped
+      ? loo_glitch::pixel(
+          g_glitch_state,
+          effect,
           point.longitude,
           point.height,
           static_cast<std::uint32_t>(index),

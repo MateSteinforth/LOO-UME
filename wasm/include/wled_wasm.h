@@ -39,6 +39,19 @@ WLED_WASM_EXPORT void equator_tick(
   std::uint32_t primary_color
 );
 
+// Glitch Audio uses the Equator point map and selected WLED framebuffer.
+WLED_WASM_EXPORT void glitch_reset(std::uint32_t seed);
+WLED_WASM_EXPORT void glitch_tick(
+  std::uint8_t effect,
+  std::uint32_t time_ms,
+  std::uint8_t bass,
+  std::uint8_t mid,
+  std::uint8_t treble,
+  std::uint8_t speed,
+  std::uint8_t intensity,
+  std::uint32_t primary_color
+);
+
 WLED_WASM_EXPORT std::uint32_t *wled_get_pixel_buffer();
 WLED_WASM_EXPORT std::uint32_t wled_get_led_count();
 WLED_WASM_EXPORT std::uint32_t wled_get_effect_count();

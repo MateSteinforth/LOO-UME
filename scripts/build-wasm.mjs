@@ -56,6 +56,8 @@ const exportedFunctions = [
   "_equator_reset",
   "_equator_set_point",
   "_equator_tick",
+  "_glitch_reset",
+  "_glitch_tick",
   "_wled_get_pixel_buffer",
   "_wled_get_led_count",
   "_wled_get_effect_count",
