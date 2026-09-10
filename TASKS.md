@@ -35,6 +35,10 @@ simulator and TouchDesigner DDP input.
 - The candidate embeds `sculptures/rhombicosidodecahedron/sculpture.json`. Verify its map against the loaded project before an OTA test.
 - No controller write occurred. Firmware 2609099 remains the accepted installed baseline; no new main integration is authorized.
 - Procedure and limits: `docs/AUDIO_EFFECTS.md`; build receipt: `firmware/equator-wave/build-receipt.json`.
+- Implementation commit: `379f818`. Generator commit: `d711bfb`.
+- Publication blocker: automatic approval review rejected the push because explicit approval for this destination and these branches is missing.
+- Pending command: `git push -u origin codex/bass-wave-sparks codex/equator-audio-runtime`.
+- Destination: `https://github.com/MateSteinforth/LOO-UME.git`. Both branches remain local until the operator approves this push.
 
 **Integration milestone: Done.** The operator authorized integration into `main` and a push on 2026-09-09.
 The main integration includes the accepted firmware baseline and its test records. The full flicker-free goal remains open.
