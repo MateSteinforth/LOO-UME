@@ -27,6 +27,7 @@ edit marks derived mechanics stale but does not stop those functions.
 ## Authoritative data flow
 
 The Equator Wave audio prototype shares one C++ renderer between the ESP32 usermod and browser WASM runtime.
+Packet Fault, Bit Rain, and Spectral Gates use a second shared integer renderer with bass, mid, and high inputs.
 Authoritative LED positions produce its logical coordinate table. See [audio effect development](AUDIO_EFFECTS.md) for microphone and parity limits.
 
 1. `parsePanelAssemblyDefinition()` is the central deep Schema 2 runtime

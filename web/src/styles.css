@@ -809,6 +809,10 @@ input[type="checkbox"] {
   text-transform: uppercase;
 }
 
+#audio-art-color-field[hidden] {
+  display: none;
+}
+
 .field select,
 .field input[type="number"] {
   width: 100%;

@@ -41,7 +41,12 @@ import {
 } from "./DesignSurfaceLoader";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { deriveEditorCapabilities } from "./EditorCapabilities.ts";
-import { EQUATOR_EFFECT_ID, WledEngine } from "./WledEngine";
+import { WledEngine } from "./WledEngine";
+import {
+  GLITCH_AUDIO_EFFECTS,
+  isGlitchAudioEffect,
+  isSimulatorAudioEffect,
+} from "../../src/effects/AudioArtEffects.ts";
 import {
   createWiringControllerLayout,
   createProvisionalWiringPreview,
@@ -242,7 +247,7 @@ app.innerHTML = `
                 <button id="next-effect" type="button" aria-label="Next effect">+</button>
               </div>
             </div>
-            <output id="audio-effect-status" class="mapping-note" aria-live="polite">Connect the ESP32 to load its audio effects. Equator Wave uses the computer microphone.</output>
+            <output id="audio-effect-status" class="mapping-note" aria-live="polite">Computer microphone effects work without the ESP32. Connect the ESP32 to load its native audio effects.</output>
             <button id="save-audio-to-esp32" type="button" disabled>Save to ESP32</button>
             <output id="audio-save-status" class="mapping-note" aria-live="polite">Audio settings stay in the preview until you save them.</output>
             <div class="animation-select-row">
@@ -267,8 +272,13 @@ app.innerHTML = `
                 <option value="demo">Demo beat</option>
               </select>
             </label>
-            <div id="audio-preview-status" role="status">Select an input for Equator Wave.</div>
+            <label id="audio-art-color-field" class="field" hidden><span>Effect color</span>
+              <select id="audio-art-color"><option value="white">White</option><option value="red">Red</option></select>
+            </label>
+            <output id="audio-art-description" class="mapping-note" hidden></output>
+            <div id="audio-preview-status" role="status">Select an input for an audio effect.</div>
             <label class="field"><span>Bass</span><meter id="audio-preview-bass" min="0" max="255" value="0"></meter></label>
+            <label class="field"><span>Mid frequencies</span><meter id="audio-preview-mid" min="0" max="255" value="0"></meter></label>
             <label class="field"><span>High frequencies</span><meter id="audio-preview-treble" min="0" max="255" value="0"></meter></label>
           </div>
           <div id="wiring-layer-controls" class="layer-controls wiring-assembly">
@@ -643,6 +653,8 @@ const intensityValue = query<HTMLOutputElement>("#intensity-value");
 const audioPreviewSource = query<HTMLSelectElement>("#audio-preview-source");
 const audioPreviewStatus = query<HTMLElement>("#audio-preview-status");
 const audioPreviewBass = query<HTMLMeterElement>("#audio-preview-bass");
+const audioPreviewMid = query<HTMLMeterElement>("#audio-preview-mid");
+const audioArtColor = query<HTMLSelectElement>("#audio-art-color");
 const audioPreviewTreble = query<HTMLMeterElement>("#audio-preview-treble");
 const sculptureSelect = query<HTMLSelectElement>("#sculpture-select");
 const openProjectLibraryButton = query<HTMLButtonElement>(
@@ -1091,10 +1103,9 @@ async function start(): Promise<void> {
     const computerAudioEffectGroup = document.createElement("optgroup");
     computerAudioEffectGroup.label = "Audio reactive · Computer microphone";
     for (const { id, name } of engine.effects) {
-      const group =
-        id === EQUATOR_EFFECT_ID
-          ? computerAudioEffectGroup
-          : nonAudioEffectGroup;
+      const group = isSimulatorAudioEffect(id)
+        ? computerAudioEffectGroup
+        : nonAudioEffectGroup;
       group.append(new Option(name, String(id), id === 8, id === 8));
     }
     effectSelect.replaceChildren(nonAudioEffectGroup, computerAudioEffectGroup);
@@ -1187,7 +1198,8 @@ async function start(): Promise<void> {
     const audioEffectSelected = (): boolean =>
       effectSelect.value.startsWith("audio:");
     const audioEditingSelected = (): boolean =>
-      audioEffectSelected() || Number(effectSelect.value) === EQUATOR_EFFECT_ID;
+      audioEffectSelected() ||
+      isSimulatorAudioEffect(Number(effectSelect.value));
     const saveAudioButton = query<HTMLButtonElement>("#save-audio-to-esp32");
     const audioSaveStatus = query<HTMLOutputElement>("#audio-save-status");
     const selectedAudioEffect = (): AudioEffect | undefined =>
@@ -1195,6 +1207,13 @@ async function start(): Promise<void> {
         (effect) => `audio:${effect.id}` === effectSelect.value,
       );
     const updateAudioEffectAvailability = (): void => {
+      const artEffect = GLITCH_AUDIO_EFFECTS.find(
+        (effect) => effect.id === Number(effectSelect.value),
+      );
+      query<HTMLElement>("#audio-art-color-field").hidden = !artEffect;
+      const description = query<HTMLOutputElement>("#audio-art-description");
+      description.hidden = !artEffect;
+      description.textContent = artEffect?.description ?? "";
       audioEffectGroup.disabled = !simulatorDeviceUrl || !audioEffectsAvailable;
       saveAudioButton.hidden = !audioEditingSelected();
       audioSaveStatus.hidden = !audioEditingSelected();
@@ -1210,12 +1229,12 @@ async function start(): Promise<void> {
             : "Microphone effect waits for the ESP32 connection.";
       } else {
         audioEffectStatus.textContent = !simulatorDeviceUrl
-          ? "Connect the ESP32 to load its audio effects. Equator Wave uses the computer microphone."
+          ? "Computer microphone effects work without the ESP32. Connect the ESP32 to load its native audio effects."
           : !audioEffectsAvailable
-            ? "ESP32 audio effects are not available yet. Equator Wave can use the computer microphone."
+            ? "ESP32 audio effects are not available yet. Computer microphone effects remain available."
             : deviceAudioEffects.length
-              ? "ESP32 audio effects use the controller microphone. Equator Wave can use the computer microphone."
-              : "This controller has no supported audio effects. Equator Wave can use the computer microphone.";
+              ? "ESP32 audio effects use the controller microphone. Computer microphone effects use the selected preview input."
+              : "This controller has no supported audio effects. Computer microphone effects remain available.";
       }
     };
     let simulatorFrameRequest: Promise<void> | undefined;
@@ -1554,8 +1573,15 @@ async function start(): Promise<void> {
             ...(audioEffectSelected()
               ? { ...selectedAudioEffect()?.controls, si: 0, m12: 0 }
               : {}),
+            ...(isSimulatorAudioEffect(Number(effectSelect.value))
+              ? { grp: 1, spc: 0, rev: false, mi: false, of: 0, si: 0, m12: 0 }
+              : {}),
             col: [
-              [255, 122, 24],
+              isGlitchAudioEffect(Number(effectSelect.value))
+                ? audioArtColor.value === "red"
+                  ? [255, 0, 0]
+                  : [255, 255, 255]
+                : [255, 122, 24],
               [5, 8, 22],
               [0, 0, 0],
             ],
@@ -1964,10 +1990,9 @@ async function start(): Promise<void> {
         }
         const payload = setupPayload();
         const deviceUrl = simulatorDeviceUrl;
-        const equatorPoints =
-          Number(effectSelect.value) === EQUATOR_EFFECT_ID
-            ? compileEquatorMapping(mapping.entries)
-            : undefined;
+        const equatorPoints = isSimulatorAudioEffect(Number(effectSelect.value))
+          ? compileEquatorMapping(mapping.entries)
+          : undefined;
         if (explicitAudioSave)
           audioSaveStatus.textContent =
             "Saving the effect and settings to the ESP32.";
@@ -3774,12 +3799,27 @@ async function start(): Promise<void> {
         engine.setSpeed(Number(speedInput.value));
         engine.setIntensity(Number(intensityInput.value));
       }
-      const equator = Number(effectSelect.value) === EQUATOR_EFFECT_ID;
-      paletteSelect.disabled = equator;
-      previousPaletteButton.disabled = equator;
-      nextPaletteButton.disabled = equator;
+      engine.setPrimaryColor(
+        isGlitchAudioEffect(Number(effectSelect.value))
+          ? audioArtColor.value === "red"
+            ? "#ff0000"
+            : "#ffffff"
+          : DEFAULT_PRIMARY_COLOR,
+      );
+      const sharedAudio = isSimulatorAudioEffect(Number(effectSelect.value));
+      paletteSelect.disabled = sharedAudio;
+      previousPaletteButton.disabled = sharedAudio;
+      nextPaletteButton.disabled = sharedAudio;
       updateAudioEffectAvailability();
       resetTimeline();
+      scheduleStandaloneSave();
+    });
+
+    audioArtColor.addEventListener("change", () => {
+      if (!isGlitchAudioEffect(Number(effectSelect.value))) return;
+      engine.setPrimaryColor(
+        audioArtColor.value === "red" ? "#ff0000" : "#ffffff",
+      );
       scheduleStandaloneSave();
     });
     const cycleSelect = (
@@ -5208,12 +5248,14 @@ async function start(): Promise<void> {
           : audioSource === "demo"
             ? {
                 bass: simulationTime % 600 < 100 ? 210 : 0,
+                mid: simulationTime % 900 < 350 ? 180 : 0,
                 treble: simulationTime % 200 < 45 ? 220 : 0,
               }
-            : { bass: 0, treble: 0 };
+            : { bass: 0, mid: 0, treble: 0 };
       audioPreviewBass.value = audioLevels.bass;
+      audioPreviewMid.value = audioLevels.mid;
       audioPreviewTreble.value = audioLevels.treble;
-      engine.setAudio(audioLevels.bass, audioLevels.treble);
+      engine.setAudio(audioLevels.bass, audioLevels.treble, audioLevels.mid);
       engine.tick(Math.floor(simulationTime));
 
       const artNetFrameIsCurrent =

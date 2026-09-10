@@ -23,6 +23,9 @@ export function verifyWasmRuntime(
     receipt.schemaVersion !== "1.0.0" ||
     receipt.generationBranch !== "generate/wled-simulator" ||
     !/^[0-9a-f]{40}$/.test(receipt.source?.wledCommit ?? "") ||
+    receipt.source?.glitchAudioHeader?.path !==
+      "firmware/equator-wave/GlitchAudio.h" ||
+    !/^[0-9a-f]{64}$/.test(receipt.source?.glitchAudioHeader?.sha256 ?? "") ||
     typeof receipt.compiler?.emscriptenVersion !== "string" ||
     !/^[0-9a-f]{40}$/.test(receipt.compiler?.emsdkRevision ?? "") ||
     !Array.isArray(receipt.artifacts) ||
@@ -66,6 +69,18 @@ export function verifyWasmRuntime(
         "The Equator Wave runtime does not match its shared firmware source.",
       );
     }
+  }
+  const glitchSourcePath = path.join(
+    repoRoot,
+    "firmware/equator-wave/GlitchAudio.h",
+  );
+  if (
+    sha256(readFileSync(glitchSourcePath)) !==
+    receipt.source.glitchAudioHeader.sha256
+  ) {
+    throw new Error(
+      "The Glitch Audio runtime does not match its shared firmware source.",
+    );
   }
   return {
     artifacts: EXPECTED_ARTIFACTS.length,

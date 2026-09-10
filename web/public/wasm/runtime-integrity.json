@@ -4,16 +4,21 @@
   "source": {
     "wledCommit": "d9b9a846561227351ad929e3109781daadb7bed2",
     "equatorWaveHeader": {
-      "path": "wasm/src/EquatorWave.h",
+      "path": "firmware/equator-wave/EquatorWave.h",
       "sha256": "ed1faac875346664f23132e2ad8b2e79ed83a212439d323deb87229e2d4912fd"
+    },
+    "glitchAudioHeader": {
+      "path": "firmware/equator-wave/GlitchAudio.h",
+      "sha256": "3bca1a1d1dde82488b82182978172dfe3034a09ef3632d751b36063883e88b56"
     },
     "generator": {
       "digestAlgorithm": "sha256-of-sorted-sha256sum-lines",
-      "sha256": "969813d7aab74c4b28f07072cb127d7abf095de85326764e7504a9e29ad9f4e2",
+      "sha256": "0d147ff5ae5de42242ef4f746651d14c889c11083662704bebbdde4701f857ad",
       "paths": [
         "scripts/build-wasm.mjs",
         "wasm/include/wled_wasm.h",
         "wasm/src/EquatorWave.h",
+        "wasm/src/GlitchAudio.h",
         "wasm/src/wled_engine.cpp"
       ]
     }
@@ -25,13 +30,13 @@
   "artifacts": [
     {
       "path": "web/public/wasm/wled-engine.js",
-      "byteLength": 32079,
-      "sha256": "bce0cac057a01216759b6504eb34f6cc456e67ff60b81832c1391ae0a13a14ae"
+      "byteLength": 32389,
+      "sha256": "a4dbc3973ca9f1545d76f64646e380bc7ceaa1350fdd00d4966e6b0f9629ae2e"
     },
     {
       "path": "web/public/wasm/wled-engine.wasm",
-      "byteLength": 37588,
-      "sha256": "440da3177fcfe1af6ce830f53ca290d7db98142c5bff9db9ab454b7e66c32e82"
+      "byteLength": 39221,
+      "sha256": "0f5ffb4e757d33fc2d403c528029c2888e2634792bd9c6c2321662985dc29bc0"
     }
   ]
 }

@@ -1,8 +1,8 @@
 # Equator Wave firmware
 
-Firmware 2609101 adds a self-registering audio effect to the accepted 2609099 source.
+Firmware 2609102 adds three shared monochrome audio effects to the accepted 2609099 source.
 The candidate is built but not installed. Preserve the accepted binary and device settings before an OTA test.
-The artifact is `build/firmware-equator-wave/wled-equator-wave-2609101.bin` in the task worktree.
+The artifact is `build/firmware-equator-wave/wled-equator-wave-2609102.bin` in the task worktree.
 Use this application image with WLED's OTA updater. It is not a complete USB installation image.
 
 Read [the effect and parity contract](../../docs/AUDIO_EFFECTS.md) before a device test.
@@ -34,17 +34,24 @@ The verifier writes the build receipt and copies the OTA artifact.
 ```sh
 c++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined \
   -Ifirmware/equator-wave -Ibuild/equator-mapping \
-  firmware/equator-wave/test-renderer.cpp -o build/test-equator-renderer
-ASAN_OPTIONS=detect_leaks=0 build/test-equator-renderer
-npx vitest run tests/equator-mapping.test.ts tests/equator-runtime.test.ts tests/equator-standalone.test.ts
+  firmware/equator-wave/test-glitch-renderer.cpp -o build/test-glitch-renderer
+ASAN_OPTIONS=detect_leaks=0 build/test-glitch-renderer
+npx vitest run tests/equator-mapping.test.ts tests/equator-runtime.test.ts tests/glitch-audio-runtime.test.ts tests/equator-standalone.test.ts
 c++ -std=c++17 -Wall -Wextra -Werror -Ibuild/firmware-source/wled00 \
   firmware/ddp-expiry/test-expiry.cpp -o build/test-expiry
 build/test-expiry
 python3 firmware/ddp-dma/test-service.py build/firmware-source
 ```
 
-The host renderer emits the reference frames in `tests/fixtures/equator-wave-reference.json`.
-Regenerate that fixture when the shared renderer intentionally changes.
+Regenerate the reference fixture when the shared renderer intentionally changes:
+
+```sh
+c++ -std=c++17 -Wall -Wextra -Werror -Ifirmware/equator-wave -Ibuild/equator-mapping \
+  firmware/equator-wave/test-glitch-reference.cpp -o build/test-glitch-reference
+build/test-glitch-reference > tests/fixtures/glitch-audio-reference.json
+npx prettier --write tests/fixtures/glitch-audio-reference.json
+```
+
 AddressSanitizer and UndefinedBehaviorSanitizer check the native renderer.
 LeakSanitizer is disabled for this allocation-free harness because the restricted host prevents its process inspection.
 The browser tests compare all RGB values against the native reference frames.

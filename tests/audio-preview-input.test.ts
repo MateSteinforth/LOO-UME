@@ -73,15 +73,16 @@ describe("audio preview input", () => {
       (data: Uint8Array) => {
         data.fill(0);
         data.fill(101, 2, 11);
+        data.fill(151, 11, 86);
         data.fill(203, 86, 342);
       },
     );
     const preview = new AudioPreviewInput(fake.dependencies);
     await preview.start();
     expect(fake.source.connect).toHaveBeenCalledWith(fake.analyser);
-    expect(preview.sample()).toEqual({ bass: 101, treble: 203 });
+    expect(preview.sample()).toEqual({ bass: 101, mid: 151, treble: 203 });
     preview.stop();
-    expect(preview.sample()).toEqual({ bass: 0, treble: 0 });
+    expect(preview.sample()).toEqual({ bass: 0, mid: 0, treble: 0 });
     expect(fake.input.stop).toHaveBeenCalledOnce();
     expect(fake.context.close).toHaveBeenCalledOnce();
   });
@@ -112,7 +113,7 @@ describe("audio preview input", () => {
     await starting;
     expect(input.stop).toHaveBeenCalledOnce();
     expect(fake.context.createMediaStreamSource).not.toHaveBeenCalled();
-    expect(preview.sample()).toEqual({ bass: 0, treble: 0 });
+    expect(preview.sample()).toEqual({ bass: 0, mid: 0, treble: 0 });
   });
 
   it("releases active nodes when stop occurs during audio context resume", async () => {
@@ -146,7 +147,7 @@ describe("audio preview input", () => {
     firstPermission.resolve(first.stream);
     await firstStart;
     expect(first.stop).toHaveBeenCalledOnce();
-    expect(preview.sample()).toEqual({ bass: 0, treble: 0 });
+    expect(preview.sample()).toEqual({ bass: 0, mid: 0, treble: 0 });
     preview.stop();
     expect(second.stop).toHaveBeenCalledOnce();
   });

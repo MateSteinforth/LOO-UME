@@ -7,6 +7,14 @@ reveals a durable lesson.
 
 ## How to use this log
 
+### F-196 — A divided phase can limit effect travel
+
+- **Date:** 2026-09-10
+- **Defect:** A draft Bit Rain renderer divided its wrapped phase before calculating height. Its blocks could not cross the full sphere.
+- **Correction:** Use the full wrapped phase for height. Apply speed when advancing that phase.
+- **Evidence:** `firmware/equator-wave/test-glitch-renderer.cpp` checks illuminated samples in both upper and lower regions during movement.
+- **Prevention:** Check spatial travel as well as visible output when an effect maps a periodic value to sculpture coordinates.
+
 ### F-195 — Review packages can override release microphone entitlements
 
 - **Date:** 2026-09-10

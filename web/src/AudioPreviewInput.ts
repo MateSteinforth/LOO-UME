@@ -1,8 +1,10 @@
 const BASS_RANGE_HZ = [40, 250] as const;
+const MID_RANGE_HZ = [250, 2_000] as const;
 const TREBLE_RANGE_HZ = [2_000, 8_000] as const;
 
 export interface AudioPreviewBand {
   bass: number;
+  mid: number;
   treble: number;
 }
 
@@ -176,7 +178,7 @@ export class AudioPreviewInput {
 
   sample(): AudioPreviewBand {
     const session = this.session;
-    if (!session) return { bass: 0, treble: 0 };
+    if (!session) return { bass: 0, mid: 0, treble: 0 };
     session.analyser.getByteFrequencyData(session.frequencyData);
     return {
       bass: reduceFrequencyBand(
@@ -184,6 +186,12 @@ export class AudioPreviewInput {
         session.context.sampleRate,
         session.analyser.fftSize,
         ...BASS_RANGE_HZ,
+      ),
+      mid: reduceFrequencyBand(
+        session.frequencyData,
+        session.context.sampleRate,
+        session.analyser.fftSize,
+        ...MID_RANGE_HZ,
       ),
       treble: reduceFrequencyBand(
         session.frequencyData,

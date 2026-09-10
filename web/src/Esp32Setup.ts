@@ -1,4 +1,5 @@
 import SparkMD5 from "spark-md5";
+import { isGlitchAudioEffectName } from "../../src/effects/AudioArtEffects.ts";
 import { audioEffectsFromDevice, type AudioEffect } from "./AudioEffects.ts";
 import {
   createEsp32WifiControls,
@@ -1435,7 +1436,7 @@ export function assertStandalonePresetReadback(
     "frz",
     "col",
   ] as const;
-  const audioKeys = ["si", "m12"] as const;
+  const audioKeys = ["si", "m12", "grp", "spc", "rev", "mi", "of"] as const;
   if (
     preset?.n !== "LOO/UME standalone" ||
     preset.on !== payload.state.on ||
@@ -1463,26 +1464,31 @@ export function assertEquatorFirmware(
   info: unknown,
   expectedHash: string | undefined,
   expectedLedCount: number,
+  effectName = "Equator Wave",
 ): void {
+  const glitch = isGlitchAudioEffectName(effectName);
+  interface RendererInfo {
+    renderer?: unknown;
+    mappingSha256?: unknown;
+    ledCount?: unknown;
+  }
   const value = info as {
     um?: unknown;
-    equatorWave?: {
-      renderer?: unknown;
-      mappingSha256?: unknown;
-      ledCount?: unknown;
-    };
+    equatorWave?: RendererInfo;
+    audioArt?: RendererInfo;
   } | null;
+  const renderer = glitch ? value?.audioArt : value?.equatorWave;
   if (
     !expectedHash ||
     !/^[0-9a-f]{64}$/.test(expectedHash) ||
     !Array.isArray(value?.um) ||
     !value.um.includes(32) ||
-    value.equatorWave?.renderer !== "equator-wave-v1" ||
-    value.equatorWave.mappingSha256 !== expectedHash ||
-    value.equatorWave.ledCount !== expectedLedCount
+    renderer?.renderer !== (glitch ? "glitch-audio-v1" : "equator-wave-v1") ||
+    renderer.mappingSha256 !== expectedHash ||
+    renderer.ledCount !== expectedLedCount
   ) {
     throw new Error(
-      "The ESP32 needs Equator Wave firmware with the same sculpture coordinates before this effect can be saved.",
+      `The ESP32 needs ${effectName} firmware with the same sculpture coordinates before this effect can be saved.`,
     );
   }
 }
@@ -1496,15 +1502,19 @@ export async function persistStandaloneAnimation(
   assertBoundedSimulatorPayload(payload);
   if (!shouldContinue())
     throw new Error("Standalone animation save was cancelled.");
-  if (payload.expectedEffectName === "Equator Wave") {
+  if (
+    payload.expectedEffectName === "Equator Wave" ||
+    isGlitchAudioEffectName(payload.expectedEffectName)
+  ) {
     const info = await readJsonResponse(
       await deviceFetch(baseUrl, "/json/info"),
-      "Equator Wave firmware",
+      `${payload.expectedEffectName} firmware`,
     );
     assertEquatorFirmware(
       info,
       payload.expectedEquatorMappingSha256,
       payload.expectedLedCount,
+      payload.expectedEffectName,
     );
     payload.state.AudioReactive = { enabled: true };
   } else if (payload.state.AudioReactive !== undefined) {

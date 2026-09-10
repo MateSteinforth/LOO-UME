@@ -1,7 +1,11 @@
 import { compileEquatorMapping } from "../../src/effects/EquatorMapping.ts";
 import type { LedMapping } from "./LedMapping.ts";
-
-export const EQUATOR_EFFECT_ID = 1000;
+import {
+  EQUATOR_EFFECT_ID,
+  GLITCH_AUDIO_EFFECTS,
+  isGlitchAudioEffect,
+} from "../../src/effects/AudioArtEffects.ts";
+export { EQUATOR_EFFECT_ID } from "../../src/effects/AudioArtEffects.ts";
 
 export interface EffectInfo {
   id: number;
@@ -33,6 +37,17 @@ interface EmscriptenWledModule {
   _wled_get_palette_name(id: number): number;
   _wled_get_oob_write_count(): number;
   _equator_reset(seed: number): void;
+  _glitch_reset(seed: number): void;
+  _glitch_tick(
+    effect: number,
+    timeMs: number,
+    bass: number,
+    mid: number,
+    treble: number,
+    speed: number,
+    intensity: number,
+    color: number,
+  ): void;
   _equator_set_point(index: number, longitude: number, height: number): number;
   _equator_tick(
     timeMs: number,
@@ -55,6 +70,7 @@ export class WledEngine {
   private intensity = 128;
   private primaryColor = 0xff7a18;
   private bass = 0;
+  private mid = 0;
   private treble = 0;
   private constructor(
     private readonly module: EmscriptenWledModule,
@@ -86,6 +102,7 @@ export class WledEngine {
   reset(seed = 0x1a2b3c4d): void {
     this.module._wled_reset(seed);
     this.module._equator_reset(seed);
+    this.module._glitch_reset(seed);
   }
 
   tick(timeMs: number): void {
@@ -93,6 +110,17 @@ export class WledEngine {
       this.module._equator_tick(
         timeMs >>> 0,
         this.bass,
+        this.treble,
+        this.speed,
+        this.intensity,
+        this.primaryColor,
+      );
+    } else if (isGlitchAudioEffect(this.effectId)) {
+      this.module._glitch_tick(
+        this.effectId - GLITCH_AUDIO_EFFECTS[0].id,
+        timeMs >>> 0,
+        this.bass,
+        this.mid,
         this.treble,
         this.speed,
         this.intensity,
@@ -106,6 +134,7 @@ export class WledEngine {
   setEffect(id: number): void {
     this.effectId = id;
     if (id === EQUATOR_EFFECT_ID) this.module._equator_reset(0x1a2b3c4d);
+    else if (isGlitchAudioEffect(id)) this.module._glitch_reset(0x1a2b3c4d);
     else this.module._wled_set_effect(id);
   }
 
@@ -121,10 +150,12 @@ export class WledEngine {
       }
     }
     this.module._equator_reset(0x1a2b3c4d);
+    this.module._glitch_reset(0x1a2b3c4d);
   }
 
-  setAudio(bass: number, treble: number): void {
+  setAudio(bass: number, treble: number, mid = 0): void {
     this.bass = byte(bass);
+    this.mid = byte(mid);
     this.treble = byte(treble);
   }
 
@@ -172,6 +203,7 @@ export class WledEngine {
         }),
       ),
       { id: EQUATOR_EFFECT_ID, name: "Equator Wave" },
+      ...GLITCH_AUDIO_EFFECTS,
     ];
   }
 

@@ -1,4 +1,4 @@
-"""Add the effect to a verified copy of firmware 2609099."""
+"""Add the shared monochrome audio effects to verified firmware 2609099."""
 import hashlib
 import json
 from pathlib import Path
@@ -28,9 +28,9 @@ target = source / "usermods/equator_wave"
 if target.exists():
     raise ValueError("The effect directory already exists.")
 target.mkdir()
-for name in ("EquatorWave.h", "equator_wave.cpp", "library.json"):
+for name in ("EquatorWave.h", "GlitchAudio.h", "equator_wave.cpp", "library.json"):
     shutil.copyfile(HERE / name, target / name)
 shutil.copyfile(mapping / "EquatorMapping.h", target / "EquatorMapping.h")
-version.write_text(text.replace("#define VERSION 2609099", "#define VERSION 2609101"))
+version.write_text(text.replace("#define VERSION 2609099", "#define VERSION 2609102"))
 override.write_text(config.replace("custom_usermods = audioreactive\n", "custom_usermods = audioreactive equator_wave\n"))
-print("Prepared firmware 2609101. RMT, DDP, and audio source files are unchanged.")
+print("Prepared firmware 2609102. RMT, DDP, and audio source files are unchanged.")

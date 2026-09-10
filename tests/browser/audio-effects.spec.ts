@@ -48,6 +48,7 @@ for (const audioSupported of [true, false]) {
     page,
   }) => {
     let frames = 0;
+    let audioArtSupported = true;
     let saved: Record<string, unknown> = {};
     const coordinateHash = await equatorMappingSha256(
       compileEquatorMapping(mapping.entries),
@@ -79,6 +80,13 @@ for (const audioSupported of [true, false]) {
               mappingSha256: coordinateHash,
               ledCount: mapping.entries.length,
             },
+            audioArt: audioArtSupported
+              ? {
+                  renderer: "glitch-audio-v1",
+                  mappingSha256: coordinateHash,
+                  ledCount: mapping.entries.length,
+                }
+              : undefined,
           },
         });
       if (path === "/json/cfg") return route.fulfill({ json: config });
@@ -86,7 +94,16 @@ for (const audioSupported of [true, false]) {
         return route.fulfill({ json: contract.ledmap });
       if (path === "/json/eff")
         return route.fulfill({
-          json: ["Rainbow", "Pixels", "Freqwave", "2D GEQ", "Equator Wave"],
+          json: [
+            "Rainbow",
+            "Pixels",
+            "Freqwave",
+            "2D GEQ",
+            "Equator Wave",
+            "Packet Fault",
+            "Bit Rain",
+            "Spectral Gates",
+          ],
         });
       if (path === "/json/fxdata")
         return route.fulfill({
@@ -96,6 +113,9 @@ for (const audioSupported of [true, false]) {
             "Speed,Sound;!;!;01f;sx=90,ix=120",
             "!;!;!;2f",
             "Speed,Sensitivity;Wave;;;",
+            "Speed,Sensitivity;Color;;;",
+            "Speed,Sensitivity;Color;;;",
+            "Speed,Sensitivity;Color;;;",
           ],
         });
       if (path === "/json/pal") return route.fulfill({ json: ["Rainbow"] });
@@ -197,6 +217,41 @@ for (const audioSupported of [true, false]) {
     expect(saved.AudioReactive).toEqual({ enabled: true });
     await page.waitForTimeout(600);
     expect(frames).toBe(beforeEquatorSave);
+    for (const [index, name] of [
+      "Packet Fault",
+      "Bit Rain",
+      "Spectral Gates",
+    ].entries()) {
+      const previous = saved.seg;
+      await page.locator("#effect").selectOption({ label: name });
+      await page
+        .locator("#audio-art-color")
+        .selectOption(index === 1 ? "red" : "white");
+      await page.waitForTimeout(650);
+      expect(saved.seg).toEqual(previous);
+      await page.locator("#save-audio-to-esp32").click();
+      await expect
+        .poll(() => saved.seg)
+        .toMatchObject({
+          fx: 5 + index,
+          sx: 173,
+          ix: 191,
+          col: [
+            index === 1 ? [255, 0, 0] : [255, 255, 255],
+            [5, 8, 22],
+            [0, 0, 0],
+          ],
+        });
+      expect(saved.AudioReactive).toEqual({ enabled: true });
+    }
+    audioArtSupported = false;
+    const beforeUnsupportedSave = saved;
+    await page.locator("#effect").selectOption({ label: "Packet Fault" });
+    await page.locator("#save-audio-to-esp32").click();
+    await expect(page.locator("#audio-save-status")).toContainText(
+      "same sculpture coordinates",
+    );
+    expect(saved).toEqual(beforeUnsupportedSave);
     expect(errors).toEqual([]);
   });
 }

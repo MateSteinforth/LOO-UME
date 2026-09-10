@@ -9,6 +9,25 @@ simulator and TouchDesigner DDP input.
 
 ## Active firmware handoff — read this first (2026-09-09)
 
+### Monochrome audio art — Ready to Merge (2026-09-10)
+
+- Owner: primary agent; branch `codex/monochrome-audio-art`; worktree `/tmp/loo-ume-monochrome-audio-art`.
+- Scope: Packet Fault, Bit Rain, and Spectral Gates use large scrolling areas and one selected color, red or white.
+- Bass, mid, and high bands control different visual features. Keep Equator Wave and all existing effects.
+- Plan: implement shared C++ renderers and firmware registration; compile WASM; add three-band input and controls; verify parity and build firmware.
+- Acceptance: each effect responds to separate bands, remains monochrome, previews without hardware, and uses the same renderer on ESP32.
+- Primary agent owns browser code, integration tests, and shared records. Delegate firmware and runtime generation with separate file ownership.
+- Preserve the accepted controller firmware and settings. Build the candidate without an OTA installation or main merge.
+- Implemented all three effects, three-band input, red/white controls, grouped selection, and explicit parameter saves.
+- Checks pass: 57 focused tests, five browser tests, native sanitizers, full typed lint, formatting, TypeScript, and desktop build.
+- Pixel parity covers 656 coordinates across 24 native reference frames, including separate bands, movement, partial decay, and silence.
+- Independent browser-code review found no actionable defects. Browser screenshots were inspected.
+- Generator: `codex/glitch-audio-runtime`, commit `4f4766a`, worktree `/tmp/loo-ume-glitch-audio-runtime`.
+- Candidate: `build/firmware-equator-wave/wled-equator-wave-2609102.bin`, 1,168,384 bytes, in the task worktree.
+- Candidate SHA-256: `a19ee199394f82a6883192bfbbe717eeb116e0b7e47825eb318c9afc21ebc64b`.
+- Source verification confirms unchanged accepted DDP, RMT, and microphone sources. Equator Wave's renderer is unchanged.
+- Physical audio, simulator comparison, DDP transitions, and OTA acceptance remain pending. No controller write occurred.
+
 ### Simulator effect groups — Ready to Merge (2026-09-10)
 
 - Owner: primary agent; branch `codex/audio-effect-groups`; worktree `/tmp/loo-ume-audio-effect-groups`.
