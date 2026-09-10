@@ -23,6 +23,7 @@
     "playwright.config.ts",
     "web/src/LedMapping.ts",
     "web/src/AudioPreviewInput.ts",
+    "web/src/AudioEffects.ts",
     "web/src/GenerationClient.ts",
     "web/src/GenerationWorkerProtocol.ts",
     "web/src/WiringPreview.ts",

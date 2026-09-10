@@ -16,6 +16,7 @@ const ALLOWED_REQUESTS = new Set([
   "GET /json/state",
   "POST /json/state",
   "GET /json/eff",
+  "GET /json/fxdata",
   "GET /json/pal",
   "GET /presets.json",
   "GET /reset",

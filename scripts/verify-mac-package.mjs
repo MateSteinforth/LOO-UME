@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
@@ -9,6 +10,36 @@ assert.equal(process.platform, "darwin", "Run this check on macOS.");
 assert.equal(process.arch, "arm64", "Run this check on Apple Silicon.");
 const applicationPath = process.argv[2];
 assert.ok(applicationPath, "Supply the packaged application path.");
+function runMacTool(command, args) {
+  const result = spawnSync(command, args, { encoding: "utf8" });
+  assert.equal(
+    result.status,
+    0,
+    `${command} failed: ${result.stderr || result.stdout || result.error}`,
+  );
+  return `${result.stdout}${result.stderr}`;
+}
+const entitlements = runMacTool("codesign", [
+  "-d",
+  "--entitlements",
+  ":-",
+  applicationPath,
+]);
+assert.match(
+  entitlements,
+  /<key>com\.apple\.security\.device\.audio-input<\/key>\s*<true\/>/,
+  "The signed application must allow microphone input.",
+);
+const microphoneUsage = runMacTool("plutil", [
+  "-extract",
+  "NSMicrophoneUsageDescription",
+  "raw",
+  join(applicationPath, "Contents/Info.plist"),
+]).trim();
+assert.ok(
+  microphoneUsage.length > 0,
+  "The application must describe microphone use.",
+);
 const userData = await mkdtemp(join(tmpdir(), "loo-mac-check-"));
 let application;
 const launch = () =>

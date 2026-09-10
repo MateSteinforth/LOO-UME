@@ -9,6 +9,30 @@ simulator and TouchDesigner DDP input.
 
 ## Active firmware handoff — read this first (2026-09-09)
 
+### Audio review 46 corrections — Ready to Merge (2026-09-10)
+
+- Owner: primary agent; branch `codex/audio-review-fixes`; worktree `/tmp/loo-ume-audio-review-fixes`.
+- Scope: restore the earlier standalone audio-effect controls and correct laptop microphone capture in the desktop simulator.
+- The operator confirms that the ESP32 is off. Connection errors are expected; device networking is outside this correction.
+- Plan: inspect the earlier picker; reproduce real Electron microphone capture; implement narrow corrections; run focused browser and desktop checks.
+- Acceptance: the native audio-effect controls remain available, and actual Electron audio capture supplies nonzero simulator input from a test tone.
+- Audio parameter changes require an explicit **Save to ESP32** action. Equator Wave saves require matching firmware coordinates.
+- Review 46 omitted microphone access from its separate review entitlement file. The correction checks the signed application before publication.
+- Native WLED audio effects remain controller-only. Restoring their selector does not add their renderers to the simulator.
+- Preserve Equator Wave, shared rendering, all firmware binaries, and controller settings. Do not change or install firmware.
+- File ownership: primary agent owns picker integration, task records, and validation. An independent agent owns microphone diagnosis and correction.
+- Checks pass: 77 focused tests, four browser tests, TypeScript, full typed lint, WASM integrity, and the desktop build.
+- The signed macOS package check and physical laptop microphone confirmation remain delivery checks. No controller write occurred.
+
+### Native WLED audio effects in the simulator — Ready
+
+- Scope: compile the original WLED audio effect functions into the simulator. Do not create separate JavaScript renderers.
+- Add the audio data interface that those functions require. Supply computer microphone input and controlled reference inputs.
+- Acceptance: supported effects work without a connected ESP32. Equal inputs and settings produce matching reference pixels.
+- Keep microphone analysis differences explicit. Independent microphones cannot guarantee identical output.
+- Dependencies: generation branch, synchronized WASM receipt, effect metadata, and tests for parameter changes.
+- This work is not included in the review 46 correction.
+
 ### Equator Wave — Ready to Merge; physical comparison pending (2026-09-10)
 
 - Owner: primary agent; branch `codex/bass-wave-sparks`; worktree `/tmp/loo-ume-bass-wave-sparks`.

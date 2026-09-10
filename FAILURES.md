@@ -7,6 +7,16 @@ reveals a durable lesson.
 
 ## How to use this log
 
+### F-195 — Review packages can override release microphone entitlements
+
+- **Date:** 2026-09-10
+- **Symptom:** Demo input worked in review 46, but the operator reported no computer microphone response.
+- **Defect:** The release plist allowed microphone input. The review workflow selected a separate plist that omitted this entitlement.
+- **Correction:** Add microphone access to the review plist. Check the signed entitlement and usage explanation before package publication.
+- **Evidence:** Actual Electron capture with a generated audio file passes through the production permission checks. The browser audio graph supplies nonzero input.
+- **Limit:** This Linux test does not verify macOS microphone capture. The corrected package still requires an operator test.
+- **Prevention:** Inspect packaging overrides when a browser feature needs operating system permission. Mocked browser capture does not verify signed package permissions.
+
 ### F-194 — A timestamp sampled before a lock can expire fresh data
 
 - **Date:** 2026-09-09

@@ -14,6 +14,21 @@ Speed controls wave motion. Intensity controls input sensitivity.
 The effect uses the primary color. It does not use the palette selector.
 The other 30 simulator effects retain their existing behavior and do not use microphone input.
 
+## Preview and save
+
+Change Equator Wave settings in the simulator, then select **Save to ESP32**.
+Audio parameter changes do not save automatically. Audio preview selection pauses simulator streaming to the controller.
+The save action checks the firmware renderer, LED count, and coordinate hash before it writes the standalone preset.
+Firmware 2609099 does not contain Equator Wave. The matching candidate firmware requires a separate attended installation.
+
+When the ESP32 connects, its supported native audio effects appear in a separate selector group.
+These effects use the ESP32 microphone. Their selection does not show live audio colors in the simulator.
+The current WASM build omits these native audio renderers. They must be compiled from WLED before laptop preview can work.
+
+Review DMG microphone access uses `electron/entitlements.review.mac.plist`.
+The package check requires the signed microphone entitlement and the microphone usage explanation.
+A Linux Electron test verifies capture with a generated audio file. Actual macOS microphone capture still requires operator confirmation.
+
 ## Shared rendering and its limits
 
 `firmware/equator-wave/EquatorWave.h` is the common integer renderer.

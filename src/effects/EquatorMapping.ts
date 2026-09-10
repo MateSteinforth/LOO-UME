@@ -3,6 +3,18 @@ export interface EquatorPoint {
   height: number;
 }
 
+export async function equatorMappingSha256(
+  points: readonly EquatorPoint[],
+): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(JSON.stringify(points)),
+  );
+  return Array.from(new Uint8Array(digest), (value) =>
+    value.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
 interface PositionedLed {
   logicalIndex: number;
   x: number;
