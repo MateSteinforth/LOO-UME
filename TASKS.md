@@ -36,9 +36,9 @@ simulator and TouchDesigner DDP input.
 - No controller write occurred. Firmware 2609099 remains the accepted installed baseline; no new main integration is authorized.
 - Procedure and limits: `docs/AUDIO_EFFECTS.md`; build receipt: `firmware/equator-wave/build-receipt.json`.
 - Implementation commit: `379f818`. Generator commit: `d711bfb`.
-- Publication blocker: automatic approval review rejected the push because explicit approval for this destination and these branches is missing.
-- Pending command: `git push -u origin codex/bass-wave-sparks codex/equator-audio-runtime`.
-- Destination: `https://github.com/MateSteinforth/LOO-UME.git`. Both branches remain local until the operator approves this push.
+- Publication approved on 2026-09-10. Both task branches are pushed to `https://github.com/MateSteinforth/LOO-UME.git`.
+- The operator requested a DMG. Run `electron-macos-release.yml` on `codex/bass-wave-sparks` to publish an Apple Silicon review package.
+- This review build does not merge the task into `main` or install firmware on the controller.
 
 **Integration milestone: Done.** The operator authorized integration into `main` and a push on 2026-09-09.
 The main integration includes the accepted firmware baseline and its test records. The full flicker-free goal remains open.
