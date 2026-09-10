@@ -37,7 +37,8 @@ simulator and TouchDesigner DDP input.
 - Procedure and limits: `docs/AUDIO_EFFECTS.md`; build receipt: `firmware/equator-wave/build-receipt.json`.
 - Implementation commit: `379f818`. Generator commit: `d711bfb`.
 - Publication approved on 2026-09-10. Both task branches are pushed to `https://github.com/MateSteinforth/LOO-UME.git`.
-- The operator requested a DMG. Run `electron-macos-release.yml` on `codex/bass-wave-sparks` to publish an Apple Silicon review package.
+- Apple Silicon DMG review 46 is published. Workflow run `34482956856` passed for source commit `1cf4ad328cc1da8183005a2f79b3bb9989d6e7e4`.
+- Download: https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-46/LOO-UME-Electron-arm64.dmg
 - This review build does not merge the task into `main` or install firmware on the controller.
 
 **Integration milestone: Done.** The operator authorized integration into `main` and a push on 2026-09-09.
