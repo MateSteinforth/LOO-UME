@@ -148,7 +148,14 @@ No tasks.
 
 ## Ready to Merge
 
-No tasks.
+### `AUDIO-001` Add the shared Equator Wave WASM renderer
+
+- Owner: `codex/equator-audio-runtime` in
+  `/tmp/loo-ume-equator-audio-runtime`.
+- Outcome: the simulator exports a bounds-checked point bridge and runs the
+  byte-identical `EquatorWave.h` renderer in its existing framebuffer.
+- Verification: the focused WASM suite passes; all 30 WLED effects match the
+  prior runtime over the reviewed frames; Equator Wave has no OOB writes.
 
 ## Done
 

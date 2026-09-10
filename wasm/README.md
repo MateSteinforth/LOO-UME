@@ -21,3 +21,28 @@ After a reviewed rebuild, update
 values. Commit the runtime, receipt, and any intentional source changes here.
 Move only the reviewed runtime bytes and receipt to `main`; do not merge the
 generation toolchain, submodule, or source tree back into `main`.
+
+## Shared Equator Wave renderer
+
+The Equator Wave renderer is the byte-identical shared header at
+`firmware/equator-wave/EquatorWave.h` in the application branch
+`codex/bass-wave-sparks`. Copy that header to `wasm/src/EquatorWave.h` without
+changes before a rebuild. Its API is `loo_equator::State`, `reset`, `advance`,
+and `pixel`.
+
+`equator_set_point` accepts a framebuffer index, longitude `0..65535`, and
+height `-32767..32767`. It rejects invalid values before narrowing. A resize
+replaces the point map with the framebuffer. Unmapped points render black.
+`equator_reset` resets only the shared renderer state. `equator_tick` renders
+to the same pixel buffer as the 30 selected WLED effects.
+
+Build after copying the reviewed header:
+
+```bash
+npm run check:wled
+npm run build:wasm
+npx vitest run --config vitest.config.ts tests/wasm.test.ts
+```
+
+Update `runtime-integrity.json` with the artifact hashes, the exact header
+hash, and the generator-source digest.

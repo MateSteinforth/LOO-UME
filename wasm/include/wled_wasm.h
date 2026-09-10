@@ -23,6 +23,22 @@ WLED_WASM_EXPORT void wled_set_secondary_color(std::uint8_t r, std::uint8_t g, s
 WLED_WASM_EXPORT void wled_set_audio(float volume, float peak, const float *fft_bins, std::uint32_t bin_count);
 WLED_WASM_EXPORT void wled_tick(std::uint32_t time_ms);
 
+// Equator Wave uses the same framebuffer as the selected WLED effect.
+WLED_WASM_EXPORT void equator_reset(std::uint32_t seed);
+WLED_WASM_EXPORT int equator_set_point(
+  std::uint32_t index,
+  std::uint32_t longitude,
+  std::int32_t height
+);
+WLED_WASM_EXPORT void equator_tick(
+  std::uint32_t time_ms,
+  std::uint8_t bass,
+  std::uint8_t treble,
+  std::uint8_t speed,
+  std::uint8_t intensity,
+  std::uint32_t primary_color
+);
+
 WLED_WASM_EXPORT std::uint32_t *wled_get_pixel_buffer();
 WLED_WASM_EXPORT std::uint32_t wled_get_led_count();
 WLED_WASM_EXPORT std::uint32_t wled_get_effect_count();

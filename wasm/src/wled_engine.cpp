@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "fastled_slim.h"
+#include "EquatorWave.h"
 
 using byte = std::uint8_t;
 using std::max;
@@ -32,6 +33,14 @@ constexpr std::uint8_t green(std::uint32_t color) { return std::uint8_t(color >>
 constexpr std::uint8_t blue(std::uint32_t color) { return std::uint8_t(color); }
 
 std::vector<std::uint32_t> g_pixels;
+struct EquatorPoint {
+  std::uint16_t longitude = 0;
+  std::int16_t height = 0;
+  bool mapped = false;
+};
+
+std::vector<EquatorPoint> g_equator_points;
+loo_equator::State g_equator_state{};
 std::uint32_t g_oob_writes = 0;
 std::uint32_t g_rng_state = 0x1A2B3C4D;
 std::uint32_t g_effect_id = 8;
@@ -402,7 +411,10 @@ int wled_init(std::uint32_t led_count) {
 int wled_resize(std::uint32_t led_count) {
   if (led_count == 0 || led_count > MAX_LED_COUNT) return 0;
   try {
-    g_pixels.assign(led_count, 0);
+    std::vector<std::uint32_t> pixels(led_count, 0);
+    std::vector<EquatorPoint> points(led_count);
+    g_pixels.swap(pixels);
+    g_equator_points.swap(points);
   } catch (...) {
     return 0;
   }
@@ -461,6 +473,49 @@ void wled_tick(std::uint32_t time_ms) {
   strip.now = time_ms;
   EFFECTS[g_effect_id].function();
   ++g_segment.call;
+}
+
+void equator_reset(std::uint32_t seed) {
+  loo_equator::reset(g_equator_state, seed);
+}
+
+int equator_set_point(
+  std::uint32_t index,
+  std::uint32_t longitude,
+  std::int32_t height
+) {
+  if (index >= g_equator_points.size() || longitude > 65535U || height < -32767 || height > 32767) {
+    return 0;
+  }
+  g_equator_points[index] = {
+    static_cast<std::uint16_t>(longitude),
+    static_cast<std::int16_t>(height),
+    true,
+  };
+  return 1;
+}
+
+void equator_tick(
+  std::uint32_t time_ms,
+  std::uint8_t bass,
+  std::uint8_t treble,
+  std::uint8_t speed,
+  std::uint8_t intensity,
+  std::uint32_t primary_color
+) {
+  loo_equator::advance(g_equator_state, time_ms, bass, treble, speed, intensity);
+  for (std::size_t index = 0; index < g_pixels.size(); ++index) {
+    const EquatorPoint &point = g_equator_points[index];
+    g_pixels[index] = point.mapped
+      ? loo_equator::pixel(
+          g_equator_state,
+          point.longitude,
+          point.height,
+          static_cast<std::uint32_t>(index),
+          primary_color
+        )
+      : BLACK;
+  }
 }
 
 std::uint32_t *wled_get_pixel_buffer() {
