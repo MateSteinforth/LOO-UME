@@ -153,7 +153,8 @@
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.plist",
       "extendInfo": {
-        "NSLocalNetworkUsageDescription": "LOO/UME sends mapped LED frames to approved controllers on your local network."
+        "NSLocalNetworkUsageDescription": "LOO/UME sends mapped LED frames to approved controllers on your local network.",
+        "NSMicrophoneUsageDescription": "LOO/UME uses the microphone for the simulator audio preview."
       }
     },
     "dmg": {

@@ -1,0 +1,33 @@
+{
+  "buildId": 2609101,
+  "baselineBuildId": 2609099,
+  "baselineArtifactSha256": "007c3e6c584a86d7b9bfc1522a9413d0a9867677b27f2ba07d81f4680d42cac4",
+  "status": "build-verified; not installed",
+  "effectName": "Equator Wave",
+  "mapping": {
+    "projectPath": "sculptures/rhombicosidodecahedron/sculpture.json",
+    "ledCount": 2624,
+    "coordinatesSha256": "18a3a51145693c2283b2262244aa7db1b2572190f31a16bb6477c9edf5b819b4"
+  },
+  "inputs": {
+    "firmware/equator-wave/EquatorWave.h": "ed1faac875346664f23132e2ad8b2e79ed83a212439d323deb87229e2d4912fd",
+    "firmware/equator-wave/equator_wave.cpp": "8b167483515fcbb06907813d18ad5a28f5d3d93668a7669c7c09d1dc512b3384",
+    "firmware/equator-wave/prepare.py": "a8090fca2c10cf0a9415be547543f986e13569ff9984823c949d158b20a259f1",
+    "firmware/equator-wave/test-renderer.cpp": "26684cb915b84a40bc1ab3945a125af5d471f715b67798af0365f61e1e665abd",
+    "firmware/equator-wave/verify.py": "2ee029f9446935130c4055c23c34fd09ac519368d5f6bfd5dcd239e4200752f4"
+  },
+  "userModInputs": {
+    "EquatorMapping.h": "021235821fa5d6f8620281a2ed4fd6df7b572829e057f0ea3c991c2e0dd58200",
+    "EquatorWave.h": "ed1faac875346664f23132e2ad8b2e79ed83a212439d323deb87229e2d4912fd",
+    "equator_wave.cpp": "8b167483515fcbb06907813d18ad5a28f5d3d93668a7669c7c09d1dc512b3384",
+    "library.json": "6a8d1cf06231c9f957e8ef3c9c9dedf9fc6dc456d2266e1af781a68a53d1351e"
+  },
+  "elfSha256": "87d0ac7f9137a4f16ca6b9f3366731728fa1a1eeca56834d2edc5eb5a1b15a29",
+  "compileCommandsSha256": "3b7070c5534aa85626889c87ba5de1b53d12b205795ce2c48d4b5a20ed5a1b52",
+  "artifact": {
+    "name": "wled-equator-wave-2609101.bin",
+    "byteLength": 1166672,
+    "sha256": "48bdaeaf89e54a5ab16050b0ab7cf5070a4fba5b4a557a10dbe2ad94c3bb7129"
+  },
+  "physicalAcceptance": "Pending mapping verification and attended simulator, microphone, DDP, and mode-transition checks."
+}

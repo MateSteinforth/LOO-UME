@@ -9,6 +9,33 @@ simulator and TouchDesigner DDP input.
 
 ## Active firmware handoff — read this first (2026-09-09)
 
+### Equator Wave — Ready to Merge; physical comparison pending (2026-09-10)
+
+- Owner: primary agent; branch `codex/bass-wave-sparks`; worktree `/tmp/loo-ume-bass-wave-sparks`.
+- Scope: add simulator microphone input first, then shared rendering, then the first custom audio effect and ESP32 build.
+- Behavior: a horizontal line moves as a wave around the sphere's equator. Bass controls the wave; high frequencies add random bright points.
+- Keep the accepted RMT, DDP, microphone, GPIO, and mapping behavior. This task does not change the output driver.
+- Step 1 — Done: microphone start/stop, input meters, permission errors, cleanup, and Electron audio permission controls are implemented.
+- Step 2 — Done: one C++ renderer serves the browser and ESP32. Every RGB pixel matches across 100 controlled reference frames.
+- Step 3 — Done: authoritative LED positions generate logical angular and height coordinates for the simulator and firmware.
+- Step 4 — Done: the equatorial wave, high-frequency points, speed, sensitivity, and silence behavior are implemented and tested.
+- Step 5 — Done: firmware 2609101 builds and passes source verification plus the retained DDP expiry and service regressions.
+- Step 6 — Human Review: compare simulator and hardware with the same mapping, settings, timestamps, seed, and audio feature sequence.
+- Acceptance: shared rendering must produce identical RGB values for controlled inputs. Independent microphones do not supply identical audio samples.
+- Browser and WLED audio analysis must remain explicit; similar frequency bands alone do not establish audio-processing parity.
+- Physical acceptance requires an attended device test. Preserve the accepted 2609099 image before any later OTA installation.
+- File ownership: primary agent owns integration. Independent agents completed microphone capture, Electron permissions, and simulator generation.
+- Possible conflicts: `TASKS.md`, `web/src/main.ts`, `web/src/WledEngine.ts`, and TypeScript configuration.
+- Checks: 67 focused tests, two browser tests, native sanitizer checks, full typed lint, TypeScript, desktop build, and Electron main build pass.
+- The browser test uses a generated 100 Hz microphone stream. Real microphones and the packaged macOS permission prompt remain untested.
+- Generator source: `codex/equator-audio-runtime`, commit `d711bfb`, worktree `/tmp/loo-ume-equator-audio-runtime`.
+- Artifact: `/tmp/loo-ume-bass-wave-sparks/build/firmware-equator-wave/wled-equator-wave-2609101.bin`, 1,166,672 bytes.
+- Artifact SHA-256: `48bdaeaf89e54a5ab16050b0ab7cf5070a4fba5b4a557a10dbe2ad94c3bb7129`.
+- Coordinate SHA-256: `18a3a51145693c2283b2262244aa7db1b2572190f31a16bb6477c9edf5b819b4`.
+- The candidate embeds `sculptures/rhombicosidodecahedron/sculpture.json`. Verify its map against the loaded project before an OTA test.
+- No controller write occurred. Firmware 2609099 remains the accepted installed baseline; no new main integration is authorized.
+- Procedure and limits: `docs/AUDIO_EFFECTS.md`; build receipt: `firmware/equator-wave/build-receipt.json`.
+
 **Integration milestone: Done.** The operator authorized integration into `main` and a push on 2026-09-09.
 The main integration includes the accepted firmware baseline and its test records. The full flicker-free goal remains open.
 The expiry regression, service harness, exact-source verification, and artifact hash check pass.

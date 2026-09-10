@@ -16,7 +16,9 @@ function sha256(bytes) {
 export function verifyWasmRuntime(
   repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."),
 ) {
-  const receipt = JSON.parse(readFileSync(path.join(repoRoot, RECEIPT_PATH), "utf8"));
+  const receipt = JSON.parse(
+    readFileSync(path.join(repoRoot, RECEIPT_PATH), "utf8"),
+  );
   if (
     receipt.schemaVersion !== "1.0.0" ||
     receipt.generationBranch !== "generate/wled-simulator" ||
@@ -41,9 +43,27 @@ export function verifyWasmRuntime(
     }
     const bytes = readFileSync(path.join(repoRoot, expectedPath));
     const actualHash = sha256(bytes);
-    if (bytes.byteLength !== artifact.byteLength || actualHash !== artifact.sha256) {
+    if (
+      bytes.byteLength !== artifact.byteLength ||
+      actualHash !== artifact.sha256
+    ) {
       throw new Error(
         `WLED simulator artifact ${expectedPath} failed integrity verification.`,
+      );
+    }
+  }
+  const equator = receipt.source.equatorWaveHeader;
+  if (equator) {
+    const sourcePath = path.join(
+      repoRoot,
+      "firmware/equator-wave/EquatorWave.h",
+    );
+    if (
+      !/^[0-9a-f]{64}$/.test(equator.sha256 ?? "") ||
+      sha256(readFileSync(sourcePath)) !== equator.sha256
+    ) {
+      throw new Error(
+        "The Equator Wave runtime does not match its shared firmware source.",
       );
     }
   }

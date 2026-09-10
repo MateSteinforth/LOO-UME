@@ -1,4 +1,5 @@
 import "./styles.css";
+import { AudioPreviewInput } from "./AudioPreviewInput";
 import { createUniformSphereMapping, validateMapping } from "./LedMapping";
 import {
   physicalAddressContractKey,
@@ -36,7 +37,7 @@ import {
 } from "./DesignSurfaceLoader";
 import { SphereRenderer, type DisplayMode } from "./SphereRenderer";
 import { deriveEditorCapabilities } from "./EditorCapabilities.ts";
-import { WledEngine } from "./WledEngine";
+import { EQUATOR_EFFECT_ID, WledEngine } from "./WledEngine";
 import {
   createWiringControllerLayout,
   createProvisionalWiringPreview,
@@ -250,6 +251,16 @@ app.innerHTML = `
               <span>Intensity <output id="intensity-value">128</output></span>
               <input id="intensity" type="range" min="0" max="255" value="128" />
             </label>
+            <label class="field"><span>Audio input</span>
+              <select id="audio-preview-source">
+                <option value="off">Off</option>
+                <option value="microphone">Computer microphone</option>
+                <option value="demo">Demo beat</option>
+              </select>
+            </label>
+            <div id="audio-preview-status" role="status">Select an input for Equator Wave.</div>
+            <label class="field"><span>Bass</span><meter id="audio-preview-bass" min="0" max="255" value="0"></meter></label>
+            <label class="field"><span>High frequencies</span><meter id="audio-preview-treble" min="0" max="255" value="0"></meter></label>
           </div>
           <div id="wiring-layer-controls" class="layer-controls wiring-assembly">
             <div class="wiring-assembly__layers">
@@ -620,6 +631,10 @@ const speedInput = query<HTMLInputElement>("#speed");
 const speedValue = query<HTMLOutputElement>("#speed-value");
 const intensityInput = query<HTMLInputElement>("#intensity");
 const intensityValue = query<HTMLOutputElement>("#intensity-value");
+const audioPreviewSource = query<HTMLSelectElement>("#audio-preview-source");
+const audioPreviewStatus = query<HTMLElement>("#audio-preview-status");
+const audioPreviewBass = query<HTMLMeterElement>("#audio-preview-bass");
+const audioPreviewTreble = query<HTMLMeterElement>("#audio-preview-treble");
 const sculptureSelect = query<HTMLSelectElement>("#sculpture-select");
 const openProjectLibraryButton = query<HTMLButtonElement>(
   "#open-project-library",
@@ -1060,6 +1075,7 @@ async function start(): Promise<void> {
     );
     renderer.setShellTransparency(DEFAULT_SHELL_TRANSPARENCY);
     renderer.setWiringPreview(wiringPreview);
+    engine.setMapping(mapping);
 
     effectSelect.replaceChildren(
       ...engine.effects.map(
@@ -1080,6 +1096,43 @@ async function start(): Promise<void> {
     engine.setSecondaryColor(DEFAULT_SECONDARY_COLOR);
 
     let simulationTime = 0;
+    const audioPreview = new AudioPreviewInput();
+    let audioSource: "off" | "microphone" | "demo" = "off";
+    let audioRequest = 0;
+    audioPreviewSource.addEventListener("change", () => {
+      const request = ++audioRequest;
+      audioSource = "off";
+      audioPreview.stop();
+      if (audioPreviewSource.value === "demo") {
+        audioSource = "demo";
+        audioPreviewStatus.textContent =
+          "Demo beat. The ESP32 uses its own microphone.";
+      } else if (audioPreviewSource.value === "microphone") {
+        audioPreviewStatus.textContent = "Waiting for microphone permission.";
+        void audioPreview
+          .start()
+          .then(() => {
+            if (request !== audioRequest) return;
+            audioSource = "microphone";
+            audioPreviewStatus.textContent =
+              "Computer microphone active. The ESP32 uses its own microphone.";
+          })
+          .catch((error: unknown) => {
+            if (request !== audioRequest) return;
+            audioPreviewSource.value = "off";
+            audioPreviewStatus.textContent = `Microphone unavailable: ${error instanceof Error ? error.message : String(error)}`;
+          });
+      } else {
+        audioPreviewStatus.textContent = "Audio input is off.";
+      }
+    });
+    window.addEventListener("pagehide", () => {
+      ++audioRequest;
+      audioPreview.stop();
+      audioSource = "off";
+      audioPreviewSource.value = "off";
+      audioPreviewStatus.textContent = "Audio input is off.";
+    });
     let previousTime = performance.now();
     let currentDisplayMode: DisplayMode = "wled";
     let activePlacementSurface:
@@ -2678,6 +2731,7 @@ async function start(): Promise<void> {
         wiringPreview,
       );
       engine.resize(mapping.entries.length);
+      engine.setMapping(mapping);
       tryReconnectSimulatorLink();
       ledCountInput.value = String(mapping.entries.length);
       renderer?.setPanelProfile(selected.project.panelProfile);
@@ -3552,6 +3606,10 @@ async function start(): Promise<void> {
 
     effectSelect.addEventListener("change", () => {
       engine.setEffect(Number(effectSelect.value));
+      const equator = Number(effectSelect.value) === EQUATOR_EFFECT_ID;
+      paletteSelect.disabled = equator;
+      previousPaletteButton.disabled = equator;
+      nextPaletteButton.disabled = equator;
       resetTimeline();
       scheduleStandaloneSave();
     });
@@ -3924,6 +3982,7 @@ async function start(): Promise<void> {
         mapping = createUniformSphereMapping(requested);
         wiringPreview = createProvisionalWiringPreview(mapping);
       }
+      engine.setMapping(mapping);
       renderer?.setMapping(mapping);
       renderer?.setWiringPreview(wiringPreview);
       routeEditorModel = createWiringRouteEditorModel(
@@ -4962,6 +5021,18 @@ async function start(): Promise<void> {
       const delta = Math.min(now - previousTime, 100);
       previousTime = now;
       simulationTime += delta;
+      const audioLevels =
+        audioSource === "microphone"
+          ? audioPreview.sample()
+          : audioSource === "demo"
+            ? {
+                bass: simulationTime % 600 < 100 ? 210 : 0,
+                treble: simulationTime % 200 < 45 ? 220 : 0,
+              }
+            : { bass: 0, treble: 0 };
+      audioPreviewBass.value = audioLevels.bass;
+      audioPreviewTreble.value = audioLevels.treble;
+      engine.setAudio(audioLevels.bass, audioLevels.treble);
       engine.tick(Math.floor(simulationTime));
 
       const artNetFrameIsCurrent =

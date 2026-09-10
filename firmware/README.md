@@ -5,6 +5,7 @@ See [the receiver correction](ddp-expiry/README.md) and [current physical result
 Some flashes and frame loss remain. This result does not establish flicker-free output.
 The packaged firmware described below remains a separate baseline.
 For the earlier AudioReactive build, see [audio-reactive/README.md](audio-reactive/README.md).
+For the uninstalled Equator Wave candidate, see [equator-wave/README.md](equator-wave/README.md).
 
 FIRM-011 selects an ESP32-DevKitC V4 with an ESP32-WROOM-32E-N4 module. The
 firmware uses WLED commit `d9b9a846561227351ad929e3109781daadb7bed2`. The
