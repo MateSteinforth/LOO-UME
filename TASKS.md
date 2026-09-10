@@ -27,6 +27,11 @@ simulator and TouchDesigner DDP input.
 - Candidate SHA-256: `a19ee199394f82a6883192bfbbe717eeb116e0b7e47825eb318c9afc21ebc64b`.
 - Source verification confirms unchanged accepted DDP, RMT, and microphone sources. Equator Wave's renderer is unchanged.
 - Physical audio, simulator comparison, DDP transitions, and OTA acceptance remain pending. No controller write occurred.
+- Application commit `7f31fac` is pushed. Review 48 workflow `34530828787` passed its DMG application checks.
+- Download: https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-48/LOO-UME-Electron-arm64.dmg
+- Publication blocker: automatic approval review rejected the generator push because this auxiliary branch lacked specific publication approval.
+- Pending push: commit `4f4766aee5500b72cffed13b5287714d046af005`, ref `refs/heads/codex/glitch-audio-runtime`, remote `https://github.com/MateSteinforth/LOO-UME.git`.
+- Keep the generator worktree and firmware build artifacts. Request explicit approval before repeating that push; do not use an indirect publication route.
 
 ### Simulator effect groups — Ready to Merge (2026-09-10)
 
