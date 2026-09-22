@@ -1,6 +1,6 @@
 # Project task board
 
-## Playback and audio regression correction — In Progress (2026-09-22)
+## Playback and audio regression correction — Human Review (2026-09-22)
 
 - Owner: primary agent. Branch: `codex/playback-source-fix`.
 - Worktree: `/tmp/loo-ume-playback-source-fix`. Base: review 47, `d0a164e`.
@@ -11,7 +11,7 @@
 - Requirement: Bass Wave Sparks uses the computer microphone while LOO/UME runs. Its rendered pixels must appear in the simulator and sculpture.
 - Requirement: after LOO/UME disconnects, the saved Bass Wave Sparks effect uses the ESP32 INMP441 microphone.
 - Requirement: other WLED audio effects use the same two-mode contract. Their browser renderers must use original WLED functions, not substitute animations.
-- Playback correction is implemented locally. The render loop is the displayed-frame authority. Current TouchDesigner, Art-Net, and DDP frames override the native simulator and go through the same mapped sculpture output while an ESP32-native audio effect is selected.
+- Playback correction is committed at `bcb9b26`. The render loop is the displayed-frame authority. Current TouchDesigner, Art-Net, and DDP frames override the native simulator and go through the same mapped sculpture output while an ESP32-native audio effect is selected.
 - Equator Wave continues to render from the computer microphone and stream its displayed pixels. Saving a standalone effect stops the in-flight external mirror before changing WLED state, then current external input can resume.
 - Bass Wave Sparks remains the first native-WLED browser-renderer optimization target. Preserve its shared browser and ESP32 renderer, mapping, and controlled-input parity tests.
 - Acceptance: TouchDesigner preview and physical output match; computer-microphone Bass Wave Sparks streams through DDP; saved standalone audio resumes with INMP441.
@@ -19,6 +19,8 @@
 - Preserve firmware 2609099, GPIOs 16, 17, 21, and 22, the LED map, and all saved calibration during application tests.
 - Do not install firmware 2609101 until the application correction passes and an attended OTA test starts.
 - Local verification: 9 focused Vitest checks, `check:fast`, and the AudioReactive/physical-route Playwright journeys pass. The browser journey asserts exact DDP bytes while an ESP32-native audio effect is selected and continued Equator Wave streaming after standalone save.
+- Review 49 was built and verified by macOS workflow run `35703715158` from exact commit `bcb9b2672ad3d8a951997644631118db2e16162c`. DMG: `https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-49/LOO-UME-Electron-arm64.dmg`; SHA-256 `921d419809fc9952b4c0bd5ebfc3c214026dcbeb243dc63ff9afa6dc09244d2f`.
+- Human review: confirm that TouchDesigner pixels match the simulator and sculpture, then confirm Equator Wave computer-microphone output. Preserve firmware 2609099 and the current device configuration during this application-only test.
 - Conflicts: `web/src/main.ts`, `web/src/ExternalFrameMirror.ts`, audio controls, playback tests, and WASM runtime files.
 
 Last reconciled: 2026-09-22
