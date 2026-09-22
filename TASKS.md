@@ -12,6 +12,7 @@
 - Requirement: after LOO/UME disconnects, the saved Bass Wave Sparks effect uses the ESP32 INMP441 microphone.
 - Requirement: other WLED audio effects use the same two-mode contract. Their browser renderers must use original WLED functions, not substitute animations.
 - Playback correction is committed at `bcb9b26`. The render loop is the displayed-frame authority. Current TouchDesigner, Art-Net, and DDP frames override the native simulator and go through the same mapped sculpture output while an ESP32-native audio effect is selected.
+- Smoothness fix: review 49 mirror lag came from pushing external frames inside the render loop. External mirroring is frame-driven again from the DDP/Art-Net callbacks; the render loop keeps only the display arbitration (source priority, timeout stop).
 - Equator Wave continues to render from the computer microphone and stream its displayed pixels. Saving a standalone effect stops the in-flight external mirror before changing WLED state, then current external input can resume.
 - Bass Wave Sparks remains the first native-WLED browser-renderer optimization target. Preserve its shared browser and ESP32 renderer, mapping, and controlled-input parity tests.
 - Acceptance: TouchDesigner preview and physical output match; computer-microphone Bass Wave Sparks streams through DDP; saved standalone audio resumes with INMP441.

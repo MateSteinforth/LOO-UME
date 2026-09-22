@@ -1242,7 +1242,6 @@ async function start(): Promise<void> {
     const ddpPreviewClient = new DdpPreviewClient();
     const externalFrameMirrorQueue = new ExternalFrameMirrorQueue();
     let externalFrameMirrorAbortController: AbortController | undefined;
-    let lastMirroredExternalPixels: Uint32Array | undefined;
     let artNetPreviewPixels: Uint32Array | undefined;
     let artNetPreviewLastFrameAt = 0;
     let artNetPreviewTimedOut = false;
@@ -1276,7 +1275,6 @@ async function start(): Promise<void> {
       externalFrameMirrorAbortController?.abort();
       externalFrameMirrorAbortController = undefined;
       externalFrameMirrorQueue.stop();
-      lastMirroredExternalPixels = undefined;
       updateExternalFrameMirrorAvailability();
       if (message) setLogMessage(message);
     };
@@ -1372,6 +1370,7 @@ async function start(): Promise<void> {
               frame.physicalRgb,
               hardwareContract.mapping.entries,
             );
+            mirrorExternalFrame(artNetPreviewPixels);
             artNetPreviewLastFrameAt = performance.now();
             artNetPreviewTimedOut = false;
             artNetPreviewFrameTimes.push(artNetPreviewLastFrameAt);
@@ -1420,6 +1419,7 @@ async function start(): Promise<void> {
                 frame.logicalRgb,
                 mapping.entries.length,
               );
+              mirrorExternalFrame(ddpPreviewPixels);
               ddpPreviewLastFrameAt = performance.now();
               ddpPreviewTimedOut = false;
               ddpPreviewFrameTimes.push(ddpPreviewLastFrameAt);
@@ -5257,15 +5257,6 @@ async function start(): Promise<void> {
       if (!externalPreviewPixels && externalFrameMirrorQueue.active) {
         stopExternalFrameMirror();
       }
-      if (
-        externalPreviewPixels &&
-        externalPreviewPixels !== lastMirroredExternalPixels
-      ) {
-        mirrorExternalFrame(externalPreviewPixels);
-        if (externalFrameMirrorQueue.active)
-          lastMirroredExternalPixels = externalPreviewPixels;
-      }
-      if (!externalPreviewPixels) lastMirroredExternalPixels = undefined;
       if (audioPreviewPixels.length !== mapping.entries.length)
         audioPreviewPixels = new Uint32Array(mapping.entries.length);
       renderer?.updateColors(
