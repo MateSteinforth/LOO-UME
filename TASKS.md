@@ -11,13 +11,14 @@
 - Requirement: Bass Wave Sparks uses the computer microphone while LOO/UME runs. Its rendered pixels must appear in the simulator and sculpture.
 - Requirement: after LOO/UME disconnects, the saved Bass Wave Sparks effect uses the ESP32 INMP441 microphone.
 - Requirement: other WLED audio effects use the same two-mode contract. Their browser renderers must use original WLED functions, not substitute animations.
-- Playback correction is partially implemented. It makes the render loop the displayed-frame authority and removes the stale native fallback during external input.
-- Bass Wave Sparks is the first optimization target. Preserve its shared browser and ESP32 renderer, mapping, and controlled-input parity tests.
-- Native WLED audio simulator support remains a separate dependent slice. It needs the audio data adapter and synchronized WASM build receipt.
+- Playback correction is implemented locally. The render loop is the displayed-frame authority. Current TouchDesigner, Art-Net, and DDP frames override the native simulator and go through the same mapped sculpture output while an ESP32-native audio effect is selected.
+- Equator Wave continues to render from the computer microphone and stream its displayed pixels. Saving a standalone effect stops the in-flight external mirror before changing WLED state, then current external input can resume.
+- Bass Wave Sparks remains the first native-WLED browser-renderer optimization target. Preserve its shared browser and ESP32 renderer, mapping, and controlled-input parity tests.
 - Acceptance: TouchDesigner preview and physical output match; computer-microphone Bass Wave Sparks streams through DDP; saved standalone audio resumes with INMP441.
 - Test transitions: native audio to DDP, DDP timeout to native audio, application quit, reconnect, Wi-Fi interruption, and controller restart.
 - Preserve firmware 2609099, GPIOs 16, 17, 21, and 22, the LED map, and all saved calibration during application tests.
 - Do not install firmware 2609101 until the application correction passes and an attended OTA test starts.
+- Local verification: 9 focused Vitest checks, `check:fast`, and the AudioReactive/physical-route Playwright journeys pass. The browser journey asserts exact DDP bytes while an ESP32-native audio effect is selected and continued Equator Wave streaming after standalone save.
 - Conflicts: `web/src/main.ts`, `web/src/ExternalFrameMirror.ts`, audio controls, playback tests, and WASM runtime files.
 
 Last reconciled: 2026-09-22

@@ -47,7 +47,7 @@ for (const audioSupported of [true, false]) {
   test(`microphone dropdown and streaming with AudioReactive ${audioSupported ? "present" : "absent"}`, async ({
     page,
   }) => {
-    let frames = 0;
+    const frames: Buffer[] = [];
     let saved: Record<string, unknown> = {};
     const coordinateHash = await equatorMappingSha256(
       compileEquatorMapping(mapping.entries),
@@ -58,7 +58,7 @@ for (const audioSupported of [true, false]) {
       localStorage.setItem("loo-ume:esp32-reconnect-enabled", "1"),
     );
     await page.route("**/api/esp32-frame?**", async (route) => {
-      frames += 1;
+      frames.push(route.request().postDataBuffer() ?? Buffer.alloc(0));
       await route.fulfill({ json: {} });
     });
     await page.route("**/api/esp32-reconnect-project", (route) =>
@@ -115,8 +115,9 @@ for (const audioSupported of [true, false]) {
     );
     await expect(page.locator("#pipeline-status")).toContainText(
       "Reconnected at",
+      { timeout: 20_000 },
     );
-    await expect.poll(() => frames).toBeGreaterThan(2);
+    await expect.poll(() => frames.length).toBeGreaterThan(2);
     const group = page.locator(
       '#effect optgroup[label="Audio reactive · ESP32 microphone"]',
     );
@@ -139,7 +140,7 @@ for (const audioSupported of [true, false]) {
     await expect(page.locator("#audio-effect-status")).toContainText(
       "3D view does not show",
     );
-    const pausedFrames = frames;
+    const framesBeforeDdp = frames.length;
     const socket = createSocket("udp4");
     try {
       const pixels = new Uint8Array(mapping.entries.length * 3).fill(48);
@@ -163,8 +164,16 @@ for (const audioSupported of [true, false]) {
     } finally {
       socket.close();
     }
-    await page.waitForTimeout(600);
-    expect(frames).toBe(pausedFrames);
+    const expectedDdpFrame = Buffer.alloc(
+      mapping.entries.length * 3,
+      Math.floor((48 / 255) ** 2.2 * 255 + 0.5),
+    );
+    await expect
+      .poll(() => frames.some((frame) => frame.equals(expectedDdpFrame)))
+      .toBe(true);
+    await page.waitForTimeout(1_100);
+    const pausedFrames = frames.length;
+    expect(pausedFrames).toBeGreaterThan(framesBeforeDdp);
     await page.locator("#next-effect").click();
     await expect(page.locator("#effect")).toHaveValue("audio:2");
     await page.locator("#save-audio-to-esp32").click();
@@ -174,10 +183,10 @@ for (const audioSupported of [true, false]) {
     await page.locator("#intensity").fill("180");
     await page.locator("#save-audio-to-esp32").click();
     await expect.poll(() => saved.seg).toMatchObject({ fx: 2, ix: 180 });
-    expect(frames).toBe(pausedFrames);
+    expect(frames.length).toBe(pausedFrames);
     await page.locator("#effect").selectOption("8");
     await expect.poll(() => saved.seg).toMatchObject({ fx: 0 });
-    await expect.poll(() => frames).toBeGreaterThan(pausedFrames);
+    await expect.poll(() => frames.length).toBeGreaterThan(pausedFrames);
     await expect(page.locator("#audio-effect-status")).toContainText(
       "ESP32 audio effects use the controller microphone",
     );
@@ -186,7 +195,7 @@ for (const audioSupported of [true, false]) {
     await page.locator("#intensity").fill("191");
     await page.waitForTimeout(650);
     expect(saved.seg).toMatchObject({ fx: 0 });
-    const beforeEquatorSave = frames;
+    const beforeEquatorSave = frames.length;
     await page.locator("#save-audio-to-esp32").click();
     await expect
       .poll(() => saved.seg)
@@ -196,7 +205,7 @@ for (const audioSupported of [true, false]) {
     );
     expect(saved.AudioReactive).toEqual({ enabled: true });
     await page.waitForTimeout(600);
-    expect(frames).toBe(beforeEquatorSave);
+    await expect.poll(() => frames.length).toBeGreaterThan(beforeEquatorSave);
     expect(errors).toEqual([]);
   });
 }

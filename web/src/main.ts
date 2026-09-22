@@ -1242,6 +1242,7 @@ async function start(): Promise<void> {
     const ddpPreviewClient = new DdpPreviewClient();
     const externalFrameMirrorQueue = new ExternalFrameMirrorQueue();
     let externalFrameMirrorAbortController: AbortController | undefined;
+    let lastMirroredExternalPixels: Uint32Array | undefined;
     let artNetPreviewPixels: Uint32Array | undefined;
     let artNetPreviewLastFrameAt = 0;
     let artNetPreviewTimedOut = false;
@@ -1275,21 +1276,19 @@ async function start(): Promise<void> {
       externalFrameMirrorAbortController?.abort();
       externalFrameMirrorAbortController = undefined;
       externalFrameMirrorQueue.stop();
+      lastMirroredExternalPixels = undefined;
       updateExternalFrameMirrorAvailability();
       if (message) setLogMessage(message);
     };
 
     const startExternalFrameMirror = (): void => {
       if (externalFrameMirrorQueue.active) return;
-      if (!hardwareContract.readiness.mappingReady) {
-        return;
-      }
       const deviceUrl = simulatorDeviceUrl;
       if (
         !deviceUrl ||
         simulatorSetupActive ||
         physicalRouteReviewSession ||
-        audioEditingSelected()
+        standaloneSaveRequest
       )
         return;
       const expectedFingerprint = hardwareContract.fingerprint;
@@ -1303,8 +1302,7 @@ async function start(): Promise<void> {
             abortController.signal.aborted ||
             simulatorDeviceUrl?.href !== deviceUrl.href ||
             hardwareContract.fingerprint !== expectedFingerprint ||
-            simulatorProjectRevision !== expectedProjectRevision ||
-            audioEditingSelected()
+            simulatorProjectRevision !== expectedProjectRevision
           )
             throw new DOMException("Sculpture mirror stopped.", "AbortError");
           await sendSimulatorFramebuffer(
@@ -1374,7 +1372,6 @@ async function start(): Promise<void> {
               frame.physicalRgb,
               hardwareContract.mapping.entries,
             );
-            mirrorExternalFrame(artNetPreviewPixels);
             artNetPreviewLastFrameAt = performance.now();
             artNetPreviewTimedOut = false;
             artNetPreviewFrameTimes.push(artNetPreviewLastFrameAt);
@@ -1432,7 +1429,6 @@ async function start(): Promise<void> {
               ddpPreviewStatus.textContent =
                 `${ddpPreviewFrameTimes.length} FPS DDP · ` +
                 `${frame.incompleteFrames} incomplete · ${frame.rejectedPackets} rejected`;
-              mirrorExternalFrame(ddpPreviewPixels);
             },
           })
           .catch((error) => {
@@ -1955,6 +1951,7 @@ async function start(): Promise<void> {
           );
           return;
         }
+        if (externalFrameMirrorQueue.active) stopExternalFrameMirror();
         const payload = setupPayload();
         const deviceUrl = simulatorDeviceUrl;
         const equatorPoints =
@@ -1989,7 +1986,7 @@ async function start(): Promise<void> {
                 "Saved the effect and settings for standalone playback.";
             setLogMessage(
               audioEditingSelected()
-                ? "Saved the microphone effect as the ESP32 standalone boot preset. Simulator streaming is paused."
+                ? "Saved the microphone effect as the ESP32 standalone boot preset."
                 : "Saved the current animation as the ESP32 standalone boot preset.",
             );
           })
@@ -5260,6 +5257,15 @@ async function start(): Promise<void> {
       if (!externalPreviewPixels && externalFrameMirrorQueue.active) {
         stopExternalFrameMirror();
       }
+      if (
+        externalPreviewPixels &&
+        externalPreviewPixels !== lastMirroredExternalPixels
+      ) {
+        mirrorExternalFrame(externalPreviewPixels);
+        if (externalFrameMirrorQueue.active)
+          lastMirroredExternalPixels = externalPreviewPixels;
+      }
+      if (!externalPreviewPixels) lastMirroredExternalPixels = undefined;
       if (audioPreviewPixels.length !== mapping.entries.length)
         audioPreviewPixels = new Uint32Array(mapping.entries.length);
       renderer?.updateColors(
@@ -5275,7 +5281,8 @@ async function start(): Promise<void> {
       if (
         !simulatorSetupActive &&
         !physicalRouteReviewSession &&
-        !audioEditingSelected() &&
+        !audioEffectSelected() &&
+        !externalPreviewPixels &&
         !standaloneSaveRequest &&
         simulatorDeviceUrl &&
         !externalFrameMirrorQueue.active &&

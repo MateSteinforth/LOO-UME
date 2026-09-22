@@ -17,8 +17,12 @@ The other 30 simulator effects retain their existing behavior and do not use mic
 ## Preview and save
 
 Change Equator Wave settings in the simulator, then select **Save to ESP32**.
-Audio parameter changes do not save automatically. Audio preview selection pauses simulator streaming to the controller.
-The save action checks the firmware renderer, LED count, and coordinate hash before it writes the standalone preset.
+Audio parameter changes do not save automatically. Equator Wave continues to
+stream the browser-rendered frame through DDP. A current TouchDesigner, Art-Net,
+or DDP input overrides the native simulator display and forwards that exact
+displayed frame to the sculpture.
+The save action checks the firmware renderer, LED count, and coordinate hash
+before it writes the standalone preset.
 Firmware 2609099 does not contain Equator Wave. The matching candidate firmware requires a separate attended installation.
 
 When the ESP32 connects, its supported native audio effects appear in a separate selector group.
