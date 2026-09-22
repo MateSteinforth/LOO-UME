@@ -1,6 +1,26 @@
 # Project task board
 
-Last reconciled: 2026-09-05
+## Playback and audio regression correction — In Progress (2026-09-22)
+
+- Owner: primary agent. Branch: `codex/playback-source-fix`.
+- Worktree: `/tmp/loo-ume-playback-source-fix`. Base: review 47, `d0a164e`.
+- Device evidence: firmware 2609099 at `192.168.68.59` receives and presents DDP from `192.168.68.51`. Its INMP441 processing runs.
+- Reported regression: TouchDesigner frames appear in the LOO/UME simulator but do not appear on the sculpture. WLED preset selection still reaches it.
+- Cause found: review 47 blocks external forwarding when route readiness or audio editing gates fail. Its fallback can send native simulator pixels instead.
+- Requirement: send the exact displayed TouchDesigner or simulator frame through the normal mapped DDP path.
+- Requirement: Bass Wave Sparks uses the computer microphone while LOO/UME runs. Its rendered pixels must appear in the simulator and sculpture.
+- Requirement: after LOO/UME disconnects, the saved Bass Wave Sparks effect uses the ESP32 INMP441 microphone.
+- Requirement: other WLED audio effects use the same two-mode contract. Their browser renderers must use original WLED functions, not substitute animations.
+- Playback correction is partially implemented. It makes the render loop the displayed-frame authority and removes the stale native fallback during external input.
+- Bass Wave Sparks is the first optimization target. Preserve its shared browser and ESP32 renderer, mapping, and controlled-input parity tests.
+- Native WLED audio simulator support remains a separate dependent slice. It needs the audio data adapter and synchronized WASM build receipt.
+- Acceptance: TouchDesigner preview and physical output match; computer-microphone Bass Wave Sparks streams through DDP; saved standalone audio resumes with INMP441.
+- Test transitions: native audio to DDP, DDP timeout to native audio, application quit, reconnect, Wi-Fi interruption, and controller restart.
+- Preserve firmware 2609099, GPIOs 16, 17, 21, and 22, the LED map, and all saved calibration during application tests.
+- Do not install firmware 2609101 until the application correction passes and an attended OTA test starts.
+- Conflicts: `web/src/main.ts`, `web/src/ExternalFrameMirror.ts`, audio controls, playback tests, and WASM runtime files.
+
+Last reconciled: 2026-09-22
 Integration baseline: `main`, including the unified UI, Manifold-only
 fabrication, checked WLED simulator runtime, and Schema 2-only mapping path.
 
