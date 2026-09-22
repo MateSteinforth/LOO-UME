@@ -21,6 +21,7 @@
 - Do not install firmware 2609101 until the application correction passes and an attended OTA test starts.
 - Local verification: 9 focused Vitest checks, `check:fast`, and the AudioReactive/physical-route Playwright journeys pass. The browser journey asserts exact DDP bytes while an ESP32-native audio effect is selected and continued Equator Wave streaming after standalone save.
 - Review 49 was built and verified by macOS workflow run `35703715158` from exact commit `bcb9b2672ad3d8a951997644631118db2e16162c`. DMG: `https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-49/LOO-UME-Electron-arm64.dmg`; SHA-256 `921d419809fc9952b4c0bd5ebfc3c214026dcbeb243dc63ff9afa6dc09244d2f`.
+- Review 50 restores frame-driven mirror smoothness from exact commit `24aa1eaace6d4d0cd55be8b92be047f9d94ff94b`, workflow run `35705862138`. DMG: `https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-50/LOO-UME-Electron-arm64.dmg`; SHA-256 `292aac00df372f75d03d30204c99e6afb9279d52b09fa5a4ac5d38d9e960d807`.
 - Human review: confirm that TouchDesigner pixels match the simulator and sculpture, then confirm Equator Wave computer-microphone output. Preserve firmware 2609099 and the current device configuration during this application-only test.
 - Conflicts: `web/src/main.ts`, `web/src/ExternalFrameMirror.ts`, audio controls, playback tests, and WASM runtime files.
 
