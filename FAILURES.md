@@ -16,6 +16,25 @@ reveals a durable lesson.
 - **Status:** Build and host regressions pass. Device throughput and the contribution to observed frame drops remain under test.
 - **Prevention:** Test timestamp ordering across lock acquisition. A race-free data structure can still use an invalid time snapshot.
 
+### F-197 — A complete-frame gate serialized painting behind the RMT wire time
+
+- **Date:** 2026-09-24
+- **Context:** A new request asked for a DDP double buffer to stop choppy playback with AudioReactive. Firmware 2609099 already had three hidden DDP frame buffers (FIRM-040).
+- **Symptom:** On RMT, 2609099 received 29.21 complete frames/s and showed 25.63 frames/s.
+- **Cause:** `looDdpService()` paints only after `BusManager::canAllShow()`. The one-buffer DMA driver needs this gate. The RMT driver has two buffers, so there the gate only adds paint time and loop delay to the 21.17 ms wire time. Each shown frame then uses most of the 33.3 ms period, and a bunched arrival replaces a waiting frame.
+- **Correction under test:** FIRM-044 candidate 2609103 adds timing telemetry and a runtime RMT overlap mode that is off at boot. The exact-source host model shows 20 of 30 bunched frames with the gate and 30 of 30 with overlap.
+- **Prevention:** Before you add a presentation gate, add wire, paint, and loop time per frame and compare the sum with the frame period. Apply a buffer constraint only to the driver that has it. Before you implement a requested mechanism, search the current firmware task board and sources: it can already exist (see F-188).
+- **Status:** Offline candidate verified. The physical effect is not measured.
+
+### F-198 — LTO removed the symbols of single-caller functions
+
+- **Date:** 2026-09-24
+- **Symptom:** The FIRM-044 ELF check found no `looDdpControl` or `looDdpService` symbol. The 2609099 ELF also has no `looDdpService` symbol.
+- **Cause:** Link-time optimization inlines a function that has one caller and removes its symbol.
+- **Correction:** Check the function's state objects under their LTO names, such as `_ZL5phase$lto_priv$0`, the size growth of the caller against the baseline ELF, and unique strings in the image.
+- **Prevention:** In an LTO build, a missing function symbol does not prove missing code, and a present symbol list is not a sufficient check. Compare with the baseline ELF in the verify script.
+- **Status:** Implemented in `firmware/ddp-timing/verify.py`.
+
 ### F-193 — DMA completion can depend on a short interrupt deadline
 
 - **Date:** 2026-09-09

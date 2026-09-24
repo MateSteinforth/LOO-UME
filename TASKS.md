@@ -19,6 +19,10 @@ The controller stays on firmware 2609099 with RMT and audio enabled.
 Next investigation: correlate residual flashes with frame data and RMT timing before another firmware change.
 Check native-to-DDP transitions separately from steady playback. Do not assume a transition defect without evidence.
 
+**DDP frame-rate gap (2026-09-24): see FIRM-044.** Firmware 2609099 already assembles complete DDP frames in a hidden buffer.
+It shows the newest complete frame and never shows a partial frame. Do not add a second DDP double buffer.
+FIRM-044 measures where the lost frames go and tests one change: paint the next frame while RMT sends the previous frame.
+
 **Best overall result so far — operator confirmed2026-09-09:** Firmware2609099 with RMT, DMA off, and microphone processing enabled.
 DDP mirroring and standaloneGravimeter132 both have positive physical observations on this same firmware.
 After restarting mirroring, the operator reports some flashes but considers this the best overall result yet.
@@ -348,6 +352,24 @@ candidate comparison, and standalone microphone response. Leave the device uncha
 - Repeat after controller/LED power cycle and LOOUME restart; confirm exact driver/project/map/preset/audio settings. Verify documented rollback image and complete config restore remain available, without needlessly flashing the fallback again.
 - Final record: one chosen firmware/app/config set with hashes, tested FPS/brightness/content, microphone wiring, transition behavior, physical durations/counts and remaining limits. Zero observed flashes is scoped to those tests, not a guarantee. Any accepted nonzero rate needs the operator's explicit acceptance; never quietly redefine success.
 - Commit scoped changes locally; push/merge only through the permitted workflow. Update this quick-start state and `/home/mate/WLED-AUDIO-DDP-HANDOFF.md`, removing stale active-test instructions. Mark the overall goal complete only after both DDP motion and native audio meet the recorded acceptance.
+
+### `P1 · FIRM-044` Measure DDP presentation timing and test RMT overlap
+
+- Status: Ready to Merge (offline candidate only; the attended comparison is open). Owner: Claude (Opus 5.5); branch `claude/ddp-present-overlap`; worktree `/tmp/loo-ume-ddp-present-overlap`.
+- Result: `firmware/ddp-timing/` patches the exact 2609099 source. The default path is unchanged. `/json/info.loo_ddp.timing` gives ten timing histograms and the replacement causes. `/json/state {"loo_ddp":{"overlap":true}}` enables RMT overlap until the next boot. `report.py` summarizes saved info files.
+- Verification: the exact-source service harness passes all FIRM-040 scenarios with overlap off, and the new overlap, replacement-cause, DMA, overload, and histogram scenarios under ASan/UBSan. Bunched 30 frames/s input: serialized shows 20 of 30 frames, overlap shows 30 of 30. The queue concurrency test, the expiry regression, the report self-test, the pinned build, and `verify.py` pass. Compiler warnings are identical to 2609099. IRAM and initialized DRAM are unchanged; BSS grows by 1,864 bytes.
+- Artifact: `/tmp/loo-ume-ddp-present-overlap/build/firmware-timing/wled-audio-ddp-timing-2609103.bin`, 1,157,792 bytes, SHA-256 `11d343008729894408ee6009a66e33a6595b8d9cc84aeab75afa3ea6b67c5b0c`. Receipt: `firmware/ddp-timing/build-receipt.json`. No device write occurred. The 2609099, 2609085, and 2609051 images are unchanged.
+- Next: the attended overlap off/on comparison in `firmware/ddp-timing/README.md`. It needs operator approval for the OTA installation.
+- Request (2026-09-24): make DDP playback smooth with AudioReactive compiled. The request asks for a hidden DDP back buffer, a swap at PUSH, and "latest frame wins" presentation.
+- Finding: firmware 2609099 already does this (FIRM-040). It has three frame buffers, completion at the final PUSH packet, and replacement of an unshown frame by a newer frame. It never shows a partial frame.
+- Measured gap: on RMT, 2609099 received 29.21 complete frames/s and showed 25.63 frames/s. About 12% of the frames were replaced before they were shown.
+- Probable cause, not yet measured: `looDdpService()` paints a frame only after `BusManager::canAllShow()` reports that the previous transmission is complete. Each shown frame then needs 21.2 ms wire time (704 pixels on GPIO16), paint and show time (maximum 8.9 ms), and main-loop delay. This total is near the 33.3 ms frame period.
+- The RMT driver (`NeoEsp32RmtXMethod`) has two buffers. `Update()` waits for the previous transmission, sends the editing buffer, and then swaps. WLED writes only the editing buffer, so painting during a transmission does not change the frame on the wire. The guarded DMA path has one buffer and must stay serialized.
+- Scope: candidate 2609103, built from the exact 2609099 source. Add timing telemetry for frame arrival, assembly, wait, paint, show, wire, and main loop. Record the presenter state each time a frame is replaced. Add a runtime switch `loo_ddp.overlap`. It is off at every boot, which gives the 2609099 behavior. When it is on and RMT is active, the next complete frame is painted while the previous frame transmits.
+- Keep: receiver validation, three buffers, latest-frame replacement, the WLED ledmap path, timeout and exit, native segment freeze, audio, GPIOs, output lengths, and DMA guards.
+- Offline acceptance: the exact-source harness shows no partial frame, no change to a frame during its transmission, latest-frame replacement, serialized DMA, bounded latency, and telemetry that agrees with the simulated schedule. The build, receipt, and preserved-image hashes pass.
+- Physical acceptance (operator present): send the same moving stream with overlap off, then on. Compare shown/complete frames, the replacement causes, visual smoothness, flashes, standalone audio, the ledmap, and the timeout. Do not install the candidate without operator approval.
+- Conflicts: `firmware/ddp-timing/` (new), `TASKS.md`, and `FAILURES.md`. Do not edit the preserved archives or other task worktrees.
 
 ### `P1 · FIRM-035` Isolate output allocation from the physical GPIO22 path
 

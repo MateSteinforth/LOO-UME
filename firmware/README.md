@@ -3,6 +3,8 @@
 The best observed combined DDP and standalone audio firmware is 2609099, with four RMT outputs and DMA off.
 See [the receiver correction](ddp-expiry/README.md) and [current physical results](../TASKS.md).
 Some flashes and frame loss remain. This result does not establish flicker-free output.
+Candidate 2609103 adds DDP timing telemetry and an optional RMT overlap mode to 2609099; it is not installed.
+See [ddp-timing/README.md](ddp-timing/README.md) before any work on DDP frame loss.
 The packaged firmware described below remains a separate baseline.
 For the earlier AudioReactive build, see [audio-reactive/README.md](audio-reactive/README.md).
 
