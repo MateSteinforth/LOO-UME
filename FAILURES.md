@@ -29,7 +29,8 @@ rg -n -i -A8 '<keyword>' docs/archive/FAILURES-through-2026-09.md
 
 ## Entry template
 
-Next identifier: **F-196**. Add new entries at the top of **Lessons**.
+Next identifier: **F-199** (F-197 and F-198 are on the unmerged branch
+`claude/ddp-present-overlap`; F-196 is not used). Add new entries at the top of **Lessons**.
 
 ```markdown
 ### F-NNN — Short, specific title

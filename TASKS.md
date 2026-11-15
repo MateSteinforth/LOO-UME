@@ -64,9 +64,15 @@ No tasks.
 
 Firmware (P1; physical steps need the operator):
 
-- `FIRM-044` Correlate the residual flashes with frame data and RMT timing
-  before another firmware change. Check native-to-DDP transitions separately
-  from steady playback. Rebuild and verify image 2609099 from its receipt.
+- `FIRM-044` Measure DDP presentation timing and test RMT overlap. Candidate
+  2609103 is complete offline on the unmerged branch
+  `claude/ddp-present-overlap` (`firmware/ddp-timing/`). It was not installed.
+  Its image and build tree were under `/tmp` and are lost (F-195). Rebuild
+  2609099 from the receipts first, then do the attended comparison in its
+  README. That branch also adds F-197 and F-198.
+- `FIRM-045` Correlate the residual flashes with frame data and RMT timing
+  before another output-driver change. Check native-to-DDP transitions
+  separately from steady playback.
 - `FIRM-037` Explicit driver contract in the application. Complete offline at
   `25977c4` on the unmerged branch `codex/ddp-driver-contract`.
 - `FIRM-041` Validate standalone audio on the selected output backend.
