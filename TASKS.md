@@ -56,10 +56,9 @@ No tasks.
   operator reports that chain swaps were already tested and considers the
   hardware sound. Do not ask for the swap again. The operator decides whether
   to retire this task or to do the signal capture.
-- **Branches.** 21 local branches are not merged into `main`. Three have no
-  remote copy: `codex/audio-review-fixes`, `codex/ddp-driver-contract`
-  (FIRM-037), `codex/glitch-audio-runtime`. The operator decides which
-  branches to push, merge, or delete.
+- **Branches.** 21 local branches are not merged into `main`. All have a
+  remote copy since 2026-11-15. The operator decides which branches to merge
+  or delete.
 
 ## Backlog
 
@@ -69,7 +68,7 @@ Firmware (P1; physical steps need the operator):
   before another firmware change. Check native-to-DDP transitions separately
   from steady playback. Rebuild and verify image 2609099 from its receipt.
 - `FIRM-037` Explicit driver contract in the application. Complete offline at
-  `25977c4` on the unmerged, local-only branch `codex/ddp-driver-contract`.
+  `25977c4` on the unmerged branch `codex/ddp-driver-contract`.
 - `FIRM-041` Validate standalone audio on the selected output backend.
 - `FIRM-042` Validate DDP/audio transitions and overload recovery.
 - `FIRM-043` Sustained acceptance, recovery, and final handoff.
