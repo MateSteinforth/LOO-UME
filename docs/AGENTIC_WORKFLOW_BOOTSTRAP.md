@@ -11,13 +11,13 @@ the target repository and its maintainers.
 
 ## What the workflow establishes
 
-| File | Single responsibility |
-| --- | --- |
-| `AGENTS.md` | Mandatory repository-specific operating rules, sources of truth, guardrails, and verification commands |
-| `docs/ARCHITECTURE.md` | Current system shape, data flow, subsystem boundaries, and known seams |
-| `TASKS.md` | Persistent prioritized work status, dependencies, acceptance criteria, and review state |
-| `FAILURES.md` | Reusable lessons from mistakes, failed assumptions, corrections, and prevention |
-| `docs/DECISIONS.md` | Implemented choices and consequences when the repository needs a durable decision record |
+| File                   | Single responsibility                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| `AGENTS.md`            | Mandatory repository-specific operating rules, sources of truth, guardrails, and verification commands |
+| `docs/ARCHITECTURE.md` | Current system shape, data flow, subsystem boundaries, and known seams                                 |
+| `TASKS.md`             | Persistent prioritized work status, dependencies, acceptance criteria, and review state                |
+| `FAILURES.md`          | Reusable lessons from mistakes, failed assumptions, corrections, and prevention                        |
+| `docs/DECISIONS.md`    | Implemented choices and consequences when the repository needs a durable decision record               |
 
 Adapt names when the repository already has equivalent files. Link existing
 authorities instead of duplicating them. Current behavior, planned behavior,
@@ -126,7 +126,10 @@ be able to answer five questions without chat history:
 
 Keep instructions compact enough that every agent will actually read them.
 Move detailed domain knowledge into focused documents and link them from
-`AGENTS.md`.
+`AGENTS.md`. Keep `AGENTS.md` host-neutral; put host and tool pitfalls in a
+separate notes page. Keep only open work in `TASKS.md` and only recent
+lessons in `FAILURES.md`. Move the rest to dated files in `docs/archive/`,
+which agents search by keyword and do not read completely.
 
 ### 3. Reconstruct work from evidence
 
@@ -150,16 +153,17 @@ shared worktree.
 - **FAST** is the default for clear, low-risk work. Execute directly, omit a
   critic and independent review by default, run focused checks, and update
   durable documents only when behavior changes.
-- **STANDARD** is for substantial normal features. Use a brief plan, Terra for
-  implementation by default, Luna for bounded inspection or testing, and an
-  independent review or test pass when useful.
+- **STANDARD** is for substantial normal features. Use a brief plan, a
+  Standard-tier model for implementation, a Light-tier model for bounded
+  inspection or testing, and an independent review or test pass when useful.
 - **QUALITY** is for architecture, high-risk changes, complex geometry,
-  ambiguous defects, major refactors, or repeated failures. Use Sol for
+  ambiguous defects, major refactors, or repeated failures. Use a Deep-tier model for
   orchestration and add bounded critics, independent work, or broader checks
   only when they reduce a demonstrated risk.
 
-Use Luna, then Terra, then Sol as complexity increases. Escalate the mode or
-model only because of evidence. Stop when the acceptance criteria and relevant
+Define the Light, Standard, and Deep model tiers for each host in one notes
+page, not in the rule file. Escalate the mode or model only because of
+evidence. Stop when the acceptance criteria and relevant
 checks pass; record later improvements as separate tasks.
 
 ### 5. Operate each slice
@@ -197,7 +201,8 @@ automated check.
 ### 7. Make reopening boring
 
 At the end of a work slice, leave the repository so a new orchestrator can
-resume by reading `AGENTS.md`, architecture, the task board, and the failure log;
+resume by reading `AGENTS.md` and the task board, the relevant architecture
+sections, and the failure-log entries that a keyword search finds;
 checking the worktree; and taking the first unblocked Ready item. Chat history
 may add context, but it must not be the only place where project state lives.
 

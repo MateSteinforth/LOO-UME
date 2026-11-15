@@ -264,8 +264,10 @@ toolchain inputs.
 - `src/sculpture/SculptureEditor.ts` owns editor changes and invalidation.
 - `src/cad/` contains the Manifold geometry compilers.
 - `web/src/main.ts` owns browser orchestration.
-- `TASKS.md` contains current task state.
-- `AGENTS.md` contains recurring repository work rules.
+- `TASKS.md` contains open tasks. `FAILURES.md` contains recent lessons.
+  Older records are in `docs/archive/`.
+- `AGENTS.md` contains recurring repository work rules for all agents.
+  `docs/AGENT_NOTES.md` contains host, model, and tool notes.
 
 ## Technical documentation
 
