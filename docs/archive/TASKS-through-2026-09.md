@@ -1193,3 +1193,88 @@ No tasks.
   boundary, exact parts, folder/ZIP support, and real browser journeys.
 - `CTRL-001`–`CTRL-005`: persistent task board, safe workflow, failure learning,
   architecture reconstruction, and simulator-to-hardware priority.
+
+## Task records merged from `codex/playback-source-fix` (review 50) on 2026-11-16
+
+## Playback and audio regression correction — Human Review (2026-09-22)
+
+- Owner: primary agent. Branch: `codex/playback-source-fix`.
+- Worktree: `/tmp/loo-ume-playback-source-fix`. Base: review 47, `d0a164e`.
+- Device evidence: firmware 2609099 at `192.168.68.59` receives and presents DDP from `192.168.68.51`. Its INMP441 processing runs.
+- Reported regression: TouchDesigner frames appear in the LOO/UME simulator but do not appear on the sculpture. WLED preset selection still reaches it.
+- Cause found: review 47 blocks external forwarding when route readiness or audio editing gates fail. Its fallback can send native simulator pixels instead.
+- Requirement: send the exact displayed TouchDesigner or simulator frame through the normal mapped DDP path.
+- Requirement: Bass Wave Sparks uses the computer microphone while LOO/UME runs. Its rendered pixels must appear in the simulator and sculpture.
+- Requirement: after LOO/UME disconnects, the saved Bass Wave Sparks effect uses the ESP32 INMP441 microphone.
+- Requirement: other WLED audio effects use the same two-mode contract. Their browser renderers must use original WLED functions, not substitute animations.
+- Playback correction is committed at `bcb9b26`. The render loop is the displayed-frame authority. Current TouchDesigner, Art-Net, and DDP frames override the native simulator and go through the same mapped sculpture output while an ESP32-native audio effect is selected.
+- Smoothness fix: review 49 mirror lag came from pushing external frames inside the render loop. External mirroring is frame-driven again from the DDP/Art-Net callbacks; the render loop keeps only the display arbitration (source priority, timeout stop).
+- Equator Wave continues to render from the computer microphone and stream its displayed pixels. Saving a standalone effect stops the in-flight external mirror before changing WLED state, then current external input can resume.
+- Bass Wave Sparks remains the first native-WLED browser-renderer optimization target. Preserve its shared browser and ESP32 renderer, mapping, and controlled-input parity tests.
+- Acceptance: TouchDesigner preview and physical output match; computer-microphone Bass Wave Sparks streams through DDP; saved standalone audio resumes with INMP441.
+- Test transitions: native audio to DDP, DDP timeout to native audio, application quit, reconnect, Wi-Fi interruption, and controller restart.
+- Preserve firmware 2609099, GPIOs 16, 17, 21, and 22, the LED map, and all saved calibration during application tests.
+- Do not install firmware 2609101 until the application correction passes and an attended OTA test starts.
+- Local verification: 9 focused Vitest checks, `check:fast`, and the AudioReactive/physical-route Playwright journeys pass. The browser journey asserts exact DDP bytes while an ESP32-native audio effect is selected and continued Equator Wave streaming after standalone save.
+- Review 49 was built and verified by macOS workflow run `35703715158` from exact commit `bcb9b2672ad3d8a951997644631118db2e16162c`. DMG: `https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-49/LOO-UME-Electron-arm64.dmg`; SHA-256 `921d419809fc9952b4c0bd5ebfc3c214026dcbeb243dc63ff9afa6dc09244d2f`.
+- Review 50 restores frame-driven mirror smoothness from exact commit `24aa1eaace6d4d0cd55be8b92be047f9d94ff94b`, workflow run `35705862138`. DMG: `https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-50/LOO-UME-Electron-arm64.dmg`; SHA-256 `292aac00df372f75d03d30204c99e6afb9279d52b09fa5a4ac5d38d9e960d807`.
+- Human review: confirm that TouchDesigner pixels match the simulator and sculpture, then confirm Equator Wave computer-microphone output. Preserve firmware 2609099 and the current device configuration during this application-only test.
+- Conflicts: `web/src/main.ts`, `web/src/ExternalFrameMirror.ts`, audio controls, playback tests, and WASM runtime files.
+
+Last reconciled: 2026-09-22
+
+### Audio review 46 corrections — Ready to Merge (2026-09-10)
+
+- Owner: primary agent; branch `codex/audio-review-fixes`; worktree `/tmp/loo-ume-audio-review-fixes`.
+- Scope: restore the earlier standalone audio-effect controls and correct laptop microphone capture in the desktop simulator.
+- The operator confirms that the ESP32 is off. Connection errors are expected; device networking is outside this correction.
+- Plan: inspect the earlier picker; reproduce real Electron microphone capture; implement narrow corrections; run focused browser and desktop checks.
+- Acceptance: the native audio-effect controls remain available, and actual Electron audio capture supplies nonzero simulator input from a test tone.
+- Audio parameter changes require an explicit **Save to ESP32** action. Equator Wave saves require matching firmware coordinates.
+- Review 46 omitted microphone access from its separate review entitlement file. The correction checks the signed application before publication.
+- Native WLED audio effects remain controller-only. Restoring their selector does not add their renderers to the simulator.
+- Preserve Equator Wave, shared rendering, all firmware binaries, and controller settings. Do not change or install firmware.
+- File ownership: primary agent owns picker integration, task records, and validation. An independent agent owns microphone diagnosis and correction.
+- Checks pass: 77 focused tests, four browser tests, TypeScript, full typed lint, WASM integrity, and the desktop build.
+- The signed macOS package check and physical laptop microphone confirmation remain delivery checks. No controller write occurred.
+
+### Native WLED audio effects in the simulator — Ready
+
+- Scope: compile the original WLED audio effect functions into the simulator. Do not create separate JavaScript renderers.
+- Add the audio data interface that those functions require. Supply computer microphone input and controlled reference inputs.
+- Acceptance: supported effects work without a connected ESP32. Equal inputs and settings produce matching reference pixels.
+- Keep microphone analysis differences explicit. Independent microphones cannot guarantee identical output.
+- Dependencies: generation branch, synchronized WASM receipt, effect metadata, and tests for parameter changes.
+- This work is not included in the review 46 correction.
+
+### Equator Wave — Ready to Merge; physical comparison pending (2026-09-10)
+
+- Owner: primary agent; branch `codex/bass-wave-sparks`; worktree `/tmp/loo-ume-bass-wave-sparks`.
+- Scope: add simulator microphone input first, then shared rendering, then the first custom audio effect and ESP32 build.
+- Behavior: a horizontal line moves as a wave around the sphere's equator. Bass controls the wave; high frequencies add random bright points.
+- Keep the accepted RMT, DDP, microphone, GPIO, and mapping behavior. This task does not change the output driver.
+- Step 1 — Done: microphone start/stop, input meters, permission errors, cleanup, and Electron audio permission controls are implemented.
+- Step 2 — Done: one C++ renderer serves the browser and ESP32. Every RGB pixel matches across 100 controlled reference frames.
+- Step 3 — Done: authoritative LED positions generate logical angular and height coordinates for the simulator and firmware.
+- Step 4 — Done: the equatorial wave, high-frequency points, speed, sensitivity, and silence behavior are implemented and tested.
+- Step 5 — Done: firmware 2609101 builds and passes source verification plus the retained DDP expiry and service regressions.
+- Step 6 — Human Review: compare simulator and hardware with the same mapping, settings, timestamps, seed, and audio feature sequence.
+- Acceptance: shared rendering must produce identical RGB values for controlled inputs. Independent microphones do not supply identical audio samples.
+- Browser and WLED audio analysis must remain explicit; similar frequency bands alone do not establish audio-processing parity.
+- Physical acceptance requires an attended device test. Preserve the accepted 2609099 image before any later OTA installation.
+- File ownership: primary agent owns integration. Independent agents completed microphone capture, Electron permissions, and simulator generation.
+- Possible conflicts: `TASKS.md`, `web/src/main.ts`, `web/src/WledEngine.ts`, and TypeScript configuration.
+- Checks: 67 focused tests, two browser tests, native sanitizer checks, full typed lint, TypeScript, desktop build, and Electron main build pass.
+- The browser test uses a generated 100 Hz microphone stream. Real microphones and the packaged macOS permission prompt remain untested.
+- Generator source: `codex/equator-audio-runtime`, commit `d711bfb`, worktree `/tmp/loo-ume-equator-audio-runtime`.
+- Artifact: `/tmp/loo-ume-bass-wave-sparks/build/firmware-equator-wave/wled-equator-wave-2609101.bin`, 1,166,672 bytes.
+- Artifact SHA-256: `48bdaeaf89e54a5ab16050b0ab7cf5070a4fba5b4a557a10dbe2ad94c3bb7129`.
+- Coordinate SHA-256: `18a3a51145693c2283b2262244aa7db1b2572190f31a16bb6477c9edf5b819b4`.
+- The candidate embeds `sculptures/rhombicosidodecahedron/sculpture.json`. Verify its map against the loaded project before an OTA test.
+- No controller write occurred. Firmware 2609099 remains the accepted installed baseline; no new main integration is authorized.
+- Procedure and limits: `docs/AUDIO_EFFECTS.md`; build receipt: `firmware/equator-wave/build-receipt.json`.
+- Implementation commit: `379f818`. Generator commit: `d711bfb`.
+- Publication approved on 2026-09-10. Both task branches are pushed to `https://github.com/MateSteinforth/LOO-UME.git`.
+- Apple Silicon DMG review 46 is published. Workflow run `34482956856` passed for source commit `1cf4ad328cc1da8183005a2f79b3bb9989d6e7e4`.
+- Download: https://github.com/MateSteinforth/LOO-UME/releases/download/electron-review-46/LOO-UME-Electron-arm64.dmg
+- This review build does not merge the task into `main` or install firmware on the controller.

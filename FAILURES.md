@@ -29,8 +29,9 @@ rg -n -i -A8 '<keyword>' docs/archive/FAILURES-through-2026-09.md
 
 ## Entry template
 
-Next identifier: **F-199** (F-197 and F-198 are on the unmerged branch
-`claude/ddp-present-overlap`; F-196 is not used). Add new entries at the top of **Lessons**.
+Next identifier: **F-200**. F-195 is in the archive (merged from review 50).
+F-197 and F-198 are on the unmerged branch `claude/ddp-present-overlap`.
+F-196 is not used. Add new entries at the top of **Lessons**.
 
 ```markdown
 ### F-NNN — Short, specific title
@@ -46,7 +47,7 @@ Next identifier: **F-199** (F-197 and F-198 are on the unmerged branch
 
 ## Lessons
 
-### F-195 — Worktrees and preserved artifacts under `/tmp` did not survive a restart
+### F-199 — Worktrees and preserved artifacts under `/tmp` did not survive a restart
 
 - **Date:** 2026-11-15
 - **Symptom:** 32 registered task worktrees under `/tmp/loo-ume-*` were

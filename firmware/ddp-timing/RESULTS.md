@@ -6,7 +6,7 @@ Private evidence: `build/device/` in the primary checkout (not in Git).
 
 ## Rebuild
 
-The build tree under `/tmp` was lost (F-195). The tree was made again in `build/fw/` from the receipts.
+The build tree under `/tmp` was lost (F-199). The tree was made again in `build/fw/` from the receipts.
 Tool versions and all 22 source hashes of the 2609099 receipt match.
 The rebuilt images have the receipt sizes (1,154,928 and 1,157,792 bytes).
 Their SHA-256 values differ from the receipts, because the image contains the compile time:

@@ -1,4 +1,5 @@
 import SparkMD5 from "spark-md5";
+import { audioEffectsFromDevice, type AudioEffect } from "./AudioEffects.ts";
 import {
   createEsp32WifiControls,
   type WifiNetwork,
@@ -262,6 +263,7 @@ export interface Esp32SetupPayload {
   state: Record<string, unknown>;
   expectedEffectName?: string;
   expectedPaletteName?: string;
+  expectedEquatorMappingSha256?: string;
 }
 
 export interface SimulatorSetupOutput {
@@ -743,6 +745,32 @@ async function deviceFetch(
     headers,
     signal: AbortSignal.timeout(timeoutMs),
   });
+}
+
+export async function readDeviceAudioEffects(
+  baseUrl: URL,
+): Promise<AudioEffect[]> {
+  const info = await readJsonResponse(
+    await deviceFetch(baseUrl, "/json/info"),
+    "WLED audio capability",
+  );
+  if (
+    !Array.isArray((info as { um?: unknown })?.um) ||
+    !(info as { um: unknown[] }).um.includes(32)
+  )
+    return [];
+  const results = await Promise.allSettled([
+    deviceFetch(baseUrl, "/json/eff").then((response) =>
+      readJsonResponse(response, "WLED effects"),
+    ),
+    deviceFetch(baseUrl, "/json/fxdata").then((response) =>
+      readJsonResponse(response, "WLED effect metadata"),
+    ),
+  ]);
+  const [names, metadata] = results;
+  if (names.status === "rejected") throw names.reason;
+  if (metadata.status === "rejected") throw metadata.reason;
+  return audioEffectsFromDevice(info, names.value, metadata.value);
 }
 
 async function waitForWledInfo(
@@ -1407,12 +1435,18 @@ export function assertStandalonePresetReadback(
     "frz",
     "col",
   ] as const;
+  const audioKeys = ["si", "m12"] as const;
   if (
     preset?.n !== "LOO/UME standalone" ||
     preset.on !== payload.state.on ||
     preset.bri !== payload.state.bri ||
     !actualSegment ||
     !inactiveTrailingSegments ||
+    audioKeys.some(
+      (key) =>
+        expectedSegment?.[key] !== undefined &&
+        actualSegment[key] !== expectedSegment[key],
+    ) ||
     keys.some(
       (key) =>
         JSON.stringify(actualSegment[key]) !==
@@ -1421,6 +1455,34 @@ export function assertStandalonePresetReadback(
   ) {
     throw new Error(
       "WLED standalone preset does not match the simulator settings.",
+    );
+  }
+}
+
+export function assertEquatorFirmware(
+  info: unknown,
+  expectedHash: string | undefined,
+  expectedLedCount: number,
+): void {
+  const value = info as {
+    um?: unknown;
+    equatorWave?: {
+      renderer?: unknown;
+      mappingSha256?: unknown;
+      ledCount?: unknown;
+    };
+  } | null;
+  if (
+    !expectedHash ||
+    !/^[0-9a-f]{64}$/.test(expectedHash) ||
+    !Array.isArray(value?.um) ||
+    !value.um.includes(32) ||
+    value.equatorWave?.renderer !== "equator-wave-v1" ||
+    value.equatorWave.mappingSha256 !== expectedHash ||
+    value.equatorWave.ledCount !== expectedLedCount
+  ) {
+    throw new Error(
+      "The ESP32 needs Equator Wave firmware with the same sculpture coordinates before this effect can be saved.",
     );
   }
 }
@@ -1434,6 +1496,27 @@ export async function persistStandaloneAnimation(
   assertBoundedSimulatorPayload(payload);
   if (!shouldContinue())
     throw new Error("Standalone animation save was cancelled.");
+  if (payload.expectedEffectName === "Equator Wave") {
+    const info = await readJsonResponse(
+      await deviceFetch(baseUrl, "/json/info"),
+      "Equator Wave firmware",
+    );
+    assertEquatorFirmware(
+      info,
+      payload.expectedEquatorMappingSha256,
+      payload.expectedLedCount,
+    );
+    payload.state.AudioReactive = { enabled: true };
+  } else if (payload.state.AudioReactive !== undefined) {
+    const effects = await readDeviceAudioEffects(baseUrl);
+    if (!effects.some((effect) => effect.name === payload.expectedEffectName)) {
+      throw new Error(
+        "The connected ESP32 does not support the selected microphone effect.",
+      );
+    }
+    if (!shouldContinue())
+      throw new Error("Standalone animation save was cancelled.");
+  }
   const [effects, palettes] = await Promise.all([
     readJsonResponse(
       await deviceFetch(baseUrl, "/json/eff"),

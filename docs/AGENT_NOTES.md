@@ -45,7 +45,7 @@ namespace` while approved shell commands still work. Then apply an exact
 ## Host: all
 
 - Do not put a task worktree or the only copy of an artifact under `/tmp`
-  (F-195). Use a directory adjacent to the repository.
+  (F-199). Use a directory adjacent to the repository.
 - Do not assume that a repository-local GitHub CLI exists under `.tools`. When
   `gh` is absent, use the public GitHub Actions REST API with `curl` and parse
   the saved JSON with Node.js.

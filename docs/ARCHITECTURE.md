@@ -26,6 +26,9 @@ edit marks derived mechanics stale but does not stop those functions.
 
 ## Authoritative data flow
 
+The Equator Wave audio prototype shares one C++ renderer between the ESP32 usermod and browser WASM runtime.
+Authoritative LED positions produce its logical coordinate table. See [audio effect development](AUDIO_EFFECTS.md) for microphone and parity limits.
+
 1. `parsePanelAssemblyDefinition()` is the central deep Schema 2 runtime
    validator. `LoadPanelAssemblyProject.ts` is the thin CLI file adapter, while
    browser and portable-project adapters use the same profile-resolving loader.

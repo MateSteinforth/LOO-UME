@@ -3207,3 +3207,15 @@ AppTranslocation/...` and `/bin/sh` reported that the file did not exist.
 - **Evidence:** `/json/cfg` rewrote the full file, updatedvid to the running build and omitted `um.AudioReactive`, which remained stored from2609085 despite the non-audio OTA. `cfg.cpp:1282` serializes only compiled usermods. The physical bus settings and map were unchanged.
 - **Correction:** Preserve the complete cfg.json privately before a settings test. Restore that exact file through WLED's supported config upload, which reboots; verify full stored configuration and live output mapping afterward. API-merging an unknown usermod does not guarantee it survives the serializer.
 - **Status:** Complete original configuration, original order, map/state and DDP restored and verified. No microphone settings were lost.
+
+## Entries merged from `codex/playback-source-fix` (review 50) on 2026-11-16
+
+### F-195 — Review packages can override release microphone entitlements
+
+- **Date:** 2026-09-10
+- **Symptom:** Demo input worked in review 46, but the operator reported no computer microphone response.
+- **Defect:** The release plist allowed microphone input. The review workflow selected a separate plist that omitted this entitlement.
+- **Correction:** Add microphone access to the review plist. Check the signed entitlement and usage explanation before package publication.
+- **Evidence:** Actual Electron capture with a generated audio file passes through the production permission checks. The browser audio graph supplies nonzero input.
+- **Limit:** This Linux test does not verify macOS microphone capture. The corrected package still requires an operator test.
+- **Prevention:** Inspect packaging overrides when a browser feature needs operating system permission. Mocked browser capture does not verify signed package permissions.

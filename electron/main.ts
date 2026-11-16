@@ -21,13 +21,17 @@ import {
 } from "./DevelopmentMode.ts";
 import { migrateLegacyProjectLibrary } from "./ProjectLibraryMigration.ts";
 import { isApprovedCp2102 } from "./SerialPolicy.ts";
+import {
+  allowsEditorAudioPermissionCheck,
+  allowsEditorAudioPermissionRequest,
+} from "./AudioPermission.ts";
 const { autoUpdater } = updaterPackage;
 
 let mainWindow: BrowserWindow | undefined;
 let localServer: LocalEditorServer | undefined;
 let quitting = false;
 let logPath = "";
-const serialConfiguredSessions = new WeakSet<Electron.Session>();
+const permissionConfiguredSessions = new WeakSet<Electron.Session>();
 const localReview = process.env.LOO_UME_LOCAL_ELECTRON_REVIEW === "1";
 const localReviewUserData = process.env.LOO_UME_LOCAL_ELECTRON_REVIEW_DATA;
 const runtime = resolveElectronRuntime(process.env, app.isPackaged);
@@ -83,15 +87,25 @@ function serialPortSummary(port: Electron.SerialPort): string {
 
 function configureSerialSelection(window: BrowserWindow): void {
   const editorSession = window.webContents.session;
-  if (serialConfiguredSessions.has(editorSession)) return;
-  serialConfiguredSessions.add(editorSession);
+  if (permissionConfiguredSessions.has(editorSession)) return;
+  permissionConfiguredSessions.add(editorSession);
   editorSession.setPermissionCheckHandler(
-    (_webContents, permission, requestingOrigin) =>
-      permission === "serial" && isEditorUrl(requestingOrigin),
+    (_webContents, permission, requestingOrigin, details) =>
+      (permission === "serial" && isEditorUrl(requestingOrigin)) ||
+      allowsEditorAudioPermissionCheck(
+        { details, permission, requestingOrigin },
+        editorUrl,
+      ),
   );
   editorSession.setPermissionRequestHandler(
-    (webContents, permission, callback) => {
-      callback(permission === "serial" && isEditorUrl(webContents.getURL()));
+    (webContents, permission, callback, details) => {
+      callback(
+        (permission === "serial" && isEditorUrl(webContents.getURL())) ||
+          allowsEditorAudioPermissionRequest(
+            { details, permission, webContentsUrl: webContents.getURL() },
+            editorUrl,
+          ),
+      );
     },
   );
   editorSession.on(
