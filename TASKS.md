@@ -29,9 +29,9 @@ When a task is integrated, move its entry to the archive. Keep one line in
   2609097, and 2609099 with DMA each failed physically), audio shutdown builds
   2609082/091/092, a higher RMT priority, a shorter GPIO16 chain, and a 300 µs
   reset.
-- **Lost local copies:** the image file and the private device records under
-  `/tmp` are missing (F-195). The controller is assumed to hold 2609099; read
-  the version back before any device work.
+- **Installed now:** timing candidate 2609103 (2609099 plus histograms and a
+  runtime overlap switch that is off at boot). Rebuilt images and the
+  toolchain are in `build/fw/` of the primary checkout.
 - **Application:** no feature task is in progress.
 
 ## In Progress
@@ -64,12 +64,14 @@ No tasks.
 
 Firmware (P1; physical steps need the operator):
 
-- `FIRM-044` Measure DDP presentation timing and test RMT overlap. Candidate
-  2609103 is complete offline on the unmerged branch
-  `claude/ddp-present-overlap` (`firmware/ddp-timing/`). It was not installed.
-  Its image and build tree were under `/tmp` and are lost (F-195). Rebuild
-  2609099 from the receipts first, then do the attended comparison in its
-  README. That branch also adds F-197 and F-198.
+- `FIRM-044` Measure DDP presentation timing and test RMT overlap. In
+  Progress on `fable` (operator instruction). 2609103 is installed since
+  2026-11-16. Results: `firmware/ddp-timing/RESULTS.md`. Overlap raises shown
+  frames from 88.6% to 91.5%; the remaining loss is Wi-Fi arrival jitter
+  (RSSI -80 dBm). Next: operator decision between a playout buffer and a
+  better link. The build tree is now in `build/fw/` of the primary checkout.
+- `LIVE-033` Merge the 30 frames/s DDP sender. `main` sends 10 frames/s
+  (LOO/UME 0.1.50). The corrected sender is on `codex/ddp-rate-control`.
 - `FIRM-045` Correlate the residual flashes with frame data and RMT timing
   before another output-driver change. Check native-to-DDP transitions
   separately from steady playback.

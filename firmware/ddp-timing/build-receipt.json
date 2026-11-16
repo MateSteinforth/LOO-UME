@@ -1,0 +1,76 @@
+{
+  "buildId": 2609103,
+  "baselineBuildId": 2609099,
+  "status": "build-verified",
+  "baselineArtifactSha256": "007c3e6c584a86d7b9bfc1522a9413d0a9867677b27f2ba07d81f4680d42cac4",
+  "inputs": {
+    "wled00/e131.cpp": "e8b5baf938a6206af7d99dccd25e0b56b1abe237c0893d0f17e1cb6f48243505",
+    "wled00/udp.cpp": "d29d43d4258a4f65a6fbd92d92a3c7b7cdba041c44bfe67a6eaa75cbd0bc3b81",
+    "wled00/wled.cpp": "33b69db2eeea4cf1faab9c0af6bf73e731c371e434d33da772294a3ec0008c32",
+    "wled00/json.cpp": "36b01371b5f936f6b4f1cc5d3f388da22cc30daac04e4ee9d8b7b8fbbb22331d",
+    "wled00/wled.h": "14b1a6c2c672983a39a408e0f20f2aa17114b93105312fbc0e58c4048d58bd46",
+    "wled00/FX_fcn.cpp": "8d0e1ac015c86fb18e0244cfb10774351877aa76e9433d3f394a91c98d49a80a",
+    "wled00/FX.h": "1784267e52fb4360b12199a2fdcdada31cb74e573728a9450bd731cfcb2efce9",
+    "wled00/DdpFrames.h": "97ccf619f67c881dc6ad43a8f5540c244150676f30ac37bbec34376316d96684",
+    "wled00/loo_ddp.h": "a33ecbca621162b1906928753f31e6bb97b1d8e5597ea2d260103803a2bfa840",
+    "wled00/loo_ddp.cpp": "5cf4bee575dc7857a08d94014a45c424f20849a32b10e0ad855fee82cc8c612a",
+    "wled00/bus_wrapper.h": "e58e042c8192741f1057d494756b0eaaaaabbf6bb0dba331ce88b1fdb4c39a7f",
+    "wled00/bus_manager.cpp": "56129541cd7e1ee81410a797587186d91632a77271f50a9f0022a29edcbfc762",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/NeoPixelBus.h": "dc38c6e299872841d02f404d182d4ee39bcc4f319379ac8dc744d463d405cc23",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/NeoEsp32I2sXMethod.h": "662998efd3621f3de11aa4dad3d7952c0ce2cdae12c49b7b106a6a6aad76b031",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/Esp32_i2s.c": "fe83029c05fedcf3808bfe15aa2e0f4c7303d97ef897a0a9e3392234b4161ed7",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/Core_2_x/Esp32_i2s.h": "2fd893957bec649ccc24e535b5c38144545eae0feeebd45ea568a8ec7d97e825",
+    "wled00/loo_dma_status.h": "2a5c6fe5e0298006ccb0cae5c960dc153ce37e6f44656d125da65fd0ae13f147",
+    "wled00/loo_dma_status.cpp": "ec0bf5492f9a43a82ce53dcf967419c4ce2d58c12987d4944595e21495a667ef",
+    ".pio/libdeps/orbital_esp32dev/NeoPixelBus@src-4b5e4ea50d167e690e5eb220fdd3f575/src/internal/methods/ESP/ESP32/NeoEsp32RmtXMethod.h": "a05b6bff508c4390cd5988449cff72590405a20947d4003201ee363b41845995",
+    "usermods/audioreactive/audio_reactive.cpp": "aee744f400c9c96f2863ef87ce07be8b10d4df959a7a1be0dc2d074105a799ca",
+    "usermods/audioreactive/audio_source.h": "96ba38dc8702c344e2f39c8b5af53b431972a5e601866f201317e93b5880389f",
+    "platformio_override.ini": "9cea6317f15a2f96a4405d0fe26366d318f388c660b0491e2bdb9779850e29f2"
+  },
+  "checks": {
+    "firmware/ddp-timing/patch.py": "77ec643a87244cd77876fc2270956a00e6af11e2aef812b42d6733b53c0fafd3",
+    "firmware/ddp-timing/report.py": "dd617a8b2c1c744587a4276495c83a6442692be2d3c3c846f8c783480c2803a7",
+    "firmware/ddp-timing/test-service.py": "7769976e9794761629de2df2017a8250cd7f5fe0403659b334ff7ab0b15db642",
+    "firmware/ddp-timing/verify.py": "9e310a1b64c39d9c628a73709cdba8b45f00200e905e0aea51c7affaefe100dc",
+    "firmware/ddp-timing/service-harness.cpp": "703702634326539aada5bc5f0294015bd25f8eb9e4fb27996038f6ace8400770",
+    "firmware/ddp-timing/fake-wled.h": "1902cbc59bef5782ca65479ad71136e1afa5fadbc10e61699b4c71845635cf47",
+    "firmware/ddp-dma/test-service.py": "1199e6be933170c14c354d566a2a01cb79d8c331c60b5555a1df05d0bedbdceb",
+    "firmware/ddp-dma/test-queue.cpp": "b5457381e63e8231287758ae407de9b67d0793e9681035a4c79e1c7931c2fce1",
+    "firmware/ddp-expiry/test-expiry.cpp": "4ead4091ad9e395cb3e170c8a0be18188f8264709c623580fb33f744912f814e"
+  },
+  "elfSha256": "564ed3fe3c6934b160c230917122909a6b6d4a25a74bf1fe3c0ab014941e1de0",
+  "compileCommandsSha256": "edcb367c664e2a22e8523b955e522f9befdc12f1a3a17f4353ad9a6f128f4f27",
+  "staticObjectBytes": {
+    "candidate": {
+      "frames": 23724,
+      "timing": 912,
+      "timingSnapshot": 912
+    },
+    "baseline2609099": {
+      "frames": 23720
+    }
+  },
+  "sectionBytes": {
+    "candidate": {
+      ".iram0.text": 74011,
+      ".dram0.data": 20624,
+      ".dram0.bss": 85920,
+      ".flash.rodata": 154856,
+      ".flash.text": 906788
+    },
+    "baseline2609099": {
+      ".iram0.text": 74011,
+      ".dram0.data": 20624,
+      ".dram0.bss": 84056,
+      ".flash.rodata": 154584,
+      ".flash.text": 904192
+    }
+  },
+  "artifact": {
+    "name": "wled-audio-ddp-timing-2609103.bin",
+    "byteLength": 1157792,
+    "sha256": "11d343008729894408ee6009a66e33a6595b8d9cc84aeab75afa3ea6b67c5b0c"
+  },
+  "defaults": "Overlap is off at every boot. Timing telemetry is always on.",
+  "physicalAcceptance": "Pending an attended overlap off/on comparison, standalone audio, ledmap, and timeout checks."
+}
