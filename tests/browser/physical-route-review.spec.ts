@@ -409,8 +409,8 @@ test("mirrors external frames and reviews a physical panel", async ({
 
   await sendArtNetPackets([artDmx(1, new Uint8Array(510).fill(63), 21)]);
   await page.waitForTimeout(250);
-  await expect(page.locator("#sculpture-mirror-status")).toHaveText(
-    "Sculpture mirror is ready",
+  await expect(page.locator("#sculpture-mirror-status")).toContainText(
+    "FPS mirrored",
   );
 
   const physicalRgb = Uint8Array.from(
@@ -440,7 +440,7 @@ test("mirrors external frames and reviews a physical panel", async ({
     .poll(() => physicalFrames.some((frame) => frame.equals(expectedPhysical)))
     .toBe(true);
   await expect(page.locator("#sculpture-mirror-status")).toContainText(
-    "1 visible frame mirrored",
+    "FPS mirrored",
   );
 
   await expect(page.locator("#ddp-preview-status")).toContainText(

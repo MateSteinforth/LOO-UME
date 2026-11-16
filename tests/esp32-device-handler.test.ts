@@ -23,7 +23,9 @@ describe("ESP32 loopback device proxy policy", () => {
       0x41, 8, 0x0b, 1, 0, 0, 0, 0, 2, 64,
     ]);
     expect(() => createDdpPacket(pixels.slice(1), 7)).toThrow(/1 through 480/);
-    expect(() => createDdpPacket(new Uint8Array(1_443), 7)).toThrow(/1 through 480/);
+    expect(() => createDdpPacket(new Uint8Array(1_443), 7)).toThrow(
+      /1 through 480/,
+    );
     expect(() => createDdpPacket(pixels, 0)).toThrow(/1 through 15/);
 
     const full = createDdpPackets(new Uint8Array(2_624 * 3), 13);
@@ -36,18 +38,21 @@ describe("ESP32 loopback device proxy policy", () => {
       [0x40, 2, 0x0b, 1, 0, 0, 22, 128, 5, 160],
       [0x41, 3, 0x0b, 1, 0, 0, 28, 32, 2, 160],
     ]);
-    expect(() => createDdpPackets(new Uint8Array(2_625 * 3), 1))
-      .toThrow(/2,624/);
+    expect(() => createDdpPackets(new Uint8Array(2_625 * 3), 1)).toThrow(
+      /2,624/,
+    );
   });
 
   it("reuses one UDP socket for complete DDP frames", async () => {
     const close = vi.fn();
-    const send = vi.fn((
-      _bytes: Uint8Array,
-      _port: number,
-      _address: string,
-      callback: (error: Error | null) => void,
-    ) => callback(null));
+    const send = vi.fn(
+      (
+        _bytes: Uint8Array,
+        _port: number,
+        _address: string,
+        callback: (error: Error | null) => void,
+      ) => callback(null),
+    );
     const socket = {
       close,
       off: vi.fn(),
@@ -68,6 +73,12 @@ describe("ESP32 loopback device proxy policy", () => {
   });
 
   it("allows only fixed WLED operations on private addresses", () => {
+    expect(
+      esp32TargetUrl("192.168.68.72", "/json/fxdata", "GET").pathname,
+    ).toBe("/json/fxdata");
+    expect(() =>
+      esp32TargetUrl("192.168.68.72", "/json/fxdata", "POST"),
+    ).toThrow(/not allowed/);
     expect(esp32TargetUrl("192.168.68.72", "/json/info", "GET").href).toBe(
       "http://192.168.68.72/json/info",
     );
@@ -83,33 +94,34 @@ describe("ESP32 loopback device proxy policy", () => {
     expect(() => esp32TargetUrl("192.168.68.72", "/", "GET")).toThrow(
       /not allowed/,
     );
-    expect(() => esp32TargetUrl(
-      "192.168.68.72",
-      "/json/info?redirect=http://example.com",
-      "GET",
-    )).toThrow(/not allowed/);
+    expect(() =>
+      esp32TargetUrl(
+        "192.168.68.72",
+        "/json/info?redirect=http://example.com",
+        "GET",
+      ),
+    ).toThrow(/not allowed/);
   });
 
   it("pins the fixed mDNS name to private resolved addresses", async () => {
-    await expect(resolvedEsp32Target(
-      "loo-ume.local",
-      "/json/info",
-      "GET",
-      async () => ["192.168.68.53"],
-    )).resolves.toEqual(new URL("http://192.168.68.53/json/info"));
-    await expect(resolvedEsp32Target(
-      "loo-ume.local",
-      "/json/info",
-      "GET",
-      async () => ["8.8.8.8"],
-    )).rejects.toThrow(/private addresses/);
+    await expect(
+      resolvedEsp32Target("loo-ume.local", "/json/info", "GET", async () => [
+        "192.168.68.53",
+      ]),
+    ).resolves.toEqual(new URL("http://192.168.68.53/json/info"));
+    await expect(
+      resolvedEsp32Target("loo-ume.local", "/json/info", "GET", async () => [
+        "8.8.8.8",
+      ]),
+    ).rejects.toThrow(/private addresses/);
   });
 
   it("requires the editor header before forwarding a fixed request", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({ mac: "aa:bb:cc:dd:ee:ff" }),
-      { headers: { "Content-Type": "application/json" } },
-    ));
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ mac: "aa:bb:cc:dd:ee:ff" }), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
     const handler = createEsp32DeviceHandler(fetchMock);
     const response = {
       statusCode: 0,
@@ -196,7 +208,9 @@ describe("ESP32 loopback device proxy policy", () => {
       setHeader: vi.fn(),
       end: vi.fn(),
     } as unknown as ServerResponse;
-    const request = Readable.from([Buffer.alloc(2_624 * 3, 42)]) as unknown as IncomingMessage;
+    const request = Readable.from([
+      Buffer.alloc(2_624 * 3, 42),
+    ]) as unknown as IncomingMessage;
     Object.assign(request, {
       method: "POST",
       url: "/api/esp32-frame?address=192.168.68.53",
@@ -210,9 +224,12 @@ describe("ESP32 loopback device proxy policy", () => {
     expect(response.statusCode).toBe(204);
     expect(sent).toHaveBeenCalledTimes(6);
     const packets = sent.mock.calls.map((call) => call[1] as Uint8Array);
-    expect(packets.slice(0, -1).every((packet) => packet[0] === 0x40)).toBe(true);
+    expect(packets.slice(0, -1).every((packet) => packet[0] === 0x40)).toBe(
+      true,
+    );
     expect(packets.at(-1)?.[0]).toBe(0x41);
-    expect(packets.reduce((sum, packet) => sum + packet.byteLength - 10, 0))
-      .toBe(2_624 * 3);
+    expect(
+      packets.reduce((sum, packet) => sum + packet.byteLength - 10, 0),
+    ).toBe(2_624 * 3);
   });
 });

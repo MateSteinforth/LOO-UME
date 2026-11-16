@@ -70,8 +70,6 @@ Firmware (P1; physical steps need the operator):
   frames from 88.6% to 91.5%; the remaining loss is Wi-Fi arrival jitter
   (RSSI -80 dBm). Next: operator decision between a playout buffer and a
   better link. The build tree is now in `build/fw/` of the primary checkout.
-- `LIVE-033` Merge the 30 frames/s DDP sender. `main` sends 10 frames/s
-  (LOO/UME 0.1.50). The corrected sender is on `codex/ddp-rate-control`.
 - `FIRM-045` Correlate the residual flashes with frame data and RMT timing
   before another output-driver change. Check native-to-DDP transitions
   separately from steady playback.
@@ -119,4 +117,7 @@ No tasks.
 
 ## Done since the last archive
 
-None.
+None on `main`. On `fable`: `LIVE-033` merged `codex/ddp-rate-control`
+(FIRM-021, 022, 023, 025: audio effect picker, unified DDP sender, pacing, and
+the 20/25/30/40 frames/s selector with default 30). `main` sends 10 frames/s
+until `fable` is integrated.

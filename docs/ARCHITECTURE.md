@@ -434,8 +434,10 @@ frame, and sends `live:false` before the snapshot so WLED cannot save a frozen
 realtime segment instead of the selected native effect.
 It restarts WLED and verifies the config, preset, state,
 device identity, and boot-preset selection before setup succeeds. Because HTTP
-can recover after discovery, this complete snapshot has a bounded retry. Later
-control changes update the same standalone preset.
+can recover after discovery, this complete snapshot has a bounded retry.
+Later preview controls do not write flash. **Save startup effect** explicitly
+updates the same verified standalone preset. Native microphone previews apply
+and verify live state without saving. Ordinary reconnect preserves the boot preset.
 The browser suspends DDP for the complete setup operation. This prevents a live
 frame from freezing WLED realtime state before the native preset is verified.
 It also drains prior reconnect, preset-save, and frame requests before flashing.
@@ -446,8 +448,17 @@ loopback host accepts only 1 to 2,624 RGB pixels, splits frames into WLED's
 fixed DDP port 4048. WLED is
 configured with a 2.5-second realtime timeout so it can resume the saved native
 animation if the browser, host, network, or laptop stops sending frames. The
-editor keeps one request in flight, updates at no more than 10 frames per
-second, and backs off after a network error. The sender applies the pinned WLED
+editor selects the displayed native, Art-Net, or DDP framebuffer once in its
+animation loop and forwards it through one queue with a selectable 20/25/30/40 FPS
+target (30 FPS on startup). A target change stops and restarts queue pacing while
+retaining any issued request; it does not write device state or change pixel counts.
+Deadlines advance independently of timer callback rounding, with at most 1 ms
+of timing correction and no burst to recover missed frames.
+The queue keeps one request in flight and replaces its single pending frame
+with the newest displayed frame. It preserves the in-flight barrier across
+stop/restart and stops the link after a network error. Native microphone mode,
+setup, preset writes, and physical review pause ordinary forwarding.
+The sender applies the pinned WLED
 2.2 color-gamma curve because realtime input is configured with `no-gc: true`;
 native and DDP pixels therefore use the same output color pipeline. This is a
 bounded test-sculpture link for the loaded sculpture.
@@ -460,7 +471,7 @@ intentionally changes the spatial ledmap but not the
 physical route or bus layout. After identity and bus verification, reconnect
 uploads that valid changed map, activates map 0 through the WLED state API,
 verifies the active map and exact stored bytes, and only then updates the
-standalone preset and resumes DDP. Invalid map JSON and all other contract
+playback path and resumes DDP without overwriting the startup effect. Invalid map JSON and all other contract
 mismatches still stop without a controller mutation.
 The operator physically confirmed on the 192-LED three-panel project that WLED
 leaves DDP realtime mode and runs the saved native animation. A USB power cycle
